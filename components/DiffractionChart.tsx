@@ -43,7 +43,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results }) =
   return (
     <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-64 md:h-80 w-full flex flex-col">
       <h3 className="text-sm font-semibold text-slate-600 mb-4 ml-2">Simulated Diffraction Pattern</h3>
-      <div className="flex-1 w-full min-h-0">
+      <div className="flex-1 w-full min-h-0 min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />

@@ -111,7 +111,7 @@ export const DeepLearningModule: React.FC = () => {
         {/* Visualizer */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-64 flex flex-col">
           <h3 className="text-sm font-semibold text-slate-600 mb-4 ml-2">Input Pattern Visualization</h3>
-          <div className="flex-1 w-full min-h-0">
+          <div className="flex-1 w-full min-h-0 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />

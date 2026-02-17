@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface BraggInputProps {
@@ -15,6 +16,15 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   setRawPeaks,
   onCalculate
 }) => {
+  const standardWavelengths = [
+    { label: 'Cu Kα', value: 1.5406 },
+    { label: 'Mo Kα', value: 0.7107 },
+    { label: 'Co Kα', value: 1.7890 },
+    { label: 'Fe Kα', value: 1.9360 },
+    { label: 'Cr Kα', value: 2.2897 },
+    { label: 'Ag Kα', value: 0.5594 },
+  ];
+
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
       <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -41,19 +51,20 @@ export const BraggInput: React.FC<BraggInputProps> = ({
               Å
             </div>
           </div>
-          <div className="mt-2 flex gap-2 text-xs">
-            <button 
-              onClick={() => setWavelength(1.5406)}
-              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 transition-colors font-medium"
-            >
-              Cu Kα (1.5406)
-            </button>
-            <button 
-              onClick={() => setWavelength(0.7107)}
-              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-600 transition-colors font-medium"
-            >
-              Mo Kα (0.7107)
-            </button>
+          <div className="mt-3 grid grid-cols-3 gap-1.5">
+            {standardWavelengths.map((sw) => (
+              <button 
+                key={sw.label}
+                onClick={() => setWavelength(sw.value)}
+                className={`px-2 py-1.5 text-[10px] rounded border transition-all font-bold ${
+                  wavelength === sw.value 
+                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' 
+                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {sw.label}
+              </button>
+            ))}
           </div>
         </div>
 

@@ -123,7 +123,7 @@ export const FWHMModule: React.FC = () => {
       <div className="lg:col-span-8 space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[500px] flex flex-col">
            <h3 className="text-lg font-bold text-slate-800 mb-6">Peak Profile Visualizer</h3>
-           <div className="flex-1 w-full min-h-0">
+           <div className="flex-1 w-full min-h-0 min-w-0">
              <ResponsiveContainer width="100%" height="100%">
                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 30 }}>
                  <defs>

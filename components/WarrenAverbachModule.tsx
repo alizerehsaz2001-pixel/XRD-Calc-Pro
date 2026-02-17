@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { parseWAInput, calculateWarrenAverbach } from '../utils/physics';
 import { WAResult } from '../types';
@@ -120,7 +119,7 @@ export const WarrenAverbachModule: React.FC = () => {
           {!result ? (
              <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">No data</div>
           ) : (
-            <div className="flex-1 w-full min-h-0">
+            <div className="flex-1 w-full min-h-0 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={result.sizeDistribution} margin={{ top: 5, right: 30, left: 20, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -140,12 +139,11 @@ export const WarrenAverbachModule: React.FC = () => {
 
         {/* Chart 2: RMS Strain */}
         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-80 flex flex-col">
-          {/* Use string escaping or curly braces to avoid interpreting mathematical symbols as JSX tags */}
           <h3 className="text-sm font-semibold text-slate-600 mb-4 ml-2">{"RMS Strain Distribution (√⟨ε²⟩ vs L)"}</h3>
           {!result ? (
              <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">No data</div>
           ) : (
-            <div className="flex-1 w-full min-h-0">
+            <div className="flex-1 w-full min-h-0 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={result.strainDistribution} margin={{ top: 5, right: 30, left: 20, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
