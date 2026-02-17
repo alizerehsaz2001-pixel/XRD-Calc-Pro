@@ -1,17 +1,20 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { createSupportChat } from '../services/geminiService';
-import { Chat, GenerateContentResponse } from '@google/genai';
+import { Chat, GenerateContentResponse, GroundingChunk } from '@google/genai';
 import ReactMarkdown from 'react-markdown';
+import { GroundingSource } from '../types';
 
 interface Message {
   role: 'user' | 'model';
   text: string;
+  sources?: GroundingSource[];
 }
 
 export const AIChatSupport: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'model', text: "Hi! I'm Crystal, your XRD-Calc Pro assistant. Ask me anything about crystallography or how to use this app!" }
+    { role: 'model', text: "Hi! I'm Crystal, your XRD-Calc Pro assistant. Ask me anything about crystallography or how to use this app! I can also search for the latest scientific data for you." }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,7 +46,19 @@ export const AIChatSupport: React.FC = () => {
 
     try {
       const response: GenerateContentResponse = await chatSession.current.sendMessage({ message: userMsg });
-      setMessages(prev => [...prev, { role: 'model', text: response.text || "I couldn't generate a response." }]);
+      
+      const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+      const sources: GroundingSource[] = groundingMetadata?.groundingChunks 
+        ? groundingMetadata.groundingChunks
+          .map((chunk: GroundingChunk) => chunk.web ? { title: chunk.web.title, uri: chunk.web.uri } : null)
+          .filter((s: any): s is GroundingSource => s !== null)
+        : [];
+
+      setMessages(prev => [...prev, { 
+        role: 'model', 
+        text: response.text || "I couldn't generate a response.",
+        sources: sources.length > 0 ? sources : undefined
+      }]);
     } catch (error) {
       console.error("Chat Error:", error);
       setMessages(prev => [...prev, { role: 'model', text: "Sorry, I'm having trouble connecting to the network right now." }]);
@@ -69,7 +84,7 @@ export const AIChatSupport: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-sm">Crystal AI Support</h3>
-                <p className="text-[10px] text-indigo-100 opacity-80">Powered by Gemini 2.5</p>
+                <p className="text-[10px] text-indigo-100 opacity-80">Grounded Intelligence Active</p>
               </div>
             </div>
             <button 
@@ -83,20 +98,33 @@ export const AIChatSupport: React.FC = () => {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 bg-slate-50 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+          <div className="flex-1 bg-slate-50 overflow-y-auto p-4 space-y-4 custom-scrollbar">
             {messages.map((msg, idx) => (
               <div 
                 key={idx} 
-                className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex flex-col w-full ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
               >
                 <div 
-                  className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
+                  className={`max-w-[90%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
                     msg.role === 'user' 
                       ? 'bg-indigo-600 text-white rounded-br-none' 
                       : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
                   }`}
                 >
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
+                  
+                  {msg.sources && msg.sources.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Sources:</p>
+                      <div className="flex flex-col gap-0.5">
+                        {msg.sources.map((s, i) => (
+                          <a key={i} href={s.uri} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-500 hover:underline truncate">
+                            • {s.title}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -118,7 +146,7 @@ export const AIChatSupport: React.FC = () => {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a question..."
+              placeholder="Ask about materials or XRD theory..."
               className="flex-1 bg-slate-100 border-none rounded-full px-4 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
             />
             <button 

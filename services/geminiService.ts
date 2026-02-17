@@ -1,12 +1,25 @@
-import { GoogleGenAI, Type, Chat } from "@google/genai";
-import { AIResponse, CrystalMindResponse } from '../types';
+
+import { GoogleGenAI, Type, Chat, GroundingChunk } from "@google/genai";
+import { AIResponse, CrystalMindResponse, GroundingSource } from '../types';
 
 // Initialize Gemini Client using process.env.API_KEY directly
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+const extractSources = (metadata: any): GroundingSource[] => {
+  if (!metadata?.groundingChunks) return [];
+  return metadata.groundingChunks
+    .map((chunk: GroundingChunk) => {
+      if (chunk.web) {
+        return { title: chunk.web.title, uri: chunk.web.uri };
+      }
+      return null;
+    })
+    .filter((s: any): s is GroundingSource => s !== null);
+};
+
 export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
   try {
-    const model = 'gemini-3-pro-preview';
+    const model = 'gemini-3-flash-preview';
     
     const response = await ai.models.generateContent({
       model,
@@ -15,9 +28,7 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
       Include structural parameters like lattice constants (a, b, c), space group, and theoretical density if known.
       Return at least the top 5 major peaks for the Cu K-alpha wavelength.`,
       config: {
-        thinkingConfig: {
-          thinkingBudget: 32768, 
-        },
+        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -69,7 +80,10 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
     const text = response.text;
     if (!text) throw new Error("No response from AI");
     
-    return JSON.parse(text) as AIResponse;
+    const result = JSON.parse(text) as AIResponse;
+    result.sources = extractSources(response.candidates?.[0]?.groundingMetadata);
+    
+    return result;
   } catch (error) {
     console.error("Gemini API Error:", error);
     throw error;
@@ -78,14 +92,12 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
 
 export const explainResults = async (resultsSummary: string): Promise<string> => {
    try {
-    const model = 'gemini-3-pro-preview';
+    const model = 'gemini-3-flash-preview';
     const response = await ai.models.generateContent({
       model,
       contents: `As a crystallography expert, briefly interpret these diffraction results: ${resultsSummary}. Focus on d-spacing trends and potential crystal quality indicators. Keep it under 50 words.`,
       config: {
-        thinkingConfig: {
-          thinkingBudget: 32768, 
-        }
+        tools: [{ googleSearch: {} }]
       }
     });
     return response.text || "Could not generate explanation.";
@@ -144,7 +156,8 @@ export const createSupportChat = (): Chat => {
   return ai.chats.create({
     model: 'gemini-3-flash-preview',
     config: {
-      systemInstruction: "You are 'Crystal', the AI support assistant for the Bragg-Engine crystallography app. You are helpful, scientifically accurate, and concise. You help users (especially Raf) understand diffraction concepts (Bragg's law, Scherrer equation, Rietveld refinement) and navigate the app.",
+      systemInstruction: "You are 'Crystal', the AI support assistant for the Bragg-Engine crystallography app. You are helpful, scientifically accurate, and concise. You help users (especially Raf) understand diffraction concepts (Bragg's law, Scherrer equation, Rietveld refinement) and navigate the app. Use the Google Search tool to provide accurate, up-to-date scientific information.",
+      tools: [{ googleSearch: {} }]
     }
   });
 };
@@ -153,11 +166,11 @@ export const createSupportChat = (): Chat => {
 
 export const searchCrystalDatabase = async (command: string, elements: string[], peaks?: number[]): Promise<CrystalMindResponse> => {
   try {
-    // Mission Control requires high precision grounding
     const model = 'gemini-3-flash-preview';
     
     let prompt = `You are "CrystalMind-Control", the database integration and search orchestration module for the CrystalMind AI platform.
-    Your role is to interface between the user's diffraction data and external crystallographic databases (COD, Materials Project, AMCSD).
+    Your role is to interface between the user's diffraction data and external crystallographic databases. 
+    PRIORITY: Connect and retrieve data from the Materials Project (materialsproject.org) and COD (crystallography.net).
 
     MISSION:
     Translate user requests or raw diffraction patterns into precise database search queries. Retrieve candidate phases, CIF files, and crystallographic metadata required for Rietveld refinement and phase identification.
@@ -168,13 +181,24 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
     - Observed Peaks: ${peaks ? peaks.join(', ') : 'None provided'}
 
     OPERATIONAL LOGIC:
-    1. Search by Composition: If elements provided, find matching compounds in COD or Materials Project.
-    2. Search by Peak Match: If peaks provided, perform a fingerprint search using d-spacing tolerance.
-    3. Data Retrieval: Extract Formula, Space Group, Lattice Parameters (a, b, c, alpha, beta, gamma), and Figure of Merit match score.
-
-    SUPPORTED DATABASES: COD, Materials Project, AMCSD.
+    1. Search by Composition: If elements provided, find matching compounds in Materials Project or COD.
+    2. Search by Peak Match: If peaks provided, perform a fingerprint search using d-spacing tolerance against known standards.
+    3. Data Retrieval: Extract structural, electronic, and thermodynamic properties.
     
-    REQUIREMENT: Use Google Search tool to find real, verified Database IDs (especially COD IDs) and structural parameters. Do not hallucinate lattice constants.
+    REQUIRED PROPERTIES PER RESULT:
+    - Formula & Phase Name
+    - Database ID (mp-ID or COD-ID)
+    - Space Group & Point Group
+    - Crystal System (Cubic, Tetragonal, etc.)
+    - Lattice Parameters (a, b, c, alpha, beta, gamma)
+    - Volume (Å³) & Density (g/cm³)
+    - Energy Above Hull (eV/atom) - stability measure
+    - Band Gap (eV)
+    - Stability Status (is_stable: boolean)
+
+    SUPPORTED DATABASES: Materials Project (Priority), COD, AMCSD.
+    
+    REQUIREMENT: Use Google Search tool to find real, verified Database IDs (especially Materials Project IDs and COD IDs) and structural parameters. Do not hallucinate lattice constants.
 
     OUTPUT SCHEMA (STRICT JSON):
     {
@@ -193,12 +217,19 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
           "formula": string,
           "database_id": string,
           "space_group": string,
+          "crystal_system": string,
+          "point_group": string,
           "lattice_params": {
             "a": float, "b": float, "c": float,
             "alpha": float, "beta": float, "gamma": float
           },
+          "volume": float,
+          "density": float,
+          "energy_above_hull": float,
+          "band_gap": float,
+          "is_stable": boolean,
           "figure_of_merit": float (0.0 - 1.0),
-          "cif_url": string (link to COD/MP entry)
+          "cif_url": string
         }
       ],
       "control_message": string
@@ -210,14 +241,17 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
       model,
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }] // Enabled for mission-critical grounding
+        tools: [{ googleSearch: {} }]
       }
     });
     
     const text = response.text || "";
     const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
     
-    return JSON.parse(jsonString) as CrystalMindResponse;
+    const result = JSON.parse(jsonString) as CrystalMindResponse;
+    result.sources = extractSources(response.candidates?.[0]?.groundingMetadata);
+    
+    return result;
 
   } catch (error) {
     console.error("CrystalMind-Control Search Error:", error);

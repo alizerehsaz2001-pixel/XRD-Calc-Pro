@@ -1,3 +1,9 @@
+
+export interface GroundingSource {
+  title: string;
+  uri: string;
+}
+
 export interface BraggResult {
   twoTheta: number;
   dSpacing: number;
@@ -26,6 +32,7 @@ export interface AIResponse {
   };
   spaceGroup?: string;
   density?: number;
+  sources?: GroundingSource[];
 }
 
 export type CrystalSystem = 'SC' | 'BCC' | 'FCC' | 'Diamond' | 'Cubic' | 'Tetragonal' | 'Orthorhombic' | 'Hexagonal' | 'Monoclinic' | 'Triclinic';
@@ -207,6 +214,8 @@ export interface CrystalMindSearchResult {
   formula: string;
   database_id: string;
   space_group: string;
+  crystal_system: string;
+  point_group: string;
   lattice_params: {
     a: number;
     b: number;
@@ -215,6 +224,11 @@ export interface CrystalMindSearchResult {
     beta: number;
     gamma: number;
   };
+  volume: number;
+  density: number;
+  energy_above_hull: number;
+  band_gap: number;
+  is_stable: boolean;
   figure_of_merit: number;
   cif_url: string;
 }
@@ -231,4 +245,5 @@ export interface CrystalMindResponse {
   };
   search_results: CrystalMindSearchResult[];
   control_message: string;
+  sources?: GroundingSource[];
 }

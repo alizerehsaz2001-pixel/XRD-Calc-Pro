@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { getMaterialPeaks } from '../services/geminiService';
 import { AIResponse } from '../types';
@@ -131,6 +132,19 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
                 ))}
               </div>
             </div>
+
+            {suggestion.sources && suggestion.sources.length > 0 && (
+              <div className="mb-4 pt-3 border-t border-white/10">
+                <p className="text-[9px] font-bold text-indigo-400 mb-1 uppercase tracking-widest">Verified Sources</p>
+                <div className="flex flex-col gap-1">
+                  {suggestion.sources.map((s, i) => (
+                    <a key={i} href={s.uri} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-300 hover:text-white transition-colors truncate underline">
+                      {s.title}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={applySuggestion}

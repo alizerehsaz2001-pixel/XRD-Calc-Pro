@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { CrystalMindResponse, CrystalMindSearchResult } from '../types';
 import { searchCrystalDatabase } from '../services/geminiService';
 
 export const CrystalMindModule: React.FC = () => {
-  const [command, setCommand] = useState<string>("Search for stable phases containing Titanium and Oxygen");
+  const [command, setCommand] = useState<string>("Search for stable phases containing Titanium and Oxygen in Materials Project");
   const [elementsInput, setElementsInput] = useState<string>("Ti, O");
   const [peaksInput, setPeaksInput] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -71,9 +72,10 @@ export const CrystalMindModule: React.FC = () => {
               <div>
                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Target</label>
                  <select className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none text-xs">
-                    <option>All Databases</option>
+                    <option>Materials Project (Primary)</option>
                     <option>COD Only</option>
-                    <option>Materials Project</option>
+                    <option>AMCSD</option>
+                    <option>All Databases</option>
                  </select>
               </div>
             </div>
@@ -123,9 +125,9 @@ export const CrystalMindModule: React.FC = () => {
            </div>
            <div className="text-slate-500 space-y-1 h-32 overflow-y-auto custom-scrollbar">
               <p>[INFO] CrystalMind-Control protocol initiated.</p>
+              <p>[INFO] Primary Database: Materials Project.</p>
               <p>[INFO] Elements set to: {elementsInput || 'None'}</p>
-              <p>[INFO] Waiting for user directive...</p>
-              {loading && <p className="text-cyan-400 animate-pulse">[BUS] Querying external repositories (COD/MP)...</p>}
+              {loading && <p className="text-cyan-400 animate-pulse">[BUS] Querying Grounded Repositories (MP/COD)...</p>}
               {response && <p className="text-green-400">[OK] Search retrieved {response.search_results.length} candidates.</p>}
            </div>
         </div>
@@ -155,10 +157,32 @@ export const CrystalMindModule: React.FC = () => {
                  </svg>
                </div>
                <h3 className="text-lg font-bold text-slate-400">Database Search Offline</h3>
-               <p className="text-sm mt-1 max-w-xs text-center">Execute mission to retrieve structural data from global repositories.</p>
+               <p className="text-sm mt-1 max-w-xs text-center">Execute mission to retrieve structural data from Materials Project & COD.</p>
              </div>
           )}
         </div>
+
+        {/* GROUNDING SOURCES */}
+        {response?.sources && response.sources.length > 0 && (
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Verified Research Citations</h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {response.sources.map((source, i) => (
+                  <a key={i} href={source.uri} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-cyan-50 hover:border-cyan-200 transition-colors group">
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-cyan-600 border border-slate-200 group-hover:border-cyan-300 transition-colors">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 truncate">{source.title}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{source.uri}</p>
+                    </div>
+                  </a>
+                ))}
+             </div>
+          </div>
+        )}
 
         {/* ADVANCED DATA VIEW */}
         {response && (
@@ -194,7 +218,9 @@ const ControlResultCard: React.FC<{ result: CrystalMindSearchResult }> = ({ resu
          <div>
            <div className="flex items-center gap-2 mb-1">
              <h3 className="text-lg font-extrabold text-slate-900 leading-none">{result.phase_name}</h3>
-             <span className="text-[10px] font-bold bg-cyan-100 text-cyan-700 px-1.5 py-0.5 rounded-md border border-cyan-200 uppercase tracking-tighter">Valid</span>
+             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border uppercase tracking-tighter ${result.is_stable ? 'bg-green-100 text-green-700 border-green-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>
+               {result.is_stable ? 'Stable' : 'Unstable'}
+             </span>
            </div>
            <div className="flex gap-2">
              <span className="text-xs font-mono text-slate-500 font-bold">{result.formula}</span>
@@ -202,27 +228,48 @@ const ControlResultCard: React.FC<{ result: CrystalMindSearchResult }> = ({ resu
            </div>
          </div>
          <div className="text-right">
-           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Fingerprint FOM</div>
+           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">FOM Match</div>
            <div className="text-xl font-black text-cyan-600">{(result.figure_of_merit * 100).toFixed(1)}%</div>
          </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3 mb-5 p-3 bg-slate-50 rounded-xl border border-slate-100">
-         <div>
-           <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Space Group</span>
-           <span className="text-xs font-bold text-slate-700 font-mono tracking-tighter">{result.space_group}</span>
+      <div className="grid grid-cols-2 gap-4 mb-5">
+         <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+            <div>
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Crystal System</span>
+              <span className="text-xs font-bold text-slate-700">{result.crystal_system}</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Space Group</span>
+              <span className="text-xs font-bold text-slate-700 font-mono tracking-tighter">{result.space_group} ({result.point_group})</span>
+            </div>
+            <div>
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Lattice (Å)</span>
+              <div className="flex gap-2 font-mono text-[10px] text-slate-600">
+                <span>a: {result.lattice_params.a.toFixed(2)}</span>
+                <span>b: {result.lattice_params.b.toFixed(2)}</span>
+                <span>c: {result.lattice_params.c.toFixed(2)}</span>
+              </div>
+            </div>
          </div>
-         <div>
-           <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">a (Å)</span>
-           <span className="text-xs font-mono font-bold text-slate-800">{result.lattice_params.a.toFixed(4)}</span>
-         </div>
-         <div>
-           <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">b (Å)</span>
-           <span className="text-xs font-mono font-bold text-slate-800">{result.lattice_params.b.toFixed(4)}</span>
-         </div>
-         <div>
-           <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">c (Å)</span>
-           <span className="text-xs font-mono font-bold text-slate-800">{result.lattice_params.c.toFixed(4)}</span>
+         
+         <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-slate-400 font-bold uppercase">Band Gap</span>
+              <span className="text-xs font-bold text-indigo-600">{result.band_gap?.toFixed(2) || '0.00'} eV</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-slate-400 font-bold uppercase">E above Hull</span>
+              <span className="text-xs font-bold text-slate-700">{result.energy_above_hull?.toFixed(3) || '0.000'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-slate-400 font-bold uppercase">Density</span>
+              <span className="text-xs font-bold text-slate-700">{result.density?.toFixed(2) || '0.00'} g/cm³</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-slate-400 font-bold uppercase">Volume</span>
+              <span className="text-xs font-bold text-slate-700">{result.volume?.toFixed(1) || '0.0'} Å³</span>
+            </div>
          </div>
       </div>
 
