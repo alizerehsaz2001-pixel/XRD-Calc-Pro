@@ -16,6 +16,16 @@ export interface AIResponse {
   peaks: number[];
   wavelength?: number;
   description?: string;
+  latticeParams?: {
+    a: number;
+    b?: number;
+    c?: number;
+    alpha?: number;
+    beta?: number;
+    gamma?: number;
+  };
+  spaceGroup?: string;
+  density?: number;
 }
 
 export type CrystalSystem = 'SC' | 'BCC' | 'FCC' | 'Diamond' | 'Cubic' | 'Tetragonal' | 'Orthorhombic' | 'Hexagonal' | 'Monoclinic' | 'Triclinic';

@@ -10,9 +10,10 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
     
     const response = await ai.models.generateContent({
       model,
-      contents: `Provide the characteristic 2-theta diffraction peaks for the following material or query: "${query}". 
-      Assume a standard X-ray wavelength of Cu K-alpha (1.5406 Angstrom) unless the user specifies otherwise or the material requires specific conditions. 
-      Return at least the top 3-5 major peaks.`,
+      contents: `Provide characteristic crystallography data and major diffraction peaks for the material or query: "${query}". 
+      Assume a standard X-ray wavelength of Cu K-alpha (1.5406 Angstrom) unless the user specifies otherwise. 
+      Include structural parameters like lattice constants (a, b, c), space group, and theoretical density if known.
+      Return at least the top 5 major peaks for the Cu K-alpha wavelength.`,
       config: {
         thinkingConfig: {
           thinkingBudget: 32768, 
@@ -37,7 +38,27 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
             },
             description: {
               type: Type.STRING,
-              description: "A brief one-sentence description of the crystal structure."
+              description: "A brief one-sentence description of the material and its properties."
+            },
+            latticeParams: {
+              type: Type.OBJECT,
+              properties: {
+                a: { type: Type.NUMBER },
+                b: { type: Type.NUMBER },
+                c: { type: Type.NUMBER },
+                alpha: { type: Type.NUMBER },
+                beta: { type: Type.NUMBER },
+                gamma: { type: Type.NUMBER }
+              },
+              required: ["a"]
+            },
+            spaceGroup: {
+              type: Type.STRING,
+              description: "Space group symbol (e.g., Fm-3m, Pnma)"
+            },
+            density: {
+              type: Type.NUMBER,
+              description: "Theoretical density in g/cm³"
             }
           },
           required: ["material", "peaks"]
