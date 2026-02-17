@@ -1,0 +1,212 @@
+import { GoogleGenAI, Type, Chat } from "@google/genai";
+import { AIResponse, CrystalMindResponse } from '../types';
+
+// Initialize Gemini Client using process.env.API_KEY directly
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
+  try {
+    const model = 'gemini-3-pro-preview';
+    
+    const response = await ai.models.generateContent({
+      model,
+      contents: `Provide the characteristic 2-theta diffraction peaks for the following material or query: "${query}". 
+      Assume a standard X-ray wavelength of Cu K-alpha (1.5406 Angstrom) unless the user specifies otherwise or the material requires specific conditions. 
+      Return at least the top 3-5 major peaks.`,
+      config: {
+        thinkingConfig: {
+          thinkingBudget: 32768, 
+        },
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            material: {
+              type: Type.STRING,
+              description: "The identified name of the material"
+            },
+            peaks: {
+              type: Type.ARRAY,
+              items: { type: Type.NUMBER },
+              description: "List of 2-theta angles in degrees"
+            },
+            wavelength: {
+              type: Type.NUMBER,
+              description: "The wavelength used for these peaks in Angstroms",
+              nullable: true
+            },
+            description: {
+              type: Type.STRING,
+              description: "A brief one-sentence description of the crystal structure."
+            }
+          },
+          required: ["material", "peaks"]
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from AI");
+    
+    return JSON.parse(text) as AIResponse;
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    throw error;
+  }
+};
+
+export const explainResults = async (resultsSummary: string): Promise<string> => {
+   try {
+    const model = 'gemini-3-pro-preview';
+    const response = await ai.models.generateContent({
+      model,
+      contents: `As a crystallography expert, briefly interpret these diffraction results: ${resultsSummary}. Focus on d-spacing trends and potential crystal quality indicators. Keep it under 50 words.`,
+      config: {
+        thinkingConfig: {
+          thinkingBudget: 32768, 
+        }
+      }
+    });
+    return response.text || "Could not generate explanation.";
+   } catch (error) {
+     return "Analysis unavailable.";
+   }
+};
+
+export const analyzeDiffractionImage = async (imageBase64: string, userContext: string): Promise<string> => {
+  try {
+    const model = 'gemini-3-pro-preview';
+    
+    const matches = imageBase64.match(/^data:(.+);base64,(.+)$/);
+    if (!matches || matches.length < 3) {
+      throw new Error("Invalid image format");
+    }
+    const mimeType = matches[1];
+    const data = matches[2];
+
+    const response = await ai.models.generateContent({
+      model,
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: mimeType,
+              data: data
+            }
+          },
+          {
+            text: `Analyze this crystallography image. Context provided by user: "${userContext}".
+            
+            1. If this is a diffraction pattern (XRD), identify visible peaks, background noise levels, and potential symmetry.
+            2. If this is a screenshot from software like HighScore or a data table, interpret the scores, candidate phases, and statistical fit values.
+            3. Provide a summary of the likely material composition and data quality.
+            
+            Be precise and act as an expert crystallographer.`
+          }
+        ]
+      },
+      config: {
+        thinkingConfig: {
+          thinkingBudget: 32768, 
+        }
+      }
+    });
+
+    return response.text || "No analysis could be generated for this image.";
+  } catch (error) {
+    console.error("Gemini Image Analysis Error:", error);
+    throw error;
+  }
+};
+
+export const createSupportChat = (): Chat => {
+  return ai.chats.create({
+    model: 'gemini-3-flash-preview',
+    config: {
+      systemInstruction: "You are 'Crystal', the AI support assistant for the Bragg-Engine crystallography app. You are helpful, scientifically accurate, and concise. You help users (especially Raf) understand diffraction concepts (Bragg's law, Scherrer equation, Rietveld refinement) and navigate the app.",
+    }
+  });
+};
+
+// --- CrystalMind-Control (Database Integration) ---
+
+export const searchCrystalDatabase = async (command: string, elements: string[], peaks?: number[]): Promise<CrystalMindResponse> => {
+  try {
+    // Mission Control requires high precision grounding
+    const model = 'gemini-3-flash-preview';
+    
+    let prompt = `You are "CrystalMind-Control", the database integration and search orchestration module for the CrystalMind AI platform.
+    Your role is to interface between the user's diffraction data and external crystallographic databases (COD, Materials Project, AMCSD).
+
+    MISSION:
+    Translate user requests or raw diffraction patterns into precise database search queries. Retrieve candidate phases, CIF files, and crystallographic metadata required for Rietveld refinement and phase identification.
+
+    INPUT CONTEXT:
+    - User Command: "${command}"
+    - Elements: ${elements.join(', ')}
+    - Observed Peaks: ${peaks ? peaks.join(', ') : 'None provided'}
+
+    OPERATIONAL LOGIC:
+    1. Search by Composition: If elements provided, find matching compounds in COD or Materials Project.
+    2. Search by Peak Match: If peaks provided, perform a fingerprint search using d-spacing tolerance.
+    3. Data Retrieval: Extract Formula, Space Group, Lattice Parameters (a, b, c, alpha, beta, gamma), and Figure of Merit match score.
+
+    SUPPORTED DATABASES: COD, Materials Project, AMCSD.
+    
+    REQUIREMENT: Use Google Search tool to find real, verified Database IDs (especially COD IDs) and structural parameters. Do not hallucinate lattice constants.
+
+    OUTPUT SCHEMA (STRICT JSON):
+    {
+      "module": "CrystalMind-Control",
+      "action": "Database_Search",
+      "status": "success",
+      "query_parameters": {
+        "elements_included": [string],
+        "elements_excluded": [string],
+        "strict_match": boolean,
+        "database_target": "COD" | "MaterialsProject" | "AMCSD" | "All"
+      },
+      "search_results": [
+        {
+          "phase_name": string,
+          "formula": string,
+          "database_id": string,
+          "space_group": string,
+          "lattice_params": {
+            "a": float, "b": float, "c": float,
+            "alpha": float, "beta": float, "gamma": float
+          },
+          "figure_of_merit": float (0.0 - 1.0),
+          "cif_url": string (link to COD/MP entry)
+        }
+      ],
+      "control_message": string
+    }
+
+    Return ONLY the JSON. No markdown formatting.`;
+
+    const response = await ai.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }] // Enabled for mission-critical grounding
+      }
+    });
+    
+    const text = response.text || "";
+    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    return JSON.parse(jsonString) as CrystalMindResponse;
+
+  } catch (error) {
+    console.error("CrystalMind-Control Search Error:", error);
+    return {
+      module: "CrystalMind-Control",
+      action: "Database_Search",
+      status: "error",
+      query_parameters: { elements_included: elements, elements_excluded: [], strict_match: false, database_target: "All" },
+      search_results: [],
+      control_message: "Search protocol failed. Database connectivity offline or query malformed."
+    };
+  }
+};
