@@ -4,8 +4,9 @@ import { CrystalMindResponse, CrystalMindSearchResult } from '../types';
 import { searchCrystalDatabase } from '../services/geminiService';
 
 export const CrystalMindModule: React.FC = () => {
-  const [command, setCommand] = useState<string>("Search for stable phases containing Titanium and Oxygen in Materials Project");
+  const [command, setCommand] = useState<string>("Search for stable phases containing Titanium and Oxygen");
   const [elementsInput, setElementsInput] = useState<string>("Ti, O");
+  const [databaseTarget, setDatabaseTarget] = useState<"MaterialsProject" | "COD" | "AMCSD" | "All">("MaterialsProject");
   const [peaksInput, setPeaksInput] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<CrystalMindResponse | null>(null);
@@ -20,7 +21,7 @@ export const CrystalMindModule: React.FC = () => {
         ? peaksInput.split(/[\s,]+/).map(parseFloat).filter(n => !isNaN(n))
         : undefined;
 
-      const data = await searchCrystalDatabase(command, elements, peaks);
+      const data = await searchCrystalDatabase(command, elements, databaseTarget, peaks);
       setResponse(data);
     } catch (e) {
       console.error(e);
@@ -70,12 +71,16 @@ export const CrystalMindModule: React.FC = () => {
                 />
               </div>
               <div>
-                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Target</label>
-                 <select className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none text-xs">
-                    <option>Materials Project (Primary)</option>
-                    <option>COD Only</option>
-                    <option>AMCSD</option>
-                    <option>All Databases</option>
+                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Target Database</label>
+                 <select 
+                    value={databaseTarget}
+                    onChange={(e) => setDatabaseTarget(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-slate-800 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 outline-none text-xs font-bold"
+                 >
+                    <option value="MaterialsProject">Materials Project</option>
+                    <option value="COD">COD (Open Database)</option>
+                    <option value="AMCSD">AMCSD (RRUFF)</option>
+                    <option value="All">Global Search</option>
                  </select>
               </div>
             </div>
@@ -125,9 +130,9 @@ export const CrystalMindModule: React.FC = () => {
            </div>
            <div className="text-slate-500 space-y-1 h-32 overflow-y-auto custom-scrollbar">
               <p>[INFO] CrystalMind-Control protocol initiated.</p>
-              <p>[INFO] Primary Database: Materials Project.</p>
+              <p>[INFO] Target Database: {databaseTarget}.</p>
               <p>[INFO] Elements set to: {elementsInput || 'None'}</p>
-              {loading && <p className="text-cyan-400 animate-pulse">[BUS] Querying Grounded Repositories (MP/COD)...</p>}
+              {loading && <p className="text-cyan-400 animate-pulse">[BUS] Grounding search strictly on {databaseTarget}...</p>}
               {response && <p className="text-green-400">[OK] Search retrieved {response.search_results.length} candidates.</p>}
            </div>
         </div>
@@ -146,7 +151,7 @@ export const CrystalMindModule: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {response?.search_results.map((res, idx) => (
-             <ControlResultCard key={idx} result={res} />
+             <ControlResultCard key={idx} result={res} source={response.query_parameters.database_target} />
           ))}
           
           {!response && !loading && (
@@ -157,7 +162,7 @@ export const CrystalMindModule: React.FC = () => {
                  </svg>
                </div>
                <h3 className="text-lg font-bold text-slate-400">Database Search Offline</h3>
-               <p className="text-sm mt-1 max-w-xs text-center">Execute mission to retrieve structural data from Materials Project & COD.</p>
+               <p className="text-sm mt-1 max-w-xs text-center">Select target and execute mission to retrieve structural data.</p>
              </div>
           )}
         </div>
@@ -211,7 +216,7 @@ export const CrystalMindModule: React.FC = () => {
   );
 };
 
-const ControlResultCard: React.FC<{ result: CrystalMindSearchResult }> = ({ result }) => (
+const ControlResultCard: React.FC<{ result: CrystalMindSearchResult, source: string }> = ({ result, source }) => (
   <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden hover:shadow-xl transition-all group border-l-4 border-l-cyan-600">
     <div className="p-5">
       <div className="flex justify-between items-start mb-4">
@@ -231,6 +236,12 @@ const ControlResultCard: React.FC<{ result: CrystalMindSearchResult }> = ({ resu
            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">FOM Match</div>
            <div className="text-xl font-black text-cyan-600">{(result.figure_of_merit * 100).toFixed(1)}%</div>
          </div>
+      </div>
+      
+      <div className="mb-4">
+        <span className="text-[9px] font-bold text-white bg-slate-400 px-2 py-0.5 rounded-full uppercase tracking-wider">
+          Source: {source}
+        </span>
       </div>
       
       <div className="grid grid-cols-2 gap-4 mb-5">

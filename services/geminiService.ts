@@ -164,43 +164,45 @@ export const createSupportChat = (): Chat => {
 
 // --- CrystalMind-Control (Database Integration) ---
 
-export const searchCrystalDatabase = async (command: string, elements: string[], peaks?: number[]): Promise<CrystalMindResponse> => {
+export const searchCrystalDatabase = async (command: string, elements: string[], target: "MaterialsProject" | "COD" | "AMCSD" | "All", peaks?: number[]): Promise<CrystalMindResponse> => {
   try {
     const model = 'gemini-3-flash-preview';
     
-    let prompt = `You are "CrystalMind-Control", the database integration and search orchestration module for the CrystalMind AI platform.
-    Your role is to interface between the user's diffraction data and external crystallographic databases. 
-    PRIORITY: Connect and retrieve data from the Materials Project (materialsproject.org) and COD (crystallography.net).
+    // Construct domain-specific search instructions
+    const targetInfo = {
+      "MaterialsProject": { name: "Materials Project", domain: "materialsproject.org", idFormat: "mp-ID" },
+      "COD": { name: "Crystallography Open Database (COD)", domain: "crystallography.net", idFormat: "COD-ID" },
+      "AMCSD": { name: "American Mineralogist Crystal Structure Database", domain: "rruff.geo.arizona.edu", idFormat: "AMCSD-ID" },
+      "All": { name: "All Databases", domain: null, idFormat: "Mixed IDs" }
+    };
 
-    MISSION:
-    Translate user requests or raw diffraction patterns into precise database search queries. Retrieve candidate phases, CIF files, and crystallographic metadata required for Rietveld refinement and phase identification.
+    const activeTarget = targetInfo[target];
 
-    INPUT CONTEXT:
-    - User Command: "${command}"
-    - Elements: ${elements.join(', ')}
-    - Observed Peaks: ${peaks ? peaks.join(', ') : 'None provided'}
-
-    OPERATIONAL LOGIC:
-    1. Search by Composition: If elements provided, find matching compounds in Materials Project or COD.
-    2. Search by Peak Match: If peaks provided, perform a fingerprint search using d-spacing tolerance against known standards.
-    3. Data Retrieval: Extract structural, electronic, and thermodynamic properties.
+    // Explicitly force site-specific searching in the system prompt
+    let prompt = `You are "CrystalMind-Control", the database integration module.
     
-    REQUIRED PROPERTIES PER RESULT:
-    - Formula & Phase Name
-    - Database ID (mp-ID or COD-ID)
-    - Space Group & Point Group
-    - Crystal System (Cubic, Tetragonal, etc.)
+    COMMAND: "${command}"
+    ELEMENTS: ${elements.join(', ')}
+    TARGET DATABASE: ${activeTarget.name}
+
+    SEARCH PROTOCOL:
+    ${target !== 'All' 
+      ? `You are RESTRICTED to ${activeTarget.name}. When using the Google Search tool, you MUST strictly use the site operator: "site:${activeTarget.domain}" in your search queries to find the material page. Example: "site:${activeTarget.domain} ${elements.join(' ')} crystal structure". Do NOT retrieve data from any other domain.` 
+      : 'Search across major crystallographic databases (Materials Project, COD, AMCSD).'}
+
+    TASK:
+    1. Search for phases matching the composition and/or peaks.
+    2. Retrieve strictly verified data from the target database using Google Search.
+    3. Return the data in the specified JSON format.
+
+    REQUIRED FIELDS:
+    - Formula, Phase Name
+    - Database ID (Must verify ID exists in ${activeTarget.name})
     - Lattice Parameters (a, b, c, alpha, beta, gamma)
-    - Volume (Å³) & Density (g/cm³)
-    - Energy Above Hull (eV/atom) - stability measure
-    - Band Gap (eV)
-    - Stability Status (is_stable: boolean)
+    - Space Group
+    - Volume, Density, Band Gap, Energy Above Hull, Stability (is_stable)
 
-    SUPPORTED DATABASES: Materials Project (Priority), COD, AMCSD.
-    
-    REQUIREMENT: Use Google Search tool to find real, verified Database IDs (especially Materials Project IDs and COD IDs) and structural parameters. Do not hallucinate lattice constants.
-
-    OUTPUT SCHEMA (STRICT JSON):
+    OUTPUT JSON:
     {
       "module": "CrystalMind-Control",
       "action": "Database_Search",
@@ -209,7 +211,7 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
         "elements_included": [string],
         "elements_excluded": [string],
         "strict_match": boolean,
-        "database_target": "COD" | "MaterialsProject" | "AMCSD" | "All"
+        "database_target": "${target}"
       },
       "search_results": [
         {
@@ -219,23 +221,13 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
           "space_group": string,
           "crystal_system": string,
           "point_group": string,
-          "lattice_params": {
-            "a": float, "b": float, "c": float,
-            "alpha": float, "beta": float, "gamma": float
-          },
-          "volume": float,
-          "density": float,
-          "energy_above_hull": float,
-          "band_gap": float,
-          "is_stable": boolean,
-          "figure_of_merit": float (0.0 - 1.0),
-          "cif_url": string
+          "lattice_params": { "a": number, "b": number, "c": number, "alpha": number, "beta": number, "gamma": number },
+          "volume": number, "density": number, "energy_above_hull": number, "band_gap": number, "is_stable": boolean,
+          "figure_of_merit": number, "cif_url": string
         }
       ],
       "control_message": string
-    }
-
-    Return ONLY the JSON. No markdown formatting.`;
+    }`;
 
     const response = await ai.models.generateContent({
       model,
@@ -246,6 +238,7 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
     });
     
     const text = response.text || "";
+    // Robust JSON cleaning
     const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
     
     const result = JSON.parse(jsonString) as CrystalMindResponse;
@@ -259,7 +252,7 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
       module: "CrystalMind-Control",
       action: "Database_Search",
       status: "error",
-      query_parameters: { elements_included: elements, elements_excluded: [], strict_match: false, database_target: "All" },
+      query_parameters: { elements_included: elements, elements_excluded: [], strict_match: false, database_target: target },
       search_results: [],
       control_message: "Search protocol failed. Database connectivity offline or query malformed."
     };
