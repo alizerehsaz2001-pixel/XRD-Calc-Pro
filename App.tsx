@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
@@ -89,9 +90,9 @@ const App: React.FC = () => {
     { id: 'integral', label: 'Integral Breadth', group: 'Size & Strain' },
     { id: 'integral_adv', label: 'IB Advanced (W-H)', group: 'Size & Strain' },
     { id: 'wa', label: 'Warren-Averbach', group: 'Size & Strain' },
+    { id: 'rietveld', label: 'Rietveld Setup', group: 'Advanced Sim' },
     { id: 'neutron', label: 'Neutron Diffraction', group: 'Advanced Sim' },
     { id: 'magnetic', label: 'Magnetic Diffraction', group: 'Advanced Sim' },
-    { id: 'rietveld', label: 'Rietveld Setup', group: 'Advanced Sim' },
     { id: 'dl', label: 'Deep Learning Phase ID', group: 'AI Tools' },
     { id: 'image_analysis', label: 'Image Analysis', group: 'AI Tools' },
     { id: 'crystal_mind', label: 'CrystalMind Control', group: 'AI Tools' },
@@ -151,7 +152,7 @@ const App: React.FC = () => {
         {/* Sidebar Footer */}
         <div className="p-4 border-t border-white/10 text-[10px] text-slate-500 text-center bg-slate-900/80 backdrop-blur-sm">
           <div className="mb-1">v2.5.0 • Lab Environment Active</div>
-          <div className="opacity-60">Designed by Ali Zereh Saz</div>
+          <div className="opacity-60">Designed by Ali Zerehsaz</div>
         </div>
       </aside>
 
@@ -235,9 +236,9 @@ const App: React.FC = () => {
                 {activeModule === 'integral' && <IntegralBreadthModule />}
                 {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
                 {activeModule === 'wa' && <WarrenAverbachModule />}
+                {activeModule === 'rietveld' && <RietveldModule />}
                 {activeModule === 'neutron' && <NeutronModule />}
                 {activeModule === 'magnetic' && <MagneticNeutronModule />}
-                {activeModule === 'rietveld' && <RietveldModule />}
                 {activeModule === 'dl' && <DeepLearningModule />}
                 {activeModule === 'image_analysis' && <ImageAnalysisModule />}
                 {activeModule === 'crystal_mind' && <CrystalMindModule />}
@@ -248,7 +249,7 @@ const App: React.FC = () => {
           
           {/* Subtle Page Footer */}
           <div className="mt-12 pt-8 border-t border-slate-200 text-center text-slate-400 text-xs">
-            XRD-Calc Pro Laboratory Environment • Designed by Ali Zereh Saz
+            XRD-Calc Pro Laboratory Environment • Designed by Ali Zerehsaz
           </div>
         </main>
 

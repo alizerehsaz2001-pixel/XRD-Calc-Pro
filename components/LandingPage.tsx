@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface LandingPageProps {
@@ -122,7 +123,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
            </div>
            
            <div className="mt-12 text-xs text-slate-500 font-mono opacity-50 hover:opacity-100 transition-opacity">
-             Designed & Developed by Ali Zereh Saz
+             Designed & Developed by Ali Zerehsaz
            </div>
         </div>
       </div>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export const ProfilePage: React.FC = () => {
@@ -19,7 +20,7 @@ export const ProfilePage: React.FC = () => {
         <div className="pt-20 px-8 pb-10">
           <div className="flex flex-col md:flex-row justify-between items-start gap-4">
             <div>
-              <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Ali Zereh Saz</h1>
+              <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Ali Zerehsaz</h1>
               <p className="text-xl text-indigo-600 font-medium mt-1">Product Designer & Senior Developer</p>
               <p className="text-slate-500 mt-2 flex items-center gap-2 text-sm font-medium">
                 <span className="flex h-2 w-2 relative">
