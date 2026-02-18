@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
@@ -47,13 +48,17 @@ const App: React.FC = () => {
 
   const handleCalculate = () => {
     const peaks = parsePeakString(rawPeaks);
-    const hklList = rawHKL.split(',').map(s => s.trim()).filter(s => s !== '');
+    // Robust parsing for HKL: handle commas and spaces between triplets
+    const hklList = rawHKL
+      .split(',')
+      .map(s => s.trim())
+      .filter(s => s !== '');
 
     const computed = peaks
       .map((theta, idx) => {
         const res = calculateBragg(wavelength, theta);
         if (res) {
-          // Cast to BraggResult to ensure compatibility with type predicate filter
+          // Associate peak with corresponding HKL if index exists
           return { ...res, hkl: hklList[idx] || '' } as BraggResult;
         }
         return null;
@@ -63,9 +68,12 @@ const App: React.FC = () => {
     setResults(computed);
   };
 
-  const handleAILoad = (peaks: number[], newWavelength?: number) => {
+  const handleAILoad = (peaks: number[], newWavelength?: number, hkls?: string[]) => {
     if (newWavelength) setWavelength(newWavelength);
     setRawPeaks(peaks.join(', '));
+    if (hkls && hkls.length > 0) {
+      setRawHKL(hkls.join(', '));
+    }
   };
 
   // Formatted Output for "Bragg-Basics" mission

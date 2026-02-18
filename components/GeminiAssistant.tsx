@@ -4,7 +4,7 @@ import { getMaterialPeaks } from '../services/geminiService';
 import { AIResponse } from '../types';
 
 interface GeminiAssistantProps {
-  onLoadPeaks: (peaks: number[], wavelength?: number) => void;
+  onLoadPeaks: (peaks: number[], wavelength?: number, hkls?: string[]) => void;
 }
 
 export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks }) => {
@@ -33,7 +33,7 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
 
   const applySuggestion = () => {
     if (suggestion) {
-      onLoadPeaks(suggestion.peaks, suggestion.wavelength);
+      onLoadPeaks(suggestion.peaks, suggestion.wavelength, suggestion.hkls);
       setSuggestion(null);
       setQuery('');
     }
@@ -123,12 +123,15 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
             )}
 
             <div className="mb-4">
-              <p className="text-[10px] font-bold text-indigo-300 mb-2 uppercase tracking-widest">Major Cu Kα Peaks</p>
+              <p className="text-[10px] font-bold text-indigo-300 mb-2 uppercase tracking-widest">Suggested Peaks & Indices</p>
               <div className="flex flex-wrap gap-1.5">
                 {suggestion.peaks.slice(0, 8).map((p, i) => (
-                  <span key={i} className="text-[11px] bg-white/10 border border-white/10 px-2 py-1 rounded-md font-bold font-mono text-indigo-50">
-                    {p.toFixed(2)}°
-                  </span>
+                  <div key={i} className="flex flex-col items-center bg-white/10 border border-white/10 p-1.5 rounded-md min-w-[50px]">
+                    <span className="text-[11px] font-bold font-mono text-indigo-50">{p.toFixed(2)}°</span>
+                    {suggestion.hkls && suggestion.hkls[i] && (
+                      <span className="text-[8px] font-bold text-indigo-400">({suggestion.hkls[i]})</span>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -153,7 +156,7 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
-              Load Peaks into Engine
+              Load into Calculator
             </button>
           </div>
         )}

@@ -60,6 +60,7 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
       contents: `Provide characteristic crystallography data and major diffraction peaks for the material or query: "${query}". 
       Assume a standard X-ray wavelength of Cu K-alpha (1.5406 Angstrom) unless the user specifies otherwise. 
       Include structural parameters like lattice constants (a, b, c), space group, and theoretical density if known.
+      Provide both the major peak positions (2-theta) AND their corresponding Miller indices (hkl).
       Return at least the top 5 major peaks for the Cu K-alpha wavelength.`,
       config: {
         tools: [{ googleSearch: {} }],
@@ -75,6 +76,11 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
               type: Type.ARRAY,
               items: { type: Type.NUMBER },
               description: "List of 2-theta angles in degrees"
+            },
+            hkls: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "Corresponding Miller indices for each peak, e.g., '111', '200'"
             },
             wavelength: {
               type: Type.NUMBER,

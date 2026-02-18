@@ -27,6 +27,7 @@ export interface BraggState {
 export interface AIResponse {
   material: string;
   peaks: number[];
+  hkls?: string[];
   wavelength?: number;
   description?: string;
   latticeParams?: {
