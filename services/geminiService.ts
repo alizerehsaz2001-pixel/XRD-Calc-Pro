@@ -56,7 +56,7 @@ export const generateScientificImage = async (prompt: string, size: '1K' | '2K' 
 
 export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> => {
   try {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-3-pro-preview';
     const response = await ai.models.generateContent({
       model,
       contents: `Search for and provide a comprehensive list of the most current and accurate standard characteristic X-ray wavelengths (K-alpha weighted averages for Cu, Mo, Co, Fe, Cr, Ag) and common neutron wavelengths (standard thermal and cold source averages). 
@@ -64,6 +64,7 @@ export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> 
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 32768 },
         responseSchema: {
           type: Type.ARRAY,
           items: {
@@ -90,7 +91,7 @@ export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> 
 
 export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
   try {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-3-pro-preview';
     
     const response = await ai.models.generateContent({
       model,
@@ -102,6 +103,7 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
+        thinkingConfig: { thinkingBudget: 32768 },
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -169,12 +171,13 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
 
 export const explainResults = async (resultsSummary: string): Promise<string> => {
    try {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-3-pro-preview';
     const response = await ai.models.generateContent({
       model,
       contents: `As a crystallography expert, briefly interpret these diffraction results: ${resultsSummary}. Focus on d-spacing trends and potential crystal quality indicators. Keep it under 50 words.`,
       config: {
-        tools: [{ googleSearch: {} }]
+        tools: [{ googleSearch: {} }],
+        thinkingConfig: { thinkingBudget: 32768 }
       }
     });
     return response.text || "Could not generate explanation.";
@@ -238,10 +241,11 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
 
 export const createSupportChat = (): Chat => {
   return ai.chats.create({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3-pro-preview',
     config: {
       systemInstruction: "You are 'Crystal', the AI support assistant for the Bragg-Engine crystallography app. You are helpful, scientifically accurate, and concise. You help users (especially Raf) understand diffraction concepts (Bragg's law, Scherrer equation, Rietveld refinement) and navigate the app. Use the Google Search tool to provide accurate, up-to-date scientific information.",
-      tools: [{ googleSearch: {} }]
+      tools: [{ googleSearch: {} }],
+      thinkingConfig: { thinkingBudget: 32768 }
     }
   });
 };
@@ -250,7 +254,7 @@ export const createSupportChat = (): Chat => {
 
 export const searchCrystalDatabase = async (command: string, elements: string[], target: "MaterialsProject" | "COD" | "AMCSD" | "All", peaks?: number[]): Promise<CrystalMindResponse> => {
   try {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-3-pro-preview';
     
     // Construct domain-specific search instructions
     const targetInfo = {
@@ -317,7 +321,8 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
       model,
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }]
+        tools: [{ googleSearch: {} }],
+        thinkingConfig: { thinkingBudget: 32768 }
       }
     });
     
