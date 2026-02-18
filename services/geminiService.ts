@@ -17,6 +17,43 @@ const extractSources = (metadata: any): GroundingSource[] => {
     .filter((s: any): s is GroundingSource => s !== null);
 };
 
+export const generateScientificImage = async (prompt: string, size: '1K' | '2K' | '4K'): Promise<string | null> => {
+  // Create a new instance to ensure the most up-to-date API key is used (if selected via UI)
+  const dynamicAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const model = 'gemini-3-pro-image-preview';
+
+  try {
+    const response = await dynamicAi.models.generateContent({
+      model,
+      contents: {
+        parts: [
+          {
+            text: `Generate a high-quality scientific illustration or diagram suitable for crystallography analysis. Prompt: ${prompt}`
+          },
+        ],
+      },
+      config: {
+        imageConfig: {
+          aspectRatio: "1:1",
+          imageSize: size
+        }
+      },
+    });
+
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Image Generation Error:", error);
+    throw error;
+  }
+};
+
 export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> => {
   try {
     const model = 'gemini-3-flash-preview';

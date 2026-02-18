@@ -17,14 +17,16 @@ import { DeepLearningModule } from './components/DeepLearningModule';
 import { FWHMModule } from './components/FWHMModule';
 import { ImageAnalysisModule } from './components/ImageAnalysisModule';
 import { CrystalMindModule } from './components/CrystalMindModule';
+import { ImageGenerationModule } from './components/ImageGenerationModule';
 import { ProfilePage } from './components/ProfilePage';
+import { LearnModule } from './components/LearnModule';
 import { AIChatSupport } from './components/AIChatSupport';
 import { ModuleIntro } from './components/ModuleIntro';
 import { LandingPage } from './components/LandingPage';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult } from './types';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'crystal_mind' | 'profile';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'crystal_mind' | 'image_gen' | 'learn' | 'profile';
 
 const App: React.FC = () => {
   const [hasEntered, setHasEntered] = useState<boolean>(false);
@@ -38,12 +40,12 @@ const App: React.FC = () => {
   const [rawHKL, setRawHKL] = useState<string>('111, 220, 311, 400, 331');
   const [results, setResults] = useState<BraggResult[]>([]);
 
-  // Reset explanation state when module changes (except for profile)
+  // Reset explanation state when module changes (except for profile/learn)
   useEffect(() => {
-    if (activeModule !== 'profile') {
+    if (activeModule !== 'profile' && activeModule !== 'learn') {
       setIsExplained(false);
     } else {
-      setIsExplained(true); // Auto-explain profile since it's just info
+      setIsExplained(true); // Auto-explain profile/learn
     }
   }, [activeModule]);
 
@@ -122,7 +124,9 @@ const App: React.FC = () => {
     { id: 'magnetic', label: 'Magnetic Diffraction', group: 'Advanced Sim' },
     { id: 'dl', label: 'Deep Learning Phase ID', group: 'AI Tools' },
     { id: 'image_analysis', label: 'Image Analysis', group: 'AI Tools' },
+    { id: 'image_gen', label: 'Scientific Illustrator', group: 'AI Tools' },
     { id: 'crystal_mind', label: 'CrystalMind Control', group: 'AI Tools' },
+    { id: 'learn', label: 'App Tutorial', group: 'About' },
     { id: 'profile', label: 'Designer Profile', group: 'About' },
   ];
 
@@ -296,7 +300,9 @@ const App: React.FC = () => {
                   {activeModule === 'magnetic' && <MagneticNeutronModule />}
                   {activeModule === 'dl' && <DeepLearningModule />}
                   {activeModule === 'image_analysis' && <ImageAnalysisModule />}
+                  {activeModule === 'image_gen' && <ImageGenerationModule />}
                   {activeModule === 'crystal_mind' && <CrystalMindModule />}
+                  {activeModule === 'learn' && <LearnModule />}
                   {activeModule === 'profile' && <ProfilePage />}
                 </>
               )}

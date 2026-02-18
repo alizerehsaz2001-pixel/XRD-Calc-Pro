@@ -280,6 +280,22 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
       </div>
     )
   },
+  image_gen: {
+    title: "Scientific Illustrator",
+    description: "Uses the Nano Banana Pro (gemini-3-pro-image-preview) model to generate high-fidelity scientific illustrations, diagrams, and visualizations of crystal structures or experimental setups.",
+    formulas: (
+      <div className="space-y-4">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 transition-colors">
+           <p className="font-sans text-sm text-fuchsia-700 dark:text-fuchsia-400 font-bold uppercase mb-2">Model Specifications</p>
+           <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700 dark:text-slate-400 font-sans transition-colors">
+              <li><strong>Engine:</strong> gemini-3-pro-image-preview</li>
+              <li><strong>Resolutions:</strong> 1K (1024x1024), 2K, 4K Upscaled</li>
+              <li><strong>Billing:</strong> Requires separate Google Cloud Project API Key</li>
+           </ul>
+        </div>
+      </div>
+    )
+  },
   crystal_mind: {
     title: "CrystalMind-Control Database",
     description: "You are 'CrystalMind-Control', the database integration and search orchestration module for the CrystalMind AI platform. Your mission is to translate user requests into precise database search queries (COD, Materials Project, AMCSD).",
