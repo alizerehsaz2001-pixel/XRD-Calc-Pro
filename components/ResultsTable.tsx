@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BraggResult } from '../types';
 
@@ -10,10 +11,11 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     if (results.length === 0) return;
     
     // Header for CSV
-    const headers = ['2theta (deg)', 'd-spacing (Å)', 'Q (1/Å)', 'sin(theta)/lambda'];
+    const headers = ['hkl', '2theta (deg)', 'd-spacing (Å)', 'Q (1/Å)', 'sin(theta)/lambda'];
     
     // Data rows
     const rows = results.map(r => [
+      r.hkl || '',
       r.twoTheta.toFixed(4),
       r.dSpacing.toFixed(4),
       r.qVector.toFixed(4),
@@ -77,6 +79,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         <table className="w-full text-sm text-left text-slate-800">
           <thead className="text-xs text-slate-900 uppercase bg-slate-200 sticky top-0 z-10">
             <tr>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300">HKL</th>
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300">2θ (deg)</th>
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300">d-spacing (Å)</th>
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300">Q (1/Å)</th>
@@ -86,6 +89,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           <tbody className="divide-y divide-slate-200">
             {results.map((row, index) => (
               <tr key={index} className="bg-white hover:bg-indigo-50 transition-colors">
+                <td className="px-6 py-3 font-bold text-indigo-600">({row.hkl || '?'})</td>
                 <td className="px-6 py-3 font-bold text-slate-900">{row.twoTheta.toFixed(3)}</td>
                 <td className="px-6 py-3 text-indigo-700 font-bold font-mono">{row.dSpacing.toFixed(4)}</td>
                 <td className="px-6 py-3 font-mono text-slate-700">{row.qVector.toFixed(4)}</td>

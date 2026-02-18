@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
@@ -33,7 +32,8 @@ const App: React.FC = () => {
   
   // Bragg State
   const [wavelength, setWavelength] = useState<number>(1.5406);
-  const [rawPeaks, setRawPeaks] = useState<string>('28.44, 47.30, 56.12, 69.13, 76.38'); // Default Silicon peaks approx
+  const [rawPeaks, setRawPeaks] = useState<string>('28.44, 47.30, 56.12, 69.13, 76.38'); 
+  const [rawHKL, setRawHKL] = useState<string>('111, 220, 311, 400, 331');
   const [results, setResults] = useState<BraggResult[]>([]);
 
   // Reset explanation state when module changes (except for profile)
@@ -47,8 +47,17 @@ const App: React.FC = () => {
 
   const handleCalculate = () => {
     const peaks = parsePeakString(rawPeaks);
+    const hklList = rawHKL.split(',').map(s => s.trim()).filter(s => s !== '');
+
     const computed = peaks
-      .map(theta => calculateBragg(wavelength, theta))
+      .map((theta, idx) => {
+        const res = calculateBragg(wavelength, theta);
+        if (res) {
+          // Cast to BraggResult to ensure compatibility with type predicate filter
+          return { ...res, hkl: hklList[idx] || '' } as BraggResult;
+        }
+        return null;
+      })
       .filter((res): res is BraggResult => res !== null);
     
     setResults(computed);
@@ -64,6 +73,7 @@ const App: React.FC = () => {
     module: "Bragg-Basics",
     wavelength_angstrom: wavelength,
     results: results.map(r => ({
+      "hkl": r.hkl,
       "2theta_deg": r.twoTheta,
       "d_spacing_angstrom": r.dSpacing,
       "q_vector_inverse_angstrom": r.qVector,
@@ -117,7 +127,7 @@ const App: React.FC = () => {
            </div>
         </div>
 
-        {/* Scrollable Nav Items - This moves up and down with the mouse */}
+        {/* Scrollable Nav Items */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
           {['Fundamentals', 'Size & Strain', 'Advanced Sim', 'AI Tools', 'About'].map((group) => (
             <div key={group} className="space-y-2">
@@ -145,21 +155,16 @@ const App: React.FC = () => {
               </div>
             </div>
           ))}
-          {/* Bottom Padding */}
           <div className="h-8"></div>
         </div>
         
-        {/* Sidebar Footer */}
         <div className="p-4 border-t border-white/10 text-[10px] text-slate-500 text-center bg-slate-900/80 backdrop-blur-sm">
           <div className="mb-1">v2.5.0 • Lab Environment Active</div>
           <div className="opacity-60">Designed by Ali Zerehsaz</div>
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 text-slate-900">
-        
-        {/* Mobile Header (Dropdown) */}
         <div className="md:hidden bg-slate-900 border-b border-white/10 p-4 flex justify-between items-center z-20 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm">
@@ -176,11 +181,8 @@ const App: React.FC = () => {
           </select>
         </div>
 
-        {/* Scrollable Module Content Area */}
         <main className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar relative">
           <div className="max-w-7xl mx-auto">
-            
-            {/* Educational Gate / Module Intro */}
             {!isExplained ? (
               <ModuleIntro 
                 module={activeModule} 
@@ -190,18 +192,18 @@ const App: React.FC = () => {
               <>
                 {activeModule === 'bragg' && (
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 items-start">
-                    {/* Left Column: Input and AI */}
                     <div className="lg:col-span-4 space-y-6">
                       <BraggInput 
                         wavelength={wavelength}
                         setWavelength={setWavelength}
                         rawPeaks={rawPeaks}
                         setRawPeaks={setRawPeaks}
+                        rawHKL={rawHKL}
+                        setRawHKL={setRawHKL}
                         onCalculate={handleCalculate}
                       />
                       <GeminiAssistant onLoadPeaks={handleAILoad} />
                       
-                      {/* JSON Output Container */}
                       <div className="bg-slate-900 rounded-2xl p-5 shadow-2xl border border-white/5 ring-1 ring-white/10">
                          <div className="flex justify-between items-center mb-3">
                            <div className="flex items-center gap-2">
@@ -221,7 +223,6 @@ const App: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Right Column: Visualization and Table */}
                     <div className="lg:col-span-8 space-y-6">
                       <DiffractionChart results={results} />
                       <ResultsTable results={results} />
@@ -246,14 +247,10 @@ const App: React.FC = () => {
               </>
             )}
           </div>
-          
-          {/* Subtle Page Footer */}
           <div className="mt-12 pt-8 border-t border-slate-200 text-center text-slate-400 text-xs">
             XRD-Calc Pro Laboratory Environment • Designed by Ali Zerehsaz
           </div>
         </main>
-
-        {/* Global AI Chat Support - Floating FAB */}
         <AIChatSupport />
       </div>
     </div>

@@ -8,6 +8,8 @@ interface BraggInputProps {
   setWavelength: (val: number) => void;
   rawPeaks: string;
   setRawPeaks: (val: string) => void;
+  rawHKL: string;
+  setRawHKL: (val: string) => void;
   onCalculate: () => void;
 }
 
@@ -16,6 +18,8 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   setWavelength,
   rawPeaks,
   setRawPeaks,
+  rawHKL,
+  setRawHKL,
   onCalculate
 }) => {
   const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>([
@@ -98,20 +102,33 @@ export const BraggInput: React.FC<BraggInputProps> = ({
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            2θ Peaks (Degrees)
-          </label>
-          <textarea
-            value={rawPeaks}
-            onChange={(e) => setRawPeaks(e.target.value)}
-            placeholder="e.g., 28.4, 47.3, 56.1"
-            className="w-full h-32 px-4 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors font-mono text-sm leading-relaxed"
-          />
-          <p className="text-xs text-slate-500 mt-1">
-            Separate values with commas or spaces.
-          </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              2θ Peaks (deg)
+            </label>
+            <textarea
+              value={rawPeaks}
+              onChange={(e) => setRawPeaks(e.target.value)}
+              placeholder="e.g., 28.4, 47.3"
+              className="w-full h-24 px-4 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors font-mono text-xs leading-relaxed"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Miller Indices (hkl)
+            </label>
+            <textarea
+              value={rawHKL}
+              onChange={(e) => setRawHKL(e.target.value)}
+              placeholder="e.g., 111, 220"
+              className="w-full h-24 px-4 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors font-mono text-xs leading-relaxed"
+            />
+          </div>
         </div>
+        <p className="text-[10px] text-slate-500 -mt-2 italic">
+          Separate multiple entries with commas. HKL indices will map 1:1 to peaks.
+        </p>
 
         <button
           onClick={onCalculate}

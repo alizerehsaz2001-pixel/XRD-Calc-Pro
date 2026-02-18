@@ -15,6 +15,7 @@ export interface BraggResult {
   dSpacing: number;
   qVector: number;
   sinThetaOverLambda: number;
+  hkl?: string;
 }
 
 export interface BraggState {
