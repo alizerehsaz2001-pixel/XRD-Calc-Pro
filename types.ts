@@ -4,6 +4,12 @@ export interface GroundingSource {
   uri: string;
 }
 
+export interface StandardWavelength {
+  label: string;
+  value: number;
+  type: 'X-Ray' | 'Neutron';
+}
+
 export interface BraggResult {
   twoTheta: number;
   dSpacing: number;

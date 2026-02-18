@@ -90,6 +90,67 @@ export const ProfilePage: React.FC = () => {
                     </div>
                  </div>
                </section>
+
+               <section>
+                 <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2 pb-2 border-b border-slate-100">
+                   <span className="text-indigo-500">03.</span> Information Collection & Conversion
+                 </h2>
+                 <p className="text-slate-600 mb-6 leading-relaxed">
+                   To support efficient content development, this section outlines the process for gathering information and transforming it into polished, presentation‑ready formats such as Word documents, PowerPoint slides, and other deliverables.
+                 </p>
+                 
+                 <div className="space-y-6">
+                   <div className="flex gap-4">
+                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm mt-1">1</div>
+                     <div>
+                       <h3 className="text-slate-800 font-bold text-lg">Information Gathering</h3>
+                       <p className="text-slate-600 text-sm mt-1 leading-relaxed">
+                         Collect relevant data from reliable sources, including research papers, reports, interviews, and user‑provided materials. Organize the information into thematic categories to ensure clarity and consistency. Validate the accuracy and relevance of the collected content before moving to the next stage.
+                       </p>
+                     </div>
+                   </div>
+
+                   <div className="flex gap-4">
+                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm mt-1">2</div>
+                     <div>
+                       <h3 className="text-slate-800 font-bold text-lg">Content Structuring</h3>
+                       <p className="text-slate-600 text-sm mt-1 leading-relaxed">
+                         Summarize and refine the gathered information into clear, concise, and logically organized sections. Highlight key insights, findings, and actionable points. Prepare outlines tailored to the intended output format (e.g., document, slide deck, or briefing notes).
+                       </p>
+                     </div>
+                   </div>
+
+                   <div className="flex gap-4">
+                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm mt-1">3</div>
+                     <div>
+                       <h3 className="text-slate-800 font-bold text-lg">Conversion to Word Documents</h3>
+                       <p className="text-slate-600 text-sm mt-1 leading-relaxed">
+                         Develop well‑formatted Word files with headings, subheadings, tables, and visuals as needed. Ensure readability through consistent styling, spacing, and professional layout. Include summaries, detailed explanations, and appendices when appropriate.
+                       </p>
+                     </div>
+                   </div>
+
+                   <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm mt-1">4</div>
+                      <div>
+                        <h3 className="text-slate-800 font-bold text-lg">Conversion to PowerPoint Presentations</h3>
+                        <p className="text-slate-600 text-sm mt-1 leading-relaxed">
+                          Transform structured content into visually engaging slides. Use diagrams, bullet points, icons, and charts to enhance clarity and impact. Maintain a clean, modern design aligned with the presentation’s purpose and audience.
+                        </p>
+                      </div>
+                   </div>
+
+                   <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm mt-1">5</div>
+                      <div>
+                        <h3 className="text-slate-800 font-bold text-lg">Preparation of Presentation‑Ready Materials</h3>
+                        <p className="text-slate-600 text-sm mt-1 leading-relaxed">
+                          Adapt the content for verbal delivery, including speaker notes and talking points. Ensure that all materials are concise, visually appealing, and aligned with the communication goals. Provide final outputs optimized for meetings, workshops, or public presentations.
+                        </p>
+                      </div>
+                   </div>
+                 </div>
+               </section>
             </div>
 
             <div className="space-y-8">

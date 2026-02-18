@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Chat, GroundingChunk } from "@google/genai";
-import { AIResponse, CrystalMindResponse, GroundingSource } from '../types';
+import { AIResponse, CrystalMindResponse, GroundingSource, StandardWavelength } from '../types';
 
 // Initialize Gemini Client using process.env.API_KEY directly
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -15,6 +15,40 @@ const extractSources = (metadata: any): GroundingSource[] => {
       return null;
     })
     .filter((s: any): s is GroundingSource => s !== null);
+};
+
+export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> => {
+  try {
+    const model = 'gemini-3-flash-preview';
+    const response = await ai.models.generateContent({
+      model,
+      contents: `Search for and provide a comprehensive list of the most current and accurate standard characteristic X-ray wavelengths (K-alpha weighted averages for Cu, Mo, Co, Fe, Cr, Ag) and common neutron wavelengths (standard thermal and cold source averages). 
+      Return the data in a structured JSON list.`,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              label: { type: Type.STRING, description: "Name of the source (e.g., 'Cu K-alpha')" },
+              value: { type: Type.NUMBER, description: "Wavelength in Angstroms" },
+              type: { type: Type.STRING, enum: ['X-Ray', 'Neutron'], description: "The type of radiation" }
+            },
+            required: ["label", "value", "type"]
+          }
+        }
+      }
+    });
+
+    const text = response.text;
+    if (!text) return [];
+    return JSON.parse(text) as StandardWavelength[];
+  } catch (error) {
+    console.error("Error fetching wavelengths:", error);
+    return [];
+  }
 };
 
 export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {

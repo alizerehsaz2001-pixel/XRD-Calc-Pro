@@ -1,5 +1,7 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { fetchStandardWavelengths } from '../services/geminiService';
+import { StandardWavelength } from '../types';
 
 interface BraggInputProps {
   wavelength: number;
@@ -16,23 +18,51 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   setRawPeaks,
   onCalculate
 }) => {
-  const standardWavelengths = [
-    { label: 'Cu Kα', value: 1.5406 },
-    { label: 'Mo Kα', value: 0.7107 },
-    { label: 'Co Kα', value: 1.7890 },
-    { label: 'Fe Kα', value: 1.9360 },
-    { label: 'Cr Kα', value: 2.2897 },
-    { label: 'Ag Kα', value: 0.5594 },
-  ];
+  const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>([
+    { label: 'Cu Kα', value: 1.5406, type: 'X-Ray' },
+    { label: 'Mo Kα', value: 0.7107, type: 'X-Ray' },
+    { label: 'Co Kα', value: 1.7890, type: 'X-Ray' },
+    { label: 'Fe Kα', value: 1.9360, type: 'X-Ray' },
+    { label: 'Cr Kα', value: 2.2897, type: 'X-Ray' },
+    { label: 'Ag Kα', value: 0.5594, type: 'X-Ray' },
+  ]);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const latest = await fetchStandardWavelengths();
+      if (latest.length > 0) {
+        setAvailableWavelengths(latest.filter(w => w.type === 'X-Ray'));
+      }
+    } catch (err) {
+      console.error("Sync failed", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-      <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-        </svg>
-        Parameters
-      </h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+          Parameters
+        </h2>
+        <button 
+          onClick={handleSync}
+          disabled={isSyncing}
+          className="text-[10px] uppercase font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors disabled:opacity-50"
+          title="Fetch latest IUPAC/NIST standard values"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          {isSyncing ? 'Syncing...' : 'Sync Standards'}
+        </button>
+      </div>
       
       <div className="space-y-4">
         <div>
@@ -52,7 +82,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
             </div>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-1.5">
-            {standardWavelengths.map((sw) => (
+            {availableWavelengths.map((sw) => (
               <button 
                 key={sw.label}
                 onClick={() => setWavelength(sw.value)}
