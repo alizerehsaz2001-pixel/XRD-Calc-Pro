@@ -168,13 +168,20 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
             }
           },
           {
-            text: `Analyze this crystallography image. Context provided by user: "${userContext}".
+            text: `Analyze this crystallography image acting as an expert crystallographer. Context provided by user: "${userContext}".
             
-            1. If this is a diffraction pattern (XRD), identify visible peaks, background noise levels, and potential symmetry.
-            2. If this is a screenshot from software like HighScore or a data table, interpret the scores, candidate phases, and statistical fit values.
-            3. Provide a summary of the likely material composition and data quality.
+            1. **Diffraction Patterns (XRD):** If the image is a diffraction plot:
+               - Identify visible peaks.
+               - **QUANTITATIVE EXTRACTION:** Create a Markdown table listing the approximate **2-theta (2θ)** position and **Relative Intensity (%)** for the major peaks observed.
+               - Analyze peak width qualitatively (Sharp vs Broad).
             
-            Be precise and act as an expert crystallographer.`
+            2. **Software Screenshots/Data:** If this is a screenshot from software like HighScore, EVA, or a data table:
+               - Extract candidate phase names and their matching scores (FOM).
+               - Interpret statistical fit values if visible.
+            
+            3. **Conclusion:** Provide a summary of the likely material composition and data quality.
+            
+            Be precise.`
           }
         ]
       },
