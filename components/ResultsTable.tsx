@@ -46,7 +46,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 
   if (results.length === 0) {
     return (
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 min-h-[300px] flex items-center justify-center text-slate-400">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 min-h-[300px] flex items-center justify-center text-slate-400 dark:text-slate-500 transition-colors">
         <div className="text-center">
           <p>No results calculated yet.</p>
           <p className="text-sm">Enter peaks and click Calculate.</p>
@@ -56,13 +56,13 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden flex flex-col min-h-[400px]">
-      <div className="p-4 border-b border-slate-300 bg-slate-100 flex justify-between items-center">
-        <h3 className="font-bold text-slate-800">Calculated Data</h3>
+    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-300 dark:border-slate-800 overflow-hidden flex flex-col min-h-[400px] transition-colors">
+      <div className="p-4 border-b border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50 flex justify-between items-center">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100">Calculated Data</h3>
         <div className="flex items-center gap-2">
           <button 
             onClick={exportToCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors shadow-sm active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors shadow-sm active:scale-95"
             title="Download results as CSV"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -70,30 +70,30 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             </svg>
             Export CSV
           </button>
-          <span className="text-xs font-mono bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full font-bold">
+          <span className="text-xs font-mono bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded-full font-bold">
             {results.length} Peaks
           </span>
         </div>
       </div>
       <div className="overflow-x-auto overflow-y-auto flex-1 max-h-[600px]">
-        <table className="w-full text-sm text-left text-slate-800">
-          <thead className="text-xs text-slate-900 uppercase bg-slate-200 sticky top-0 z-10">
+        <table className="w-full text-sm text-left text-slate-800 dark:text-slate-200">
+          <thead className="text-xs text-slate-900 dark:text-slate-400 uppercase bg-slate-200 dark:bg-slate-800 sticky top-0 z-10">
             <tr>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300">HKL</th>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300">2θ (deg)</th>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300">d-spacing (Å)</th>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300">Q (1/Å)</th>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300">sin(θ)/λ</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">HKL</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">2θ (deg)</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">d-spacing (Å)</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">Q (1/Å)</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">sin(θ)/λ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
             {results.map((row, index) => (
-              <tr key={index} className="bg-white hover:bg-indigo-50 transition-colors">
-                <td className="px-6 py-3 font-bold text-indigo-600">({row.hkl || '?'})</td>
-                <td className="px-6 py-3 font-bold text-slate-900">{row.twoTheta.toFixed(3)}</td>
-                <td className="px-6 py-3 text-indigo-700 font-bold font-mono">{row.dSpacing.toFixed(4)}</td>
-                <td className="px-6 py-3 font-mono text-slate-700">{row.qVector.toFixed(4)}</td>
-                <td className="px-6 py-3 font-mono text-slate-700">{row.sinThetaOverLambda.toFixed(4)}</td>
+              <tr key={index} className="bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                <td className="px-6 py-3 font-bold text-indigo-600 dark:text-indigo-400">({row.hkl || '?'})</td>
+                <td className="px-6 py-3 font-bold text-slate-900 dark:text-slate-100">{row.twoTheta.toFixed(3)}</td>
+                <td className="px-6 py-3 text-indigo-700 dark:text-indigo-300 font-bold font-mono">{row.dSpacing.toFixed(4)}</td>
+                <td className="px-6 py-3 font-mono text-slate-700 dark:text-slate-400">{row.qVector.toFixed(4)}</td>
+                <td className="px-6 py-3 font-mono text-slate-700 dark:text-slate-400">{row.sinThetaOverLambda.toFixed(4)}</td>
               </tr>
             ))}
           </tbody>

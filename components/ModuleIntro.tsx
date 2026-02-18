@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface ModuleIntroProps {
@@ -8,7 +9,7 @@ interface ModuleIntroProps {
 // Helper for vertical fractions
 const Fraction = ({ num, den }: { num: React.ReactNode, den: React.ReactNode }) => (
   <div className="inline-flex flex-col items-center align-middle mx-1" style={{ verticalAlign: 'middle' }}>
-    <span className="border-b border-slate-800 w-full text-center px-1 pb-[1px] mb-[1px]">{num}</span>
+    <span className="border-b border-slate-800 dark:border-slate-400 w-full text-center px-1 pb-[1px] mb-[1px]">{num}</span>
     <span className="w-full text-center px-1">{den}</span>
   </div>
 );
@@ -29,21 +30,21 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "This module calculates the fundamental relationship between the angle of incidence, wavelength, and interplanar spacing in a crystal lattice.",
     formulas: (
       <div className="space-y-6">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex flex-col gap-4 items-start">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex flex-col gap-4 items-start transition-colors">
           <div className="flex items-center flex-wrap">
-            <strong className="text-indigo-700 mr-3 text-sm font-sans uppercase tracking-wider">Bragg's Law:</strong>
+            <strong className="text-indigo-700 dark:text-indigo-400 mr-3 text-sm font-sans uppercase tracking-wider">Bragg's Law:</strong>
             <span>
               <M>n</M><M>λ</M> = 2<M>d</M> <F>sin</F>(<M>θ</M>)
             </span>
           </div>
           <div className="flex items-center flex-wrap">
-            <strong className="text-emerald-700 mr-3 text-sm font-sans uppercase tracking-wider">Scattering Vector (Q):</strong>
+            <strong className="text-emerald-700 dark:text-emerald-400 mr-3 text-sm font-sans uppercase tracking-wider">Scattering Vector (Q):</strong>
             <span>
-              <M>Q</M> = <Fraction num={<span>4<M>π</M> <F>sin</F>(<M>θ</M>)</span> den={<M>λ</M>} />
+              <M>Q</M> = <Fraction num={<span>4<M>π</M> <F>sin</F>(<M>θ</M>)</span>} den={<M>λ</M>} />
             </span>
           </div>
         </div>
-        <p className="text-sm text-slate-600 font-sans">
+        <p className="text-sm text-slate-600 dark:text-slate-400 font-sans transition-colors">
           <M>d</M>: Interplanar spacing, <M>θ</M>: Incident angle, <M>λ</M>: Wavelength
         </p>
       </div>
@@ -54,15 +55,15 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Analyzes the shape of diffraction peaks. Real peaks are not delta functions; they have width due to instrument effects and sample properties (size/strain).",
     formulas: (
       <div className="space-y-6">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex flex-col gap-4">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex flex-col gap-4 transition-colors">
           <div className="flex items-center flex-wrap">
-             <strong className="text-orange-700 mr-3 text-sm font-sans uppercase tracking-wider">Pseudo-Voigt:</strong>
+             <strong className="text-orange-700 dark:text-orange-400 mr-3 text-sm font-sans uppercase tracking-wider">Pseudo-Voigt:</strong>
              <span>
                <M>V</M>(<M>x</M>) = <M>η</M>·<M>L</M>(<M>x</M>) + (1−<M>η</M>)·<M>G</M>(<M>x</M>)
              </span>
           </div>
           <div className="flex items-center flex-wrap">
-            <strong className="text-orange-700 mr-3 text-sm font-sans uppercase tracking-wider">Integral Breadth:</strong>
+            <strong className="text-orange-700 dark:text-orange-400 mr-3 text-sm font-sans uppercase tracking-wider">Integral Breadth:</strong>
             <span>
               <M>β</M> = <Fraction num={<F>Area</F>} den={<M>I</M><sub>max</sub>} />
             </span>
@@ -76,15 +77,15 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Determines which diffraction peaks are visible (Allowed) or missing (Forbidden) based on the centering of the crystal lattice (BCC, FCC, etc.).",
     formulas: (
       <div className="space-y-4">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 transition-colors">
            <div className="flex items-center">
-              <strong className="text-slate-700 mr-3 text-sm font-sans uppercase tracking-wider">Structure Factor:</strong>
+              <strong className="text-slate-700 dark:text-slate-400 mr-3 text-sm font-sans uppercase tracking-wider">Structure Factor:</strong>
               <span>
                 <M>F</M><sub>hkl</sub> = <F>Σ</F> <M>f</M><sub>j</sub> <F>exp</F>[2<M>π</M><M>i</M>(<M>hx</M><sub>j</sub> + <M>ky</M><sub>j</sub> + <M>lz</M><sub>j</sub>)]
               </span>
            </div>
         </div>
-        <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700 font-sans">
+        <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700 dark:text-slate-400 font-sans transition-colors">
           <li><strong>BCC:</strong> Allowed if (<M>h</M> + <M>k</M> + <M>l</M>) is even.</li>
           <li><strong>FCC:</strong> Allowed if <M>h</M>, <M>k</M>, <M>l</M> are all odd or all even.</li>
         </ul>
@@ -96,13 +97,13 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Estimates the average crystallite size (L) from peak broadening, assuming broadening is caused solely by size effects (ignoring strain).",
     formulas: (
       <div className="space-y-6">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex items-center justify-center">
-          <span className="mr-4 font-bold text-amber-700 font-sans uppercase text-sm">Crystallite Size:</span>
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex items-center justify-center transition-colors">
+          <span className="mr-4 font-bold text-amber-700 dark:text-amber-400 font-sans uppercase text-sm">Crystallite Size:</span>
           <span>
             <M>D</M> = <Fraction num={<span><M>K</M> <M>λ</M></span>} den={<span><M>β</M> <F>cos</F>(<M>θ</M>)</span>} />
           </span>
         </div>
-        <p className="text-sm text-slate-600 font-sans">
+        <p className="text-sm text-slate-600 dark:text-slate-400 font-sans transition-colors">
           <M>β</M>: Peak width in radians (corrected), <M>K</M>: Shape factor (~0.9)
         </p>
       </div>
@@ -113,17 +114,17 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Separates broadening contributions from Crystallite Size and Lattice Strain by plotting βcosθ vs 4sinθ.",
     formulas: (
       <div className="space-y-6">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex flex-col gap-4">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex flex-col gap-4 transition-colors">
            <div className="flex items-center flex-wrap justify-center">
-             <strong className="text-cyan-700 mr-4 text-sm font-sans uppercase tracking-wider">W-H Equation:</strong>
+             <strong className="text-cyan-700 dark:text-cyan-400 mr-4 text-sm font-sans uppercase tracking-wider">W-H Equation:</strong>
              <span>
                <M>β</M><F>cos</F>(<M>θ</M>) = <M>ε</M>(4<F>sin</F><M>θ</M>) + <Fraction num={<span><M>K</M><M>λ</M></span>} den={<M>D</M>} />
              </span>
            </div>
-           <div className="flex justify-center gap-8 text-base border-t border-slate-200 pt-3">
-             <span className="text-slate-600"><F>y</F> = <M>β</M><F>cos</F><M>θ</M></span>
-             <span className="text-slate-600"><F>x</F> = 4<F>sin</F><M>θ</M></span>
-             <span className="text-slate-600"><F>slope</F> = <M>ε</M> (Strain)</span>
+           <div className="flex justify-center gap-8 text-base border-t border-slate-200 dark:border-slate-700 pt-3">
+             <span className="text-slate-600 dark:text-slate-400"><F>y</F> = <M>β</M><F>cos</F><M>θ</M></span>
+             <span className="text-slate-600 dark:text-slate-400"><F>x</F> = 4<F>sin</F><M>θ</M></span>
+             <span className="text-slate-600 dark:text-slate-400"><F>slope</F> = <M>ε</M> (Strain)</span>
            </div>
         </div>
       </div>
@@ -134,15 +135,15 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Calculates peak width using the total area under the curve divided by maximum intensity.",
     formulas: (
       <div className="space-y-6">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex flex-col gap-4 items-start">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex flex-col gap-4 items-start transition-colors">
            <div className="flex items-center">
-              <strong className="text-purple-700 mr-3 text-sm font-sans uppercase tracking-wider">Integral Breadth:</strong>
+              <strong className="text-purple-700 dark:text-purple-400 mr-3 text-sm font-sans uppercase tracking-wider">Integral Breadth:</strong>
               <span>
                 <M>β</M><sub>IB</sub> = <Fraction num={<F>Area</F>} den={<M>I</M><sub>max</sub>} />
               </span>
            </div>
            <div className="flex items-center">
-              <strong className="text-purple-700 mr-3 text-sm font-sans uppercase tracking-wider">Shape Factor:</strong>
+              <strong className="text-purple-700 dark:text-purple-400 mr-3 text-sm font-sans uppercase tracking-wider">Shape Factor:</strong>
               <span>
                 <M>φ</M> = <Fraction num={<F>FWHM</F>} den={<M>β</M><sub>IB</sub>} />
               </span>
@@ -156,15 +157,15 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Applies the Williamson-Hall method using Integral Breadth values instead of FWHM for higher accuracy.",
     formulas: (
       <div className="space-y-6">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex flex-col gap-4">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex flex-col gap-4 transition-colors">
            <div className="flex items-center">
-             <strong className="text-pink-700 mr-3 text-sm font-sans uppercase tracking-wider">Instrument Correction:</strong>
+             <strong className="text-pink-700 dark:text-pink-400 mr-3 text-sm font-sans uppercase tracking-wider">Instrument Correction:</strong>
              <span>
                <M>β</M><sub>sample</sub> = <M>β</M><sub>obs</sub> − <M>β</M><sub>inst</sub>
              </span>
            </div>
            <div className="flex items-center">
-             <strong className="text-pink-700 mr-3 text-sm font-sans uppercase tracking-wider">Linear Plot:</strong>
+             <strong className="text-pink-700 dark:text-pink-400 mr-3 text-sm font-sans uppercase tracking-wider">Linear Plot:</strong>
              <span>
                <M>β</M><F>cos</F><M>θ</M> vs 4<F>sin</F><M>θ</M>
              </span>
@@ -178,14 +179,14 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Fourier analysis method that separates size and strain distributions using multiple reflection orders.",
     formulas: (
       <div className="space-y-4">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex items-center justify-center">
-           <span className="mr-3 font-bold text-rose-700 font-sans uppercase text-sm">Fourier Transform:</span>
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex items-center justify-center transition-colors">
+           <span className="mr-3 font-bold text-rose-700 dark:text-rose-400 font-sans uppercase text-sm">Fourier Transform:</span>
            <span>
              <M>A</M>(<M>L</M>) = <Fraction num={<span><F>∫</F> <M>I</M>(<M>s</M>) <F>cos</F>(2<M>π</M><M>L</M><M>s</M>) <M>ds</M></span>} den={<span><F>∫</F> <M>I</M>(<M>s</M>) <M>ds</M></span>} />
            </span>
         </div>
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex items-center justify-center">
-           <span className="mr-3 font-bold text-rose-700 font-sans uppercase text-sm">Separation:</span>
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex items-center justify-center transition-colors">
+           <span className="mr-3 font-bold text-rose-700 dark:text-rose-400 font-sans uppercase text-sm">Separation:</span>
            <span>
              <F>ln</F> <M>A</M>(<M>L</M>) = <F>ln</F> <M>A</M><sub>size</sub>(<M>L</M>) − 2<M>π</M>²<M>L</M>²<M>ε</M>²<Fraction num="1" den={<span><M>d</M>²</span>} />
            </span>
@@ -198,8 +199,8 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Full-pattern fitting method minimizing the difference between calculated and observed patterns.",
     formulas: (
       <div className="space-y-6">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex items-center justify-center">
-          <span className="mr-3 font-bold text-teal-700 font-sans uppercase text-sm">Residual:</span>
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex items-center justify-center transition-colors">
+          <span className="mr-3 font-bold text-teal-700 dark:text-teal-400 font-sans uppercase text-sm">Residual:</span>
           <span>
              <M>M</M> = <F>Σ</F> <M>W</M><sub>i</sub> (<M>y</M><sub>obs,i</sub> − <M>y</M><sub>calc,i</sub>)²
           </span>
@@ -212,8 +213,8 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Diffraction via scattering from atomic nuclei. Contrast depends on scattering length (b).",
     formulas: (
       <div className="space-y-6">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex items-center justify-center">
-           <span className="mr-3 font-bold text-blue-700 font-sans uppercase text-sm">Structure Factor:</span>
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex items-center justify-center transition-colors">
+           <span className="mr-3 font-bold text-blue-700 dark:text-blue-400 font-sans uppercase text-sm">Structure Factor:</span>
            <span>
              <M>F</M><sub>hkl</sub> = <F>Σ</F> <M>b</M><sub>j</sub> <F>exp</F>(2<M>π</M><M>i</M> <strong>r</strong><sub>j</sub> · <strong>Q</strong>) <M>T</M><sub>j</sub>
            </span>
@@ -226,15 +227,15 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Scattering from unpaired electron spins.",
     formulas: (
       <div className="space-y-6">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900 flex flex-col gap-4 items-center">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 flex flex-col gap-4 items-center transition-colors">
            <div className="flex items-center">
-             <strong className="text-indigo-700 mr-3 text-sm font-sans uppercase tracking-wider">Interaction Vector:</strong>
+             <strong className="text-indigo-700 dark:text-indigo-400 mr-3 text-sm font-sans uppercase tracking-wider">Interaction Vector:</strong>
              <span>
                <M>q</M> = <M>Q̂</M> × (<M>M</M> × <M>Q̂</M>)
              </span>
            </div>
            <div className="flex items-center">
-             <strong className="text-indigo-700 mr-3 text-sm font-sans uppercase tracking-wider">Intensity:</strong>
+             <strong className="text-indigo-700 dark:text-indigo-400 mr-3 text-sm font-sans uppercase tracking-wider">Intensity:</strong>
              <span>
                <M>I</M><sub>mag</sub> ∝ |<M>F</M><sub>mag</sub>|² <F>sin</F>²(<M>α</M>)
              </span>
@@ -248,16 +249,16 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "CNN-based pattern matching.",
     formulas: (
       <div className="space-y-4">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900">
-           <p className="font-sans text-sm text-violet-700 font-bold uppercase mb-2">Architecture Flow</p>
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 transition-colors">
+           <p className="font-sans text-sm text-violet-700 dark:text-violet-400 font-bold uppercase mb-2">Architecture Flow</p>
            <div className="flex items-center gap-2 font-mono text-sm">
-             <span className="bg-white px-2 py-1 rounded border">Input (1D)</span>
+             <span className="bg-white dark:bg-slate-900 px-2 py-1 rounded border dark:border-slate-700">Input (1D)</span>
              <span>→</span>
-             <span className="bg-white px-2 py-1 rounded border">Conv1D</span>
+             <span className="bg-white dark:bg-slate-900 px-2 py-1 rounded border dark:border-slate-700">Conv1D</span>
              <span>→</span>
-             <span className="bg-white px-2 py-1 rounded border">MaxPool</span>
+             <span className="bg-white dark:bg-slate-900 px-2 py-1 rounded border dark:border-slate-700">MaxPool</span>
              <span>→</span>
-             <span className="bg-white px-2 py-1 rounded border">Softmax</span>
+             <span className="bg-white dark:bg-slate-900 px-2 py-1 rounded border dark:border-slate-700">Softmax</span>
            </div>
         </div>
       </div>
@@ -268,9 +269,9 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "Uses Computer Vision and LLM reasoning to interpret uploaded diffraction patterns, screen captures from analysis software (e.g. HighScore), and data tables.",
     formulas: (
       <div className="space-y-4">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900">
-           <p className="font-sans text-sm text-sky-700 font-bold uppercase mb-2">Capabilities</p>
-           <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700 font-sans">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 transition-colors">
+           <p className="font-sans text-sm text-sky-700 dark:text-sky-400 font-bold uppercase mb-2">Capabilities</p>
+           <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700 dark:text-slate-400 font-sans transition-colors">
               <li><strong>Peak Detection:</strong> Identifies 2θ positions from plot images.</li>
               <li><strong>Score Interpretation:</strong> Reads candidate lists and matching scores from software screenshots.</li>
               <li><strong>Phase Reasoning:</strong> Correlates visual data with crystallographic knowledge.</li>
@@ -284,19 +285,19 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     description: "You are 'CrystalMind-Control', the database integration and search orchestration module for the CrystalMind AI platform. Your mission is to translate user requests into precise database search queries (COD, Materials Project, AMCSD).",
     formulas: (
       <div className="space-y-4">
-        <div className="bg-slate-50 p-4 rounded border border-slate-200 text-lg text-slate-900">
-           <p className="font-sans text-sm text-cyan-700 font-bold uppercase mb-3">Operational Directives</p>
-           <div className="text-xs font-mono text-slate-700 space-y-3">
-             <div className="flex flex-col gap-1 border-b border-slate-200 pb-2">
-               <span className="font-bold text-cyan-600">1. Composition Search</span>
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 transition-colors">
+           <p className="font-sans text-sm text-cyan-700 dark:text-cyan-400 font-bold uppercase mb-3">Operational Directives</p>
+           <div className="text-xs font-mono text-slate-700 dark:text-slate-400 space-y-3 transition-colors">
+             <div className="flex flex-col gap-1 border-b border-slate-200 dark:border-slate-700 pb-2">
+               <span className="font-bold text-cyan-600 dark:text-cyan-400">1. Composition Search</span>
                <span>If elements provided → Match binary/ternary systems.</span>
              </div>
-             <div className="flex flex-col gap-1 border-b border-slate-200 pb-2">
-               <span className="font-bold text-cyan-600">2. Peak Fingerprint Match</span>
+             <div className="flex flex-col gap-1 border-b border-slate-200 dark:border-slate-700 pb-2">
+               <span className="font-bold text-cyan-600 dark:text-cyan-400">2. Peak Fingerprint Match</span>
                <span>If peaks provided → Match d-spacing vs standard cards.</span>
              </div>
              <div className="flex flex-col gap-1">
-               <span className="font-bold text-cyan-600">3. Metadata Retrieval</span>
+               <span className="font-bold text-cyan-600 dark:text-cyan-400">3. Metadata Retrieval</span>
                <span>Extract Lattice Params, Space Groups, and CIF links.</span>
              </div>
            </div>
@@ -315,7 +316,7 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
 
   return (
     <div className="max-w-3xl mx-auto mt-10 p-6">
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300 transition-colors">
         <div className="bg-slate-900 px-6 py-8 text-white">
           <div className="flex items-center gap-3 mb-4">
              <div className="p-2 bg-white/10 rounded-lg">
@@ -332,20 +333,20 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
 
         <div className="p-8 space-y-8">
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Objective</h3>
-            <p className="text-lg text-slate-700 leading-relaxed font-light">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 transition-colors">Objective</h3>
+            <p className="text-lg text-slate-700 dark:text-slate-300 leading-relaxed font-light transition-colors">
               {content.description}
             </p>
           </div>
 
           {content.formulas && (
             <div>
-               <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Mathematical Basis</h3>
+               <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-4 transition-colors">Mathematical Basis</h3>
                {content.formulas}
             </div>
           )}
 
-          <div className="pt-6 border-t border-slate-100 flex justify-end">
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-end transition-colors">
             <button
               onClick={onUnderstand}
               className="group relative inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"

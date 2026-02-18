@@ -30,6 +30,7 @@ const App: React.FC = () => {
   const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [activeModule, setActiveModule] = useState<Module>('bragg');
   const [isExplained, setIsExplained] = useState<boolean>(false);
+  const [darkMode, setDarkMode] = useState<boolean>(false);
   
   // Bragg State
   const [wavelength, setWavelength] = useState<number>(1.5406);
@@ -46,9 +47,17 @@ const App: React.FC = () => {
     }
   }, [activeModule]);
 
+  // Apply dark mode class to body for global scrollbars/backgrounds
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
   const handleCalculate = () => {
     const peaks = parsePeakString(rawPeaks);
-    // Robust parsing for HKL: handle commas and spaces between triplets
     const hklList = rawHKL
       .split(',')
       .map(s => s.trim())
@@ -58,7 +67,6 @@ const App: React.FC = () => {
       .map((theta, idx) => {
         const res = calculateBragg(wavelength, theta);
         if (res) {
-          // Associate peak with corresponding HKL if index exists
           return { ...res, hkl: hklList[idx] || '' } as BraggResult;
         }
         return null;
@@ -76,7 +84,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Formatted Output for "Bragg-Basics" mission
   const braggJsonOutput = {
     module: "Bragg-Basics",
     wavelength_angstrom: wavelength,
@@ -89,14 +96,16 @@ const App: React.FC = () => {
     }))
   };
 
-  // Initial calculation on mount
   useEffect(() => {
     handleCalculate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!hasEntered) {
-    return <LandingPage onEnter={() => setHasEntered(true)} />;
+    return (
+      <div className={darkMode ? 'dark' : ''}>
+        <LandingPage onEnter={() => setHasEntered(true)} />
+      </div>
+    );
   }
 
   const modules: { id: Module; label: string; icon?: string; group?: string }[] = [
@@ -118,148 +127,186 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 overflow-hidden animate-in fade-in duration-700">
-      
-      {/* Sidebar Navigation - The vertical "Bar" */}
-      <aside className="hidden md:flex w-72 flex-col bg-slate-900 border-r border-white/10 h-full shrink-0 z-20 shadow-2xl relative">
-        {/* Sidebar Header */}
-        <div className="p-6 border-b border-white/10 flex items-center gap-3 bg-slate-900/50 backdrop-blur-md">
-           <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/20 border border-white/10">
-             λ
-           </div>
-           <div>
-             <span className="font-extrabold text-xl tracking-tight text-white block leading-none">
-               XRD-Calc<span className="text-indigo-400">Pro</span>
-             </span>
-             <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1 block">Scientific Suite</span>
-           </div>
-        </div>
-
-        {/* Scrollable Nav Items */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-          {['Fundamentals', 'Size & Strain', 'Advanced Sim', 'AI Tools', 'About'].map((group) => (
-            <div key={group} className="space-y-2">
-              <h3 className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-3">
-                {group}
-              </h3>
-              <div className="space-y-1">
-                {modules.filter(m => m.group === group).map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setActiveModule(m.id)}
-                    className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative flex items-center gap-3 ${
-                      activeModule === m.id
-                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                        : 'text-slate-400 hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    {activeModule === m.id && (
-                      <span className="absolute left-0 w-1 h-5 bg-white rounded-r-full" />
-                    )}
-                    <span className={`w-1.5 h-1.5 rounded-full ${activeModule === m.id ? 'bg-white' : 'bg-slate-700 group-hover:bg-slate-500'}`} />
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-          <div className="h-8"></div>
-        </div>
+    <div className={`${darkMode ? 'dark' : ''} h-full`}>
+      <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors">
         
-        <div className="p-4 border-t border-white/10 text-[10px] text-slate-500 text-center bg-slate-900/80 backdrop-blur-sm">
-          <div className="mb-1">v2.5.0 • Lab Environment Active</div>
-          <div className="opacity-60">Designed by Ali Zerehsaz</div>
-        </div>
-      </aside>
-
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 text-slate-900">
-        <div className="md:hidden bg-slate-900 border-b border-white/10 p-4 flex justify-between items-center z-20 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              λ
-            </div>
-            <span className="font-bold text-lg text-white">XRD-Calc Pro</span>
+        {/* Sidebar Navigation */}
+        <aside className="hidden md:flex w-72 flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/10 h-full shrink-0 z-20 shadow-2xl relative transition-colors">
+          <div className="p-6 border-b border-slate-200 dark:border-white/10 flex items-center gap-3 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/20 border border-white/10">
+               λ
+             </div>
+             <div>
+               <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white block leading-none">
+                 XRD-Calc<span className="text-indigo-600 dark:text-indigo-400">Pro</span>
+               </span>
+               <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1 block">Scientific Suite</span>
+             </div>
           </div>
-          <select
-            value={activeModule}
-            onChange={(e) => setActiveModule(e.target.value as Module)}
-            className="block w-40 rounded-lg border-white/10 py-1.5 pl-3 pr-8 text-sm focus:ring-2 focus:ring-indigo-500 border bg-slate-800 text-white outline-none"
-          >
-            {modules.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-          </select>
-        </div>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar relative">
-          <div className="max-w-7xl mx-auto">
-            {!isExplained ? (
-              <ModuleIntro 
-                module={activeModule} 
-                onUnderstand={() => setIsExplained(true)} 
-              />
-            ) : (
-              <>
-                {activeModule === 'bragg' && (
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 items-start">
-                    <div className="lg:col-span-4 space-y-6">
-                      <BraggInput 
-                        wavelength={wavelength}
-                        setWavelength={setWavelength}
-                        rawPeaks={rawPeaks}
-                        setRawPeaks={setRawPeaks}
-                        rawHKL={rawHKL}
-                        setRawHKL={setRawHKL}
-                        onCalculate={handleCalculate}
-                      />
-                      <GeminiAssistant onLoadPeaks={handleAILoad} />
-                      
-                      <div className="bg-slate-900 rounded-2xl p-5 shadow-2xl border border-white/5 ring-1 ring-white/10">
-                         <div className="flex justify-between items-center mb-3">
-                           <div className="flex items-center gap-2">
-                             <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                             <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Engine Data Link</span>
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+            {['Fundamentals', 'Size & Strain', 'Advanced Sim', 'AI Tools', 'About'].map((group) => (
+              <div key={group} className="space-y-2">
+                <h3 className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3">
+                  {group}
+                </h3>
+                <div className="space-y-1">
+                  {modules.filter(m => m.group === group).map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setActiveModule(m.id)}
+                      className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative flex items-center gap-3 ${
+                        activeModule === m.id
+                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      {activeModule === m.id && (
+                        <span className="absolute left-0 w-1 h-5 bg-white rounded-r-full" />
+                      )}
+                      <span className={`w-1.5 h-1.5 rounded-full ${activeModule === m.id ? 'bg-white' : 'bg-slate-300 dark:bg-slate-700 group-hover:bg-indigo-400 dark:group-hover:bg-slate-500'}`} />
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div className="h-8"></div>
+          </div>
+          
+          <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col gap-3">
+            <button 
+              onClick={() => setDarkMode(!darkMode)}
+              className="flex items-center gap-2 justify-center py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all text-xs font-bold shadow-sm"
+            >
+              {darkMode ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  Switch to Light
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                  Switch to Dark
+                </>
+              )}
+            </button>
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
+              <div className="mb-1 font-bold">v2.5.0 • Lab Active</div>
+              <div className="opacity-60">Designed by Ali Zerehsaz</div>
+            </div>
+          </div>
+        </aside>
+
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
+          <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 p-4 flex justify-between items-center z-20 shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                λ
+              </div>
+              <span className="font-bold text-lg text-slate-900 dark:text-white">XRD-Calc Pro</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              >
+                {darkMode ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                  </svg>
+                )}
+              </button>
+              <select
+                value={activeModule}
+                onChange={(e) => setActiveModule(e.target.value as Module)}
+                className="block w-32 rounded-lg border-slate-200 dark:border-white/10 py-1.5 pl-2 pr-2 text-xs focus:ring-2 focus:ring-indigo-500 border bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none"
+              >
+                {modules.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <main className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar relative">
+            <div className="max-w-7xl mx-auto">
+              {!isExplained ? (
+                <ModuleIntro 
+                  module={activeModule} 
+                  onUnderstand={() => setIsExplained(true)} 
+                />
+              ) : (
+                <>
+                  {activeModule === 'bragg' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 items-start">
+                      <div className="lg:col-span-4 space-y-6">
+                        <BraggInput 
+                          wavelength={wavelength}
+                          setWavelength={setWavelength}
+                          rawPeaks={rawPeaks}
+                          setRawPeaks={setRawPeaks}
+                          rawHKL={rawHKL}
+                          setRawHKL={setRawHKL}
+                          onCalculate={handleCalculate}
+                        />
+                        <GeminiAssistant onLoadPeaks={handleAILoad} />
+                        
+                        <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-800 dark:border-white/5 ring-1 ring-white/10">
+                           <div className="flex justify-between items-center mb-3">
+                             <div className="flex items-center gap-2">
+                               <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                               <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Engine Data Link</span>
+                             </div>
+                             <button 
+                               onClick={() => navigator.clipboard.writeText(JSON.stringify(braggJsonOutput, null, 2))}
+                               className="text-[10px] text-white/40 hover:text-white transition-colors bg-white/5 px-2 py-1 rounded-md"
+                             >
+                               Copy Strict JSON
+                             </button>
                            </div>
-                           <button 
-                             onClick={() => navigator.clipboard.writeText(JSON.stringify(braggJsonOutput, null, 2))}
-                             className="text-[10px] text-white/40 hover:text-white transition-colors bg-white/5 px-2 py-1 rounded-md"
-                           >
-                             Copy Strict JSON
-                           </button>
-                         </div>
-                         <pre className="text-[10px] font-mono text-slate-300 overflow-x-auto custom-scrollbar leading-relaxed h-48 scrollbar-thin scrollbar-thumb-slate-700">
-                            {JSON.stringify(braggJsonOutput, null, 2)}
-                         </pre>
+                           <pre className="text-[10px] font-mono text-slate-300 overflow-x-auto custom-scrollbar leading-relaxed h-48 scrollbar-thin scrollbar-thumb-slate-700">
+                              {JSON.stringify(braggJsonOutput, null, 2)}
+                           </pre>
+                        </div>
+                      </div>
+
+                      <div className="lg:col-span-8 space-y-6">
+                        <DiffractionChart results={results} />
+                        <ResultsTable results={results} />
                       </div>
                     </div>
+                  )}
 
-                    <div className="lg:col-span-8 space-y-6">
-                      <DiffractionChart results={results} />
-                      <ResultsTable results={results} />
-                    </div>
-                  </div>
-                )}
-
-                {activeModule === 'fwhm' && <FWHMModule />}
-                {activeModule === 'selection' && <SelectionRulesModule />}
-                {activeModule === 'scherrer' && <ScherrerModule />}
-                {activeModule === 'wh' && <WilliamsonHallModule />}
-                {activeModule === 'integral' && <IntegralBreadthModule />}
-                {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
-                {activeModule === 'wa' && <WarrenAverbachModule />}
-                {activeModule === 'rietveld' && <RietveldModule />}
-                {activeModule === 'neutron' && <NeutronModule />}
-                {activeModule === 'magnetic' && <MagneticNeutronModule />}
-                {activeModule === 'dl' && <DeepLearningModule />}
-                {activeModule === 'image_analysis' && <ImageAnalysisModule />}
-                {activeModule === 'crystal_mind' && <CrystalMindModule />}
-                {activeModule === 'profile' && <ProfilePage />}
-              </>
-            )}
-          </div>
-          <div className="mt-12 pt-8 border-t border-slate-200 text-center text-slate-400 text-xs">
-            XRD-Calc Pro Laboratory Environment • Designed by Ali Zerehsaz
-          </div>
-        </main>
-        <AIChatSupport />
+                  {activeModule === 'fwhm' && <FWHMModule />}
+                  {activeModule === 'selection' && <SelectionRulesModule />}
+                  {activeModule === 'scherrer' && <ScherrerModule />}
+                  {activeModule === 'wh' && <WilliamsonHallModule />}
+                  {activeModule === 'integral' && <IntegralBreadthModule />}
+                  {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
+                  {activeModule === 'wa' && <WarrenAverbachModule />}
+                  {activeModule === 'rietveld' && <RietveldModule />}
+                  {activeModule === 'neutron' && <NeutronModule />}
+                  {activeModule === 'magnetic' && <MagneticNeutronModule />}
+                  {activeModule === 'dl' && <DeepLearningModule />}
+                  {activeModule === 'image_analysis' && <ImageAnalysisModule />}
+                  {activeModule === 'crystal_mind' && <CrystalMindModule />}
+                  {activeModule === 'profile' && <ProfilePage />}
+                </>
+              )}
+            </div>
+            <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 text-center text-slate-400 dark:text-slate-500 text-xs">
+              XRD-Calc Pro Laboratory Environment • Designed by Ali Zerehsaz
+            </div>
+          </main>
+          <AIChatSupport />
+        </div>
       </div>
     </div>
   );

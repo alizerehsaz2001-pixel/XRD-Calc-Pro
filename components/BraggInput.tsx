@@ -47,9 +47,9 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+        <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
           </svg>
@@ -58,7 +58,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
         <button 
           onClick={handleSync}
           disabled={isSyncing}
-          className="text-[10px] uppercase font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors disabled:opacity-50"
+          className="text-[10px] uppercase font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors disabled:opacity-50"
           title="Fetch latest IUPAC/NIST standard values"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -70,7 +70,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
       
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Wavelength (Å)
           </label>
           <div className="relative">
@@ -79,7 +79,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
               step="0.0001"
               value={wavelength}
               onChange={(e) => setWavelength(parseFloat(e.target.value))}
-              className="w-full px-4 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors font-bold font-mono"
+              className="w-full px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 dark:bg-slate-950 dark:text-white dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors font-bold font-mono"
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400 text-xs font-bold">
               Å
@@ -93,7 +93,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                 className={`px-2 py-1.5 text-[10px] rounded border transition-all font-bold ${
                   wavelength === sw.value 
                     ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' 
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
               >
                 {sw.label}
@@ -104,29 +104,29 @@ export const BraggInput: React.FC<BraggInputProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               2θ Peaks (deg)
             </label>
             <textarea
               value={rawPeaks}
               onChange={(e) => setRawPeaks(e.target.value)}
               placeholder="e.g., 28.4, 47.3"
-              className="w-full h-24 px-4 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors font-mono text-xs leading-relaxed"
+              className="w-full h-24 px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 dark:bg-slate-950 dark:text-white dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors font-mono text-xs leading-relaxed"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               Miller Indices (hkl)
             </label>
             <textarea
               value={rawHKL}
               onChange={(e) => setRawHKL(e.target.value)}
               placeholder="e.g., 111, 220"
-              className="w-full h-24 px-4 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors font-mono text-xs leading-relaxed"
+              className="w-full h-24 px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 dark:bg-slate-950 dark:text-white dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors font-mono text-xs leading-relaxed"
             />
           </div>
         </div>
-        <p className="text-[10px] text-slate-500 -mt-2 italic">
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 -mt-2 italic">
           Separate multiple entries with commas. HKL indices will map 1:1 to peaks.
         </p>
 
