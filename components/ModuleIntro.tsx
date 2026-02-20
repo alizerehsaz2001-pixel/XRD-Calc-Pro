@@ -65,7 +65,7 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
           <div className="flex items-center flex-wrap">
             <strong className="text-orange-700 dark:text-orange-400 mr-3 text-sm font-sans uppercase tracking-wider">Integral Breadth:</strong>
             <span>
-              <M>β</M> = <Fraction num={<F>Area</F>} den={<M>I</M><sub>max</sub>} />
+              <M>β</M> = <Fraction num={<F>Area</F>} den={<><M>I</M><sub>max</sub></>} />
             </span>
           </div>
         </div>
@@ -139,13 +139,13 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
            <div className="flex items-center">
               <strong className="text-purple-700 dark:text-purple-400 mr-3 text-sm font-sans uppercase tracking-wider">Integral Breadth:</strong>
               <span>
-                <M>β</M><sub>IB</sub> = <Fraction num={<F>Area</F>} den={<M>I</M><sub>max</sub>} />
+                <M>β</M><sub>IB</sub> = <Fraction num={<F>Area</F>} den={<><M>I</M><sub>max</sub></>} />
               </span>
            </div>
            <div className="flex items-center">
               <strong className="text-purple-700 dark:text-purple-400 mr-3 text-sm font-sans uppercase tracking-wider">Shape Factor:</strong>
               <span>
-                <M>φ</M> = <Fraction num={<F>FWHM</F>} den={<M>β</M><sub>IB</sub>} />
+                <M>φ</M> = <Fraction num={<F>FWHM</F>} den={<><M>β</M><sub>IB</sub></>} />
               </span>
            </div>
         </div>

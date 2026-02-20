@@ -18,15 +18,14 @@ export const AIChatSupport: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isSmart, setIsSmart] = useState(false);
   const chatSession = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Initialize chat session on mount
-    if (!chatSession.current) {
-      chatSession.current = createSupportChat();
-    }
-  }, []);
+    // Initialize chat session on mount or when smart mode changes
+    chatSession.current = createSupportChat(isSmart);
+  }, [isSmart]);
 
   useEffect(() => {
     // Auto-scroll to bottom
@@ -84,17 +83,29 @@ export const AIChatSupport: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-sm">Crystal AI Support</h3>
-                <p className="text-[10px] text-indigo-100 opacity-80">Grounded Intelligence Active</p>
+                <p className="text-[10px] text-indigo-100 opacity-80">{isSmart ? 'Deep Reasoning Active' : 'Grounded Intelligence Active'}</p>
               </div>
             </div>
-            <button 
-              onClick={() => setIsOpen(false)} 
-              className="text-white/80 hover:text-white hover:bg-white/10 p-1 rounded transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setIsSmart(!isSmart)}
+                className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-all ${isSmart ? 'bg-amber-400 text-indigo-900 shadow-lg shadow-amber-400/20' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                title={isSmart ? "Smart Mode (High Reasoning) Enabled" : "Enable Smart Mode (High Reasoning)"}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${isSmart ? 'animate-pulse' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                </svg>
+                {isSmart ? 'SMART' : 'FAST'}
+              </button>
+              <button 
+                onClick={() => setIsOpen(false)} 
+                className="text-white/80 hover:text-white hover:bg-white/10 p-1 rounded transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Messages Area */}
