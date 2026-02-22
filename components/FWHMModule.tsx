@@ -62,7 +62,12 @@ export const FWHMModule: React.FC = () => {
                 {(['Gaussian', 'Lorentzian', 'Pseudo-Voigt'] as const).map(t => (
                   <button
                     key={t}
-                    onClick={() => setType(t)}
+                    onClick={() => {
+                      setType(t);
+                      if (t === 'Gaussian') setEta(0);
+                      else if (t === 'Lorentzian') setEta(1);
+                      else setEta(0.5);
+                    }}
                     className={`px-2 py-2 text-xs font-bold rounded-lg border transition-all ${
                       type === t 
                         ? 'bg-orange-600 border-orange-600 text-white shadow-md' 
@@ -99,23 +104,25 @@ export const FWHMModule: React.FC = () => {
               />
             </div>
 
-            {type === 'Pseudo-Voigt' && (
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-sm font-bold text-slate-700">Mixing Factor (η)</label>
-                  <span className="text-xs font-mono text-orange-600 font-bold">{(eta * 100).toFixed(0)}% L</span>
-                </div>
-                <input
-                  type="range" min="0" max="1" step="0.01"
-                  value={eta} onChange={(e) => setEta(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
-                />
-                <div className="flex justify-between text-[10px] text-slate-400 mt-1 uppercase font-bold">
-                  <span>Gaussian</span>
-                  <span>Lorentzian</span>
-                </div>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-sm font-bold text-slate-700">Mixing Factor (η)</label>
+                <span className="text-xs font-mono text-orange-600 font-bold">{(eta * 100).toFixed(0)}% L</span>
               </div>
-            )}
+              <input
+                type="range" min="0" max="1" step="0.01"
+                value={eta} 
+                onChange={(e) => setEta(parseFloat(e.target.value))}
+                disabled={type !== 'Pseudo-Voigt'}
+                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
+                  type === 'Pseudo-Voigt' ? 'bg-slate-200 accent-orange-600' : 'bg-slate-100 accent-slate-400 cursor-not-allowed'
+                }`}
+              />
+              <div className="flex justify-between text-[10px] text-slate-400 mt-1 uppercase font-bold">
+                <span>Gaussian</span>
+                <span>Lorentzian</span>
+              </div>
+            </div>
 
             <div className="pt-6 border-t border-slate-100">
                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Strict JSON Results</h3>
