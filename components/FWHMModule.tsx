@@ -43,6 +43,40 @@ export const FWHMModule: React.FC = () => {
     });
   };
 
+  const analyzeProfile = () => {
+    if (!stats) return null;
+    const messages: { type: 'info' | 'warning' | 'error', text: string }[] = [];
+    let status: 'ok' | 'warning' | 'error' = 'ok';
+
+    // Shape Factor Analysis
+    if (type === 'Gaussian' && Math.abs(stats.shapeFactor - 0.939) > 0.01) {
+       messages.push({ type: 'warning', text: `Shape factor ${stats.shapeFactor.toFixed(3)} deviates from ideal Gaussian (0.939).` });
+       status = 'warning';
+    }
+    if (type === 'Lorentzian' && Math.abs(stats.shapeFactor - 0.637) > 0.01) {
+       messages.push({ type: 'warning', text: `Shape factor ${stats.shapeFactor.toFixed(3)} deviates from ideal Lorentzian (0.637).` });
+       status = 'warning';
+    }
+
+    // FWHM Analysis
+    if (fwhm < 0.02) {
+      messages.push({ type: 'warning', text: "FWHM < 0.02° is typically below instrumental resolution for standard lab XRD." });
+      status = 'warning';
+    } else if (fwhm > 3) {
+      messages.push({ type: 'info', text: "Broad peak (>3°). Indicates amorphous phase or crystallites < 2nm." });
+    }
+
+    // Mixing Factor Analysis
+    if (type === 'Pseudo-Voigt') {
+        if (eta < 0.2) messages.push({ type: 'info', text: "Dominantly Gaussian character (Strain/Instrument dominated)." });
+        else if (eta > 0.8) messages.push({ type: 'info', text: "Dominantly Lorentzian character (Size dominated)." });
+    }
+
+    return { status, messages };
+  };
+
+  const analysis = analyzeProfile();
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Configuration Sidebar */}
@@ -136,6 +170,49 @@ export const FWHMModule: React.FC = () => {
                  </pre>
                </div>
             </div>
+
+            {/* Profile Analysis Section */}
+            {analysis && (
+              <div className={`p-4 rounded-lg border ${
+                analysis.status === 'ok' ? 'bg-emerald-50 border-emerald-200' : 
+                analysis.status === 'warning' ? 'bg-amber-50 border-amber-200' : 
+                'bg-red-50 border-red-200'
+              }`}>
+                <div className="flex items-center gap-2 mb-2">
+                  {analysis.status === 'ok' ? (
+                    <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  )}
+                  <h3 className={`text-sm font-bold ${
+                    analysis.status === 'ok' ? 'text-emerald-800' : 
+                    analysis.status === 'warning' ? 'text-amber-800' : 
+                    'text-red-800'
+                  }`}>
+                    Profile Analysis
+                  </h3>
+                </div>
+                
+                {analysis.messages.length > 0 ? (
+                  <ul className="space-y-1">
+                    {analysis.messages.map((msg, idx) => (
+                      <li key={idx} className={`text-xs flex gap-2 ${
+                        msg.type === 'warning' ? 'text-amber-700' : 'text-slate-600'
+                      }`}>
+                        <span>•</span>
+                        <span>{msg.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-emerald-700">Parameters appear physically consistent for standard XRD analysis.</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -358,6 +435,56 @@ export const FWHMModule: React.FC = () => {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        {/* Mathematical Models & Applications */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden">
+          <div className="p-4 border-b border-slate-300 bg-slate-100">
+            <h3 className="font-bold text-slate-800">Mathematical Models & Applications</h3>
+          </div>
+          <div className="p-6 space-y-6">
+            {/* Gaussian */}
+            <div className="border-b border-slate-100 pb-6 last:border-0 last:pb-0">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded uppercase">Gaussian</span>
+                <h4 className="font-bold text-slate-800">Normal Distribution</h4>
+              </div>
+              <div className="bg-slate-50 p-3 rounded border border-slate-200 font-mono text-xs text-slate-600 mb-3 overflow-x-auto">
+                I(2θ) = Imax · exp(-ln(2) · ((2θ - 2θ₀) / HWHM)²)
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                <strong className="text-slate-800">Why use it?</strong> Best for modeling <span className="italic">instrumental broadening</span> and <span className="italic">microstrain</span> effects. The tails decay very rapidly (exponentially), making it suitable for sharp, well-resolved peaks with minimal background interaction.
+              </p>
+            </div>
+
+            {/* Lorentzian */}
+            <div className="border-b border-slate-100 pb-6 last:border-0 last:pb-0">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded uppercase">Lorentzian</span>
+                <h4 className="font-bold text-slate-800">Cauchy Distribution</h4>
+              </div>
+              <div className="bg-slate-50 p-3 rounded border border-slate-200 font-mono text-xs text-slate-600 mb-3 overflow-x-auto">
+                I(2θ) = Imax · (1 / (1 + ((2θ - 2θ₀) / HWHM)²))
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                <strong className="text-slate-800">Why use it?</strong> Describes <span className="italic">crystallite size broadening</span> (Scherrer equation) and <span className="italic">spectral line shapes</span>. It has much heavier tails (polynomial decay) than Gaussian, meaning significant intensity persists far from the peak center.
+              </p>
+            </div>
+
+            {/* Pseudo-Voigt */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded uppercase">Pseudo-Voigt</span>
+                <h4 className="font-bold text-slate-800">Linear Combination</h4>
+              </div>
+              <div className="bg-slate-50 p-3 rounded border border-slate-200 font-mono text-xs text-slate-600 mb-3 overflow-x-auto">
+                I(2θ) = η · L(2θ) + (1 - η) · G(2θ)
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                <strong className="text-slate-800">Why use it?</strong> The standard for <span className="italic">Rietveld refinement</span> and general XRD analysis. Real diffraction peaks are a convolution of instrumental (Gaussian) and sample (Lorentzian) effects. The mixing factor <strong>η</strong> allows you to model this hybrid behavior precisely.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
