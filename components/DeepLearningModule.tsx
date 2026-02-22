@@ -30,13 +30,19 @@ export const DeepLearningModule: React.FC = () => {
     }, 800);
   };
 
-  const loadExample = (type: 'Silicon' | 'Mixture') => {
+  const loadExample = (type: 'Silicon' | 'Mixture' | 'HAP' | 'ZnO') => {
     if (type === 'Silicon') {
       // Silicon Peaks
       setInputData(`28.44, 100\n47.30, 55\n56.12, 30\n69.13, 6\n76.38, 11\n88.03, 12`);
     } else if (type === 'Mixture') {
       // Quartz + Gold Mix
       setInputData(`20.86, 40\n26.64, 100\n38.18, 50\n44.39, 25\n50.14, 15\n64.57, 20`);
+    } else if (type === 'HAP') {
+      // Hydroxyapatite
+      setInputData(`25.87, 40\n31.77, 100\n32.19, 95\n32.90, 60\n34.04, 45\n39.81, 25\n46.71, 35\n49.46, 30`);
+    } else if (type === 'ZnO') {
+      // Zinc Oxide
+      setInputData(`31.77, 57\n34.42, 44\n36.25, 100\n47.54, 23\n56.60, 32\n62.86, 29`);
     }
   };
 
@@ -71,9 +77,11 @@ export const DeepLearningModule: React.FC = () => {
                 placeholder="28.44, 100&#10;47.30, 55"
                 className="w-full h-48 px-4 py-2 bg-slate-900 text-white border border-slate-700 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none transition-colors font-mono text-sm leading-relaxed"
               />
-              <div className="flex gap-2 mt-2">
-                <button onClick={() => loadExample('Silicon')} className="text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600">Load Silicon</button>
-                <button onClick={() => loadExample('Mixture')} className="text-xs bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600">Load Mix (SiO2 + Au)</button>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <button onClick={() => loadExample('Silicon')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 transition-colors">Silicon</button>
+                <button onClick={() => loadExample('Mixture')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 transition-colors">Mix (SiO2+Au)</button>
+                <button onClick={() => loadExample('HAP')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 transition-colors">Hydroxyapatite</button>
+                <button onClick={() => loadExample('ZnO')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 transition-colors">Zinc Oxide</button>
               </div>
             </div>
 

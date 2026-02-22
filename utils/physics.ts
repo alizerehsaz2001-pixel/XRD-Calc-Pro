@@ -428,7 +428,9 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
   const DB = [
     { name: 'Silicon', formula: 'Si', cardId: 'COD-9008566', majorPeaks: [28.44, 47.30, 56.12, 69.13, 76.38] },
     { name: 'Gold', formula: 'Au', cardId: 'COD-9008463', majorPeaks: [38.18, 44.39, 64.57, 77.54] },
-    { name: 'Quartz', formula: 'SiO2', cardId: 'COD-1011097', majorPeaks: [20.86, 26.64, 50.14] }
+    { name: 'Quartz', formula: 'SiO2', cardId: 'COD-1011097', majorPeaks: [20.86, 26.64, 50.14] },
+    { name: 'Hydroxyapatite', formula: 'Ca5(PO4)3(OH)', cardId: 'COD-9010051', majorPeaks: [25.87, 31.77, 32.19, 32.90, 34.04, 39.81, 46.71, 49.46] },
+    { name: 'Zinc Oxide', formula: 'ZnO', cardId: 'COD-9008877', majorPeaks: [31.77, 34.42, 36.25, 47.54, 56.60, 62.86] }
   ];
   const candidates = DB.map(p => {
     let matches = 0;

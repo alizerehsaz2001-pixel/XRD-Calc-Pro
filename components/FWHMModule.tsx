@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { simulatePeak } from '../utils/physics';
 import { FWHMResult } from '../types';
 import {
-  AreaChart,
+  ComposedChart,
   Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine
+  ReferenceLine,
+  ReferenceArea,
+  Label
 } from 'recharts';
 
 export const FWHMModule: React.FC = () => {
@@ -21,6 +23,9 @@ export const FWHMModule: React.FC = () => {
   
   const [chartData, setChartData] = useState<any[]>([]);
   const [stats, setStats] = useState<FWHMResult | null>(null);
+  
+  const [activePoint, setActivePoint] = useState<{ x: number, y: number, dataX: number, dataY: number } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const range: [number, number] = [center - fwhm * 4, center + fwhm * 4];
@@ -28,6 +33,21 @@ export const FWHMModule: React.FC = () => {
     setChartData(points);
     setStats(stats);
   }, [type, center, fwhm, eta, amplitude]);
+
+  const handleChartMouseMove = (state: any) => {
+    if (state && state.activePayload && state.activePayload.length > 0 && state.activeCoordinate) {
+      // Recharts state.activeCoordinate gives us the pixel position of the active dot!
+      const { x: pixelX, y: pixelY } = state.activeCoordinate;
+      setActivePoint({
+        x: pixelX,
+        y: pixelY,
+        dataX: state.activePayload[0].payload.x,
+        dataY: state.activePayload[0].payload.y
+      });
+    } else {
+      setActivePoint(null);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
@@ -121,16 +141,27 @@ export const FWHMModule: React.FC = () => {
 
       {/* Visualizer and Stats */}
       <div className="lg:col-span-8 space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[500px] flex flex-col">
+        <div 
+          className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[500px] flex flex-col relative overflow-hidden"
+          ref={chartContainerRef}
+        >
            <h3 className="text-lg font-bold text-slate-800 mb-6">Peak Profile Visualizer</h3>
            <div className="flex-1 w-full min-h-0 min-w-0">
              <ResponsiveContainer width="100%" height="100%">
-               <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 30 }}>
+               <ComposedChart 
+                 data={chartData} 
+                 margin={{ top: 20, right: 60, left: 20, bottom: 30 }}
+                 onMouseMove={handleChartMouseMove}
+                 onMouseLeave={() => setActivePoint(null)}
+               >
                  <defs>
                    <linearGradient id="colorY" x1="0" y1="0" x2="0" y2="1">
-                     <stop offset="5%" stopColor="#ea580c" stopOpacity={0.3}/>
-                     <stop offset="95%" stopColor="#ea580c" stopOpacity={0}/>
+                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                    </linearGradient>
+                   <pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                     <rect width="2" height="4" transform="translate(0,0)" fill="#94a3b8" opacity="0.3"></rect>
+                   </pattern>
                  </defs>
                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                  <XAxis 
@@ -138,26 +169,145 @@ export const FWHMModule: React.FC = () => {
                    type="number" 
                    domain={['auto', 'auto']} 
                    tick={{fontSize: 10}}
-                   label={{ value: '2θ (degrees)', position: 'bottom', offset: 15, fontSize: 12, fontWeight: 'bold' }}
+                   label={{ value: 'Angle 2θ', position: 'bottom', offset: 15, fontSize: 12, fontWeight: 'bold' }}
                  />
-                 <YAxis hide domain={[0, amplitude * 1.1]} />
+                 <YAxis hide domain={[0, amplitude * 1.2]} />
                  <Tooltip 
                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
                    labelFormatter={(val) => `2θ: ${val.toFixed(3)}°`}
                    formatter={(val: number) => [val.toFixed(2), 'Intensity']}
                  />
-                 <ReferenceLine y={amplitude / 2} stroke="#cbd5e1" strokeDasharray="3 3" label={{ position: 'right', value: 'Half Max', fontSize: 10, fill: '#64748b' }} />
+                 
+                 {/* Background Area */}
+                 {chartData.length > 0 && (
+                   <ReferenceArea 
+                     x1={chartData[0].x} 
+                     x2={chartData[chartData.length - 1].x} 
+                     y1={0} 
+                     y2={amplitude * 0.05} 
+                     fill="url(#hatch)" 
+                     stroke="none"
+                   >
+                      <Label value="Background" position="insideBottomRight" offset={10} fill="#64748b" fontSize={11} fontWeight="bold" />
+                   </ReferenceArea>
+                 )}
+
+                 {/* Integral Breadth Rectangle */}
+                 {stats && (
+                   <ReferenceArea 
+                     x1={center - stats.integralBreadth / 2} 
+                     x2={center + stats.integralBreadth / 2} 
+                     y1={0} 
+                     y2={amplitude} 
+                     fill="rgba(200, 200, 200, 0.15)"
+                     stroke="#64748b"
+                     strokeDasharray="3 3"
+                   >
+                     <Label value="Integral breadth" position="insideBottom" offset={10} fill="#64748b" fontSize={11} fontWeight="bold" />
+                   </ReferenceArea>
+                 )}
+
+                 {/* Peak Position Line */}
+                 <ReferenceLine x={center} stroke="#1e293b" strokeDasharray="3 3">
+                    <Label value="Peak position 2θ" position="top" fill="#1e293b" fontSize={11} fontWeight="bold" offset={10} />
+                 </ReferenceLine>
+
+                 {/* Imax Line */}
+                 <ReferenceLine y={amplitude} stroke="#94a3b8" strokeDasharray="3 3">
+                    <Label value="Imax" position="insideLeft" fill="#1e293b" fontSize={11} fontWeight="bold" offset={10} />
+                 </ReferenceLine>
+
+                 {/* Half Max Line */}
+                 <ReferenceLine y={amplitude / 2} stroke="#94a3b8" strokeDasharray="3 3">
+                    <Label value="Imax / 2" position="insideLeft" fill="#1e293b" fontSize={11} fontWeight="bold" offset={10} />
+                 </ReferenceLine>
+
+                 {/* FWHM Arrow Segment */}
+                 <ReferenceLine 
+                   segment={[
+                     { x: center - fwhm / 2, y: amplitude / 2 }, 
+                     { x: center + fwhm / 2, y: amplitude / 2 }
+                   ]} 
+                   stroke="#1e293b" 
+                   strokeWidth={2}
+                 >
+                   <Label value="FWHM" position="top" fill="#1e293b" fontSize={11} fontWeight="bold" offset={5} />
+                 </ReferenceLine>
+
+                 {/* Main Peak Area */}
                  <Area 
                     type="monotone" 
                     dataKey="y" 
-                    stroke="#ea580c" 
+                    stroke="#3b82f6" 
                     strokeWidth={3}
                     fillOpacity={1} 
                     fill="url(#colorY)" 
                     isAnimationActive={false}
+                    activeDot={false}
                  />
-               </AreaChart>
+               </ComposedChart>
              </ResponsiveContainer>
+             
+             {/* Custom Annotations Overlay (for things hard to do in Recharts) */}
+             <div className="absolute bottom-36 right-12 text-xs font-bold text-slate-500 flex items-center gap-1 pointer-events-none">
+                <span>Peak area I</span>
+                <span className="text-[9px] align-sub">int</span>
+                <svg className="w-4 h-4 rotate-180 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+             </div>
+
+             {/* Crosshair Cursor Overlay */}
+             {activePoint && (
+               <svg 
+                 className="absolute inset-0 pointer-events-none z-50" 
+                 width="100%" 
+                 height="100%"
+               >
+                 {/* Horizontal Line */}
+                 <line 
+                   x1="0" 
+                   y1={activePoint.y} 
+                   x2="100%" 
+                   y2={activePoint.y} 
+                   stroke="#3b82f6" 
+                   strokeWidth="1" 
+                   strokeDasharray="4 4"
+                   opacity="0.5"
+                 />
+                 {/* Vertical Line */}
+                 <line 
+                   x1={activePoint.x} 
+                   y1="0" 
+                   x2={activePoint.x} 
+                   y2="100%" 
+                   stroke="#3b82f6" 
+                   strokeWidth="1" 
+                   strokeDasharray="4 4"
+                   opacity="0.5"
+                 />
+                 {/* Central Dot */}
+                 <circle 
+                   cx={activePoint.x} 
+                   cy={activePoint.y} 
+                   r="4" 
+                   fill="#3b82f6" 
+                   stroke="white"
+                   strokeWidth="2"
+                 />
+                 {/* Crosshair Lines (Short solid ones near the dot for precision) */}
+                 <line x1={activePoint.x - 15} y1={activePoint.y} x2={activePoint.x + 15} y2={activePoint.y} stroke="#3b82f6" strokeWidth="1.5" />
+                 <line x1={activePoint.x} y1={activePoint.y - 15} x2={activePoint.x} y2={activePoint.y + 15} stroke="#3b82f6" strokeWidth="1.5" />
+                 
+                 {/* Data Label at Crosshair */}
+                 <g transform={`translate(${activePoint.x + 10}, ${activePoint.y - 10})`}>
+                   <rect x="0" y="-30" width="80" height="25" rx="4" fill="#1e293b" opacity="0.8" />
+                   <text x="5" y="-13" fill="white" fontSize="10" fontWeight="bold">
+                     {activePoint.dataX.toFixed(3)}°, {activePoint.dataY.toFixed(1)}
+                   </text>
+                 </g>
+               </svg>
+             )}
            </div>
         </div>
 
