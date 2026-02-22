@@ -24,7 +24,7 @@ export const FWHMModule: React.FC = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [stats, setStats] = useState<FWHMResult | null>(null);
   
-  const [activePoint, setActivePoint] = useState<{ x: number, y: number, dataX: number, dataY: number } | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number, y: number } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,19 +34,13 @@ export const FWHMModule: React.FC = () => {
     setStats(stats);
   }, [type, center, fwhm, eta, amplitude]);
 
-  const handleChartMouseMove = (state: any) => {
-    if (state && state.activePayload && state.activePayload.length > 0 && state.activeCoordinate) {
-      // Recharts state.activeCoordinate gives us the pixel position of the active dot!
-      const { x: pixelX, y: pixelY } = state.activeCoordinate;
-      setActivePoint({
-        x: pixelX,
-        y: pixelY,
-        dataX: state.activePayload[0].payload.x,
-        dataY: state.activePayload[0].payload.y
-      });
-    } else {
-      setActivePoint(null);
-    }
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!chartContainerRef.current) return;
+    const rect = chartContainerRef.current.getBoundingClientRect();
+    setMousePos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
   };
 
   return (
@@ -142,8 +136,10 @@ export const FWHMModule: React.FC = () => {
       {/* Visualizer and Stats */}
       <div className="lg:col-span-8 space-y-6">
         <div 
-          className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[500px] flex flex-col relative overflow-hidden"
+          className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[500px] flex flex-col relative overflow-hidden cursor-none"
           ref={chartContainerRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={() => setMousePos(null)}
         >
            <h3 className="text-lg font-bold text-slate-800 mb-6">Peak Profile Visualizer</h3>
            <div className="flex-1 w-full min-h-0 min-w-0">
@@ -151,8 +147,6 @@ export const FWHMModule: React.FC = () => {
                <ComposedChart 
                  data={chartData} 
                  margin={{ top: 20, right: 60, left: 20, bottom: 30 }}
-                 onMouseMove={handleChartMouseMove}
-                 onMouseLeave={() => setActivePoint(null)}
                >
                  <defs>
                    <linearGradient id="colorY" x1="0" y1="0" x2="0" y2="1">
@@ -258,7 +252,7 @@ export const FWHMModule: React.FC = () => {
              </div>
 
              {/* Crosshair Cursor Overlay */}
-             {activePoint && (
+             {mousePos && (
                <svg 
                  className="absolute inset-0 pointer-events-none z-50" 
                  width="100%" 
@@ -267,9 +261,9 @@ export const FWHMModule: React.FC = () => {
                  {/* Horizontal Line */}
                  <line 
                    x1="0" 
-                   y1={activePoint.y} 
+                   y1={mousePos.y} 
                    x2="100%" 
-                   y2={activePoint.y} 
+                   y2={mousePos.y} 
                    stroke="#3b82f6" 
                    strokeWidth="1" 
                    strokeDasharray="4 4"
@@ -277,9 +271,9 @@ export const FWHMModule: React.FC = () => {
                  />
                  {/* Vertical Line */}
                  <line 
-                   x1={activePoint.x} 
+                   x1={mousePos.x} 
                    y1="0" 
-                   x2={activePoint.x} 
+                   x2={mousePos.x} 
                    y2="100%" 
                    stroke="#3b82f6" 
                    strokeWidth="1" 
@@ -288,24 +282,16 @@ export const FWHMModule: React.FC = () => {
                  />
                  {/* Central Dot */}
                  <circle 
-                   cx={activePoint.x} 
-                   cy={activePoint.y} 
+                   cx={mousePos.x} 
+                   cy={mousePos.y} 
                    r="4" 
                    fill="#3b82f6" 
                    stroke="white"
                    strokeWidth="2"
                  />
                  {/* Crosshair Lines (Short solid ones near the dot for precision) */}
-                 <line x1={activePoint.x - 15} y1={activePoint.y} x2={activePoint.x + 15} y2={activePoint.y} stroke="#3b82f6" strokeWidth="1.5" />
-                 <line x1={activePoint.x} y1={activePoint.y - 15} x2={activePoint.x} y2={activePoint.y + 15} stroke="#3b82f6" strokeWidth="1.5" />
-                 
-                 {/* Data Label at Crosshair */}
-                 <g transform={`translate(${activePoint.x + 10}, ${activePoint.y - 10})`}>
-                   <rect x="0" y="-30" width="80" height="25" rx="4" fill="#1e293b" opacity="0.8" />
-                   <text x="5" y="-13" fill="white" fontSize="10" fontWeight="bold">
-                     {activePoint.dataX.toFixed(3)}°, {activePoint.dataY.toFixed(1)}
-                   </text>
-                 </g>
+                 <line x1={mousePos.x - 15} y1={mousePos.y} x2={mousePos.x + 15} y2={mousePos.y} stroke="#3b82f6" strokeWidth="1.5" />
+                 <line x1={mousePos.x} y1={mousePos.y - 15} x2={mousePos.x} y2={mousePos.y + 15} stroke="#3b82f6" strokeWidth="1.5" />
                </svg>
              )}
            </div>
