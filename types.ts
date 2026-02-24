@@ -216,6 +216,7 @@ export interface DLPhaseCandidate {
   spaceGroup?: string;
   density?: number; // g/cm3
   applications?: string[];
+  materialType?: string;
 }
 
 export interface DLPhaseResult {

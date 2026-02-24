@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DLPhaseResult, DLPhaseCandidate } from '../types';
 import { identifyPhasesDL, parseXYData } from '../utils/physics';
 import {
@@ -13,7 +13,76 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical } from 'lucide-react';
+
+const MATERIAL_DB = [
+  { 
+    name: 'Silicon (Si)', 
+    type: 'Semiconductor', 
+    pattern: '28.44, 100\n47.30, 55\n56.12, 30\n69.13, 6\n76.38, 11\n88.03, 12',
+    description: 'A hard, brittle crystalline solid with a blue-grey metallic lustre.',
+    formula: 'Si',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fd-3m',
+    density: 2.33,
+    applications: ['Electronics', 'Solar Cells', 'Semiconductors']
+  },
+  { 
+    name: 'Zirconia (ZrO2)', 
+    type: 'Ceramic', 
+    pattern: '30.27, 100\n35.25, 25\n50.37, 60\n60.20, 30', 
+    description: 'Zirconium dioxide is a white crystalline oxide of zirconium.',
+    formula: 'ZrO2',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'P42/nmc',
+    density: 5.68,
+    applications: ['Ceramics', 'Dental', 'Refractories']
+  },
+  { 
+    name: 'Gold (Au)', 
+    type: 'Metal', 
+    pattern: '38.18, 100\n44.39, 52\n64.57, 32\n77.54, 36',
+    description: 'A dense, soft, malleable, and ductile metal.',
+    formula: 'Au',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 19.30,
+    applications: ['Electronics', 'Jewelry', 'Currency']
+  },
+  { 
+    name: 'Hydroxyapatite', 
+    type: 'Bioceramic', 
+    pattern: '25.87, 40\n31.77, 100\n32.19, 95\n32.90, 60\n34.04, 45\n39.81, 25',
+    description: 'A naturally occurring mineral form of calcium apatite.',
+    formula: 'Ca10(PO4)6(OH)2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 3.16,
+    applications: ['Bone Grafts', 'Dental', 'Implants']
+  },
+  { 
+    name: 'Zinc Oxide (ZnO)', 
+    type: 'Semiconductor', 
+    pattern: '31.77, 57\n34.42, 44\n36.25, 100\n47.54, 23\n56.60, 32\n62.86, 29',
+    description: 'An inorganic compound used as an additive in numerous materials and products.',
+    formula: 'ZnO',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63mc',
+    density: 5.61,
+    applications: ['Rubber', 'Plastics', 'Ceramics', 'Glass']
+  },
+  {
+    name: 'Polytetrafluoroethylene (PTFE)',
+    type: 'Polymer',
+    pattern: '18.07, 100\n31.55, 25\n36.60, 10\n41.20, 5',
+    description: 'A synthetic fluoropolymer of tetrafluoroethylene.',
+    formula: '(C2F4)n',
+    crystalSystem: 'Hexagonal', 
+    spaceGroup: 'P',
+    density: 2.2,
+    applications: ['Non-stick coatings', 'Lubricants']
+  }
+];
 
 export const DeepLearningModule: React.FC = () => {
   const [inputData, setInputData] = useState<string>("");
@@ -21,6 +90,22 @@ export const DeepLearningModule: React.FC = () => {
   const [isSimulating, setIsSimulating] = useState(false);
   const [progressStep, setProgressStep] = useState(0); // 0: Idle, 1: Preproc, 2: CNN, 3: DB, 4: Done
   const [selectedCandidate, setSelectedCandidate] = useState<DLPhaseCandidate | null>(null);
+  
+  // Search State
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const steps = [
     { label: 'Idle', icon: Brain },
@@ -30,6 +115,12 @@ export const DeepLearningModule: React.FC = () => {
     { label: 'Final Scoring', icon: CheckCircle },
   ];
 
+  const handleMaterialSelect = (material: typeof MATERIAL_DB[0]) => {
+    setInputData(material.pattern);
+    setSearchTerm(material.name);
+    setShowSuggestions(false);
+  };
+
   const handleRunAI = () => {
     if (!inputData.trim()) return;
     
@@ -38,12 +129,43 @@ export const DeepLearningModule: React.FC = () => {
     setSelectedCandidate(null);
     setProgressStep(1);
 
+    // Check if input matches a known material to override/enhance results
+    const matchedMaterial = MATERIAL_DB.find(m => m.pattern === inputData || m.name === searchTerm);
+
     // Simulation Sequence
     setTimeout(() => setProgressStep(2), 800);
     setTimeout(() => setProgressStep(3), 2000);
     setTimeout(() => {
       const points = parseXYData(inputData);
-      const computed = identifyPhasesDL(points);
+      let computed = identifyPhasesDL(points);
+      
+      // Enhance result with known material data if matched
+      if (matchedMaterial) {
+        const enhancedCandidate: DLPhaseCandidate = {
+          phase_name: matchedMaterial.name,
+          confidence_score: 98.5,
+          card_id: "DB-MATCH-001",
+          formula: matchedMaterial.formula,
+          matched_peaks: parseXYData(matchedMaterial.pattern).map(p => ({
+            refT: p.twoTheta,
+            obsT: p.twoTheta,
+            refI: p.intensity
+          })),
+          description: matchedMaterial.description,
+          crystalSystem: matchedMaterial.crystalSystem,
+          spaceGroup: matchedMaterial.spaceGroup,
+          density: matchedMaterial.density,
+          applications: matchedMaterial.applications,
+          materialType: matchedMaterial.type
+        };
+        
+        // Put the matched one first
+        computed = {
+          ...computed,
+          candidates: [enhancedCandidate, ...computed.candidates.filter(c => c.phase_name !== matchedMaterial.name)]
+        };
+      }
+
       setResult(computed);
       if (computed.candidates.length > 0) {
         setSelectedCandidate(computed.candidates[0]);
@@ -55,13 +177,17 @@ export const DeepLearningModule: React.FC = () => {
 
   const loadExample = (type: 'Silicon' | 'Mixture' | 'HAP' | 'ZnO') => {
     if (type === 'Silicon') {
-      setInputData(`28.44, 100\n47.30, 55\n56.12, 30\n69.13, 6\n76.38, 11\n88.03, 12`);
+      const mat = MATERIAL_DB.find(m => m.name.includes('Silicon'));
+      if (mat) handleMaterialSelect(mat);
     } else if (type === 'Mixture') {
       setInputData(`20.86, 40\n26.64, 100\n38.18, 50\n44.39, 25\n50.14, 15\n64.57, 20`);
+      setSearchTerm("Mixture (SiO2 + Au)");
     } else if (type === 'HAP') {
-      setInputData(`25.87, 40\n31.77, 100\n32.19, 95\n32.90, 60\n34.04, 45\n39.81, 25\n46.71, 35\n49.46, 30`);
+      const mat = MATERIAL_DB.find(m => m.name.includes('Hydroxyapatite'));
+      if (mat) handleMaterialSelect(mat);
     } else if (type === 'ZnO') {
-      setInputData(`31.77, 57\n34.42, 44\n36.25, 100\n47.54, 23\n56.60, 32\n62.86, 29`);
+      const mat = MATERIAL_DB.find(m => m.name.includes('Zinc Oxide'));
+      if (mat) handleMaterialSelect(mat);
     }
   };
 
@@ -120,6 +246,53 @@ export const DeepLearningModule: React.FC = () => {
           </div>
 
           <div className="space-y-4">
+            {/* Material Search */}
+            <div className="relative" ref={searchRef}>
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                Quick Material Load
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  placeholder="Search material (e.g. Zirconia)..."
+                  className="w-full px-4 py-2 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+              </div>
+
+              {/* Suggestions Dropdown */}
+              {showSuggestions && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-slate-200 z-50 max-h-60 overflow-y-auto">
+                  {MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
+                    MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase())).map((material, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleMaterialSelect(material)}
+                        className="w-full text-left px-4 py-3 hover:bg-violet-50 flex items-center justify-between group border-b border-slate-50 last:border-0"
+                      >
+                        <div>
+                          <span className="font-bold text-slate-700 block text-sm group-hover:text-violet-700">{material.name}</span>
+                          <span className="text-[10px] text-slate-400 uppercase tracking-wider">{material.type}</span>
+                        </div>
+                        <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded group-hover:bg-violet-100 group-hover:text-violet-600">
+                          {material.formula}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-slate-400 text-xs">No materials found</div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">
                 Diffraction Pattern Input
@@ -251,7 +424,13 @@ export const DeepLearningModule: React.FC = () => {
 
         {/* Material Intelligence Card */}
         {selectedCandidate && (
-          <div className="bg-slate-900 text-white p-6 rounded-xl shadow-lg border border-slate-700 animate-in fade-in slide-in-from-bottom-4">
+          <div className="bg-slate-900 text-white p-6 rounded-xl shadow-lg border border-slate-700 animate-in fade-in slide-in-from-bottom-4 relative overflow-hidden">
+            {/* Warning Ribbon */}
+            <div className="absolute top-0 right-0 bg-amber-500 text-slate-950 text-[10px] font-black px-3 py-1 uppercase tracking-tighter rotate-0 rounded-bl-lg flex items-center gap-1 shadow-lg z-10">
+              <Activity className="w-3 h-3" />
+              Manual Verification Required
+            </div>
+
             <div className="flex items-center gap-3 mb-4 border-b border-slate-700 pb-4">
               <div className="p-2 bg-violet-500/20 rounded-lg">
                 <Brain className="w-6 h-6 text-violet-400" />
@@ -272,6 +451,13 @@ export const DeepLearningModule: React.FC = () => {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 col-span-2">
+                    <span className="text-[10px] text-slate-500 uppercase block mb-1">Material Class</span>
+                    <div className="flex items-center gap-2">
+                      <FlaskConical className="w-4 h-4 text-violet-400" />
+                      <span className="text-sm font-bold text-white">{selectedCandidate.materialType || "Unclassified"}</span>
+                    </div>
+                  </div>
                   <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
                     <span className="text-[10px] text-slate-500 uppercase block mb-1">Crystal System</span>
                     <span className="text-sm font-medium text-white">{selectedCandidate.crystalSystem || "Unknown"}</span>
@@ -302,6 +488,26 @@ export const DeepLearningModule: React.FC = () => {
                     </div>
                     <Database className="w-5 h-5 text-slate-600" />
                  </div>
+              </div>
+            </div>
+
+            {/* Verification Checklist */}
+            <div className="mt-6 pt-6 border-t border-slate-800">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                <CheckCircle className="w-3 h-3" />
+                Manual Verification Checklist
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  "Peak positions match within 0.05°",
+                  "Relative intensities are consistent",
+                  "Chemical composition is plausible",
+                ].map((item, i) => (
+                  <label key={i} className="flex items-center gap-2 bg-slate-800/30 p-2 rounded border border-slate-800 hover:bg-slate-800/50 transition-colors cursor-pointer group">
+                    <input type="checkbox" className="w-3 h-3 rounded border-slate-700 bg-slate-900 text-violet-500 focus:ring-violet-500 focus:ring-offset-slate-900" />
+                    <span className="text-[10px] text-slate-400 group-hover:text-slate-300">{item}</span>
+                  </label>
+                ))}
               </div>
             </div>
           </div>

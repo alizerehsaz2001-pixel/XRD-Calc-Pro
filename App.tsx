@@ -307,8 +307,13 @@ const App: React.FC = () => {
                 </>
               )}
             </div>
-            <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 text-center text-slate-400 dark:text-slate-500 text-xs">
-              XRD-Calc Pro Laboratory Environment • Designed by Ali Zerehsaz
+            <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 text-center space-y-2">
+              <p className="text-slate-400 dark:text-slate-500 text-xs">
+                XRD-Calc Pro Laboratory Environment • Designed by Ali Zerehsaz
+              </p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-600 max-w-2xl mx-auto italic leading-relaxed">
+                Disclaimer: AI-generated insights and phase identifications are probabilistic. Scientific results should always be manually verified against standard databases (ICDD/COD) before publication or critical decision-making.
+              </p>
             </div>
           </main>
           <AIChatSupport />
