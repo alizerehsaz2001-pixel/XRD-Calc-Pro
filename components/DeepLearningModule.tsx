@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DLPhaseResult, DLPhaseCandidate } from '../types';
 import { identifyPhasesDL, parseXYData } from '../utils/physics';
+import { GoogleGenAI } from "@google/genai";
 import {
   ComposedChart,
   Bar,
@@ -13,7 +14,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2 } from 'lucide-react';
 
 const MATERIAL_DB = [
   { 
@@ -81,6 +82,17 @@ const MATERIAL_DB = [
     spaceGroup: 'P',
     density: 2.2,
     applications: ['Non-stick coatings', 'Lubricants']
+  },
+  {
+    name: 'Quartz (SiO2)',
+    type: 'Ceramic/Mineral',
+    pattern: '20.86, 35\n26.64, 100\n36.54, 12\n39.47, 9\n40.29, 8\n42.45, 8\n45.79, 9\n50.14, 14\n59.95, 9\n67.74, 7\n68.14, 8',
+    description: 'A hard, crystalline mineral composed of silica (silicon dioxide).',
+    formula: 'SiO2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P3221',
+    density: 2.65,
+    applications: ['Glass', 'Electronics', 'Construction', 'Jewelry']
   }
 ];
 
@@ -94,6 +106,7 @@ export const DeepLearningModule: React.FC = () => {
   // Search State
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchingAI, setIsSearchingAI] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Close suggestions when clicking outside
@@ -121,6 +134,60 @@ export const DeepLearningModule: React.FC = () => {
     setShowSuggestions(false);
   };
 
+  const handleSmartSearch = async () => {
+    if (!searchTerm.trim()) return;
+    
+    // 1. Check Local DB
+    const localMatch = MATERIAL_DB.find(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    if (localMatch) {
+      handleMaterialSelect(localMatch);
+      return;
+    }
+
+    // 2. AI Search
+    setIsSearchingAI(true);
+    setShowSuggestions(false);
+    
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: `Generate X-Ray Diffraction data for "${searchTerm}". 
+        Return ONLY a JSON object with this structure:
+        {
+          "name": "Material Name (Formula)",
+          "type": "Material Class (e.g. Metal, Ceramic, Polymer)",
+          "pattern": "2theta, intensity\\n2theta, intensity...",
+          "description": "Brief scientific description",
+          "formula": "Chemical Formula",
+          "crystalSystem": "Crystal System",
+          "spaceGroup": "Space Group",
+          "density": number,
+          "applications": ["App1", "App2"]
+        }
+        Provide at least 3-5 major peaks in the pattern string.`,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      const data = JSON.parse(response.text || "{}");
+      if (data.pattern) {
+        setInputData(data.pattern);
+        // We can also temporarily add this to our "local" knowledge for this session if we wanted
+        // For now, we just populate the input and let the user run the analysis
+        // But to make it seamless, we might want to store this metadata to use in the result
+        // We'll attach it to the window or a ref to retrieve during "Identify Phases"
+        (window as any).__TEMP_AI_MATERIAL_DATA__ = data;
+      }
+    } catch (error) {
+      console.error("AI Search failed:", error);
+      alert("Could not find material data. Please try a different name.");
+    } finally {
+      setIsSearchingAI(false);
+    }
+  };
+
   const handleRunAI = () => {
     if (!inputData.trim()) return;
     
@@ -131,6 +198,7 @@ export const DeepLearningModule: React.FC = () => {
 
     // Check if input matches a known material to override/enhance results
     const matchedMaterial = MATERIAL_DB.find(m => m.pattern === inputData || m.name === searchTerm);
+    const aiMaterialData = (window as any).__TEMP_AI_MATERIAL_DATA__;
 
     // Simulation Sequence
     setTimeout(() => setProgressStep(2), 800);
@@ -163,6 +231,30 @@ export const DeepLearningModule: React.FC = () => {
         computed = {
           ...computed,
           candidates: [enhancedCandidate, ...computed.candidates.filter(c => c.phase_name !== matchedMaterial.name)]
+        };
+      } else if (aiMaterialData && aiMaterialData.pattern === inputData) {
+         // Use AI fetched data
+         const enhancedCandidate: DLPhaseCandidate = {
+          phase_name: aiMaterialData.name,
+          confidence_score: 95.0, // AI generated, slightly lower confidence
+          card_id: "AI-GEN-001",
+          formula: aiMaterialData.formula,
+          matched_peaks: parseXYData(aiMaterialData.pattern).map(p => ({
+            refT: p.twoTheta,
+            obsT: p.twoTheta,
+            refI: p.intensity
+          })),
+          description: aiMaterialData.description,
+          crystalSystem: aiMaterialData.crystalSystem,
+          spaceGroup: aiMaterialData.spaceGroup,
+          density: aiMaterialData.density,
+          applications: aiMaterialData.applications,
+          materialType: aiMaterialData.type
+        };
+        
+        computed = {
+          ...computed,
+          candidates: [enhancedCandidate, ...computed.candidates]
         };
       }
 
@@ -260,11 +352,23 @@ export const DeepLearningModule: React.FC = () => {
                     setShowSuggestions(true);
                   }}
                   onFocus={() => setShowSuggestions(true)}
-                  placeholder="Search material (e.g. Zirconia)..."
-                  className="w-full px-4 py-2 pl-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSmartSearch();
+                    }
+                  }}
+                  placeholder="Search material (e.g. Zirconia, TiO2)..."
+                  className="w-full px-4 py-2 pl-10 pr-20 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
                 />
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+                
+                <button 
+                  onClick={handleSmartSearch}
+                  disabled={isSearchingAI || !searchTerm.trim()}
+                  className="absolute right-1 top-1 bottom-1 px-3 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-md transition-colors disabled:bg-slate-300 flex items-center gap-1"
+                >
+                  {isSearchingAI ? <Loader2 className="w-3 h-3 animate-spin" /> : "Load"}
+                </button>
               </div>
 
               {/* Suggestions Dropdown */}
