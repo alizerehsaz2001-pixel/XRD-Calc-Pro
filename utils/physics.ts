@@ -425,19 +425,149 @@ export const calculateMagneticDiffraction = (wavelength: number, lattice: { a: n
 };
 
 export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: number }[]): DLPhaseResult => {
+  // Expanded Database of Common Phases
   const DB = [
-    { name: 'Silicon', formula: 'Si', cardId: 'COD-9008566', majorPeaks: [28.44, 47.30, 56.12, 69.13, 76.38] },
-    { name: 'Gold', formula: 'Au', cardId: 'COD-9008463', majorPeaks: [38.18, 44.39, 64.57, 77.54] },
-    { name: 'Quartz', formula: 'SiO2', cardId: 'COD-1011097', majorPeaks: [20.86, 26.64, 50.14] },
-    { name: 'Hydroxyapatite', formula: 'Ca5(PO4)3(OH)', cardId: 'COD-9010051', majorPeaks: [25.87, 31.77, 32.19, 32.90, 34.04, 39.81, 46.71, 49.46] },
-    { name: 'Zinc Oxide', formula: 'ZnO', cardId: 'COD-9008877', majorPeaks: [31.77, 34.42, 36.25, 47.54, 56.60, 62.86] }
+    { 
+      name: 'Silicon', formula: 'Si', cardId: 'COD-9008566', 
+      peaks: [{t: 28.44, i: 100}, {t: 47.30, i: 55}, {t: 56.12, i: 30}, {t: 69.13, i: 6}, {t: 76.38, i: 11}, {t: 88.03, i: 12}],
+      description: "A hard, brittle crystalline solid with a blue-grey metallic lustre, and is a tetravalent metalloid and semiconductor.",
+      crystalSystem: "Cubic (Diamond)", spaceGroup: "Fd-3m", density: 2.329,
+      applications: ["Semiconductors", "Solar Cells", "Microchips", "Glass Manufacturing"]
+    },
+    { 
+      name: 'Gold', formula: 'Au', cardId: 'COD-9008463', 
+      peaks: [{t: 38.18, i: 100}, {t: 44.39, i: 52}, {t: 64.57, i: 32}, {t: 77.54, i: 36}, {t: 81.72, i: 12}],
+      description: "A bright, slightly reddish yellow, dense, soft, malleable, and ductile metal.",
+      crystalSystem: "Face-Centered Cubic", spaceGroup: "Fm-3m", density: 19.30,
+      applications: ["Jewelry", "Electronics", "Medicine", "Aerospace"]
+    },
+    { 
+      name: 'Silver', formula: 'Ag', cardId: 'COD-9008459', 
+      peaks: [{t: 38.11, i: 100}, {t: 44.27, i: 40}, {t: 64.42, i: 25}, {t: 77.47, i: 26}],
+      description: "A soft, white, lustrous transition metal, it exhibits the highest electrical conductivity, thermal conductivity, and reflectivity of any metal.",
+      crystalSystem: "Face-Centered Cubic", spaceGroup: "Fm-3m", density: 10.49,
+      applications: ["Conductors", "Jewelry", "Solar Panels", "Mirrors"]
+    },
+    { 
+      name: 'Quartz', formula: 'SiO2', cardId: 'COD-1011097', 
+      peaks: [{t: 20.86, i: 22}, {t: 26.64, i: 100}, {t: 36.54, i: 6}, {t: 39.46, i: 4}, {t: 40.29, i: 3}, {t: 42.45, i: 6}, {t: 45.79, i: 3}, {t: 50.14, i: 14}, {t: 54.87, i: 3}, {t: 59.96, i: 5}, {t: 67.74, i: 4}, {t: 68.14, i: 3}],
+      description: "A hard, crystalline mineral composed of silica. It is the second most abundant mineral in Earth's continental crust.",
+      crystalSystem: "Trigonal", spaceGroup: "P3(1)21", density: 2.65,
+      applications: ["Glass", "Ceramics", "Electronics (Oscillators)", "Gemstones"]
+    },
+    { 
+      name: 'Corundum', formula: 'Al2O3', cardId: 'COD-1000032', 
+      peaks: [{t: 25.58, i: 60}, {t: 35.15, i: 100}, {t: 37.78, i: 40}, {t: 43.35, i: 90}, {t: 52.55, i: 45}, {t: 57.50, i: 80}, {t: 61.30, i: 8}, {t: 66.52, i: 35}, {t: 68.21, i: 40}],
+      description: "A crystalline form of aluminium oxide typically containing traces of iron, titanium, vanadium and chromium.",
+      crystalSystem: "Trigonal", spaceGroup: "R-3c", density: 4.02,
+      applications: ["Abrasives", "Refractories", "Gemstones (Ruby/Sapphire)", "Lasers"]
+    },
+    { 
+      name: 'Rutile', formula: 'TiO2', cardId: 'COD-9004141', 
+      peaks: [{t: 27.45, i: 100}, {t: 36.09, i: 50}, {t: 39.19, i: 8}, {t: 41.23, i: 25}, {t: 44.05, i: 10}, {t: 54.32, i: 60}, {t: 56.64, i: 20}, {t: 62.74, i: 10}, {t: 64.04, i: 10}, {t: 69.01, i: 20}],
+      description: "The most common natural form of TiO2. It has one of the highest refractive indices of any known crystal.",
+      crystalSystem: "Tetragonal", spaceGroup: "P4(2)/mnm", density: 4.23,
+      applications: ["Pigments", "Welding Rods", "Optical Coatings", "Titanium Metal"]
+    },
+    { 
+      name: 'Anatase', formula: 'TiO2', cardId: 'COD-9009086', 
+      peaks: [{t: 25.28, i: 100}, {t: 36.95, i: 10}, {t: 37.80, i: 20}, {t: 38.58, i: 10}, {t: 48.05, i: 35}, {t: 53.89, i: 20}, {t: 55.06, i: 20}, {t: 62.69, i: 15}],
+      description: "A metastable mineral form of titanium dioxide. It is favored for photocatalytic applications.",
+      crystalSystem: "Tetragonal", spaceGroup: "I4(1)/amd", density: 3.79,
+      applications: ["Photocatalysis", "Solar Cells", "Pigments", "Air Purification"]
+    },
+    { 
+      name: 'Magnetite', formula: 'Fe3O4', cardId: 'COD-1011032', 
+      peaks: [{t: 18.27, i: 10}, {t: 30.09, i: 30}, {t: 35.42, i: 100}, {t: 37.05, i: 8}, {t: 43.05, i: 20}, {t: 53.39, i: 10}, {t: 56.94, i: 30}, {t: 62.51, i: 40}, {t: 70.92, i: 5}, {t: 73.95, i: 10}],
+      description: "A rock mineral and one of the main iron ores. It is ferrimagnetic and the most magnetic of all naturally-occurring minerals.",
+      crystalSystem: "Cubic (Spinel)", spaceGroup: "Fd-3m", density: 5.17,
+      applications: ["Iron Ore", "Catalysis", "Magnetic Recording", "Heavy Media Separation"]
+    },
+    { 
+      name: 'Hydroxyapatite', formula: 'Ca5(PO4)3(OH)', cardId: 'COD-9010051', 
+      peaks: [{t: 25.87, i: 40}, {t: 31.77, i: 100}, {t: 32.19, i: 60}, {t: 32.90, i: 60}, {t: 34.04, i: 25}, {t: 39.81, i: 20}, {t: 46.71, i: 40}, {t: 49.46, i: 30}, {t: 53.14, i: 20}],
+      description: "A naturally occurring mineral form of calcium apatite. It is the main mineral component of bone and teeth.",
+      crystalSystem: "Hexagonal", spaceGroup: "P6(3)/m", density: 3.16,
+      applications: ["Bone Grafts", "Dental Implants", "Drug Delivery", "Chromatography"]
+    },
+    { 
+      name: 'Zinc Oxide', formula: 'ZnO', cardId: 'COD-9008877', 
+      peaks: [{t: 31.77, i: 57}, {t: 34.42, i: 44}, {t: 36.25, i: 100}, {t: 47.54, i: 23}, {t: 56.60, i: 32}, {t: 62.86, i: 29}, {t: 66.38, i: 4}, {t: 67.96, i: 23}, {t: 69.10, i: 11}],
+      description: "An inorganic compound that is a white powder. It is a wide-bandgap semiconductor.",
+      crystalSystem: "Hexagonal (Wurtzite)", spaceGroup: "P6(3)mc", density: 5.61,
+      applications: ["Rubber Additive", "Sunscreen", "Varistors", "LEDs"]
+    },
+    {
+      name: 'Calcite', formula: 'CaCO3', cardId: 'COD-1010928',
+      peaks: [{t: 23.05, i: 12}, {t: 29.40, i: 100}, {t: 35.97, i: 14}, {t: 39.41, i: 18}, {t: 43.16, i: 18}, {t: 47.50, i: 17}, {t: 48.50, i: 17}],
+      description: "A carbonate mineral and the most stable polymorph of calcium carbonate. It is a major constituent of sedimentary rocks.",
+      crystalSystem: "Trigonal", spaceGroup: "R-3c", density: 2.71,
+      applications: ["Construction", "Soil Remediation", "Pigments", "Pharmaceuticals"]
+    }
   ];
-  const candidates = DB.map(p => {
-    let matches = 0;
-    for (const dp of p.majorPeaks) if (inputPoints.find(ip => Math.abs(ip.twoTheta - dp) <= 0.5)) matches++;
-    return { phase_name: p.name, formula: p.formula, card_id: p.cardId, confidence_score: (matches/p.majorPeaks.length)*100 };
-  }).filter(c => c.confidence_score > 10).sort((a,b) => b.confidence_score - a.confidence_score);
-  return { module: "DL-Phase-ID", candidates };
+
+  const TOLERANCE = 0.5; // degrees
+
+  const candidates = DB.map(phase => {
+    let matchScore = 0;
+    let matchedPeaksCount = 0;
+    const matchedDetails = [];
+
+    // Check each reference peak against input peaks
+    for (const refPeak of phase.peaks) {
+      // Find closest input peak
+      const closest = inputPoints.reduce((prev, curr) => {
+        return (Math.abs(curr.twoTheta - refPeak.t) < Math.abs(prev.twoTheta - refPeak.t) ? curr : prev);
+      });
+      
+      const diff = Math.abs(closest.twoTheta - refPeak.t);
+      
+      if (diff <= TOLERANCE) {
+        // We have a match
+        matchedPeaksCount++;
+        
+        // Weight by intensity importance (major peaks matter more)
+        // And by position accuracy
+        const positionWeight = 1 - (diff / TOLERANCE); // 1.0 if perfect match, 0.0 if at limit
+        const intensityWeight = Math.log10(refPeak.i + 10) / 2; // Log scale weight for intensity
+        
+        matchScore += (10 * positionWeight * intensityWeight);
+
+        matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i });
+      }
+    }
+
+    // Normalize score somewhat based on total possible score for this phase
+    // But also penalize if the phase has many peaks that were NOT found
+    const totalRefPeaks = phase.peaks.length;
+    const coverage = matchedPeaksCount / totalRefPeaks;
+    
+    // Final confidence score (heuristic)
+    // Base score from matches, scaled by coverage
+    let confidence = (matchScore / (totalRefPeaks * 3)) * 100;
+    
+    // Boost if high coverage
+    if (coverage > 0.8) confidence *= 1.2;
+    if (coverage < 0.2) confidence *= 0.5;
+
+    // Cap at 99.9
+    confidence = Math.min(99.9, Math.max(0, confidence));
+
+    return { 
+      phase_name: phase.name, 
+      formula: phase.formula, 
+      card_id: phase.cardId, 
+      confidence_score: parseFloat(confidence.toFixed(1)),
+      matched_peaks: matchedDetails,
+      description: phase.description,
+      crystalSystem: phase.crystalSystem,
+      spaceGroup: phase.spaceGroup,
+      density: phase.density,
+      applications: phase.applications
+    };
+  }).filter(c => c.confidence_score > 15).sort((a,b) => b.confidence_score - a.confidence_score);
+
+  return { module: "DL-Phase-ID-Smart", candidates };
 };
 
 export const parseXYData = (input: string) => {

@@ -209,6 +209,13 @@ export interface DLPhaseCandidate {
   confidence_score: number; // 0-100
   card_id: string;
   formula: string;
+  matched_peaks?: { refT: number; obsT: number; refI: number }[];
+  // Material Intelligence Metadata
+  description?: string;
+  crystalSystem?: string;
+  spaceGroup?: string;
+  density?: number; // g/cm3
+  applications?: string[];
 }
 
 export interface DLPhaseResult {
