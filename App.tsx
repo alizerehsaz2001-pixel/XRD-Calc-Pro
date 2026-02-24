@@ -24,8 +24,9 @@ import { AIChatSupport } from './components/AIChatSupport';
 import { ModuleIntro } from './components/ModuleIntro';
 import { LandingPage } from './components/LandingPage';
 import { RegistrationPage } from './components/RegistrationPage';
+import { BraggHistory } from './components/BraggHistory';
 import { calculateBragg, parsePeakString } from './utils/physics';
-import { BraggResult } from './types';
+import { BraggResult, BraggHistoryItem } from './types';
 import { Zap } from 'lucide-react';
 
 type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'crystal_mind' | 'image_gen' | 'learn' | 'profile';
@@ -44,6 +45,14 @@ const App: React.FC = () => {
   const [rawPeaks, setRawPeaks] = useState<string>('28.44, 47.30, 56.12, 69.13, 76.38'); 
   const [rawHKL, setRawHKL] = useState<string>('111, 220, 311, 400, 331');
   const [results, setResults] = useState<BraggResult[]>([]);
+  const [braggHistory, setBraggHistory] = useState<BraggHistoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('xrd_bragg_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   // Reset explanation state when module changes (except for profile/learn)
   useEffect(() => {
@@ -65,7 +74,7 @@ const App: React.FC = () => {
     }
   }, [theme]);
 
-  const handleCalculate = () => {
+  const handleCalculate = (saveToHistory = true) => {
     const peaks = parsePeakString(rawPeaks);
     const hklList = rawHKL
       .split(',')
@@ -83,6 +92,36 @@ const App: React.FC = () => {
       .filter((res): res is BraggResult => res !== null);
     
     setResults(computed);
+
+    // Save to history
+    if (saveToHistory && computed.length > 0) {
+      const newItem: BraggHistoryItem = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        wavelength,
+        rawPeaks,
+        rawHKL,
+        results: computed
+      };
+      
+      setBraggHistory(prev => {
+        const updated = [newItem, ...prev].slice(0, 10); // Keep last 10
+        localStorage.setItem('xrd_bragg_history', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  };
+
+  const restoreHistory = (item: BraggHistoryItem) => {
+    setWavelength(item.wavelength);
+    setRawPeaks(item.rawPeaks);
+    setRawHKL(item.rawHKL);
+    setResults(item.results);
+  };
+
+  const clearHistory = () => {
+    setBraggHistory([]);
+    localStorage.removeItem('xrd_bragg_history');
   };
 
   const handleAILoad = (peaks: number[], newWavelength?: number, hkls?: string[]) => {
@@ -106,7 +145,7 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    handleCalculate();
+    handleCalculate(false);
   }, []);
 
   if (!isRegistered) {
@@ -271,7 +310,12 @@ const App: React.FC = () => {
                           setRawPeaks={setRawPeaks}
                           rawHKL={rawHKL}
                           setRawHKL={setRawHKL}
-                          onCalculate={handleCalculate}
+                          onCalculate={() => handleCalculate(true)}
+                        />
+                        <BraggHistory 
+                          history={braggHistory} 
+                          onRestore={restoreHistory} 
+                          onClear={clearHistory} 
                         />
                         <GeminiAssistant onLoadPeaks={handleAILoad} />
                         

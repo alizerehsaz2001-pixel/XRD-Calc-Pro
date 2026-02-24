@@ -123,6 +123,14 @@ export const validateSelectionRule = (system: CrystalSystem, hkl: [number, numbe
       return sum % 4 === 0 
         ? { hkl, status: 'Allowed', reason: 'All even & sum divisible by 4' }
         : { hkl, status: 'Forbidden', reason: 'All even but sum not divisible by 4' };
+    case 'Hexagonal':
+      // HCP Rule: Forbidden if l is odd AND (h + 2k) is divisible by 3
+      if (l % 2 !== 0) {
+        if ((h + 2 * k) % 3 === 0) {
+          return { hkl, status: 'Forbidden', reason: 'l is odd and h+2k is divisible by 3' };
+        }
+      }
+      return { hkl, status: 'Allowed', reason: 'HCP allowed condition met' };
     default:
       return { hkl, status: 'Allowed', reason: 'Complex system rules not implemented' };
   }

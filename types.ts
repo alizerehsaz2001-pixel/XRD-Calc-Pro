@@ -24,6 +24,15 @@ export interface BraggState {
   results: BraggResult[];
 }
 
+export interface BraggHistoryItem {
+  id: string;
+  timestamp: string;
+  wavelength: number;
+  rawPeaks: string;
+  rawHKL: string;
+  results: BraggResult[];
+}
+
 export interface AIResponse {
   material: string;
   peaks: number[];

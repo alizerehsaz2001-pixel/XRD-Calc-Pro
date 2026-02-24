@@ -64,6 +64,12 @@ export const SelectionRulesModule: React.FC = () => {
       rule: "FCC rules + if all even, h+k+l must be divisible by 4.",
       origin: "Basis of two atoms at (0,0,0) and (¼,¼,¼) combined with FCC lattice. This adds extra extinctions (e.g., 200 forbidden).",
       formula: "F(hkl) = F_{FCC} [1 + exp(πi/2(h+k+l))]"
+    },
+    Hexagonal: {
+      title: "Hexagonal Close Packed (HCP)",
+      rule: "Forbidden if l is odd AND (h + 2k) is divisible by 3.",
+      origin: "Basis of two atoms at (0,0,0) and (2/3, 1/3, 1/2) in a primitive hexagonal cell.",
+      formula: "F(hkl) = f[1 + exp(2πi(h/3 + 2k/3 + l/2))]"
     }
   };
 
@@ -93,6 +99,7 @@ export const SelectionRulesModule: React.FC = () => {
                 <option value="BCC">Body Centered Cubic (BCC)</option>
                 <option value="FCC">Face Centered Cubic (FCC)</option>
                 <option value="Diamond">Diamond Cubic</option>
+                <option value="Hexagonal">Hexagonal (HCP)</option>
               </select>
             </div>
 
