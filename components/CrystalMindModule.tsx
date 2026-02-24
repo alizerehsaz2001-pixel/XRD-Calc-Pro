@@ -10,6 +10,7 @@ export const CrystalMindModule: React.FC = () => {
   const [peaksInput, setPeaksInput] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<CrystalMindResponse | null>(null);
+  const [history, setHistory] = useState<CrystalMindResponse[]>([]);
 
   const handleInitiateControl = async () => {
     setLoading(true);
@@ -23,11 +24,21 @@ export const CrystalMindModule: React.FC = () => {
 
       const data = await searchCrystalDatabase(command, elements, databaseTarget, peaks);
       setResponse(data);
+      if (data.status === 'success') {
+        setHistory(prev => [data, ...prev].slice(0, 5)); // Keep last 5
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadFromHistory = (item: CrystalMindResponse) => {
+    setResponse(item);
+    setCommand(item.control_message || ""); // Just a placeholder, ideally store command in response
+    setElementsInput(item.query_parameters.elements_included.join(", "));
+    setDatabaseTarget(item.query_parameters.database_target);
   };
 
   return (
@@ -136,6 +147,24 @@ export const CrystalMindModule: React.FC = () => {
               {response && <p className="text-green-400">[OK] Search retrieved {response.search_results.length} candidates.</p>}
            </div>
         </div>
+
+        {/* HISTORY PANEL */}
+        {history.length > 0 && (
+          <div className="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Mission History</h3>
+             <div className="space-y-2">
+               {history.map((item, idx) => (
+                 <button 
+                   key={idx}
+                   onClick={() => loadFromHistory(item)}
+                   className="w-full text-left p-2 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 border border-slate-700 transition-colors truncate"
+                 >
+                   {item.query_parameters.elements_included.join(', ')} - {item.search_results.length} results
+                 </button>
+               ))}
+             </div>
+          </div>
+        )}
       </div>
 
       {/* RESULTS GRID */}
@@ -216,97 +245,153 @@ export const CrystalMindModule: React.FC = () => {
   );
 };
 
-const ControlResultCard: React.FC<{ result: CrystalMindSearchResult, source: string }> = ({ result, source }) => (
-  <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden hover:shadow-xl transition-all group border-l-4 border-l-cyan-600">
-    <div className="p-5">
-      <div className="flex justify-between items-start mb-4">
-         <div>
-           <div className="flex items-center gap-2 mb-1">
-             <h3 className="text-lg font-extrabold text-slate-900 leading-none">{result.phase_name}</h3>
-             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border uppercase tracking-tighter ${result.is_stable ? 'bg-green-100 text-green-700 border-green-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>
-               {result.is_stable ? 'Stable' : 'Unstable'}
-             </span>
+const ControlResultCard: React.FC<{ result: CrystalMindSearchResult, source: string }> = ({ result, source }) => {
+  const handleCopySimulationData = () => {
+    const simData = {
+      lattice: result.lattice_params,
+      atoms: result.atomic_positions?.map((pos, idx) => ({
+        id: idx.toString(),
+        element: pos.element,
+        label: `${pos.element}${idx+1}`,
+        x: pos.x,
+        y: pos.y,
+        z: pos.z,
+        b: 5.0, // Default placeholder
+        B_iso: 0.5
+      })) || []
+    };
+    navigator.clipboard.writeText(JSON.stringify(simData, null, 2));
+    alert("Simulation data copied to clipboard! You can paste this into the Neutron/Magnetic module's JSON import (if available) or use it as reference.");
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden hover:shadow-xl transition-all group border-l-4 border-l-cyan-600">
+      <div className="p-5">
+        <div className="flex justify-between items-start mb-4">
+           <div>
+             <div className="flex items-center gap-2 mb-1">
+               <h3 className="text-lg font-extrabold text-slate-900 leading-none">{result.phase_name}</h3>
+               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border uppercase tracking-tighter ${result.is_stable ? 'bg-green-100 text-green-700 border-green-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>
+                 {result.is_stable ? 'Stable' : 'Unstable'}
+               </span>
+             </div>
+             <div className="flex gap-2">
+               <span className="text-xs font-mono text-slate-500 font-bold">{result.formula}</span>
+               <span className="text-xs font-mono text-cyan-600 font-bold">#{result.database_id}</span>
+             </div>
+           </div>
+           <div className="text-right">
+             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">FOM Match</div>
+             <div className="text-xl font-black text-cyan-600">{(result.figure_of_merit * 100).toFixed(1)}%</div>
+           </div>
+        </div>
+        
+        <div className="mb-4">
+          <span className="text-[9px] font-bold text-white bg-slate-400 px-2 py-0.5 rounded-full uppercase tracking-wider">
+            Source: {source}
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4 mb-5">
+           <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Crystal System</span>
+                <span className="text-xs font-bold text-slate-700">{result.crystal_system}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Space Group</span>
+                <span className="text-xs font-bold text-slate-700 font-mono tracking-tighter">{result.space_group} ({result.point_group})</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-bold uppercase block">Lattice (Å)</span>
+                <div className="flex gap-2 font-mono text-[10px] text-slate-600">
+                  <span>a: {result.lattice_params.a.toFixed(2)}</span>
+                  <span>b: {result.lattice_params.b.toFixed(2)}</span>
+                  <span>c: {result.lattice_params.c.toFixed(2)}</span>
+                </div>
+              </div>
+           </div>
+           
+           <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Band Gap</span>
+                <span className="text-xs font-bold text-indigo-600">{result.band_gap?.toFixed(2) || '0.00'} eV</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">E above Hull</span>
+                <span className="text-xs font-bold text-slate-700">{result.energy_above_hull?.toFixed(3) || '0.000'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Density</span>
+                <span className="text-xs font-bold text-slate-700">{result.density?.toFixed(2) || '0.00'} g/cm³</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] text-slate-400 font-bold uppercase">Volume</span>
+                <span className="text-xs font-bold text-slate-700">{result.volume?.toFixed(1) || '0.0'} Å³</span>
+              </div>
+           </div>
+        </div>
+
+        {/* ATOMIC POSITIONS PREVIEW */}
+        {result.atomic_positions && result.atomic_positions.length > 0 && (
+          <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
+             <span className="text-[10px] text-slate-400 font-bold uppercase block mb-2">Atomic Positions (First 5)</span>
+             <div className="grid grid-cols-4 gap-2 text-[10px] font-mono font-bold text-slate-600 border-b border-slate-200 pb-1 mb-1">
+               <span>El</span><span>x</span><span>y</span><span>z</span>
+             </div>
+             <div className="space-y-1">
+               {result.atomic_positions.slice(0, 5).map((pos, i) => (
+                 <div key={i} className="grid grid-cols-4 gap-2 text-[10px] font-mono text-slate-500">
+                   <span className="font-bold text-slate-700">{pos.element}</span>
+                   <span>{pos.x.toFixed(3)}</span>
+                   <span>{pos.y.toFixed(3)}</span>
+                   <span>{pos.z.toFixed(3)}</span>
+                 </div>
+               ))}
+               {result.atomic_positions.length > 5 && (
+                 <div className="text-[9px] text-slate-400 italic text-center pt-1">
+                   + {result.atomic_positions.length - 5} more atoms
+                 </div>
+               )}
+             </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+           <div className="flex gap-1">
+             {['α', 'β', 'γ'].map((angle, i) => {
+               const key = i === 0 ? 'alpha' : i === 1 ? 'beta' : 'gamma';
+               return (
+                 <span key={angle} className="text-[10px] text-slate-400">
+                   {angle}: <span className="font-bold text-slate-600">{(result.lattice_params as any)[key]}°</span>
+                 </span>
+               );
+             })}
            </div>
            <div className="flex gap-2">
-             <span className="text-xs font-mono text-slate-500 font-bold">{result.formula}</span>
-             <span className="text-xs font-mono text-cyan-600 font-bold">#{result.database_id}</span>
+              <button
+                onClick={handleCopySimulationData}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 group/btn"
+              >
+                Copy Sim Data
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 group-hover/btn:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+              </button>
+              <a 
+                href={result.cif_url} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="text-xs font-bold text-cyan-600 hover:text-cyan-800 flex items-center gap-1 group/link"
+              >
+                Retrieve CIF
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 group-hover/link:translate-y-[-1px] group-hover/link:translate-x-[1px] transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
            </div>
-         </div>
-         <div className="text-right">
-           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">FOM Match</div>
-           <div className="text-xl font-black text-cyan-600">{(result.figure_of_merit * 100).toFixed(1)}%</div>
-         </div>
-      </div>
-      
-      <div className="mb-4">
-        <span className="text-[9px] font-bold text-white bg-slate-400 px-2 py-0.5 rounded-full uppercase tracking-wider">
-          Source: {source}
-        </span>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-4 mb-5">
-         <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-            <div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Crystal System</span>
-              <span className="text-xs font-bold text-slate-700">{result.crystal_system}</span>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Space Group</span>
-              <span className="text-xs font-bold text-slate-700 font-mono tracking-tighter">{result.space_group} ({result.point_group})</span>
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Lattice (Å)</span>
-              <div className="flex gap-2 font-mono text-[10px] text-slate-600">
-                <span>a: {result.lattice_params.a.toFixed(2)}</span>
-                <span>b: {result.lattice_params.b.toFixed(2)}</span>
-                <span>c: {result.lattice_params.c.toFixed(2)}</span>
-              </div>
-            </div>
-         </div>
-         
-         <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Band Gap</span>
-              <span className="text-xs font-bold text-indigo-600">{result.band_gap?.toFixed(2) || '0.00'} eV</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">E above Hull</span>
-              <span className="text-xs font-bold text-slate-700">{result.energy_above_hull?.toFixed(3) || '0.000'}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Density</span>
-              <span className="text-xs font-bold text-slate-700">{result.density?.toFixed(2) || '0.00'} g/cm³</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-slate-400 font-bold uppercase">Volume</span>
-              <span className="text-xs font-bold text-slate-700">{result.volume?.toFixed(1) || '0.0'} Å³</span>
-            </div>
-         </div>
-      </div>
-
-      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-         <div className="flex gap-1">
-           {['α', 'β', 'γ'].map((angle, i) => {
-             const key = i === 0 ? 'alpha' : i === 1 ? 'beta' : 'gamma';
-             return (
-               <span key={angle} className="text-[10px] text-slate-400">
-                 {angle}: <span className="font-bold text-slate-600">{(result.lattice_params as any)[key]}°</span>
-               </span>
-             );
-           })}
-         </div>
-         <a 
-           href={result.cif_url} 
-           target="_blank" 
-           rel="noreferrer" 
-           className="text-xs font-bold text-cyan-600 hover:text-cyan-800 flex items-center gap-1 group/link"
-         >
-           Retrieve CIF
-           <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 group-hover/link:translate-y-[-1px] group-hover/link:translate-x-[1px] transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-           </svg>
-         </a>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};

@@ -241,6 +241,13 @@ export interface CrystalMindSearchResult {
     beta: number;
     gamma: number;
   };
+  atomic_positions?: {
+    element: string;
+    x: number;
+    y: number;
+    z: number;
+    occupancy?: number;
+  }[];
   volume: number;
   density: number;
   energy_above_hull: number;

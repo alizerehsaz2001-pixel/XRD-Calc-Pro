@@ -288,6 +288,7 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
     - Database ID (Must verify ID exists in ${activeTarget.name})
     - Lattice Parameters (a, b, c, alpha, beta, gamma)
     - Space Group
+    - Atomic Positions (element, x, y, z) - Crucial for simulation
     - Volume, Density, Band Gap, Energy Above Hull, Stability (is_stable)
 
     OUTPUT JSON:
@@ -310,6 +311,9 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
           "crystal_system": string,
           "point_group": string,
           "lattice_params": { "a": number, "b": number, "c": number, "alpha": number, "beta": number, "gamma": number },
+          "atomic_positions": [
+            { "element": string, "x": number, "y": number, "z": number, "occupancy": number }
+          ],
           "volume": number, "density": number, "energy_above_hull": number, "band_gap": number, "is_stable": boolean,
           "figure_of_merit": number, "cif_url": string
         }

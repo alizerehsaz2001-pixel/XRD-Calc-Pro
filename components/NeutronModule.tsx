@@ -15,7 +15,7 @@ import {
   Legend,
   ComposedChart
 } from 'recharts';
-import { Layers, Zap, Atom } from 'lucide-react';
+import { Layers, Zap, Atom, Upload, Download } from 'lucide-react';
 
 export const NeutronModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.54); 
@@ -26,6 +26,8 @@ export const NeutronModule: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [latticeA, setLatticeA] = useState<number>(4.20); 
   const [comparisonMode, setComparisonMode] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [importJson, setImportJson] = useState("");
   
   const [atoms, setAtoms] = useState<NeutronAtom[]>([
     { id: '1', element: 'O', label: 'Oxygen', b: 5.80, x: 0, y: 0, z: 0, B_iso: 0.5 },
@@ -58,6 +60,33 @@ export const NeutronModule: React.FC = () => {
       console.error("Sync failed", err);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleImport = () => {
+    try {
+      const data = JSON.parse(importJson);
+      if (data.lattice && data.lattice.a) {
+        setLatticeA(data.lattice.a);
+      }
+      if (data.atoms && Array.isArray(data.atoms)) {
+        // Map imported atoms to NeutronAtom structure, looking up scattering lengths if needed
+        const newAtoms = data.atoms.map((a: any) => ({
+          id: a.id || Date.now().toString() + Math.random(),
+          element: a.element,
+          label: a.label || a.element,
+          b: a.b || NEUTRON_SCATTERING_LENGTHS[a.element] || 0,
+          x: a.x,
+          y: a.y,
+          z: a.z,
+          B_iso: a.B_iso || 0.5
+        }));
+        setAtoms(newAtoms);
+      }
+      setShowImport(false);
+      setImportJson("");
+    } catch (e) {
+      alert("Invalid JSON format");
     }
   };
 
@@ -147,12 +176,47 @@ export const NeutronModule: React.FC = () => {
               Neutron Cell
             </h2>
             <div className="flex gap-2">
+              <button 
+                onClick={() => setShowImport(true)}
+                className="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 px-2 py-1 rounded transition-colors flex items-center gap-1"
+              >
+                <Upload className="w-3 h-3" /> Import JSON
+              </button>
               <button onClick={() => loadPreset('MgO')} className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2 py-1 rounded transition-colors">MgO</button>
               <button onClick={() => loadPreset('D2O')} className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2 py-1 rounded transition-colors">D₂O</button>
               <button onClick={() => loadPreset('SrTiO3')} className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2 py-1 rounded transition-colors">SrTiO₃</button>
               <button onClick={() => loadPreset('MnO')} className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2 py-1 rounded transition-colors">MnO</button>
             </div>
           </div>
+
+          {showImport && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200 dark:border-slate-700">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Import Crystal Structure</h3>
+                <p className="text-xs text-slate-500 mb-2">Paste JSON data from CrystalMind or other sources.</p>
+                <textarea
+                  value={importJson}
+                  onChange={(e) => setImportJson(e.target.value)}
+                  placeholder='{"lattice": {"a": 4.2}, "atoms": [...]}'
+                  className="w-full h-48 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl font-mono text-xs mb-4 focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+                <div className="flex justify-end gap-3">
+                  <button 
+                    onClick={() => setShowImport(false)}
+                    className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleImport}
+                    className="px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg shadow-lg shadow-indigo-500/20"
+                  >
+                    Import Data
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

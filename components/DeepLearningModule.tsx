@@ -14,7 +14,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2 } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload } from 'lucide-react';
 
 const MATERIAL_DB = [
   { 
@@ -157,6 +157,7 @@ export const DeepLearningModule: React.FC = () => {
   const [isSimulating, setIsSimulating] = useState(false);
   const [progressStep, setProgressStep] = useState(0); // 0: Idle, 1: Preproc, 2: CNN, 3: DB, 4: Done
   const [selectedCandidate, setSelectedCandidate] = useState<DLPhaseCandidate | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Search State
   const [searchTerm, setSearchTerm] = useState("");
@@ -174,6 +175,20 @@ export const DeepLearningModule: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (content) {
+        setInputData(content);
+      }
+    };
+    reader.readAsText(file);
+  };
 
   const steps = [
     { label: 'Idle', icon: Brain },
@@ -459,9 +474,26 @@ export const DeepLearningModule: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
-                Diffraction Pattern Input
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-bold text-slate-700">
+                  Diffraction Pattern Input
+                </label>
+                <div className="flex gap-2">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    accept=".xy,.txt,.csv"
+                  />
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-xs flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded font-medium transition-colors"
+                  >
+                    <Upload className="w-3 h-3" /> Upload File
+                  </button>
+                </div>
+              </div>
               <div className="bg-slate-50 p-2 rounded border border-slate-200 text-xs text-slate-500 mb-2 font-mono flex items-center gap-2">
                 <Search className="w-3 h-3" />
                 Format: 2θ, Intensity

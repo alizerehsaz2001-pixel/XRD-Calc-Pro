@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchStandardWavelengths } from '../services/geminiService';
 import { StandardWavelength } from '../types';
-import { BraggVisualization } from './BraggVisualization';
 
 interface BraggInputProps {
   wavelength: number;
@@ -46,12 +45,6 @@ export const BraggInput: React.FC<BraggInputProps> = ({
       setIsSyncing(false);
     }
   };
-
-  const firstPeak = useMemo(() => {
-    const match = rawPeaks.match(/[-+]?[0-9]*\.?[0-9]+/);
-    const val = match ? parseFloat(match[0]) : 0;
-    return isNaN(val) ? 0 : val;
-  }, [rawPeaks]);
 
   return (
     <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
@@ -136,14 +129,6 @@ export const BraggInput: React.FC<BraggInputProps> = ({
         <p className="text-[10px] text-slate-500 dark:text-slate-400 -mt-4 italic">
           Separate multiple entries with commas. HKL indices will map 1:1 to peaks.
         </p>
-
-        {/* Live Visualization */}
-        <div className="space-y-2">
-          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            Live Geometry (First Peak)
-          </label>
-          <BraggVisualization wavelength={wavelength} twoTheta={firstPeak} />
-        </div>
 
         <button
           onClick={onCalculate}
