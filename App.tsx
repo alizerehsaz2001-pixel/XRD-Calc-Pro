@@ -25,6 +25,7 @@ import { ModuleIntro } from './components/ModuleIntro';
 import { LandingPage } from './components/LandingPage';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult } from './types';
+import { Zap } from 'lucide-react';
 
 type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'crystal_mind' | 'image_gen' | 'learn' | 'profile';
 
@@ -32,7 +33,7 @@ const App: React.FC = () => {
   const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [activeModule, setActiveModule] = useState<Module>('bragg');
   const [isExplained, setIsExplained] = useState<boolean>(false);
-  const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk'>('light');
   
   // Bragg State
   const [wavelength, setWavelength] = useState<number>(1.5406);
@@ -49,14 +50,16 @@ const App: React.FC = () => {
     }
   }, [activeModule]);
 
-  // Apply dark mode class to body for global scrollbars/backgrounds
+  // Apply theme classes to document element
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    const root = document.documentElement;
+    root.classList.remove('dark', 'cyberpunk');
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else if (theme === 'cyberpunk') {
+      root.classList.add('cyberpunk');
     }
-  }, [darkMode]);
+  }, [theme]);
 
   const handleCalculate = () => {
     const peaks = parsePeakString(rawPeaks);
@@ -104,7 +107,7 @@ const App: React.FC = () => {
 
   if (!hasEntered) {
     return (
-      <div className={darkMode ? 'dark' : ''}>
+      <div className={theme === 'light' ? '' : theme}>
         <LandingPage onEnter={() => setHasEntered(true)} />
       </div>
     );
@@ -131,20 +134,20 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className={`${darkMode ? 'dark' : ''} h-full`}>
-      <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors">
+    <div className={`${theme === 'light' ? '' : theme} h-full`}>
+      <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
         
         {/* Sidebar Navigation */}
-        <aside className="hidden md:flex w-72 flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/10 h-full shrink-0 z-20 shadow-2xl relative transition-colors">
-          <div className="p-6 border-b border-slate-200 dark:border-white/10 flex items-center gap-3 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
-             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/20 border border-white/10">
+        <aside className={`hidden md:flex w-72 flex-col ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'} border-r h-full shrink-0 z-20 shadow-2xl relative transition-colors`}>
+          <div className={`p-6 border-b ${theme === 'cyberpunk' ? 'border-cyber-accent/30 bg-black' : 'border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/50'} flex items-center gap-3 backdrop-blur-md`}>
+             <div className={`w-10 h-10 ${theme === 'cyberpunk' ? 'bg-cyber-pink shadow-[0_0_15px_rgba(255,0,255,0.5)]' : 'bg-indigo-600 shadow-lg shadow-indigo-500/20'} rounded-xl flex items-center justify-center text-white font-bold text-xl border border-white/10`}>
                λ
              </div>
              <div>
-               <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white block leading-none">
-                 XRD-Calc<span className="text-indigo-600 dark:text-indigo-400">Pro</span>
+               <span className={`font-extrabold text-xl tracking-tight ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} block leading-none`}>
+                 XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
                </span>
-               <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1 block">Scientific Suite</span>
+               <span className={`text-[10px] ${theme === 'cyberpunk' ? 'text-cyber-blue' : 'text-slate-500'} font-mono uppercase tracking-widest mt-1 block`}>Scientific Suite</span>
              </div>
           </div>
 
@@ -178,27 +181,34 @@ const App: React.FC = () => {
             <div className="h-8"></div>
           </div>
           
-          <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col gap-3">
-            <button 
-              onClick={() => setDarkMode(!darkMode)}
-              className="flex items-center gap-2 justify-center py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all text-xs font-bold shadow-sm"
-            >
-              {darkMode ? (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                  Switch to Light
-                </>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                  Switch to Dark
-                </>
-              )}
-            </button>
+          <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col gap-2">
+            <div className="grid grid-cols-3 gap-1">
+              <button 
+                onClick={() => setTheme('light')}
+                className={`flex items-center justify-center p-2 rounded-lg transition-all ${theme === 'light' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white'}`}
+                title="Light Mode"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </button>
+              <button 
+                onClick={() => setTheme('dark')}
+                className={`flex items-center justify-center p-2 rounded-lg transition-all ${theme === 'dark' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white'}`}
+                title="Dark Mode"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              </button>
+              <button 
+                onClick={() => setTheme('cyberpunk')}
+                className={`flex items-center justify-center p-2 rounded-lg transition-all ${theme === 'cyberpunk' ? 'bg-pink-600 text-white shadow-[0_0_10px_rgba(219,39,119,0.5)]' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-pink-500'}`}
+                title="Cyberpunk Mode"
+              >
+                <Zap className="h-4 w-4" />
+              </button>
+            </div>
             <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
               <div className="mb-1 font-bold">v2.5.0 • Lab Active</div>
               <div className="opacity-60">Designed by Ali Zerehsaz</div>
@@ -206,33 +216,28 @@ const App: React.FC = () => {
           </div>
         </aside>
 
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-          <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 p-4 flex justify-between items-center z-20 shrink-0">
+        <div className={`flex-1 flex flex-col h-full overflow-hidden ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 transition-colors duration-300`}>
+          <div className={`md:hidden ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'} border-b p-4 flex justify-between items-center z-20 shrink-0`}>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm">
+              <div className={`w-8 h-8 ${theme === 'cyberpunk' ? 'bg-cyber-pink' : 'bg-indigo-600'} rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm`}>
                 λ
               </div>
-              <span className="font-bold text-lg text-slate-900 dark:text-white">XRD-Calc Pro</span>
+              <span className={`font-bold text-lg ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'}`}>XRD-Calc Pro</span>
             </div>
             <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              <select
+                value={theme}
+                onChange={(e) => setTheme(e.target.value as any)}
+                className={`block w-24 rounded-lg border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-2 pr-2 text-[10px] outline-none`}
               >
-                {darkMode ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                  </svg>
-                )}
-              </button>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="cyberpunk">Cyber</option>
+              </select>
               <select
                 value={activeModule}
                 onChange={(e) => setActiveModule(e.target.value as Module)}
-                className="block w-32 rounded-lg border-slate-200 dark:border-white/10 py-1.5 pl-2 pr-2 text-xs focus:ring-2 focus:ring-indigo-500 border bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none"
+                className={`block w-32 rounded-lg border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-2 pr-2 text-xs outline-none`}
               >
                 {modules.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>

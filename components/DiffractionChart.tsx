@@ -60,7 +60,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results }) =
             <Tooltip content={<CustomTooltip />} cursor={{fill: 'transparent'}} />
             <Bar dataKey="intensity" barSize={2} isAnimationActive={true}>
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill="#4f46e5" />
+                <Cell key={`cell-${index}`} fill="var(--chart-bar)" />
               ))}
             </Bar>
           </BarChart>

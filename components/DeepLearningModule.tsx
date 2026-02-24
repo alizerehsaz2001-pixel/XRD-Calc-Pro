@@ -504,7 +504,7 @@ export const DeepLearningModule: React.FC = () => {
                 <Legend verticalAlign="top" height={36} />
                 
                 {/* Input Data */}
-                <Bar dataKey="intensity" barSize={4} fill="#94a3b8" name="Input Pattern" />
+                <Bar dataKey="intensity" barSize={4} fill="var(--chart-bar)" name="Input Pattern" />
                 
                 {/* Reference Data (if selected) */}
                 {selectedCandidate && (
@@ -512,7 +512,7 @@ export const DeepLearningModule: React.FC = () => {
                     data={refData} 
                     dataKey="refIntensity" 
                     name={`${selectedCandidate.phase_name} (Ref)`} 
-                    fill="#8b5cf6" 
+                    fill="var(--chart-ref)" 
                     shape="diamond"
                   />
                 )}

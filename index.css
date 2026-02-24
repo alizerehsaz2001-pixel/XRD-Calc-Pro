@@ -1,0 +1,169 @@
+:root {
+  --color-cyber-bg: #050505;
+  --color-cyber-accent: #00ff41;
+  --color-cyber-pink: #ff00ff;
+  --color-cyber-blue: #00ffff;
+  --color-cyber-yellow: #f3f315;
+  --chart-bar: #4f46e5;
+  --chart-ref: #8b5cf6;
+}
+
+.dark {
+  --chart-bar: #6366f1;
+  --chart-ref: #a78bfa;
+}
+
+.cyberpunk {
+  --chart-bar: #00ff41;
+  --chart-ref: #ff00ff;
+}
+
+.cyberpunk {
+  background-color: var(--color-cyber-bg);
+  color: var(--color-cyber-accent);
+}
+
+.cyberpunk aside {
+  background-color: #0a0a0a !important;
+  border-right-color: var(--color-cyber-pink) !important;
+  box-shadow: 5px 0 15px rgba(255, 0, 255, 0.2) !important;
+}
+
+.cyberpunk .bg-white, 
+.cyberpunk .bg-slate-50,
+.cyberpunk .bg-slate-100 {
+  background-color: #0f0f0f !important;
+}
+
+.cyberpunk .text-slate-900,
+.cyberpunk .text-slate-800,
+.cyberpunk .text-slate-700 {
+  color: var(--color-cyber-accent) !important;
+}
+
+.cyberpunk .border-slate-200,
+.cyberpunk .border-slate-800 {
+  border-color: rgba(0, 255, 65, 0.2) !important;
+}
+
+.cyberpunk .bg-indigo-600 {
+  background-color: var(--color-cyber-pink) !important;
+  box-shadow: 0 0 10px var(--color-cyber-pink) !important;
+}
+
+.cyberpunk .text-indigo-600 {
+  color: var(--color-cyber-pink) !important;
+}
+
+.cyberpunk .shadow-sm,
+.cyberpunk .shadow-md,
+.cyberpunk .shadow-lg,
+.cyberpunk .shadow-xl,
+.cyberpunk .shadow-2xl {
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.1) !important;
+}
+
+.cyberpunk button:hover {
+  text-shadow: 0 0 5px var(--color-cyber-accent);
+}
+
+/* Scanline effect */
+.cyberpunk::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 9999;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}
+
+.cyberpunk .bg-slate-900 {
+  background-color: #000 !important;
+  border: 1px solid var(--color-cyber-blue) !important;
+}
+
+.cyberpunk .text-indigo-400 {
+  color: var(--color-cyber-blue) !important;
+}
+
+.cyberpunk .bg-indigo-500 {
+  background-color: var(--color-cyber-blue) !important;
+}
+
+.cyberpunk .rounded-xl,
+.cyberpunk .rounded-2xl {
+  border-radius: 0 !important;
+  border: 1px solid var(--color-cyber-accent) !important;
+}
+
+.cyberpunk .shadow-2xl {
+  box-shadow: 0 0 20px rgba(0, 255, 65, 0.2) !important;
+}
+
+.cyberpunk input, 
+.cyberpunk textarea, 
+.cyberpunk select {
+  background-color: #000 !important;
+  border: 1px solid var(--color-cyber-accent) !important;
+  color: var(--color-cyber-accent) !important;
+  font-family: 'Courier New', Courier, monospace !important;
+}
+
+.cyberpunk input:focus, 
+.cyberpunk textarea:focus {
+  box-shadow: 0 0 10px var(--color-cyber-accent) !important;
+  outline: none !important;
+}
+
+.cyberpunk .text-slate-400,
+.cyberpunk .text-slate-500 {
+  color: var(--color-cyber-blue) !important;
+  opacity: 0.7;
+}
+
+.cyberpunk .bg-indigo-600 {
+  background-color: var(--color-cyber-pink) !important;
+  color: white !important;
+}
+
+.cyberpunk .bg-violet-600 {
+  background-color: var(--color-cyber-blue) !important;
+  color: black !important;
+}
+
+.cyberpunk .text-violet-600 {
+  color: var(--color-cyber-blue) !important;
+}
+
+.cyberpunk .bg-green-100 {
+  background-color: rgba(0, 255, 65, 0.1) !important;
+  color: var(--color-cyber-accent) !important;
+  border: 1px solid var(--color-cyber-accent) !important;
+}
+
+.cyberpunk .bg-slate-950 {
+  background-color: var(--color-cyber-bg) !important;
+}
+
+.cyberpunk .from-indigo-500,
+.cyberpunk .via-slate-200,
+.cyberpunk .to-slate-400 {
+  background-image: none !important;
+  color: var(--color-cyber-accent) !important;
+}
+
+.cyberpunk .text-transparent.bg-clip-text {
+  background-clip: unset !important;
+  -webkit-background-clip: unset !important;
+  color: var(--color-cyber-accent) !important;
+}
+
+.cyberpunk .bg-indigo-600 {
+  background-color: var(--color-cyber-pink) !important;
+  box-shadow: 0 0 20px var(--color-cyber-pink) !important;
+}
