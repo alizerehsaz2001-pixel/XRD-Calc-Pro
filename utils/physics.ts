@@ -452,6 +452,16 @@ export const calculateXRayDiffraction = (wavelength: number, lattice: { a: numbe
   return results.sort((a,b) => a.twoTheta - b.twoTheta).map(r => ({ ...r, intensity: (r.intensity/maxInt)*100 }));
 };
 
+export const MAGNETIC_FORM_FACTORS: Record<string, { A: number, a: number, B: number, b: number, C: number, c: number, D: number }> = {
+  'Mn2+': { A: 0.4191, a: 12.8573, B: 0.2448, b: 4.7851, C: 0.3390, c: 1.5598, D: -0.0028 },
+  'Fe3+': { A: 0.3972, a: 13.2442, B: 0.2416, b: 4.9034, C: 0.3618, c: 1.6183, D: -0.0006 },
+  'Fe2+': { A: 0.0706, a: 35.008, B: 0.3586, b: 15.358, C: 0.5819, c: 5.561, D: -0.0111 },
+  'Co2+': { A: 0.4332, a: 14.2693, B: 0.2559, b: 5.6310, C: 0.3188, c: 2.0163, D: -0.0079 },
+  'Ni2+': { A: 0.4242, a: 15.3409, B: 0.2766, b: 6.1528, C: 0.3053, c: 2.2743, D: -0.0061 },
+  'Cu2+': { A: 0.0232, a: 35.107, B: 0.4023, b: 16.882, C: 0.5882, c: 6.945, D: -0.0137 },
+  'Cr3+': { A: 0.3644, a: 12.441, B: 0.2473, b: 4.492, C: 0.3926, c: 1.458, D: -0.0043 }
+};
+
 export const calculateMagneticDiffraction = (wavelength: number, lattice: { a: number }, atoms: MagneticAtom[], maxTwoTheta: number = 100): MagneticResult[] => {
   const results = []; const { a } = lattice; if (a <= 0 || wavelength <= 0) return [];
   const maxSinTheta = Math.sin((maxTwoTheta/2)*(Math.PI/180));
@@ -470,12 +480,33 @@ export const calculateMagneticDiffraction = (wavelength: number, lattice: { a: n
           const phase = 2 * Math.PI * (h*atom.x + k*atom.y + l*atom.z);
           const T = Math.exp(-atom.B_iso * s * s);
           Fn_r += atom.b * T * Math.cos(phase); Fn_i += atom.b * T * Math.sin(phase);
+          
+          // Magnetic Form Factor Calculation
+          let f_mag = 0;
+          if (atom.ion && MAGNETIC_FORM_FACTORS[atom.ion]) {
+             const { A, a, B, b, C, c, D } = MAGNETIC_FORM_FACTORS[atom.ion];
+             f_mag = A * Math.exp(-a * s * s) + B * Math.exp(-b * s * s) + C * Math.exp(-c * s * s) + D;
+          } else {
+             // Fallback to generic Gaussian if no ion specified
+             f_mag = Math.exp(-4 * s * s);
+          }
+
           const MdotQ = atom.mx*Qhat.x + atom.my*Qhat.y + atom.mz*Qhat.z;
-          const weight = 2.696 * Math.exp(-4*s*s) * T;
+          const weight = 2.696 * f_mag * T; // 2.696 fm is magnetic scattering length of electron
+          
           Fm_r.x += weight * (atom.mx - MdotQ*Qhat.x) * Math.cos(phase);
+          Fm_r.y += weight * (atom.my - MdotQ*Qhat.y) * Math.cos(phase);
+          Fm_r.z += weight * (atom.mz - MdotQ*Qhat.z) * Math.cos(phase);
+          
           Fm_i.x += weight * (atom.mx - MdotQ*Qhat.x) * Math.sin(phase);
+          Fm_i.y += weight * (atom.my - MdotQ*Qhat.y) * Math.sin(phase);
+          Fm_i.z += weight * (atom.mz - MdotQ*Qhat.z) * Math.sin(phase);
         }
-        const In = (Fn_r*Fn_r + Fn_i*Fn_i); const Im = (Fm_r.x*Fm_r.x + Fm_i.x*Fm_i.x);
+        
+        const In = (Fn_r*Fn_r + Fn_i*Fn_i); 
+        // Magnetic intensity is sum of squared moduli of vector components
+        const Im = (Fm_r.x*Fm_r.x + Fm_i.x*Fm_i.x) + (Fm_r.y*Fm_r.y + Fm_i.y*Fm_i.y) + (Fm_r.z*Fm_r.z + Fm_i.z*Fm_i.z);
+        
         const L = 1 / (sinTheta * Math.sin(2*Math.asin(sinTheta)));
         if (In+Im > 1e-4) results.push({ hkl: [h,k,l], twoTheta: 2*Math.asin(sinTheta)*(180/Math.PI), dSpacing: d, nuclearIntensity: In*L, magneticIntensity: Im*L, totalIntensity: (In+Im)*L });
       }

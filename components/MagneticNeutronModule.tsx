@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MagneticAtom, MagneticResult } from '../types';
-import { calculateMagneticDiffraction, NEUTRON_SCATTERING_LENGTHS } from '../utils/physics';
+import { calculateMagneticDiffraction, NEUTRON_SCATTERING_LENGTHS, MAGNETIC_FORM_FACTORS } from '../utils/physics';
 import {
   ComposedChart,
   Bar,
@@ -18,8 +18,8 @@ export const MagneticNeutronModule: React.FC = () => {
   
   // Default: AF MnO-like structure
   const [atoms, setAtoms] = useState<MagneticAtom[]>([
-    { id: '1', element: 'Mn', label: 'Mn (Up)', b: -3.73, x: 0, y: 0, z: 0, B_iso: 0.5, mx: 0, my: 0, mz: 4 },
-    { id: '2', element: 'Mn', label: 'Mn (Down)', b: -3.73, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5, mx: 0, my: 0, mz: -4 },
+    { id: '1', element: 'Mn', label: 'Mn (Up)', b: -3.73, x: 0, y: 0, z: 0, B_iso: 0.5, mx: 0, my: 0, mz: 4, ion: 'Mn2+' },
+    { id: '2', element: 'Mn', label: 'Mn (Down)', b: -3.73, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5, mx: 0, my: 0, mz: -4, ion: 'Mn2+' },
   ]);
 
   const [results, setResults] = useState<MagneticResult[]>([]);
@@ -49,15 +49,15 @@ export const MagneticNeutronModule: React.FC = () => {
 
   const loadPreset = (type: 'Ferro' | 'AntiFerro') => {
     if (type === 'Ferro') {
-      setLatticeA(3.0);
+      setLatticeA(2.87); // Fe bcc-like
       setAtoms([
-        { id: '1', element: 'Fe', label: 'Fe', b: 9.45, x: 0, y: 0, z: 0, B_iso: 0.4, mx: 0, my: 0, mz: 2.2 },
+        { id: '1', element: 'Fe', label: 'Fe', b: 9.45, x: 0, y: 0, z: 0, B_iso: 0.4, mx: 0, my: 0, mz: 2.2, ion: 'Fe3+' },
       ]);
     } else if (type === 'AntiFerro') {
       setLatticeA(4.0);
       setAtoms([
-        { id: '1', element: 'Mn', label: 'Mn (Up)', b: -3.73, x: 0, y: 0, z: 0, B_iso: 0.5, mx: 0, my: 0, mz: 5 },
-        { id: '2', element: 'Mn', label: 'Mn (Down)', b: -3.73, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5, mx: 0, my: 0, mz: -5 },
+        { id: '1', element: 'Mn', label: 'Mn (Up)', b: -3.73, x: 0, y: 0, z: 0, B_iso: 0.5, mx: 0, my: 0, mz: 5, ion: 'Mn2+' },
+        { id: '2', element: 'Mn', label: 'Mn (Down)', b: -3.73, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5, mx: 0, my: 0, mz: -5, ion: 'Mn2+' },
       ]);
     }
   };
@@ -113,24 +113,41 @@ export const MagneticNeutronModule: React.FC = () => {
                         <span>{atom.label}</span>
                         <span className="text-slate-400 font-normal">b={atom.b} fm</span>
                      </div>
-                     <div className="grid grid-cols-3 gap-2 mb-2">
-                       <div className="col-span-1"><span className="text-[10px] text-slate-400 block">Element</span>
-                       <select 
-                         value={atom.element}
-                         onChange={(e) => updateAtom(atom.id, 'element', e.target.value)}
-                         className="w-full px-1 py-1 bg-slate-900 text-white border border-slate-700 rounded text-sm font-bold"
-                       >
-                         {Object.keys(NEUTRON_SCATTERING_LENGTHS).map(el => (
-                           <option key={el} value={el}>{el}</option>
-                         ))}
-                       </select>
+                     
+                     <div className="grid grid-cols-2 gap-2 mb-2">
+                       <div>
+                         <span className="text-[10px] text-slate-400 block">Element</span>
+                         <select 
+                           value={atom.element}
+                           onChange={(e) => updateAtom(atom.id, 'element', e.target.value)}
+                           className="w-full px-1 py-1 bg-slate-900 text-white border border-slate-700 rounded text-sm font-bold"
+                         >
+                           {Object.keys(NEUTRON_SCATTERING_LENGTHS).map(el => (
+                             <option key={el} value={el}>{el}</option>
+                           ))}
+                         </select>
                        </div>
-                       <div className="col-span-2 grid grid-cols-3 gap-1">
+                       <div>
+                         <span className="text-[10px] text-slate-400 block">Magnetic Ion</span>
+                         <select 
+                           value={atom.ion || ''}
+                           onChange={(e) => updateAtom(atom.id, 'ion', e.target.value)}
+                           className="w-full px-1 py-1 bg-slate-900 text-white border border-slate-700 rounded text-sm font-bold"
+                         >
+                           <option value="">Generic</option>
+                           {Object.keys(MAGNETIC_FORM_FACTORS).map(ion => (
+                             <option key={ion} value={ion}>{ion}</option>
+                           ))}
+                         </select>
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-3 gap-1 mb-2">
                          <div><span className="text-[10px] text-slate-400 block">x</span><input type="number" step="0.1" value={atom.x} onChange={(e) => updateAtom(atom.id, 'x', parseFloat(e.target.value))} className="w-full bg-slate-900 text-white border border-slate-700 rounded px-1 font-mono font-bold"/></div>
                          <div><span className="text-[10px] text-slate-400 block">y</span><input type="number" step="0.1" value={atom.y} onChange={(e) => updateAtom(atom.id, 'y', parseFloat(e.target.value))} className="w-full bg-slate-900 text-white border border-slate-700 rounded px-1 font-mono font-bold"/></div>
                          <div><span className="text-[10px] text-slate-400 block">z</span><input type="number" step="0.1" value={atom.z} onChange={(e) => updateAtom(atom.id, 'z', parseFloat(e.target.value))} className="w-full bg-slate-900 text-white border border-slate-700 rounded px-1 font-mono font-bold"/></div>
-                       </div>
                      </div>
+
                      <div className="bg-indigo-50 p-2 rounded border border-indigo-100">
                         <span className="text-[10px] text-indigo-800 font-bold block mb-1">Moment Vector (μB)</span>
                         <div className="grid grid-cols-3 gap-2">

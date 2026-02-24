@@ -193,6 +193,7 @@ export interface MagneticAtom extends NeutronAtom {
   mx: number; // Magnetic moment x-component (Bohr magnetons)
   my: number;
   mz: number;
+  ion?: string; // e.g., 'Mn2+', 'Fe3+'
 }
 
 export interface MagneticResult {
