@@ -361,7 +361,25 @@ export const generateRietveldSetup = (input: RietveldSetupInput): RietveldSetupR
 };
 
 export const NEUTRON_SCATTERING_LENGTHS: Record<string, number> = {
-  H: -3.74, D: 6.67, Li: -1.90, B: 5.30, C: 6.65, N: 9.36, O: 5.80, F: 5.65, Na: 3.63, Mg: 5.38, Al: 3.45, Si: 4.15, P: 5.13, S: 2.85, Cl: 9.58, K: 3.67, Ca: 4.70, Ti: -3.44, V: -0.38, Cr: 3.64, Mn: -3.73, Fe: 9.45, Co: 2.49, Ni: 10.3, Cu: 7.72, Zn: 5.68, Zr: 7.16, Ag: 5.92, Cd: 4.87, Au: 7.63, Pb: 9.40, U: 8.42
+  H: -3.74, D: 6.67, Li: -1.90, Be: 7.79, B: 5.30, C: 6.65, N: 9.36, O: 5.80, F: 5.65, 
+  Na: 3.63, Mg: 5.38, Al: 3.45, Si: 4.15, P: 5.13, S: 2.85, Cl: 9.58, K: 3.67, Ca: 4.70, 
+  Ti: -3.44, V: -0.38, Cr: 3.64, Mn: -3.73, Fe: 9.45, Co: 2.49, Ni: 10.3, Cu: 7.72, Zn: 5.68, 
+  Zr: 7.16, Ag: 5.92, Cd: 4.87, Au: 7.63, Pb: 9.40, U: 8.42,
+  // Additional interesting scatterers
+  Gd: 6.5, // High absorption usually, but real part is here
+  Sm: 0.8,
+  Eu: 7.22,
+  W: 4.86,
+  Pt: 9.60
+};
+
+// Approximate Atomic Numbers for X-ray Form Factor (f ~ Z at theta=0)
+export const ATOMIC_NUMBERS: Record<string, number> = {
+  H: 1, D: 1, Li: 3, Be: 4, B: 5, C: 6, N: 7, O: 8, F: 9,
+  Na: 11, Mg: 12, Al: 13, Si: 14, P: 15, S: 16, Cl: 17, K: 19, Ca: 20,
+  Ti: 22, V: 23, Cr: 24, Mn: 25, Fe: 26, Co: 27, Ni: 28, Cu: 29, Zn: 30,
+  Zr: 40, Ag: 47, Cd: 48, Au: 79, Pb: 82, U: 92,
+  Gd: 64, Sm: 62, Eu: 63, W: 74, Pt: 78
 };
 
 export const calculateNeutronDiffraction = (wavelength: number, lattice: { a: number }, atoms: NeutronAtom[], maxTwoTheta: number = 100): NeutronResult[] => {
@@ -383,6 +401,49 @@ export const calculateNeutronDiffraction = (wavelength: number, lattice: { a: nu
         }
         const Fsq = Fr*Fr + Fi*Fi;
         const int = Fsq / (sinTheta * Math.sin(2 * Math.asin(sinTheta)));
+        if (int > 1e-4) results.push({ hkl: [h,k,l], dSpacing: d, twoTheta: 2*Math.asin(sinTheta)*(180/Math.PI), F_squared: Fsq, intensity: int });
+      }
+    }
+  }
+  const maxInt = Math.max(...results.map(r => r.intensity));
+  return results.sort((a,b) => a.twoTheta - b.twoTheta).map(r => ({ ...r, intensity: (r.intensity/maxInt)*100 }));
+};
+
+export const calculateXRayDiffraction = (wavelength: number, lattice: { a: number }, atoms: NeutronAtom[], maxTwoTheta: number = 100): NeutronResult[] => {
+  const results = []; const { a } = lattice; if (a <= 0 || wavelength <= 0) return [];
+  const maxSinTheta = Math.sin((maxTwoTheta/2)*(Math.PI/180));
+  const maxIndex = Math.floor((2*a*maxSinTheta)/wavelength);
+  
+  for (let h = 0; h <= maxIndex; h++) {
+    for (let k = 0; k <= maxIndex; k++) {
+      for (let l = 0; l <= maxIndex; l++) {
+        if (h === 0 && k === 0 && l === 0) continue;
+        const d = a / Math.sqrt(h*h + k*k + l*l);
+        const sinTheta = wavelength / (2*d);
+        if (sinTheta > 1 || sinTheta > maxSinTheta) continue;
+        
+        let Fr = 0; let Fi = 0;
+        const s = sinTheta / wavelength; // s = sin(theta)/lambda
+
+        for (const atom of atoms) {
+          const phase = 2 * Math.PI * (h*atom.x + k*atom.y + l*atom.z);
+          
+          // X-ray Form Factor Approximation
+          // f(s) approx Z * exp(-B * s^2) is a very rough approx but captures the falloff
+          // Better: f(s) = Z / (1 + (s/0.2)^2) or similar.
+          // Let's use a simple Gaussian falloff from Z to simulate electron cloud size
+          const Z = ATOMIC_NUMBERS[atom.element] || 10;
+          // Heuristic falloff: f(s) drops to half at s ~ 0.5 A^-1
+          const f0 = Z * Math.exp(-2 * s * s); 
+
+          const weight = f0 * Math.exp(-atom.B_iso * s * s);
+          Fr += weight * Math.cos(phase); Fi += weight * Math.sin(phase);
+        }
+        const Fsq = Fr*Fr + Fi*Fi;
+        // LP Factor
+        const lp = (1 + Math.cos(2*Math.asin(sinTheta))**2) / (sinTheta * Math.sin(2 * Math.asin(sinTheta)));
+        const int = Fsq * lp;
+
         if (int > 1e-4) results.push({ hkl: [h,k,l], dSpacing: d, twoTheta: 2*Math.asin(sinTheta)*(180/Math.PI), F_squared: Fsq, intensity: int });
       }
     }

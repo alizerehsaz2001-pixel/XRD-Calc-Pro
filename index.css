@@ -167,3 +167,28 @@
   background-color: var(--color-cyber-pink) !important;
   box-shadow: 0 0 20px var(--color-cyber-pink) !important;
 }
+
+.cyberpunk .text-teal-600,
+.cyberpunk .text-teal-500,
+.cyberpunk .text-teal-400 {
+  color: var(--color-cyber-blue) !important;
+  text-shadow: 0 0 5px var(--color-cyber-blue);
+}
+
+.cyberpunk .bg-teal-600,
+.cyberpunk .bg-teal-500 {
+  background-color: var(--color-cyber-blue) !important;
+  color: #000 !important;
+  box-shadow: 0 0 10px var(--color-cyber-blue) !important;
+}
+
+.cyberpunk .bg-teal-50,
+.cyberpunk .bg-teal-100 {
+  background-color: rgba(0, 255, 255, 0.1) !important;
+  border: 1px solid var(--color-cyber-blue) !important;
+  color: var(--color-cyber-blue) !important;
+}
+
+.cyberpunk .accent-teal-600 {
+  accent-color: var(--color-cyber-blue) !important;
+}
