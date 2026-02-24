@@ -564,6 +564,41 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       description: "A carbonate mineral and the most stable polymorph of calcium carbonate. It is a major constituent of sedimentary rocks.",
       crystalSystem: "Trigonal", spaceGroup: "R-3c", density: 2.71,
       applications: ["Construction", "Soil Remediation", "Pigments", "Pharmaceuticals"]
+    },
+    {
+      name: 'Halite', formula: 'NaCl', cardId: 'COD-9000006',
+      peaks: [{t: 27.37, i: 10}, {t: 31.69, i: 100}, {t: 45.43, i: 55}, {t: 56.45, i: 15}, {t: 66.20, i: 5}, {t: 75.26, i: 10}],
+      description: "Commonly known as rock salt, it is the mineral form of sodium chloride.",
+      crystalSystem: "Cubic", spaceGroup: "Fm-3m", density: 2.16,
+      applications: ["Food", "De-icing", "Chemical Industry"]
+    },
+    {
+      name: 'Sylvite', formula: 'KCl', cardId: 'COD-9000008',
+      peaks: [{t: 28.35, i: 100}, {t: 40.50, i: 50}, {t: 50.15, i: 15}, {t: 58.60, i: 5}, {t: 66.35, i: 10}, {t: 73.70, i: 5}],
+      description: "Potassium chloride is a metal halide salt composed of potassium and chlorine.",
+      crystalSystem: "Cubic", spaceGroup: "Fm-3m", density: 1.98,
+      applications: ["Fertilizer", "Medicine", "Food Processing"]
+    },
+    {
+      name: 'Fluorite', formula: 'CaF2', cardId: 'COD-9000009',
+      peaks: [{t: 28.27, i: 100}, {t: 46.99, i: 55}, {t: 55.75, i: 30}, {t: 68.65, i: 5}, {t: 75.85, i: 10}, {t: 87.45, i: 10}],
+      description: "The mineral form of calcium fluoride. It belongs to the halide minerals.",
+      crystalSystem: "Cubic", spaceGroup: "Fm-3m", density: 3.18,
+      applications: ["Metallurgy", "Optics", "Ceramics"]
+    },
+    {
+      name: 'Hematite', formula: 'Fe2O3', cardId: 'COD-9000139',
+      peaks: [{t: 24.14, i: 30}, {t: 33.15, i: 100}, {t: 35.61, i: 70}, {t: 40.85, i: 20}, {t: 49.48, i: 40}, {t: 54.09, i: 45}, {t: 62.45, i: 30}, {t: 64.02, i: 30}],
+      description: "One of the most abundant minerals on Earth's surface and an important ore of iron.",
+      crystalSystem: "Trigonal", spaceGroup: "R-3c", density: 5.26,
+      applications: ["Iron Ore", "Pigments", "Radiation Shielding"]
+    },
+    {
+      name: 'Graphite', formula: 'C', cardId: 'COD-9000046',
+      peaks: [{t: 26.54, i: 100}, {t: 42.40, i: 10}, {t: 44.56, i: 10}, {t: 54.65, i: 25}, {t: 77.50, i: 5}],
+      description: "A crystalline form of the element carbon with its atoms arranged in a hexagonal structure.",
+      crystalSystem: "Hexagonal", spaceGroup: "P63/mmc", density: 2.26,
+      applications: ["Lubricants", "Batteries", "Pencils", "Graphene Production"]
     }
   ];
 
@@ -574,7 +609,7 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
     let matchedPeaksCount = 0;
     const matchedDetails = [];
 
-    // Check each reference peak against input peaks
+    // 1. Forward Match: Check if Reference Peaks exist in Input
     for (const refPeak of phase.peaks) {
       // Find closest input peak
       const closest = inputPoints.reduce((prev, curr) => {
@@ -584,13 +619,16 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       const diff = Math.abs(closest.twoTheta - refPeak.t);
       
       if (diff <= TOLERANCE) {
-        // We have a match
         matchedPeaksCount++;
         
         // Weight by intensity importance (major peaks matter more)
-        // And by position accuracy
-        const positionWeight = 1 - (diff / TOLERANCE); // 1.0 if perfect match, 0.0 if at limit
+        const positionWeight = 1 - (diff / TOLERANCE); // 1.0 if perfect match
         const intensityWeight = Math.log10(refPeak.i + 10) / 2; // Log scale weight for intensity
+        
+        // Intensity Ratio Check:
+        // Ideally, ObsIntensity / RefIntensity should be somewhat constant (scale factor)
+        // But here we just check if strong ref peaks are also strong in obs
+        // We don't penalize too much for intensity mismatch due to texture/preferred orientation
         
         matchScore += (10 * positionWeight * intensityWeight);
 
@@ -598,18 +636,36 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       }
     }
 
-    // Normalize score somewhat based on total possible score for this phase
-    // But also penalize if the phase has many peaks that were NOT found
+    // 2. Reverse Match Penalty: Check if Input Peaks are unaccounted for (Impurity check)
+    // If the input has strong peaks that are NOT in this phase, it might be a mixture or wrong phase.
+    // However, for single phase ID, we want to penalize "extra" peaks slightly less than missing peaks.
+    let unmatchedInputEnergy = 0;
+    for (const inputPeak of inputPoints) {
+       const hasMatch = phase.peaks.some(ref => Math.abs(ref.t - inputPeak.twoTheta) <= TOLERANCE);
+       if (!hasMatch) {
+         unmatchedInputEnergy += inputPeak.intensity;
+       }
+    }
+    
+    // Normalize score
     const totalRefPeaks = phase.peaks.length;
     const coverage = matchedPeaksCount / totalRefPeaks;
     
-    // Final confidence score (heuristic)
-    // Base score from matches, scaled by coverage
+    // Base score from matches
     let confidence = (matchScore / (totalRefPeaks * 3)) * 100;
     
     // Boost if high coverage
     if (coverage > 0.8) confidence *= 1.2;
     if (coverage < 0.2) confidence *= 0.5;
+
+    // Penalize for unmatched input energy (if input has 100% intensity peak unmatched, confidence drops)
+    // We normalize unmatched energy by total input energy roughly
+    const totalInputEnergy = inputPoints.reduce((sum, p) => sum + p.intensity, 0);
+    if (totalInputEnergy > 0) {
+      const impurityRatio = unmatchedInputEnergy / totalInputEnergy;
+      // If 50% of signal is unaccounted for, reduce confidence by 20%
+      confidence *= (1 - (impurityRatio * 0.4));
+    }
 
     // Cap at 99.9
     confidence = Math.min(99.9, Math.max(0, confidence));

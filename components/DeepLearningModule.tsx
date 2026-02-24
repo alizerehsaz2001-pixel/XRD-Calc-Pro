@@ -93,6 +93,61 @@ const MATERIAL_DB = [
     spaceGroup: 'P3221',
     density: 2.65,
     applications: ['Glass', 'Electronics', 'Construction', 'Jewelry']
+  },
+  {
+    name: 'Halite (NaCl)',
+    type: 'Salt/Mineral',
+    pattern: '27.37, 10\n31.69, 100\n45.43, 55\n56.45, 15\n66.20, 5\n75.26, 10',
+    description: 'Commonly known as rock salt, it is the mineral form of sodium chloride.',
+    formula: 'NaCl',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 2.16,
+    applications: ['Food', 'De-icing', 'Chemical Industry']
+  },
+  {
+    name: 'Sylvite (KCl)',
+    type: 'Salt/Mineral',
+    pattern: '28.35, 100\n40.50, 50\n50.15, 15\n58.60, 5\n66.35, 10\n73.70, 5',
+    description: 'Potassium chloride is a metal halide salt composed of potassium and chlorine.',
+    formula: 'KCl',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 1.98,
+    applications: ['Fertilizer', 'Medicine', 'Food Processing']
+  },
+  {
+    name: 'Fluorite (CaF2)',
+    type: 'Mineral',
+    pattern: '28.27, 100\n46.99, 55\n55.75, 30\n68.65, 5\n75.85, 10\n87.45, 10',
+    description: 'The mineral form of calcium fluoride. It belongs to the halide minerals.',
+    formula: 'CaF2',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 3.18,
+    applications: ['Metallurgy', 'Optics', 'Ceramics']
+  },
+  {
+    name: 'Hematite (Fe2O3)',
+    type: 'Mineral/Ore',
+    pattern: '24.14, 30\n33.15, 100\n35.61, 70\n40.85, 20\n49.48, 40\n54.09, 45\n62.45, 30\n64.02, 30',
+    description: 'One of the most abundant minerals on Earth\'s surface and an important ore of iron.',
+    formula: 'Fe2O3',
+    crystalSystem: 'Trigonal',
+    spaceGroup: 'R-3c',
+    density: 5.26,
+    applications: ['Iron Ore', 'Pigments', 'Radiation Shielding']
+  },
+  {
+    name: 'Graphite (C)',
+    type: 'Mineral',
+    pattern: '26.54, 100\n42.40, 10\n44.56, 10\n54.65, 25\n77.50, 5',
+    description: 'A crystalline form of the element carbon with its atoms arranged in a hexagonal structure.',
+    formula: 'C',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/mmc',
+    density: 2.26,
+    applications: ['Lubricants', 'Batteries', 'Pencils', 'Graphene Production']
   }
 ];
 
@@ -267,7 +322,7 @@ export const DeepLearningModule: React.FC = () => {
     }, 3000);
   };
 
-  const loadExample = (type: 'Silicon' | 'Mixture' | 'HAP' | 'ZnO') => {
+  const loadExample = (type: 'Silicon' | 'Mixture' | 'HAP' | 'ZnO' | 'Halite' | 'Hematite') => {
     if (type === 'Silicon') {
       const mat = MATERIAL_DB.find(m => m.name.includes('Silicon'));
       if (mat) handleMaterialSelect(mat);
@@ -279,6 +334,12 @@ export const DeepLearningModule: React.FC = () => {
       if (mat) handleMaterialSelect(mat);
     } else if (type === 'ZnO') {
       const mat = MATERIAL_DB.find(m => m.name.includes('Zinc Oxide'));
+      if (mat) handleMaterialSelect(mat);
+    } else if (type === 'Halite') {
+      const mat = MATERIAL_DB.find(m => m.name.includes('Halite'));
+      if (mat) handleMaterialSelect(mat);
+    } else if (type === 'Hematite') {
+      const mat = MATERIAL_DB.find(m => m.name.includes('Hematite'));
       if (mat) handleMaterialSelect(mat);
     }
   };
@@ -415,8 +476,10 @@ export const DeepLearningModule: React.FC = () => {
                 <span className="text-xs font-bold text-slate-500 mr-1 self-center">Load:</span>
                 <button onClick={() => loadExample('Silicon')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">Silicon</button>
                 <button onClick={() => loadExample('Mixture')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">Mix (SiO2+Au)</button>
-                <button onClick={() => loadExample('HAP')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">Hydroxyapatite</button>
+                <button onClick={() => loadExample('HAP')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">HAP</button>
                 <button onClick={() => loadExample('ZnO')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">ZnO</button>
+                <button onClick={() => loadExample('Halite')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">NaCl</button>
+                <button onClick={() => loadExample('Hematite')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">Fe2O3</button>
               </div>
             </div>
 
