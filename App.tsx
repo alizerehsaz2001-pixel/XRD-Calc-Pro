@@ -23,6 +23,7 @@ import { LearnModule } from './components/LearnModule';
 import { AIChatSupport } from './components/AIChatSupport';
 import { ModuleIntro } from './components/ModuleIntro';
 import { LandingPage } from './components/LandingPage';
+import { RegistrationPage } from './components/RegistrationPage';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult } from './types';
 import { Zap } from 'lucide-react';
@@ -30,6 +31,9 @@ import { Zap } from 'lucide-react';
 type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'crystal_mind' | 'image_gen' | 'learn' | 'profile';
 
 const App: React.FC = () => {
+  const [isRegistered, setIsRegistered] = useState<boolean>(() => {
+    return !!localStorage.getItem('xrd_user_registration');
+  });
   const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [activeModule, setActiveModule] = useState<Module>('bragg');
   const [isExplained, setIsExplained] = useState<boolean>(false);
@@ -104,6 +108,10 @@ const App: React.FC = () => {
   useEffect(() => {
     handleCalculate();
   }, []);
+
+  if (!isRegistered) {
+    return <RegistrationPage onRegister={() => setIsRegistered(true)} />;
+  }
 
   if (!hasEntered) {
     return (
