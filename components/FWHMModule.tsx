@@ -251,9 +251,37 @@ export const FWHMModule: React.FC = () => {
                  />
                  <YAxis hide domain={[0, amplitude * 1.2]} />
                  <Tooltip 
-                   contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
-                   labelFormatter={(val) => `2θ: ${val.toFixed(3)}°`}
-                   formatter={(val: number) => [val.toFixed(2), 'Intensity']}
+                   content={({ active, payload, label }) => {
+                     if (active && payload && payload.length) {
+                       const dataPoint = payload[0].payload;
+                       // Calculate Scherrer size for this specific point if it were the peak center
+                       // Just for dynamic feedback
+                       const thetaRad = (dataPoint.x / 2) * Math.PI / 180;
+                       const localSize = 0.15406 * 0.9 / ((fwhm * Math.PI / 180) * Math.cos(thetaRad));
+                       
+                       return (
+                         <div className="bg-slate-800 text-white p-3 rounded-lg shadow-lg text-xs border border-slate-700 min-w-[150px]">
+                           <p className="font-bold mb-2 border-b border-slate-600 pb-1">2θ: {dataPoint.x.toFixed(3)}°</p>
+                           <div className="space-y-1">
+                             <div className="flex justify-between gap-4">
+                               <span className="text-slate-400">Intensity:</span>
+                               <span className="font-mono font-bold text-blue-300">{dataPoint.y.toFixed(1)}</span>
+                             </div>
+                             <div className="flex justify-between gap-4">
+                               <span className="text-slate-400">Current FWHM:</span>
+                               <span className="font-mono text-orange-300">{fwhm.toFixed(3)}°</span>
+                             </div>
+                             <div className="flex justify-between gap-4">
+                               <span className="text-slate-400">Est. Size:</span>
+                               <span className="font-mono text-emerald-300">{localSize.toFixed(1)} nm</span>
+                             </div>
+                           </div>
+                         </div>
+                       );
+                     }
+                     return null;
+                   }}
+                   cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
                  />
                  
                  {/* Background Area */}

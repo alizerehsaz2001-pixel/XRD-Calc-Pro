@@ -52,7 +52,7 @@ export interface AIResponse {
   sources?: GroundingSource[];
 }
 
-export type CrystalSystem = 'SC' | 'BCC' | 'FCC' | 'Diamond' | 'Cubic' | 'Tetragonal' | 'Orthorhombic' | 'Hexagonal' | 'Monoclinic' | 'Triclinic';
+export type CrystalSystem = 'SC' | 'BCC' | 'FCC' | 'Diamond' | 'Cubic' | 'Tetragonal' | 'Tetragonal_I' | 'Orthorhombic' | 'Orthorhombic_F' | 'Orthorhombic_C' | 'Hexagonal' | 'Monoclinic' | 'Triclinic';
 
 export interface SelectionRuleResult {
   hkl: [number, number, number];

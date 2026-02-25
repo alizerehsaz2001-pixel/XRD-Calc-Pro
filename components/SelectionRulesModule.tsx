@@ -45,31 +45,71 @@ export const SelectionRulesModule: React.FC = () => {
       title: "Simple Cubic (SC)",
       rule: "All (h k l) are allowed.",
       origin: "The primitive unit cell has only one lattice point at (0,0,0). No destructive interference occurs between basis atoms.",
-      formula: "F(hkl) = f"
+      formula: "F(hkl) = f",
+      examples: "Polonium (Po), Pyrite (FeS2 - Pa3)"
     },
     BCC: {
       title: "Body-Centered Cubic (BCC)",
       rule: "h + k + l must be even.",
       origin: "Lattice points at (0,0,0) and (½,½,½). Destructive interference occurs when the phase difference is π (odd sum).",
-      formula: "F(hkl) = f[1 + exp(πi(h+k+l))]"
+      formula: "F(hkl) = f[1 + exp(πi(h+k+l))]",
+      examples: "Iron (α-Fe), Chromium (Cr), Tungsten (W), Sodium (Na)"
     },
     FCC: {
       title: "Face-Centered Cubic (FCC)",
       rule: "h, k, l must be all even or all odd.",
       origin: "Lattice points at (0,0,0), (½,½,0), (½,0,½), (0,½,½). Mixed parity leads to total destructive interference.",
-      formula: "F(hkl) = f[1 + e^{πi(h+k)} + e^{πi(h+l)} + e^{πi(k+l)}]"
+      formula: "F(hkl) = f[1 + e^{πi(h+k)} + e^{πi(h+l)} + e^{πi(k+l)}]",
+      examples: "Aluminum (Al), Copper (Cu), Gold (Au), Silver (Ag), Nickel (Ni)"
     },
     Diamond: {
       title: "Diamond Cubic",
       rule: "FCC rules + if all even, h+k+l must be divisible by 4.",
       origin: "Basis of two atoms at (0,0,0) and (¼,¼,¼) combined with FCC lattice. This adds extra extinctions (e.g., 200 forbidden).",
-      formula: "F(hkl) = F_{FCC} [1 + exp(πi/2(h+k+l))]"
+      formula: "F(hkl) = F_{FCC} [1 + exp(πi/2(h+k+l))]",
+      examples: "Silicon (Si), Germanium (Ge), Diamond (C)"
     },
     Hexagonal: {
       title: "Hexagonal Close Packed (HCP)",
       rule: "Forbidden if l is odd AND (h + 2k) is divisible by 3.",
       origin: "Basis of two atoms at (0,0,0) and (2/3, 1/3, 1/2) in a primitive hexagonal cell.",
-      formula: "F(hkl) = f[1 + exp(2πi(h/3 + 2k/3 + l/2))]"
+      formula: "F(hkl) = f[1 + exp(2πi(h/3 + 2k/3 + l/2))]",
+      examples: "Magnesium (Mg), Titanium (Ti), Zinc (Zn)"
+    },
+    Tetragonal: {
+      title: "Tetragonal (Primitive)",
+      rule: "All (h k l) are allowed.",
+      origin: "Primitive cell with lattice points only at corners. No centering to cause destructive interference.",
+      formula: "F(hkl) = f",
+      examples: "Rutile (TiO2), Stishovite (SiO2)"
+    },
+    Tetragonal_I: {
+      title: "Tetragonal (Body Centered)",
+      rule: "h + k + l must be even.",
+      origin: "Lattice points at (0,0,0) and (½,½,½). Same extinction condition as BCC.",
+      formula: "F(hkl) = f[1 + exp(πi(h+k+l))]",
+      examples: "Anatase (TiO2), Tin (White Sn)"
+    },
+    Orthorhombic: {
+      title: "Orthorhombic (Primitive)",
+      rule: "All (h k l) are allowed.",
+      origin: "Primitive cell with lattice points only at corners.",
+      formula: "F(hkl) = f",
+      examples: "Topaz, Aragonite (CaCO3), Sulfur (α-S)"
+    },
+    Orthorhombic_F: {
+      title: "Orthorhombic (Face Centered)",
+      rule: "h, k, l must be all even or all odd.",
+      origin: "Lattice points at faces. Same extinction condition as FCC.",
+      formula: "F(hkl) = f[1 + e^{πi(h+k)} + e^{πi(h+l)} + e^{πi(k+l)}]",
+      examples: "Gallium (Ga - pseudo-orthorhombic)"
+    },
+    Orthorhombic_C: {
+      title: "Orthorhombic (Base Centered C)",
+      rule: "h + k must be even.",
+      origin: "Lattice points at (0,0,0) and (½,½,0). Centering on C-face causes extinction when h+k is odd.",
+      formula: "F(hkl) = f[1 + exp(πi(h+k))]",
+      examples: "Alpha-Uranium (α-U)"
     }
   };
 
@@ -95,11 +135,24 @@ export const SelectionRulesModule: React.FC = () => {
                 onChange={(e) => setSystem(e.target.value as CrystalSystem)}
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-slate-50 font-medium text-slate-700"
               >
-                <option value="SC">Simple Cubic (SC)</option>
-                <option value="BCC">Body Centered Cubic (BCC)</option>
-                <option value="FCC">Face Centered Cubic (FCC)</option>
-                <option value="Diamond">Diamond Cubic</option>
-                <option value="Hexagonal">Hexagonal (HCP)</option>
+                <optgroup label="Cubic">
+                  <option value="SC">Simple Cubic (SC)</option>
+                  <option value="BCC">Body Centered Cubic (BCC)</option>
+                  <option value="FCC">Face Centered Cubic (FCC)</option>
+                  <option value="Diamond">Diamond Cubic</option>
+                </optgroup>
+                <optgroup label="Hexagonal">
+                  <option value="Hexagonal">Hexagonal (HCP)</option>
+                </optgroup>
+                <optgroup label="Tetragonal">
+                  <option value="Tetragonal">Primitive (P)</option>
+                  <option value="Tetragonal_I">Body Centered (I)</option>
+                </optgroup>
+                <optgroup label="Orthorhombic">
+                  <option value="Orthorhombic">Primitive (P)</option>
+                  <option value="Orthorhombic_F">Face Centered (F)</option>
+                  <option value="Orthorhombic_C">Base Centered (C)</option>
+                </optgroup>
               </select>
             </div>
 
@@ -176,6 +229,12 @@ export const SelectionRulesModule: React.FC = () => {
               <div className="bg-slate-800 p-3 rounded-lg font-mono text-[10px] text-emerald-400 overflow-x-auto">
                 {systemDetails[system as keyof typeof systemDetails].formula}
               </div>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Common Examples</span>
+              <p className="text-xs text-slate-300 leading-relaxed italic">
+                {systemDetails[system as keyof typeof systemDetails].examples}
+              </p>
             </div>
           </div>
         </div>

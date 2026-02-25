@@ -44,6 +44,7 @@ const App: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [rawPeaks, setRawPeaks] = useState<string>('28.44, 47.30, 56.12, 69.13, 76.38'); 
   const [rawHKL, setRawHKL] = useState<string>('111, 220, 311, 400, 331');
+  const [materialName, setMaterialName] = useState<string | null>(null);
   const [results, setResults] = useState<BraggResult[]>([]);
   const [braggHistory, setBraggHistory] = useState<BraggHistoryItem[]>(() => {
     try {
@@ -124,16 +125,20 @@ const App: React.FC = () => {
     localStorage.removeItem('xrd_bragg_history');
   };
 
-  const handleAILoad = (peaks: number[], newWavelength?: number, hkls?: string[]) => {
+  const handleAILoad = (peaks: number[], newWavelength?: number, hkls?: string[], material?: string) => {
     if (newWavelength) setWavelength(newWavelength);
     setRawPeaks(peaks.join(', '));
     if (hkls && hkls.length > 0) {
       setRawHKL(hkls.join(', '));
     }
+    if (material) {
+      setMaterialName(material);
+    }
   };
 
   const braggJsonOutput = {
     module: "Bragg-Basics",
+    material: materialName || "Unknown",
     wavelength_angstrom: wavelength,
     results: results.map(r => ({
       "hkl": r.hkl,
@@ -339,7 +344,7 @@ const App: React.FC = () => {
                       </div>
 
                       <div className="lg:col-span-8 space-y-6">
-                        <DiffractionChart results={results} />
+                        <DiffractionChart results={results} materialName={materialName} />
                         <ResultsTable results={results} />
                       </div>
                     </div>

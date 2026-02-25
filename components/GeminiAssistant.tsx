@@ -4,7 +4,7 @@ import { getMaterialPeaks } from '../services/geminiService';
 import { AIResponse } from '../types';
 
 interface GeminiAssistantProps {
-  onLoadPeaks: (peaks: number[], wavelength?: number, hkls?: string[]) => void;
+  onLoadPeaks: (peaks: number[], wavelength?: number, hkls?: string[], material?: string) => void;
 }
 
 export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks }) => {
@@ -33,7 +33,7 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
 
   const applySuggestion = () => {
     if (suggestion) {
-      onLoadPeaks(suggestion.peaks, suggestion.wavelength, suggestion.hkls);
+      onLoadPeaks(suggestion.peaks, suggestion.wavelength, suggestion.hkls, suggestion.material);
       setSuggestion(null);
       setQuery('');
     }

@@ -131,6 +131,23 @@ export const validateSelectionRule = (system: CrystalSystem, hkl: [number, numbe
         }
       }
       return { hkl, status: 'Allowed', reason: 'HCP allowed condition met' };
+    case 'Tetragonal':
+    case 'Orthorhombic':
+      return { hkl, status: 'Allowed', reason: 'Primitive cell allows all reflections' };
+    case 'Tetragonal_I':
+      return sum % 2 === 0
+        ? { hkl, status: 'Allowed', reason: 'Body centered: sum is even' }
+        : { hkl, status: 'Forbidden', reason: 'Body centered: sum is odd' };
+    case 'Orthorhombic_F':
+      const oIsAllEven = (ah % 2 === 0) && (ak % 2 === 0) && (al % 2 === 0);
+      const oIsAllOdd = (ah % 2 !== 0) && (ak % 2 !== 0) && (al % 2 !== 0);
+      return (oIsAllEven || oIsAllOdd)
+        ? { hkl, status: 'Allowed', reason: 'Face centered: unmixed parity' }
+        : { hkl, status: 'Forbidden', reason: 'Face centered: mixed parity' };
+    case 'Orthorhombic_C':
+      return (h + k) % 2 === 0
+        ? { hkl, status: 'Allowed', reason: 'Base centered (C): h+k is even' }
+        : { hkl, status: 'Forbidden', reason: 'Base centered (C): h+k is odd' };
     default:
       return { hkl, status: 'Allowed', reason: 'Complex system rules not implemented' };
   }
