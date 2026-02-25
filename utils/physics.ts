@@ -655,6 +655,48 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       description: "A crystalline form of the element carbon with its atoms arranged in a hexagonal structure.",
       crystalSystem: "Hexagonal", spaceGroup: "P63/mmc", density: 2.26,
       applications: ["Lubricants", "Batteries", "Pencils", "Graphene Production"]
+    },
+    {
+      name: 'Aluminum', formula: 'Al', cardId: 'COD-9008460',
+      peaks: [{t: 38.47, i: 100}, {t: 44.74, i: 47}, {t: 65.13, i: 22}, {t: 78.23, i: 24}, {t: 82.44, i: 7}],
+      description: "A silvery-white, soft, non-magnetic and ductile metal in the boron group.",
+      crystalSystem: "Face-Centered Cubic", spaceGroup: "Fm-3m", density: 2.70,
+      applications: ["Aerospace", "Packaging", "Construction", "Electronics"]
+    },
+    {
+      name: 'Copper', formula: 'Cu', cardId: 'COD-9013014',
+      peaks: [{t: 43.30, i: 100}, {t: 50.43, i: 46}, {t: 74.13, i: 20}, {t: 89.93, i: 17}, {t: 95.14, i: 5}],
+      description: "A soft, malleable, and ductile metal with very high thermal and electrical conductivity.",
+      crystalSystem: "Face-Centered Cubic", spaceGroup: "Fm-3m", density: 8.96,
+      applications: ["Wiring", "Motors", "Architecture", "Coinage"]
+    },
+    {
+      name: 'Nickel', formula: 'Ni', cardId: 'COD-9013018',
+      peaks: [{t: 44.51, i: 100}, {t: 51.85, i: 42}, {t: 76.37, i: 21}, {t: 92.94, i: 13}, {t: 98.45, i: 4}],
+      description: "A silvery-white lustrous metal with a slight golden tinge. It is hard and ductile.",
+      crystalSystem: "Face-Centered Cubic", spaceGroup: "Fm-3m", density: 8.90,
+      applications: ["Stainless Steel", "Batteries", "Plating", "Catalysts"]
+    },
+    {
+      name: 'Magnesium Oxide', formula: 'MgO', cardId: 'COD-1000053',
+      peaks: [{t: 36.94, i: 10}, {t: 42.91, i: 100}, {t: 62.30, i: 52}, {t: 74.65, i: 4}, {t: 78.61, i: 12}],
+      description: "A white hygroscopic solid mineral that occurs naturally as periclase.",
+      crystalSystem: "Cubic", spaceGroup: "Fm-3m", density: 3.58,
+      applications: ["Refractories", "Medicine", "Insulation", "Cement"]
+    },
+    {
+      name: 'Cerium Oxide', formula: 'CeO2', cardId: 'COD-1000055',
+      peaks: [{t: 28.55, i: 100}, {t: 33.08, i: 28}, {t: 47.48, i: 56}, {t: 56.34, i: 45}, {t: 59.09, i: 5}, {t: 69.41, i: 5}, {t: 76.70, i: 15}, {t: 79.07, i: 12}, {t: 88.42, i: 10}],
+      description: "An oxide of the rare-earth metal cerium. It is an important ceramic material.",
+      crystalSystem: "Cubic (Fluorite)", spaceGroup: "Fm-3m", density: 7.22,
+      applications: ["Polishing", "Catalysts", "Fuel Cells", "UV Filters"]
+    },
+    {
+      name: 'Titanium', formula: 'Ti', cardId: 'COD-9008517',
+      peaks: [{t: 35.09, i: 30}, {t: 38.42, i: 30}, {t: 40.17, i: 100}, {t: 53.00, i: 15}, {t: 62.94, i: 15}, {t: 70.66, i: 15}, {t: 76.22, i: 10}, {t: 77.37, i: 5}],
+      description: "A lustrous transition metal with a silver color, low density, and high strength.",
+      crystalSystem: "Hexagonal (HCP)", spaceGroup: "P63/mmc", density: 4.50,
+      applications: ["Aerospace", "Implants", "Pigments", "Sporting Goods"]
     }
   ];
 
@@ -725,18 +767,26 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
 
     // Cap at 99.9
     confidence = Math.min(99.9, Math.max(0, confidence));
+    
+    // Determine Match Quality
+    let matchQuality = "Low";
+    if (confidence > 85) matchQuality = "Excellent";
+    else if (confidence > 65) matchQuality = "Good";
+    else if (confidence > 40) matchQuality = "Possible";
 
     return { 
       phase_name: phase.name, 
       formula: phase.formula, 
       card_id: phase.cardId, 
       confidence_score: parseFloat(confidence.toFixed(1)),
+      match_quality: matchQuality,
       matched_peaks: matchedDetails,
       description: phase.description,
       crystalSystem: phase.crystalSystem,
       spaceGroup: phase.spaceGroup,
       density: phase.density,
-      applications: phase.applications
+      applications: phase.applications,
+      materialType: "Mineral/Metal" // Default fallback
     };
   }).filter(c => c.confidence_score > 15).sort((a,b) => b.confidence_score - a.confidence_score);
 

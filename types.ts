@@ -217,6 +217,7 @@ export interface MagneticResult {
 export interface DLPhaseCandidate {
   phase_name: string;
   confidence_score: number; // 0-100
+  match_quality?: string;
   card_id: string;
   formula: string;
   matched_peaks?: { refT: number; obsT: number; refI: number }[];
