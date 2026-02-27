@@ -11,7 +11,8 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { Info, BookOpen, Activity, TrendingDown } from 'lucide-react';
+import { Info, BookOpen, Activity, TrendingDown, Sparkles, Loader2 } from 'lucide-react';
+import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 
 export const WarrenAverbachModule: React.FC = () => {
   const [d1, setD1] = useState<number>(2.35); // Approx (111) for Gold
@@ -31,6 +32,52 @@ export const WarrenAverbachModule: React.FC = () => {
 
   const [inputData, setInputData] = useState<string>(defaultData);
   const [result, setResult] = useState<WAResult | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isThinking, setIsThinking] = useState<boolean>(false);
+
+  const handleSmartLoad = async () => {
+    if (!searchQuery.trim()) return;
+    setIsThinking(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-pro-preview',
+        contents: `Generate realistic Fourier coefficients for Warren-Averbach analysis of ${searchQuery}.
+        Provide 8 to 12 data points. For each point, provide:
+        - L (column length in nm, starting from 1 or 2, increasing)
+        - A1 (Fourier coefficient for the first reflection, e.g., 111, starting near 1.0 and decaying)
+        - A2 (Fourier coefficient for the second order reflection, e.g., 222, starting near 1.0 but decaying faster than A1)
+        Make sure the decay is physically realistic (A2 decays faster due to strain).
+        Return ONLY a JSON array of objects.`,
+        config: {
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                L: { type: Type.NUMBER },
+                A1: { type: Type.NUMBER },
+                A2: { type: Type.NUMBER }
+              },
+              required: ["L", "A1", "A2"]
+            }
+          }
+        }
+      });
+
+      if (response.text) {
+        const data = JSON.parse(response.text);
+        const formattedData = data.map((p: any) => `${p.L.toFixed(1)}, ${p.A1.toFixed(3)}, ${p.A2.toFixed(3)}`).join('\n');
+        setInputData(formattedData);
+      }
+    } catch (error) {
+      console.error("Error generating data:", error);
+    } finally {
+      setIsThinking(false);
+    }
+  };
 
   const handleCalculate = () => {
     const points = parseWAInput(inputData);
@@ -47,16 +94,45 @@ export const WarrenAverbachModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Input Configuration */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="text-xl font-semibold text-slate-800 mb-6 flex items-center gap-2">
-            <Activity className="w-6 h-6 text-rose-600" />
-            Warren-Averbach Config
-          </h2>
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-rose-600 rounded-full opacity-10 blur-2xl"></div>
+          
+          <div className="flex items-center gap-3 mb-6 relative z-10">
+            <div className="p-2.5 bg-rose-500/20 rounded-xl border border-rose-500/30">
+              <Activity className="w-5 h-5 text-rose-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Warren-Averbach Config</h2>
+          </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 relative z-10">
+            {/* Smart Load Section */}
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
+                Smart Data Load
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="e.g. Nanocrystalline Gold"
+                  className="flex-1 px-4 py-2.5 bg-black/40 text-rose-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none text-sm transition-all placeholder:text-slate-600"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSmartLoad()}
+                />
+                <button
+                  onClick={handleSmartLoad}
+                  disabled={isThinking || !searchQuery.trim()}
+                  className="px-4 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold rounded-lg transition-all flex items-center gap-2 border border-rose-500 disabled:border-slate-600"
+                >
+                  {isThinking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  <span className="hidden sm:inline">Load</span>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
+              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                   d₁ (Peak 1) [Å]
                 </label>
                 <input
@@ -64,11 +140,11 @@ export const WarrenAverbachModule: React.FC = () => {
                   step="0.0001"
                   value={d1}
                   onChange={(e) => setD1(parseFloat(e.target.value))}
-                  className="w-full px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none font-mono font-bold"
+                  className="w-full px-4 py-2.5 bg-black/40 text-rose-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none font-mono text-sm transition-all"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
+              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                   d₂ (Peak 2) [Å]
                 </label>
                 <input
@@ -76,33 +152,34 @@ export const WarrenAverbachModule: React.FC = () => {
                   step="0.0001"
                   value={d2}
                   onChange={(e) => setD2(parseFloat(e.target.value))}
-                  className="w-full px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none font-mono font-bold"
+                  className="w-full px-4 py-2.5 bg-black/40 text-rose-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none font-mono text-sm transition-all"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 Fourier Coefficients Input
               </label>
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-500 mb-2 font-mono flex items-center gap-2">
-                <Info className="w-4 h-4 text-slate-400" />
+              <div className="bg-black/40 p-2.5 rounded-lg border border-slate-700 text-[10px] text-slate-400 mb-3 font-mono flex items-center gap-2 uppercase tracking-wider">
+                <Info className="w-4 h-4 text-rose-500 shrink-0" />
                 Format: L (nm), A(L)₁, A(L)₂
               </div>
               <textarea
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}
                 placeholder="1, 0.95, 0.90"
-                className="w-full h-64 px-4 py-3 bg-slate-900 text-rose-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none font-mono text-sm leading-relaxed"
+                className="w-full h-48 px-4 py-3 bg-black/40 text-rose-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none font-mono text-sm leading-relaxed resize-none transition-all"
+                spellCheck={false}
               />
-              <p className="text-xs text-slate-500 mt-2">
-                Enter Fourier coefficients A(L) for two orders of reflection (e.g., 111 and 222) at various lengths L.
+              <p className="text-[10px] text-slate-500 mt-3 uppercase tracking-wider font-bold">
+                Enter A(L) for two orders of reflection (e.g., 111 and 222).
               </p>
             </div>
 
             <button
               onClick={handleCalculate}
-              className="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+              className="w-full py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-lg shadow-rose-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               Run Fourier Analysis
             </button>
