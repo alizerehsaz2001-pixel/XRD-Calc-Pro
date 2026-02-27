@@ -61,18 +61,22 @@ export const WilliamsonHallModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Configuration */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="text-xl font-semibold text-slate-800 mb-6 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-            </svg>
-            W-H Parameters
-          </h2>
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-cyan-600 rounded-full opacity-10 blur-2xl"></div>
+          
+          <div className="flex items-center gap-3 mb-6 relative z-10">
+            <div className="p-2.5 bg-cyan-500/20 rounded-xl border border-cyan-500/30">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-white">W-H Parameters</h2>
+          </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 relative z-10">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
+              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                   Wavelength (Å)
                 </label>
                 <input
@@ -80,11 +84,11 @@ export const WilliamsonHallModule: React.FC = () => {
                   step="0.0001"
                   value={wavelength}
                   onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                  className="w-full px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none font-mono font-bold"
+                  className="w-full px-4 py-2.5 bg-black/40 text-cyan-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none font-mono text-sm transition-all"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">
+              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                   Constant K
                 </label>
                 <input
@@ -92,13 +96,13 @@ export const WilliamsonHallModule: React.FC = () => {
                   step="0.1"
                   value={constantK}
                   onChange={(e) => setConstantK(parseFloat(e.target.value))}
-                  className="w-full px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none font-mono font-bold"
+                  className="w-full px-4 py-2.5 bg-black/40 text-cyan-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none font-mono text-sm transition-all"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 Instrument FWHM (deg)
               </label>
               <input
@@ -106,32 +110,34 @@ export const WilliamsonHallModule: React.FC = () => {
                 step="0.01"
                 value={instFwhm}
                 onChange={(e) => setInstFwhm(parseFloat(e.target.value))}
-                className="w-full px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none font-mono font-bold"
+                className="w-full px-4 py-2.5 bg-black/40 text-cyan-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none font-mono text-sm transition-all"
               />
-              <p className="text-xs text-slate-500 mt-1">
-                Instrumental contribution (e.g. standard reference peak width).
-              </p>
+              <div className="mt-2 flex items-start gap-1.5 text-xs text-slate-400 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
+                <AlertTriangle className="w-3.5 h-3.5 text-cyan-500 shrink-0 mt-0.5" />
+                <span>Instrumental contribution (e.g. standard reference peak width).</span>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 Peak Data (2θ, FWHM)
               </label>
               <textarea
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}
                 placeholder="28.44, 0.2&#10;47.30, 0.28"
-                className="w-full h-40 px-4 py-3 bg-slate-900 text-cyan-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none font-mono text-sm leading-relaxed"
+                className="w-full h-32 px-4 py-3 bg-black/40 text-cyan-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none font-mono text-sm leading-relaxed resize-none transition-all"
+                spellCheck={false}
               />
-              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                <Info className="w-3 h-3" />
-                Enter at least 3 peaks for reliable regression.
-              </p>
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
+                <Info className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
+                <span>Enter at least 3 peaks for reliable regression.</span>
+              </div>
             </div>
 
             <button
               onClick={handleCalculate}
-              className="w-full py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+              className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-cyan-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               Generate W-H Plot
             </button>
@@ -163,36 +169,45 @@ export const WilliamsonHallModule: React.FC = () => {
       <div className="lg:col-span-8 space-y-6">
         {/* Results Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-           <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
+           <div className="bg-slate-900 p-5 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden group">
              <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-               <TrendingUp className="w-12 h-12 text-cyan-600" />
+               <TrendingUp className="w-12 h-12 text-cyan-500" />
              </div>
-             <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Microstrain (ε)</p>
-             <p className="text-3xl font-black text-cyan-700 mt-2">
-               {result ? result.strainPercent.toExponential(2) : '-'} <span className="text-sm font-bold text-slate-400">%</span>
+             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Microstrain (ε)</p>
+             <p className="text-3xl font-black text-white mt-2 flex items-baseline gap-1">
+               {result ? result.strainPercent.toExponential(2) : '-'} <span className="text-sm font-bold text-cyan-500">%</span>
              </p>
-             <p className="text-xs text-slate-400 mt-1 font-medium">Derived from Slope</p>
+             <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/50 border border-slate-700/50 text-[10px] text-slate-400 font-medium">
+               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+               Derived from Slope
+             </div>
            </div>
            
-           <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden group">
+           <div className="bg-slate-900 p-5 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden group">
              <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-               <Ruler className="w-12 h-12 text-cyan-600" />
+               <Ruler className="w-12 h-12 text-cyan-500" />
              </div>
-             <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Crystallite Size</p>
-             <p className="text-3xl font-black text-cyan-700 mt-2">
-               {result ? (result.sizeInterceptNm > 0 ? result.sizeInterceptNm.toFixed(2) : '∞') : '-'} <span className="text-sm font-bold text-slate-400">nm</span>
+             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Crystallite Size</p>
+             <p className="text-3xl font-black text-white mt-2 flex items-baseline gap-1">
+               {result ? (result.sizeInterceptNm > 0 ? result.sizeInterceptNm.toFixed(2) : '∞') : '-'} <span className="text-sm font-bold text-cyan-500">nm</span>
              </p>
-             <p className="text-xs text-slate-400 mt-1 font-medium">Derived from Intercept</p>
+             <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/50 border border-slate-700/50 text-[10px] text-slate-400 font-medium">
+               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+               Derived from Intercept
+             </div>
            </div>
 
-           <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden">
-             <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Fit Quality (R²)</p>
+           <div className="bg-slate-900 p-5 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
+             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Fit Quality (R²)</p>
              <div className="flex items-end gap-2 mt-2">
-               <p className={`text-3xl font-black ${result && result.regression.rSquared > 0.9 ? 'text-emerald-600' : 'text-amber-600'}`}>
+               <p className={`text-3xl font-black ${result && result.regression.rSquared > 0.9 ? 'text-emerald-400' : 'text-amber-400'}`}>
                  {result ? result.regression.rSquared.toFixed(4) : '-'}
                </p>
              </div>
-             <p className="text-xs text-slate-400 mt-1 font-medium">Linear Regression Fit</p>
+             <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800/50 border border-slate-700/50 text-[10px] text-slate-400 font-medium">
+               <span className={`w-1.5 h-1.5 rounded-full ${result && result.regression.rSquared > 0.9 ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+               Linear Regression Fit
+             </div>
            </div>
         </div>
 
