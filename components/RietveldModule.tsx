@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { 
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
-  Beaker, Calculator, ChevronRight, BookOpen, Layers
+  Beaker, Calculator, ChevronRight, BookOpen, Layers, Info
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak } from '../utils/physics';
@@ -306,12 +306,16 @@ export const RietveldModule: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Controls */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-semibold text-slate-800 dark:text-white flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-teal-500" />
-                  Parameters
-                </h2>
+            <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-teal-600 rounded-full opacity-10 blur-2xl"></div>
+              
+              <div className="flex justify-between items-center mb-6 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-teal-500/20 rounded-xl border border-teal-500/30">
+                    <Activity className="w-5 h-5 text-teal-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white">Parameters</h2>
+                </div>
                 <div className="flex gap-2">
                    <button 
                     onClick={() => {
@@ -324,14 +328,14 @@ export const RietveldModule: React.FC = () => {
                       });
                       setIsAutoRefining(false);
                     }}
-                    className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors border border-transparent hover:border-slate-700"
                     title="Reset Parameters"
                    >
                      <RotateCcw className="w-4 h-4" />
                    </button>
                    <button 
                     onClick={() => setIsAutoRefining(!isAutoRefining)}
-                    className={`p-2 rounded-lg transition-colors ${isAutoRefining ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-teal-600 hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-900/20'}`}
+                    className={`p-2 rounded-xl transition-colors border ${isAutoRefining ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-teal-400 hover:bg-teal-500/10 border-transparent hover:border-teal-500/30'}`}
                     title="Auto Refine"
                    >
                      <PlayCircle className="w-4 h-4" />
@@ -339,13 +343,13 @@ export const RietveldModule: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">Phase Model</label>
+              <div className="space-y-6 relative z-10">
+                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Phase Model</label>
                   <select 
                     value={simPhase}
                     onChange={(e) => setSimPhase(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2.5 bg-black/40 border border-slate-700 rounded-lg text-sm font-medium text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                   >
                     <option value="Simple Cubic">Simple Cubic</option>
                     <option value="BCC">Body Centered Cubic (BCC)</option>
@@ -355,10 +359,10 @@ export const RietveldModule: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Lattice Parameter (a)</label>
-                      <span className="text-xs font-mono font-bold text-teal-600 dark:text-teal-400">{userParams.a.toFixed(3)} Å</span>
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                    <div className="flex justify-between mb-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lattice Parameter (a)</label>
+                      <span className="text-xs font-mono font-bold text-teal-400 bg-black/40 px-2 py-0.5 rounded border border-slate-700">{userParams.a.toFixed(3)} Å</span>
                     </div>
                     <input 
                       type="range" 
@@ -367,14 +371,14 @@ export const RietveldModule: React.FC = () => {
                       step="0.001"
                       value={userParams.a}
                       onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
-                      className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                      className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
                     />
                   </div>
 
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Scale Factor</label>
-                      <span className="text-xs font-mono font-bold text-teal-600 dark:text-teal-400">{userParams.scale.toFixed(0)}</span>
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                    <div className="flex justify-between mb-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Scale Factor</label>
+                      <span className="text-xs font-mono font-bold text-teal-400 bg-black/40 px-2 py-0.5 rounded border border-slate-700">{userParams.scale.toFixed(0)}</span>
                     </div>
                     <input 
                       type="range" 
@@ -383,14 +387,14 @@ export const RietveldModule: React.FC = () => {
                       step="10"
                       value={userParams.scale}
                       onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
-                      className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                      className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
                     />
                   </div>
 
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Peak Width (FWHM)</label>
-                      <span className="text-xs font-mono font-bold text-teal-600 dark:text-teal-400">{userParams.fwhm.toFixed(3)}°</span>
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                    <div className="flex justify-between mb-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Peak Width (FWHM)</label>
+                      <span className="text-xs font-mono font-bold text-teal-400 bg-black/40 px-2 py-0.5 rounded border border-slate-700">{userParams.fwhm.toFixed(3)}°</span>
                     </div>
                     <input 
                       type="range" 
@@ -399,14 +403,14 @@ export const RietveldModule: React.FC = () => {
                       step="0.01"
                       value={userParams.fwhm}
                       onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value)})}
-                      className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                      className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
                     />
                   </div>
 
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Background</label>
-                      <span className="text-xs font-mono font-bold text-teal-600 dark:text-teal-400">{userParams.background.toFixed(0)}</span>
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                    <div className="flex justify-between mb-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Background</label>
+                      <span className="text-xs font-mono font-bold text-teal-400 bg-black/40 px-2 py-0.5 rounded border border-slate-700">{userParams.background.toFixed(0)}</span>
                     </div>
                     <input 
                       type="range" 
@@ -415,21 +419,22 @@ export const RietveldModule: React.FC = () => {
                       step="1"
                       value={userParams.background}
                       onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value)})}
-                      className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                      className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
                     />
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                    <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Goodness of Fit (R-factor)</span>
-                    <span className={`text-lg font-bold font-mono ${rFactor < 15 ? 'text-green-500' : rFactor < 30 ? 'text-yellow-500' : 'text-red-500'}`}>
+                <div className="pt-4 border-t border-slate-800">
+                  <div className="flex items-center justify-between bg-black/40 p-4 rounded-xl border border-slate-700/50">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Goodness of Fit (R-factor)</span>
+                    <span className={`text-xl font-black font-mono ${rFactor < 15 ? 'text-emerald-400' : rFactor < 30 ? 'text-amber-400' : 'text-red-400'}`}>
                       {rFactor.toFixed(2)}%
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-2">
-                    Goal: Minimize the R-factor by matching the calculated pattern (red) to the observed data (dots).
-                  </p>
+                  <div className="flex items-start gap-2 mt-3 text-[10px] text-slate-500 uppercase tracking-wider font-bold">
+                    <Info className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                    <span>Goal: Minimize R-factor by matching calculated (red) to observed (dots).</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -437,55 +442,60 @@ export const RietveldModule: React.FC = () => {
 
           {/* Chart */}
           <div className="lg:col-span-8">
-            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 h-[500px] flex flex-col">
-              <div className="flex justify-between items-center mb-4">
-                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Diffraction Pattern</h3>
-                 <div className="flex gap-4 text-xs">
-                    <div className="flex items-center gap-1">
+            <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 h-[600px] flex flex-col relative overflow-hidden">
+              <div className="absolute top-0 left-0 -mt-4 -ml-4 w-32 h-32 bg-teal-600 rounded-full opacity-5 blur-3xl"></div>
+              
+              <div className="flex justify-between items-center mb-6 relative z-10">
+                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                   <BarChart2 className="w-5 h-5 text-teal-400" />
+                   Diffraction Pattern
+                 </h3>
+                 <div className="flex gap-4 text-[10px] uppercase tracking-widest font-bold bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
+                    <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                      <span className="text-slate-500">Observed</span>
+                      <span className="text-slate-400">Observed</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                      <span className="text-slate-500">Calculated</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                      <span className="text-slate-400">Calculated</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full bg-slate-200"></div>
-                      <span className="text-slate-500">Difference</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-slate-600"></div>
+                      <span className="text-slate-400">Difference</span>
                     </div>
                  </div>
               </div>
-              <div className="flex-1 w-full min-h-0">
+              <div className="flex-1 w-full min-h-0 relative z-10">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={generatePatternData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, #e2e8f0)" opacity={0.5} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                     <XAxis 
                       dataKey="twoTheta" 
                       type="number" 
                       domain={[SIMULATION_RANGE.start, SIMULATION_RANGE.end]} 
-                      label={{ value: '2θ (degrees)', position: 'bottom', offset: 0, fill: 'var(--color-text-secondary, #94a3b8)' }}
-                      tick={{ fill: 'var(--color-text-secondary, #94a3b8)', fontSize: 12 }}
+                      label={{ value: '2θ (degrees)', position: 'bottom', offset: 0, fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
+                      tick={{ fill: '#64748b', fontSize: 11 }}
                     />
                     <YAxis hide />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: 'var(--color-bg-card, #fff)', borderColor: 'var(--color-border, #e2e8f0)', borderRadius: '8px' }}
-                      itemStyle={{ color: 'var(--color-text-primary, #0f172a)' }}
-                      labelStyle={{ color: 'var(--color-text-secondary, #64748b)' }}
+                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
+                      itemStyle={{ color: '#38bdf8', fontWeight: 'bold' }}
+                      labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
                       formatter={(value: number) => value.toFixed(0)}
                     />
                     {/* Difference Curve (Area) */}
                     <Area 
                       type="monotone" 
                       dataKey="diff" 
-                      fill="#94a3b8" 
+                      fill="#475569" 
                       stroke="none" 
-                      fillOpacity={0.2} 
+                      fillOpacity={0.3} 
                     />
                     {/* Observed Data (Scatter) */}
                     <Scatter 
                       dataKey="obs" 
-                      fill="#64748b" 
-                      opacity={0.6} 
+                      fill="#94a3b8" 
+                      opacity={0.8} 
                       shape="circle" 
                     />
                     {/* Calculated Data (Line) */}
@@ -493,9 +503,9 @@ export const RietveldModule: React.FC = () => {
                       type="monotone" 
                       dataKey="calc" 
                       stroke="#ef4444" 
-                      strokeWidth={2} 
+                      strokeWidth={2.5} 
                       dot={false} 
-                      activeDot={false}
+                      activeDot={{ r: 4, fill: '#ef4444', stroke: '#0f172a', strokeWidth: 2 }}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -508,43 +518,49 @@ export const RietveldModule: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Configuration */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-              <h2 className="text-xl font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-                <Settings className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-                Refinement Setup
-              </h2>
+            <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-teal-600 rounded-full opacity-10 blur-2xl"></div>
+              
+              <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="p-2.5 bg-teal-500/20 rounded-xl border border-teal-500/30">
+                  <Settings className="w-5 h-5 text-teal-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white">Refinement Setup</h2>
+              </div>
     
-              <div className="space-y-6">
+              <div className="space-y-6 relative z-10">
                 {/* Global Settings */}
-                <div className="space-y-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-                  <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">Global Parameters</h3>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Max Observed Intensity</label>
+                <div className="space-y-4 pb-6 border-b border-slate-800">
+                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-4 h-[1px] bg-slate-700"></span> Global Parameters
+                  </h3>
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Max Observed Intensity</label>
                     <input
                       type="number"
                       value={maxObsIntensity}
                       onChange={(e) => setMaxObsIntensity(parseFloat(e.target.value))}
-                      className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded text-sm font-bold font-mono"
+                      className="w-full px-4 py-2.5 bg-black/40 text-teal-400 border border-slate-700 rounded-lg text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                       <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Background Model</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Background Model</label>
                        <select 
                           value={bgModel}
                           onChange={(e) => setBgModel(e.target.value as any)}
-                          className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded text-sm font-medium"
+                          className="w-full px-3 py-2.5 bg-black/40 text-teal-400 border border-slate-700 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                        >
                          <option value="Chebyshev_6_term">Chebyshev (6-term)</option>
                          <option value="Linear_Interpolation">Linear Interp</option>
                        </select>
                     </div>
-                    <div>
-                       <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Profile Function</label>
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Profile Function</label>
                        <select 
                           value={profileShape}
                           onChange={(e) => setProfileShape(e.target.value as any)}
-                          className="w-full px-3 py-1.5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded text-sm font-medium"
+                          className="w-full px-3 py-2.5 bg-black/40 text-teal-400 border border-slate-700 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                        >
                          <option value="Thompson-Cox-Hastings">Thompson-Cox-Hastings</option>
                          <option value="Pseudo-Voigt">Pseudo-Voigt</option>
@@ -556,43 +572,45 @@ export const RietveldModule: React.FC = () => {
                 {/* Phases */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                     <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wide">Phases</h3>
-                     <button onClick={addPhase} className="text-xs text-teal-600 dark:text-teal-400 font-medium hover:text-teal-700 dark:hover:text-teal-300 flex items-center gap-1">
+                     <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                       <span className="w-4 h-[1px] bg-slate-700"></span> Phases
+                     </h3>
+                     <button onClick={addPhase} className="text-[10px] uppercase tracking-widest text-teal-400 font-bold hover:text-teal-300 flex items-center gap-1 bg-teal-500/10 px-2.5 py-1 rounded-md border border-teal-500/20 transition-all">
                        + Add Phase
                      </button>
                   </div>
                   
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {phases.map((phase, idx) => (
-                      <div key={idx} className="bg-slate-50 dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800 relative group">
+                      <div key={idx} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 relative group">
                         {phases.length > 1 && (
                           <button 
                             onClick={() => removePhase(idx)}
-                            className="absolute top-2 right-2 text-slate-400 hover:text-red-500"
+                            className="absolute top-3 right-3 text-slate-500 hover:text-red-400 bg-black/40 p-1.5 rounded-lg border border-slate-700 hover:border-red-500/50 transition-all"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
                           </button>
                         )}
                         
-                        <div className="grid gap-3">
+                        <div className="grid gap-4">
                           <div>
-                            <label className="block text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold mb-1">Phase Name</label>
+                            <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">Phase Name</label>
                             <input
                               type="text"
                               value={phase.name}
                               onChange={(e) => updatePhase(idx, 'name', e.target.value)}
-                              className="w-full px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded text-sm font-bold"
+                              className="w-full px-3 py-2 bg-black/40 text-white border border-slate-700 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold mb-1">System</label>
+                              <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">System</label>
                               <select
                                 value={phase.crystalSystem}
                                 onChange={(e) => updatePhase(idx, 'crystalSystem', e.target.value)}
-                                className="w-full px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded text-xs"
+                                className="w-full px-3 py-2 bg-black/40 text-white border border-slate-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
                               >
                                 <option value="Cubic">Cubic</option>
                                 <option value="Tetragonal">Tetragonal</option>
