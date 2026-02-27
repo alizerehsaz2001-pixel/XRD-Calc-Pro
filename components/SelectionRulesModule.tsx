@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CrystalSystem, SelectionRuleResult } from '../types';
 import { parseHKLString, validateSelectionRule } from '../utils/physics';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, XCircle, Info, RefreshCw, Filter, BookOpen } from 'lucide-react';
+import { CheckCircle2, XCircle, Info, RefreshCw, Filter, BookOpen, Layers, Zap } from 'lucide-react';
 
 export const SelectionRulesModule: React.FC = () => {
   const [system, setSystem] = useState<CrystalSystem>('FCC');
@@ -114,41 +114,43 @@ export const SelectionRulesModule: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500 items-start">
       {/* Configuration Sidebar */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 bg-emerald-100 rounded-lg">
-              <RefreshCw className="w-5 h-5 text-emerald-600" />
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-600 rounded-full opacity-10 blur-2xl"></div>
+          
+          <div className="flex items-center gap-3 mb-6 relative z-10">
+            <div className="p-2.5 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
+              <Layers className="w-5 h-5 text-emerald-400" />
             </div>
-            <h2 className="text-xl font-bold text-slate-800">Configuration</h2>
+            <h2 className="text-xl font-bold text-white">Configuration</h2>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 relative z-10">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 Crystal System
               </label>
               <select
                 value={system}
                 onChange={(e) => setSystem(e.target.value as CrystalSystem)}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-slate-50 font-medium text-slate-700"
+                className="w-full px-4 py-3 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-slate-800/50 font-medium text-white appearance-none"
               >
-                <optgroup label="Cubic">
+                <optgroup label="Cubic" className="bg-slate-800 text-white">
                   <option value="SC">Simple Cubic (SC)</option>
                   <option value="BCC">Body Centered Cubic (BCC)</option>
                   <option value="FCC">Face Centered Cubic (FCC)</option>
                   <option value="Diamond">Diamond Cubic</option>
                 </optgroup>
-                <optgroup label="Hexagonal">
+                <optgroup label="Hexagonal" className="bg-slate-800 text-white">
                   <option value="Hexagonal">Hexagonal (HCP)</option>
                 </optgroup>
-                <optgroup label="Tetragonal">
+                <optgroup label="Tetragonal" className="bg-slate-800 text-white">
                   <option value="Tetragonal">Primitive (P)</option>
                   <option value="Tetragonal_I">Body Centered (I)</option>
                 </optgroup>
-                <optgroup label="Orthorhombic">
+                <optgroup label="Orthorhombic" className="bg-slate-800 text-white">
                   <option value="Orthorhombic">Primitive (P)</option>
                   <option value="Orthorhombic_F">Face Centered (F)</option>
                   <option value="Orthorhombic_C">Base Centered (C)</option>
@@ -156,54 +158,55 @@ export const SelectionRulesModule: React.FC = () => {
               </select>
             </div>
 
-            <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100">
+            <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
               <div className="flex items-center gap-2 mb-2">
-                <Info className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-sm font-bold text-emerald-900">Current Rule</h3>
+                <Info className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Current Rule</h3>
               </div>
-              <p className="text-sm text-emerald-800 font-medium leading-relaxed">
+              <p className="text-sm text-emerald-100 font-medium leading-relaxed">
                 {systemDetails[system as keyof typeof systemDetails].rule}
               </p>
             </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-bold text-slate-700 uppercase tracking-wider">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <div className="flex justify-between items-center mb-3">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Quick Generate
                 </label>
-                <span className="text-xs font-bold text-slate-400">Max Index: {maxIndex}</span>
+                <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">Max Index: {maxIndex}</span>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <input 
                   type="range" min="1" max="5" step="1"
                   value={maxIndex}
                   onChange={(e) => setMaxIndex(parseInt(e.target.value))}
-                  className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 self-center"
+                  className="flex-1 h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500 self-center"
                 />
                 <button
                   onClick={generateHKLs}
-                  className="px-4 py-2 bg-slate-800 text-white text-xs font-bold rounded-lg hover:bg-slate-700 transition-colors"
+                  className="px-4 py-2 bg-slate-700 text-white text-xs font-bold rounded-lg hover:bg-slate-600 transition-colors border border-slate-600 flex items-center gap-1"
                 >
-                  Generate
+                  <Zap className="w-3 h-3" /> Gen
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 (h k l) Indices
               </label>
               <textarea
                 value={hklInput}
                 onChange={(e) => setHklInput(e.target.value)}
                 placeholder="e.g. 1 0 0, 1 1 0, 1 1 1"
-                className="w-full h-40 px-4 py-3 bg-slate-900 text-emerald-400 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all font-mono text-sm leading-relaxed"
+                className="w-full h-32 px-4 py-3 bg-black/40 text-emerald-400 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all font-mono text-sm leading-relaxed resize-none"
+                spellCheck={false}
               />
             </div>
 
             <button
               onClick={handleValidate}
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <CheckCircle2 className="w-5 h-5" />
               Validate Reflections
@@ -212,26 +215,28 @@ export const SelectionRulesModule: React.FC = () => {
         </div>
 
         {/* Physical Origin Card */}
-        <div className="bg-slate-900 p-6 rounded-2xl text-white border border-slate-800">
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="w-5 h-5 text-emerald-400" />
+        <div className="bg-slate-900 p-6 rounded-2xl text-white border border-slate-800 shadow-lg">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/30">
+              <BookOpen className="w-4 h-4 text-blue-400" />
+            </div>
             <h3 className="text-lg font-bold">Physical Context</h3>
           </div>
-          <div className="space-y-4">
-            <div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Origin of Extinction</span>
+          <div className="space-y-5">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Origin of Extinction</span>
               <p className="text-xs text-slate-300 leading-relaxed">
                 {systemDetails[system as keyof typeof systemDetails].origin}
               </p>
             </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Structure Factor</span>
-              <div className="bg-slate-800 p-3 rounded-lg font-mono text-[10px] text-emerald-400 overflow-x-auto">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Structure Factor</span>
+              <div className="bg-black/40 p-3 rounded-lg font-mono text-[11px] text-emerald-400 overflow-x-auto border border-slate-700">
                 {systemDetails[system as keyof typeof systemDetails].formula}
               </div>
             </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Common Examples</span>
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Common Examples</span>
               <p className="text-xs text-slate-300 leading-relaxed italic">
                 {systemDetails[system as keyof typeof systemDetails].examples}
               </p>
@@ -242,22 +247,22 @@ export const SelectionRulesModule: React.FC = () => {
 
       {/* Results Section */}
       <div className="lg:col-span-8 space-y-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[600px]">
-          <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="bg-slate-900 rounded-2xl shadow-lg border border-slate-800 overflow-hidden flex flex-col min-h-[600px]">
+          <div className="p-6 border-b border-slate-800 bg-slate-800/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h3 className="text-lg font-bold text-slate-800">Validation Results</h3>
-              <p className="text-xs text-slate-500 font-medium">Systematic absences for {systemDetails[system as keyof typeof systemDetails].title}</p>
+              <h3 className="text-lg font-bold text-white">Validation Results</h3>
+              <p className="text-xs text-slate-400 font-medium mt-1">Systematic absences for {systemDetails[system as keyof typeof systemDetails].title}</p>
             </div>
             
-            <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-1.5 bg-slate-800/50 p-1.5 rounded-xl border border-slate-700">
               {(['All', 'Allowed', 'Forbidden'] as const).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
                     filter === f 
-                      ? 'bg-slate-800 text-white shadow-md' 
-                      : 'text-slate-500 hover:bg-slate-100'
+                      ? 'bg-emerald-600 text-white shadow-md' 
+                      : 'text-slate-400 hover:text-white hover:bg-slate-700'
                   }`}
                 >
                   {f}
@@ -268,22 +273,22 @@ export const SelectionRulesModule: React.FC = () => {
 
           <div className="flex-1 overflow-auto">
             {results.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-400 p-12 text-center">
+              <div className="flex flex-col items-center justify-center h-full text-slate-500 p-12 text-center">
                 <Filter className="w-12 h-12 mb-4 opacity-20" />
-                <p className="font-medium">No indices provided</p>
-                <p className="text-xs">Enter HKL values or use the generator to start</p>
+                <p className="font-medium text-slate-400">No indices provided</p>
+                <p className="text-xs mt-1">Enter HKL values or use the generator to start</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-slate-50/50 border-b border-slate-100">
+                  <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-slate-800/40 border-b border-slate-700">
                     <tr>
                       <th className="px-8 py-4 font-bold">Reflection (h k l)</th>
                       <th className="px-8 py-4 font-bold">Status</th>
                       <th className="px-8 py-4 font-bold">Physical Reason</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className="divide-y divide-slate-800/50">
                     <AnimatePresence mode="popLayout">
                       {filteredResults.map((res, index) => (
                         <motion.tr 
@@ -292,28 +297,28 @@ export const SelectionRulesModule: React.FC = () => {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
                           key={`${res.hkl.join('-')}-${index}`} 
-                          className="group hover:bg-slate-50/80 transition-colors"
+                          className="group hover:bg-slate-800/30 transition-colors"
                         >
                           <td className="px-8 py-5">
                             <div className="flex items-center gap-3">
-                              <div className={`w-2 h-2 rounded-full ${res.status === 'Allowed' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                              <span className="font-mono font-bold text-slate-900 text-base">
+                              <div className={`w-2 h-2 rounded-full ${res.status === 'Allowed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+                              <span className="font-mono font-bold text-white text-base">
                                 ({res.hkl.join(' ')})
                               </span>
                             </div>
                           </td>
                           <td className="px-8 py-5">
-                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${
                               res.status === 'Allowed' 
-                                ? 'bg-emerald-100 text-emerald-800' 
-                                : 'bg-red-100 text-red-800'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                : 'bg-red-500/10 text-red-400 border-red-500/20'
                             }`}>
                               {res.status === 'Allowed' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
                               {res.status}
                             </div>
                           </td>
                           <td className="px-8 py-5">
-                            <p className="text-slate-600 font-medium text-xs leading-relaxed max-w-xs">
+                            <p className="text-slate-400 font-medium text-xs leading-relaxed max-w-xs group-hover:text-slate-300 transition-colors">
                               {res.reason}
                             </p>
                           </td>
@@ -326,18 +331,18 @@ export const SelectionRulesModule: React.FC = () => {
             )}
           </div>
 
-          <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            <div className="flex gap-4">
-              <span className="flex items-center gap-1">
+          <div className="p-4 bg-slate-800/40 border-t border-slate-800 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            <div className="flex gap-6">
+              <span className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-emerald-400">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
                 Allowed: {results.filter(r => r.status === 'Allowed').length}
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-2 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400">
                 <div className="w-2 h-2 rounded-full bg-red-500" />
                 Forbidden: {results.filter(r => r.status === 'Forbidden').length}
               </span>
             </div>
-            <span>Total: {results.length}</span>
+            <span className="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">Total: {results.length}</span>
           </div>
         </div>
       </div>

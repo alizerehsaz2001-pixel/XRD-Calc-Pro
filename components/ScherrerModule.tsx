@@ -47,17 +47,21 @@ export const ScherrerModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Configuration */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="text-xl font-semibold text-slate-800 mb-6 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-            </svg>
-            Scherrer Parameters
-          </h2>
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-amber-600 rounded-full opacity-10 blur-2xl"></div>
+          
+          <div className="flex items-center gap-3 mb-6 relative z-10">
+            <div className="p-2.5 bg-amber-500/20 rounded-xl border border-amber-500/30">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-white">Scherrer Parameters</h2>
+          </div>
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
+          <div className="space-y-6 relative z-10">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 Wavelength (Å)
               </label>
               <div className="relative">
@@ -66,17 +70,17 @@ export const ScherrerModule: React.FC = () => {
                   step="0.0001"
                   value={wavelength}
                   onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                  className="w-full px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none font-mono font-bold"
+                  className="w-full px-4 py-2.5 bg-black/40 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none font-mono text-sm transition-all"
                 />
-                <span className="absolute right-3 top-2 text-xs font-bold text-slate-400">Cu Kα ≈ 1.5406</span>
+                <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-500">Cu Kα ≈ 1.5406</span>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 Shape Factor (K)
               </label>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <select 
                   value={selectedKType}
                   onChange={(e) => {
@@ -84,32 +88,34 @@ export const ScherrerModule: React.FC = () => {
                     const factor = K_FACTORS.find(k => k.label === e.target.value);
                     if (factor && factor.value !== 0) setConstantK(factor.value);
                   }}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none bg-white text-sm"
+                  className="w-full px-4 py-2.5 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none bg-slate-800/80 text-white text-sm appearance-none"
                 >
                   {K_FACTORS.map(k => (
-                    <option key={k.label} value={k.label}>{k.label}</option>
+                    <option key={k.label} value={k.label} className="bg-slate-800">{k.label}</option>
                   ))}
                 </select>
                 
-                <input
-                  type="number"
-                  step="0.01"
-                  value={constantK}
-                  onChange={(e) => {
-                    setConstantK(parseFloat(e.target.value));
-                    setSelectedKType('Custom');
-                  }}
-                  className="w-full px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono font-bold"
-                />
-                <p className="text-xs text-slate-500 flex items-center gap-1">
-                  <Info className="w-3 h-3" />
-                  {K_FACTORS.find(k => k.label === selectedKType)?.desc || 'Custom value'}
-                </p>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={constantK}
+                    onChange={(e) => {
+                      setConstantK(parseFloat(e.target.value));
+                      setSelectedKType('Custom');
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-black/40 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono text-sm transition-all"
+                  />
+                  <div className="flex-1 flex items-center gap-1.5 text-xs text-slate-400 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
+                    <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="truncate">{K_FACTORS.find(k => k.label === selectedKType)?.desc || 'Custom value'}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 Instrumental Broadening (deg)
               </label>
               <input
@@ -117,32 +123,34 @@ export const ScherrerModule: React.FC = () => {
                 step="0.01"
                 value={instFwhm}
                 onChange={(e) => setInstFwhm(parseFloat(e.target.value))}
-                className="w-full px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono font-bold"
+                className="w-full px-4 py-2.5 bg-black/40 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono text-sm transition-all"
               />
-              <p className="text-xs text-slate-500 mt-1">
-                Subtracts instrumental width: β² = B²obs - B²inst
-              </p>
+              <div className="mt-2 flex items-start gap-1.5 text-xs text-slate-400 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                <span>Subtracts instrumental width: β² = B²obs - B²inst</span>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 Peak Data Input
               </label>
               <textarea
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}
                 placeholder="28.44, 0.2&#10;47.30, 0.25"
-                className="w-full h-32 px-4 py-3 bg-slate-900 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono text-sm leading-relaxed"
+                className="w-full h-28 px-4 py-3 bg-black/40 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono text-sm leading-relaxed resize-none transition-all"
+                spellCheck={false}
               />
-              <div className="flex justify-between text-xs text-slate-500 mt-1">
+              <div className="flex justify-between text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-wider">
                 <span>Format: 2θ, FWHM</span>
-                <span>(Comma or space separated)</span>
+                <span>(Comma/Space)</span>
               </div>
             </div>
 
             <button
               onClick={handleCalculate}
-              className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+              className="w-full py-3.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
               Calculate Size
             </button>
