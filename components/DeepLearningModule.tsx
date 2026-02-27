@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DLPhaseResult, DLPhaseCandidate } from '../types';
 import { identifyPhasesDL, parseXYData } from '../utils/physics';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import {
   ComposedChart,
   Bar,
@@ -14,7 +14,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2 } from 'lucide-react';
 
 const MATERIAL_DB = [
   { 
@@ -265,7 +265,7 @@ export const DeepLearningModule: React.FC = () => {
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.1-pro-preview",
         contents: `Generate X-Ray Diffraction data for "${searchTerm}". 
         Return ONLY a JSON object with this structure:
         {
@@ -281,7 +281,8 @@ export const DeepLearningModule: React.FC = () => {
         }
         Provide at least 3-5 major peaks in the pattern string.`,
         config: {
-          responseMimeType: "application/json"
+          responseMimeType: "application/json",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
         }
       });
 
@@ -573,6 +574,12 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   >
                     <Upload className="w-3 h-3" /> Upload File
                   </button>
+                  <button 
+                    onClick={() => { setInputData(""); setResult(null); setSelectedCandidate(null); setProgressStep(0); }}
+                    className="text-xs flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded font-medium transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" /> Clear
+                  </button>
                 </div>
               </div>
               <div className="bg-slate-50 p-2 rounded border border-slate-200 text-xs text-slate-500 mb-2 font-mono flex items-center gap-2">
@@ -586,14 +593,24 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 className="w-full h-48 px-4 py-3 bg-slate-900 text-violet-300 border border-slate-700 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none transition-colors font-mono text-sm leading-relaxed"
               />
               <div className="flex flex-wrap gap-2 mt-3">
-                <span className="text-xs font-bold text-slate-500 mr-1 self-center">Load:</span>
-                <button onClick={() => loadExample('Silicon')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">Si</button>
-                <button onClick={() => loadExample('Mixture')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">Mix</button>
-                <button onClick={() => loadExample('Aluminum')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">Al</button>
-                <button onClick={() => loadExample('Copper')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">Cu</button>
-                <button onClick={() => loadExample('Titanium')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">Ti</button>
-                <button onClick={() => loadExample('MgO')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">MgO</button>
-                <button onClick={() => loadExample('CeO2')} className="text-[10px] bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-slate-600 font-medium transition-colors">CeO2</button>
+                <span className="text-xs font-bold text-slate-500 mr-1 self-center uppercase tracking-wider">Examples:</span>
+                {[
+                  { id: 'Silicon', label: 'Si' },
+                  { id: 'Mixture', label: 'Mix' },
+                  { id: 'Aluminum', label: 'Al' },
+                  { id: 'Copper', label: 'Cu' },
+                  { id: 'Titanium', label: 'Ti' },
+                  { id: 'MgO', label: 'MgO' },
+                  { id: 'CeO2', label: 'CeO2' }
+                ].map(ex => (
+                  <button 
+                    key={ex.id}
+                    onClick={() => loadExample(ex.id as any)} 
+                    className="text-[10px] font-bold bg-slate-100 hover:bg-violet-100 text-slate-600 hover:text-violet-700 px-2.5 py-1.5 rounded-md border border-slate-200 hover:border-violet-300 transition-all shadow-sm"
+                  >
+                    {ex.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -625,7 +642,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
              <Layers className="w-5 h-5 text-violet-400" />
              Analysis Engine
            </h3>
-           <div className="space-y-4">
+           <div className="space-y-4 relative">
+             {/* Vertical connecting line */}
+             <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-slate-800 z-0"></div>
              {steps.slice(1).map((step, idx) => {
                const stepIdx = idx + 1;
                const isActive = progressStep === stepIdx;
@@ -633,14 +652,14 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                const Icon = step.icon;
                
                return (
-                 <div key={idx} className={`flex items-center gap-3 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-30'}`}>
-                   <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 
-                     ${isActive ? 'border-violet-500 bg-violet-500/20 text-violet-400 animate-pulse' : 
-                       isCompleted ? 'border-green-500 bg-green-500 text-slate-900' : 'border-slate-600 text-slate-600'}
+                 <div key={idx} className={`relative z-10 flex items-center gap-3 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-30'}`}>
+                   <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors duration-500
+                     ${isActive ? 'border-violet-500 bg-violet-900 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.5)]' : 
+                       isCompleted ? 'border-emerald-500 bg-emerald-500 text-slate-900' : 'border-slate-700 bg-slate-900 text-slate-600'}
                    `}>
-                     {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
+                     {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />}
                    </div>
-                   <span className={`text-sm font-medium ${isActive ? 'text-violet-300' : isCompleted ? 'text-green-400' : 'text-slate-500'}`}>
+                   <span className={`text-sm font-medium ${isActive ? 'text-violet-300' : isCompleted ? 'text-emerald-400' : 'text-slate-500'}`}>
                      {step.label}
                    </span>
                  </div>
@@ -738,71 +757,85 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-xs font-bold text-violet-400 uppercase tracking-wider mb-1">Description</h4>
-                  <p className="text-sm text-slate-300 leading-relaxed">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Description & Class */}
+              <div className="md:col-span-2">
+                <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 h-full flex flex-col">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FlaskConical className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Material Profile</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <span className="text-xl font-bold text-white">{selectedCandidate.phase_name}</span>
+                    <span className="px-2.5 py-1 bg-violet-500/20 text-violet-300 text-xs font-mono rounded-md border border-violet-500/30">{selectedCandidate.formula}</span>
+                    <span className="px-2.5 py-1 bg-slate-700 text-slate-300 text-xs rounded-md font-medium">{selectedCandidate.materialType || "Unclassified"}</span>
+                  </div>
+                  <p className="text-sm text-slate-300 leading-relaxed flex-grow">
                     {selectedCandidate.description || "No description available for this phase."}
                   </p>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 col-span-2">
-                    <span className="text-[10px] text-slate-500 uppercase block mb-1">Material Class</span>
-                    <div className="flex items-center gap-2">
-                      <FlaskConical className="w-4 h-4 text-violet-400" />
-                      <span className="text-sm font-bold text-white">{selectedCandidate.materialType || "Unclassified"}</span>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="md:col-span-1">
+                <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 h-full">
+                  <div className="flex items-center gap-2 mb-5">
+                    <Database className="w-4 h-4 text-blue-400" />
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Crystallography</span>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <span className="text-[10px] text-slate-500 uppercase block mb-1 font-bold tracking-wider">Crystal System</span>
+                      <span className="text-sm font-medium text-white">{selectedCandidate.crystalSystem || "Unknown"}</span>
                     </div>
-                  </div>
-                  <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-                    <span className="text-[10px] text-slate-500 uppercase block mb-1">Crystal System</span>
-                    <span className="text-sm font-medium text-white">{selectedCandidate.crystalSystem || "Unknown"}</span>
-                  </div>
-                  <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700">
-                    <span className="text-[10px] text-slate-500 uppercase block mb-1">Space Group</span>
-                    <span className="text-sm font-medium text-white font-mono">{selectedCandidate.spaceGroup || "N/A"}</span>
+                    <div>
+                      <span className="text-[10px] text-slate-500 uppercase block mb-1 font-bold tracking-wider">Space Group</span>
+                      <span className="text-sm font-medium text-white font-mono bg-slate-900 px-2 py-0.5 rounded border border-slate-700 inline-block">{selectedCandidate.spaceGroup || "N/A"}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 uppercase block mb-1 font-bold tracking-wider">Density</span>
+                      <span className="text-sm font-medium text-white">{selectedCandidate.density ? `${selectedCandidate.density} g/cm³` : "N/A"}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                 <div>
-                    <h4 className="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">Common Applications</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedCandidate.applications?.map((app, i) => (
-                        <span key={i} className="text-xs bg-slate-800 text-violet-200 px-2 py-1 rounded-full border border-slate-700">
-                          {app}
-                        </span>
-                      )) || <span className="text-xs text-slate-500 italic">No application data available.</span>}
-                    </div>
-                 </div>
-
-                 <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-700 flex justify-between items-center">
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase block">Density</span>
-                      <span className="text-sm font-medium text-white">{selectedCandidate.density ? `${selectedCandidate.density} g/cm³` : "N/A"}</span>
-                    </div>
-                    <Database className="w-5 h-5 text-slate-600" />
-                 </div>
+              {/* Applications */}
+              <div className="md:col-span-3">
+                <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Common Applications</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCandidate.applications?.map((app, i) => (
+                      <span key={i} className="text-xs font-medium bg-slate-900 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-slate-500 hover:text-white transition-colors cursor-default">
+                        {app}
+                      </span>
+                    )) || <span className="text-xs text-slate-500 italic">No application data available.</span>}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Verification Checklist */}
-            <div className="mt-6 pt-6 border-t border-slate-800">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <CheckCircle className="w-3 h-3" />
+            <div className="mt-6 pt-6 border-t border-slate-800/50">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-500" />
                 Manual Verification Checklist
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   "Peak positions match within 0.05°",
                   "Relative intensities are consistent",
                   "Chemical composition is plausible",
                 ].map((item, i) => (
-                  <label key={i} className="flex items-center gap-2 bg-slate-800/30 p-2 rounded border border-slate-800 hover:bg-slate-800/50 transition-colors cursor-pointer group">
-                    <input type="checkbox" className="w-3 h-3 rounded border-slate-700 bg-slate-900 text-violet-500 focus:ring-violet-500 focus:ring-offset-slate-900" />
-                    <span className="text-[10px] text-slate-400 group-hover:text-slate-300">{item}</span>
+                  <label key={i} className="flex items-start gap-3 bg-slate-800/20 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600 transition-all cursor-pointer group">
+                    <div className="relative flex items-center justify-center mt-0.5">
+                      <input type="checkbox" className="peer appearance-none w-4 h-4 border-2 border-slate-600 rounded bg-slate-900 checked:bg-emerald-500 checked:border-emerald-500 transition-colors cursor-pointer" />
+                      <CheckCircle className="w-3 h-3 text-slate-900 absolute opacity-0 peer-checked:opacity-100 pointer-events-none" />
+                    </div>
+                    <span className="text-xs font-medium text-slate-400 group-hover:text-slate-200 leading-tight">{item}</span>
                   </label>
                 ))}
               </div>
@@ -816,26 +849,29 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
              <div 
                key={idx} 
                onClick={() => setSelectedCandidate(candidate)}
-               className={`bg-white p-5 rounded-xl shadow-sm border-2 cursor-pointer transition-all
-                 ${selectedCandidate?.phase_name === candidate.phase_name ? 'border-violet-500 ring-2 ring-violet-100' : 'border-transparent hover:border-slate-200'}
+               className={`bg-white p-5 rounded-xl shadow-sm border-2 cursor-pointer transition-all group
+                 ${selectedCandidate?.phase_name === candidate.phase_name ? 'border-violet-500 ring-4 ring-violet-50' : 'border-slate-100 hover:border-violet-200 hover:shadow-md'}
                `}
              >
                <div className="flex justify-between items-start mb-3">
-                 <div className="flex items-center gap-3">
-                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg
-                     ${idx === 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}
+                 <div className="flex items-center gap-4">
+                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-sm
+                     ${idx === 0 ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white' : 
+                       idx === 1 ? 'bg-gradient-to-br from-slate-200 to-slate-300 text-slate-700' :
+                       idx === 2 ? 'bg-gradient-to-br from-amber-200 to-amber-400 text-amber-900' :
+                       'bg-slate-100 text-slate-500'}
                    `}>
-                     {idx + 1}
+                     #{idx + 1}
                    </div>
                    <div>
-                     <h4 className="font-bold text-lg text-slate-800">{candidate.phase_name}</h4>
-                     <div className="flex gap-2 text-xs">
-                       <span className="font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">{candidate.formula}</span>
-                       <span className="text-slate-400">{candidate.card_id}</span>
+                     <h4 className="font-bold text-lg text-slate-800 group-hover:text-violet-700 transition-colors">{candidate.phase_name}</h4>
+                     <div className="flex flex-wrap gap-2 text-xs mt-1">
+                       <span className="font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200">{candidate.formula}</span>
+                       <span className="text-slate-500 flex items-center"><Database className="w-3 h-3 mr-1"/>{candidate.card_id}</span>
                        {candidate.match_quality && (
-                         <span className={`px-1.5 py-0.5 rounded font-bold
-                           ${candidate.match_quality === 'Excellent' ? 'bg-green-100 text-green-700' : 
-                             candidate.match_quality === 'Good' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}
+                         <span className={`px-2 py-0.5 rounded-md font-bold border
+                           ${candidate.match_quality === 'Excellent' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                             candidate.match_quality === 'Good' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}
                          `}>
                            {candidate.match_quality}
                          </span>
@@ -844,30 +880,34 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                    </div>
                  </div>
                  <div className="text-right">
-                   <span className="text-2xl font-black text-violet-600">{candidate.confidence_score}%</span>
-                   <p className="text-xs text-slate-400 font-medium">Confidence</p>
+                   <span className={`text-3xl font-black tracking-tighter
+                     ${candidate.confidence_score > 80 ? 'text-emerald-600' : candidate.confidence_score > 50 ? 'text-violet-600' : 'text-amber-600'}
+                   `}>
+                     {candidate.confidence_score}%
+                   </span>
+                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Confidence</p>
                  </div>
                </div>
                
-               <div className="w-full bg-slate-100 rounded-full h-2.5 mb-2 overflow-hidden">
+               <div className="w-full bg-slate-100 rounded-full h-1.5 mt-4 overflow-hidden">
                  <div 
-                   className={`h-full rounded-full transition-all duration-1000 ease-out ${candidate.confidence_score > 80 ? 'bg-green-500' : candidate.confidence_score > 50 ? 'bg-violet-500' : 'bg-amber-500'}`}
+                   className={`h-full rounded-full transition-all duration-1000 ease-out ${candidate.confidence_score > 80 ? 'bg-emerald-500' : candidate.confidence_score > 50 ? 'bg-violet-500' : 'bg-amber-500'}`}
                    style={{ width: `${candidate.confidence_score}%` }}
                  ></div>
                </div>
 
                {selectedCandidate?.phase_name === candidate.phase_name && (
                  <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2">
-                   <p className="text-xs font-bold text-slate-500 uppercase mb-2">Matched Peaks Details</p>
-                   <div className="grid grid-cols-3 gap-2 text-xs">
+                   <p className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1"><CheckCircle className="w-3 h-3"/> Matched Peaks Details</p>
+                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                      {candidate.matched_peaks?.map((mp, i) => (
-                       <div key={i} className="bg-slate-50 p-2 rounded border border-slate-100 flex justify-between">
-                         <span className="text-slate-500">Ref: {mp.refT.toFixed(2)}°</span>
-                         <span className="font-bold text-green-600">✓</span>
+                       <div key={i} className="bg-slate-50 p-2 rounded-lg border border-slate-200 flex justify-between items-center group-hover:bg-white transition-colors">
+                         <span className="text-slate-600 font-mono">{mp.refT.toFixed(2)}°</span>
+                         <span className="font-bold text-emerald-500">✓</span>
                        </div>
                      ))}
                    </div>
-                   <p className="text-[10px] text-slate-400 mt-2 italic">
+                   <p className="text-[10px] text-slate-400 mt-3 italic">
                      * Click on other candidates to compare their reference patterns on the chart.
                    </p>
                  </div>
