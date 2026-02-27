@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { getMaterialPeaks } from '../services/geminiService';
 import { AIResponse } from '../types';
+import { Brain, Search, Database, Layers, CheckCircle, Zap, FlaskConical, Loader2, Info, Activity } from 'lucide-react';
 
 interface GeminiAssistantProps {
   onLoadPeaks: (peaks: number[], wavelength?: number, hkls?: string[], material?: string) => void;
@@ -40,35 +41,36 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
   };
 
   return (
-    <div className="bg-indigo-900 text-white rounded-xl shadow-lg p-6 overflow-hidden relative border border-white/10 ring-1 ring-white/5">
-      <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-indigo-700 rounded-full opacity-50 blur-xl"></div>
+    <div className="bg-slate-900 text-white rounded-xl shadow-lg p-6 overflow-hidden relative border border-slate-700">
+      <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-violet-700 rounded-full opacity-20 blur-xl"></div>
       
       <div className="relative z-10">
         <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-300" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-          </svg>
+          <Brain className="w-5 h-5 text-violet-400" />
           Material Intelligence
         </h3>
-        <p className="text-indigo-200 text-xs mb-4">
-          Search for properties and peaks of any crystal structure.
+        <p className="text-slate-400 text-xs mb-4">
+          Search for properties and peaks of any crystal structure using AI.
         </p>
 
         <form onSubmit={handleSearch} className="flex gap-2 mb-4">
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Material (e.g., Lead Perovskite)..."
-            className="flex-1 px-3 py-2 bg-indigo-800 border border-indigo-700 rounded-lg text-white placeholder-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium"
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Material (e.g., Lead Perovskite)..."
+              className="w-full px-3 py-2 pl-9 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm font-medium transition-all"
+            />
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+          </div>
           <button
             type="submit"
-            disabled={loading}
-            className="px-5 py-2 bg-white text-indigo-900 font-bold rounded-lg hover:bg-indigo-50 transition-colors text-sm disabled:opacity-50 flex items-center gap-2"
+            disabled={loading || !query.trim()}
+            className="px-5 py-2 bg-violet-600 text-white font-bold rounded-lg hover:bg-violet-700 transition-colors text-sm disabled:opacity-50 disabled:bg-slate-700 flex items-center gap-2"
           >
             {loading ? (
-              <div className="w-4 h-4 border-2 border-indigo-900/20 border-t-indigo-900 rounded-full animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               'Search'
             )}
@@ -76,72 +78,97 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
         </form>
 
         {error && (
-          <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-xs text-red-200 mb-4 animate-in fade-in zoom-in-95">
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-xs text-red-400 mb-4 animate-in fade-in zoom-in-95 flex items-center gap-2">
+            <Info className="w-4 h-4" />
             {error}
           </div>
         )}
 
         {suggestion && (
-          <div className="bg-indigo-800/40 backdrop-blur-sm rounded-xl p-4 border border-white/10 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <span className="font-extrabold text-white text-lg block leading-tight">{suggestion.material}</span>
-                {suggestion.spaceGroup && (
-                  <span className="text-[10px] font-mono font-bold bg-indigo-700 text-indigo-100 px-1.5 py-0.5 rounded mt-1 inline-block uppercase tracking-wider">
-                    SG: {suggestion.spaceGroup}
-                  </span>
-                )}
-              </div>
-              <div className="text-right">
-                {suggestion.density && (
-                  <span className="text-[10px] text-indigo-300 block font-bold">ρ = {suggestion.density.toFixed(2)} g/cm³</span>
-                )}
-              </div>
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-4">
+            
+            {/* Header / Profile */}
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50">
+               <div className="flex items-center gap-2 mb-3">
+                 <FlaskConical className="w-4 h-4 text-emerald-400" />
+                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Material Profile</span>
+               </div>
+               <div className="flex justify-between items-start mb-2">
+                 <div>
+                   <span className="font-extrabold text-white text-xl block leading-tight">{suggestion.material}</span>
+                   <div className="flex flex-wrap gap-2 mt-2">
+                     {suggestion.spaceGroup && (
+                       <span className="text-[10px] font-mono font-bold bg-violet-500/20 text-violet-300 px-2 py-1 rounded-md border border-violet-500/30 uppercase tracking-wider">
+                         SG: {suggestion.spaceGroup}
+                       </span>
+                     )}
+                     {suggestion.density && (
+                       <span className="text-[10px] font-bold bg-slate-700 text-slate-300 px-2 py-1 rounded-md border border-slate-600">
+                         ρ = {suggestion.density.toFixed(2)} g/cm³
+                       </span>
+                     )}
+                   </div>
+                 </div>
+               </div>
+               {suggestion.description && (
+                 <p className="text-xs text-slate-300 leading-relaxed mt-3">
+                   {suggestion.description}
+                 </p>
+               )}
             </div>
 
-            {suggestion.description && (
-              <p className="text-[11px] text-indigo-200 leading-relaxed mb-4 italic">
-                {suggestion.description}
-              </p>
-            )}
-
+            {/* Lattice Params */}
             {suggestion.latticeParams && (
-              <div className="grid grid-cols-3 gap-2 mb-4 bg-black/20 p-2 rounded-lg border border-white/5">
-                <div className="text-center">
-                  <span className="text-[9px] text-indigo-400 block font-bold">a (Å)</span>
-                  <span className="text-xs font-mono font-bold">{suggestion.latticeParams.a.toFixed(3)}</span>
+              <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50">
+                <div className="flex items-center gap-2 mb-4">
+                  <Database className="w-4 h-4 text-blue-400" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lattice Parameters</span>
                 </div>
-                <div className="text-center">
-                  <span className="text-[9px] text-indigo-400 block font-bold">b (Å)</span>
-                  <span className="text-xs font-mono font-bold">{(suggestion.latticeParams.b || suggestion.latticeParams.a).toFixed(3)}</span>
-                </div>
-                <div className="text-center">
-                  <span className="text-[9px] text-indigo-400 block font-bold">c (Å)</span>
-                  <span className="text-xs font-mono font-bold">{(suggestion.latticeParams.c || suggestion.latticeParams.a).toFixed(3)}</span>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700 text-center flex flex-col items-center justify-center">
+                    <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider mb-1">a (Å)</span>
+                    <span className="text-sm font-mono font-bold text-white">{suggestion.latticeParams.a.toFixed(3)}</span>
+                  </div>
+                  <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700 text-center flex flex-col items-center justify-center">
+                    <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider mb-1">b (Å)</span>
+                    <span className="text-sm font-mono font-bold text-white">{(suggestion.latticeParams.b || suggestion.latticeParams.a).toFixed(3)}</span>
+                  </div>
+                  <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700 text-center flex flex-col items-center justify-center">
+                    <span className="text-[10px] text-slate-500 block font-bold uppercase tracking-wider mb-1">c (Å)</span>
+                    <span className="text-sm font-mono font-bold text-white">{(suggestion.latticeParams.c || suggestion.latticeParams.a).toFixed(3)}</span>
+                  </div>
                 </div>
               </div>
             )}
 
-            <div className="mb-4">
-              <p className="text-[10px] font-bold text-indigo-300 mb-2 uppercase tracking-widest">Suggested Peaks & Indices</p>
-              <div className="flex flex-wrap gap-1.5">
+            {/* Peaks */}
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50">
+              <div className="flex items-center gap-2 mb-4">
+                <Activity className="w-4 h-4 text-amber-400" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Suggested Peaks & Indices</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 {suggestion.peaks.slice(0, 8).map((p, i) => (
-                  <div key={i} className="flex flex-col items-center bg-white/10 border border-white/10 p-1.5 rounded-md min-w-[50px]">
-                    <span className="text-[11px] font-bold font-mono text-indigo-50">{p.toFixed(2)}°</span>
+                  <div key={i} className="flex flex-col items-center bg-slate-900/50 border border-slate-700 p-2.5 rounded-lg min-w-[60px] group hover:border-violet-500 hover:bg-slate-800 transition-colors cursor-default">
+                    <span className="text-xs font-bold font-mono text-white">{p.toFixed(2)}°</span>
                     {suggestion.hkls && suggestion.hkls[i] && (
-                      <span className="text-[8px] font-bold text-indigo-400">({suggestion.hkls[i]})</span>
+                      <span className="text-[10px] font-bold text-violet-400 group-hover:text-violet-300 mt-0.5">({suggestion.hkls[i]})</span>
                     )}
                   </div>
                 ))}
               </div>
             </div>
 
+            {/* Sources */}
             {suggestion.sources && suggestion.sources.length > 0 && (
-              <div className="mb-4 pt-3 border-t border-white/10">
-                <p className="text-[9px] font-bold text-indigo-400 mb-1 uppercase tracking-widest">Verified Sources</p>
-                <div className="flex flex-col gap-1">
+              <div className="pt-2">
+                <p className="text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-widest flex items-center gap-2">
+                  <CheckCircle className="w-3 h-3 text-emerald-500" /> Verified Sources
+                </p>
+                <div className="flex flex-col gap-2">
                   {suggestion.sources.map((s, i) => (
-                    <a key={i} href={s.uri} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-300 hover:text-white transition-colors truncate underline">
+                    <a key={i} href={s.uri} target="_blank" rel="noreferrer" className="text-xs text-slate-400 hover:text-violet-300 transition-colors truncate flex items-center gap-2 bg-slate-800/20 p-2 rounded-lg border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-600 group-hover:bg-violet-400"></span>
                       {s.title}
                     </a>
                   ))}
@@ -151,11 +178,9 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
 
             <button
               onClick={applySuggestion}
-              className="w-full py-2 bg-indigo-500 hover:bg-indigo-400 rounded-lg text-xs font-bold transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 mt-6"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
+              <Zap className="w-4 h-4" />
               Load into Calculator
             </button>
           </div>

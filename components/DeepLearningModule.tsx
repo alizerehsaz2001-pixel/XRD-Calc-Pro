@@ -582,17 +582,58 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   </button>
                 </div>
               </div>
-              <div className="bg-slate-50 p-2 rounded border border-slate-200 text-xs text-slate-500 mb-2 font-mono flex items-center gap-2">
-                <Search className="w-3 h-3" />
-                Format: 2θ, Intensity
+              
+              <div 
+                className={`relative border-2 border-dashed rounded-xl transition-all duration-200 overflow-hidden group
+                  ${inputData ? 'border-violet-300 bg-violet-50/30' : 'border-slate-300 bg-slate-50 hover:border-violet-400 hover:bg-violet-50/50'}
+                `}
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-violet-500', 'bg-violet-100'); }}
+                onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-violet-500', 'bg-violet-100'); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('border-violet-500', 'bg-violet-100');
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                      const content = e.target?.result as string;
+                      if (content) setInputData(content);
+                    };
+                    reader.readAsText(file);
+                  }
+                }}
+              >
+                {!inputData && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-400 group-hover:text-violet-500 transition-colors">
+                    <Upload className="w-8 h-8 mb-2 opacity-50" />
+                    <p className="text-sm font-medium">Drag & drop file here</p>
+                    <p className="text-xs opacity-70 mt-1">or paste data below (.xy, .txt, .csv)</p>
+                  </div>
+                )}
+                <textarea
+                  value={inputData}
+                  onChange={(e) => setInputData(e.target.value)}
+                  placeholder={inputData ? "" : "\n\n\n\n\n28.44, 100\n47.30, 55"}
+                  className={`w-full h-48 px-4 py-3 bg-transparent text-slate-800 focus:ring-0 outline-none transition-colors font-mono text-sm leading-relaxed resize-none z-10 relative
+                    ${!inputData ? 'placeholder:text-transparent' : ''}
+                  `}
+                  spellCheck={false}
+                />
               </div>
-              <textarea
-                value={inputData}
-                onChange={(e) => setInputData(e.target.value)}
-                placeholder="28.44, 100&#10;47.30, 55"
-                className="w-full h-48 px-4 py-3 bg-slate-900 text-violet-300 border border-slate-700 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 outline-none transition-colors font-mono text-sm leading-relaxed"
-              />
-              <div className="flex flex-wrap gap-2 mt-3">
+              
+              <div className="flex items-center justify-between mt-2">
+                <div className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                  <Search className="w-3 h-3" />
+                  Format: 2θ, Intensity
+                </div>
+                {inputData && (
+                  <div className="text-[10px] font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">
+                    {inputData.split('\n').filter(l => l.trim()).length} peaks loaded
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2 mt-4">
                 <span className="text-xs font-bold text-slate-500 mr-1 self-center uppercase tracking-wider">Examples:</span>
                 {[
                   { id: 'Silicon', label: 'Si' },
