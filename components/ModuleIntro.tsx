@@ -320,6 +320,31 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
         </div>
       </div>
     )
+  },
+  agent: {
+    title: "Crystal Intelligence Hub",
+    description: "The primary orchestrator of the XRD-Calc Pro ecosystem. This AI agent has full cross-module awareness, global search grounding, and executive reasoning to assist in complex material discovery missions.",
+    formulas: (
+      <div className="space-y-4">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 text-lg text-slate-900 dark:text-slate-100 transition-colors">
+           <p className="font-sans text-sm text-indigo-700 dark:text-indigo-400 font-bold uppercase mb-3">Intelligence Protocol</p>
+           <div className="text-xs font-mono text-slate-700 dark:text-slate-400 space-y-3 transition-colors">
+             <div className="flex flex-col gap-1 border-b border-slate-200 dark:border-slate-700 pb-2">
+               <span className="font-bold text-indigo-600 dark:text-indigo-400">1. Semantic Reasoning</span>
+               <span>Integrates natural language commands with crystallographic data models.</span>
+             </div>
+             <div className="flex flex-col gap-1 border-b border-slate-200 dark:border-slate-700 pb-2">
+               <span className="font-bold text-indigo-600 dark:text-indigo-400">2. Research Grounding</span>
+               <span>Connects directly to indexed journals and databases (COD, MP) via Search.</span>
+             </div>
+             <div className="flex flex-col gap-1">
+               <span className="font-bold text-indigo-600 dark:text-indigo-400">3. Mission Orchestration</span>
+               <span>Suggests optimal analytical pathways for specific research goals.</span>
+             </div>
+           </div>
+        </div>
+      </div>
+    )
   }
 };
 

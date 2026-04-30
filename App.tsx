@@ -14,6 +14,7 @@ import { RietveldModule } from './components/RietveldModule';
 import { NeutronModule } from './components/NeutronModule';
 import { MagneticNeutronModule } from './components/MagneticNeutronModule';
 import { DeepLearningModule } from './components/DeepLearningModule';
+import { LabAgent } from './components/LabAgent';
 import { FWHMModule } from './components/FWHMModule';
 import { ImageAnalysisModule } from './components/ImageAnalysisModule';
 import { CrystalMindModule } from './components/CrystalMindModule';
@@ -25,11 +26,12 @@ import { ModuleIntro } from './components/ModuleIntro';
 import { LandingPage } from './components/LandingPage';
 import { RegistrationPage } from './components/RegistrationPage';
 import { BraggHistory } from './components/BraggHistory';
+import { BraggVisualization } from './components/BraggVisualization';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap } from 'lucide-react';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'crystal_mind' | 'image_gen' | 'learn' | 'profile';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'crystal_mind' | 'image_gen' | 'learn' | 'profile' | 'agent';
 
 const App: React.FC = () => {
   const [isRegistered, setIsRegistered] = useState<boolean>(() => {
@@ -178,6 +180,7 @@ const App: React.FC = () => {
     { id: 'neutron', label: 'Neutron Diffraction', group: 'Advanced Sim' },
     { id: 'magnetic', label: 'Magnetic Diffraction', group: 'Advanced Sim' },
     { id: 'dl', label: 'Deep Learning Phase ID', group: 'AI Tools' },
+    { id: 'agent', label: 'Crystal Intelligence Hub', group: 'AI Tools' },
     { id: 'image_analysis', label: 'Image Analysis', group: 'AI Tools' },
     { id: 'image_gen', label: 'Scientific Illustrator', group: 'AI Tools' },
     { id: 'crystal_mind', label: 'CrystalMind Control', group: 'AI Tools' },
@@ -344,6 +347,10 @@ const App: React.FC = () => {
                       </div>
 
                       <div className="lg:col-span-8 space-y-6">
+                        <BraggVisualization 
+                          wavelength={wavelength} 
+                          twoTheta={results.length > 0 ? results[0].twoTheta : 20} 
+                        />
                         <DiffractionChart results={results} materialName={materialName} />
                         <ResultsTable results={results} />
                       </div>
@@ -361,6 +368,7 @@ const App: React.FC = () => {
                   {activeModule === 'neutron' && <NeutronModule />}
                   {activeModule === 'magnetic' && <MagneticNeutronModule />}
                   {activeModule === 'dl' && <DeepLearningModule />}
+                  {activeModule === 'agent' && <LabAgent />}
                   {activeModule === 'image_analysis' && <ImageAnalysisModule />}
                   {activeModule === 'image_gen' && <ImageGenerationModule />}
                   {activeModule === 'crystal_mind' && <CrystalMindModule />}
