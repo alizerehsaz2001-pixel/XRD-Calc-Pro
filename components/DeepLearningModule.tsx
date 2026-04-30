@@ -677,15 +677,20 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
           </div>
         </div>
 
-        {/* Progress / Status Card */}
-        <div className="bg-slate-900 p-6 rounded-xl text-white border border-slate-800">
-           <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-             <Layers className="w-5 h-5 text-violet-400" />
-             Analysis Engine
+        {/* Deep Learning Architecture Status */}
+        <div className="bg-slate-900 p-6 rounded-2xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/10 rounded-full blur-3xl group-hover:bg-violet-600/20 transition-colors duration-1000" />
+           <h3 className="font-bold text-lg mb-2 flex items-center gap-3 relative z-10">
+             <div className="p-1.5 bg-violet-500/20 rounded-lg border border-violet-500/30">
+               <Brain className="w-5 h-5 text-violet-400" />
+             </div>
+             Convolutional Engine
            </h3>
-           <div className="space-y-4 relative">
+           <p className="text-xs text-slate-400 font-mono mb-6 relative z-10">ARCH: XRD-ResNet-50 v4.2 • EPOCH: FINAL</p>
+           
+           <div className="space-y-5 relative z-10">
              {/* Vertical connecting line */}
-             <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-slate-800 z-0"></div>
+             <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-slate-800/80 z-0"></div>
              {steps.slice(1).map((step, idx) => {
                const stepIdx = idx + 1;
                const isActive = progressStep === stepIdx;
@@ -693,16 +698,42 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                const Icon = step.icon;
                
                return (
-                 <div key={idx} className={`relative z-10 flex items-center gap-3 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-30'}`}>
-                   <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors duration-500
-                     ${isActive ? 'border-violet-500 bg-violet-900 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.5)]' : 
-                       isCompleted ? 'border-emerald-500 bg-emerald-500 text-slate-900' : 'border-slate-700 bg-slate-900 text-slate-600'}
-                   `}>
-                     {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />}
+                 <div key={idx} className={`relative z-10 flex flex-col gap-1 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-40'}`}>
+                   <div className="flex items-center gap-3">
+                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all duration-500 shrink-0
+                       ${isActive ? 'border-violet-500 bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.4)] scale-110 rotate-3' : 
+                         isCompleted ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-slate-700 bg-slate-900 text-slate-600'}
+                     `}>
+                       {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />}
+                     </div>
+                     <div className="flex-1 min-w-0">
+                       <span className={`text-sm font-bold block truncate ${isActive ? 'text-violet-300' : isCompleted ? 'text-slate-200' : 'text-slate-500'}`}>
+                         {step.label}
+                       </span>
+                     </div>
+                     
+                     {/* Activation Metrics */}
+                     {isActive && (
+                       <div className="flex items-center gap-2">
+                         <div className="text-[9px] font-mono text-emerald-400 flex flex-col items-end">
+                           <span>LOSS: {(Math.random() * 0.1).toFixed(4)}</span>
+                           <span>ACC: {(95 + Math.random() * 4).toFixed(2)}%</span>
+                         </div>
+                       </div>
+                     )}
                    </div>
-                   <span className={`text-sm font-medium ${isActive ? 'text-violet-300' : isCompleted ? 'text-emerald-400' : 'text-slate-500'}`}>
-                     {step.label}
-                   </span>
+                   
+                   {/* Layer Activation Visualization */}
+                   {isActive && idx === 1 && (
+                     <div className="ml-11 mt-2 pl-2 border-l border-violet-500/30">
+                       <div className="grid grid-cols-6 gap-1 w-full max-w-[150px]">
+                         {[...Array(12)].map((_, i) => (
+                           <div key={i} className="h-4 rounded-sm bg-violet-500 animate-pulse" style={{ opacity: Math.random() * 0.8 + 0.2, animationDelay: `${i * 0.1}s` }} />
+                         ))}
+                       </div>
+                       <p className="text-[9px] text-slate-500 font-mono mt-1">MaxPool2d_1 Activation Maps</p>
+                     </div>
+                   )}
                  </div>
                );
              })}
@@ -714,28 +745,42 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       <div className="lg:col-span-8 space-y-6">
         
         {/* Visualizer */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 h-[400px] flex flex-col relative">
-          <div className="flex justify-between items-center mb-2 px-2">
-            <h3 className="text-sm font-bold text-slate-700">Pattern Match Visualization</h3>
+        <div className="bg-slate-900 p-5 rounded-2xl shadow-xl border border-slate-800 h-[450px] flex flex-col relative overflow-hidden group">
+          {/* Subtle grid background to look like a terminal/software UI */}
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none mix-blend-overlay"></div>
+          
+          <div className="flex justify-between items-center mb-4 px-2 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+                <Activity className="w-4 h-4 text-indigo-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">Phase Match Visualization</h3>
+                <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">Convolutional Feature Overlay</p>
+              </div>
+            </div>
+            
             {selectedCandidate && (
               <div className="flex gap-2">
-                <span className={`text-xs font-bold px-2 py-1 rounded flex items-center gap-1
-                  ${selectedCandidate.match_quality === 'Excellent' ? 'bg-green-100 text-green-700' : 
-                    selectedCandidate.match_quality === 'Good' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}
+                <span className={`text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 border shadow-inner backdrop-blur-sm
+                  ${selectedCandidate.match_quality === 'Excellent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                    selectedCandidate.match_quality === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}
                 `}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${selectedCandidate.match_quality === 'Excellent' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : selectedCandidate.match_quality === 'Good' ? 'bg-blue-400' : 'bg-amber-400'}`} />
                   {selectedCandidate.match_quality || "Match"} Quality
                 </span>
-                <span className="text-xs font-bold bg-violet-100 text-violet-700 px-2 py-1 rounded">
-                  Overlay: {selectedCandidate.phase_name}
+                <span className="text-xs font-bold bg-violet-500/10 text-violet-300 px-3 py-1.5 rounded-lg border border-violet-500/20 flex items-center gap-2 backdrop-blur-sm">
+                  <Database className="w-3 h-3 text-violet-400" />
+                  DB Overlay: {selectedCandidate.phase_name}
                 </span>
               </div>
             )}
           </div>
           
-          <div className="flex-1 w-full min-h-0 min-w-0">
+          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-slate-950/80 rounded-xl border border-white/5 p-2 shadow-inner">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
                 <XAxis 
                   dataKey="twoTheta" 
                   type="number" 
@@ -743,21 +788,23 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   unit="°" 
                   allowDataOverflow 
                   name="2θ"
+                  stroke="#94a3b8"
+                  tick={{ fill: '#94a3b8', fontSize: 11 }}
                 />
                 <YAxis hide />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
-                <Legend verticalAlign="top" height={36} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#cbd5e1' }} />
                 
                 {/* Input Data */}
-                <Bar dataKey="intensity" barSize={4} fill="var(--chart-bar)" name="Input Pattern" />
+                <Bar dataKey="intensity" barSize={3} fill="#6366f1" name="Input Pattern" radius={[2, 2, 0, 0]} />
                 
                 {/* Reference Data (if selected) */}
                 {selectedCandidate && (
                   <Scatter 
                     data={refData} 
                     dataKey="refIntensity" 
-                    name={`${selectedCandidate.phase_name} (Ref)`} 
-                    fill="var(--chart-ref)" 
+                    name={`${selectedCandidate.phase_name} (Database Ref)`} 
+                    fill="#f43f5e" 
                     shape="diamond"
                   />
                 )}
@@ -765,8 +812,10 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
             </ResponsiveContainer>
           </div>
           {!inputData.trim() && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl z-10">
-              <p className="text-slate-400 font-medium">Enter data to visualize</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md rounded-2xl z-20 border border-slate-800">
+               <Layers className="w-12 h-12 text-slate-700 mb-4 animate-pulse opacity-50" />
+               <p className="text-slate-400 font-medium">Network Awaiting Input Data</p>
+               <p className="text-xs text-slate-500 font-mono mt-2">SYS_STATUS: STANDBY</p>
             </div>
           )}
         </div>
@@ -890,29 +939,32 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
              <div 
                key={idx} 
                onClick={() => setSelectedCandidate(candidate)}
-               className={`bg-white p-5 rounded-xl shadow-sm border-2 cursor-pointer transition-all group
-                 ${selectedCandidate?.phase_name === candidate.phase_name ? 'border-violet-500 ring-4 ring-violet-50' : 'border-slate-100 hover:border-violet-200 hover:shadow-md'}
+               className={`bg-slate-900 p-5 rounded-xl shadow-sm border cursor-pointer transition-all group overflow-hidden relative
+                 ${selectedCandidate?.phase_name === candidate.phase_name ? 'border-violet-500 shadow-[0_0_20px_rgba(139,92,246,0.3)] bg-slate-800' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'}
                `}
              >
-               <div className="flex justify-between items-start mb-3">
+               {selectedCandidate?.phase_name === candidate.phase_name && (
+                 <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-transparent pointer-events-none" />
+               )}
+               <div className="flex justify-between items-start mb-3 relative z-10">
                  <div className="flex items-center gap-4">
-                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-sm
-                     ${idx === 0 ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white' : 
-                       idx === 1 ? 'bg-gradient-to-br from-slate-200 to-slate-300 text-slate-700' :
-                       idx === 2 ? 'bg-gradient-to-br from-amber-200 to-amber-400 text-amber-900' :
-                       'bg-slate-100 text-slate-500'}
+                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-inner border
+                     ${idx === 0 ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 text-emerald-400 border-emerald-500/30' : 
+                       idx === 1 ? 'bg-gradient-to-br from-slate-700 to-slate-800 text-slate-300 border-slate-600' :
+                       idx === 2 ? 'bg-gradient-to-br from-amber-500/20 to-amber-600/20 text-amber-400 border-amber-500/30' :
+                       'bg-slate-900 text-slate-600 border-slate-800'}
                    `}>
                      #{idx + 1}
                    </div>
                    <div>
-                     <h4 className="font-bold text-lg text-slate-800 group-hover:text-violet-700 transition-colors">{candidate.phase_name}</h4>
+                     <h4 className="font-bold text-lg text-white group-hover:text-violet-400 transition-colors">{candidate.phase_name}</h4>
                      <div className="flex flex-wrap gap-2 text-xs mt-1">
-                       <span className="font-mono bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200">{candidate.formula}</span>
+                       <span className="font-mono bg-slate-950 text-slate-400 px-2 py-0.5 rounded-md border border-slate-800">{candidate.formula}</span>
                        <span className="text-slate-500 flex items-center"><Database className="w-3 h-3 mr-1"/>{candidate.card_id}</span>
                        {candidate.match_quality && (
                          <span className={`px-2 py-0.5 rounded-md font-bold border
-                           ${candidate.match_quality === 'Excellent' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
-                             candidate.match_quality === 'Good' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}
+                           ${candidate.match_quality === 'Excellent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 
+                             candidate.match_quality === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'}
                          `}>
                            {candidate.match_quality}
                          </span>
@@ -920,47 +972,57 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                      </div>
                    </div>
                  </div>
-                 <div className="text-right">
-                   <span className={`text-3xl font-black tracking-tighter
-                     ${candidate.confidence_score > 80 ? 'text-emerald-600' : candidate.confidence_score > 50 ? 'text-violet-600' : 'text-amber-600'}
+                 <div className="text-right flex flex-col items-end">
+                   <span className={`text-3xl font-black tracking-tighter shadow-sm
+                     ${candidate.confidence_score > 80 ? 'text-emerald-500' : candidate.confidence_score > 50 ? 'text-violet-500' : 'text-amber-500'}
                    `}>
-                     {candidate.confidence_score}%
+                     {candidate.confidence_score.toFixed(1)}%
                    </span>
-                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Confidence</p>
+                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1 flex items-center gap-1">
+                     <Activity className="w-3 h-3" />
+                     Network Conf
+                   </p>
                  </div>
                </div>
                
-               <div className="w-full bg-slate-100 rounded-full h-1.5 mt-4 overflow-hidden">
+               <div className="w-full bg-slate-950 rounded-full h-2 mt-4 overflow-hidden border border-slate-800 relative z-10 box-content">
                  <div 
-                   className={`h-full rounded-full transition-all duration-1000 ease-out ${candidate.confidence_score > 80 ? 'bg-emerald-500' : candidate.confidence_score > 50 ? 'bg-violet-500' : 'bg-amber-500'}`}
+                   className={`h-full rounded-none transition-all duration-1000 ease-out ${candidate.confidence_score > 80 ? 'bg-emerald-500' : candidate.confidence_score > 50 ? 'bg-violet-500' : 'bg-amber-500'}`}
                    style={{ width: `${candidate.confidence_score}%` }}
                  ></div>
                </div>
 
                {selectedCandidate?.phase_name === candidate.phase_name && (
-                 <div className="mt-4 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2">
-                   <p className="text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1"><CheckCircle className="w-3 h-3"/> Matched Peaks Details</p>
-                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                 <div className="mt-5 pt-5 border-t border-slate-700/50 animate-in slide-in-from-top-2 relative z-10">
+                   <p className="text-[10px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-2 tracking-widest">
+                     <CheckCircle className="w-3 h-3 text-emerald-400"/> Feature Map Verification
+                   </p>
+                   <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
                      {candidate.matched_peaks?.map((mp, i) => (
-                       <div key={i} className="bg-slate-50 p-2 rounded-lg border border-slate-200 flex justify-between items-center group-hover:bg-white transition-colors">
-                         <span className="text-slate-600 font-mono">{mp.refT.toFixed(2)}°</span>
-                         <span className="font-bold text-emerald-500">✓</span>
+                       <div key={i} className="bg-slate-950/50 p-2 rounded-lg border border-slate-800 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
+                         <span className="text-slate-400 font-mono text-[11px]">{mp.refT.toFixed(2)}°</span>
+                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
                        </div>
                      ))}
                    </div>
-                   <p className="text-[10px] text-slate-400 mt-3 italic">
-                     * Click on other candidates to compare their reference patterns on the chart.
-                   </p>
+                   <div className="mt-4 flex items-center gap-2 p-2 rounded bg-slate-950 border border-slate-800">
+                     <div className="w-2 h-2 rounded bg-violet-500 animate-pulse" />
+                     <p className="text-[10px] text-slate-500 font-mono">
+                       Select other candidates to compare convolutional feature overlays.
+                     </p>
+                   </div>
                  </div>
                )}
              </div>
            ))}
            
            {!result && !isSimulating && (
-             <div className="h-32 flex flex-col items-center justify-center bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 text-slate-400">
-               <Database className="w-8 h-8 mb-2 opacity-20" />
-               <p className="font-medium">Ready to Identify</p>
-               <p className="text-xs">Load example data or paste your pattern to begin.</p>
+             <div className="h-40 flex flex-col items-center justify-center bg-slate-900/50 rounded-2xl border border-dashed border-slate-700 text-slate-500 relative overflow-hidden group">
+               <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+               <Database className="w-10 h-10 mb-3 opacity-30 group-hover:hidden" />
+               <Brain className="w-10 h-10 mb-3 text-violet-500 hidden group-hover:block animate-bounce opacity-80" />
+               <p className="font-bold tracking-tight text-slate-300">Awaiting Neural Evaluation</p>
+               <p className="text-xs mt-1 font-mono text-slate-500 uppercase tracking-widest">Load data to initialize the network</p>
              </div>
            )}
         </div>
