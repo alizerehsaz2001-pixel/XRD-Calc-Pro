@@ -192,6 +192,39 @@ const MATERIAL_DB = [
     spaceGroup: 'P63/mmc',
     density: 4.50,
     applications: ['Aerospace', 'Implants', 'Pigments']
+  },
+  {
+    name: 'Cerium Oxide (CeO2)',
+    type: 'Ceramic/Catalyst',
+    pattern: '28.55, 100\n33.08, 30\n47.48, 55\n56.34, 45\n59.09, 10\n69.41, 20',
+    description: 'A pale yellow-white powder, highly used as a catalyst and in glass polishing.',
+    formula: 'CeO2',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 7.21,
+    applications: ['Catalysts', 'Fuel Cells', 'Glass Polishing']
+  },
+  {
+    name: 'Calcite (CaCO3)',
+    type: 'Mineral',
+    pattern: '23.06, 15\n29.40, 100\n35.96, 15\n39.40, 20\n43.16, 20\n47.50, 25\n48.50, 25\n57.40, 10',
+    description: 'A carbonate mineral and the most stable polymorph of calcium carbonate.',
+    formula: 'CaCO3',
+    crystalSystem: 'Trigonal',
+    spaceGroup: 'R-3c',
+    density: 2.71,
+    applications: ['Construction', 'Agriculture', 'Pharmaceuticals']
+  },
+  {
+    name: 'Tungsten (W)',
+    type: 'Metal',
+    pattern: '40.26, 100\n58.27, 20\n73.19, 30\n87.01, 15',
+    description: 'A rare metal known for its robustness and the highest melting point of all elements.',
+    formula: 'W',
+    crystalSystem: 'Body-Centered Cubic',
+    spaceGroup: 'Im-3m',
+    density: 19.25,
+    applications: ['Heating elements', 'X-ray tubes', 'Alloys']
   }
 ];
 
@@ -266,20 +299,26 @@ export const DeepLearningModule: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3.1-pro-preview",
-        contents: `Generate X-Ray Diffraction data for "${searchTerm}". 
+        contents: `Generate X-Ray Diffraction data and Material Intelligence metadata for "${searchTerm}". 
         Return ONLY a JSON object with this structure:
         {
           "name": "Material Name (Formula)",
           "type": "Material Class (e.g. Metal, Ceramic, Polymer)",
           "pattern": "2theta, intensity\\n2theta, intensity...",
-          "description": "Brief scientific description",
+          "description": "Deep scientific description detailing structure and usage",
           "formula": "Chemical Formula",
           "crystalSystem": "Crystal System",
           "spaceGroup": "Space Group",
           "density": number,
-          "applications": ["App1", "App2"]
+          "applications": ["App1", "App2"],
+          "molecularWeight": number,
+          "hazards": ["Hazard1", "Hazard2"],
+          "magneticProperties": "Diamagnetic/Paramagnetic/etc",
+          "bandGap": number,
+          "elasticModulus": number,
+          "opticalProperties": "Optical description"
         }
-        Provide at least 3-5 major peaks in the pattern string.`,
+        Provide at least 4-7 major peaks in the pattern string for realistic matching. Make the description very detailed and authoritative.`,
         config: {
           responseMimeType: "application/json",
           thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
@@ -364,7 +403,13 @@ export const DeepLearningModule: React.FC = () => {
           spaceGroup: aiMaterialData.spaceGroup,
           density: aiMaterialData.density,
           applications: aiMaterialData.applications,
-          materialType: aiMaterialData.type
+          materialType: aiMaterialData.type,
+          molecularWeight: aiMaterialData.molecularWeight,
+          hazards: aiMaterialData.hazards,
+          magneticProperties: aiMaterialData.magneticProperties,
+          bandGap: aiMaterialData.bandGap,
+          elasticModulus: aiMaterialData.elasticModulus,
+          opticalProperties: aiMaterialData.opticalProperties
         };
         
         computed = {
@@ -401,6 +446,11 @@ Crystal System: ${selectedCandidate.crystalSystem || "Unknown"}
 Space Group: ${selectedCandidate.spaceGroup || "N/A"}
 Density: ${selectedCandidate.density ? selectedCandidate.density + " g/cm³" : "N/A"}
 Material Type: ${selectedCandidate.materialType || "N/A"}
+Molecular Weight: ${selectedCandidate.molecularWeight ? selectedCandidate.molecularWeight + " g/mol" : "N/A"}
+Band Gap: ${selectedCandidate.bandGap !== undefined ? selectedCandidate.bandGap + " eV" : "N/A"}
+Elastic Modulus: ${selectedCandidate.elasticModulus !== undefined ? selectedCandidate.elasticModulus + " GPa" : "N/A"}
+Magnetic Properties: ${selectedCandidate.magneticProperties || "Homogenous/N/A"}
+Optical Properties: ${selectedCandidate.opticalProperties || "N/A"}
 
 --- Description ---
 ${selectedCandidate.description || "N/A"}
@@ -423,7 +473,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     URL.revokeObjectURL(url);
   };
 
-  const loadExample = (type: 'Silicon' | 'Mixture' | 'HAP' | 'ZnO' | 'Halite' | 'Hematite' | 'Aluminum' | 'Copper' | 'MgO' | 'CeO2' | 'Titanium') => {
+  const loadExample = (type: 'Silicon' | 'Mixture' | 'HAP' | 'ZnO' | 'Halite' | 'Hematite' | 'Aluminum' | 'Copper' | 'MgO' | 'CeO2' | 'Titanium' | 'Calcite' | 'Tungsten' | 'Quartz') => {
     if (type === 'Mixture') {
       setInputData(`20.86, 40\n26.64, 100\n38.18, 50\n44.39, 25\n50.14, 15\n64.57, 20`);
       setSearchTerm("Mixture (SiO2 + Au)");
@@ -434,6 +484,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'Hematite' ? 'Hematite' :
                         type === 'MgO' ? 'Magnesium Oxide' :
                         type === 'CeO2' ? 'Cerium Oxide' :
+                        type === 'Calcite' ? 'Calcite' : 
+                        type === 'Tungsten' ? 'Tungsten' : 
+                        type === 'Quartz' ? 'Quartz' : 
                         type;
       
       const mat = MATERIAL_DB.find(m => m.name.includes(searchKey));
@@ -482,14 +535,14 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Input Configuration */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
               <Brain className="w-6 h-6 text-violet-600" />
               PhaseID Neural Net
             </h2>
             {isSimulating && (
-              <span className="text-xs font-bold text-violet-600 animate-pulse bg-violet-50 px-2 py-1 rounded-full">
+              <span className="text-xs font-bold text-violet-600 animate-pulse bg-violet-50 px-2 py-1 rounded-full border border-violet-100 shadow-sm">
                 Running...
               </span>
             )}
@@ -499,7 +552,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
             {/* Material Search */}
             <div className="relative" ref={searchRef}>
               <label className="block text-sm font-bold text-slate-700 mb-2">
-                Quick Material Load
+                Deep Material DB Search <span className="text-emerald-500 ml-1 font-mono text-[10px] bg-emerald-50 px-1 rounded border border-emerald-100">AI-POWERED</span>
               </label>
               <div className="relative">
                 <input
@@ -515,48 +568,59 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       handleSmartSearch();
                     }
                   }}
-                  placeholder="Search material (e.g. Zirconia, TiO2)..."
-                  className="w-full px-4 py-2 pl-10 pr-20 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                  placeholder="Query by formula or name (e.g. TiO2, Zinc)..."
+                  className="w-full px-4 py-3 pl-10 pr-24 bg-slate-50 border border-slate-300 hover:border-violet-400 rounded-xl text-sm focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all shadow-inner"
                 />
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                <Search className={`w-4 h-4 absolute left-4 top-3.5 ${isSearchingAI ? 'text-violet-500 animate-pulse' : 'text-slate-400'}`} />
                 
                 <button 
                   onClick={handleSmartSearch}
                   disabled={isSearchingAI || !searchTerm.trim()}
-                  className="absolute right-1 top-1 bottom-1 px-3 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-md transition-colors disabled:bg-slate-300 flex items-center gap-1"
+                  className="absolute right-2 top-2 bottom-2 px-3 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-95 disabled:bg-slate-300 disabled:shadow-none flex items-center gap-1.5"
                 >
-                  {isSearchingAI ? <Loader2 className="w-3 h-3 animate-spin" /> : "Load"}
+                  {isSearchingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Database className="w-3 h-3" /> Fetch</>}
                 </button>
               </div>
 
               {/* Suggestions Dropdown */}
               {showSuggestions && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-slate-200 z-50 max-h-60 overflow-y-auto">
-                  {MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
-                    MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase())).map((material, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleMaterialSelect(material)}
-                        className="w-full text-left px-4 py-3 hover:bg-violet-50 flex items-center justify-between group border-b border-slate-50 last:border-0"
-                      >
-                        <div>
-                          <span className="font-bold text-slate-700 block text-sm group-hover:text-violet-700">{material.name}</span>
-                          <span className="text-[10px] text-slate-400 uppercase tracking-wider">{material.type}</span>
-                        </div>
-                        <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-1 rounded group-hover:bg-violet-100 group-hover:text-violet-600">
-                          {material.formula}
-                        </span>
-                      </button>
-                    ))
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 max-h-72 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+                  {MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.formula.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
+                    <div className="p-1">
+                      {MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.formula.toLowerCase().includes(searchTerm.toLowerCase())).map((material, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleMaterialSelect(material)}
+                          className="w-full text-left px-4 py-3 hover:bg-violet-50 flex items-center justify-between group rounded-lg transition-colors border border-transparent hover:border-violet-100 mb-1 last:mb-0"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold group-hover:bg-violet-200 group-hover:text-violet-700 transition-colors">
+                              {material.formula.substring(0, 2)}
+                            </div>
+                            <div>
+                              <span className="font-bold text-slate-700 block text-sm group-hover:text-violet-700 transition-colors">{material.name}</span>
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">{material.type}</span>
+                            </div>
+                          </div>
+                          <span className="text-xs font-mono text-slate-500 bg-slate-100 border border-slate-200 px-2 py-1 rounded shadow-sm group-hover:bg-white group-hover:border-violet-300 group-hover:text-violet-600 transition-all">
+                            {material.crystalSystem}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   ) : (
-                    <div className="p-4 text-center text-slate-400 text-xs">No materials found</div>
+                    <div className="p-6 flex flex-col items-center justify-center text-center">
+                       <Search className="w-8 h-8 text-slate-300 mb-2" />
+                       <p className="text-slate-500 text-sm font-semibold mb-1">Not in local database</p>
+                       <p className="text-slate-400 text-xs">Press <kbd className="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-mono text-[10px] mx-1">Enter</kbd> or click <span className="font-bold">Fetch</span> to synthesize pattern with AI.</p>
+                    </div>
                   )}
                 </div>
               )}
             </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
+            <div className="pt-2">
+              <div className="flex justify-between items-center mb-3">
                 <label className="block text-sm font-bold text-slate-700">
                   Diffraction Pattern Input
                 </label>
@@ -570,28 +634,28 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   />
                   <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="text-xs flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded font-medium transition-colors"
+                    className="text-xs flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-bold transition-all hover:shadow-sm active:scale-95"
                   >
-                    <Upload className="w-3 h-3" /> Upload File
+                    <Upload className="w-3.5 h-3.5" /> Upload .xy
                   </button>
                   <button 
-                    onClick={() => { setInputData(""); setResult(null); setSelectedCandidate(null); setProgressStep(0); }}
-                    className="text-xs flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded font-medium transition-colors"
+                    onClick={() => { setInputData(""); setResult(null); setSelectedCandidate(null); setProgressStep(0); setSearchTerm(""); }}
+                    className="text-xs flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-100 text-rose-600 px-3 py-1.5 rounded-lg font-bold transition-all hover:shadow-sm active:scale-95"
                   >
-                    <Trash2 className="w-3 h-3" /> Clear
+                    <Trash2 className="w-3.5 h-3.5" /> Clear
                   </button>
                 </div>
               </div>
               
               <div 
-                className={`relative border-2 border-dashed rounded-xl transition-all duration-200 overflow-hidden group
-                  ${inputData ? 'border-violet-300 bg-violet-50/30' : 'border-slate-300 bg-slate-50 hover:border-violet-400 hover:bg-violet-50/50'}
+                className={`relative border-2 border-dashed rounded-xl transition-all duration-300 overflow-hidden group
+                  ${inputData ? 'border-violet-300 bg-violet-50/40 shadow-inner' : 'border-slate-300 bg-slate-50 hover:border-violet-400 hover:bg-violet-50/50 hover:shadow-md'}
                 `}
-                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-violet-500', 'bg-violet-100'); }}
-                onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-violet-500', 'bg-violet-100'); }}
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-violet-500', 'bg-violet-100', 'shadow-lg'); }}
+                onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('border-violet-500', 'bg-violet-100', 'shadow-lg'); }}
                 onDrop={(e) => {
                   e.preventDefault();
-                  e.currentTarget.classList.remove('border-violet-500', 'bg-violet-100');
+                  e.currentTarget.classList.remove('border-violet-500', 'bg-violet-100', 'shadow-lg');
                   const file = e.dataTransfer.files?.[0];
                   if (file) {
                     const reader = new FileReader();
@@ -605,75 +669,89 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               >
                 {!inputData && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-400 group-hover:text-violet-500 transition-colors">
-                    <Upload className="w-8 h-8 mb-2 opacity-50" />
-                    <p className="text-sm font-medium">Drag & drop file here</p>
-                    <p className="text-xs opacity-70 mt-1">or paste data below (.xy, .txt, .csv)</p>
+                    <div className="p-3 bg-white rounded-full shadow-sm border border-slate-100 mb-3 group-hover:scale-110 group-hover:shadow-md transition-all">
+                      <Upload className="w-6 h-6 text-slate-400 group-hover:text-violet-500" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-600">Drag & drop raw data</p>
+                    <p className="text-xs font-semibold text-slate-400 mt-1">or paste below (2θ, Intensity format)</p>
                   </div>
                 )}
                 <textarea
                   value={inputData}
                   onChange={(e) => setInputData(e.target.value)}
-                  placeholder={inputData ? "" : "\n\n\n\n\n28.44, 100\n47.30, 55"}
-                  className={`w-full h-48 px-4 py-3 bg-transparent text-slate-800 focus:ring-0 outline-none transition-colors font-mono text-sm leading-relaxed resize-none z-10 relative
+                  placeholder={inputData ? "" : "\n\n\n\n\n\n28.44, 100\n47.30, 55"}
+                  className={`w-full h-52 px-5 py-4 bg-transparent text-slate-800 focus:ring-0 outline-none transition-colors font-mono text-[13px] leading-relaxed resize-none z-10 relative
                     ${!inputData ? 'placeholder:text-transparent' : ''}
                   `}
                   spellCheck={false}
                 />
               </div>
               
-              <div className="flex items-center justify-between mt-2">
-                <div className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
-                  <Search className="w-3 h-3" />
-                  Format: 2θ, Intensity
+              <div className="flex items-center justify-between mt-3 px-1">
+                <div className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
+                   <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
+                   Format: <span className="text-slate-500 bg-slate-100 px-1 py-0.5 rounded ml-0.5">2θ</span> , <span className="text-slate-500 bg-slate-100 px-1 py-0.5 rounded">Intensity</span>
                 </div>
                 {inputData && (
-                  <div className="text-[10px] font-bold text-violet-600 bg-violet-100 px-2 py-0.5 rounded-full">
-                    {inputData.split('\n').filter(l => l.trim()).length} peaks loaded
+                  <div className="text-[10px] font-black uppercase tracking-widest text-violet-600 bg-violet-100 border border-violet-200 px-2.5 py-1 rounded-md shadow-sm flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-pulse" />
+                    {inputData.split('\n').filter(l => l.trim()).length} Data Points
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2 mt-4">
-                <span className="text-xs font-bold text-slate-500 mr-1 self-center uppercase tracking-wider">Examples:</span>
-                {[
-                  { id: 'Silicon', label: 'Si' },
-                  { id: 'Mixture', label: 'Mix' },
-                  { id: 'Aluminum', label: 'Al' },
-                  { id: 'Copper', label: 'Cu' },
-                  { id: 'Titanium', label: 'Ti' },
-                  { id: 'MgO', label: 'MgO' },
-                  { id: 'CeO2', label: 'CeO2' }
-                ].map(ex => (
-                  <button 
-                    key={ex.id}
-                    onClick={() => loadExample(ex.id as any)} 
-                    className="text-[10px] font-bold bg-slate-100 hover:bg-violet-100 text-slate-600 hover:text-violet-700 px-2.5 py-1.5 rounded-md border border-slate-200 hover:border-violet-300 transition-all shadow-sm"
-                  >
-                    {ex.label}
-                  </button>
-                ))}
+              <div className="mt-5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <FlaskConical className="w-3 h-3 text-slate-400" /> Test Data Suites
+                   </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: 'Silicon', label: 'Si' },
+                    { id: 'Mixture', label: 'Si+Au Mix' },
+                    { id: 'Aluminum', label: 'Al' },
+                    { id: 'Copper', label: 'Cu' },
+                    { id: 'Titanium', label: 'Ti' },
+                    { id: 'Quartz', label: 'Quartz' },
+                    { id: 'CeO2', label: 'CeO2' },
+                    { id: 'Calcite', label: 'Calcite' },
+                    { id: 'Tungsten', label: 'W' },
+                    { id: 'HAP', label: 'HAp' }
+                  ].map(ex => (
+                    <button 
+                      key={ex.id}
+                      onClick={() => loadExample(ex.id as any)} 
+                      className="text-xs font-bold bg-white hover:bg-violet-50 text-slate-700 hover:text-violet-700 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-violet-300 transition-all shadow-sm active:scale-95"
+                    >
+                      {ex.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <button
-              onClick={handleRunAI}
-              disabled={isSimulating || !inputData.trim()}
-              className={`w-full py-3 text-white font-bold rounded-xl shadow-md transition-all flex justify-center items-center gap-2
-                ${isSimulating || !inputData.trim() ? 'bg-slate-400 cursor-not-allowed' : 'bg-violet-600 hover:bg-violet-700 hover:shadow-lg active:scale-[0.98]'}
-              `}
-            >
-              {isSimulating ? (
-                <>
-                  <Activity className="w-5 h-5 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-5 h-5" />
-                  Identify Phases
-                </>
-              )}
-            </button>
+            <div className="pt-2">
+              <button
+                onClick={handleRunAI}
+                disabled={isSimulating || !inputData.trim()}
+                className={`w-full py-3.5 text-white font-bold text-base rounded-xl transition-all shadow-md flex justify-center items-center gap-2.5 outline-none focus:ring-4 focus:ring-violet-500/30
+                  ${isSimulating || !inputData.trim() ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none border border-slate-300' : 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 border border-violet-500'}
+                `}
+              >
+                {isSimulating ? (
+                  <>
+                    <Activity className="w-5 h-5 animate-spin" />
+                    Executing Neural Scan...
+                  </>
+                ) : (
+                  <>
+                    <Brain className="w-5 h-5" />
+                    Initialize Deep Phase ID
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -847,62 +925,119 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
               {/* Description & Class */}
-              <div className="md:col-span-2">
-                <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 h-full flex flex-col">
-                  <div className="flex items-center gap-2 mb-4">
+              <div className="md:col-span-8">
+                <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 h-full flex flex-col relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl" />
+                  <div className="flex items-center gap-2 mb-4 relative z-10">
                     <FlaskConical className="w-4 h-4 text-emerald-400" />
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Material Profile</span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 mb-4">
-                    <span className="text-xl font-bold text-white">{selectedCandidate.phase_name}</span>
-                    <span className="px-2.5 py-1 bg-violet-500/20 text-violet-300 text-xs font-mono rounded-md border border-violet-500/30">{selectedCandidate.formula}</span>
-                    <span className="px-2.5 py-1 bg-slate-700 text-slate-300 text-xs rounded-md font-medium">{selectedCandidate.materialType || "Unclassified"}</span>
+                  <div className="flex flex-wrap items-center gap-3 mb-4 relative z-10">
+                    <span className="text-2xl font-black text-white px-1 tracking-tight">{selectedCandidate.phase_name}</span>
+                    <span className="px-3 py-1.5 bg-violet-500/20 text-violet-300 text-[13px] font-mono font-bold rounded-lg border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.2)]">{selectedCandidate.formula}</span>
+                    <span className="px-3 py-1.5 bg-slate-700/80 text-emerald-400 text-[11px] uppercase tracking-widest rounded-lg font-bold border border-emerald-500/20 shadow-inner">{selectedCandidate.materialType || "Unclassified"}</span>
                   </div>
-                  <p className="text-sm text-slate-300 leading-relaxed flex-grow">
+                  <p className="text-sm text-slate-300 leading-relaxed max-w-3xl relative z-10">
                     {selectedCandidate.description || "No description available for this phase."}
                   </p>
+                  
+                  {/* Additional Metadata row */}
+                  <div className="mt-6 pt-5 border-t border-slate-700 flex flex-wrap gap-6 relative z-10">
+                     {selectedCandidate.molecularWeight && (
+                       <div className="flex flex-col">
+                         <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Molecular Wt.</span>
+                         <span className="text-sm font-mono text-slate-200">{selectedCandidate.molecularWeight} <span className="text-slate-500 text-xs">g/mol</span></span>
+                       </div>
+                     )}
+                     {selectedCandidate.bandGap !== undefined && (
+                       <div className="flex flex-col">
+                         <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Band Gap</span>
+                         <span className="text-sm font-mono text-slate-200">{selectedCandidate.bandGap} <span className="text-slate-500 text-xs">eV</span></span>
+                       </div>
+                     )}
+                     {selectedCandidate.elasticModulus !== undefined && (
+                       <div className="flex flex-col">
+                         <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Module</span>
+                         <span className="text-sm font-mono text-slate-200">{selectedCandidate.elasticModulus} <span className="text-slate-500 text-xs">GPa</span></span>
+                       </div>
+                     )}
+                     {selectedCandidate.magneticProperties && (
+                       <div className="flex flex-col">
+                         <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Magnetism</span>
+                         <span className="text-sm font-mono text-slate-200 capitalize">{selectedCandidate.magneticProperties}</span>
+                       </div>
+                     )}
+                  </div>
                 </div>
               </div>
 
               {/* Quick Stats */}
-              <div className="md:col-span-1">
-                <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 h-full">
+              <div className="md:col-span-4">
+                <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 h-full relative overflow-hidden">
                   <div className="flex items-center gap-2 mb-5">
                     <Database className="w-4 h-4 text-blue-400" />
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Crystallography</span>
                   </div>
                   <div className="space-y-4">
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase block mb-1 font-bold tracking-wider">Crystal System</span>
-                      <span className="text-sm font-medium text-white">{selectedCandidate.crystalSystem || "Unknown"}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                      <span className="text-[11px] text-slate-400 uppercase font-black tracking-widest">Crystal System</span>
+                      <span className="text-sm font-bold text-white">{selectedCandidate.crystalSystem || "Unknown"}</span>
                     </div>
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase block mb-1 font-bold tracking-wider">Space Group</span>
-                      <span className="text-sm font-medium text-white font-mono bg-slate-900 px-2 py-0.5 rounded border border-slate-700 inline-block">{selectedCandidate.spaceGroup || "N/A"}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                      <span className="text-[11px] text-slate-400 uppercase font-black tracking-widest">Space Group</span>
+                      <span className="text-sm font-bold text-emerald-400 font-mono bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">{selectedCandidate.spaceGroup || "N/A"}</span>
                     </div>
-                    <div>
-                      <span className="text-[10px] text-slate-500 uppercase block mb-1 font-bold tracking-wider">Density</span>
-                      <span className="text-sm font-medium text-white">{selectedCandidate.density ? `${selectedCandidate.density} g/cm³` : "N/A"}</span>
+                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
+                      <span className="text-[11px] text-slate-400 uppercase font-black tracking-widest">Density</span>
+                      <span className="text-sm font-bold text-white font-mono">{selectedCandidate.density ? `${selectedCandidate.density} g/cm³` : "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                       <span className="text-[11px] text-slate-400 uppercase font-black tracking-widest">Card Match</span>
+                       <span className="text-xs font-black px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded border border-blue-500/20 uppercase">{selectedCandidate.card_id}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Applications */}
-              <div className="md:col-span-3">
-                <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Zap className="w-4 h-4 text-amber-400" />
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Common Applications</span>
+              {/* Applications & Hazards */}
+              <div className="md:col-span-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Zap className="w-4 h-4 text-amber-400" />
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Common Applications</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCandidate.applications?.map((app, i) => (
+                        <span key={i} className="text-xs font-bold bg-slate-900 shadow-inner text-slate-300 px-3.5 py-2 rounded-lg border border-slate-700 hover:border-amber-500/50 hover:text-amber-100 transition-colors cursor-default">
+                          {app}
+                        </span>
+                      )) || <span className="text-xs text-slate-500 italic">No application data available.</span>}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedCandidate.applications?.map((app, i) => (
-                      <span key={i} className="text-xs font-medium bg-slate-900 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-slate-500 hover:text-white transition-colors cursor-default">
-                        {app}
-                      </span>
-                    )) || <span className="text-xs text-slate-500 italic">No application data available.</span>}
+
+                  <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-4 h-4 rounded-full bg-rose-500/20 flex items-center justify-center border border-rose-500/30">
+                         <div className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Safety & Hazards</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedCandidate.hazards?.map((hazard, i) => (
+                        <span key={i} className="text-[11px] font-black bg-rose-500/10 text-rose-400 px-3 py-1.5 rounded-lg border border-rose-500/20 uppercase tracking-widest cursor-default shadow-sm">
+                          {hazard}
+                        </span>
+                      )) || <span className="text-xs text-emerald-500/70 italic font-medium flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5" /> No specific hazards listed / Safe material.</span>}
+                    </div>
+                    {selectedCandidate.opticalProperties && (
+                       <div className="mt-4 pt-3 border-t border-slate-700/50">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1.5 block">Optical Profile</span>
+                          <span className="text-xs font-medium text-slate-300">{selectedCandidate.opticalProperties}</span>
+                       </div>
+                    )}
                   </div>
                 </div>
               </div>

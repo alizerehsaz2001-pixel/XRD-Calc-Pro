@@ -245,7 +245,7 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
     )
   },
   dl: {
-    title: "Deep Learning Phase ID",
+    title: "PhaseID Neural Net",
     description: "CNN-based pattern matching.",
     formulas: (
       <div className="space-y-4">

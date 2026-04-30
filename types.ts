@@ -228,6 +228,12 @@ export interface DLPhaseCandidate {
   density?: number; // g/cm3
   applications?: string[];
   materialType?: string;
+  molecularWeight?: number; // g/mol
+  hazards?: string[];
+  magneticProperties?: string;
+  bandGap?: number; // eV
+  elasticModulus?: number; // GPa
+  opticalProperties?: string;
 }
 
 export interface DLPhaseResult {

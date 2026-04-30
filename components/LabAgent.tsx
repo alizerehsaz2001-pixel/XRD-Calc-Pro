@@ -58,13 +58,28 @@ export const LabAgent: React.FC = () => {
         isStreaming: true 
       }]);
 
-      const result = await chatSession.current.sendMessageStream({ message: userMsg });
+      const resultStream = await chatSession.current.sendMessageStream({ message: userMsg });
       
       let fullText = '';
+      let finalSources: GroundingSource[] = [];
       
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
+      for await (const chunk of resultStream) {
+        const c = chunk as any;
+        const chunkText = c.text || '';
         fullText += chunkText;
+        
+        // Extract grounding sources if they exist in the chunk
+        const groundingMetadata = c.candidates?.[0]?.groundingMetadata;
+        if (groundingMetadata?.groundingChunks) {
+           const chunks = groundingMetadata.groundingChunks as any[];
+           const sources = chunks
+              .map((chunk) => chunk.web ? { title: chunk.web.title, uri: chunk.web.uri } : null)
+              .filter((s): s is GroundingSource => s !== null);
+           
+           if (sources.length > 0) {
+             finalSources = [...finalSources, ...sources];
+           }
+        }
         
         setMessages(prev => {
           const newMessages = [...prev];
@@ -79,14 +94,6 @@ export const LabAgent: React.FC = () => {
         });
       }
 
-      const response = await result.response;
-      const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
-      const sources: GroundingSource[] = groundingMetadata?.groundingChunks 
-        ? (groundingMetadata.groundingChunks as any[])
-          .map((chunk) => chunk.web ? { title: chunk.web.title, uri: chunk.web.uri } : null)
-          .filter((s): s is GroundingSource => s !== null)
-        : [];
-
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMsgIdx = newMessages.length - 1;
@@ -94,7 +101,7 @@ export const LabAgent: React.FC = () => {
           newMessages[lastMsgIdx] = { 
             ...newMessages[lastMsgIdx], 
             text: fullText,
-            sources: sources.length > 0 ? sources : undefined,
+            sources: finalSources.length > 0 ? Array.from(new Set(finalSources.map(s => JSON.stringify(s)))).map(s => JSON.parse(s)) : undefined,
             isStreaming: false
           };
         }

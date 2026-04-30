@@ -180,7 +180,7 @@ const App: React.FC = () => {
     { id: 'rietveld', label: 'Rietveld Setup', group: 'Advanced Sim' },
     { id: 'neutron', label: 'Neutron Diffraction', group: 'Advanced Sim' },
     { id: 'magnetic', label: 'Magnetic Diffraction', group: 'Advanced Sim' },
-    { id: 'dl', label: 'Deep Learning Phase ID', group: 'AI Tools' },
+    { id: 'dl', label: 'PhaseID Neural Net', group: 'AI Tools' },
     { id: 'agent', label: 'Crystal Intelligence Hub', group: 'AI Tools' },
     { id: 'prompt_eng', label: 'Prompt Engineering', group: 'AI Tools' },
     { id: 'image_analysis', label: 'Image Analysis', group: 'AI Tools' },
