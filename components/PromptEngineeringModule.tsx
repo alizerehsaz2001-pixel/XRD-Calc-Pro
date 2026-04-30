@@ -3,7 +3,7 @@ import { Sparkles, ArrowRight, Wand2, Copy, CheckCircle2, Loader2, BookOpen, Mes
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 
 export const PromptEngineeringModule: React.FC = () => {
-  const [inputPrompt, setInputPrompt] = useState('');
+  const [inputPrompt, setInputPrompt] = useState('Generate a simulated XRD pattern for Silicon (Si) using Cu K-alpha radiation, including peak positions and intensities, formatted as a markdown table.');
   const [enhancedPrompt, setEnhancedPrompt] = useState('');
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -54,10 +54,10 @@ Do not answer the user's question. ONLY output the newly enhanced prompt text. D
   };
 
   const suggestions = [
-    "Tell me about TiO2 phases",
-    "How do I use Rietveld refinement?",
-    "Why are some peaks missing in FCC?",
-    "Compare Scherrer and Williamson-Hall",
+    "Simulate Silicon (Si) XRD pattern with Cu K-alpha",
+    "Compare X-ray vs Neutron scattering for light elements",
+    "Identify space group and atoms for Anatase TiO2",
+    "Guide for Williamson-Hall plot strain analysis",
   ];
 
   return (
