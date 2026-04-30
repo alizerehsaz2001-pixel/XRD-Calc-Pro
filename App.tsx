@@ -22,6 +22,7 @@ import { ImageGenerationModule } from './components/ImageGenerationModule';
 import { ProfilePage } from './components/ProfilePage';
 import { LearnModule } from './components/LearnModule';
 import { AIChatSupport } from './components/AIChatSupport';
+import { PromptEngineeringModule } from './components/PromptEngineeringModule';
 import { ModuleIntro } from './components/ModuleIntro';
 import { LandingPage } from './components/LandingPage';
 import { RegistrationPage } from './components/RegistrationPage';
@@ -31,7 +32,7 @@ import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap } from 'lucide-react';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'crystal_mind' | 'image_gen' | 'learn' | 'profile' | 'agent';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'crystal_mind' | 'image_gen' | 'learn' | 'profile' | 'agent' | 'prompt_eng';
 
 const App: React.FC = () => {
   const [isRegistered, setIsRegistered] = useState<boolean>(() => {
@@ -181,6 +182,7 @@ const App: React.FC = () => {
     { id: 'magnetic', label: 'Magnetic Diffraction', group: 'Advanced Sim' },
     { id: 'dl', label: 'Deep Learning Phase ID', group: 'AI Tools' },
     { id: 'agent', label: 'Crystal Intelligence Hub', group: 'AI Tools' },
+    { id: 'prompt_eng', label: 'Prompt Engineering', group: 'AI Tools' },
     { id: 'image_analysis', label: 'Image Analysis', group: 'AI Tools' },
     { id: 'image_gen', label: 'Scientific Illustrator', group: 'AI Tools' },
     { id: 'crystal_mind', label: 'CrystalMind Control', group: 'AI Tools' },
@@ -369,6 +371,7 @@ const App: React.FC = () => {
                   {activeModule === 'magnetic' && <MagneticNeutronModule />}
                   {activeModule === 'dl' && <DeepLearningModule />}
                   {activeModule === 'agent' && <LabAgent />}
+                  {activeModule === 'prompt_eng' && <PromptEngineeringModule />}
                   {activeModule === 'image_analysis' && <ImageAnalysisModule />}
                   {activeModule === 'image_gen' && <ImageGenerationModule />}
                   {activeModule === 'crystal_mind' && <CrystalMindModule />}

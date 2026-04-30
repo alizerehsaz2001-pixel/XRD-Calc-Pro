@@ -345,6 +345,22 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; formu
         </div>
       </div>
     )
+  },
+  prompt_eng: {
+    title: "Crystallography Prompt Engineering",
+    description: "Transform simple questions into highly optimized, scientifically rigorous prompts. Use these enhanced prompts in the Crystal Intelligence Hub to get precise, data-rich, and properly formatted crystallographic answers.",
+    formulas: (
+      <div className="space-y-4">
+        <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded border border-slate-200 dark:border-slate-700 transition-colors">
+           <p className="font-sans text-sm text-fuchsia-700 dark:text-fuchsia-400 font-bold uppercase mb-3">Optimization Mechanics</p>
+           <ul className="text-sm text-slate-700 dark:text-slate-400 list-disc pl-5 space-y-2">
+             <li><strong>Context Injection:</strong> Automatically includes domain constraints (e.g., XRD, radiation type).</li>
+             <li><strong>Persona Alignment:</strong> Directs the LLM to act as a senior materials scientist.</li>
+             <li><strong>Format Structuring:</strong> Enforces outputs using markdown tables, bullet points, and specific notations (e.g., Hermann-Mauguin).</li>
+           </ul>
+        </div>
+      </div>
+    )
   }
 };
 
