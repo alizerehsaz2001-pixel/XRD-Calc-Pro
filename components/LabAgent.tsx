@@ -141,28 +141,33 @@ export const LabAgent: React.FC = () => {
       
       <div className={`${showPanel && !fullScreen ? 'lg:col-span-8 xl:col-span-9' : 'col-span-1'} flex flex-col h-full bg-[#05060b] backdrop-blur-2xl border border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-3xl overflow-hidden transition-all duration-700 relative z-10`}>
         
-        <div className="px-6 py-5 bg-gradient-to-r from-slate-950/80 to-indigo-950/20 border-b border-white/5 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-5">
+        <div className="px-6 py-4 bg-slate-950/90 border-b border-white/5 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-6">
              <div className="flex gap-2.5">
-               <div className="w-3.5 h-3.5 rounded-full bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500 transition-all cursor-pointer" />
-               <div className="w-3.5 h-3.5 rounded-full bg-amber-500/20 border border-amber-500/30 hover:bg-amber-500 transition-all cursor-pointer" />
-               <div className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 hover:bg-emerald-500 transition-all cursor-pointer" onClick={() => setShowPanel(!showPanel)} title="Toggle Panel" />
+               <div className="w-3 h-3 rounded-full bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500 transition-all cursor-pointer" />
+               <div className="w-3 h-3 rounded-full bg-amber-500/20 border border-amber-500/30 hover:bg-amber-500 transition-all cursor-pointer" />
+               <div className="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500/30 hover:bg-emerald-500 transition-all cursor-pointer" onClick={() => setShowPanel(!showPanel)} title="Toggle Panel" />
              </div>
              
-             <div className="h-6 w-[1px] bg-white/10" />
+             <div className="h-6 w-[1px] bg-white/10 hidden sm:block" />
              
-             <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                   <Terminal className="w-4 h-4 text-indigo-400" />
-                   <span className="font-mono text-[11px] font-black tracking-widest text-indigo-100 uppercase">structural_intelligence_v4.2</span>
+             <div className="flex flex-col min-w-0 hidden sm:flex">
+                <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 rounded border border-indigo-500/30 bg-indigo-500/10 flex items-center justify-center shrink-0">
+                     <Terminal className="w-4 h-4 text-indigo-400" />
+                   </div>
+                   <div className="flex flex-col">
+                     <span className="font-sans text-sm font-bold text-slate-200 truncate">Structural Intelligence</span>
+                     <span className="font-mono text-[10px] text-indigo-400 uppercase tracking-widest">v4.2</span>
+                   </div>
                 </div>
              </div>
           </div>
 
           <div className="flex items-center gap-4">
-             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/50 border border-white/5">
+             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-mono text-slate-400 font-bold tracking-widest uppercase">SYSLINK_ESTABLISHED</span>
+                <span className="text-[10px] font-mono text-emerald-400 font-bold tracking-widest uppercase">SYSLINK_ESTABLISHED</span>
              </div>
 
              <div className="flex items-center bg-slate-900/80 rounded-xl p-1 border border-white/10">

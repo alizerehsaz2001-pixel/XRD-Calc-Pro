@@ -103,8 +103,9 @@ export const IntegralBreadthModule: React.FC = () => {
 
           <div className="space-y-6 relative z-10">
             {/* Smart Load Section */}
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+              <label className="block text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
                 Smart Data Load
               </label>
               <div className="flex gap-2">
@@ -113,65 +114,74 @@ export const IntegralBreadthModule: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="e.g. Zinc Oxide"
-                  className="flex-1 px-4 py-2.5 bg-black/40 text-purple-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none text-sm transition-all placeholder:text-slate-600"
+                  className="flex-1 px-4 py-3 bg-black/40 text-purple-400 border border-slate-600 focus:border-purple-500 rounded-lg focus:ring-2 focus:ring-purple-500/20 outline-none text-sm transition-all placeholder:text-slate-600"
                   onKeyDown={(e) => e.key === 'Enter' && handleSmartLoad()}
                 />
                 <button
                   onClick={handleSmartLoad}
                   disabled={isThinking || !searchQuery.trim()}
-                  className="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold rounded-lg transition-all flex items-center gap-2 border border-purple-500 disabled:border-slate-600"
+                  className="px-4 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold rounded-lg transition-all flex items-center justify-center min-w-[100px] gap-2 border border-purple-500 hover:border-purple-400 transition-colors disabled:border-slate-700 group disabled:opacity-80"
                 >
-                  {isThinking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {isThinking ? <Loader2 className="w-4 h-4 animate-spin text-purple-300" /> : <Sparkles className="w-4 h-4 text-purple-300 group-hover:text-white transition-colors" />}
                   <span className="hidden sm:inline">Load</span>
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                  Wavelength (Å)
-                </label>
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
+                Wavelength (Å)
+              </label>
+              <div className="relative">
                 <input
                   type="number"
                   step="0.0001"
                   value={wavelength}
                   onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                  className="w-full px-4 py-2.5 bg-black/40 text-purple-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none font-mono text-sm transition-all"
+                  className="w-full px-4 py-3 bg-black/40 text-purple-400 border border-slate-600 focus:border-purple-500 rounded-lg focus:ring-2 focus:ring-purple-500/20 outline-none font-mono text-sm transition-all placeholder:text-slate-600"
                 />
-              </div>
-              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                  Constant K
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={constantK}
-                  onChange={(e) => setConstantK(parseFloat(e.target.value))}
-                  className="w-full px-4 py-2.5 bg-black/40 text-purple-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none font-mono text-sm transition-all"
-                />
+                <button 
+                  onClick={() => setWavelength(1.5406)}
+                  className="absolute right-2 top-2 bottom-2 px-3 text-[10px] font-bold text-slate-400 bg-slate-800 hover:bg-purple-500/20 hover:text-purple-400 border border-slate-700 hover:border-purple-500/50 rounded transition-colors flex items-center justify-center uppercase tracking-wider"
+                >
+                  Cu Kα ≈ 1.5406
+                </button>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
               <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                Peak Data Input
+                Constant K
               </label>
-              <div className="bg-black/40 p-2.5 rounded-lg border border-slate-700 text-[10px] text-slate-400 mb-3 font-mono flex items-center gap-2 uppercase tracking-wider">
-                <Info className="w-4 h-4 text-purple-500 shrink-0" />
-                Format: 2θ, FWHM, Area, Imax
+              <input
+                type="number"
+                step="0.1"
+                value={constantK}
+                onChange={(e) => setConstantK(parseFloat(e.target.value))}
+                className="w-full px-4 py-3 bg-black/40 text-purple-400 border border-slate-600 focus:border-purple-500 rounded-lg focus:ring-2 focus:ring-purple-500/20 outline-none font-mono text-sm transition-all placeholder:text-slate-600"
+              />
+            </div>
+
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+              <div className="flex justify-between items-end mb-3">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Peak Data Input
+                </label>
+                <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-800 px-2 py-1 rounded border border-slate-700">
+                  <span>Format: 2θ, FWHM, Area, Imax</span>
+                </div>
               </div>
               <textarea
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}
                 placeholder="28.44, 0.22, 230, 1000"
-                className="w-full h-32 px-4 py-3 bg-black/40 text-purple-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none font-mono text-sm leading-relaxed resize-none transition-all"
+                className="w-full h-32 px-4 py-3 bg-black/40 text-purple-400 border border-slate-600 focus:border-purple-500 rounded-lg focus:ring-2 focus:ring-purple-500/20 outline-none font-mono text-sm leading-relaxed resize-none transition-all placeholder:text-slate-700"
                 spellCheck={false}
               />
-              <p className="text-[10px] text-slate-500 mt-3 uppercase tracking-wider font-bold">
-                β = Area / Imax. Ensure consistent units.
-              </p>
+              <div className="mt-3 flex items-start gap-2 text-[11px] font-bold text-slate-400 bg-slate-800/80 p-3 rounded-lg border border-slate-700/50">
+                <Info className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+                <span><span className="text-purple-400">β = Area / Imax.</span> Ensure consistent units.</span>
+              </div>
             </div>
 
             <button
@@ -184,23 +194,33 @@ export const IntegralBreadthModule: React.FC = () => {
         </div>
 
         {/* Theory Card */}
-        <div className="bg-slate-900 p-6 rounded-xl text-white border border-slate-800">
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-bold">Theory: Integral Breadth</h3>
+        <div className="bg-slate-900/50 p-6 rounded-2xl text-white border border-slate-800/50">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-purple-500/10 rounded-lg border border-purple-500/20">
+              <BookOpen className="w-4 h-4 text-purple-400" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Theory</h3>
           </div>
-          <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
-            <div className="bg-slate-800 p-3 rounded-lg font-mono text-center text-purple-300 text-sm mb-2">
+          <div className="space-y-4 text-sm text-slate-400 leading-relaxed">
+            <div className="bg-black/40 p-4 rounded-xl font-mono text-center text-purple-300 text-sm border border-slate-800 shadow-inner">
               β = Area / Imax
             </div>
             <p>
               Integral Breadth uses the total area under the peak divided by the maximum intensity. It is often more robust than FWHM for irregular peak shapes.
             </p>
-            <div>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Shape Factor (φ = FWHM / β)</span>
-              <ul className="space-y-1 pl-2 border-l-2 border-slate-700">
-                <li><span className="text-blue-400 font-bold">Lorentzian:</span> φ ≈ 0.636</li>
-                <li><span className="text-emerald-400 font-bold">Gaussian:</span> φ ≈ 0.939</li>
+            <div className="pt-2">
+              <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-3">Shape Factor (φ = FWHM / β)</span>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-3 text-xs bg-slate-800/30 p-2 rounded-lg border border-slate-700/30">
+                  <span className="w-2 h-2 rounded-full bg-blue-400" />
+                  <span className="font-bold text-slate-300 flex-1">Lorentzian</span>
+                  <span className="font-mono text-blue-400">φ ≈ 0.636</span>
+                </li>
+                <li className="flex items-center gap-3 text-xs bg-slate-800/30 p-2 rounded-lg border border-slate-700/30">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="font-bold text-slate-300 flex-1">Gaussian</span>
+                  <span className="font-mono text-emerald-400">φ ≈ 0.939</span>
+                </li>
               </ul>
             </div>
           </div>
@@ -210,65 +230,70 @@ export const IntegralBreadthModule: React.FC = () => {
       {/* Results Section */}
       <div className="lg:col-span-8 space-y-6">
         {/* Summary Card */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between bg-gradient-to-r from-purple-50 to-white">
-           <div>
-             <h3 className="text-lg font-bold text-slate-800">Average Crystallite Size</h3>
-             <p className="text-sm text-slate-600">Calculated from {results.length} peaks using Integral Breadth</p>
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 flex items-center justify-between relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-bl-full transition-all group-hover:scale-110" />
+           <div className="relative z-10">
+             <h3 className="text-xl font-bold text-white">Average Crystallite Size</h3>
+             <p className="text-sm text-slate-400 mt-1">Calculated from {results.length} peaks using Integral Breadth</p>
            </div>
-           <div className="text-right">
-             <span className="text-4xl font-black text-purple-700">{avgSize.toFixed(2)}</span>
-             <span className="text-lg text-slate-700 font-bold ml-1">nm</span>
+           <div className="text-right relative z-10">
+             <span className="text-5xl font-black text-purple-400">{avgSize.toFixed(2)}</span>
+             <span className="text-xl text-purple-500/50 font-bold ml-2">nm</span>
            </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden flex flex-col min-h-[500px]">
-          <div className="p-4 border-b border-slate-300 bg-slate-100 flex justify-between items-center">
-            <h3 className="font-bold text-slate-800">Detailed Analysis</h3>
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+        <div className="bg-slate-900 rounded-2xl shadow-xl border border-slate-800 overflow-hidden flex flex-col min-h-[500px]">
+          <div className="p-5 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+            <h3 className="font-bold text-white uppercase tracking-wider text-sm">Detailed Analysis</h3>
+            <div className="flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-lg border border-slate-700">
+              <Activity className="w-4 h-4 text-purple-400" />
+              <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">
                 Profile Analysis
               </span>
             </div>
           </div>
-          <div className="overflow-x-auto overflow-y-auto flex-1">
+          <div className="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar">
             {results.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-400 p-12 text-center">
+              <div className="flex flex-col items-center justify-center h-full text-slate-500 p-12 text-center border-2 border-dashed border-slate-800 m-6 rounded-xl bg-slate-900/50">
                 <Calculator className="w-12 h-12 mb-4 opacity-20" />
-                <p className="font-medium">No data calculated</p>
+                <p className="font-bold text-slate-400">No data calculated</p>
                 <p className="text-xs mt-1">Enter peak parameters to see integral breadth analysis.</p>
               </div>
             ) : (
-              <table className="w-full text-sm text-left text-slate-800">
-                <thead className="text-xs text-slate-900 uppercase bg-slate-200 sticky top-0">
+              <table className="w-full text-sm text-left text-slate-300">
+                <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-slate-800/80 sticky top-0 backdrop-blur-md z-10">
                   <tr>
-                    <th scope="col" className="px-6 py-4 font-bold border-b border-slate-300">2θ (deg)</th>
-                    <th scope="col" className="px-6 py-4 font-bold border-b border-slate-300">β_IB (deg)</th>
-                    <th scope="col" className="px-6 py-4 font-bold border-b border-slate-300">Shape Factor (φ)</th>
-                    <th scope="col" className="px-6 py-4 font-bold border-b border-slate-300">Profile Type</th>
-                    <th scope="col" className="px-6 py-4 font-bold border-b border-slate-300 text-right">Size (nm)</th>
+                    <th scope="col" className="px-6 py-4 font-black border-b border-slate-700">2θ (deg)</th>
+                    <th scope="col" className="px-6 py-4 font-black border-b border-slate-700">β_IB (deg)</th>
+                    <th scope="col" className="px-6 py-4 font-black border-b border-slate-700">Shape Factor (φ)</th>
+                    <th scope="col" className="px-6 py-4 font-black border-b border-slate-700">Profile Type</th>
+                    <th scope="col" className="px-6 py-4 font-black border-b border-slate-700 text-right">Size (nm)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-slate-800/50 bg-slate-900/30">
                   {results.map((res, index) => {
                     const profile = getProfileType(res.shapeFactorPhi);
                     return (
-                      <tr key={index} className="bg-white border-b hover:bg-purple-50 transition-colors group">
-                        <td className="px-6 py-4 font-bold text-slate-900">
+                      <tr key={index} className="hover:bg-purple-900/10 transition-colors group">
+                        <td className="px-6 py-4 font-bold text-slate-200">
                           {res.twoTheta.toFixed(2)}
                         </td>
-                        <td className="px-6 py-4 font-mono text-purple-700 font-bold">
+                        <td className="px-6 py-4 font-mono text-purple-400 font-bold group-hover:text-purple-300 transition-colors">
                           {res.integralBreadthDeg.toFixed(4)}
                         </td>
-                        <td className="px-6 py-4 font-mono text-slate-700">
+                        <td className="px-6 py-4 font-mono text-slate-400">
                           {res.shapeFactorPhi.toFixed(3)}
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${profile.bg} ${profile.color}`}>
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
+                            profile.type === 'Gaussian' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                            profile.type === 'Lorentzian' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                          }`}>
                             {profile.type}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-mono text-right font-bold text-slate-900 text-lg">
+                        <td className="px-6 py-4 font-mono text-right font-black text-slate-200 text-lg">
                           {res.calcSizeNm.toFixed(2)}
                         </td>
                       </tr>
