@@ -1,15 +1,60 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { CrystalSystem, SelectionRuleResult } from '../types';
 import { parseHKLString, validateSelectionRule } from '../utils/physics';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, XCircle, Info, RefreshCw, Filter, BookOpen, Layers, Zap } from 'lucide-react';
+import { CheckCircle2, XCircle, Info, RefreshCw, Filter, BookOpen, Layers, Zap, ChevronDown, Check } from 'lucide-react';
 
 export const SelectionRulesModule: React.FC = () => {
   const [system, setSystem] = useState<CrystalSystem>('FCC');
+  const [isSystemMenuOpen, setIsSystemMenuOpen] = useState(false);
   const [hklInput, setHklInput] = useState<string>('1 0 0, 1 1 0, 1 1 1, 2 0 0, 2 1 0, 2 2 0, 3 1 1');
   const [results, setResults] = useState<SelectionRuleResult[]>([]);
   const [filter, setFilter] = useState<'All' | 'Allowed' | 'Forbidden'>('All');
   const [maxIndex, setMaxIndex] = useState<number>(3);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsSystemMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const systemGroups = [
+    {
+      label: 'Cubic',
+      options: [
+        { value: 'SC', label: 'Simple Cubic', badge: 'P' },
+        { value: 'BCC', label: 'Body-Centered', badge: 'I' },
+        { value: 'FCC', label: 'Face-Centered', badge: 'F' },
+        { value: 'Diamond', label: 'Diamond', badge: 'Fd-3m' }
+      ]
+    },
+    {
+      label: 'Hexagonal',
+      options: [
+        { value: 'Hexagonal', label: 'Hexagonal', badge: 'HCP' }
+      ]
+    },
+    {
+      label: 'Tetragonal',
+      options: [
+        { value: 'Tetragonal', label: 'Primitive', badge: 'P' },
+        { value: 'Tetragonal_I', label: 'Body-Centered', badge: 'I' }
+      ]
+    },
+    {
+      label: 'Orthorhombic',
+      options: [
+        { value: 'Orthorhombic', label: 'Primitive', badge: 'P' },
+        { value: 'Orthorhombic_F', label: 'Face-Centered', badge: 'F' },
+        { value: 'Orthorhombic_C', label: 'Base-Centered', badge: 'C' }
+      ]
+    }
+  ];
 
   const handleValidate = () => {
     const hklList = parseHKLString(hklInput);
@@ -128,34 +173,79 @@ export const SelectionRulesModule: React.FC = () => {
           </div>
 
           <div className="space-y-6 relative z-10">
-            <div>
+            <div className="relative" ref={menuRef}>
               <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                Crystal System
+                Crystal System / Lattice
               </label>
-              <select
-                value={system}
-                onChange={(e) => setSystem(e.target.value as CrystalSystem)}
-                className="w-full px-4 py-3 border border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-slate-800/50 font-medium text-white appearance-none"
+              <button
+                onClick={() => setIsSystemMenuOpen(!isSystemMenuOpen)}
+                className="w-full px-4 py-3 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 rounded-xl outline-none transition-all flex items-center justify-between group shadow-inner"
               >
-                <optgroup label="Cubic" className="bg-slate-800 text-white">
-                  <option value="SC">Simple Cubic (SC)</option>
-                  <option value="BCC">Body Centered Cubic (BCC)</option>
-                  <option value="FCC">Face Centered Cubic (FCC)</option>
-                  <option value="Diamond">Diamond Cubic</option>
-                </optgroup>
-                <optgroup label="Hexagonal" className="bg-slate-800 text-white">
-                  <option value="Hexagonal">Hexagonal (HCP)</option>
-                </optgroup>
-                <optgroup label="Tetragonal" className="bg-slate-800 text-white">
-                  <option value="Tetragonal">Primitive (P)</option>
-                  <option value="Tetragonal_I">Body Centered (I)</option>
-                </optgroup>
-                <optgroup label="Orthorhombic" className="bg-slate-800 text-white">
-                  <option value="Orthorhombic">Primitive (P)</option>
-                  <option value="Orthorhombic_F">Face Centered (F)</option>
-                  <option value="Orthorhombic_C">Base Centered (C)</option>
-                </optgroup>
-              </select>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400 font-bold text-xs">
+                    {systemGroups.flatMap(g => g.options).find(o => o.value === system)?.badge}
+                  </div>
+                  <div className="flex flex-col items-start gap-0.5">
+                    <span className="text-sm font-bold text-white leading-none">
+                      {systemGroups.flatMap(g => g.options).find(o => o.value === system)?.label}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono uppercase tracking-widest leading-none">
+                      {systemGroups.find(g => g.options.some(o => o.value === system))?.label} Family
+                    </span>
+                  </div>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isSystemMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {isSystemMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full left-0 right-0 mt-2 bg-slate-800 rounded-xl border border-slate-700 shadow-2xl overflow-hidden z-50 max-h-[350px] overflow-y-auto custom-scrollbar"
+                  >
+                    {systemGroups.map((group, gIdx) => (
+                      <div key={gIdx} className="border-b border-slate-700/50 last:border-0">
+                        <div className="px-4 py-2 bg-slate-900/50">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            {group.label} System
+                          </span>
+                        </div>
+                        <div>
+                          {group.options.map((option, oIdx) => (
+                            <button
+                              key={oIdx}
+                              onClick={() => {
+                                setSystem(option.value as CrystalSystem);
+                                setIsSystemMenuOpen(false);
+                              }}
+                              className={`w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700/50 transition-colors group/item
+                                ${system === option.value ? 'bg-emerald-500/10' : ''}
+                              `}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`w-7 h-7 rounded border flex items-center justify-center text-[10px] font-bold transition-colors
+                                  ${system === option.value 
+                                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' 
+                                    : 'bg-slate-800 border-slate-600 text-slate-400 group-hover/item:border-slate-500'}
+                                `}>
+                                  {option.badge}
+                                </div>
+                                <span className={`text-sm font-medium transition-colors ${system === option.value ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                  {option.label}
+                                </span>
+                              </div>
+                              {system === option.value && <Check className="w-4 h-4 text-emerald-400" />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">

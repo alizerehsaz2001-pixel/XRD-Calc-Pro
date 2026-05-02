@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CrystalMindResponse, CrystalMindSearchResult } from '../types';
 import { searchCrystalDatabase } from '../services/geminiService';
 
@@ -11,21 +11,26 @@ export const CrystalMindModule: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<CrystalMindResponse | null>(null);
   const [history, setHistory] = useState<CrystalMindResponse[]>([]);
+  const bounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const handleInitiateControl = async () => {
+  const executeSearch = async (cmd: string, elems: string, target: string, peaks: string) => {
     setLoading(true);
     setResponse(null);
 
     try {
-      const elements = elementsInput.split(/[\s,]+/).filter(s => s);
-      const peaks = peaksInput 
-        ? peaksInput.split(/[\s,]+/).map(parseFloat).filter(n => !isNaN(n))
+      const elements = elems.split(/[\s,]+/).filter(s => s);
+      const numericalPeaks = peaks 
+        ? peaks.split(/[\s,]+/).map(parseFloat).filter(n => !isNaN(n))
         : undefined;
 
-      const data = await searchCrystalDatabase(command, elements, databaseTarget, peaks);
+      const data = await searchCrystalDatabase(cmd, elements, target as any, numericalPeaks);
       setResponse(data);
       if (data.status === 'success') {
-        setHistory(prev => [data, ...prev].slice(0, 5)); // Keep last 5
+        setHistory(prev => {
+           const isDuplicate = prev.some(h => h.control_message === data.control_message);
+           if (isDuplicate) return prev;
+           return [data, ...prev].slice(0, 5);
+        }); 
       }
     } catch (e) {
       console.error(e);
@@ -33,6 +38,22 @@ export const CrystalMindModule: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const handleInitiateControl = async () => {
+    executeSearch(command, elementsInput, databaseTarget, peaksInput);
+  };
+
+  useEffect(() => {
+    if (bounceTimer.current) clearTimeout(bounceTimer.current);
+    bounceTimer.current = setTimeout(() => {
+      if (command.trim().length > 3) {
+        executeSearch(command, elementsInput, databaseTarget, peaksInput);
+      }
+    }, 800);
+    return () => {
+      if (bounceTimer.current) clearTimeout(bounceTimer.current);
+    };
+  }, [command]);
 
   const loadFromHistory = (item: CrystalMindResponse) => {
     setResponse(item);

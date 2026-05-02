@@ -5,6 +5,7 @@ import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import {
   ComposedChart,
   Bar,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -497,23 +498,68 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
   const parsedPoints = parseXYData(inputData);
   
   // Prepare Chart Data
-  // We merge input points and selected candidate reference peaks for visualization
-  const chartData = parsedPoints.map(p => ({
-    twoTheta: p.twoTheta,
-    intensity: p.intensity,
-    refIntensity: null // Placeholder
-  }));
+  const generateChartData = () => {
+    if (!parsedPoints.length) return [];
+    
+    const isDiscrete = parsedPoints.length <= 50;
+    
+    // Sort parsed points
+    const sortedPoints = [...parsedPoints].sort((a, b) => a.twoTheta - b.twoTheta);
+    
+    if (!isDiscrete) {
+      // If it's continuous experimental data, just map it and add ref intensity if matched
+      return sortedPoints.map(p => {
+         let refInt = null;
+         // For continuous, we just show reference as sticks or we don't merge them.
+         // Wait, merging them into the continuous is hard because x-values won't match exactly.
+         // Better to return the raw data and use Scatter for ref Data
+         return {
+           twoTheta: p.twoTheta,
+           intensity: p.intensity,
+           refIntensity: null
+         };
+      });
+    }
+    
+    // For discrete stick data, generate a continuous gaussian spectrum
+    const minT = Math.max(0, sortedPoints[0].twoTheta - 10);
+    const maxT = sortedPoints[sortedPoints.length - 1].twoTheta + 10;
+    
+    const data = [];
+    const sigma = 0.5; // Controls width of the simulated peaks
+    const sigma22 = 2 * sigma * sigma;
 
-  // If a candidate is selected, we want to show its reference peaks
-  // We can add them as a separate Scatter series
+    for (let t = minT; t <= maxT; t += 0.2) {
+      let intensity = 0;
+      for (const p of sortedPoints) {
+        intensity += p.intensity * Math.exp(-Math.pow(t - p.twoTheta, 2) / sigma22);
+      }
+      
+      let refIntensity = 0;
+      if (selectedCandidate && selectedCandidate.matched_peaks) {
+         for (const mp of selectedCandidate.matched_peaks) {
+            refIntensity += mp.refI * Math.exp(-Math.pow(t - mp.refT, 2) / sigma22);
+         }
+      }
+      
+      data.push({
+        twoTheta: Number(t.toFixed(2)),
+        intensity: Number(intensity.toFixed(1)),
+        refIntensity: selectedCandidate ? Number(refIntensity.toFixed(1)) : null
+      });
+    }
+    return data;
+  };
+
+  const chartData = generateChartData();
+  const isDiscrete = parsedPoints.length <= 50;
+
+  // We keep refData as scatter for continuous case
   const refData = selectedCandidate?.matched_peaks?.map(mp => ({
     twoTheta: mp.refT,
     refIntensity: mp.refI,
     intensity: null
   })) || [];
-
-  // Combined data for the chart is tricky because X-values differ. 
-  // For ComposedChart, it's often easier to just overlay Scatter on the same XAxis domain.
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -576,9 +622,19 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 <button 
                   onClick={handleSmartSearch}
                   disabled={isSearchingAI || !searchTerm.trim()}
-                  className="absolute right-2 top-2 bottom-2 px-3 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-95 disabled:bg-slate-300 disabled:shadow-none flex items-center gap-1.5"
+                  className="absolute right-2 top-2 bottom-2 px-4 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-95 disabled:bg-slate-300 disabled:shadow-none flex items-center gap-2 group w-auto min-w-[90px] justify-center"
                 >
-                  {isSearchingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Database className="w-3 h-3" /> Fetch</>}
+                  {isSearchingAI ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Fetching...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Database className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                      <span>Fetch via AI</span>
+                    </>
+                  )}
                 </button>
               </div>
 
@@ -612,7 +668,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     <div className="p-6 flex flex-col items-center justify-center text-center">
                        <Search className="w-8 h-8 text-slate-300 mb-2" />
                        <p className="text-slate-500 text-sm font-semibold mb-1">Not in local database</p>
-                       <p className="text-slate-400 text-xs">Press <kbd className="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-mono text-[10px] mx-1">Enter</kbd> or click <span className="font-bold">Fetch</span> to synthesize pattern with AI.</p>
+                       <p className="text-slate-400 text-xs">Press <kbd className="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-mono text-[10px] mx-1">Enter</kbd> or click <span className="font-bold">Fetch via AI</span> to synthesize pattern.</p>
                     </div>
                   )}
                 </div>
@@ -794,22 +850,57 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                      {isActive && (
                        <div className="flex items-center gap-2">
                          <div className="text-[9px] font-mono text-emerald-400 flex flex-col items-end">
-                           <span>LOSS: {(Math.random() * 0.1).toFixed(4)}</span>
-                           <span>ACC: {(95 + Math.random() * 4).toFixed(2)}%</span>
+                           <span>OPT: ADAM</span>
+                           <span>{idx === 2 ? `CANDS: ~${(100 + Math.random() * 50).toFixed(0)}K` : `ACC: ${(95 + Math.random() * 4).toFixed(2)}%`}</span>
                          </div>
                        </div>
                      )}
                    </div>
                    
-                   {/* Layer Activation Visualization */}
-                   {isActive && idx === 1 && (
-                     <div className="ml-11 mt-2 pl-2 border-l border-violet-500/30">
-                       <div className="grid grid-cols-6 gap-1 w-full max-w-[150px]">
-                         {[...Array(12)].map((_, i) => (
-                           <div key={i} className="h-4 rounded-sm bg-violet-500 animate-pulse" style={{ opacity: Math.random() * 0.8 + 0.2, animationDelay: `${i * 0.1}s` }} />
-                         ))}
-                       </div>
-                       <p className="text-[9px] text-slate-500 font-mono mt-1">MaxPool2d_1 Activation Maps</p>
+                   {/* Layer Details & Visualizations */}
+                   {(isActive || isCompleted) && (
+                     <div className="ml-11 mt-1 pl-2 border-l border-slate-700/50">
+                         {idx === 0 && isActive && (
+                            <div className="text-[9px] text-slate-400 font-mono space-y-1 mb-2">
+                               <p className="animate-pulse flex items-center gap-2"><span className="text-violet-500">&gt;</span> Tensor shape: [1, 2048, 1]</p>
+                               <p className="animate-pulse flex items-center gap-2" style={{animationDelay: '0.2s'}}><span className="text-violet-500">&gt;</span> Smoothing: Savitzky-Golay</p>
+                               <p className="animate-pulse flex items-center gap-2" style={{animationDelay: '0.4s'}}><span className="text-violet-500">&gt;</span> Background sub: Backcor</p>
+                            </div>
+                         )}
+                         
+                         {idx === 1 && isActive && (
+                           <div className="mb-2">
+                             <div className="text-[9px] text-slate-400 font-mono space-y-1 mb-2">
+                                <p className="flex justify-between"><span>Conv1D_1: [64, 3]</span> <span className="text-violet-400">{Math.floor(Math.random() * 99)}ms</span></p>
+                                <p className="flex justify-between"><span>MaxPool1D_1: [2]</span> <span className="text-violet-400">{Math.floor(Math.random() * 99)}ms</span></p>
+                                <p className="flex justify-between"><span>Conv1D_2: [128, 5]</span> <span className="text-violet-400">{Math.floor(Math.random() * 99)}ms</span></p>
+                             </div>
+                             <div className="grid grid-cols-8 gap-1 w-full max-w-[180px]">
+                               {[...Array(16)].map((_, i) => (
+                                 <div key={i} className="h-2 rounded-[2px] bg-violet-500 animate-[pulse_1s_ease-in-out_infinite]" style={{ opacity: Math.random() * 0.8 + 0.2, animationDelay: `${i * 0.05}s` }} />
+                               ))}
+                             </div>
+                             <p className="text-[8px] text-slate-500 font-mono mt-1.5 uppercase tracking-widest text-right max-w-[180px]">Feature Map Activations</p>
+                           </div>
+                         )}
+
+                         {idx === 2 && isActive && (
+                            <div className="text-[9px] text-slate-400 font-mono space-y-1.5 mb-2 mt-1">
+                               <p className="animate-pulse text-cyan-400 flex items-center gap-1.5"><Database className="w-3 h-3" /> Loading Index HNSW-1M...</p>
+                               <p>Performing Cosine Similarity Search</p>
+                               <div className="w-full max-w-[180px] bg-slate-800 h-1 mt-1 rounded-full overflow-hidden">
+                                  <div className="bg-cyan-500 h-full animate-[progress_1.5s_ease-in-out_infinite]" style={{width: `${10 + Math.random() * 80}%`}}></div>
+                               </div>
+                            </div>
+                         )}
+
+                         {idx === 3 && isActive && (
+                            <div className="text-[9px] text-slate-400 font-mono space-y-1 mb-2">
+                               <p className="flex justify-between"><span>Dense_1</span> <span>Softmax Evaluation</span></p>
+                               <p className="text-emerald-400 animate-pulse my-1">Computing Confidence Thresholds...</p>
+                               <p className="flex justify-between text-slate-500"><span>Loss</span> <span>Categorical Cross-Entropy</span></p>
+                            </div>
+                         )}
                      </div>
                    )}
                  </div>
@@ -858,6 +949,16 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
           <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-slate-950/80 rounded-xl border border-white/5 p-2 shadow-inner">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                <defs>
+                  <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorRv" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
                 <XAxis 
                   dataKey="twoTheta" 
@@ -874,14 +975,47 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#cbd5e1' }} />
                 
                 {/* Input Data */}
-                <Bar dataKey="intensity" barSize={3} fill="#6366f1" name="Input Pattern" radius={[2, 2, 0, 0]} />
+                {isDiscrete ? (
+                   <Area 
+                     type="monotone" 
+                     dataKey="intensity" 
+                     stroke="#8b5cf6" 
+                     fill="url(#colorUv)" 
+                     strokeWidth={2}
+                     name="Simulated Diffractogram" 
+                     activeDot={{ r: 4, fill: '#8b5cf6', stroke: '#fff' }}
+                   />
+                ) : (
+                   <Area 
+                     type="monotone" 
+                     dataKey="intensity" 
+                     stroke="#6366f1" 
+                     fill="url(#colorUv)" 
+                     strokeWidth={2}
+                     name="Input Pattern" 
+                   />
+                )}
                 
-                {/* Reference Data (if selected) */}
+                {/* Reference Data (Gaussian Simulation Overlay) */}
+                {isDiscrete && selectedCandidate && (
+                   <Area 
+                     type="monotone" 
+                     dataKey="refIntensity" 
+                     stroke="#f43f5e" 
+                     fill="url(#colorRv)" 
+                     fillOpacity={0.3}
+                     strokeWidth={1.5}
+                     strokeDasharray="4 4"
+                     name={`${selectedCandidate.phase_name} (Gaussian Fit)`} 
+                   />
+                )}
+                
+                {/* Reference Stick Data */}
                 {selectedCandidate && (
                   <Scatter 
                     data={refData} 
                     dataKey="refIntensity" 
-                    name={`${selectedCandidate.phase_name} (Database Ref)`} 
+                    name={`${selectedCandidate.phase_name} (Database Sticks)`} 
                     fill="#f43f5e" 
                     shape="diamond"
                   />

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ScherrerInput, ScherrerResult } from '../types';
 import { parseScherrerInput, calculateScherrer } from '../utils/physics';
-import { Info, BookOpen, AlertTriangle } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, ChevronDown, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 const K_FACTORS = [
   { label: 'Spherical (0.94)', value: 0.94, desc: 'Common for spherical crystallites' },
@@ -16,9 +17,23 @@ export const ScherrerModule: React.FC = () => {
   const [instFwhm, setInstFwhm] = useState<number>(0.1); // Instrumental broadening
   const [inputData, setInputData] = useState<string>("28.44, 0.25\n47.30, 0.28\n56.12, 0.32");
   const [selectedKType, setSelectedKType] = useState<string>('Cubic (0.9)');
+  const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
   
   const [results, setResults] = useState<ScherrerResult[]>([]);
   const [avgSize, setAvgSize] = useState<number>(0);
+  
+  // Ref for clicking outside
+  const kMenuRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (kMenuRef.current && !kMenuRef.current.contains(event.target as Node)) {
+        setIsKTypeMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleCalculate = () => {
     const peaks = parseScherrerInput(inputData);
@@ -60,7 +75,7 @@ export const ScherrerModule: React.FC = () => {
           </div>
 
           <div className="space-y-6 relative z-10">
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
               <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 Wavelength (Å)
               </label>
@@ -70,82 +85,125 @@ export const ScherrerModule: React.FC = () => {
                   step="0.0001"
                   value={wavelength}
                   onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                  className="w-full px-4 py-2.5 bg-black/40 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none font-mono text-sm transition-all"
+                  className="w-full px-4 py-3 bg-black/40 text-amber-400 border border-slate-600 focus:border-amber-500 rounded-lg focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all placeholder:text-slate-600"
                 />
-                <span className="absolute right-3 top-2.5 text-xs font-bold text-slate-500">Cu Kα ≈ 1.5406</span>
+                <button 
+                  onClick={() => setWavelength(1.5406)}
+                  className="absolute right-2 top-2 bottom-2 px-3 text-[10px] font-bold text-slate-400 bg-slate-800 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700 hover:border-amber-500/50 rounded transition-colors flex items-center justify-center uppercase tracking-wider"
+                >
+                  Cu Kα ≈ 1.5406
+                </button>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
               <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
                 Shape Factor (K)
               </label>
-              <div className="space-y-3">
-                <select 
-                  value={selectedKType}
-                  onChange={(e) => {
-                    setSelectedKType(e.target.value);
-                    const factor = K_FACTORS.find(k => k.label === e.target.value);
-                    if (factor && factor.value !== 0) setConstantK(factor.value);
-                  }}
-                  className="w-full px-4 py-2.5 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none bg-slate-800/80 text-white text-sm appearance-none"
+              <div className="space-y-3 relative" ref={kMenuRef}>
+                <button
+                  onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
+                  className="w-full px-4 py-3 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/50 rounded-xl outline-none transition-all flex items-center justify-between group shadow-inner"
                 >
-                  {K_FACTORS.map(k => (
-                    <option key={k.label} value={k.label} className="bg-slate-800">{k.label}</option>
-                  ))}
-                </select>
+                  <div className="flex flex-col items-start gap-0.5">
+                    <span className="text-sm font-bold text-white leading-none">
+                      {selectedKType}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isKTypeMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {isKTypeMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-12 left-0 right-0 mt-2 bg-slate-800 rounded-xl border border-slate-700 shadow-2xl overflow-hidden z-50 py-1"
+                    >
+                      {K_FACTORS.map((k) => (
+                        <button
+                          key={k.label}
+                          onClick={() => {
+                            setSelectedKType(k.label);
+                            if (k.value !== 0) setConstantK(k.value);
+                            setIsKTypeMenuOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700/50 transition-colors group/item
+                            ${selectedKType === k.label ? 'bg-amber-500/10' : ''}
+                          `}
+                        >
+                          <div className="flex flex-col items-start text-left">
+                            <span className={`text-sm font-bold transition-colors ${selectedKType === k.label ? 'text-amber-400' : 'text-slate-200'}`}>
+                              {k.label}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                              {k.desc}
+                            </span>
+                          </div>
+                          {selectedKType === k.label && <Check className="w-4 h-4 text-amber-400 shrink-0 ml-2" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 
                 <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={constantK}
-                    onChange={(e) => {
-                      setConstantK(parseFloat(e.target.value));
-                      setSelectedKType('Custom');
-                    }}
-                    className="flex-1 px-4 py-2.5 bg-black/40 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono text-sm transition-all"
-                  />
-                  <div className="flex-1 flex items-center gap-1.5 text-xs text-slate-400 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
-                    <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                    <span className="truncate">{K_FACTORS.find(k => k.label === selectedKType)?.desc || 'Custom value'}</span>
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={constantK}
+                      onChange={(e) => {
+                        setConstantK(parseFloat(e.target.value));
+                        setSelectedKType('Custom');
+                      }}
+                      className="w-full px-4 py-2.5 bg-black/40 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono text-sm transition-all"
+                    />
+                  </div>
+                  <div className="flex-1 flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-800/80 p-2.5 rounded-lg border border-slate-700/50 h-full">
+                    <Info className="w-4 h-4 text-amber-500 shrink-0" />
+                    <span className="truncate leading-tight">{K_FACTORS.find(k => k.label === selectedKType)?.desc || 'Custom manually entered size factor.'}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                Instrumental Broadening (deg)
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider flex justify-between">
+                <span>Instrumental Broadening</span>
+                <span className="text-[10px] text-slate-500 font-mono">(deg)</span>
               </label>
               <input
                 type="number"
                 step="0.01"
                 value={instFwhm}
                 onChange={(e) => setInstFwhm(parseFloat(e.target.value))}
-                className="w-full px-4 py-2.5 bg-black/40 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono text-sm transition-all"
+                className="w-full px-4 py-3 bg-black/40 text-amber-400 border border-slate-600 focus:border-amber-500 rounded-lg focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
               />
-              <div className="mt-2 flex items-start gap-1.5 text-xs text-slate-400 bg-slate-800/50 p-2 rounded-lg border border-slate-700/50">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                <span>Subtracts instrumental width: β² = B²obs - B²inst</span>
+              <div className="mt-3 flex items-start gap-2 text-[11px] font-bold text-slate-400 bg-slate-800/80 p-3 rounded-lg border border-slate-700/50">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                <span><span className="text-amber-400">Subtracts instrumental width:</span> β² = B²obs - B²inst</span>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                Peak Data Input
-              </label>
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+              <div className="flex justify-between items-end mb-3">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Peak Data Input
+                </label>
+                <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-800 px-2 py-1 rounded border border-slate-700">
+                  <span>Format: 2θ, FWHM</span>
+                </div>
+              </div>
               <textarea
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}
                 placeholder="28.44, 0.2&#10;47.30, 0.25"
-                className="w-full h-28 px-4 py-3 bg-black/40 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono text-sm leading-relaxed resize-none transition-all"
+                className="w-full h-32 px-4 py-3 bg-black/40 text-amber-400 border border-slate-600 focus:border-amber-500 rounded-lg focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm leading-relaxed resize-none transition-all placeholder:text-slate-700"
                 spellCheck={false}
               />
-              <div className="flex justify-between text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-wider">
-                <span>Format: 2θ, FWHM</span>
-                <span>(Comma/Space)</span>
-              </div>
             </div>
 
             <button
@@ -181,61 +239,62 @@ export const ScherrerModule: React.FC = () => {
       <div className="lg:col-span-8 space-y-6">
         <div className="flex flex-col gap-6 h-full">
           {/* Summary Card */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white">
-             <div>
-               <h3 className="text-lg font-bold text-slate-800">Average Crystallite Size</h3>
-               <p className="text-sm text-slate-600">Averaged over {results.filter(r => !r.error).length} valid peaks</p>
+          <div className="bg-slate-800/40 p-6 rounded-xl border border-slate-700/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+             <div className="relative z-10">
+               <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Average Crystallite Size</h3>
+               <p className="text-xs text-slate-500 font-medium">Averaged over {results.filter(r => !r.error).length} valid peaks</p>
              </div>
-             <div className="text-right">
-               <span className="text-4xl font-black text-amber-600">{avgSize.toFixed(2)}</span>
-               <span className="text-lg text-slate-700 font-bold ml-1">nm</span>
+             <div className="text-left md:text-right relative z-10 flex items-baseline gap-1.5">
+               <span className="text-5xl font-black text-white">{avgSize.toFixed(2)}</span>
+               <span className="text-xl text-amber-500 font-bold uppercase tracking-widest">nm</span>
              </div>
           </div>
 
           {/* Detailed Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-300 overflow-hidden flex flex-col flex-1 min-h-[400px]">
-            <div className="p-4 border-b border-slate-300 bg-slate-100 flex justify-between items-center">
-              <h3 className="font-bold text-slate-800">Peak Analysis Details</h3>
+          <div className="bg-slate-900 rounded-xl shadow-xl border border-slate-800 overflow-hidden flex flex-col flex-1 min-h-[400px]">
+             <div className="p-5 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+              <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Peak Analysis Details</h3>
               {results.some(r => r.error) && (
-                <div className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-100 px-2 py-1 rounded">
-                  <AlertTriangle className="w-3 h-3" />
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">
+                  <AlertTriangle className="w-3.5 h-3.5" />
                   <span>Some peaks have errors</span>
                 </div>
               )}
             </div>
-            <div className="overflow-x-auto overflow-y-auto flex-1">
+            <div className="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar">
                {results.length === 0 ? (
-                 <div className="flex items-center justify-center h-full text-slate-400 p-8 text-center">
+                 <div className="flex items-center justify-center h-full text-slate-500 p-8 text-center text-sm">
                    Enter peak data (2θ and observed FWHM) to calculate sizes.
                  </div>
                ) : (
-                <table className="w-full text-sm text-left text-slate-800">
-                  <thead className="text-xs text-slate-900 uppercase bg-slate-200 sticky top-0">
+                <table className="w-full text-sm text-left text-slate-300">
+                  <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-800/50 sticky top-0 backdrop-blur-md">
                     <tr>
-                      <th scope="col" className="px-6 py-4 font-bold border-b border-slate-300">2θ (deg)</th>
-                      <th scope="col" className="px-6 py-4 font-bold border-b border-slate-300">FWHM Obs (deg)</th>
-                      <th scope="col" className="px-6 py-4 font-bold border-b border-slate-300">β Corrected (deg)</th>
-                      <th scope="col" className="px-6 py-4 font-bold border-b border-slate-300 text-right">Size (nm)</th>
+                      <th scope="col" className="px-6 py-4 font-black border-b border-slate-700/50">2θ (deg)</th>
+                      <th scope="col" className="px-6 py-4 font-black border-b border-slate-700/50">FWHM Obs (deg)</th>
+                      <th scope="col" className="px-6 py-4 font-black border-b border-slate-700/50">β Corrected (deg)</th>
+                      <th scope="col" className="px-6 py-4 font-black border-b border-slate-700/50 text-right text-amber-500">Size (nm)</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
+                  <tbody className="divide-y divide-slate-800/50">
                     {results.map((row, index) => (
-                      <tr key={index} className="bg-white border-b hover:bg-amber-50 transition-colors group">
-                        <td className="px-6 py-4 font-bold text-slate-900">{row.twoTheta.toFixed(3)}</td>
-                        <td className="px-6 py-4 font-mono text-slate-700">{row.fwhmObs.toFixed(4)}</td>
-                        <td className="px-6 py-4 font-mono text-slate-700">
-                            {row.error ? <span className="text-slate-300">-</span> : row.betaCorrected.toFixed(4)}
+                      <tr key={index} className="bg-slate-900/20 hover:bg-slate-800/40 transition-colors group">
+                        <td className="px-6 py-4 font-mono font-bold text-white">{row.twoTheta.toFixed(3)}°</td>
+                        <td className="px-6 py-4 font-mono text-slate-400">{row.fwhmObs.toFixed(4)}°</td>
+                        <td className="px-6 py-4 font-mono text-slate-400">
+                          {row.error ? <span className="text-slate-600">-</span> : `${row.betaCorrected.toFixed(4)}°`}
                         </td>
                         <td className="px-6 py-4 text-right">
-                            {row.error ? (
-                              <span className="text-red-600 text-xs font-bold bg-red-50 px-2 py-1 rounded border border-red-100 inline-block whitespace-nowrap">
-                                {row.error.toLowerCase().includes("zero") ? "No Broadening" : "Invalid Input"}
-                              </span>
-                            ) : (
-                              <span className="font-mono font-bold text-amber-700 text-lg">
-                                {row.sizeNm.toFixed(2)}
-                              </span>
-                            )}
+                          {row.error ? (
+                            <span className="text-rose-400 text-[10px] font-bold bg-rose-500/10 px-2 py-1.5 rounded uppercase tracking-wider inline-block whitespace-nowrap">
+                              {row.error.toLowerCase().includes("zero") ? "No Broadening" : "Invalid Input"}
+                            </span>
+                          ) : (
+                            <span className="bg-amber-500/10 text-amber-400 font-mono font-bold text-lg px-3 py-1.5 rounded-lg border border-amber-500/20 inline-block">
+                              {row.sizeNm.toFixed(2)}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}
