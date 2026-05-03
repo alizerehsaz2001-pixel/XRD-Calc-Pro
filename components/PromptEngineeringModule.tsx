@@ -37,9 +37,14 @@ Do not answer the user's question. ONLY output the newly enhanced prompt text. D
       if (response.text) {
         setEnhancedPrompt(response.text.trim());
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error enhancing prompt:", error);
-      setEnhancedPrompt("Error connecting to the prompt engineering engine. Please try again.");
+      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+      if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+        setEnhancedPrompt("Quota exhausted (429/RESOURCE_EXHAUSTED). Please wait and try again.");
+      } else {
+        setEnhancedPrompt("Error connecting to the prompt engineering engine. Please try again.");
+      }
     } finally {
       setIsEnhancing(false);
     }

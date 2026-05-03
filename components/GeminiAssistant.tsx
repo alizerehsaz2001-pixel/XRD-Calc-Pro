@@ -25,8 +25,13 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
     try {
       const data = await getMaterialPeaks(query);
       setSuggestion(data);
-    } catch (err) {
-      setError("Failed to fetch data from Gemini. Please check API Key or try again.");
+    } catch (err: any) {
+      const errorStr = typeof err === 'string' ? err : JSON.stringify(err);
+      if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+         setError("Quota exhausted (429/RESOURCE_EXHAUSTED). Please wait and try again.");
+      } else {
+         setError("Failed to fetch data from Gemini. Please check API Key or try again.");
+      }
     } finally {
       setLoading(false);
     }

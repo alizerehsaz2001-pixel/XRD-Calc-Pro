@@ -48,8 +48,19 @@ export const generateScientificImage = async (prompt: string, size: '1K' | '2K' 
       }
     }
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Image Generation Error:", error);
+    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+    const isQuota = 
+      error?.message?.includes('429') || 
+      error?.status === 429 || 
+      error?.code === 429 ||
+      error?.error?.code === 429 ||
+      error?.error?.status === 'RESOURCE_EXHAUSTED' ||
+      errorStr.includes('429') ||
+      errorStr.includes('RESOURCE_EXHAUSTED') ||
+      errorStr.includes('quota');
+    if (isQuota) throw new Error("Quota exceeded (429).");
     throw error;
   }
 };
@@ -83,8 +94,12 @@ export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> 
     const text = response.text;
     if (!text) return [];
     return JSON.parse(text) as StandardWavelength[];
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching wavelengths:", error);
+    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+    if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+      return [{ label: "Cu K-alpha (Fallback)", value: 1.5406, type: "X-Ray" }];
+    }
     return [];
   }
 };
@@ -165,7 +180,18 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
     return result;
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    if (error?.message?.includes('429') || error?.status === 429 || error?.code === 429) {
+    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+    const isQuota = 
+      error?.message?.includes('429') || 
+      error?.status === 429 || 
+      error?.code === 429 ||
+      error?.error?.code === 429 ||
+      error?.error?.status === 'RESOURCE_EXHAUSTED' ||
+      errorStr.includes('429') ||
+      errorStr.includes('RESOURCE_EXHAUSTED') ||
+      errorStr.includes('quota');
+
+    if (isQuota) {
       throw new Error("Quota exceeded (429). Please wait and try again later.");
     }
     throw error;
@@ -184,7 +210,11 @@ export const explainResults = async (resultsSummary: string): Promise<string> =>
       }
     });
     return response.text || "Could not generate explanation.";
-   } catch (error) {
+   } catch (error: any) {
+    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+    if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+       return "Analysis unavailable: Quota exceeded.";
+    }
      return "Analysis unavailable.";
    }
 };
@@ -236,8 +266,19 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
     });
 
     return response.text || "No analysis could be generated for this image.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Image Analysis Error:", error);
+    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+    const isQuota = 
+      error?.message?.includes('429') || 
+      error?.status === 429 || 
+      error?.code === 429 ||
+      error?.error?.code === 429 ||
+      error?.error?.status === 'RESOURCE_EXHAUSTED' ||
+      errorStr.includes('429') ||
+      errorStr.includes('RESOURCE_EXHAUSTED') ||
+      errorStr.includes('quota');
+    if (isQuota) throw new Error("Quota exceeded (429).");
     throw error;
   }
 };

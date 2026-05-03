@@ -350,9 +350,14 @@ export const DeepLearningModule: React.FC = () => {
         // We'll attach it to the window or a ref to retrieve during "Identify Phases"
         (window as any).__TEMP_AI_MATERIAL_DATA__ = data;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI Search failed:", error);
-      alert("Could not find material data. Please try a different name.");
+      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+      if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+         alert("Quota exhausted (429/RESOURCE_EXHAUSTED). Please try again later.");
+      } else {
+         alert("Could not find material data. Please try a different name.");
+      }
     } finally {
       setIsSearchingAI(false);
     }

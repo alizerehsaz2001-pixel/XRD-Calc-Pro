@@ -39,6 +39,7 @@ export const ImageGenerationModule: React.FC = () => {
       }
     } catch (e: any) {
       console.error(e);
+      const errorStr = typeof e === 'string' ? e : JSON.stringify(e);
       if (e.message && e.message.includes("Requested entity was not found")) {
         // Reset key selection state and prompt user again
         setError("The selected API Key project was not found. Please select a valid key.");
@@ -47,6 +48,8 @@ export const ImageGenerationModule: React.FC = () => {
         } catch (retryErr) {
           // ignore
         }
+      } else if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+         setError("Quota exhausted (429/RESOURCE_EXHAUSTED). Please wait and try again.");
       } else {
         setError("Failed to generate image. " + (e.message || "Unknown error."));
       }

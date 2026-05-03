@@ -66,9 +66,24 @@ export const AIChatSupport: React.FC = () => {
         text: response.text || "I couldn't generate a response.",
         sources: sources.length > 0 ? sources : undefined
       }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat Error:", error);
-      setMessages(prev => [...prev, { role: 'model', text: "Sorry, I'm having trouble connecting to the network right now." }]);
+      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+      const isQuota = 
+        error?.message?.includes('429') || 
+        error?.status === 429 || 
+        error?.code === 429 ||
+        error?.error?.code === 429 ||
+        error?.error?.status === 'RESOURCE_EXHAUSTED' ||
+        errorStr.includes('429') ||
+        errorStr.includes('RESOURCE_EXHAUSTED') ||
+        errorStr.includes('quota');
+
+      let errorMsg = "Sorry, I'm having trouble connecting to the network right now.";
+      if (isQuota) {
+        errorMsg = "Sorry, my neural link quota has been exhausted (429). Please wait for a buffer reset.";
+      }
+      setMessages(prev => [...prev, { id: `error-${Date.now()}`, role: 'model', text: errorMsg }]);
     } finally {
       setLoading(false);
     }

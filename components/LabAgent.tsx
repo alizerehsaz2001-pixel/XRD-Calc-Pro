@@ -113,12 +113,27 @@ export const LabAgent: React.FC = () => {
         return newMessages;
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Agent Error:", error);
+      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+      const isQuota = 
+        error?.message?.includes('429') || 
+        error?.status === 429 || 
+        error?.code === 429 ||
+        error?.error?.code === 429 ||
+        error?.error?.status === 'RESOURCE_EXHAUSTED' ||
+        errorStr.includes('429') ||
+        errorStr.includes('RESOURCE_EXHAUSTED') ||
+        errorStr.includes('quota');
+
+      let errorMsg = "ALERT: Neural link saturation or timeout. Please check your API configuration or verify system connectivity.";
+      if (isQuota) {
+        errorMsg = "CRITICAL: Neural link quota exhausted (429/RESOURCE_EXHAUSTED). Please wait for buffer reset.";
+      }
       setMessages(prev => [...prev, { 
-        id: 'err-' + Date.now(),
+        id: `err-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         role: 'model', 
-        text: "ALERT: Neural link saturation or timeout. Please check your API configuration or verify system connectivity.", 
+        text: errorMsg, 
         timestamp: new Date().toLocaleTimeString() 
       }]);
     } finally {

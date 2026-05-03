@@ -72,8 +72,13 @@ export const ImageAnalysisModule: React.FC = () => {
       const analysis = await analyzeDiffractionImage(image, finalPrompt);
       setResult(analysis);
       setHistory(prev => [{ context: finalPrompt, result: analysis, date: new Date().toLocaleTimeString() }, ...prev.slice(0, 4)]);
-    } catch (err) {
-      setError("Analysis Engine Fault: Check connectivity or image clarity.");
+    } catch (err: any) {
+      const errorStr = typeof err === 'string' ? err : JSON.stringify(err);
+      if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+        setError("Quota exhausted (429/RESOURCE_EXHAUSTED). Analysis unavailable.");
+      } else {
+        setError("Analysis Engine Fault: Check connectivity or image clarity.");
+      }
     } finally {
       setLoading(false);
       setTimeout(() => setScanActive(false), 1000);
