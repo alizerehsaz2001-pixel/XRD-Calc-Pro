@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DLPhaseResult, DLPhaseCandidate } from '../types';
 import { identifyPhasesDL, parseXYData } from '../utils/physics';
+import { isQuotaError, isPermissionError } from '../services/geminiService';
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import {
   ComposedChart,
@@ -352,11 +353,13 @@ export const DeepLearningModule: React.FC = () => {
       }
     } catch (error: any) {
       console.error("AI Search failed:", error);
-      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-      if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
-         alert("Quota exhausted (429/RESOURCE_EXHAUSTED). Please try again later.");
+      
+      if (isQuotaError(error)) {
+         alert("Quota exhausted (429/RESOURCE_EXHAUSTED). Please wait for buffer reset and try again later.");
+      } else if (isPermissionError(error)) {
+         alert("AI Search permission denied (403). The API key provided may not have access to this model or grounding tools. Please check your configuration.");
       } else {
-         alert("Could not find material data. Please try a different name.");
+         alert("Could not find material data. Please try a different name or check your connection.");
       }
     } finally {
       setIsSearchingAI(false);

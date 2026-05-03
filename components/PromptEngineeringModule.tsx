@@ -40,8 +40,13 @@ Do not answer the user's question. ONLY output the newly enhanced prompt text. D
     } catch (error: any) {
       console.error("Error enhancing prompt:", error);
       const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-      if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+      const isQuota = errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED');
+      const isPermission = errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED') || errorStr.includes('permission');
+
+      if (isQuota) {
         setEnhancedPrompt("Quota exhausted (429/RESOURCE_EXHAUSTED). Please wait and try again.");
+      } else if (isPermission) {
+        setEnhancedPrompt("Permission denied (403/PERMISSION_DENIED). AI prompt enhancement restricted.");
       } else {
         setEnhancedPrompt("Error connecting to the prompt engineering engine. Please try again.");
       }

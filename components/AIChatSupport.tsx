@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { createSupportChat } from '../services/geminiService';
+import { createSupportChat, isQuotaError, isPermissionError } from '../services/geminiService';
 import { Chat, GenerateContentResponse, GroundingChunk } from '@google/genai';
 import ReactMarkdown from 'react-markdown';
 import { GroundingSource } from '../types';
@@ -68,20 +68,12 @@ export const AIChatSupport: React.FC = () => {
       }]);
     } catch (error: any) {
       console.error("Chat Error:", error);
-      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-      const isQuota = 
-        error?.message?.includes('429') || 
-        error?.status === 429 || 
-        error?.code === 429 ||
-        error?.error?.code === 429 ||
-        error?.error?.status === 'RESOURCE_EXHAUSTED' ||
-        errorStr.includes('429') ||
-        errorStr.includes('RESOURCE_EXHAUSTED') ||
-        errorStr.includes('quota');
-
+      
       let errorMsg = "Sorry, I'm having trouble connecting to the network right now.";
-      if (isQuota) {
-        errorMsg = "Sorry, my neural link quota has been exhausted (429). Please wait for a buffer reset.";
+      if (isQuotaError(error)) {
+        errorMsg = "Sorry, my neural link quota has been exhausted (429/RESOURCE_EXHAUSTED). Please wait for a buffer reset.";
+      } else if (isPermissionError(error)) {
+        errorMsg = "Sorry, my neural access is restricted (403). Grounding tools unavailable. Check API key.";
       }
       setMessages(prev => [...prev, { id: `error-${Date.now()}`, role: 'model', text: errorMsg }]);
     } finally {

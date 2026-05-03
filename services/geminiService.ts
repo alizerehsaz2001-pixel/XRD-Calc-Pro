@@ -7,14 +7,46 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const extractSources = (metadata: any): GroundingSource[] => {
   if (!metadata?.groundingChunks) return [];
+  const seen = new Set<string>();
   return metadata.groundingChunks
     .map((chunk: GroundingChunk) => {
-      if (chunk.web) {
+      if (chunk.web && !seen.has(chunk.web.uri)) {
+        seen.add(chunk.web.uri);
         return { title: chunk.web.title, uri: chunk.web.uri };
       }
       return null;
     })
     .filter((s: any): s is GroundingSource => s !== null);
+};
+
+export const isQuotaError = (error: any): boolean => {
+  const errorStr = typeof error === 'string' ? error : JSON.stringify(error).toLowerCase();
+  return (
+    error?.message?.toLowerCase().includes('429') || 
+    error?.status === 429 || 
+    error?.code === 429 ||
+    error?.error?.code === 429 ||
+    error?.error?.status === 'RESOURCE_EXHAUSTED' ||
+    errorStr.includes('429') ||
+    errorStr.includes('resource_exhausted') ||
+    errorStr.includes('quota') ||
+    errorStr.includes('limit')
+  );
+};
+
+export const isPermissionError = (error: any): boolean => {
+  const errorStr = typeof error === 'string' ? error : JSON.stringify(error).toLowerCase();
+  return (
+    error?.message?.toLowerCase().includes('403') || 
+    error?.status === 403 || 
+    error?.code === 403 ||
+    error?.error?.code === 403 ||
+    error?.error?.status === 'PERMISSION_DENIED' ||
+    errorStr.includes('403') ||
+    errorStr.includes('permission_denied') ||
+    errorStr.includes('permission') ||
+    errorStr.includes('authenticated')
+  );
 };
 
 export const generateScientificImage = async (prompt: string, size: '1K' | '2K' | '4K'): Promise<string | null> => {
@@ -50,17 +82,8 @@ export const generateScientificImage = async (prompt: string, size: '1K' | '2K' 
     return null;
   } catch (error: any) {
     console.error("Image Generation Error:", error);
-    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-    const isQuota = 
-      error?.message?.includes('429') || 
-      error?.status === 429 || 
-      error?.code === 429 ||
-      error?.error?.code === 429 ||
-      error?.error?.status === 'RESOURCE_EXHAUSTED' ||
-      errorStr.includes('429') ||
-      errorStr.includes('RESOURCE_EXHAUSTED') ||
-      errorStr.includes('quota');
-    if (isQuota) throw new Error("Quota exceeded (429).");
+    if (isQuotaError(error)) throw new Error("Quota exceeded (429).");
+    if (isPermissionError(error)) throw new Error("Permission denied (403). API key might not have image generation access.");
     throw error;
   }
 };
@@ -96,9 +119,11 @@ export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> 
     return JSON.parse(text) as StandardWavelength[];
   } catch (error: any) {
     console.error("Error fetching wavelengths:", error);
-    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-    if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
-      return [{ label: "Cu K-alpha (Fallback)", value: 1.5406, type: "X-Ray" }];
+    if (isQuotaError(error)) {
+      return [{ label: "Cu K-alpha (Quota Fallback)", value: 1.5406, type: "X-Ray" }];
+    }
+    if (isPermissionError(error)) {
+      return [{ label: "Cu K-alpha (Permission Fallback)", value: 1.5406, type: "X-Ray" }];
     }
     return [];
   }
@@ -180,19 +205,11 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
     return result;
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-    const isQuota = 
-      error?.message?.includes('429') || 
-      error?.status === 429 || 
-      error?.code === 429 ||
-      error?.error?.code === 429 ||
-      error?.error?.status === 'RESOURCE_EXHAUSTED' ||
-      errorStr.includes('429') ||
-      errorStr.includes('RESOURCE_EXHAUSTED') ||
-      errorStr.includes('quota');
-
-    if (isQuota) {
+    if (isQuotaError(error)) {
       throw new Error("Quota exceeded (429). Please wait and try again later.");
+    }
+    if (isPermissionError(error)) {
+      throw new Error("Permission denied (403). Grounding with Google Search might be restricted and is required for this search.");
     }
     throw error;
   }
@@ -211,9 +228,11 @@ export const explainResults = async (resultsSummary: string): Promise<string> =>
     });
     return response.text || "Could not generate explanation.";
    } catch (error: any) {
-    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-    if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+    if (isQuotaError(error)) {
        return "Analysis unavailable: Quota exceeded.";
+    }
+    if (isPermissionError(error)) {
+       return "Analysis unavailable: Permission denied for grounding tools.";
     }
      return "Analysis unavailable.";
    }
@@ -268,17 +287,8 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
     return response.text || "No analysis could be generated for this image.";
   } catch (error: any) {
     console.error("Gemini Image Analysis Error:", error);
-    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-    const isQuota = 
-      error?.message?.includes('429') || 
-      error?.status === 429 || 
-      error?.code === 429 ||
-      error?.error?.code === 429 ||
-      error?.error?.status === 'RESOURCE_EXHAUSTED' ||
-      errorStr.includes('429') ||
-      errorStr.includes('RESOURCE_EXHAUSTED') ||
-      errorStr.includes('quota');
-    if (isQuota) throw new Error("Quota exceeded (429).");
+    if (isQuotaError(error)) throw new Error("Quota exceeded (429).");
+    if (isPermissionError(error)) throw new Error("Permission denied (403). API key might result in restriction for image analysis.");
     throw error;
   }
 };
@@ -386,17 +396,15 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
   } catch (error: any) {
     console.error("CrystalMind-Control Search Error:", error);
     
-    // Deeper check for the specific JSON error payload sometimes returned by the API
-    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-    const isQuota = 
-      error?.message?.includes('429') || 
-      error?.status === 429 || 
-      error?.code === 429 ||
-      error?.error?.code === 429 ||
-      error?.error?.status === 'RESOURCE_EXHAUSTED' ||
-      errorStr.includes('429') ||
-      errorStr.includes('RESOURCE_EXHAUSTED') ||
-      errorStr.includes('quota');
+    const isQuota = isQuotaError(error);
+    const isPermission = isPermissionError(error);
+
+    let controlMessage = "Search protocol failed. Database connectivity offline or query malformed.";
+    if (isQuota) {
+      controlMessage = "CRITICAL: Neural link quota exhausted (429). Please wait for buffer reset before additional queries.";
+    } else if (isPermission) {
+      controlMessage = "ERROR: Neural access restricted (403). Permission denied for database grounding tools. Check API settings.";
+    }
 
     return {
       module: "CrystalMind-Control",
@@ -404,9 +412,7 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
       status: "error",
       query_parameters: { elements_included: elements, elements_excluded: [], strict_match: false, database_target: target },
       search_results: [],
-      control_message: isQuota 
-        ? "CRITICAL: Neural link quota exhausted (429). Please wait for buffer reset before additional queries."
-        : "Search protocol failed. Database connectivity offline or query malformed."
+      control_message: controlMessage
     };
   }
 };

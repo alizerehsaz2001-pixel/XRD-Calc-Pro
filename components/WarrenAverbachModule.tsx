@@ -94,8 +94,17 @@ export const WarrenAverbachModule: React.FC = () => {
         const formattedData = data.map((p: any) => `${p.L.toFixed(1)}, ${p.A1.toFixed(3)}, ${p.A2.toFixed(3)}`).join('\n');
         setInputData(formattedData);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating data:", error);
+      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+      const isQuota = errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED');
+      const isPermission = errorStr.includes('403') || errorStr.includes('PERMISSION_DENIED') || errorStr.includes('permission');
+      
+      if (isQuota) {
+        alert("Neural link quota exhausted. Please wait for buffer reset.");
+      } else if (isPermission) {
+        alert("Neural link access restricted (403). Permission denied for AI data generation.");
+      }
     } finally {
       setIsThinking(false);
     }

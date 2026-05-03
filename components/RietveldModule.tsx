@@ -654,7 +654,7 @@ export const RietveldModule: React.FC = () => {
                   
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {phases.map((phase, idx) => (
-                      <div key={`phase-${phase.name}-${idx}`} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 relative group">
+                      <div key={`phase-ref-${idx}-${phase.name}`} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 relative group">
                         {phases.length > 1 && (
                           <button 
                             onClick={() => removePhase(idx)}

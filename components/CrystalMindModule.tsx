@@ -352,8 +352,8 @@ export const CrystalMindModule: React.FC = () => {
                   Verified Citations
                </h3>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {response.sources.map((source) => (
-                    <a key={source.uri} href={source.uri} target="_blank" rel="noreferrer" className="flex items-start gap-4 p-4 bg-black/40 rounded-2xl border border-slate-800/50 hover:bg-cyan-950/20 hover:border-cyan-500/30 transition-all group/cite">
+                  {response.sources.map((source, sIdx) => (
+                    <a key={`${source.uri}-${sIdx}`} href={source.uri} target="_blank" rel="noreferrer" className="flex items-start gap-4 p-4 bg-black/40 rounded-2xl border border-slate-800/50 hover:bg-cyan-950/20 hover:border-cyan-500/30 transition-all group/cite">
                       <div className="w-8 h-8 shrink-0 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700 group-hover/cite:bg-cyan-500/10 group-hover/cite:border-cyan-500/30 transition-colors">
                         <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover/cite:text-cyan-400" />
                       </div>

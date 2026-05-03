@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createSupportChat } from '../services/geminiService';
+import { createSupportChat, isQuotaError, isPermissionError } from '../services/geminiService';
 import { Chat } from '@google/genai';
 import ReactMarkdown from 'react-markdown';
 import { Brain, Search, Terminal, Zap, Info, ArrowRight, FlaskConical, Database, Sparkles, Cpu, Globe, Activity, Code, Layers, Maximize2, Minimize2, Trash2, BookOpen } from 'lucide-react';
@@ -115,21 +115,14 @@ export const LabAgent: React.FC = () => {
 
     } catch (error: any) {
       console.error("Agent Error:", error);
-      const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
-      const isQuota = 
-        error?.message?.includes('429') || 
-        error?.status === 429 || 
-        error?.code === 429 ||
-        error?.error?.code === 429 ||
-        error?.error?.status === 'RESOURCE_EXHAUSTED' ||
-        errorStr.includes('429') ||
-        errorStr.includes('RESOURCE_EXHAUSTED') ||
-        errorStr.includes('quota');
-
+      
       let errorMsg = "ALERT: Neural link saturation or timeout. Please check your API configuration or verify system connectivity.";
-      if (isQuota) {
+      if (isQuotaError(error)) {
         errorMsg = "CRITICAL: Neural link quota exhausted (429/RESOURCE_EXHAUSTED). Please wait for buffer reset.";
+      } else if (isPermissionError(error)) {
+        errorMsg = "ERROR: Neural access restricted (403). Grounding tools or model access denied. Check API key permissions.";
       }
+      
       setMessages(prev => [...prev, { 
         id: `err-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         role: 'model', 

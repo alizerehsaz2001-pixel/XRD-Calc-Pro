@@ -86,9 +86,9 @@ export const BraggInput: React.FC<BraggInputProps> = ({
             </div>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-1.5">
-            {availableWavelengths.map((sw) => (
+            {availableWavelengths.map((sw, i) => (
               <button 
-                key={sw.label}
+                key={`${sw.label}-${i}`}
                 onClick={() => setWavelength(sw.value)}
                 className={`px-2 py-1.5 text-[10px] rounded border transition-all font-bold ${
                   wavelength === sw.value 

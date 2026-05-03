@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { getMaterialPeaks } from '../services/geminiService';
+import { getMaterialPeaks, isQuotaError, isPermissionError } from '../services/geminiService';
 import { AIResponse } from '../types';
 import { Brain, Search, Database, Layers, CheckCircle, Zap, FlaskConical, Loader2, Info, Activity } from 'lucide-react';
 
@@ -26,9 +26,10 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
       const data = await getMaterialPeaks(query);
       setSuggestion(data);
     } catch (err: any) {
-      const errorStr = typeof err === 'string' ? err : JSON.stringify(err);
-      if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+      if (isQuotaError(err)) {
          setError("Quota exhausted (429/RESOURCE_EXHAUSTED). Please wait and try again.");
+      } else if (isPermissionError(err)) {
+         setError("Permission denied (403). Grounding tools or model access restricted. Check API key.");
       } else {
          setError("Failed to fetch data from Gemini. Please check API Key or try again.");
       }
