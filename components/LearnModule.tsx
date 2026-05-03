@@ -203,7 +203,7 @@ export const LearnModule: React.FC = () => {
                    { t: 'Magnetic Diffraction', d: 'Visualize magnetic peak contributions from spin structures.' },
                    { t: 'Rietveld Setup', d: 'Generate initial parameters and strategy for external refinement software.' },
                  ].map((m, i) => (
-                   <div key={i} className="p-4 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+                   <div key={`module-desc-${m.t}-${i}`} className="p-4 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
                      <h4 className="font-bold text-indigo-600 dark:text-indigo-400 text-sm mb-1">{m.t}</h4>
                      <p className="text-xs text-slate-600 dark:text-slate-400">{m.d}</p>
                    </div>

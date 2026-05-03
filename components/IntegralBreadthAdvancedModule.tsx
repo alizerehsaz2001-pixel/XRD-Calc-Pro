@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { parseIBAdvancedInput, calculateIBAdvanced } from '../utils/physics';
 import { IBAdvancedResult } from '../types';
 import {
@@ -12,7 +12,14 @@ import {
   Scatter,
   Legend
 } from 'recharts';
-import { RefreshCw, Trash2, Settings2, Info, FileText, ArrowUpRight, TrendingUp } from 'lucide-react';
+import { RefreshCw, Trash2, Settings2, Info, FileText, ArrowUpRight, TrendingUp, ChevronDown, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+
+const PRESETS = [
+  { label: 'Cu K-alpha', wavelength: 1.5406, desc: 'Standard lab X-ray source' },
+  { label: 'Mo K-alpha', wavelength: 0.7107, desc: 'High energy X-ray source' },
+  { label: 'Co K-alpha', wavelength: 1.7890, desc: 'Avoids Fe fluorescence' }
+];
 
 export const IntegralBreadthAdvancedModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.5406);
@@ -21,6 +28,19 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
   // Default Data: 2Theta, Area, Imax
   const [inputData, setInputData] = useState<string>("28.44, 230, 1000\n47.30, 280, 950\n56.12, 350, 900\n69.13, 400, 850\n76.38, 450, 800");
   const [result, setResult] = useState<IBAdvancedResult | null>(null);
+  
+  const [isWavelengthMenuOpen, setIsWavelengthMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsWavelengthMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleReset = () => {
     setWavelength(1.5406);
@@ -118,64 +138,105 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
           </div>
 
           <div className="space-y-6 relative z-10">
-            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Parameters</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                    Wavelength (Å)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={wavelength}
-                    onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                    className="w-full px-4 py-3 bg-black/40 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-lg focus:ring-2 focus:ring-pink-500/20 outline-none font-mono text-sm transition-all placeholder:text-slate-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                    Constant K
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={constantK}
-                    onChange={(e) => setConstantK(parseFloat(e.target.value))}
-                    className="w-full px-4 py-3 bg-black/40 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-lg focus:ring-2 focus:ring-pink-500/20 outline-none font-mono text-sm transition-all placeholder:text-slate-600"
-                  />
-                </div>
-              </div>
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors shadow-inner">
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Zap className="w-3.5 h-3.5 text-pink-400" />
+                Parameters
+              </h3>
 
-              <div className="mt-4">
-                <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider flex justify-between items-center">
-                  <span>Instrument β_IB</span>
-                  <span className="text-[10px] text-slate-500 font-mono">(deg)</span>
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={instBetaIB}
-                  onChange={(e) => setInstBetaIB(parseFloat(e.target.value))}
-                  className="w-full px-4 py-3 bg-black/40 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-lg focus:ring-2 focus:ring-pink-500/20 outline-none font-mono text-sm transition-all placeholder:text-slate-600"
-                />
-                <div className="mt-2 flex items-start gap-2 text-[11px] font-bold text-slate-400 bg-slate-800/80 p-2.5 rounded-lg border border-slate-700/50">
+              <div className="space-y-4">
+                <div className="relative z-20" ref={menuRef}>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">
+                    Source Wavelength (Å)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={wavelength}
+                      onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                      className="w-full px-4 py-3 bg-black/60 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none font-mono text-sm font-bold transition-all shadow-inner placeholder:text-slate-600"
+                    />
+                    <button
+                      onClick={() => setIsWavelengthMenuOpen(!isWavelengthMenuOpen)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 bg-slate-800 hover:bg-slate-700 rounded-md border border-slate-600 transition-colors"
+                    >
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  </div>
+                  
+                  <AnimatePresence>
+                    {isWavelengthMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                        className="absolute top-full right-0 mt-2 w-[240px] bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 p-1"
+                      >
+                        {PRESETS.map((p) => (
+                          <button
+                            key={p.label}
+                            onClick={() => {
+                              setWavelength(p.wavelength);
+                              setIsWavelengthMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2.5 rounded-lg flex flex-col gap-0.5 hover:bg-slate-700/50 transition-colors ${wavelength === p.wavelength ? 'bg-pink-500/10' : ''}`}
+                          >
+                            <span className={`text-[11px] font-black ${wavelength === p.wavelength ? 'text-pink-400' : 'text-slate-300'}`}>{p.label}</span>
+                            <span className="text-[9px] text-slate-500 font-bold">{p.desc}</span>
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">
+                      Shape K
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={constantK}
+                      onChange={(e) => setConstantK(parseFloat(e.target.value))}
+                      className="w-full px-4 py-3 bg-black/60 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none font-mono text-sm font-bold transition-all shadow-inner placeholder:text-slate-600"
+                    />
+                  </div>
+                  <div>
+                     <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest flex justify-between items-center">
+                       <span>Inst. β_IB</span>
+                       <span className="text-slate-500 font-mono">(deg)</span>
+                     </label>
+                     <input
+                       type="number"
+                       step="0.01"
+                       value={instBetaIB}
+                       onChange={(e) => setInstBetaIB(parseFloat(e.target.value))}
+                       className="w-full px-4 py-3 bg-black/60 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none font-mono text-sm font-bold transition-all shadow-inner placeholder:text-slate-600"
+                     />
+                  </div>
+                </div>
+
+                <div className="mt-2 flex items-start gap-2 text-[10px] font-bold text-slate-400 bg-slate-800/80 p-3 rounded-xl border border-slate-700/50 shadow-inner">
                   <Info className="w-4 h-4 text-pink-500 shrink-0" />
-                  <span><span className="text-pink-400">Linear subtraction</span> (Lorentzian assumption)</span>
+                  <span><span className="text-pink-400">Linear subtraction</span> (Lorentzian assumption for advanced broadening profiles).</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <div className="flex justify-between items-end mb-3">
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors shadow-inner">
+              <div className="flex justify-between items-end mb-4">
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <FileText className="w-3.5 h-3.5 text-cyan-400" />
                   Peak Data Input
                 </label>
                 <button 
                   onClick={handleClear}
-                  className="text-[10px] font-bold text-slate-400 hover:text-red-400 uppercase tracking-wider flex items-center gap-1 transition-colors bg-slate-800/50 hover:bg-red-500/10 px-2 py-1 rounded border border-slate-700 hover:border-red-500/30"
+                  className="text-[9px] font-bold text-red-400/80 hover:text-red-400 uppercase tracking-widest flex items-center gap-1 transition-colors bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded border border-red-500/30"
                 >
-                  <Trash2 className="w-3 h-3" /> Clear
+                  <Trash2 className="w-3 h-3" /> Clear Matrix
                 </button>
               </div>
               <div className="relative">
@@ -183,19 +244,23 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                   value={inputData}
                   onChange={(e) => setInputData(e.target.value)}
                   placeholder="28.44, 230, 1000&#10;47.30, 280, 950"
-                  className="w-full h-40 px-4 py-3 bg-black/40 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-lg focus:ring-2 focus:ring-pink-500/20 outline-none transition-all font-mono text-sm leading-relaxed placeholder:text-slate-700"
+                  className="w-full h-40 px-4 py-3 bg-black/60 text-cyan-400 border border-slate-600 focus:border-cyan-500 rounded-xl focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all font-mono text-sm leading-relaxed placeholder:text-slate-700 shadow-inner custom-scrollbar"
                 />
-                <div className="absolute top-3 right-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-800 px-2 py-1 rounded border border-slate-700">
+                <div className="absolute top-3 right-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-slate-800 px-2 py-1 rounded border border-slate-700 shadow-md">
                   Format: 2θ, Area, Imax
                 </div>
               </div>
-              <div className="flex justify-between items-center mt-3">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                  β = <span className="text-pink-400">Area / Imax</span> (auto-calculated)
+              <div className="flex justify-between items-center mt-4 bg-black/40 p-2.5 rounded-lg border border-slate-700/50">
+                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/50" />
+                   β = <span className="text-cyan-400">Area / Imax</span> (auto)
                 </p>
-                <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border ${parseIBAdvancedInput(inputData).length >= 2 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'}`}>
-                  {parseIBAdvancedInput(inputData).length} valid peaks
-                </span>
+                <div className="flex items-center gap-2">
+                   <span className="text-[9px] text-slate-500 font-mono font-bold uppercase">Vectors:</span>
+                   <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded shadow-sm border ${parseIBAdvancedInput(inputData).length >= 2 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30'}`}>
+                     {parseIBAdvancedInput(inputData).length}
+                   </span>
+                </div>
               </div>
             </div>
 

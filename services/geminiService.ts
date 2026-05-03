@@ -163,8 +163,11 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
     result.sources = extractSources(response.candidates?.[0]?.groundingMetadata);
     
     return result;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
+    if (error?.message?.includes('429') || error?.status === 429 || error?.code === 429) {
+      throw new Error("Quota exceeded (429). Please wait and try again later.");
+    }
     throw error;
   }
 };
@@ -339,15 +342,30 @@ export const searchCrystalDatabase = async (command: string, elements: string[],
     
     return result;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("CrystalMind-Control Search Error:", error);
+    
+    // Deeper check for the specific JSON error payload sometimes returned by the API
+    const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
+    const isQuota = 
+      error?.message?.includes('429') || 
+      error?.status === 429 || 
+      error?.code === 429 ||
+      error?.error?.code === 429 ||
+      error?.error?.status === 'RESOURCE_EXHAUSTED' ||
+      errorStr.includes('429') ||
+      errorStr.includes('RESOURCE_EXHAUSTED') ||
+      errorStr.includes('quota');
+
     return {
       module: "CrystalMind-Control",
       action: "Database_Search",
       status: "error",
       query_parameters: { elements_included: elements, elements_excluded: [], strict_match: false, database_target: target },
       search_results: [],
-      control_message: "Search protocol failed. Database connectivity offline or query malformed."
+      control_message: isQuota 
+        ? "CRITICAL: Neural link quota exhausted (429). Please wait for buffer reset before additional queries."
+        : "Search protocol failed. Database connectivity offline or query malformed."
     };
   }
 };

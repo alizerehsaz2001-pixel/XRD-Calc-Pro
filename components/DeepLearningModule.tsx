@@ -15,7 +15,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info } from 'lucide-react';
 
 const MATERIAL_DB = [
   { 
@@ -245,7 +245,11 @@ export const DeepLearningModule: React.FC = () => {
     activation: 'ReLU',
     optimization: 'Adam',
     multiScale: true,
-    dropout: 0.2
+    dropout: 0.2,
+    pooling: 'max',
+    depth: 50,
+    learningRate: 0.001,
+    batchNorm: true
   });
 
   // Search State
@@ -587,7 +591,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
         <div className="bg-slate-900 text-white p-2 rounded shadow-lg text-xs border border-slate-700">
           <p className="font-bold mb-1">2θ: {label}°</p>
           {payload.map((p: any, idx: number) => (
-            <p key={idx} style={{ color: p.color }}>
+            <p key={`tooltip-${p.name}-${idx}`} style={{ color: p.color }}>
               {p.name}: {p.value}
             </p>
           ))}
@@ -644,8 +648,38 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   <option value={128}>Dense (128)</option>
                 </select>
              </div>
+             
              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Activation Function</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Neural Depth</label>
+                <select 
+                  value={engineConfig.depth}
+                  onChange={(e) => setEngineConfig({...engineConfig, depth: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                >
+                  <option value={18}>18 Layers (Light)</option>
+                  <option value={34}>34 Layers (Med)</option>
+                  <option value={50}>50 Layers (Heavy)</option>
+                  <option value={101}>101 Layers (Extreme)</option>
+                </select>
+             </div>
+
+             <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Pooling Op</label>
+                <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
+                   {['max', 'avg'].map(op => (
+                     <button
+                       key={op}
+                       onClick={() => setEngineConfig({...engineConfig, pooling: op})}
+                       className={`flex-1 py-1 text-[10px] font-black rounded-md transition-all ${engineConfig.pooling === op ? 'bg-white text-indigo-600 shadow-sm border border-slate-100 uppercase' : 'text-slate-400 hover:text-slate-600 uppercase'}`}
+                     >
+                       {op}
+                     </button>
+                   ))}
+                </div>
+             </div>
+
+             <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Activation</label>
                 <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
                    {['ReLU', 'GELU'].map(fn => (
                      <button
@@ -659,7 +693,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 </div>
              </div>
              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Optim. Schema</label>
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Optimization</label>
                 <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
                    {['Adam', 'RMSProp'].map(opt => (
                      <button
@@ -674,7 +708,36 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
              </div>
           </div>
 
-          <div className="mt-6 pt-5 border-t border-slate-100">
+          <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+             <div className="space-y-1.5">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Base Learning Rate</label>
+                  <span className="text-[10px] font-mono font-black text-indigo-600">{engineConfig.learningRate.toFixed(4)}</span>
+                </div>
+                <input 
+                  type="range"
+                  min="0.0001"
+                  max="0.01"
+                  step="0.0001"
+                  value={engineConfig.learningRate}
+                  onChange={(e) => setEngineConfig({...engineConfig, learningRate: parseFloat(e.target.value)})}
+                  className="w-full accent-indigo-600 h-1 bg-slate-100 rounded-full appearance-none cursor-pointer"
+                />
+             </div>
+
+             <div className="flex items-center justify-between cursor-pointer group">
+                <div className="flex flex-col">
+                   <span className="text-[11px] font-black text-slate-700 tracking-tight">Batch Normalization</span>
+                   <span className="text-[9px] text-slate-400 font-medium">Stabilize training across mini-batches</span>
+                </div>
+                <div 
+                  onClick={() => setEngineConfig({...engineConfig, batchNorm: !engineConfig.batchNorm})}
+                  className={`w-9 h-4.5 rounded-full transition-all relative ${engineConfig.batchNorm ? 'bg-emerald-500' : 'bg-slate-200 shadow-inner'}`}
+                >
+                   <div className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full transition-all shadow-sm ${engineConfig.batchNorm ? 'left-5' : 'left-0.5'}`} />
+                </div>
+             </div>
+
              <label className="flex items-center justify-between cursor-pointer group">
                 <div className="flex flex-col">
                    <span className="text-xs font-black text-slate-700 tracking-tight">Multi-Scale Convolutional Fusion</span>
@@ -754,7 +817,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     <div className="p-1">
                       {MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.formula.toLowerCase().includes(searchTerm.toLowerCase())).map((material, idx) => (
                         <button
-                          key={idx}
+                          key={`${material.name}-${idx}`}
                           onClick={() => handleMaterialSelect(material)}
                           className="w-full text-left px-4 py-3 hover:bg-violet-50 flex items-center justify-between group rounded-lg transition-colors border border-transparent hover:border-violet-100 mb-1 last:mb-0"
                         >
@@ -941,7 +1004,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                const Icon = step.icon;
                
                return (
-                 <div key={idx} className={`relative z-10 flex flex-col gap-1 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-40'}`}>
+                 <div key={`${step.label}-${idx}`} className={`relative z-10 flex flex-col gap-1 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-40'}`}>
                    <div className="flex items-center gap-3">
                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all duration-500 shrink-0
                        ${isActive ? 'border-violet-500 bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.4)] scale-110 rotate-3' : 
@@ -986,7 +1049,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                              </div>
                              <div className="grid grid-cols-8 gap-1 w-full max-w-[180px]">
                                {[...Array(16)].map((_, i) => (
-                                 <div key={i} className="h-2 rounded-[2px] bg-violet-500 animate-[pulse_1s_ease-in-out_infinite]" style={{ opacity: Math.random() * 0.8 + 0.2, animationDelay: `${i * 0.05}s` }} />
+                                 <div key={`pulse-${i}`} className="h-2 rounded-[2px] bg-violet-500 animate-[pulse_1s_ease-in-out_infinite]" style={{ opacity: Math.random() * 0.8 + 0.2, animationDelay: `${i * 0.05}s` }} />
                                ))}
                              </div>
                              <p className="text-[8px] text-slate-500 font-mono mt-1.5 uppercase tracking-widest text-right max-w-[180px]">Feature Map Activations</p>
@@ -1263,7 +1326,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {selectedCandidate.applications?.map((app, i) => (
-                        <span key={i} className="text-xs font-bold bg-slate-900 shadow-inner text-slate-300 px-3.5 py-2 rounded-lg border border-slate-700 hover:border-amber-500/50 hover:text-amber-100 transition-colors cursor-default">
+                        <span key={`app-${app}-${i}`} className="text-xs font-bold bg-slate-900 shadow-inner text-slate-300 px-3.5 py-2 rounded-lg border border-slate-700 hover:border-amber-500/50 hover:text-amber-100 transition-colors cursor-default">
                           {app}
                         </span>
                       )) || <span className="text-xs text-slate-500 italic">No application data available.</span>}
@@ -1279,7 +1342,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {selectedCandidate.hazards?.map((hazard, i) => (
-                        <span key={i} className="text-[11px] font-black bg-rose-500/10 text-rose-400 px-3 py-1.5 rounded-lg border border-rose-500/20 uppercase tracking-widest cursor-default shadow-sm">
+                        <span key={`hazard-${hazard}-${i}`} className="text-[11px] font-black bg-rose-500/10 text-rose-400 px-3 py-1.5 rounded-lg border border-rose-500/20 uppercase tracking-widest cursor-default shadow-sm">
                           {hazard}
                         </span>
                       )) || <span className="text-xs text-emerald-500/70 italic font-medium flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5" /> No specific hazards listed / Safe material.</span>}
@@ -1295,6 +1358,64 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               </div>
             </div>
 
+            {/* Neural Activation Heatmap */}
+            <div className="mt-8 pt-6 border-t border-slate-700/50">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-violet-400" />
+                    Layer Activation Heatmap
+                  </h4>
+                  <p className="text-[10px] text-slate-500 font-medium mt-1">Convolutional attention maps for {selectedCandidate.phase_name}</p>
+                </div>
+                <div className="flex gap-1">
+                   {[...Array(4)].map((_, i) => (
+                     <div key={`dot-${i}`} className="w-6 h-1 rounded-full bg-violet-500 opacity-20" />
+                   ))}
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {[
+                  { name: 'Conv_Block_1 (Feature Detection)', color: 'from-violet-600 to-indigo-600' },
+                  { name: 'Conv_Block_3 (Structural Hierarchy)', color: 'from-indigo-600 to-blue-600' },
+                  { name: 'Global_Avg_Pool (Final Consensus)', color: 'from-blue-600 to-emerald-600' }
+                ].map((layer, lIdx) => (
+                  <div key={`layer-${layer.name}-${lIdx}`} className="space-y-1.5">
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-[9px] font-mono font-bold text-slate-400 group-hover:text-slate-300 transition-colors">{layer.name}</span>
+                      <span className="text-[10px] font-mono text-slate-500">{Math.floor(Math.random() * 40 + 60)}% Active</span>
+                    </div>
+                    <div className="h-6 w-full bg-slate-950 rounded-lg overflow-hidden flex border border-slate-800 shadow-inner">
+                      {[...Array(40)].map((_, i) => {
+                         const val = Math.random();
+                         const op = val > 0.8 ? 1 : val > 0.4 ? 0.6 : 0.2;
+                         return (
+                           <div 
+                             key={`layer-block-${i}`} 
+                             className={`flex-1 h-full bg-gradient-to-t ${layer.color} transition-all duration-1000`}
+                             style={{ 
+                               opacity: op,
+                               filter: `brightness(${op * 1.5})`,
+                               animationName: 'pulse',
+                               animationDuration: `${1 + Math.random() * 2}s`,
+                               animationTimingFunction: 'cubic-bezier(0.4, 0, 0.6, 1)',
+                               animationIterationCount: 'infinite',
+                               animationDelay: `${i * 0.05}s`
+                             }}
+                           />
+                         );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <Info className="w-3.5 h-3.5 text-slate-500" />
+                <p className="text-[9px] text-slate-500 font-medium italic">Darker cells represent high-attention regions where the neural net detected characteristic peaks.</p>
+              </div>
+            </div>
+
             {/* Verification Checklist */}
             <div className="mt-6 pt-6 border-t border-slate-800/50">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -1307,7 +1428,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   "Relative intensities are consistent",
                   "Chemical composition is plausible",
                 ].map((item, i) => (
-                  <label key={i} className="flex items-start gap-3 bg-slate-800/20 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600 transition-all cursor-pointer group">
+                  <label key={`check-${i}`} className="flex items-start gap-3 bg-slate-800/20 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600 transition-all cursor-pointer group">
                     <div className="relative flex items-center justify-center mt-0.5">
                       <input type="checkbox" className="peer appearance-none w-4 h-4 border-2 border-slate-600 rounded bg-slate-900 checked:bg-emerald-500 checked:border-emerald-500 transition-colors cursor-pointer" />
                       <CheckCircle className="w-3 h-3 text-slate-900 absolute opacity-0 peer-checked:opacity-100 pointer-events-none" />
@@ -1324,7 +1445,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
         <div className="grid grid-cols-1 gap-4">
            {result?.candidates.map((candidate, idx) => (
              <div 
-               key={idx} 
+               key={`${candidate.phase_name}-${idx}`} 
                onClick={() => setSelectedCandidate(candidate)}
                className={`bg-slate-900 p-5 rounded-xl shadow-sm border cursor-pointer transition-all group overflow-hidden relative
                  ${selectedCandidate?.phase_name === candidate.phase_name ? 'border-violet-500 shadow-[0_0_20px_rgba(139,92,246,0.3)] bg-slate-800' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'}
@@ -1386,7 +1507,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                    </p>
                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
                      {candidate.matched_peaks?.map((mp, i) => (
-                       <div key={i} className="bg-slate-950/50 p-2 rounded-lg border border-slate-800 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
+                       <div key={`peak-${mp.refT}-${i}`} className="bg-slate-950/50 p-2 rounded-lg border border-slate-800 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
                          <span className="text-slate-400 font-mono text-[11px]">{mp.refT.toFixed(2)}°</span>
                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
                        </div>

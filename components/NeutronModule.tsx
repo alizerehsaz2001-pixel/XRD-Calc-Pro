@@ -420,7 +420,7 @@ export const NeutronModule: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
                    {chartData.map((r, i) => (
-                      <tr key={i} className="bg-slate-900 hover:bg-slate-800/80 transition-colors group">
+                      <tr key={`${r.twoTheta}-${i}`} className="bg-slate-900 hover:bg-slate-800/80 transition-colors group">
                          <td className="px-5 py-2.5 font-mono font-bold text-slate-200 group-hover:text-white transition-colors">{r.hkl.join(' ')}</td>
                          <td className="px-5 py-2.5 text-slate-400 font-medium">{r.twoTheta.toFixed(2)}</td>
                          <td className="px-5 py-2.5 text-slate-500 font-medium font-mono">{r.dSpacing.toFixed(3)}</td>

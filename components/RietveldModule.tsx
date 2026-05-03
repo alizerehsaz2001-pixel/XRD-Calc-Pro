@@ -654,7 +654,7 @@ export const RietveldModule: React.FC = () => {
                   
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {phases.map((phase, idx) => (
-                      <div key={idx} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 relative group">
+                      <div key={`phase-${phase.name}-${idx}`} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 relative group">
                         {phases.length > 1 && (
                           <button 
                             onClick={() => removePhase(idx)}
@@ -771,7 +771,7 @@ export const RietveldModule: React.FC = () => {
                    <h3 className="text-sm font-semibold text-slate-800 dark:text-white mb-3 uppercase tracking-wide">Refinement Strategy</h3>
                    <div className="space-y-2">
                      {result.refinement_strategy.map((step, i) => (
-                       <div key={i} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 p-2 rounded border border-slate-100 dark:border-slate-800">
+                       <div key={`step-${i}`} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 p-2 rounded border border-slate-100 dark:border-slate-800">
                          <div className="w-5 h-5 rounded-full bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 flex items-center justify-center text-xs font-bold">
                            {i+1}
                          </div>

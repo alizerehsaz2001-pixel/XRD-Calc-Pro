@@ -558,7 +558,7 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {systemDetails[system as keyof typeof systemDetails].examples.split(',').map((ex, i) => (
-                  <span key={i} className="text-[10px] font-bold text-slate-300 bg-slate-700/50 px-2 py-1 rounded border border-slate-600/50">
+                  <span key={`ex-${ex.trim()}-${i}`} className="text-[10px] font-bold text-slate-300 bg-slate-700/50 px-2 py-1 rounded border border-slate-600/50">
                     {ex.trim()}
                   </span>
                 ))}
@@ -598,7 +598,7 @@ export const SelectionRulesModule: React.FC = () => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {currentSymmetry.rotation.map((r, idx) => (
-                    <span key={idx} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">
+                    <span key={`rot-${r}-${idx}`} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">
                       {r}
                     </span>
                   ))}
@@ -672,7 +672,7 @@ export const SelectionRulesModule: React.FC = () => {
                      <div className="flex gap-1.5 mb-1.5">
                         {[...Array(Math.min(5, Math.ceil(currentSymmetry.operations / 8)))].map((_, i) => (
                           <motion.div 
-                            key={i}
+                            key={`scan-bar-${i}`}
                             animate={{ opacity: [0.3, 1, 0.3] }}
                             transition={{ duration: 2, delay: i * 0.4, repeat: Infinity }}
                             className="w-4 h-1.5 bg-indigo-500 rounded-full shadow-[0_0_5px_rgba(99,102,241,0.5)]" 

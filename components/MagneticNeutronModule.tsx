@@ -298,7 +298,7 @@ export const MagneticNeutronModule: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                    {results.map((r, i) => (
-                      <tr key={i} className="bg-white hover:bg-slate-50 transition-colors">
+                      <tr key={`${r.twoTheta}-${i}`} className="bg-white hover:bg-slate-50 transition-colors">
                          <td className="px-4 py-2 font-mono font-bold text-slate-900">
                            {r.hkl.join(' ')}
                          </td>

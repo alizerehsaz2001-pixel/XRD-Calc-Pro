@@ -298,7 +298,7 @@ export const IntegralBreadthModule: React.FC = () => {
                   {results.map((res, index) => {
                     const profile = getProfileType(res.shapeFactorPhi);
                     return (
-                      <tr key={index} className="hover:bg-purple-900/10 transition-colors group">
+                      <tr key={`${res.twoTheta}-${index}`} className="hover:bg-purple-900/10 transition-colors group">
                         <td className="px-6 py-4 font-bold text-slate-200">
                           {res.twoTheta.toFixed(2)}
                         </td>

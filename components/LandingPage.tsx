@@ -71,7 +71,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
         
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 md:space-y-4 scroll-smooth">
            {features.map((f, i) => (
-             <div key={i} className="bg-white/5 border border-white/10 p-4 rounded-xl hover:bg-white/10 transition-all duration-300 group cursor-default hover:border-indigo-500/30">
+             <div key={`${f.title}-${i}`} className="bg-white/5 border border-white/10 p-4 rounded-xl hover:bg-white/10 transition-all duration-300 group cursor-default hover:border-indigo-500/30">
                <div className="flex items-center gap-3 mb-2">
                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-sm font-bold text-indigo-300 border border-indigo-500/30 group-hover:scale-110 transition-transform">
                    {f.icon}

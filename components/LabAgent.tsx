@@ -6,6 +6,7 @@ import { Brain, Search, Terminal, Zap, Info, ArrowRight, FlaskConical, Database,
 import { GroundingSource } from '../types';
 
 interface Message {
+  id: string;
   role: 'user' | 'model';
   text: string;
   sources?: GroundingSource[];
@@ -16,6 +17,7 @@ interface Message {
 export const LabAgent: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     { 
+      id: 'root-0',
       role: 'model', 
       text: "Neural Link Restricted to Secure Hub. I am **Crystal**, your Structural Intelligence Agent. \n\nI can assist with indexing, phase identification, or interpreting complex diffraction physics. How shall we proceed with your laboratory data?",
       timestamp: new Date().toLocaleTimeString()
@@ -45,13 +47,16 @@ export const LabAgent: React.FC = () => {
 
     const userMsg = input;
     const time = new Date().toLocaleTimeString();
+    const userId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}-user`;
     setInput('');
     
-    setMessages(prev => [...prev, { role: 'user', text: userMsg, timestamp: time }]);
+    setMessages(prev => [...prev, { id: userId, role: 'user', text: userMsg, timestamp: time }]);
     setLoading(true);
 
     try {
+      const modelId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}-model`;
       setMessages(prev => [...prev, { 
+        id: modelId,
         role: 'model', 
         text: '', 
         timestamp: new Date().toLocaleTimeString(),
@@ -111,6 +116,7 @@ export const LabAgent: React.FC = () => {
     } catch (error) {
       console.error("Agent Error:", error);
       setMessages(prev => [...prev, { 
+        id: 'err-' + Date.now(),
         role: 'model', 
         text: "ALERT: Neural link saturation or timeout. Please check your API configuration or verify system connectivity.", 
         timestamp: new Date().toLocaleTimeString() 
@@ -122,6 +128,7 @@ export const LabAgent: React.FC = () => {
 
   const clearChat = () => {
     setMessages([{ 
+      id: `flush-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       role: 'model', 
       text: "Memory buffer flushed. System standing by for new structural queries.",
       timestamp: new Date().toLocaleTimeString() 
@@ -202,9 +209,9 @@ export const LabAgent: React.FC = () => {
           ref={scrollRef}
           className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,0.05),transparent)] relative scroll-smooth"
         >
-          {messages.map((msg, idx) => (
+          {messages.map((msg) => (
             <div 
-              key={idx}
+              key={msg.id}
               className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} group max-w-full animate-in slide-in-from-bottom-2 duration-500`}
             >
               <div className={`flex items-center gap-4 mb-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
@@ -251,7 +258,7 @@ export const LabAgent: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                       {msg.sources.map((s, i) => (
-                        <a key={i} href={s.uri} target="_blank" rel="noreferrer" className="flex items-start gap-3 p-3 bg-slate-950/50 rounded-2xl border border-white/5 hover:border-emerald-500/40 hover:bg-slate-900 transition-all group/link shadow-md">
+                        <a key={`${s.uri}-${i}`} href={s.uri} target="_blank" rel="noreferrer" className="flex items-start gap-3 p-3 bg-slate-950/50 rounded-2xl border border-white/5 hover:border-emerald-500/40 hover:bg-slate-900 transition-all group/link shadow-md">
                            <div className="w-7 h-7 shrink-0 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
                              <Search className="w-3.5 h-3.5" />
                            </div>
@@ -377,7 +384,7 @@ export const LabAgent: React.FC = () => {
            <div className="space-y-3.5">
              {suggestions.map((s, i) => (
                <button 
-                key={i}
+                key={`suggestion-${s.substring(0, 10)}-${i}`}
                 onClick={() => setInput(s)}
                 className="w-full text-left p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/50 hover:bg-slate-900 transition-all text-xs font-bold text-slate-300 hover:text-white leading-relaxed group flex items-start gap-4"
                >

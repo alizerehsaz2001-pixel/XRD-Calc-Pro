@@ -149,7 +149,7 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
               </div>
               <div className="flex flex-wrap gap-2">
                 {suggestion.peaks.slice(0, 8).map((p, i) => (
-                  <div key={i} className="flex flex-col items-center bg-slate-900/50 border border-slate-700 p-2.5 rounded-lg min-w-[60px] group hover:border-violet-500 hover:bg-slate-800 transition-colors cursor-default">
+                  <div key={`${p}-${i}`} className="flex flex-col items-center bg-slate-900/50 border border-slate-700 p-2.5 rounded-lg min-w-[60px] group hover:border-violet-500 hover:bg-slate-800 transition-colors cursor-default">
                     <span className="text-xs font-bold font-mono text-white">{p.toFixed(2)}°</span>
                     {suggestion.hkls && suggestion.hkls[i] && (
                       <span className="text-[10px] font-bold text-violet-400 group-hover:text-violet-300 mt-0.5">({suggestion.hkls[i]})</span>
@@ -167,7 +167,7 @@ export const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onLoadPeaks })
                 </p>
                 <div className="flex flex-col gap-2">
                   {suggestion.sources.map((s, i) => (
-                    <a key={i} href={s.uri} target="_blank" rel="noreferrer" className="text-xs text-slate-400 hover:text-violet-300 transition-colors truncate flex items-center gap-2 bg-slate-800/20 p-2 rounded-lg border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600">
+                    <a key={`${s.uri}-${i}`} href={s.uri} target="_blank" rel="noreferrer" className="text-xs text-slate-400 hover:text-violet-300 transition-colors truncate flex items-center gap-2 bg-slate-800/20 p-2 rounded-lg border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600">
                       <span className="w-1.5 h-1.5 rounded-full bg-slate-600 group-hover:bg-violet-400"></span>
                       {s.title}
                     </a>

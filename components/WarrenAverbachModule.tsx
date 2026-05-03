@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { parseWAInput, calculateWarrenAverbach } from '../utils/physics';
 import { WAResult } from '../types';
 import {
@@ -11,12 +11,34 @@ import {
   ResponsiveContainer,
   Legend
 } from 'recharts';
-import { Info, BookOpen, Activity, TrendingDown, Sparkles, Loader2, Atom, Binary, ShieldQuestion, Ruler, Zap, Database, Settings, FlaskConical, Network, Component } from 'lucide-react';
+import { Info, BookOpen, Activity, TrendingDown, Sparkles, Loader2, Atom, Binary, ShieldQuestion, Ruler, Zap, Database, Settings, FlaskConical, Network, Component, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 
+const MATERIAL_PRESETS = [
+  { label: 'Gold (Au)', d1: 2.3551, d2: 1.1776, desc: '(111) and (222) reflections' },
+  { label: 'Silicon (Si)', d1: 3.1355, d2: 1.5678, desc: '(111) and (222) reflections' },
+  { label: 'Aluminum (Al)', d1: 2.338, d2: 1.169, desc: '(111) and (222) reflections' },
+  { label: 'Copper (Cu)', d1: 2.087, d2: 1.0435, desc: '(111) and (222) reflections' },
+  { label: 'Nickel (Ni)', d1: 2.034, d2: 1.017, desc: '(111) and (222) reflections' }
+];
+
 export const WarrenAverbachModule: React.FC = () => {
-  const [d1, setD1] = useState<number>(2.35); // Approx (111) for Gold
-  const [d2, setD2] = useState<number>(1.175); // Approx (222) for Gold
+  const [d1, setD1] = useState<number>(2.3551);
+  const [d2, setD2] = useState<number>(1.1776);
+  const [selectedMaterial, setSelectedMaterial] = useState<string>(MATERIAL_PRESETS[0].label);
+  const [isMaterialMenuOpen, setIsMaterialMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMaterialMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   // Default Data: Simulated coefficients for a nanomaterial
   const defaultData = `1, 0.95, 0.90
@@ -108,6 +130,65 @@ export const WarrenAverbachModule: React.FC = () => {
           </div>
 
           <div className="space-y-6 relative z-10">
+            {/* Material Presets */}
+            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                Material Preset
+              </label>
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setIsMaterialMenuOpen(!isMaterialMenuOpen)}
+                  className="w-full px-4 py-3 bg-black/60 hover:bg-black/80 border border-slate-700 rounded-xl outline-none transition-all flex items-center justify-between group shadow-inner"
+                >
+                  <span className="text-sm font-black text-rose-400">
+                    {selectedMaterial}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isMaterialMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {isMaterialMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 p-1"
+                    >
+                      {MATERIAL_PRESETS.map((m) => (
+                        <button
+                          key={m.label}
+                          onClick={() => {
+                            setSelectedMaterial(m.label);
+                            setD1(m.d1);
+                            setD2(m.d2);
+                            setIsMaterialMenuOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 flex flex-col items-start hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === m.label ? 'bg-rose-500/10' : ''}`}
+                        >
+                          <span className={`text-sm font-black ${selectedMaterial === m.label ? 'text-rose-400' : 'text-slate-300'}`}>
+                            {m.label}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                            {m.desc}
+                          </span>
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => {
+                          setSelectedMaterial('Custom');
+                          setIsMaterialMenuOpen(false);
+                        }}
+                        className={`w-full px-4 py-3 flex items-center justify-between hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === 'Custom' ? 'bg-rose-500/10 text-rose-400' : 'text-slate-300'}`}
+                      >
+                        <span className="text-sm font-black">Custom Parameters</span>
+                        <Settings className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
             {/* Smart Load Section */}
             <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/smart">
               <div className="flex items-center gap-2 mb-3">
@@ -148,7 +229,10 @@ export const WarrenAverbachModule: React.FC = () => {
                     type="number"
                     step="0.0001"
                     value={d1}
-                    onChange={(e) => setD1(parseFloat(e.target.value))}
+                    onChange={(e) => {
+                      setD1(parseFloat(e.target.value));
+                      setSelectedMaterial('Custom');
+                    }}
                     className="w-full px-4 py-3 bg-black/60 text-rose-400 border border-slate-700/50 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500/50 outline-none font-mono text-sm font-black transition-all"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-600 uppercase">Å</span>
@@ -166,7 +250,10 @@ export const WarrenAverbachModule: React.FC = () => {
                     type="number"
                     step="0.0001"
                     value={d2}
-                    onChange={(e) => setD2(parseFloat(e.target.value))}
+                    onChange={(e) => {
+                      setD2(parseFloat(e.target.value));
+                      setSelectedMaterial('Custom');
+                    }}
                     className="w-full px-4 py-3 bg-black/60 text-rose-400 border border-slate-700/50 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500/50 outline-none font-mono text-sm font-black transition-all"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-600 uppercase">Å</span>
@@ -446,7 +533,7 @@ export const WarrenAverbachModule: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-800/50 font-mono text-xs">
                    {result && result.sizeDistribution.map((row, i) => (
-                      <tr key={i} className="group hover:bg-slate-800/20 transition-all duration-300">
+                      <tr key={`${row.L_nm}-${i}`} className="group hover:bg-slate-800/20 transition-all duration-300">
                          <td className="px-8 py-4 font-black text-slate-300 border-l border-transparent group-hover:border-emerald-500/50 group-hover:pl-10 transition-all">
                             {row.L_nm.toFixed(1)}
                          </td>

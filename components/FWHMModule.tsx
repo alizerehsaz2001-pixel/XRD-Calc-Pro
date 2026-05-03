@@ -200,7 +200,7 @@ export const FWHMModule: React.FC = () => {
                 {analysis.messages.length > 0 ? (
                   <ul className="space-y-1">
                     {analysis.messages.map((msg, idx) => (
-                      <li key={idx} className={`text-xs flex gap-2 ${
+                      <li key={`${msg.text}-${idx}`} className={`text-xs flex gap-2 ${
                         msg.type === 'warning' ? 'text-amber-700' : 'text-slate-600'
                       }`}>
                         <span>•</span>

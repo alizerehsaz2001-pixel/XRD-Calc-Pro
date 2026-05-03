@@ -88,7 +88,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
             {results.map((row, index) => (
-              <tr key={index} className="bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+              <tr key={`${row.twoTheta}-${index}`} className="bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
                 <td className="px-6 py-3 font-bold text-indigo-600 dark:text-indigo-400">({row.hkl || '?'})</td>
                 <td className="px-6 py-3 font-bold text-slate-900 dark:text-slate-100">{row.twoTheta.toFixed(3)}</td>
                 <td className="px-6 py-3 text-indigo-700 dark:text-indigo-300 font-bold font-mono">{row.dSpacing.toFixed(4)}</td>

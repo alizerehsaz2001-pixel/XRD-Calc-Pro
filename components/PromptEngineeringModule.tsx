@@ -116,7 +116,7 @@ Do not answer the user's question. ONLY output the newly enhanced prompt text. D
           <div className="flex flex-wrap gap-2">
             {suggestions.map((s, i) => (
               <button
-                key={i}
+                key={`prompt-sugg-${s.substring(0, 5)}-${i}`}
                 onClick={() => setInputPrompt(s)}
                 className="text-[11px] font-medium bg-slate-800 text-slate-300 hover:bg-fuchsia-900/40 hover:text-fuchsia-300 hover:border-fuchsia-500/30 px-3 py-2 rounded-lg border border-slate-700 transition-all"
               >

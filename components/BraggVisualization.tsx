@@ -184,7 +184,7 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
                   const h = Math.max(10, signalStrength * (100 - i * 4) * Math.random() + 5);
                   return (
                     <motion.div 
-                      key={i} 
+                      key={`bar-${i}`} 
                       className="flex-1 bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-t-sm"
                       animate={{ height: `${h}%` }}
                       transition={{ duration: 0.1 }}
@@ -235,7 +235,7 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
 
               {/* Atoms */}
               {atoms.map((atom, i) => (
-                <circle key={i} cx={atom.x} cy={atom.y} r="6" fill="url(#atomGrad)" opacity="0.6" />
+                <circle key={`atom-${atom.x}-${atom.y}-${i}`} cx={atom.x} cy={atom.y} r="6" fill="url(#atomGrad)" opacity="0.6" />
               ))}
               
               {/* Highlighted Atoms */}
