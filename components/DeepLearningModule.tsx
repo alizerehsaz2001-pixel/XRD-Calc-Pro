@@ -15,7 +15,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2 } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings } from 'lucide-react';
 
 const MATERIAL_DB = [
   { 
@@ -235,8 +235,19 @@ export const DeepLearningModule: React.FC = () => {
   const [isSimulating, setIsSimulating] = useState(false);
   const [progressStep, setProgressStep] = useState(0); // 0: Idle, 1: Preproc, 2: CNN, 3: DB, 4: Done
   const [selectedCandidate, setSelectedCandidate] = useState<DLPhaseCandidate | null>(null);
+  const [scanPos, setScanPos] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Advanced Engine Configuration
+  const [engineConfig, setEngineConfig] = useState({
+    kernelSize: 5,
+    filters: 64,
+    activation: 'ReLU',
+    optimization: 'Adam',
+    multiScale: true,
+    dropout: 0.2
+  });
+
   // Search State
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -351,6 +362,13 @@ export const DeepLearningModule: React.FC = () => {
     setSelectedCandidate(null);
     setProgressStep(1);
 
+    // Start Scan Animation
+    let currentX = 0;
+    const scanInterval = setInterval(() => {
+      currentX += 2;
+      setScanPos(currentX > 100 ? 0 : currentX);
+    }, 50);
+
     // Check if input matches a known material to override/enhance results
     const matchedMaterial = MATERIAL_DB.find(m => m.pattern === inputData || m.name === searchTerm);
     const aiMaterialData = (window as any).__TEMP_AI_MATERIAL_DATA__;
@@ -425,6 +443,8 @@ export const DeepLearningModule: React.FC = () => {
       }
       setProgressStep(4);
       setIsSimulating(false);
+      clearInterval(scanInterval);
+      setScanPos(null);
     }, 3000);
   };
 
@@ -581,6 +601,95 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Input Configuration */}
       <div className="lg:col-span-4 space-y-6">
+        {/* Advanced Engine Configuration */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-500/20 rounded-lg border border-indigo-500/30">
+                <Settings className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800">Neural Config</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Engine Hyperparameters</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sys Ready</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Kernel Shift</label>
+                <select 
+                  value={engineConfig.kernelSize}
+                  onChange={(e) => setEngineConfig({...engineConfig, kernelSize: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                >
+                  <option value={3}>3x3 Narrow</option>
+                  <option value={5}>5x5 Standard</option>
+                  <option value={7}>7x7 Deep</option>
+                </select>
+             </div>
+             <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Feature Maps</label>
+                <select 
+                  value={engineConfig.filters}
+                  onChange={(e) => setEngineConfig({...engineConfig, filters: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                >
+                  <option value={32}>Sparse (32)</option>
+                  <option value={64}>Standard (64)</option>
+                  <option value={128}>Dense (128)</option>
+                </select>
+             </div>
+             <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Activation Function</label>
+                <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
+                   {['ReLU', 'GELU'].map(fn => (
+                     <button
+                       key={fn}
+                       onClick={() => setEngineConfig({...engineConfig, activation: fn})}
+                       className={`flex-1 py-1 text-[10px] font-black rounded-md transition-all ${engineConfig.activation === fn ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                     >
+                       {fn}
+                     </button>
+                   ))}
+                </div>
+             </div>
+             <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Optim. Schema</label>
+                <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
+                   {['Adam', 'RMSProp'].map(opt => (
+                     <button
+                       key={opt}
+                       onClick={() => setEngineConfig({...engineConfig, optimization: opt})}
+                       className={`flex-1 py-1 text-[10px] font-black rounded-md transition-all ${engineConfig.optimization === opt ? 'bg-white text-emerald-600 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                     >
+                       {opt}
+                     </button>
+                   ))}
+                </div>
+             </div>
+          </div>
+
+          <div className="mt-6 pt-5 border-t border-slate-100">
+             <label className="flex items-center justify-between cursor-pointer group">
+                <div className="flex flex-col">
+                   <span className="text-xs font-black text-slate-700 tracking-tight">Multi-Scale Convolutional Fusion</span>
+                   <span className="text-[10px] text-slate-400 font-medium">Aggregated hierarchical feature identification</span>
+                </div>
+                <div 
+                  onClick={() => setEngineConfig({...engineConfig, multiScale: !engineConfig.multiScale})}
+                  className={`w-10 h-5 rounded-full transition-all relative ${engineConfig.multiScale ? 'bg-indigo-600' : 'bg-slate-200 shadow-inner'}`}
+                >
+                   <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all shadow-sm ${engineConfig.multiScale ? 'left-6' : 'left-1'}`} />
+                </div>
+             </label>
+          </div>
+        </div>
+
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
@@ -820,7 +929,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
              </div>
              Convolutional Engine
            </h3>
-           <p className="text-xs text-slate-400 font-mono mb-6 relative z-10">ARCH: XRD-ResNet-50 v4.2 • EPOCH: FINAL</p>
+           <p className="text-xs text-slate-400 font-mono mb-6 relative z-10 uppercase tracking-tighter">ARCH: XRD-{engineConfig.multiScale ? 'Res' : 'Conv'}Net-50 v4.2 • {engineConfig.activation} • {engineConfig.filters}F</p>
            
            <div className="space-y-5 relative z-10">
              {/* Vertical connecting line */}
@@ -863,17 +972,17 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                          {idx === 0 && isActive && (
                             <div className="text-[9px] text-slate-400 font-mono space-y-1 mb-2">
                                <p className="animate-pulse flex items-center gap-2"><span className="text-violet-500">&gt;</span> Tensor shape: [1, 2048, 1]</p>
-                               <p className="animate-pulse flex items-center gap-2" style={{animationDelay: '0.2s'}}><span className="text-violet-500">&gt;</span> Smoothing: Savitzky-Golay</p>
-                               <p className="animate-pulse flex items-center gap-2" style={{animationDelay: '0.4s'}}><span className="text-violet-500">&gt;</span> Background sub: Backcor</p>
+                               <p className="animate-pulse flex items-center gap-2" style={{animationDelay: '0.2s'}}><span className="text-violet-500">&gt;</span> Kern Size: {engineConfig.kernelSize}x{engineConfig.kernelSize}</p>
+                               <p className="animate-pulse flex items-center gap-2" style={{animationDelay: '0.4s'}}><span className="text-violet-500">&gt;</span> Augmentation: Noise Injection</p>
                             </div>
                          )}
                          
                          {idx === 1 && isActive && (
                            <div className="mb-2">
                              <div className="text-[9px] text-slate-400 font-mono space-y-1 mb-2">
-                                <p className="flex justify-between"><span>Conv1D_1: [64, 3]</span> <span className="text-violet-400">{Math.floor(Math.random() * 99)}ms</span></p>
-                                <p className="flex justify-between"><span>MaxPool1D_1: [2]</span> <span className="text-violet-400">{Math.floor(Math.random() * 99)}ms</span></p>
-                                <p className="flex justify-between"><span>Conv1D_2: [128, 5]</span> <span className="text-violet-400">{Math.floor(Math.random() * 99)}ms</span></p>
+                                <p className="flex justify-between"><span>Conv1D_1: [{engineConfig.filters}, {engineConfig.kernelSize}]</span> <span className="text-violet-400 font-black">{Math.floor(Math.random() * 99)}ms</span></p>
+                                <p className="flex justify-between"><span>Activation: {engineConfig.activation}</span> <span className="text-emerald-400 font-black">STABLE</span></p>
+                                <p className="flex justify-between"><span>Fusion: {engineConfig.multiScale ? 'ENABLED' : 'DISABLED'}</span> <span className="text-violet-400 font-black">{Math.floor(Math.random() * 99)}ms</span></p>
                              </div>
                              <div className="grid grid-cols-8 gap-1 w-full max-w-[180px]">
                                {[...Array(16)].map((_, i) => (
@@ -974,6 +1083,15 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
                 <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#cbd5e1' }} />
                 
+                {isSimulating && scanPos !== null && (
+                   <ReferenceLine 
+                     x={scanPos} 
+                     stroke="#8b5cf6" 
+                     strokeWidth={2} 
+                     label={{ value: 'Neural Scan', position: 'top', fill: '#8b5cf6', fontSize: 10, fontWeight: 'bold' }} 
+                   />
+                )}
+
                 {/* Input Data */}
                 {isDiscrete ? (
                    <Area 

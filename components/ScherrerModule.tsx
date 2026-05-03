@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScherrerInput, ScherrerResult } from '../types';
 import { parseScherrerInput, calculateScherrer } from '../utils/physics';
-import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const K_FACTORS = [
@@ -62,44 +62,51 @@ export const ScherrerModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Configuration */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-amber-600 rounded-full opacity-10 blur-2xl"></div>
+        <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all duration-700"></div>
           
-          <div className="flex items-center gap-3 mb-6 relative z-10">
-            <div className="p-2.5 bg-amber-500/20 rounded-xl border border-amber-500/30">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-              </svg>
+          <div className="flex items-center gap-4 mb-8 relative z-10">
+            <div className="p-3 bg-amber-500/20 rounded-xl border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+              <Settings className="h-5 w-5 text-amber-400" />
             </div>
-            <h2 className="text-xl font-bold text-white">Scherrer Parameters</h2>
+            <div>
+              <h2 className="text-xl font-black text-white tracking-tight uppercase">System Config</h2>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Scherrer Engine</p>
+            </div>
           </div>
 
           <div className="space-y-6 relative z-10">
-            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                Wavelength (Å)
-              </label>
+            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+              <div className="flex items-center gap-2 mb-3">
+                <Ruler className="w-3.5 h-3.5 text-amber-400" />
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Wavelength [Å]
+                </label>
+              </div>
               <div className="relative">
                 <input
                   type="number"
                   step="0.0001"
                   value={wavelength}
                   onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                  className="w-full px-4 py-3 bg-black/40 text-amber-400 border border-slate-600 focus:border-amber-500 rounded-lg focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all placeholder:text-slate-600"
+                  className="w-full px-4 py-3 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/50 rounded-xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm font-black transition-all placeholder:text-slate-700"
                 />
                 <button 
                   onClick={() => setWavelength(1.5406)}
-                  className="absolute right-2 top-2 bottom-2 px-3 text-[10px] font-bold text-slate-400 bg-slate-800 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700 hover:border-amber-500/50 rounded transition-colors flex items-center justify-center uppercase tracking-wider"
+                  className="absolute right-2 top-2 bottom-2 px-3 text-[10px] font-bold text-slate-400 bg-slate-800/80 hover:bg-amber-500/20 hover:text-amber-400 border border-slate-700/50 hover:border-amber-500/50 rounded-lg transition-all flex items-center justify-center uppercase tracking-wider active:scale-95"
                 >
-                  Cu Kα ≈ 1.5406
+                  Cu Kα
                 </button>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                Shape Factor (K)
-              </label>
+            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+              <div className="flex items-center gap-2 mb-3">
+                <Atom className="w-3.5 h-3.5 text-amber-400" />
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Shape Factor [K]
+                </label>
+              </div>
               <div className="space-y-3 relative" ref={kMenuRef}>
                 <button
                   onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
@@ -159,107 +166,120 @@ export const ScherrerModule: React.FC = () => {
                         setConstantK(parseFloat(e.target.value));
                         setSelectedKType('Custom');
                       }}
-                      className="w-full px-4 py-2.5 bg-black/40 text-amber-400 border border-slate-700 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono text-sm transition-all"
+                      className="w-full px-4 py-3 bg-black/60 text-amber-400 border border-slate-700/50 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 outline-none font-mono text-sm font-black transition-all"
                     />
                   </div>
-                  <div className="flex-1 flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-800/80 p-2.5 rounded-lg border border-slate-700/50 h-full">
+                  <div className="flex-1 flex items-center gap-2 text-[10px] font-bold text-slate-400 bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 h-full">
                     <Info className="w-4 h-4 text-amber-500 shrink-0" />
-                    <span className="truncate leading-tight">{K_FACTORS.find(k => k.label === selectedKType)?.desc || 'Custom manually entered size factor.'}</span>
+                    <span className="truncate leading-tight uppercase tracking-widest">{K_FACTORS.find(k => k.label === selectedKType)?.desc || 'Custom manually entered size factor.'}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider flex justify-between">
-                <span>Instrumental Broadening</span>
-                <span className="text-[10px] text-slate-500 font-mono">(deg)</span>
-              </label>
+            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+              <div className="flex items-center gap-2 mb-3 justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 text-amber-400" />
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Inst. Broadening
+                  </label>
+                </div>
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] bg-slate-800 px-2 py-0.5 rounded border border-slate-700">[deg]</span>
+              </div>
               <input
                 type="number"
                 step="0.01"
                 value={instFwhm}
                 onChange={(e) => setInstFwhm(parseFloat(e.target.value))}
-                className="w-full px-4 py-3 bg-black/40 text-amber-400 border border-slate-600 focus:border-amber-500 rounded-lg focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
+                className="w-full px-4 py-3 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/50 rounded-xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm font-black transition-all"
               />
-              <div className="mt-3 flex items-start gap-2 text-[11px] font-bold text-slate-400 bg-slate-800/80 p-3 rounded-lg border border-slate-700/50">
-                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                <span><span className="text-amber-400">Subtracts instrumental width:</span> β² = B²obs - B²inst</span>
+              <div className="mt-3 flex items-start gap-2 text-[10px] font-bold text-slate-400 bg-slate-800/60 p-3 rounded-xl border border-slate-700/50">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <span className="leading-relaxed"><span className="text-amber-400">Subtracts instrumental width:</span> β² = B²obs - B²inst</span>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-              <div className="flex justify-between items-end mb-3">
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider">
-                  Peak Data Input
-                </label>
-                <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-800 px-2 py-1 rounded border border-slate-700">
-                  <span>Format: 2θ, FWHM</span>
+            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2">
+                   <Database className="w-4 h-4 text-amber-400" />
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                     Peak Data Input
+                   </label>
+                </div>
+                <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-md border border-slate-700/50">
+                  <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Format: 2θ, FWHM</span>
                 </div>
               </div>
               <textarea
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}
                 placeholder="28.44, 0.2&#10;47.30, 0.25"
-                className="w-full h-32 px-4 py-3 bg-black/40 text-amber-400 border border-slate-600 focus:border-amber-500 rounded-lg focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm leading-relaxed resize-none transition-all placeholder:text-slate-700"
+                className="w-full h-32 px-5 py-4 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/40 rounded-2xl focus:ring-2 focus:ring-amber-500/10 outline-none font-mono text-xs leading-loose resize-none transition-all shadow-inner custom-scrollbar"
                 spellCheck={false}
               />
             </div>
 
             <button
               onClick={handleCalculate}
-              className="w-full py-3.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl shadow-lg shadow-amber-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-[0_15px_30px_rgba(245,158,11,0.2)] transition-all active:scale-[0.97] flex items-center justify-center gap-3 group relative overflow-hidden"
             >
-              Calculate Size
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-white/20 to-amber-400/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              <FlaskConical className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+              <span className="uppercase tracking-[0.2em] text-sm">Execute Analysis</span>
             </button>
           </div>
         </div>
 
         {/* Scientific Context Card */}
-        <div className="bg-slate-900 p-6 rounded-2xl text-white border border-slate-800 shadow-xl relative overflow-hidden group">
-          <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all duration-700"></div>
+        <div className="bg-slate-900 p-8 rounded-3xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group">
+          <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-all duration-700"></div>
           
-          <div className="flex items-center gap-4 mb-6 relative z-10">
-            <div className="p-2.5 bg-amber-500/20 rounded-xl border border-amber-500/30">
+          <div className="flex items-center gap-4 mb-8 relative z-10">
+            <div className="p-3 bg-amber-500/20 rounded-xl border border-amber-500/30">
               <BookOpen className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <h3 className="text-lg font-bold">Scientific Context</h3>
+              <h3 className="text-xl font-black uppercase tracking-tight">Theory Context</h3>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Scherrer Foundation</p>
             </div>
           </div>
 
           <div className="space-y-4 relative z-10">
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-              <div className="flex items-center gap-2 mb-2">
-                <Atom className="w-3.5 h-3.5 text-amber-400" />
+            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/card overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl opacity-0 group-hover/card:opacity-100 transition-opacity" />
+              <div className="flex items-center gap-2 mb-3 relative z-10">
+                <Network className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Master Formula</span>
               </div>
-              <div className="bg-black/60 p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-slate-700 shadow-inner">
+              <div className="bg-[#0a0f16] p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-emerald-900/50 shadow-inner relative z-10">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
-                  <span className="truncate">D = (K · λ) / (β · cosθ)</span>
+                  <span className="truncate font-black tracking-widest text-emerald-300">D = (K · λ) / (β · cosθ)</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-              <div className="flex items-center gap-2 mb-2">
-                <Binary className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Applicability Range</span>
+            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-all relative overflow-hidden group/card">
+              <div className="absolute inset-0 bg-blue-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity" />
+              <div className="flex items-center gap-2 mb-3 relative z-10">
+                <Binary className="w-3.5 h-3.5 text-blue-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Applicability Domain</span>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                Valid for crystallites smaller than ~100-200 nm. Above this limit, peaks become too sharp to distinguish from the instrumental response.
+              <p className="text-xs text-slate-300 leading-relaxed font-medium relative z-10">
+                Valid for crystallite dimensions ranging from <span className="text-blue-400 font-bold">~1 nm to ~200 nm</span>. Above this limit, peak broadening falls below the instrumental resolution threshold and cannot be decoupled.
               </p>
             </div>
 
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-              <div className="flex items-center gap-2 mb-2">
-                <ShieldQuestion className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Key Assumptions</span>
+            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-all relative overflow-hidden group/card">
+              <div className="absolute inset-0 bg-rose-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity" />
+              <div className="flex items-center gap-2 mb-3 relative z-10">
+                <ShieldQuestion className="w-3.5 h-3.5 text-rose-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Core Assumptions</span>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed italic">
-                Assumes all broadening stems from size. Strain, defects, and instrument factors also contribute. Use Williamson-Hall for decoupling.
+              <p className="text-[11px] text-slate-400 leading-relaxed font-bold relative z-10">
+                Postulates that <span className="text-rose-400 font-bold">100% of broadening</span> derives from finite size effects. Lattice strain, stacking faults, and instrumental profile convolution are ignored. Use <span className="text-white bg-slate-800 px-1 py-0.5 rounded">Williamson-Hall</span> for rigorous decoupling.
               </p>
             </div>
           </div>
@@ -270,59 +290,73 @@ export const ScherrerModule: React.FC = () => {
       <div className="lg:col-span-8 space-y-6">
         <div className="flex flex-col gap-6 h-full">
           {/* Summary Card */}
-          <div className="bg-slate-800/40 p-6 rounded-xl border border-slate-700/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden group/summary">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none group-hover/summary:bg-amber-500/10 transition-colors duration-1000" />
+             <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
              <div className="relative z-10">
-               <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Average Crystallite Size</h3>
-               <p className="text-xs text-slate-500 font-medium">Averaged over {results.filter(r => !r.error).length} valid peaks</p>
+               <div className="flex items-center gap-3 mb-2">
+                 <div className="p-2 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                 </div>
+                 <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">Global Size Extrapolation</h3>
+               </div>
+               <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest mt-1 ml-11">Mean aggregated over {results.filter(r => !r.error).length} target reflections</p>
              </div>
-             <div className="text-left md:text-right relative z-10 flex items-baseline gap-1.5">
-               <span className="text-5xl font-black text-white">{avgSize.toFixed(2)}</span>
-               <span className="text-xl text-amber-500 font-bold uppercase tracking-widest">nm</span>
+             <div className="text-left md:text-right relative z-10 flex items-baseline gap-2 bg-black/40 px-6 py-4 rounded-2xl border border-slate-800/50 shadow-inner">
+               <span className="text-6xl font-black text-white font-mono tracking-tighter" style={{ textShadow: '0 0 40px rgba(245,158,11,0.3)' }}>{avgSize.toFixed(2)}</span>
+               <span className="text-xl text-amber-500 font-black uppercase tracking-widest opacity-80">nm</span>
              </div>
           </div>
 
           {/* Detailed Table */}
-          <div className="bg-slate-900 rounded-xl shadow-xl border border-slate-800 overflow-hidden flex flex-col flex-1 min-h-[400px]">
-             <div className="p-5 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
-              <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wider">Peak Analysis Details</h3>
+          <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col flex-1 min-h-[400px]">
+             <div className="p-6 border-b border-slate-800 bg-black/20 flex justify-between items-center backdrop-blur-sm relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent pointer-events-none" />
+                <div className="flex items-center gap-3 relative z-10">
+                  <Database className="w-5 h-5 text-indigo-400" />
+                  <div>
+                    <h3 className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] leading-none mb-1 text-shadow-sm">Analytical Databank</h3>
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Peak-by-peak Resolution Metrics</p>
+                  </div>
+                </div>
               {results.some(r => r.error) && (
-                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  <span>Some peaks have errors</span>
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 relative z-10">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>Validation Errors Present</span>
                 </div>
               )}
             </div>
             <div className="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar">
                {results.length === 0 ? (
-                 <div className="flex items-center justify-center h-full text-slate-500 p-8 text-center text-sm">
-                   Enter peak data (2θ and observed FWHM) to calculate sizes.
+                 <div className="flex flex-col items-center justify-center h-full text-slate-500 p-8 text-center bg-slate-900/50 border border-slate-800/40 rounded-2xl m-6 border-dashed">
+                   <Ruler className="w-8 h-8 text-slate-700 mb-3" />
+                   <p className="text-[11px] font-bold uppercase tracking-widest">Input telemetry data for calculation</p>
                  </div>
                ) : (
-                <table className="w-full text-sm text-left text-slate-300">
-                  <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-800/50 sticky top-0 backdrop-blur-md">
+                <table className="w-full text-left text-slate-300 border-collapse">
+                  <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-950/80 sticky top-0 backdrop-blur-xl z-20 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
                     <tr>
-                      <th scope="col" className="px-6 py-4 font-black border-b border-slate-700/50">2θ (deg)</th>
-                      <th scope="col" className="px-6 py-4 font-black border-b border-slate-700/50">FWHM Obs (deg)</th>
-                      <th scope="col" className="px-6 py-4 font-black border-b border-slate-700/50">β Corrected (deg)</th>
-                      <th scope="col" className="px-6 py-4 font-black border-b border-slate-700/50 text-right text-amber-500">Size (nm)</th>
+                      <th scope="col" className="px-8 py-5 font-black border-b border-slate-800"><div className="flex items-center gap-2"><span className="w-1 h-3 bg-indigo-500 rounded-full" /> 2θ [deg]</div></th>
+                      <th scope="col" className="px-8 py-5 font-black border-b border-slate-800"><div className="flex items-center gap-2"><span className="w-1 h-3 bg-slate-500 rounded-full" /> FWHM Obs [deg]</div></th>
+                      <th scope="col" className="px-8 py-5 font-black border-b border-slate-800"><div className="flex items-center gap-2"><span className="w-1 h-3 bg-emerald-500 rounded-full" /> β Corrected [deg]</div></th>
+                      <th scope="col" className="px-8 py-5 font-black border-b border-slate-800 text-right"><span className="text-amber-500">Domain Size [nm]</span></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/50">
                     {results.map((row, index) => (
-                      <tr key={index} className="bg-slate-900/20 hover:bg-slate-800/40 transition-colors group">
-                        <td className="px-6 py-4 font-mono font-bold text-white">{row.twoTheta.toFixed(3)}°</td>
-                        <td className="px-6 py-4 font-mono text-slate-400">{row.fwhmObs.toFixed(4)}°</td>
-                        <td className="px-6 py-4 font-mono text-slate-400">
+                      <tr key={index} className="bg-slate-900/10 hover:bg-slate-800/30 transition-all group/row hover:shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+                        <td className="px-8 py-5 font-mono text-sm font-bold text-white group-hover/row:text-indigo-400 transition-colors">{row.twoTheta.toFixed(3)}°</td>
+                        <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400">{row.fwhmObs.toFixed(4)}°</td>
+                        <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400">
                           {row.error ? <span className="text-slate-600">-</span> : `${row.betaCorrected.toFixed(4)}°`}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-8 py-5 text-right">
                           {row.error ? (
-                            <span className="text-rose-400 text-[10px] font-bold bg-rose-500/10 px-2 py-1.5 rounded uppercase tracking-wider inline-block whitespace-nowrap">
-                              {row.error.toLowerCase().includes("zero") ? "No Broadening" : "Invalid Input"}
+                            <span className="text-rose-400 text-[10px] font-black bg-rose-500/10 px-3 py-1.5 rounded-md uppercase tracking-widest inline-block whitespace-nowrap border border-rose-500/20 shadow-inner">
+                              {row.error.toLowerCase().includes("zero") ? "Domain Overflow" : "Parse Fault"}
                             </span>
                           ) : (
-                            <span className="bg-amber-500/10 text-amber-400 font-mono font-bold text-lg px-3 py-1.5 rounded-lg border border-amber-500/20 inline-block">
+                            <span className="bg-[#0f1520] text-amber-400 font-mono font-black text-lg px-4 py-2 rounded-xl border border-amber-900/30 inline-block shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] min-w-[100px] text-center">
                               {row.sizeNm.toFixed(2)}
                             </span>
                           )}
