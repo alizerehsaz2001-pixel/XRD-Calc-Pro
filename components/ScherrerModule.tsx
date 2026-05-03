@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScherrerInput, ScherrerResult } from '../types';
 import { parseScherrerInput, calculateScherrer } from '../utils/physics';
-import { Info, BookOpen, AlertTriangle, ChevronDown, Check } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const K_FACTORS = [
@@ -215,22 +215,53 @@ export const ScherrerModule: React.FC = () => {
           </div>
         </div>
 
-        {/* Theory Card */}
-        <div className="bg-slate-900 p-6 rounded-xl text-white border border-slate-800">
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="w-5 h-5 text-amber-500" />
-            <h3 className="text-lg font-bold">Theory & Limitations</h3>
-          </div>
-          <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
-            <div className="bg-slate-800 p-3 rounded-lg font-mono text-center text-amber-400 text-sm">
-              D = (K · λ) / (β · cosθ)
+        {/* Scientific Context Card */}
+        <div className="bg-slate-900 p-6 rounded-2xl text-white border border-slate-800 shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all duration-700"></div>
+          
+          <div className="flex items-center gap-4 mb-6 relative z-10">
+            <div className="p-2.5 bg-amber-500/20 rounded-xl border border-amber-500/30">
+              <BookOpen className="w-5 h-5 text-amber-400" />
             </div>
-            <p>
-              <strong className="text-white">Applicability:</strong> The Scherrer equation is only valid for crystallites smaller than ~100-200 nm. Above this, peaks are too sharp to distinguish from instrumental broadening.
-            </p>
-            <p>
-              <strong className="text-white">Assumptions:</strong> It assumes all broadening is due to size. Strain, defects, and instrument factors also broaden peaks. Use Williamson-Hall for size-strain separation.
-            </p>
+            <div>
+              <h3 className="text-lg font-bold">Scientific Context</h3>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Scherrer Foundation</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 relative z-10">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <Atom className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Master Formula</span>
+              </div>
+              <div className="bg-black/60 p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-slate-700 shadow-inner">
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
+                  <span className="truncate">D = (K · λ) / (β · cosθ)</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <Binary className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Applicability Range</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                Valid for crystallites smaller than ~100-200 nm. Above this limit, peaks become too sharp to distinguish from the instrumental response.
+              </p>
+            </div>
+
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldQuestion className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Key Assumptions</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed italic">
+                Assumes all broadening stems from size. Strain, defects, and instrument factors also contribute. Use Williamson-Hall for decoupling.
+              </p>
+            </div>
           </div>
         </div>
       </div>

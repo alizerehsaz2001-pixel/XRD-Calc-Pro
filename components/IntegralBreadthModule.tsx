@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IntegralBreadthInput, IntegralBreadthResult } from '../types';
 import { parseIntegralBreadthInput, calculateIntegralBreadth } from '../utils/physics';
-import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2 } from 'lucide-react';
+import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion } from 'lucide-react';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 
 export const IntegralBreadthModule: React.FC = () => {
@@ -193,35 +193,59 @@ export const IntegralBreadthModule: React.FC = () => {
           </div>
         </div>
 
-        {/* Theory Card */}
-        <div className="bg-slate-900/50 p-6 rounded-2xl text-white border border-slate-800/50">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="p-2 bg-purple-500/10 rounded-lg border border-purple-500/20">
-              <BookOpen className="w-4 h-4 text-purple-400" />
+        {/* Scientific Context Card */}
+        <div className="bg-slate-900/50 p-6 rounded-2xl text-white border border-slate-800/50 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all duration-700"></div>
+          
+          <div className="flex items-center gap-4 mb-6 relative z-10">
+            <div className="p-2.5 bg-purple-500/20 rounded-xl border border-purple-500/30">
+              <BookOpen className="w-5 h-5 text-purple-400" />
             </div>
-            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">Theory</h3>
+            <div>
+              <h3 className="text-lg font-bold">Scientific Context</h3>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Integral Breadth Theory</p>
+            </div>
           </div>
-          <div className="space-y-4 text-sm text-slate-400 leading-relaxed">
-            <div className="bg-black/40 p-4 rounded-xl font-mono text-center text-purple-300 text-sm border border-slate-800 shadow-inner">
-              β = Area / Imax
+
+          <div className="space-y-4 relative z-10">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <Atom className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Breadth Definition</span>
+              </div>
+              <div className="bg-black/60 p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-slate-700 shadow-inner text-center">
+                <div className="inline-flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
+                  <span className="truncate">β = Area / Imax</span>
+                </div>
+              </div>
             </div>
-            <p>
-              Integral Breadth uses the total area under the peak divided by the maximum intensity. It is often more robust than FWHM for irregular peak shapes.
-            </p>
-            <div className="pt-2">
-              <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest block mb-3">Shape Factor (φ = FWHM / β)</span>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-3 text-xs bg-slate-800/30 p-2 rounded-lg border border-slate-700/30">
-                  <span className="w-2 h-2 rounded-full bg-blue-400" />
-                  <span className="font-bold text-slate-300 flex-1">Lorentzian</span>
+
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <Binary className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Shape Factor (φ = FWHM/β)</span>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs p-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <span className="font-bold text-blue-300">Lorentzian</span>
                   <span className="font-mono text-blue-400">φ ≈ 0.636</span>
-                </li>
-                <li className="flex items-center gap-3 text-xs bg-slate-800/30 p-2 rounded-lg border border-slate-700/30">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span className="font-bold text-slate-300 flex-1">Gaussian</span>
+                </div>
+                <div className="flex items-center justify-between text-xs p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                  <span className="font-bold text-emerald-300">Gaussian</span>
                   <span className="font-mono text-emerald-400">φ ≈ 0.939</span>
-                </li>
-              </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldQuestion className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Why use β?</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed italic">
+                Integral breadth considers the entire peak profile rather than just its width at half intensity, making it more robust for highly distorted profiles.
+              </p>
             </div>
           </div>
         </div>

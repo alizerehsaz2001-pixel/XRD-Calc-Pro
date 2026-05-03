@@ -5,7 +5,8 @@ import {
 } from 'recharts';
 import { 
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
-  Beaker, Calculator, ChevronRight, BookOpen, Layers, Info
+  Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, 
+  Binary, Zap, Gauge, LineChart as ChartIcon
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak } from '../utils/physics';
@@ -306,15 +307,18 @@ export const RietveldModule: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Controls */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
-              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-teal-600 rounded-full opacity-10 blur-2xl"></div>
+            <div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl group-hover:bg-teal-500/20 transition-all duration-700"></div>
               
               <div className="flex justify-between items-center mb-6 relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-teal-500/20 rounded-xl border border-teal-500/30">
-                    <Activity className="w-5 h-5 text-teal-400" />
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-teal-500/20 rounded-xl border border-teal-500/30 shadow-[0_0_15px_rgba(20,184,166,0.2)]">
+                    <Settings className="w-5 h-5 text-teal-400" />
                   </div>
-                  <h2 className="text-xl font-bold text-white">Parameters</h2>
+                  <div>
+                    <h2 className="text-xl font-black text-white tracking-tight">Refinement Core</h2>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Parameter Matrix</p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                    <button 
@@ -328,41 +332,47 @@ export const RietveldModule: React.FC = () => {
                       });
                       setIsAutoRefining(false);
                     }}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors border border-transparent hover:border-slate-700"
-                    title="Reset Parameters"
+                    className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all border border-slate-800 hover:border-slate-700 active:scale-95"
+                    title="Cold Reset"
                    >
                      <RotateCcw className="w-4 h-4" />
                    </button>
                    <button 
                     onClick={() => setIsAutoRefining(!isAutoRefining)}
-                    className={`p-2 rounded-xl transition-colors border ${isAutoRefining ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-teal-400 hover:bg-teal-500/10 border-transparent hover:border-teal-500/30'}`}
-                    title="Auto Refine"
+                    className={`p-2.5 rounded-xl transition-all border active:scale-95 flex items-center gap-2 ${isAutoRefining ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : 'text-teal-400 bg-teal-500/10 border-teal-500/30 hover:bg-teal-500/20'}`}
+                    title="Live Engine"
                    >
-                     <PlayCircle className="w-4 h-4" />
+                     <PlayCircle className={`w-4 h-4 ${isAutoRefining ? 'animate-pulse' : ''}`} />
                    </button>
                 </div>
               </div>
 
-              <div className="space-y-6 relative z-10">
-                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Phase Model</label>
+              <div className="space-y-5 relative z-10">
+                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 group/model hover:border-teal-500/30 transition-colors">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Beaker className="w-3.5 h-3.5 text-teal-500" />
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Structural Model</label>
+                  </div>
                   <select 
                     value={simPhase}
                     onChange={(e) => setSimPhase(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-black/40 border border-slate-700 rounded-lg text-sm font-medium text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+                    className="w-full px-3 py-3 bg-black/60 border border-slate-700 rounded-xl text-xs font-bold text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 transition-all appearance-none cursor-pointer"
                   >
-                    <option value="Simple Cubic">Simple Cubic</option>
-                    <option value="BCC">Body Centered Cubic (BCC)</option>
-                    <option value="FCC">Face Centered Cubic (FCC)</option>
-                    <option value="Quartz">Quartz (SiO2)</option>
+                    <option value="Simple Cubic">Simple Cubic (P m-3m)</option>
+                    <option value="BCC">Body Centered (I m-3m)</option>
+                    <option value="FCC">Face Centered (F m-3m)</option>
+                    <option value="Quartz">Quartz (P 32 21)</option>
                   </select>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                    <div className="flex justify-between mb-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lattice Parameter (a)</label>
-                      <span className="text-xs font-mono font-bold text-teal-400 bg-black/40 px-2 py-0.5 rounded border border-slate-700">{userParams.a.toFixed(3)} Å</span>
+                <div className="space-y-3">
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-2">
+                        <Ruler className="w-3.5 h-3.5 text-teal-400" />
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
+                      </div>
+                      <span className="text-xs font-mono font-black text-teal-400 bg-black/60 px-2 py-1 rounded-lg border border-slate-700/50 shadow-inner">{userParams.a.toFixed(4)} Å</span>
                     </div>
                     <input 
                       type="range" 
@@ -371,14 +381,17 @@ export const RietveldModule: React.FC = () => {
                       step="0.001"
                       value={userParams.a}
                       onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
-                      className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
                     />
                   </div>
 
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                    <div className="flex justify-between mb-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Scale Factor</label>
-                      <span className="text-xs font-mono font-bold text-teal-400 bg-black/40 px-2 py-0.5 rounded border border-slate-700">{userParams.scale.toFixed(0)}</span>
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-2">
+                        <Maximize className="w-3.5 h-3.5 text-teal-400" />
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Intensity Scale</label>
+                      </div>
+                      <span className="text-xs font-mono font-black text-teal-400 bg-black/60 px-2 py-1 rounded-lg border border-slate-700/50 shadow-inner">{userParams.scale.toFixed(0)}</span>
                     </div>
                     <input 
                       type="range" 
@@ -387,14 +400,17 @@ export const RietveldModule: React.FC = () => {
                       step="10"
                       value={userParams.scale}
                       onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
-                      className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
                     />
                   </div>
 
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                    <div className="flex justify-between mb-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Peak Width (FWHM)</label>
-                      <span className="text-xs font-mono font-bold text-teal-400 bg-black/40 px-2 py-0.5 rounded border border-slate-700">{userParams.fwhm.toFixed(3)}°</span>
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-2">
+                        <Binary className="w-3.5 h-3.5 text-teal-400" />
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Profile Width</label>
+                      </div>
+                      <span className="text-xs font-mono font-black text-teal-400 bg-black/60 px-2 py-1 rounded-lg border border-slate-700/50 shadow-inner">{userParams.fwhm.toFixed(3)}°</span>
                     </div>
                     <input 
                       type="range" 
@@ -403,14 +419,17 @@ export const RietveldModule: React.FC = () => {
                       step="0.01"
                       value={userParams.fwhm}
                       onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value)})}
-                      className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
                     />
                   </div>
 
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                    <div className="flex justify-between mb-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Background</label>
-                      <span className="text-xs font-mono font-bold text-teal-400 bg-black/40 px-2 py-0.5 rounded border border-slate-700">{userParams.background.toFixed(0)}</span>
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-2">
+                        <ChartIcon className="w-3.5 h-3.5 text-teal-400" />
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noise Floor</label>
+                      </div>
+                      <span className="text-xs font-mono font-black text-teal-400 bg-black/60 px-2 py-1 rounded-lg border border-slate-700/50 shadow-inner">{userParams.background.toFixed(0)}</span>
                     </div>
                     <input 
                       type="range" 
@@ -419,96 +438,149 @@ export const RietveldModule: React.FC = () => {
                       step="1"
                       value={userParams.background}
                       onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value)})}
-                      className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
                     />
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-800">
-                  <div className="flex items-center justify-between bg-black/40 p-4 rounded-xl border border-slate-700/50">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Goodness of Fit (R-factor)</span>
-                    <span className={`text-xl font-black font-mono ${rFactor < 15 ? 'text-emerald-400' : rFactor < 30 ? 'text-amber-400' : 'text-red-400'}`}>
-                      {rFactor.toFixed(2)}%
-                    </span>
+                <div className="pt-5 border-t border-slate-800/50 mt-2">
+                  <div className="bg-black/60 p-5 rounded-2xl border border-slate-700/50 shadow-inner relative overflow-hidden group/fit">
+                    <div className="absolute inset-0 bg-teal-500/5 opacity-0 group-hover/fit:opacity-100 transition-opacity" />
+                    <div className="flex items-center justify-between relative z-10">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-1">Goodness of Fit</span>
+                        <span className="text-[9px] font-mono text-teal-500/60 font-bold">Rwp_index_matrix</span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-3xl font-black font-mono transition-colors tracking-tighter ${rFactor < 15 ? 'text-emerald-400' : rFactor < 30 ? 'text-amber-400 text-shadow-[0_0_10px_rgba(251,191,36,0.3)]' : 'text-rose-500 text-shadow-[0_0_10px_rgba(244,63,94,0.3)]'}`}>
+                          {rFactor.toFixed(2)}%
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-start gap-2 mt-3 text-[10px] text-slate-500 uppercase tracking-wider font-bold">
-                    <Info className="w-3.5 h-3.5 text-teal-500 shrink-0" />
-                    <span>Goal: Minimize R-factor by matching calculated (red) to observed (dots).</span>
+                  
+                  <div className="mt-4 flex items-center gap-3 bg-teal-500/5 p-4 rounded-xl border border-teal-500/10 backdrop-blur-sm">
+                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse shadow-[0_0_8px_rgba(20,184,166,0.8)] shrink-0" />
+                    <p className="text-[10px] text-teal-400/80 leading-relaxed font-bold uppercase tracking-wider">
+                      Optimization Strategy: Target Residual Reduction below 15%
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Chart */}
           <div className="lg:col-span-8">
-            <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 h-[600px] flex flex-col relative overflow-hidden">
-              <div className="absolute top-0 left-0 -mt-4 -ml-4 w-32 h-32 bg-teal-600 rounded-full opacity-5 blur-3xl"></div>
+            <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 h-[650px] flex flex-col relative overflow-hidden group/pattern">
+              <div className="absolute top-0 left-0 -mt-8 -ml-8 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl group-hover/pattern:bg-teal-500/10 transition-all duration-1000"></div>
               
-              <div className="flex justify-between items-center mb-6 relative z-10">
-                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                   <BarChart2 className="w-5 h-5 text-teal-400" />
-                   Diffraction Pattern
-                 </h3>
-                 <div className="flex gap-4 text-[10px] uppercase tracking-widest font-bold bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-                      <span className="text-slate-400">Observed</span>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 relative z-10">
+                 <div>
+                   <h3 className="text-xl font-black text-white flex items-center gap-3">
+                     <div className="p-2 bg-teal-500/20 rounded-lg border border-teal-500/30">
+                        <BarChart2 className="w-5 h-5 text-teal-400" />
+                     </div>
+                     Diffraction Pattern Analysis
+                   </h3>
+                   <div className="flex items-center gap-2 mt-1.5 px-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Real-time Spectral Synthesis</span>
+                   </div>
+                 </div>
+
+                 <div className="flex gap-4 p-2.5 bg-black/40 rounded-2xl border border-slate-800/50 shadow-inner">
+                    <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0">
+                      <div className="w-2 h-2 rounded-full bg-slate-400/40 border border-slate-500/50 shadow-[0_0_8px_rgba(148,163,184,0.3)]"></div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Obs</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                      <span className="text-slate-400">Calculated</span>
+                    <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0">
+                      <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Calc</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-slate-600"></div>
-                      <span className="text-slate-400">Difference</span>
+                    <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0 font-mono">
+                      <div className="w-4 h-[2px] bg-slate-600 rounded-full"></div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Diff</span>
                     </div>
                  </div>
               </div>
+
               <div className="flex-1 w-full min-h-0 relative z-10">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={generatePatternData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                  <ComposedChart data={generatePatternData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                    <defs>
+                      <linearGradient id="diffGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#475569" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#475569" stopOpacity={0}/>
+                      </linearGradient>
+                      <filter id="glow">
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                        <feMerge>
+                          <feMergeNode in="coloredBlur"/>
+                          <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                     <XAxis 
                       dataKey="twoTheta" 
                       type="number" 
                       domain={[SIMULATION_RANGE.start, SIMULATION_RANGE.end]} 
-                      label={{ value: '2θ (degrees)', position: 'bottom', offset: 0, fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
-                      tick={{ fill: '#64748b', fontSize: 11 }}
+                      label={{ value: 'Angular Position [2θ°]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontWeight: 900, textAnchor: 'middle', letterSpacing: '0.1em' }}
+                      tick={{ fill: '#475569', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
+                      axisLine={{ stroke: '#334155', strokeWidth: 1 }}
+                      tickLine={{ stroke: '#334155' }}
                     />
-                    <YAxis hide />
+                    <YAxis hide domain={['auto', 'auto']} />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', color: '#f8fafc', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
-                      itemStyle={{ color: '#38bdf8', fontWeight: 'bold' }}
-                      labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-                      formatter={(value: number) => value.toFixed(0)}
+                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
+                      itemStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                      labelStyle={{ color: '#64748b', fontSize: '10px', marginBottom: '8px', fontWeight: 'bold', fontFamily: 'monospace' }}
+                      cursor={{ stroke: '#334155', strokeWidth: 1 }}
+                      formatter={(value: number) => value.toFixed(1)}
                     />
-                    {/* Difference Curve (Area) */}
+                    
                     <Area 
                       type="monotone" 
                       dataKey="diff" 
-                      fill="#475569" 
-                      stroke="none" 
-                      fillOpacity={0.3} 
+                      fill="url(#diffGradient)" 
+                      stroke="#475569" 
+                      strokeWidth={1}
+                      fillOpacity={1}
+                      isAnimationActive={false}
                     />
-                    {/* Observed Data (Scatter) */}
+                    
                     <Scatter 
                       dataKey="obs" 
                       fill="#94a3b8" 
-                      opacity={0.8} 
-                      shape="circle" 
+                      shape={(props) => {
+                        const { cx, cy } = props;
+                        return <circle cx={cx} cy={cy} r={1.2} fill="#94a3b8" fillOpacity={0.6} />;
+                      }}
+                      isAnimationActive={false}
                     />
-                    {/* Calculated Data (Line) */}
+                    
                     <Line 
                       type="monotone" 
                       dataKey="calc" 
-                      stroke="#ef4444" 
-                      strokeWidth={2.5} 
+                      stroke="#f43f5e" 
+                      strokeWidth={2} 
                       dot={false} 
-                      activeDot={{ r: 4, fill: '#ef4444', stroke: '#0f172a', strokeWidth: 2 }}
+                      activeDot={{ r: 5, fill: '#f43f5e', stroke: '#fff', strokeWidth: 2 }}
+                      filter="url(#glow)"
+                      isAnimationActive={false}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
+              </div>
+
+              {/* Status Overlay */}
+              <div className="absolute bottom-6 left-8 flex items-center gap-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-slate-700/50 z-20">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                  <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Active Data Feed</span>
+                </div>
+                <div className="h-3 w-[1px] bg-slate-700" />
+                <span className="text-[9px] font-mono text-slate-500 uppercase">Resolution: {SIMULATION_RANGE.step}°/step</span>
               </div>
             </div>
           </div>

@@ -13,7 +13,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, Atom, Binary, ShieldQuestion } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const K_FACTORS = [
@@ -240,23 +240,53 @@ export const WilliamsonHallModule: React.FC = () => {
           </div>
         </div>
 
-        {/* Theory Card */}
-        <div className="bg-slate-900 p-6 rounded-xl text-white border border-slate-800">
-          <div className="flex items-center gap-2 mb-4">
-            <BookOpen className="w-5 h-5 text-cyan-500" />
-            <h3 className="text-lg font-bold">Theory: UDM Model</h3>
-          </div>
-          <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
-            <div className="bg-slate-800 p-3 rounded-lg font-mono text-center text-cyan-400 text-sm mb-2">
-              βcosθ = ε(4sinθ) + Kλ/D
+        {/* Scientific Context Card */}
+        <div className="bg-slate-900 p-6 rounded-2xl text-white border border-slate-800 shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-cyan-500/10 rounded-full blur-3xl group-hover:bg-cyan-500/20 transition-all duration-700"></div>
+          
+          <div className="flex items-center gap-4 mb-6 relative z-10">
+            <div className="p-2.5 bg-cyan-500/20 rounded-xl border border-cyan-500/30">
+              <BookOpen className="w-5 h-5 text-cyan-400" />
             </div>
-            <p>
-              The Williamson-Hall analysis separates size and strain broadening by plotting <strong>βcosθ</strong> (y-axis) vs <strong>4sinθ</strong> (x-axis).
-            </p>
-            <ul className="list-disc pl-4 space-y-1">
-              <li><strong>Slope (ε):</strong> Represents the microstrain in the lattice.</li>
-              <li><strong>Y-Intercept (Kλ/D):</strong> Related to the crystallite size (D).</li>
-            </ul>
+            <div>
+              <h3 className="text-lg font-bold">Scientific Context</h3>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">UDM Model Analysis</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 relative z-10">
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <Atom className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Master Equation</span>
+              </div>
+              <div className="bg-black/60 p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-slate-700 shadow-inner text-center">
+                <div className="inline-flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
+                  <span className="truncate">βcosθ = ε(4sinθ) + Kλ/D</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Slope (ε) Significance</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                The gradient represents the lattice microstrain. Steeper slopes indicate higher internal stress within the crystallites.
+              </p>
+            </div>
+
+            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <Ruler className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Intercept (Kλ/D) Analysis</span>
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                The Y-intercept provides the size contribution. By decoupling strain (slope), this provides a more accurate grain size than single-peak Scherrer.
+              </p>
+            </div>
           </div>
         </div>
       </div>
