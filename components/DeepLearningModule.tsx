@@ -357,6 +357,116 @@ const MATERIAL_DB = [
     spaceGroup: 'Pnma',
     density: 3.6,
     applications: ['EV Batteries', 'Power Tools']
+  },
+  {
+    name: 'Gallium Nitride (GaN)',
+    type: 'Semiconductor',
+    pattern: '32.39, 100\n34.56, 95\n36.84, 85\n48.12, 20\n57.78, 45\n63.45, 30\n67.82, 35',
+    description: 'A binary III/V direct bandgap semiconductor commonly used in bright light-emitting diodes.',
+    formula: 'GaN',
+    crystalSystem: 'Hexagonal (Wurtzite)',
+    spaceGroup: 'P63mc',
+    density: 6.1,
+    applications: ['LEDs', 'Power Electronics', 'RF Amplifiers']
+  },
+  {
+    name: 'Gold (Au)',
+    type: 'Metal',
+    pattern: '38.18, 100\n44.39, 52\n64.57, 32\n77.54, 36\n81.72, 10',
+    description: 'A transition metal and a group 11 element. It is one of the least reactive chemical elements.',
+    formula: 'Au',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 19.3,
+    applications: ['Jewelry', 'Electronics', 'Economic Standard']
+  },
+  {
+    name: 'Iron - Alpha (Fe)',
+    type: 'Metal',
+    pattern: '44.67, 100\n65.02, 20\n82.33, 30\n98.94, 10',
+    description: 'The BCC allotrope of iron, stable at room temperature.',
+    formula: 'Fe',
+    crystalSystem: 'Cubic (BCC)',
+    spaceGroup: 'Im-3m',
+    density: 7.87,
+    applications: ['Structural Steel', 'Magnetic Cores']
+  },
+  {
+    name: 'Zirconia (ZrO2)',
+    type: 'Ceramic',
+    pattern: '28.17, 100\n31.47, 65\n34.15, 25\n50.12, 35\n50.55, 30\n60.05, 20',
+    description: 'Monoclinic zirconia (baddeleyite), a tough ceramic used in structural applications.',
+    formula: 'ZrO2',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/c',
+    density: 5.68,
+    applications: ['Ceramic Knives', 'Dental Implants', 'Fuel Cells']
+  },
+  {
+    name: 'Graphite',
+    type: 'Carbon Allotrope',
+    pattern: '26.54, 100\n42.39, 5\n44.59, 15\n54.67, 10\n77.54, 5',
+    description: 'A crystalline form of the element carbon with its atoms arranged in a hexagonal structure.',
+    formula: 'C',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/mmc',
+    density: 2.26,
+    applications: ['Lubrication', 'Battery Anodes', 'Pencil Lead']
+  },
+  {
+    name: 'Calcium Fluoride (CaF2)',
+    type: 'Haliide Ceramic',
+    pattern: '28.27, 100\n46.68, 85\n55.35, 35\n68.17, 15\n75.64, 10\n87.35, 12',
+    description: 'The mineral fluorite, used extensively in optics due to its wide transparency range.',
+    formula: 'CaF2',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 3.18,
+    applications: ['Camera Lenses', 'Flux in Smelting']
+  },
+  {
+    name: 'Nickel (Ni)',
+    type: 'Metal',
+    pattern: '44.51, 100\n51.85, 45\n76.38, 25\n92.95, 20\n98.45, 10',
+    description: 'A silvery-white lustrous metal with a slight golden tinge. It is hard and ductile.',
+    formula: 'Ni',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 8.91,
+    applications: ['Superalloys', 'Stainless Steel', 'Rechargeable Batteries']
+  },
+  {
+    name: 'Tungsten Carbide (WC)',
+    type: 'Hard Ceramic',
+    pattern: '31.51, 100\n35.64, 90\n48.30, 80\n64.06, 35\n73.11, 40\n75.48, 25\n77.16, 20',
+    description: 'An extremely hard chemical compound containing tungsten and carbon atoms.',
+    formula: 'WC',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P-6m2',
+    density: 15.63,
+    applications: ['Cutting Tools', 'Abrasives', 'Armor-piercing rounds']
+  },
+  {
+    name: 'Magnetite (Fe3O4)',
+    type: 'Iron Oxide / Magnetic',
+    pattern: '30.1, 40\n35.4, 100\n43.1, 25\n53.4, 20\n57.0, 35\n62.6, 45',
+    description: 'A rock-forming mineral and one of the main iron ores, one of the oxides of iron.',
+    formula: 'Fe3O4',
+    crystalSystem: 'Cubic (Spinel)',
+    spaceGroup: 'Fd-3m',
+    density: 5.17,
+    applications: ['Magnetic Storage', 'Biomedicine', 'Pigments']
+  },
+  {
+    name: 'Methylammonium Lead Iodide (MAPbI3)',
+    type: 'Solar Perovskite',
+    pattern: '14.1, 100\n24.5, 45\n28.4, 55\n31.8, 30\n40.6, 20\n43.2, 15',
+    description: 'A primary material used in high-efficiency perovskite solar cells.',
+    formula: 'CH3NH3PbI3',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'I4/mcm',
+    density: 4.16,
+    applications: ['Photovoltaics', 'Photodetectors']
   }
 ];
 
@@ -631,12 +741,20 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'LTA' ? 'Zeolite A' :
                         type === 'YAG' ? 'Yttrium Aluminum Garnet' :
                         type === 'SrTiO3' ? 'Strontium Titanate' :
-                        type === 'LiFePO4' ? 'Lithium Iron Phosphate' :
+                        type === 'LiFePO4' || type === 'LFP' ? 'Lithium Iron Phosphate' :
+                        type === 'GaN' ? 'Gallium Nitride' :
+                        type === 'Au' ? 'Gold' :
+                        type === 'Fe' ? 'Iron - Alpha' :
+                        type === 'Ni' ? 'Nickel' :
+                        type === 'WC' ? 'Tungsten Carbide' :
+                        type === 'Fe3O4' ? 'Magnetite' :
+                        type === 'MAPbI3' ? 'Methylammonium Lead Iodide' :
                         type === 'PTFE' ? 'Polytetrafluoroethylene' :
                         type === 'NaCl' ? 'Halite' :
                         type === 'KCl' ? 'Sylvite' :
-                        type === 'CaF2' ? 'Fluorite' :
+                        type === 'CaF2' ? 'Calcium Fluoride' :
                         type === 'ZrO2' ? 'Zirconia' :
+                        type === 'Graphite' ? 'Graphite' :
                         type === 'Hematite' ? 'Hematite' :
                         type === 'MgO' ? 'Magnesium Oxide' :
                         type === 'CeO2' ? 'Cerium Oxide' :
@@ -1124,6 +1242,10 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'PbTiO3', label: 'PbTiO3' },
                     { id: 'LTA', label: 'Zeolite A' },
                     { id: 'Silver (Ag)', label: 'Ag' },
+                    { id: 'Au', label: 'Au' },
+                    { id: 'Ni', label: 'Ni' },
+                    { id: 'Fe', label: 'Fe (BCC)' },
+                    { id: 'GaN', label: 'GaN' },
                     { id: 'YAG', label: 'YAG' },
                     { id: 'SrTiO3', label: 'SrTiO3' },
                     { id: 'LiFePO4', label: 'LFP' },
@@ -1132,6 +1254,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'CaF2', label: 'CaF2' },
                     { id: 'KCl', label: 'KCl' },
                     { id: 'PTFE', label: 'PTFE' },
+                    { id: 'WC', label: 'WC' },
+                    { id: 'Fe3O4', label: 'Fe3O4' },
+                    { id: 'MAPbI3', label: 'Perovskite' },
                     { id: 'Complex', label: 'Complex Mix' }
                   ].map(ex => (
                     <button 
