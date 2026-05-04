@@ -697,6 +697,27 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       description: "A lustrous transition metal with a silver color, low density, and high strength.",
       crystalSystem: "Hexagonal (HCP)", spaceGroup: "P63/mmc", density: 4.50,
       applications: ["Aerospace", "Implants", "Pigments", "Sporting Goods"]
+    },
+    {
+      name: 'Diamond', formula: 'C', cardId: 'COD-9012629',
+      peaks: [{t: 43.92, i: 100}, {t: 75.30, i: 25}, {t: 91.50, i: 16}, {t: 119.52, i: 7}],
+      description: "The hardest natural material known, a metastable allotrope of carbon.",
+      crystalSystem: "Cubic (Diamond)", spaceGroup: "Fd-3m", density: 3.51,
+      applications: ["Industrial Cutting", "Jewelry", "Heat Sinks"]
+    },
+    {
+      name: 'Barium Titanate', formula: 'BaTiO3', cardId: 'COD-1524143',
+      peaks: [{t: 22.20, i: 25}, {t: 31.50, i: 100}, {t: 38.90, i: 22}, {t: 45.30, i: 42}, {t: 50.90, i: 18}, {t: 56.20, i: 15}, {t: 65.80, i: 22}],
+      description: "A dielectric ceramic used for its high dielectric constant and piezoelectricity.",
+      crystalSystem: "Tetragonal", spaceGroup: "P4mm", density: 6.02,
+      applications: ["Capacitors", "Transducers", "Actuators"]
+    },
+    {
+      name: 'Molybdenum Disulfide', formula: 'MoS2', cardId: 'COD-1011289',
+      peaks: [{t: 14.38, i: 100}, {t: 32.67, i: 12}, {t: 33.51, i: 10}, {t: 39.54, i: 7}, {t: 44.15, i: 6}, {t: 49.79, i: 12}, {t: 58.34, i: 15}],
+      description: "A transition metal dichalcogenide used as a dry lubricant and 2D semiconductor.",
+      crystalSystem: "Hexagonal", spaceGroup: "P63/mmc", density: 5.06,
+      applications: ["Lubrication", "Transistors", "Chemical Catalysis"]
     }
   ];
 

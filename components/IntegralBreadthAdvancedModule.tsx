@@ -21,6 +21,13 @@ const PRESETS = [
   { label: 'Co K-alpha', wavelength: 1.7890, desc: 'Avoids Fe fluorescence' }
 ];
 
+const K_FACTORS = [
+  { label: 'Spherical', value: 0.94, desc: 'Isotropic spherical grains' },
+  { label: 'Cubic', value: 0.9, desc: 'General cubic symmetry' },
+  { label: 'Platelets', value: 0.89, desc: 'High aspect ratio grains' },
+  { label: 'Nanowires', value: 1.1, desc: 'Highly anisotropic structures' }
+];
+
 export const IntegralBreadthAdvancedModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
@@ -30,12 +37,19 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
   const [result, setResult] = useState<IBAdvancedResult | null>(null);
   
   const [isWavelengthMenuOpen, setIsWavelengthMenuOpen] = useState(false);
+  const [selectedKType, setSelectedKType] = useState<string>('Cubic');
+  const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
+
   const menuRef = useRef<HTMLDivElement>(null);
+  const kMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsWavelengthMenuOpen(false);
+      }
+      if (kMenuRef.current && !kMenuRef.current.contains(event.target as Node)) {
+        setIsKTypeMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -62,7 +76,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
   useEffect(() => {
     handleCalculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [wavelength, constantK, instBetaIB, inputData]);
 
   // Prepare chart data
   const chartData = result ? result.points.map(p => {
@@ -191,22 +205,61 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                   </AnimatePresence>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div ref={kMenuRef} className="relative">
                     <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">
-                      Shape K
+                      Shape / Morphology (K)
                     </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={constantK}
-                      onChange={(e) => setConstantK(parseFloat(e.target.value))}
-                      className="w-full px-4 py-3 bg-black/60 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none font-mono text-sm font-bold transition-all shadow-inner placeholder:text-slate-600"
-                    />
+                    <div className="flex gap-2">
+                       <button
+                        onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
+                        className="flex-1 px-4 py-3 bg-black/60 text-pink-400 border border-slate-600 hover:border-pink-500 rounded-xl outline-none font-bold text-xs transition-all flex items-center justify-between"
+                       >
+                         <span>{selectedKType} ({constantK})</span>
+                         <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isKTypeMenuOpen ? 'rotate-180' : ''}`} />
+                       </button>
+                       <input
+                          type="number"
+                          step="0.01"
+                          value={constantK}
+                          onChange={(e) => {
+                            setConstantK(parseFloat(e.target.value));
+                            setSelectedKType('Custom');
+                          }}
+                          className="w-20 px-3 py-3 bg-black/60 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none font-mono text-xs font-bold text-center"
+                        />
+                    </div>
+                    
+                    <AnimatePresence>
+                      {isKTypeMenuOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                          className="absolute top-full left-0 right-0 mt-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 p-1"
+                        >
+                          {K_FACTORS.map((k) => (
+                            <button
+                              key={k.label}
+                              onClick={() => {
+                                setConstantK(k.value);
+                                setSelectedKType(k.label);
+                                setIsKTypeMenuOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg flex flex-col gap-0.5 hover:bg-slate-700/50 transition-colors ${selectedKType === k.label ? 'bg-pink-500/10' : ''}`}
+                            >
+                              <span className={`text-[11px] font-black ${selectedKType === k.label ? 'text-pink-400' : 'text-slate-300'}`}>{k.label} ({k.value})</span>
+                              <span className="text-[9px] text-slate-500 font-bold">{k.desc}</span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
+
                   <div>
                      <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest flex justify-between items-center">
-                       <span>Inst. β_IB</span>
+                       <span>Instrumental Resolution β_IB</span>
                        <span className="text-slate-500 font-mono">(deg)</span>
                      </label>
                      <input
@@ -251,10 +304,10 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                 </div>
               </div>
               <div className="flex justify-between items-center mt-4 bg-black/40 p-2.5 rounded-lg border border-slate-700/50">
-                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/50" />
                    β = <span className="text-cyan-400">Area / Imax</span> (auto)
-                </p>
+                </div>
                 <div className="flex items-center gap-2">
                    <span className="text-[9px] text-slate-500 font-mono font-bold uppercase">Vectors:</span>
                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded shadow-sm border ${parseIBAdvancedInput(inputData).length >= 2 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30'}`}>
@@ -275,6 +328,19 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
             >
               Analyze Size & Strain
             </button>
+
+            {result && (
+              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Current Size</span>
+                  <span className="text-sm font-black text-pink-400">{result.sizeInterceptNm > 0 ? result.sizeInterceptNm.toFixed(2) : '∞'} <span className="text-[10px] opacity-50">nm</span></span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Microstrain</span>
+                  <span className="text-sm font-black text-pink-400">{result.strainPercent.toExponential(2)} <span className="text-[10px] opacity-50">%</span></span>
+                </div>
+              </div>
+            )}
             
             <div className="bg-black/40 rounded-xl p-4 border border-slate-700/50 overflow-hidden relative group">
                <div className="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">

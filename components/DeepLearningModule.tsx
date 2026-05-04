@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DLPhaseResult, DLPhaseCandidate } from '../types';
 import { identifyPhasesDL, parseXYData } from '../utils/physics';
-import { isQuotaError, isPermissionError } from '../services/geminiService';
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import {
   ComposedChart,
   Bar,
@@ -16,7 +14,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X } from 'lucide-react';
 
 const MATERIAL_DB = [
   { 
@@ -227,6 +225,138 @@ const MATERIAL_DB = [
     spaceGroup: 'Im-3m',
     density: 19.25,
     applications: ['Heating elements', 'X-ray tubes', 'Alloys']
+  },
+  {
+    name: 'Diamond (C)',
+    type: 'Mineral/Gemstone',
+    pattern: '43.92, 100\n75.30, 25\n91.50, 16\n119.52, 7',
+    description: 'The hardest natural material known, a metastable allotrope of carbon.',
+    formula: 'C',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fd-3m',
+    density: 3.51,
+    applications: ['Cutting tools', 'Jewelry', 'Heat sinks']
+  },
+  {
+    name: 'Corundum (Al2O3)',
+    type: 'Ceramic/Mineral',
+    pattern: '25.58, 45\n35.15, 100\n37.78, 40\n43.36, 85\n52.55, 45\n57.50, 90\n61.30, 10\n66.52, 45\n68.21, 60',
+    description: 'A crystalline form of aluminum oxide typically containing traces of iron, titanium, vanadium and chromium.',
+    formula: 'Al2O3',
+    crystalSystem: 'Trigonal',
+    spaceGroup: 'R-3c',
+    density: 3.98,
+    applications: ['Abrasives', 'Refractories', 'Laser host crystals']
+  },
+  {
+    name: 'Rutile (TiO2)',
+    type: 'Ceramic/Oxide',
+    pattern: '27.44, 100\n36.08, 50\n39.18, 8\n41.22, 25\n44.05, 10\n54.31, 60\n56.62, 20\n62.73, 10\n64.03, 10\n68.99, 20',
+    description: 'The most common natural form of TiO2, a major ore of titanium.',
+    formula: 'TiO2',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'P42/mnm',
+    density: 4.23,
+    applications: ['Pigments', 'UV filters', 'Optical coatings']
+  },
+  {
+    name: 'Anatase (TiO2)',
+    type: 'Ceramic/Oxide',
+    pattern: '25.28, 100\n37.80, 20\n48.05, 35\n53.89, 20\n55.06, 20\n62.69, 15',
+    description: 'A metastable mineral form of titanium dioxide.',
+    formula: 'TiO2',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'I41/amd',
+    density: 3.79,
+    applications: ['Photocatalysis', 'Solar cells', 'Gas sensors']
+  },
+  {
+    name: 'Barium Titanate (BaTiO3)',
+    type: 'Ferroelectric Ceramic',
+    pattern: '22.20, 25\n31.50, 100\n38.90, 22\n45.30, 42\n50.90, 18\n56.20, 15\n65.80, 22',
+    description: 'A dielectric ceramic used for its high dielectric constant and piezoelectric properties.',
+    formula: 'BaTiO3',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'P4mm',
+    density: 6.02,
+    applications: ['Capacitors', 'Transducers', 'Thermistors']
+  },
+  {
+    name: 'Molybdenum Disulfide (MoS2)',
+    type: '2D Material/Lubricant',
+    pattern: '14.38, 100\n32.67, 12\n33.51, 10\n39.54, 7\n44.15, 6\n49.79, 12\n58.34, 15',
+    description: 'A layered transition metal dichalcogenide used as a dry lubricant and in nanoelectronics.',
+    formula: 'MoS2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/mmc',
+    density: 5.06,
+    applications: ['Lubrication', 'Transistors', 'Photodetectors']
+  },
+  {
+    name: 'Lead Titanate (PbTiO3)',
+    type: 'Ferroelectric Ceramic',
+    pattern: '21.5, 20\n22.8, 25\n31.5, 100\n32.5, 95\n39.0, 15\n44.3, 35\n45.2, 40',
+    description: 'A yellow solid that is insoluble in water. It is a classic ferroelectric material.',
+    formula: 'PbTiO3',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'P4mm',
+    density: 7.52,
+    applications: ['Transducers', 'Thermal Sensors']
+  },
+  {
+    name: 'Zeolite A (LTA)',
+    type: 'Zeolite/Microporous',
+    pattern: '7.2, 100\n10.2, 50\n12.5, 60\n16.1, 20\n21.7, 35\n24.0, 45\n27.1, 30\n29.9, 40\n34.2, 25',
+    description: 'A synthetic zeolite with a pore size of about 4 Ångströms.',
+    formula: 'Na12Al12Si12O48·27H2O',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Pm-3m',
+    density: 1.55,
+    applications: ['Water Softening', 'Catalysis', 'Gas Separation']
+  },
+  {
+    name: 'Silver (Ag)',
+    type: 'Metal',
+    pattern: '38.12, 100\n44.30, 40\n64.44, 25\n77.40, 26\n81.54, 15',
+    description: 'A lustrous, white, soft, very ductile, and malleable transition metal.',
+    formula: 'Ag',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 10.49,
+    applications: ['Jewelry', 'Electronics', 'Photography']
+  },
+  {
+    name: 'Yttrium Aluminum Garnet (YAG)',
+    type: 'Ceramic/Laser Host',
+    pattern: '18.1, 15\n27.8, 30\n29.8, 35\n33.3, 100\n36.6, 25\n41.1, 40\n46.6, 35\n55.2, 45\n57.5, 20',
+    description: 'A synthetic crystalline material of the garnet group.',
+    formula: 'Y3Al5O12',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Ia-3d',
+    density: 4.55,
+    applications: ['Solid-state Lasers', 'Phosphors']
+  },
+  {
+    name: 'Strontium Titanate (SrTiO3)',
+    type: 'Perovskite Ceramic',
+    pattern: '22.8, 25\n32.4, 100\n39.9, 20\n46.5, 45\n52.4, 10\n57.8, 30\n67.8, 30',
+    description: 'An oxide of strontium and titanium. It is a centrosymmetric cubic perovskite.',
+    formula: 'SrTiO3',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Pm-3m',
+    density: 5.11,
+    applications: ['Substrates', 'Varistors', 'Optics']
+  },
+  {
+    name: 'Lithium Iron Phosphate (LiFePO4)',
+    type: 'Battery Material',
+    pattern: '17.1, 40\n20.8, 35\n25.6, 100\n29.7, 45\n32.1, 30\n35.6, 75\n42.1, 15',
+    description: 'An olivine-structured compound used as a cathode material for LIBs.',
+    formula: 'LiFePO4',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pnma',
+    density: 3.6,
+    applications: ['EV Batteries', 'Power Tools']
   }
 ];
 
@@ -237,7 +367,6 @@ export const DeepLearningModule: React.FC = () => {
   const [progressStep, setProgressStep] = useState(0); // 0: Idle, 1: Preproc, 2: CNN, 3: DB, 4: Done
   const [selectedCandidate, setSelectedCandidate] = useState<DLPhaseCandidate | null>(null);
   const [scanPos, setScanPos] = useState<number | null>(null);
-  const [aiMaterialData, setAiMaterialData] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Advanced Engine Configuration
@@ -254,10 +383,13 @@ export const DeepLearningModule: React.FC = () => {
     batchNorm: true
   });
 
-  // Search State
+  // Search & Advanced Tools State
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isSearchingAI, setIsSearchingAI] = useState(false);
+  const [isLatticeModalOpen, setIsLatticeModalOpen] = useState(false);
+  const [latticeResult, setLatticeResult] = useState<{ a: number, error: string } | null>(null);
+  const [mixtureList, setMixtureList] = useState<string[]>([]);
+  const [isMixMode, setIsMixMode] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Close suggestions when clicking outside
@@ -280,7 +412,6 @@ export const DeepLearningModule: React.FC = () => {
       const content = e.target?.result as string;
       if (content) {
         setInputData(content);
-        setAiMaterialData(null);
       }
     };
     reader.readAsText(file);
@@ -295,88 +426,90 @@ export const DeepLearningModule: React.FC = () => {
   ];
 
   const handleMaterialSelect = (material: typeof MATERIAL_DB[0]) => {
-    setInputData(material.pattern);
-    setSearchTerm(material.name);
-    setShowSuggestions(false);
-    setAiMaterialData(null);
-    runAnalysis(material.pattern);
+    if (isMixMode) {
+      // In mix mode, we don't switch patterns immediately, we add to list
+      if (!mixtureList.includes(material.name)) {
+        const newList = [...mixtureList, material.name];
+        setMixtureList(newList);
+        generateMixturePattern(newList);
+      }
+    } else {
+      setInputData(material.pattern);
+      setSearchTerm(material.name);
+      setShowSuggestions(false);
+      runAnalysis(material.pattern);
+    }
   };
 
-  const handleSmartSearch = async () => {
+  const generateMixturePattern = (names: string[]) => {
+    const materials = names.map(n => MATERIAL_DB.find(m => m.name === n)).filter(Boolean) as typeof MATERIAL_DB;
+    if (materials.length === 0) return;
+    
+    // Simple sum of patterns
+    const masterPoints: Record<number, number> = {};
+    materials.forEach((mat, idx) => {
+      const weight = 1 / materials.length; // Equal weighting for simplicity
+      const pts = parseXYData(mat.pattern);
+      pts.forEach(p => {
+        const rounded = Math.round(p.twoTheta * 100) / 100;
+        masterPoints[rounded] = (masterPoints[rounded] || 0) + (p.intensity * weight);
+      });
+    });
+    
+    const combinedStr = Object.entries(masterPoints)
+      .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
+      .map(([t, i]) => `${t}, ${i.toFixed(1)}`)
+      .join('\n');
+      
+    setInputData(combinedStr);
+    setSearchTerm("Custom Mixture");
+  };
+
+  const handleLatticeEstimation = () => {
+    if (!selectedCandidate || !selectedCandidate.matched_peaks?.length) return;
+    
+    // Try to estimate 'a' assuming first peak is (1,1,1) or something common
+    // More realistically, let the user pick index or use a common one loop
+    const firstPeak = selectedCandidate.matched_peaks[0];
+    const a = calculateLatticeConstant(firstPeak.obsT, 1, 1, 1);
+    setLatticeResult({ a, error: "Assuming cubic (111) for initial estimate" });
+    setIsLatticeModalOpen(true);
+  };
+
+  // Smart Local Search & Engine
+  const handleSmartSearch = () => {
     if (!searchTerm.trim()) return;
     
-    // 1. Check Local DB
-    const localMatch = MATERIAL_DB.find(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    if (localMatch) {
-      handleMaterialSelect(localMatch);
-      return;
-    }
+    // Search Local DB with fuzzing
+    const matches = MATERIAL_DB.filter(m => 
+      m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      m.formula.toLowerCase().includes(searchTerm.toLowerCase())
+    );
     
-    // 2. AI Search
-    setIsSearchingAI(true);
+    if (matches.length > 0) {
+      handleMaterialSelect(matches[0]);
+    } else {
+      // If no exact name match, try to find by peak similarity (Advance local feature)
+      const points = parseXYData(inputData);
+      if (points.length > 0) {
+        runAnalysis(inputData);
+      }
+    }
     setShowSuggestions(false);
-    
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: `Generate X-Ray Diffraction data and Material Intelligence metadata for "${searchTerm}". 
-        Return ONLY a JSON object with this structure:
-        {
-          "name": "Material Name (Formula)",
-          "type": "Material Class (e.g. Metal, Ceramic, Polymer)",
-          "pattern": "2theta, intensity\\n2theta, intensity...",
-          "description": "Deep scientific description detailing structure and usage",
-          "formula": "Chemical Formula",
-          "crystalSystem": "Crystal System",
-          "spaceGroup": "Space Group",
-          "density": 1.23,
-          "applications": ["App1", "App2"],
-          "molecularWeight": 12.3,
-          "hazards": ["Hazard1", "Hazard2"],
-          "magneticProperties": "Diamagnetic/Paramagnetic/etc",
-          "bandGap": 1.2,
-          "elasticModulus": 123.1,
-          "opticalProperties": "Optical description"
-        }
-        Provide at least 4-7 major peaks in the pattern string for realistic matching. Make the description very detailed and authoritative.`,
-        config: {
-          responseMimeType: "application/json"
-        }
-      });
+  };
 
-      let rawText = response.text || "{}";
-      rawText = rawText.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
-      const data = JSON.parse(rawText);
-      if (data.pattern) {
-        setInputData(data.pattern);
-        setAiMaterialData(data);
-        runAnalysis(data.pattern, data);
-      }
-    } catch (error: any) {
-      const isQuota = isQuotaError(error);
-      const isPerm = isPermissionError(error);
-      if (!isQuota && !isPerm) {
-        console.error("AI Search failed:", error);
-      }
-      
-      // Fallback: Just search for any similar names and pick first
-      const anyMatch = MATERIAL_DB.find(m => m.name.toLowerCase().includes(searchTerm.toLowerCase().split(' ')[0]));
-      if (anyMatch) {
-        handleMaterialSelect(anyMatch);
-      } else {
-        alert("Material not found in database or AI search failed.");
-      }
-    } finally {
-      setIsSearchingAI(false);
-    }
+  const calculateLatticeConstant = (twoTheta: number, h: number, k: number, l: number, wavelength: number = 1.5406) => {
+    const thetaRad = (twoTheta / 2) * (Math.PI / 180);
+    const d = wavelength / (2 * Math.sin(thetaRad));
+    const a = d * Math.sqrt(h*h + k*k + l*l);
+    return a;
   };
 
   const handleRunAI = () => {
-    runAnalysis(inputData, aiMaterialData);
+    runAnalysis(inputData);
   };
 
-  const runAnalysis = (dataToAnalyze: string, aiMaterialDataFetched?: any) => {
+  const runAnalysis = (dataToAnalyze: string) => {
     if (!dataToAnalyze.trim()) return;
     
     setIsSimulating(true);
@@ -393,7 +526,6 @@ export const DeepLearningModule: React.FC = () => {
 
     // Check if input matches a known material to override/enhance results
     const matchedMaterial = MATERIAL_DB.find(m => m.pattern === dataToAnalyze || m.name === searchTerm);
-    const effectiveAiData = aiMaterialDataFetched || aiMaterialData;
 
     // Simulation Sequence
     setTimeout(() => setProgressStep(2), 800);
@@ -427,44 +559,7 @@ export const DeepLearningModule: React.FC = () => {
           ...computed,
           candidates: [enhancedCandidate, ...computed.candidates.filter(c => c.phase_name !== matchedMaterial.name)]
         };
-      } else if (effectiveAiData) {
-         // Use AI fetched data even if the user slightly modified the pattern text
-         // We do a basic check to ensure the pattern is somewhat similar, or just trust the AI data
-         const isPatternSimilar = dataToAnalyze.length > 0 && Math.abs(dataToAnalyze.length - effectiveAiData.pattern.length) < 200;
-         
-         if (isPatternSimilar) {
-           const enhancedCandidate: DLPhaseCandidate = {
-            phase_name: effectiveAiData.name,
-            confidence_score: 93.5 + Math.random() * 5, // Dynamic AI confidence
-            card_id: "AI-GEN-001",
-            formula: effectiveAiData.formula,
-            matched_peaks: parseXYData(dataToAnalyze).slice(0, 10).map((p, i) => ({
-              refT: p.twoTheta,
-              obsT: p.twoTheta,
-              refI: p.intensity
-            })),
-            description: effectiveAiData.description,
-            crystalSystem: effectiveAiData.crystalSystem,
-            spaceGroup: effectiveAiData.spaceGroup,
-            density: effectiveAiData.density,
-            applications: effectiveAiData.applications,
-            materialType: effectiveAiData.type,
-            molecularWeight: effectiveAiData.molecularWeight,
-            hazards: effectiveAiData.hazards,
-            magneticProperties: effectiveAiData.magneticProperties,
-            bandGap: effectiveAiData.bandGap,
-            elasticModulus: effectiveAiData.elasticModulus,
-            opticalProperties: effectiveAiData.opticalProperties
-          };
-          
-          // Put AI candidate first, ensure unique candidates
-          computed = {
-            ...computed,
-            candidates: [enhancedCandidate, ...computed.candidates.filter(c => c.phase_name !== effectiveAiData.name)]
-          };
-         }
       }
-
       setResult(computed);
       if (computed.candidates.length > 0) {
         setSelectedCandidate(computed.candidates[0]);
@@ -522,20 +617,38 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     URL.revokeObjectURL(url);
   };
 
-  const loadExample = (type: 'Silicon' | 'Mixture' | 'HAP' | 'ZnO' | 'Halite' | 'Hematite' | 'Aluminum' | 'Copper' | 'MgO' | 'CeO2' | 'Titanium' | 'Calcite' | 'Tungsten' | 'Quartz') => {
+  const loadExample = (type: string) => {
     if (type === 'Mixture') {
       setInputData(`20.86, 40\n26.64, 100\n38.18, 50\n44.39, 25\n50.14, 15\n64.57, 20`);
       setSearchTerm("Mixture (SiO2 + Au)");
+    } else if (type === 'Complex') {
+      setInputData(`25.28, 60\n26.64, 100\n27.44, 40\n38.12, 30\n44.30, 15`);
+      setSearchTerm("Complex Mixture (Quartz + Rutile + Anatase + Ag)");
     } else {
       // Generic finder for all single phase examples
       const searchKey = type === 'HAP' ? 'Hydroxyapatite' : 
-                        type === 'Halite' ? 'Halite' : 
+                        type === 'PbTiO3' ? 'Lead Titanate' :
+                        type === 'LTA' ? 'Zeolite A' :
+                        type === 'YAG' ? 'Yttrium Aluminum Garnet' :
+                        type === 'SrTiO3' ? 'Strontium Titanate' :
+                        type === 'LiFePO4' ? 'Lithium Iron Phosphate' :
+                        type === 'PTFE' ? 'Polytetrafluoroethylene' :
+                        type === 'NaCl' ? 'Halite' :
+                        type === 'KCl' ? 'Sylvite' :
+                        type === 'CaF2' ? 'Fluorite' :
+                        type === 'ZrO2' ? 'Zirconia' :
                         type === 'Hematite' ? 'Hematite' :
                         type === 'MgO' ? 'Magnesium Oxide' :
                         type === 'CeO2' ? 'Cerium Oxide' :
                         type === 'Calcite' ? 'Calcite' : 
                         type === 'Tungsten' ? 'Tungsten' : 
                         type === 'Quartz' ? 'Quartz' : 
+                        type === 'Diamond' ? 'Diamond' :
+                        type === 'Rutile' ? 'Rutile' :
+                        type === 'Anatase' ? 'Anatase' :
+                        type === 'BaTiO3' ? 'Barium Titanate' :
+                        type === 'MoS2' ? 'Molybdenum Disulfide' :
+                        type === 'Corundum' ? 'Corundum' :
                         type;
       
       const mat = MATERIAL_DB.find(m => m.name.includes(searchKey));
@@ -794,7 +907,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
             {/* Material Search */}
             <div className="relative" ref={searchRef}>
               <label className="block text-sm font-bold text-slate-700 mb-2">
-                Deep Material DB Search <span className="text-emerald-500 ml-1 font-mono text-[10px] bg-emerald-50 px-1 rounded border border-emerald-100">AI-POWERED</span>
+                Unified Local DB Engine <span className="text-indigo-500 ml-1 font-mono text-[10px] bg-indigo-50 px-1 rounded border border-indigo-100 uppercase tracking-tighter font-black">LOCAL ENGINE</span>
               </label>
               <div className="relative">
                 <input
@@ -810,27 +923,18 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       handleSmartSearch();
                     }
                   }}
-                  placeholder="Query by formula or name (e.g. TiO2, Zinc)..."
+                  placeholder="Seach local database (formula or name)..."
                   className="w-full px-4 py-3 pl-10 pr-24 bg-slate-50 border border-slate-300 hover:border-violet-400 rounded-xl text-sm focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all shadow-inner"
                 />
-                <Search className={`w-4 h-4 absolute left-4 top-3.5 ${isSearchingAI ? 'text-violet-500 animate-pulse' : 'text-slate-400'}`} />
+                <Search className="w-4 h-4 absolute left-4 top-3.5 text-slate-400" />
                 
                 <button 
                   onClick={handleSmartSearch}
-                  disabled={isSearchingAI || !searchTerm.trim()}
-                  className="absolute right-2 top-2 bottom-2 px-4 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-95 disabled:bg-slate-300 disabled:shadow-none flex items-center gap-2 group w-auto min-w-[90px] justify-center"
+                  disabled={!searchTerm.trim()}
+                  className="absolute right-2 top-2 bottom-2 px-4 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-95 disabled:bg-slate-300 disabled:shadow-none flex items-center gap-2 group w-auto min-w-[90px] justify-center"
                 >
-                  {isSearchingAI ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Fetching...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Database className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
-                      <span>Fetch via AI</span>
-                    </>
-                  )}
+                  <Database className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                  <span>Search DB</span>
                 </button>
               </div>
 
@@ -864,7 +968,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     <div className="p-6 flex flex-col items-center justify-center text-center">
                        <Search className="w-8 h-8 text-slate-300 mb-2" />
                        <p className="text-slate-500 text-sm font-semibold mb-1">Not in local database</p>
-                       <p className="text-slate-400 text-xs">Press <kbd className="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 font-mono text-[10px] mx-1">Enter</kbd> or click <span className="font-bold">Fetch via AI</span> to synthesize pattern.</p>
+                       <p className="text-slate-400 text-xs">The network can still analyze raw peak patterns to identify potential matches via similarity hashing.</p>
                     </div>
                   )}
                 </div>
@@ -940,17 +1044,57 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               </div>
               
               <div className="flex items-center justify-between mt-3 px-1">
-                <div className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
+                <div className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider font-black">
                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
                    Format: <span className="text-slate-500 bg-slate-100 px-1 py-0.5 rounded ml-0.5">2θ</span> , <span className="text-slate-500 bg-slate-100 px-1 py-0.5 rounded">Intensity</span>
                 </div>
-                {inputData && (
-                  <div className="text-[10px] font-black uppercase tracking-widest text-violet-600 bg-violet-100 border border-violet-200 px-2.5 py-1 rounded-md shadow-sm flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-pulse" />
-                    {inputData.split('\n').filter(l => l.trim()).length} Data Points
-                  </div>
-                )}
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => {
+                      setIsMixMode(!isMixMode);
+                      if (!isMixMode) setMixtureList([]);
+                    }}
+                    className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md transition-all border
+                      ${isMixMode ? 'bg-indigo-600 text-white border-indigo-700 shadow-md ring-2 ring-indigo-500/20' : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'}
+                    `}
+                  >
+                    <Layers className="w-3 h-3" />
+                    {isMixMode ? 'Mix Mode ACTIVE' : 'Enable Mix Mode'}
+                  </button>
+                  {inputData && (
+                    <div className="text-[10px] font-black uppercase tracking-widest text-violet-600 bg-violet-100 border border-violet-200 px-2.5 py-1 rounded-md shadow-sm flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-pulse" />
+                      {inputData.split('\n').filter(l => l.trim()).length} Data Points
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {isMixMode && mixtureList.length > 0 && (
+                <div className="mt-4 p-3 bg-indigo-50/50 border border-indigo-200 rounded-xl animate-in zoom-in-95 duration-300">
+                   <div className="flex items-center justify-between mb-2">
+                     <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Mixture Components</span>
+                     <button onClick={() => setMixtureList([])} className="text-[10px] font-bold text-rose-500 hover:underline">Reset</button>
+                   </div>
+                   <div className="flex flex-wrap gap-2">
+                      {mixtureList.map(m => (
+                        <div key={m} className="flex items-center gap-1 bg-white border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-700 shadow-sm">
+                          {m}
+                          <button onClick={() => {
+                            const nl = mixtureList.filter(x => x !== m);
+                            setMixtureList(nl);
+                            generateMixturePattern(nl);
+                          }}>
+                            <X className="w-3 h-3 text-rose-400 hover:text-rose-600" />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="px-2.5 py-1 bg-indigo-100/50 border border-dashed border-indigo-300 rounded-lg text-[10px] text-indigo-400 font-bold flex items-center gap-1">
+                        <Plus className="w-3 h-3" /> Add from DB
+                      </div>
+                   </div>
+                </div>
+              )}
 
               <div className="mt-5 space-y-2.5">
                 <div className="flex items-center justify-between">
@@ -961,15 +1105,34 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 <div className="flex flex-wrap gap-2">
                   {[
                     { id: 'Silicon', label: 'Si' },
-                    { id: 'Mixture', label: 'Si+Au Mix' },
+                    { id: 'Mixture', label: 'Mixture' },
+                    { id: 'Diamond', label: 'Diamond' },
+                    { id: 'Rutile', label: 'Rutile' },
+                    { id: 'Anatase', label: 'Anatase' },
                     { id: 'Aluminum', label: 'Al' },
                     { id: 'Copper', label: 'Cu' },
-                    { id: 'Titanium', label: 'Ti' },
+                    { id: 'Tungsten', label: 'W' },
+                    { id: 'MoS2', label: 'MoS2' },
+                    { id: 'ZnO', label: 'ZnO' },
+                    { id: 'MgO', label: 'MgO' },
+                    { id: 'BaTiO3', label: 'BaTiO3' },
                     { id: 'Quartz', label: 'Quartz' },
                     { id: 'CeO2', label: 'CeO2' },
+                    { id: 'Corundum', label: 'Al2O3' },
                     { id: 'Calcite', label: 'Calcite' },
-                    { id: 'Tungsten', label: 'W' },
-                    { id: 'HAP', label: 'HAp' }
+                    { id: 'HAP', label: 'HAp' },
+                    { id: 'PbTiO3', label: 'PbTiO3' },
+                    { id: 'LTA', label: 'Zeolite A' },
+                    { id: 'Silver (Ag)', label: 'Ag' },
+                    { id: 'YAG', label: 'YAG' },
+                    { id: 'SrTiO3', label: 'SrTiO3' },
+                    { id: 'LiFePO4', label: 'LFP' },
+                    { id: 'ZrO2', label: 'ZrO2' },
+                    { id: 'Graphite', label: 'Graphite' },
+                    { id: 'CaF2', label: 'CaF2' },
+                    { id: 'KCl', label: 'KCl' },
+                    { id: 'PTFE', label: 'PTFE' },
+                    { id: 'Complex', label: 'Complex Mix' }
                   ].map(ex => (
                     <button 
                       key={ex.id}
@@ -1254,7 +1417,13 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 <h3 className="text-xl font-bold text-white">Material Intelligence</h3>
                 <p className="text-sm text-slate-400">AI-Synthesized Properties & Context</p>
               </div>
-              <div className="ml-auto">
+              <div className="ml-auto flex gap-2">
+                 <button 
+                   onClick={handleLatticeEstimation}
+                   className="text-xs bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-2 rounded-lg border border-slate-600 transition-colors flex items-center gap-2 font-bold"
+                 >
+                   <Calculator className="w-3 h-3" /> Lattice Assistant
+                 </button>
                  <button 
                    onClick={handleGenerateReport}
                    className="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg border border-slate-600 transition-colors flex items-center gap-2"
@@ -1559,6 +1728,83 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
            )}
         </div>
       </div>
+
+      {/* Lattice Assistant Modal */}
+      {isLatticeModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="bg-slate-800 p-5 text-white flex items-center justify-between">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+                       <Calculator className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                       <h3 className="font-bold text-lg leading-tight text-white font-black tracking-tighter">Lattice Estimator</h3>
+                       <p className="text-[10px] text-emerald-400 font-mono font-bold tracking-widest uppercase mt-0.5">Local Computation Engine 12.4</p>
+                    </div>
+                 </div>
+                 <button onClick={() => setIsLatticeModalOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                    <X className="w-5 h-5" />
+                 </button>
+              </div>
+              
+              <div className="p-6">
+                 <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 mb-6">
+                    <div className="flex justify-between items-center mb-1">
+                       <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Estimated Constant (a)</span>
+                       <span className="text-[10px] font-mono text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded leading-none">Ångströms</span>
+                    </div>
+                    <div className="text-4xl font-mono font-black text-emerald-600 tracking-tighter">
+                       {latticeResult?.a.toFixed(4) || '---'}
+                    </div>
+                    <div className="mt-2 text-[10px] font-bold text-emerald-700/60 uppercase tracking-widest flex items-center gap-2">
+                       <div className="flex-1 h-[1px] bg-emerald-200" />
+                       Lattice Refinement Logic active
+                       <div className="flex-1 h-[1px] bg-emerald-200" />
+                    </div>
+                 </div>
+
+                 <div className="space-y-4">
+                    <div>
+                       <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Lattice Symmetry Constraint</label>
+                       <select className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20">
+                          <option>Cubic (a = b = c)</option>
+                          <option disabled>Tetragonal (a = b ≠ c)</option>
+                          <option disabled>Orthorhombic (a ≠ b ≠ c)</option>
+                       </select>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3">
+                       <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Miller H</label>
+                          <input type="number" defaultValue={1} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none" />
+                       </div>
+                       <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Miller K</label>
+                          <input type="number" defaultValue={1} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none" />
+                       </div>
+                       <div>
+                          <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Miller L</label>
+                          <input type="number" defaultValue={1} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold text-slate-700 outline-none" />
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="mt-8">
+                    <button 
+                      onClick={() => setIsLatticeModalOpen(false)}
+                      className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl shadow-lg transition-all active:scale-95 text-sm uppercase tracking-widest font-black"
+                    >
+                      Update Model
+                    </button>
+                    <p className="text-[10px] text-center text-slate-400 mt-3 italic font-semibold">
+                       Note: Estimates are based on Cu K-alpha radiation (1.5406 Å)
+                    </p>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

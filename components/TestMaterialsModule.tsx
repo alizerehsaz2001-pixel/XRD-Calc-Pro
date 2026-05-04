@@ -57,6 +57,87 @@ const PRESETS: MaterialPreset[] = [
     hkls: ['111', '200', '220', '311', '222', '400', '331', '420'],
     description: 'Fluorite structure ceramic, widely used in catalysis and electrolytes.',
     category: 'Ceramic'
+  },
+  {
+    name: 'Titanium Dioxide (Rutile)',
+    formula: 'TiO2',
+    wavelength: 1.5406,
+    peaks: [27.44, 36.08, 39.18, 41.22, 44.05, 54.31, 56.62, 62.73, 64.03, 68.99],
+    hkls: ['110', '101', '200', '111', '210', '211', '220', '002', '310', '301'],
+    description: 'High pressure/temperature polymorph of titania, tetragonal structure.',
+    category: 'Ceramic'
+  },
+  {
+    name: 'Titanium Dioxide (Anatase)',
+    formula: 'TiO2',
+    wavelength: 1.5406,
+    peaks: [25.28, 37.80, 48.05, 53.89, 55.06, 62.69, 68.76, 70.31, 75.03],
+    hkls: ['101', '004', '200', '105', '211', '204', '116', '220', '215'],
+    description: 'Metastable titania polymorph, common in nanomaterials and photocatalysis.',
+    category: 'Ceramic'
+  },
+  {
+    name: 'Graphite',
+    formula: 'C',
+    wavelength: 1.5406,
+    peaks: [26.54, 42.43, 44.59, 54.67, 77.54],
+    hkls: ['002', '100', '101', '004', '110'],
+    description: 'Hexagonal layered carbon structure, highly anisotropic thermal properties.',
+    category: 'Standard'
+  },
+  {
+    name: 'Sodium Chloride',
+    formula: 'NaCl',
+    wavelength: 1.5406,
+    peaks: [27.35, 31.69, 45.45, 53.89, 56.48, 66.23, 75.31],
+    hkls: ['111', '200', '220', '311', '222', '400', '420'],
+    description: 'Standard rock salt structure, essential for teaching ionic crystals.',
+    category: 'Standard'
+  },
+  {
+    name: 'Copper',
+    formula: 'Cu',
+    wavelength: 1.5406,
+    peaks: [43.30, 50.43, 74.13, 89.93, 116.92],
+    hkls: ['111', '200', '220', '311', '400'],
+    description: 'High conductivity FCC metal, common industrial substrate.',
+    category: 'Metal'
+  },
+  {
+    name: 'Silver',
+    formula: 'Ag',
+    wavelength: 1.5406,
+    peaks: [38.12, 44.30, 64.44, 77.40, 81.54],
+    hkls: ['111', '200', '220', '311', '222'],
+    description: 'FCC structure with high reflectivity, useful for plasmonics.',
+    category: 'Metal'
+  },
+  {
+    name: 'Zinc Oxide',
+    formula: 'ZnO',
+    wavelength: 1.5406,
+    peaks: [31.77, 34.42, 36.25, 47.54, 56.60, 62.86, 66.38, 67.96, 69.10],
+    hkls: ['100', '002', '101', '102', '110', '103', '200', '112', '201'],
+    description: 'Wurtzite structure semiconductor, important in optoelectronics.',
+    category: 'Ceramic'
+  },
+  {
+    name: 'Quartz (Alpha)',
+    formula: 'SiO2',
+    wavelength: 1.5406,
+    peaks: [20.86, 26.64, 36.54, 39.46, 40.29, 42.45, 45.79, 50.14, 54.87, 59.95, 60.14],
+    hkls: ['100', '101', '110', '102', '111', '200', '201', '112', '202', '211', '103'],
+    description: 'Trigonal P3_221 structure, the most common crustal mineral.',
+    category: 'Ceramic'
+  },
+  {
+    name: 'Diamond',
+    formula: 'C',
+    wavelength: 1.5406,
+    peaks: [43.92, 75.30, 91.50, 119.52],
+    hkls: ['111', '220', '311', '400'],
+    description: 'Face-centered cubic (diamond cubic) lattice, the hardest natural material.',
+    category: 'Standard'
   }
 ];
 
