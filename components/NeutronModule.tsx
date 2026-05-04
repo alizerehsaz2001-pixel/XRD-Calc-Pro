@@ -16,6 +16,7 @@ import {
   ComposedChart
 } from 'recharts';
 import { Layers, Zap, Atom, Upload, Download, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export const NeutronModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.54); 
@@ -173,78 +174,109 @@ export const NeutronModule: React.FC = () => {
           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-blue-600 rounded-full opacity-10 blur-2xl"></div>
           
           <div className="flex justify-between items-center mb-6 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-blue-500/20 rounded-xl border border-blue-500/30">
-                <Atom className="w-5 h-5 text-blue-400" />
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-blue-500/20 to-indigo-500/10 rounded-2xl border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
+                <Atom className="w-6 h-6 text-blue-400" />
               </div>
-              <h2 className="text-xl font-bold text-white">Neutron Cell</h2>
+              <div>
+                <h2 className="text-xl font-black text-white uppercase tracking-tight">Neutron Cell</h2>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Nuclear Structure Configuration</p>
+              </div>
             </div>
             <div className="flex gap-2">
               <button 
                 onClick={() => setShowImport(true)}
-                className="text-[10px] uppercase tracking-widest font-bold bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 border border-indigo-500/30 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                className="group relative px-3 py-2 bg-slate-950/50 border border-slate-800 rounded-xl transition-all hover:border-indigo-500/50"
               >
-                <Upload className="w-3 h-3" /> Import JSON
+                <div className="absolute inset-0 bg-indigo-500/0 group-hover:bg-indigo-500/5 rounded-xl transition-colors" />
+                <div className="flex items-center gap-2 relative z-10">
+                  <Upload className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Import</span>
+                </div>
               </button>
             </div>
           </div>
 
-          <div className="flex gap-2 mb-6 relative z-10 overflow-x-auto pb-2 custom-scrollbar">
-            <button onClick={() => loadPreset('MgO')} className="text-[10px] uppercase tracking-widest font-bold bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">MgO</button>
-            <button onClick={() => loadPreset('D2O')} className="text-[10px] uppercase tracking-widest font-bold bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">D₂O</button>
-            <button onClick={() => loadPreset('SrTiO3')} className="text-[10px] uppercase tracking-widest font-bold bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">SrTiO₃</button>
-            <button onClick={() => loadPreset('MnO')} className="text-[10px] uppercase tracking-widest font-bold bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">MnO</button>
+          <div className="flex gap-2 mb-8 relative z-10 overflow-x-auto pb-2 scrollbar-hide">
+            {[ 
+              { id: 'MgO', label: 'MgO', color: 'blue' },
+              { id: 'D2O', label: 'D₂O', color: 'indigo' },
+              { id: 'SrTiO3', label: 'SrTiO₃', color: 'cyan' },
+              { id: 'MnO', label: 'MnO', color: 'rose' }
+            ].map((preset) => (
+              <button 
+                key={preset.id}
+                onClick={() => loadPreset(preset.id as any)} 
+                className="px-4 py-2 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 active:scale-95 group shrink-0"
+              >
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">{preset.label}</span>
+              </button>
+            ))}
           </div>
 
           {showImport && (
-            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-              <div className="bg-slate-900 p-6 rounded-2xl shadow-2xl max-w-lg w-full border border-slate-800">
-                <h3 className="text-lg font-bold text-white mb-2">Import Crystal Structure</h3>
-                <p className="text-xs text-slate-400 mb-4">Paste JSON data from CrystalMind or other sources.</p>
+            <div className="fixed inset-0 bg-slate-950/80 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-slate-900 p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-800 relative"
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl" />
+                <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Import Crystal Structure</h3>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6">Paste Structure JSON</p>
                 <textarea
                   value={importJson}
                   onChange={(e) => setImportJson(e.target.value)}
                   placeholder='{"lattice": {"a": 4.2}, "atoms": [...]}'
-                  className="w-full h-48 p-4 bg-black/40 border border-slate-700 rounded-xl font-mono text-xs mb-6 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-300"
+                  className="w-full h-48 p-4 bg-black/40 border border-slate-800 rounded-2xl font-mono text-xs mb-8 focus:ring-2 focus:ring-blue-500 outline-none text-slate-300 resize-none"
                 />
-                <div className="flex justify-end gap-3">
+                <div className="flex justify-end gap-4">
                   <button 
                     onClick={() => setShowImport(false)}
-                    className="px-4 py-2 text-sm font-bold text-slate-400 hover:text-white transition-colors"
+                    className="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
                   >
                     Cancel
                   </button>
                   <button 
                     onClick={handleImport}
-                    className="px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-500/20 transition-all"
+                    className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-[10px] font-black uppercase tracking-widest text-white rounded-xl shadow-[0_0_30px_rgba(37,99,235,0.2)] transition-all active:scale-95"
                   >
-                    Import Data
+                    Load Data
                   </button>
                 </div>
-              </div>
+              </motion.div>
             </div>
           )}
 
-          <div className="space-y-6 relative z-10">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                 <div className="flex justify-between items-center mb-2">
-                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Wavelength (Å)</label>
-                   <button onClick={handleSync} disabled={isSyncing} className="text-[10px] font-bold text-blue-400 hover:text-blue-300 disabled:opacity-50 uppercase tracking-widest transition-colors">Sync</button>
+          <div className="space-y-8 relative z-10">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                 <div className="flex justify-between items-center">
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength</label>
+                   <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/5 text-[9px] font-black text-blue-400 hover:bg-blue-500/10 transition-colors uppercase tracking-widest border border-blue-500/20">
+                     <Zap className={`w-2.5 h-2.5 ${isSyncing ? 'animate-pulse' : ''}`} /> Sync
+                   </button>
                  </div>
-                 <input
-                  type="number"
-                  step="0.01"
-                  value={wavelength}
-                  onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                  className="w-full px-3 py-2.5 bg-black/40 text-blue-400 border border-slate-700 rounded-lg text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                 />
-                 <div className="flex flex-wrap gap-1.5 mt-3">
+                 <div className="relative group">
+                   <input
+                    type="number"
+                    step="0.01"
+                    value={wavelength}
+                    onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700"
+                   />
+                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Å</span>
+                 </div>
+                 <div className="flex flex-wrap gap-2 mt-3">
                    {availableWavelengths.map(aw => (
                      <button 
                         key={aw.label} 
                         onClick={() => setWavelength(aw.value)}
-                        className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border transition-all ${wavelength === aw.value ? 'bg-blue-500/20 text-blue-400 border-blue-500/50' : 'bg-black/40 text-slate-400 border-slate-700 hover:bg-slate-800 hover:text-slate-300'}`}
+                        className={`px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
+                          wavelength === aw.value 
+                            ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
+                            : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                        }`}
                         title={aw.label}
                      >
                        {aw.label.split(' ')[0]}
@@ -252,67 +284,96 @@ export const NeutronModule: React.FC = () => {
                    ))}
                  </div>
               </div>
-              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Lattice a (Å)</label>
-                 <input
-                  type="number"
-                  step="0.01"
-                  value={latticeA}
-                  onChange={(e) => setLatticeA(parseFloat(e.target.value))}
-                  className="w-full px-3 py-2.5 bg-black/40 text-blue-400 border border-slate-700 rounded-lg text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                 />
+              <div className="space-y-2">
+                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Lattice Parameter</label>
+                 <div className="relative group">
+                   <input
+                    type="number"
+                    step="0.01"
+                    value={latticeA}
+                    onChange={(e) => setLatticeA(parseFloat(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700"
+                   />
+                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest pr-4 border-r border-slate-800">a</span>
+                 </div>
               </div>
             </div>
 
-            <div className="pt-6 border-t border-slate-800">
+            <div className="pt-8 border-t border-slate-800/50">
               <div className="flex justify-between items-center mb-4">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-4 h-[1px] bg-slate-700"></span> Atoms
-                </label>
-                <button onClick={addAtom} className="text-[10px] uppercase tracking-widest text-blue-400 font-bold hover:text-blue-300 flex items-center gap-1 bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-500/20 transition-all">+ Add Atom</button>
+                <div className="flex items-center gap-3">
+                  <div className="w-1 h-3 bg-blue-500 rounded-full" />
+                  <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Atomic Basis</h4>
+                </div>
+                <button 
+                  onClick={addAtom} 
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                >
+                  <Atom className="w-3.5 h-3.5" />
+                  Add Atom
+                </button>
               </div>
               
-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
                 {atoms.map((atom) => (
-                  <div key={atom.id} className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50 relative group">
-                    <div className="flex justify-between items-center mb-3">
-                       <select 
-                         value={atom.element}
-                         onChange={(e) => updateAtom(atom.id, 'element', e.target.value)}
-                         className="font-bold bg-black/40 text-white border border-slate-700 px-2 py-1 rounded-lg cursor-pointer text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                       >
-                         {Object.keys(NEUTRON_SCATTERING_LENGTHS).map(el => (
-                           <option key={el} value={el}>{el}</option>
-                         ))}
-                       </select>
-                       <div className="flex items-center gap-3">
-                         <span className="text-slate-400 font-mono text-[10px] bg-black/40 px-2 py-1 rounded-md border border-slate-700">
-                           b={<span className={atom.b < 0 ? 'text-rose-400' : 'text-emerald-400'}>{atom.b}</span>} | Z={ATOMIC_NUMBERS[atom.element] || '?'}
-                         </span>
-                         <button onClick={() => removeAtom(atom.id)} className="text-slate-500 hover:text-rose-400 bg-black/40 p-1.5 rounded-lg border border-slate-700 hover:border-rose-500/50 transition-all">
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                           </svg>
-                         </button>
+                  <div key={atom.id} className="bg-slate-950/30 p-5 rounded-2xl border border-slate-800/80 group/atom hover:border-slate-700 transition-colors relative">
+                    <div className="flex items-center gap-4 mb-4">
+                       <div className="relative">
+                         <select 
+                           value={atom.element}
+                           onChange={(e) => updateAtom(atom.id, 'element', e.target.value)}
+                           className="appearance-none font-black bg-slate-900 text-white border border-slate-800 px-4 py-2 rounded-xl cursor-pointer text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all w-24 text-center pr-8"
+                         >
+                           {Object.keys(NEUTRON_SCATTERING_LENGTHS).sort().map(el => (
+                             <option key={el} value={el}>{el}</option>
+                           ))}
+                         </select>
+                         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                         </div>
+                       </div>
+
+                       <div className="flex-1 flex items-center justify-between px-4 py-2 bg-black/40 border border-slate-800 rounded-xl">
+                          <div className="flex items-center gap-6">
+                            <div className="space-y-0.5">
+                              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Width b</p>
+                              <p className={`text-xs font-mono font-black ${atom.b < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                {atom.b.toFixed(2)} <span className="text-[9px] opacity-60">fm</span>
+                              </p>
+                            </div>
+                            <div className="w-px h-6 bg-slate-800" />
+                            <div className="space-y-0.5">
+                              <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Atomic Z</p>
+                              <p className="text-xs font-mono font-black text-blue-400">
+                                {ATOMIC_NUMBERS[atom.element] || '?'}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <button 
+                            onClick={() => removeAtom(atom.id)} 
+                            className="p-2 text-slate-600 hover:text-rose-400 bg-slate-900 border border-slate-800 rounded-lg hover:border-rose-500/30 transition-all opacity-0 group-hover/atom:opacity-100"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </button>
                        </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-500">x</span>
-                        <input type="number" step="0.1" value={atom.x} onChange={(e) => updateAtom(atom.id, 'x', parseFloat(e.target.value))} className="w-full pl-6 pr-2 py-1.5 bg-black/40 text-white border border-slate-700 rounded-lg font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"/>
-                      </div>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-500">y</span>
-                        <input type="number" step="0.1" value={atom.y} onChange={(e) => updateAtom(atom.id, 'y', parseFloat(e.target.value))} className="w-full pl-6 pr-2 py-1.5 bg-black/40 text-white border border-slate-700 rounded-lg font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"/>
-                      </div>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-500">z</span>
-                        <input type="number" step="0.1" value={atom.z} onChange={(e) => updateAtom(atom.id, 'z', parseFloat(e.target.value))} className="w-full pl-6 pr-2 py-1.5 bg-black/40 text-white border border-slate-700 rounded-lg font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"/>
-                      </div>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-500">B</span>
-                        <input type="number" step="0.1" value={atom.B_iso} onChange={(e) => updateAtom(atom.id, 'B_iso', parseFloat(e.target.value))} className="w-full pl-6 pr-2 py-1.5 bg-black/40 text-white border border-slate-700 rounded-lg font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"/>
-                      </div>
+
+                    <div className="grid grid-cols-4 gap-4">
+                      {['x', 'y', 'z', 'B_iso'].map((field) => (
+                        <div key={field} className="space-y-1.5 relative">
+                          <label className="text-[9px] font-bold text-slate-600 uppercase tracking-widest ml-1">{field === 'B_iso' ? 'B-fact' : field}</label>
+                          <input 
+                            type="number" 
+                            step="0.01" 
+                            value={atom[field as keyof NeutronAtom]} 
+                            onChange={(e) => updateAtom(atom.id, field as keyof NeutronAtom, parseFloat(e.target.value))} 
+                            className="w-full px-3 py-2 bg-black/40 text-slate-300 border border-slate-800 rounded-xl font-mono text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
+                          />
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -321,14 +382,19 @@ export const NeutronModule: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-blue-500/10 p-5 rounded-2xl border border-blue-500/20 flex items-start gap-4">
-           <div className="p-2 bg-blue-500/20 rounded-lg border border-blue-500/30 shrink-0">
-             <Info className="w-5 h-5 text-blue-400" />
+        <div className="bg-blue-500/5 p-6 rounded-3xl border border-blue-500/10 relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
+           <div className="flex gap-5 relative z-10">
+             <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 shrink-0 self-start">
+               <Info className="w-5 h-5 text-blue-400" />
+             </div>
+             <div className="space-y-2">
+               <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">Neutron Theory Capsule</h4>
+               <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                 Neutrons scatter from atomic nuclei via strong interaction. The scattering length <code className="bg-blue-900/40 text-blue-300 px-1.5 py-0.5 rounded-md font-mono text-[10px] font-black">b</code> fluctuates randomly across the periodic table and can even be <span className="text-rose-400 font-bold">negative</span> (e.g., Li, Mn, Ti, H) which leads to unique contrast vs X-rays scattering from electron densities.
+               </p>
+             </div>
            </div>
-           <p className="text-sm text-blue-200 leading-relaxed">
-             <strong className="text-blue-400 font-bold block mb-1 uppercase tracking-wider text-[10px]">Neutron vs X-ray Scattering</strong> 
-             Neutrons scatter from nuclei (scattering length <code className="bg-blue-900/50 px-1 rounded text-blue-300">b</code> varies randomly, can be negative). X-rays scatter from electron clouds (intensity ~ Z²). Note how Mn (Z=25) has a negative neutron scattering length!
-           </p>
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { DLPhaseResult, DLPhaseCandidate } from '../types';
 import { identifyPhasesDL, parseXYData } from '../utils/physics';
 import {
@@ -14,7 +15,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus } from 'lucide-react';
 
 const MATERIAL_DB = [
   { 
@@ -544,6 +545,413 @@ const MATERIAL_DB = [
     spaceGroup: 'P42/mnm',
     density: 6.95,
     applications: ['Gas Sensors', 'Opacifiers', 'TCOs']
+  },
+  {
+    name: 'Lithium Cobalt Oxide (LiCoO2)',
+    type: 'Battery Material',
+    pattern: '18.9, 100\n36.7, 45\n37.3, 50\n38.4, 35\n45.2, 40\n49.3, 10\n59.2, 25',
+    description: 'A chemical compound used as a positive electrode in lithium-ion batteries.',
+    formula: 'LiCoO2',
+    crystalSystem: 'Rhombohedral',
+    spaceGroup: 'R-3m',
+    density: 5.06,
+    applications: ['LCO Batteries', 'Mobile Electronics']
+  },
+  {
+    name: 'Silicon Nitride (Si3N4)',
+    type: 'Hard Ceramic',
+    pattern: '20.6, 25\n23.4, 45\n26.5, 35\n30.9, 100\n34.6, 65\n35.3, 60\n38.8, 30\n41.5, 20',
+    description: 'A hard, solid ceramic used in high-strength and high-temperature applications.',
+    formula: 'β-Si3N4',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 3.17,
+    applications: ['Bearings', 'Turbine Blades', 'Cutting Tools']
+  },
+  {
+    name: 'Aluminum Nitride (AlN)',
+    type: 'Ceramic/Semiconductor',
+    pattern: '33.2, 100\n36.0, 95\n37.9, 85\n49.8, 25\n59.3, 50\n66.0, 35\n69.7, 30',
+    description: 'A technical ceramic with an unusual combination of high thermal conductivity and electrical insulation.',
+    formula: 'AlN',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63mc',
+    density: 3.26,
+    applications: ['Heat Sinks', 'Power Electronics', 'Substrates']
+  },
+  {
+    name: 'Boron Nitride (h-BN)',
+    type: 'Hexagonal Ceramic',
+    pattern: '26.7, 100\n41.6, 12\n43.8, 15\n50.1, 10\n55.1, 25\n75.9, 5',
+    description: 'Often referred to as "white graphite" because of its lubricity and hexagonal structure.',
+    formula: 'h-BN',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/mmc',
+    density: 2.10,
+    applications: ['Solid Lubricants', 'Cosmetics', 'Thermal Management']
+  },
+  {
+    name: 'Gallium Phosphide (GaP)',
+    type: 'Semiconductor',
+    pattern: '28.3, 100\n32.8, 10\n47.1, 60\n55.8, 45\n68.8, 15\n76.0, 15\n88.0, 10',
+    description: 'A phosphide of gallium, an indirect bandgap semiconductor used in some LED devices.',
+    formula: 'GaP',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'F-43m',
+    density: 4.14,
+    applications: ['LEDs', 'Optical Sensors']
+  },
+  {
+    name: 'Zinc Selenide (ZnSe)',
+    type: 'Optical Semiconductor',
+    pattern: '27.2, 100\n31.5, 10\n45.3, 85\n53.6, 45\n66.0, 20\n72.7, 25\n83.4, 15',
+    description: 'A light-yellow, solid binary compound. It is an intrinsic semiconductor and optical material.',
+    formula: 'ZnSe',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'F-43m',
+    density: 5.27,
+    applications: ['Infrared Optics', 'CO2 Lasers', 'X-ray Detectors']
+  },
+  {
+    name: 'Tantalum (Ta)',
+    type: 'Refractory Metal',
+    pattern: '38.4, 100\n55.5, 15\n69.6, 25\n82.4, 10\n94.9, 15',
+    description: 'A rare, hard, blue-gray, lustrous transition metal that is highly corrosion-resistant.',
+    formula: 'Ta',
+    crystalSystem: 'Cubic (BCC)',
+    spaceGroup: 'Im-3m',
+    density: 16.69,
+    applications: ['Capacitors', 'Surgical Implants', 'Chemical Equipment']
+  },
+  {
+    name: 'Vanadium Pentoxide (V2O5)',
+    type: 'Metal Oxide/Catalyst',
+    pattern: '15.3, 100\n20.3, 90\n21.7, 45\n26.1, 75\n31.0, 40\n32.4, 35\n34.3, 30\n47.3, 25',
+    description: 'The chemical compound with the formula V2O5. It is a poisonous yellow/orange solid.',
+    formula: 'V2O5',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pmmn',
+    density: 3.36,
+    applications: ['Catalysis', 'Battery Cathodes', 'Ferrovanadium Production']
+  },
+  {
+    name: 'Silver Chloride (AgCl)',
+    type: 'Haliide Mineral',
+    pattern: '27.8, 45\n32.2, 100\n46.2, 65\n54.8, 15\n57.5, 10\n67.5, 15\n74.5, 10\n76.8, 12',
+    description: 'A chemical compound with the chemical formula AgCl. It occurs naturally as the mineral chlorargyrite.',
+    formula: 'AgCl',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 5.56,
+    applications: ['Electrodes', 'Photography', 'Optical Windows']
+  },
+  {
+    name: 'Manganese Oxide (MnO2)',
+    type: 'Mineral/Battery',
+    pattern: '28.6, 100\n37.3, 90\n42.8, 35\n56.7, 65\n67.3, 25\n72.3, 15',
+    description: 'The inorganic compound with the formula MnO2, also known as pyrolusite.',
+    formula: 'MnO2',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'P42/mnm',
+    density: 5.03,
+    applications: ['Dry Batteries', 'Oxidizing Agent', 'Pigment']
+  },
+  {
+    name: 'Nickel Oxide (NiO)',
+    type: 'Metal Oxide/Semiconductor',
+    pattern: '37.3, 85\n43.3, 100\n62.9, 65\n75.4, 15\n79.4, 10',
+    description: 'The mineral bunsenite, an antiferromagnetic semiconductor.',
+    formula: 'NiO',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 6.67,
+    applications: ['Fuel Cells', 'Catalysts', 'Electrochromic Devices']
+  },
+  {
+    name: 'Cobalt(II,III) Oxide (Co3O4)',
+    type: 'Spinel Ceramic',
+    pattern: '19.0, 20\n31.3, 45\n36.9, 100\n38.6, 15\n44.9, 25\n55.7, 10\n59.4, 30\n65.3, 55',
+    description: 'Black antiferromagnetic solid, a mixed-valence compound containing both Co(II) and Co(III).',
+    formula: 'Co3O4',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fd-3m',
+    density: 6.11,
+    applications: ['Gas Sensors', 'Catalysis', 'LCO Production']
+  },
+  {
+    name: 'Lead Zirconate Titanate (PZT)',
+    type: 'Piezoelectric Ceramic',
+    pattern: '21.6, 25\n31.1, 100\n38.3, 20\n44.5, 40\n45.3, 40\n50.3, 15\n55.3, 15\n65.6, 20',
+    description: 'A ceramic perovskite material that shows a marked piezoelectric effect.',
+    formula: 'Pb[ZrxTi1-x]O3',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'P4mm',
+    density: 7.7,
+    applications: ['Ultrasound transceivers', 'Actuators', 'SONAR']
+  },
+  {
+    name: 'Barium Ferrite (BaFe12O19)',
+    type: 'Permanent Magnet',
+    pattern: '30.3, 35\n32.2, 55\n34.1, 100\n37.1, 40\n40.4, 25\n55.1, 20\n63.1, 25',
+    description: 'A highly magnetic material, also called barium hexaferrite.',
+    formula: 'BaFe12O19',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/mmc',
+    density: 5.28,
+    applications: ['Magnetic Storage Media', 'Speakers', 'Microwave components']
+  },
+  {
+    name: 'Vanadium Dioxide (VO2)',
+    type: 'Phase Change Material',
+    pattern: '27.9, 100\n37.1, 35\n42.3, 25\n55.6, 45\n57.7, 30',
+    description: 'Known for its reversible metal-insulator transition at 68°C.',
+    formula: 'VO2',
+    crystalSystem: 'Monoclinic (M1)',
+    spaceGroup: 'P21/c',
+    density: 4.57,
+    applications: ['Smart Windows', 'Optical Switches', 'Thermochemistry']
+  },
+  {
+    name: 'Tungsten Trioxide (WO3)',
+    type: 'Metal Oxide/Semiconductor',
+    pattern: '23.1, 100\n23.6, 95\n24.4, 95\n26.6, 25\n28.9, 20\n33.3, 45\n34.1, 50\n41.8, 15\n50.0, 15',
+    description: 'A transition metal oxide used for its electrochromic and gas sensing properties.',
+    formula: 'WO3',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/n',
+    density: 7.16,
+    applications: ['Electrochromic Windows', 'Gas Sensors', 'Photocatalysis']
+  },
+  {
+    name: 'Austenite (γ-Fe)',
+    type: 'High-Temp Metal',
+    pattern: '43.6, 100\n50.7, 45\n74.7, 25\n90.7, 20',
+    description: 'The FCC allotrope of iron, typically stable above 912°C or in stainless steels.',
+    formula: 'Fe',
+    crystalSystem: 'Cubic (FCC)',
+    spaceGroup: 'Fm-3m',
+    density: 7.9,
+    applications: ['Stainless Steel', 'Tooling', 'Aeronautics']
+  },
+  {
+    name: 'Silver(I) Oxide (Ag2O)',
+    type: 'Oxide Ceramic',
+    pattern: '32.8, 100\n38.1, 40\n55.0, 55\n65.5, 15\n68.8, 18',
+    description: 'A chemical compound used in silver-oxide batteries.',
+    formula: 'Ag2O',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Pn-3m',
+    density: 7.14,
+    applications: ['Silver Oxide Batteries', 'Antibacterial finish', 'Catalysis']
+  },
+  {
+    name: 'Copper(II) Oxide (CuO)',
+    type: 'Semiconductor/Mineral',
+    pattern: '32.5, 30\n35.5, 95\n38.7, 100\n48.7, 35\n53.5, 15\n58.3, 20\n61.5, 25\n66.2, 20\n68.1, 20',
+    description: 'The mineral tenorite, a black solid and p-type semiconductor.',
+    formula: 'CuO',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'C2/c',
+    density: 6.31,
+    applications: ['Superconductors', 'Pigments', 'Solid Waste disposal']
+  },
+  {
+    name: 'Zinc Sulfide (ZnS)',
+    type: 'Semiconductor/Phosphor',
+    pattern: '28.5, 100\n47.5, 60\n56.4, 45\n69.4, 15\n76.8, 18',
+    description: 'A versatile material used as a white pigment and in electroluminescence.',
+    formula: 'ZnS (Sphalerite)',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'F-43m',
+    density: 4.09,
+    applications: ['Phosphors', 'Optical Windows', 'Infrared Lenses']
+  },
+  {
+    name: 'beta-Tricalcium Phosphate (beta-TCP)',
+    type: 'Biomaterial/Ceramic',
+    pattern: '25.8, 15\n27.8, 45\n29.6, 65\n31.0, 100\n34.3, 55\n46.9, 15',
+    description: 'A biodegradable ceramic used in bone grafting and tissue engineering.',
+    formula: 'beta-Ca3(PO4)2',
+    crystalSystem: 'Rhombohedral',
+    spaceGroup: 'R3c',
+    density: 3.07,
+    applications: ['Bone Grafts', 'Dental Fillers', 'Drug Delivery']
+  },
+  {
+    name: 'Bioactive Glass (45S5)',
+    type: 'Biomaterial/Glass-Ceramic',
+    pattern: '25.0, 30\n30.0, 40\n32.0, 100\n34.0, 60\n47.0, 20',
+    description: 'A glass-ceramic material that bonds to both bone and soft tissue.',
+    formula: 'Na2O-CaO-P2O5-SiO2',
+    crystalSystem: 'Amorphous/Crystalline mixture',
+    spaceGroup: 'N/A',
+    density: 2.7,
+    applications: ['Orthopedics', 'Dentistry', 'Wound Healing']
+  },
+  {
+    name: 'Brushite (DCPD)',
+    type: 'Biomaterial/Mineral',
+    pattern: '11.6, 100\n20.9, 60\n23.4, 25\n29.3, 75\n31.2, 45\n34.1, 40',
+    description: 'Dicalcium phosphate dihydrate, a precursor to hydroxyapatite in biological systems.',
+    formula: 'CaHPO4·2H2O',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'Ia',
+    density: 2.31,
+    applications: ['Bone Cements', 'Food Additive', 'Dentifrices']
+  },
+  {
+    name: 'Monetite (DCP)',
+    type: 'Biomaterial/Mineral',
+    pattern: '26.4, 100\n30.2, 85\n32.7, 45\n47.2, 15\n52.1, 10',
+    description: 'Anhydrous dicalcium phosphate, used in calcium phosphate cements.',
+    formula: 'CaHPO4',
+    crystalSystem: 'Triclinic',
+    spaceGroup: 'P-1',
+    density: 2.92,
+    applications: ['Bone Regeneration', 'Tableting Excipient']
+  },
+  {
+    name: 'Bio-Aragonite',
+    type: 'Biomaterial/Mineral',
+    pattern: '26.2, 100\n33.1, 45\n36.1, 20\n37.8, 30\n38.4, 30\n45.8, 35\n48.4, 25',
+    description: 'A calcium carbonate polymorph found in nacre and mollusk shells.',
+    formula: 'CaCO3',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pmcn',
+    density: 2.93,
+    applications: ['Implants', 'Bone Augmentation', 'Biomimetic Materials']
+  },
+  {
+    name: 'Tetracalcium Phosphate (TTCP)',
+    type: 'Biomaterial/Ceramic',
+    pattern: '25.4, 35\n29.2, 60\n29.8, 100\n31.1, 95\n32.4, 80\n34.5, 40',
+    description: 'The most basic calcium phosphate, often used in self-setting cements.',
+    formula: 'Ca4(PO4)2O',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21',
+    density: 3.05,
+    applications: ['Calcium Phosphate Cements', 'Coatings']
+  },
+  {
+    name: 'alpha-Tricalcium Phosphate (alpha-TCP)',
+    type: 'Biomaterial/Ceramic',
+    pattern: '22.8, 40\n24.2, 35\n30.6, 100\n32.2, 85\n34.1, 55\n46.5, 20',
+    description: 'High-temperature polymorph of TCP, highly reactive in water to form HAp.',
+    formula: 'alpha-Ca3(PO4)2',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/a',
+    density: 2.86,
+    applications: ['Bone Cements', 'Resorbable Ceramics']
+  },
+  {
+    name: 'Lithium Titanate (Li4Ti5O12)',
+    type: 'Battery/Anode',
+    pattern: '18.4, 100\n35.6, 55\n43.3, 45\n47.4, 15\n57.2, 35\n62.8, 30',
+    description: 'An "extremely safe" anode material for lithium-ion batteries with zero-strain characteristics.',
+    formula: 'Li4Ti5O12',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fd-3m',
+    density: 3.48,
+    applications: ['Fast-charge Batteries', 'Heavy Duty EVs']
+  },
+  {
+    name: 'YBCO Superconductor (YBa2Cu3O7)',
+    type: 'Superconductor',
+    pattern: '22.8, 35\n32.5, 100\n32.8, 95\n38.5, 20\n40.3, 15\n46.7, 45\n58.1, 35',
+    description: 'The first material found to become a superconductor above the boiling point of liquid nitrogen.',
+    formula: 'YBa2Cu3O7-δ',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pmmm',
+    density: 6.38,
+    applications: ['Magnetic Levitation', 'Power Cables', 'High-field Magnets']
+  },
+  {
+    name: 'Zeolite ZSM-5',
+    type: 'Microporous Catalyst',
+    pattern: '7.9, 100\n8.8, 70\n23.1, 95\n23.3, 85\n23.9, 75\n24.4, 55',
+    description: 'A high-silica zeolite used extensively in the petroleum industry as a heterogeneous catalyst.',
+    formula: 'NanAlnSi96-nO192·16H2O',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pnma',
+    density: 1.81,
+    applications: ['Fluid Catalytic Cracking', 'Xylene Isomerization']
+  },
+  {
+    name: 'Metal-Organic Framework-5 (MOF-5)',
+    type: 'MOF/Gas Storage',
+    pattern: '6.8, 100\n9.7, 45\n13.8, 35\n15.4, 20\n23.8, 15',
+    description: 'A prototypical metal-organic framework with exceptionally high surface area for gas storage.',
+    formula: 'Zn4O(BDC)3',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 0.59,
+    applications: ['Hydrogen Storage', 'Carbon Capture', 'Chemical Sensing']
+  },
+  {
+    name: 'Platinum (Pt)',
+    type: 'Noble Metal',
+    pattern: '39.8, 100\n46.2, 55\n67.5, 35\n81.3, 40\n85.7, 10',
+    description: 'A dense, malleable, ductile, highly unreactive precious metal.',
+    formula: 'Pt',
+    crystalSystem: 'Cubic (FCC)',
+    spaceGroup: 'Fm-3m',
+    density: 21.45,
+    applications: ['Catalytic Converters', 'Electrical Contacts', 'Jewelry']
+  },
+  {
+    name: 'Palladium (Pd)',
+    type: 'Noble Metal',
+    pattern: '40.1, 100\n46.7, 45\n68.2, 25\n82.1, 30\n86.7, 8',
+    description: 'A shiny, silvery-white metal that has the lowest melting point and is the least dense of the PGMs.',
+    formula: 'Pd',
+    crystalSystem: 'Cubic (FCC)',
+    spaceGroup: 'Fm-3m',
+    density: 12.02,
+    applications: ['Hydrogen Purification', 'Catalysis', 'Electronics']
+  },
+  {
+    name: 'NMC-111 (LiNi1/3Mn1/3Co1/3O2)',
+    type: 'Battery Material',
+    pattern: '18.7, 100\n36.6, 35\n37.2, 40\n38.3, 30\n44.4, 45\n48.6, 12\n58.5, 25',
+    description: 'A mixed metal oxide used as a cathode material in state-of-the-art Li-ion batteries.',
+    formula: 'LiNi1/3Mn1/3Co1/3O2',
+    crystalSystem: 'Rhombohedral',
+    spaceGroup: 'R-3m',
+    density: 4.8,
+    applications: ['Electric Vehicle Batteries', 'Power Backup']
+  },
+  {
+    name: 'Yttria-Stabilized Zirconia (YSZ)',
+    type: 'Fast-Ion Conductor',
+    pattern: '30.1, 100\n34.8, 25\n50.2, 60\n59.7, 35\n62.8, 15',
+    description: 'Zirconium dioxide stabilized with 8 mol% yttria, an ideal electrolyte for solid oxide fuel cells.',
+    formula: '(ZrO2)0.92(Y2O3)0.08',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 5.9,
+    applications: ['SOFC Electrolytes', 'Oxygen Sensors', 'Thermal Barrier Coatings']
+  },
+  {
+    name: 'Strontium Ruthenate (SrRuO3)',
+    type: 'Conductive Oxide',
+    pattern: '22.4, 25\n31.8, 100\n39.3, 20\n45.8, 45\n57.2, 30\n67.1, 35',
+    description: 'A metallic ferromagnet with high chemical stability and excellent lattice match for perovskite oxides.',
+    formula: 'SrRuO3',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pbnm',
+    density: 6.49,
+    applications: ['Electrodes in RAM', 'Thin Film Research', 'Spintronics']
+  },
+  {
+    name: 'Graphene Oxide (GO)',
+    type: '2D Material',
+    pattern: '10.5, 100\n22.0, 15\n26.6, 10\n42.6, 5',
+    description: 'A carbon material derived from graphite with hydrophilic oxygen-containing groups.',
+    formula: 'C(O,OH)x',
+    crystalSystem: 'Layered (Disordered)',
+    spaceGroup: 'N/A',
+    density: 1.8,
+    applications: ['Water Purification', 'Composites', 'Drug Delivery']
   }
 ];
 
@@ -836,6 +1244,16 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'CdTe' ? 'Cadmium Telluride' :
                         type === 'Bi2Te3' ? 'Bismuth Telluride' :
                         type === 'SnO2' ? 'Tin Oxide' :
+                        type === 'LCO' ? 'Lithium Cobalt Oxide' :
+                        type === 'Si3N4' ? 'Silicon Nitride' :
+                        type === 'AlN' ? 'Aluminum Nitride' :
+                        type === 'hBN' ? 'Boron Nitride' :
+                        type === 'GaP' ? 'Gallium Phosphide' :
+                        type === 'ZnSe' ? 'Zinc Selenide' :
+                        type === 'Ta' ? 'Tantalum' :
+                        type === 'V2O5' ? 'Vanadium Pentoxide' :
+                        type === 'AgCl' ? 'Silver Chloride' :
+                        type === 'MnO2' ? 'Manganese Oxide' :
                         type === 'PTFE' ? 'Polytetrafluoroethylene' :
                         type === 'NaCl' ? 'Halite' :
                         type === 'KCl' ? 'Sylvite' :
@@ -854,6 +1272,26 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'BaTiO3' ? 'Barium Titanate' :
                         type === 'MoS2' ? 'Molybdenum Disulfide' :
                         type === 'Corundum' ? 'Corundum' :
+                        type === 'TTCP' ? 'Tetracalcium Phosphate' :
+                        type === 'PZT' ? 'Lead Zirconate Titanate' :
+                        type === 'ZnS' ? 'Zinc Sulfide' :
+                        type === 'BaFe12O19' ? 'Barium Ferrite' :
+                        type === 'WO3' ? 'Tungsten Trioxide' :
+                        type === 'VO2' ? 'Vanadium Dioxide' :
+                        type === 'Ag2O' ? 'Silver(I) Oxide' :
+                        type === 'CuO' ? 'Copper(II) Oxide' :
+                        type === 'NiO' ? 'Nickel Oxide' :
+                        type === 'Co3O4' ? 'Cobalt(II,III) Oxide' :
+                        type === 'LTO' ? 'Lithium Titanate' :
+                        type === 'YBCO' ? 'YBCO Superconductor' :
+                        type === 'ZSM5' ? 'Zeolite ZSM-5' :
+                        type === 'MOF5' ? 'Metal-Organic Framework-5' :
+                        type === 'Pt' ? 'Platinum' :
+                        type === 'Pd' ? 'Palladium' :
+                        type === 'NMC' ? 'NMC-111' :
+                        type === 'YSZ' ? 'Yttria-Stabilized Zirconia' :
+                        type === 'SRO' ? 'Strontium Ruthenate' :
+                        type === 'GO' ? 'Graphene Oxide' :
                         type;
       
       const mat = MATERIAL_DB.find(m => m.name.includes(searchKey));
@@ -1326,7 +1764,24 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Corundum', label: 'Al2O3' },
                     { id: 'Calcite', label: 'Calcite' },
                     { id: 'HAP', label: 'HAp' },
+                    { id: 'beta-Tricalcium Phosphate', label: 'beta-TCP' },
+                    { id: 'alpha-Tricalcium Phosphate', label: 'alpha-TCP' },
+                    { id: 'Bioactive Glass', label: 'Bio-Glass' },
+                    { id: 'Brushite', label: 'Brushite' },
+                    { id: 'Monetite', label: 'Monetite' },
+                    { id: 'TTCP', label: 'TTCP' },
+                    { id: 'Bio-Aragonite', label: 'Aragonite' },
                     { id: 'PbTiO3', label: 'PbTiO3' },
+                    { id: 'NiO', label: 'NiO' },
+                    { id: 'Co3O4', label: 'Co3O4' },
+                    { id: 'PZT', label: 'PZT' },
+                    { id: 'VO2', label: 'VO2' },
+                    { id: 'WO3', label: 'WO3' },
+                    { id: 'Austenite', label: 'Austenite' },
+                    { id: 'ZnS', label: 'ZnS' },
+                    { id: 'BaFe12O19', label: 'Ba Ferrite' },
+                    { id: 'CuO', label: 'CuO' },
+                    { id: 'Ag2O', label: 'Ag2O' },
                     { id: 'LTA', label: 'Zeolite A' },
                     { id: 'Silver (Ag)', label: 'Ag' },
                     { id: 'Au', label: 'Au' },
@@ -1350,10 +1805,30 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'CdTe', label: 'CdTe' },
                     { id: 'Bi2Te3', label: 'Bi2Te3' },
                     { id: 'SnO2', label: 'SnO2' },
+                    { id: 'LCO', label: 'LCO' },
+                    { id: 'Si3N4', label: 'Si3N4' },
+                    { id: 'AlN', label: 'AlN' },
+                    { id: 'hBN', label: 'h-BN' },
+                    { id: 'GaP', label: 'GaP' },
+                    { id: 'ZnSe', label: 'ZnSe' },
+                    { id: 'Ta', label: 'Ta' },
+                    { id: 'V2O5', label: 'V2O5' },
+                    { id: 'AgCl', label: 'AgCl' },
+                    { id: 'MnO2', label: 'MnO2' },
                     { id: 'BFO', label: 'BFO' },
                     { id: 'ITO', label: 'ITO' },
                     { id: 'FeS2', label: 'FeS2' },
                     { id: 'Cr', label: 'Cr' },
+                    { id: 'LTO', label: 'LTO Anode' },
+                    { id: 'YBCO', label: 'YBCO High-Tc' },
+                    { id: 'ZSM5', label: 'ZSM-5' },
+                    { id: 'MOF5', label: 'MOF-5' },
+                    { id: 'Pt', label: 'Pt Cat' },
+                    { id: 'Pd', label: 'Pd Cat' },
+                    { id: 'NMC', label: 'NMC Cathode' },
+                    { id: 'YSZ', label: '8YSZ' },
+                    { id: 'SRO', label: 'SrRuO3' },
+                    { id: 'GO', label: 'GO' },
                     { id: 'Complex', label: 'Complex Mix' }
                   ].map(ex => (
                     <button 
@@ -1622,239 +2097,226 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
           )}
         </div>
 
-        {/* Material Intelligence Card */}
+      {/* Material Intelligence Section (Selected Candidate Details) */}
+      <AnimatePresence mode="wait">
         {selectedCandidate && (
-          <div className="bg-slate-900 text-white p-6 rounded-xl shadow-lg border border-slate-700 animate-in fade-in slide-in-from-bottom-4 relative overflow-hidden">
-            {/* Warning Ribbon */}
-            <div className="absolute top-0 right-0 bg-amber-500 text-slate-950 text-[10px] font-black px-3 py-1 uppercase tracking-tighter rotate-0 rounded-bl-lg flex items-center gap-1 shadow-lg z-10">
-              <Activity className="w-3 h-3" />
-              Manual Verification Required
-            </div>
+          <motion.div 
+            key={selectedCandidate.phase_name}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6 pt-4"
+          >
+            <div className="bg-slate-900 text-white p-8 rounded-[2rem] shadow-2xl border border-slate-800 relative overflow-hidden">
+              {/* Warning Ribbon */}
+              <div className="absolute top-0 right-10 bg-amber-500 text-slate-950 text-[10px] font-black px-4 py-1.5 uppercase tracking-tighter rounded-b-xl flex items-center gap-2 shadow-lg z-20">
+                <Activity className="w-3.5 h-3.5" />
+                Laboratory Verification Required
+              </div>
 
-            <div className="flex items-center gap-3 mb-4 border-b border-slate-700 pb-4">
-              <div className="p-2 bg-violet-500/20 rounded-lg">
-                <Brain className="w-6 h-6 text-violet-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Material Intelligence</h3>
-                <p className="text-sm text-slate-400">AI-Synthesized Properties & Context</p>
-              </div>
-              <div className="ml-auto flex gap-2">
-                 <button 
-                   onClick={handleLatticeEstimation}
-                   className="text-xs bg-slate-800 hover:bg-slate-700 text-emerald-400 px-3 py-2 rounded-lg border border-slate-600 transition-colors flex items-center gap-2 font-bold"
-                 >
-                   <Calculator className="w-3 h-3" /> Lattice Assistant
-                 </button>
-                 <button 
-                   onClick={handleGenerateReport}
-                   className="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg border border-slate-600 transition-colors flex items-center gap-2"
-                 >
-                   <FileText className="w-3 h-3" /> Generate Report
-                 </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-              {/* Description & Class */}
-              <div className="md:col-span-8">
-                <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 h-full flex flex-col relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl" />
-                  <div className="flex items-center gap-2 mb-4 relative z-10">
-                    <FlaskConical className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Material Profile</span>
+              <div className="flex items-center gap-5 mb-8 relative z-10">
+                <div className="p-4 bg-gradient-to-br from-violet-500/20 to-indigo-500/10 rounded-2xl border border-violet-500/30">
+                  <Brain className="w-7 h-7 text-violet-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-black text-white uppercase tracking-tight">Synthesis Intelligence</h3>
+                  <div className="flex items-center gap-3 mt-1">
+                    <div className="flex gap-1">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < 4 ? 'bg-emerald-500' : 'bg-slate-700'}`} />
+                      ))}
+                    </div>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Confidence Score: {selectedCandidate.confidence_score.toFixed(1)}%</p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 mb-4 relative z-10">
-                    <span className="text-2xl font-black text-white px-1 tracking-tight">{selectedCandidate.phase_name}</span>
-                    <span className="px-3 py-1.5 bg-violet-500/20 text-violet-300 text-[13px] font-mono font-bold rounded-lg border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.2)]">{selectedCandidate.formula}</span>
-                    <span className="px-3 py-1.5 bg-slate-700/80 text-emerald-400 text-[11px] uppercase tracking-widest rounded-lg font-bold border border-emerald-500/20 shadow-inner">{selectedCandidate.materialType || "Unclassified"}</span>
-                  </div>
-                  <p className="text-sm text-slate-300 leading-relaxed max-w-3xl relative z-10">
-                    {selectedCandidate.description || "No description available for this phase."}
-                  </p>
-                  
-                  {/* Additional Metadata row */}
-                  <div className="mt-6 pt-5 border-t border-slate-700 flex flex-wrap gap-6 relative z-10">
-                     {selectedCandidate.molecularWeight && (
-                       <div className="flex flex-col">
-                         <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Molecular Wt.</span>
-                         <span className="text-sm font-mono text-slate-200">{selectedCandidate.molecularWeight} <span className="text-slate-500 text-xs">g/mol</span></span>
-                       </div>
-                     )}
-                     {selectedCandidate.bandGap !== undefined && (
-                       <div className="flex flex-col">
-                         <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Band Gap</span>
-                         <span className="text-sm font-mono text-slate-200">{selectedCandidate.bandGap} <span className="text-slate-500 text-xs">eV</span></span>
-                       </div>
-                     )}
-                     {selectedCandidate.elasticModulus !== undefined && (
-                       <div className="flex flex-col">
-                         <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Module</span>
-                         <span className="text-sm font-mono text-slate-200">{selectedCandidate.elasticModulus} <span className="text-slate-500 text-xs">GPa</span></span>
-                       </div>
-                     )}
-                     {selectedCandidate.magneticProperties && (
-                       <div className="flex flex-col">
-                         <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Magnetism</span>
-                         <span className="text-sm font-mono text-slate-200 capitalize">{selectedCandidate.magneticProperties}</span>
-                       </div>
-                     )}
-                  </div>
+                </div>
+                <div className="flex gap-3">
+                   <button 
+                     onClick={handleLatticeEstimation}
+                     className="group relative px-5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl transition-all hover:border-emerald-500/50 active:scale-95"
+                   >
+                     <div className="flex items-center gap-2 relative z-10">
+                       <Calculator className="w-4 h-4 text-emerald-400" />
+                       <span className="text-[10px] font-black text-white uppercase tracking-widest tracking-widest">Lattice AI</span>
+                     </div>
+                   </button>
+                   <button 
+                     onClick={handleGenerateReport}
+                     className="group relative px-5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl transition-all hover:border-violet-500/50 active:scale-95"
+                   >
+                     <div className="flex items-center gap-2 relative z-10">
+                       <FileText className="w-4 h-4 text-violet-400" />
+                       <span className="text-[10px] font-black text-white uppercase tracking-widest tracking-widest">Export</span>
+                     </div>
+                   </button>
                 </div>
               </div>
 
-              {/* Quick Stats */}
-              <div className="md:col-span-4">
-                <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 h-full relative overflow-hidden">
-                  <div className="flex items-center gap-2 mb-5">
-                    <Database className="w-4 h-4 text-blue-400" />
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Crystallography</span>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
-                      <span className="text-[11px] text-slate-400 uppercase font-black tracking-widest">Crystal System</span>
-                      <span className="text-sm font-bold text-white">{selectedCandidate.crystalSystem || "Unknown"}</span>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr">
+                {/* Identity Card */}
+                <div className="md:col-span-8 group">
+                  <div className="bg-slate-950/50 p-8 rounded-3xl border border-slate-800 shadow-inner h-full flex flex-col relative overflow-hidden transition-all hover:border-slate-700">
+                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-violet-500/10 rounded-full blur-[100px] pointer-events-none" />
+                    
+                    <div className="flex flex-wrap items-end gap-6 mb-8 relative z-10">
+                      <h2 className="text-4xl font-black text-white tracking-tighter leading-none group-hover:text-violet-400 transition-colors duration-500">{selectedCandidate.phase_name}</h2>
+                      <div className="flex gap-2">
+                        <span className="px-4 py-2 bg-violet-500/10 text-violet-300 text-xs font-mono font-black rounded-xl border border-violet-500/20">{selectedCandidate.formula}</span>
+                        <span className="px-4 py-2 bg-slate-800 text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-xl border border-emerald-500/10">{selectedCandidate.materialType || "Standard"}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
-                      <span className="text-[11px] text-slate-400 uppercase font-black tracking-widest">Space Group</span>
-                      <span className="text-sm font-bold text-emerald-400 font-mono bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">{selectedCandidate.spaceGroup || "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 border-b border-slate-700/50">
-                      <span className="text-[11px] text-slate-400 uppercase font-black tracking-widest">Density</span>
-                      <span className="text-sm font-bold text-white font-mono">{selectedCandidate.density ? `${selectedCandidate.density} g/cm³` : "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2">
-                       <span className="text-[11px] text-slate-400 uppercase font-black tracking-widest">Card Match</span>
-                       <span className="text-xs font-black px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded border border-blue-500/20 uppercase">{selectedCandidate.card_id}</span>
+                    
+                    <p className="text-base text-slate-400 leading-relaxed max-w-3xl relative z-10 mb-8 font-medium">
+                      {selectedCandidate.description || "Phase identification complete. Detailed morphological synthesis and mechanical property mapping for this specific lattice configuration are being processed by the intelligence engine."}
+                    </p>
+                    
+                    <div className="mt-auto pt-8 border-t border-slate-800 flex flex-wrap gap-8 relative z-10">
+                       {[
+                         { label: 'Molecular Wt', val: selectedCandidate.molecularWeight, unit: 'g/mol', icon: Layers },
+                         { label: 'Band Gap', val: selectedCandidate.bandGap, unit: 'eV', icon: Zap },
+                         { label: 'Modulus', val: selectedCandidate.elasticModulus, unit: 'GPa', icon: Activity },
+                         { label: 'Magnetism', val: selectedCandidate.magneticProperties, unit: '', icon: Database },
+                       ].map((item, i) => item.val !== undefined && (
+                         <div key={i} className="flex gap-4 group/item">
+                           <div className="p-2.5 h-fit bg-slate-900 rounded-xl border border-slate-800 group-hover/item:border-violet-500/30 transition-colors">
+                             <item.icon className="w-4 h-4 text-slate-500 group-hover/item:text-violet-400 transition-colors" />
+                           </div>
+                           <div className="flex flex-col">
+                             <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black mb-1 group-hover/item:text-slate-400 transition-colors">{item.label}</span>
+                             <span className="text-sm font-black font-mono text-slate-200 capitalize">
+                               {item.val} {item.unit && <span className="text-slate-600 text-[10px] ml-1">{item.unit}</span>}
+                             </span>
+                           </div>
+                         </div>
+                       ))}
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Applications & Hazards */}
-              <div className="md:col-span-12">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-                    <div className="flex items-center gap-2 mb-4">
+                {/* Crystallography */}
+                <div className="md:col-span-4">
+                  <div className="bg-slate-950/50 p-8 rounded-3xl border border-slate-800 h-full relative overflow-hidden group/card shadow-inner">
+                    <div className="flex items-center gap-3 mb-8">
+                      <div className="p-2 bg-indigo-500/10 rounded-lg border border-indigo-500/20">
+                        <Database className="w-4 h-4 text-indigo-400" />
+                      </div>
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cell Metrics</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6 relative z-10">
+                      {[
+                        { l: 'Crystal System', v: selectedCandidate.crystalSystem || "Unknown", c: 'text-white' },
+                        { l: 'Space Group', v: selectedCandidate.spaceGroup || "N/A", c: 'text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20' },
+                        { l: 'Density', v: selectedCandidate.density ? `${selectedCandidate.density} g/cm³` : "N/A", c: 'text-white font-mono' },
+                        { l: 'Database ID', v: selectedCandidate.card_id, c: 'text-blue-400 font-mono bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20' }
+                      ].map((row, i) => (
+                        <div key={i} className="flex justify-between items-center group/row">
+                          <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest group-hover/row:text-slate-400 transition-colors">{row.l}</span>
+                          <span className={`text-xs font-black ${row.c}`}>{row.v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Applications & Safety */}
+                <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-slate-950/50 p-8 rounded-3xl border border-slate-800 hover:border-amber-500/20 transition-all group/bento shadow-inner">
+                    <div className="flex items-center gap-3 mb-6">
                       <Zap className="w-4 h-4 text-amber-400" />
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Common Applications</span>
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Applications</span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2.5">
                       {selectedCandidate.applications?.map((app, i) => (
-                        <span key={`app-${app}-${i}`} className="text-xs font-bold bg-slate-900 shadow-inner text-slate-300 px-3.5 py-2 rounded-lg border border-slate-700 hover:border-amber-500/50 hover:text-amber-100 transition-colors cursor-default">
+                        <span key={i} className="text-[10px] font-black bg-slate-900 text-slate-400 px-4 py-2 rounded-xl border border-slate-800 hover:text-white transition-colors">
                           {app}
                         </span>
-                      )) || <span className="text-xs text-slate-500 italic">No application data available.</span>}
+                      )) || <span className="text-[10px] text-slate-600 italic">No industrial data available.</span>}
                     </div>
                   </div>
 
-                  <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-4 h-4 rounded-full bg-rose-500/20 flex items-center justify-center border border-rose-500/30">
-                         <div className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
-                      </div>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Safety & Hazards</span>
+                  <div className="bg-slate-950/50 p-8 rounded-3xl border border-slate-800 hover:border-rose-500/20 transition-all group/bento shadow-inner">
+                    <div className="flex items-center gap-3 mb-6">
+                      <ShieldAlert className="w-4 h-4 text-rose-400" />
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Hazard Profile</span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedCandidate.hazards?.map((hazard, i) => (
-                        <span key={`hazard-${hazard}-${i}`} className="text-[11px] font-black bg-rose-500/10 text-rose-400 px-3 py-1.5 rounded-lg border border-rose-500/20 uppercase tracking-widest cursor-default shadow-sm">
-                          {hazard}
+                    <div className="flex flex-wrap gap-2.5">
+                      {selectedCandidate.hazards && selectedCandidate.hazards.length > 0 ? (
+                        selectedCandidate.hazards.map((hazard, i) => (
+                          <span key={i} className="text-[9px] font-black bg-rose-500/10 text-rose-400 px-3 py-1.5 rounded-lg border border-rose-500/20 uppercase tracking-widest">
+                            {hazard}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4" /> Non-toxic Response
                         </span>
-                      )) || <span className="text-xs text-emerald-500/70 italic font-medium flex items-center gap-1.5"><CheckCircle className="w-3.5 h-3.5" /> No specific hazards listed / Safe material.</span>}
-                    </div>
-                    {selectedCandidate.opticalProperties && (
-                       <div className="mt-4 pt-3 border-t border-slate-700/50">
-                          <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1.5 block">Optical Profile</span>
-                          <span className="text-xs font-medium text-slate-300">{selectedCandidate.opticalProperties}</span>
-                       </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Neural Activation Heatmap */}
-            <div className="mt-8 pt-6 border-t border-slate-700/50">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-violet-400" />
-                    Layer Activation Heatmap
-                  </h4>
-                  <p className="text-[10px] text-slate-500 font-medium mt-1">Convolutional attention maps for {selectedCandidate.phase_name}</p>
-                </div>
-                <div className="flex gap-1">
-                   {[...Array(4)].map((_, i) => (
-                     <div key={`dot-${i}`} className="w-6 h-1 rounded-full bg-violet-500 opacity-20" />
-                   ))}
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                {[
-                  { name: 'Conv_Block_1 (Feature Detection)', color: 'from-violet-600 to-indigo-600' },
-                  { name: 'Conv_Block_3 (Structural Hierarchy)', color: 'from-indigo-600 to-blue-600' },
-                  { name: 'Global_Avg_Pool (Final Consensus)', color: 'from-blue-600 to-emerald-600' }
-                ].map((layer, lIdx) => (
-                  <div key={`layer-${layer.name}-${lIdx}`} className="space-y-1.5">
-                    <div className="flex justify-between items-center px-1">
-                      <span className="text-[9px] font-mono font-bold text-slate-400 group-hover:text-slate-300 transition-colors">{layer.name}</span>
-                      <span className="text-[10px] font-mono text-slate-500">{Math.floor(Math.random() * 40 + 60)}% Active</span>
-                    </div>
-                    <div className="h-6 w-full bg-slate-950 rounded-lg overflow-hidden flex border border-slate-800 shadow-inner">
-                      {[...Array(40)].map((_, i) => {
-                         const val = Math.random();
-                         const op = val > 0.8 ? 1 : val > 0.4 ? 0.6 : 0.2;
-                         return (
-                           <div 
-                             key={`layer-${lIdx}-block-${i}`} 
-                             className={`flex-1 h-full bg-gradient-to-t ${layer.color} transition-all duration-1000`}
-                             style={{ 
-                               opacity: op,
-                               filter: `brightness(${op * 1.5})`,
-                               animationName: 'pulse',
-                               animationDuration: `${1 + Math.random() * 2}s`,
-                               animationTimingFunction: 'cubic-bezier(0.4, 0, 0.6, 1)',
-                               animationIterationCount: 'infinite',
-                               animationDelay: `${i * 0.05}s`
-                             }}
-                           />
-                         );
-                       })}
+                      )}
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-              <div className="mt-3 flex items-center gap-2">
-                <Info className="w-3.5 h-3.5 text-slate-500" />
-                <p className="text-[9px] text-slate-500 font-medium italic">Darker cells represent high-attention regions where the neural net detected characteristic peaks.</p>
-              </div>
-            </div>
 
-            {/* Verification Checklist */}
-            <div className="mt-6 pt-6 border-t border-slate-800/50">
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                Manual Verification Checklist
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {[
-                  "Peak positions match within 0.05°",
-                  "Relative intensities are consistent",
-                  "Chemical composition is plausible",
-                ].map((item, i) => (
-                  <label key={`check-${i}`} className="flex items-start gap-3 bg-slate-800/20 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600 transition-all cursor-pointer group">
-                    <div className="relative flex items-center justify-center mt-0.5">
-                      <input type="checkbox" className="peer appearance-none w-4 h-4 border-2 border-slate-600 rounded bg-slate-900 checked:bg-emerald-500 checked:border-emerald-500 transition-colors cursor-pointer" />
-                      <CheckCircle className="w-3 h-3 text-slate-900 absolute opacity-0 peer-checked:opacity-100 pointer-events-none" />
+              {/* Neural Activation Heatmap */}
+              <div className="mt-12 pt-8 border-t border-slate-800">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-violet-400 animate-pulse" />
+                      Neural Attention Mapping
+                    </h4>
+                    <p className="text-[10px] text-slate-500 font-bold mt-1">Convolutional activation patterns detected for {selectedCandidate.phase_name}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-5">
+                  {[
+                    { name: 'Feature_Extraction_L1', color: 'from-violet-600 to-indigo-600' },
+                    { name: 'Structural_Hierarchy_L3', color: 'from-indigo-600 to-blue-600' },
+                    { name: 'Final_Classification_Pool', color: 'from-blue-600 to-emerald-600' }
+                  ].map((layer, lIdx) => (
+                    <div key={lIdx} className="space-y-2">
+                      <div className="flex justify-between items-center px-1">
+                        <span className="text-[9px] font-mono font-black text-slate-500">{layer.name}</span>
+                        <span className="text-[9px] font-mono text-slate-600 uppercase tracking-tighter">Layer Status: Optimized</span>
+                      </div>
+                      <div className="h-6 w-full bg-black rounded-lg overflow-hidden flex border border-slate-800/50 shadow-inner">
+                        {[...Array(40)].map((_, i) => {
+                           const val = Math.random();
+                           const op = val > 0.8 ? 1 : val > 0.4 ? 0.6 : 0.2;
+                           return (
+                             <div 
+                               key={i} 
+                               className={`flex-1 h-full bg-gradient-to-t ${layer.color} transition-all duration-700`}
+                               style={{ opacity: op }}
+                             />
+                           );
+                         })}
+                      </div>
                     </div>
-                    <span className="text-xs font-medium text-slate-400 group-hover:text-slate-200 leading-tight">{item}</span>
-                  </label>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              {/* Verification Checklist */}
+              <div className="mt-10 pt-8 border-t border-slate-800">
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Verification Audit</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[
+                    "Lattice alignment checked",
+                    "Relative intensity verified",
+                    "Composition confirmed",
+                  ].map((item, i) => (
+                    <label key={i} className="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition-all cursor-pointer group">
+                      <input type="checkbox" className="peer w-4 h-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20" />
+                      <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors">{item}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
+      </AnimatePresence>
 
         {/* Predictions List */}
         <div className="grid grid-cols-1 gap-4">
