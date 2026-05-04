@@ -40,17 +40,6 @@ const MATERIAL_DB = [
     applications: ['Ceramics', 'Dental', 'Refractories']
   },
   { 
-    name: 'Gold (Au)', 
-    type: 'Metal', 
-    pattern: '38.18, 100\n44.39, 52\n64.57, 32\n77.54, 36',
-    description: 'A dense, soft, malleable, and ductile metal.',
-    formula: 'Au',
-    crystalSystem: 'Cubic',
-    spaceGroup: 'Fm-3m',
-    density: 19.30,
-    applications: ['Electronics', 'Jewelry', 'Currency']
-  },
-  { 
     name: 'Hydroxyapatite', 
     type: 'Bioceramic', 
     pattern: '25.87, 40\n31.77, 100\n32.19, 95\n32.90, 60\n34.04, 45\n39.81, 25',
@@ -117,17 +106,6 @@ const MATERIAL_DB = [
     applications: ['Fertilizer', 'Medicine', 'Food Processing']
   },
   {
-    name: 'Fluorite (CaF2)',
-    type: 'Mineral',
-    pattern: '28.27, 100\n46.99, 55\n55.75, 30\n68.65, 5\n75.85, 10\n87.45, 10',
-    description: 'The mineral form of calcium fluoride. It belongs to the halide minerals.',
-    formula: 'CaF2',
-    crystalSystem: 'Cubic',
-    spaceGroup: 'Fm-3m',
-    density: 3.18,
-    applications: ['Metallurgy', 'Optics', 'Ceramics']
-  },
-  {
     name: 'Hematite (Fe2O3)',
     type: 'Mineral/Ore',
     pattern: '24.14, 30\n33.15, 100\n35.61, 70\n40.85, 20\n49.48, 40\n54.09, 45\n62.45, 30\n64.02, 30',
@@ -137,17 +115,6 @@ const MATERIAL_DB = [
     spaceGroup: 'R-3c',
     density: 5.26,
     applications: ['Iron Ore', 'Pigments', 'Radiation Shielding']
-  },
-  {
-    name: 'Graphite (C)',
-    type: 'Mineral',
-    pattern: '26.54, 100\n42.40, 10\n44.56, 10\n54.65, 25\n77.50, 5',
-    description: 'A crystalline form of the element carbon with its atoms arranged in a hexagonal structure.',
-    formula: 'C',
-    crystalSystem: 'Hexagonal',
-    spaceGroup: 'P63/mmc',
-    density: 2.26,
-    applications: ['Lubricants', 'Batteries', 'Pencils', 'Graphene Production']
   },
   {
     name: 'Aluminum (Al)',
@@ -467,6 +434,116 @@ const MATERIAL_DB = [
     spaceGroup: 'I4/mcm',
     density: 4.16,
     applications: ['Photovoltaics', 'Photodetectors']
+  },
+  {
+    name: 'Silicon Carbide (SiC)',
+    type: 'Semiconductor/Hard Ceramic',
+    pattern: '33.6, 20\n35.6, 100\n38.1, 5\n41.4, 25\n54.5, 10\n60.0, 45\n65.6, 15\n71.8, 35',
+    description: 'A hard chemical compound of silicon and carbon. Moissanite is its rare mineral form.',
+    formula: '6H-SiC',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63mc',
+    density: 3.21,
+    applications: ['Power Electronics', 'Abrasives', 'Telescope Mirrors']
+  },
+  {
+    name: 'Gallium Arsenide (GaAs)',
+    type: 'Semiconductor',
+    pattern: '27.3, 100\n45.3, 45\n53.7, 30\n66.0, 10\n72.8, 15\n83.6, 5',
+    description: 'A III-V direct bandgap semiconductor used in integrated circuits and solar cells.',
+    formula: 'GaAs',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'F-43m',
+    density: 5.32,
+    applications: ['Microwave circuits', 'Solar cells', 'Laser diodes']
+  },
+  {
+    name: 'Bismuth Ferrite (BiFeO3)',
+    type: 'Multiferroic Ceramic',
+    pattern: '22.4, 20\n31.8, 100\n32.1, 95\n39.0, 15\n39.5, 15\n45.8, 40\n46.2, 35\n51.4, 10\n51.7, 10\n56.5, 20\n57.1, 20',
+    description: 'One of the few multiferroic materials that is both ferroelectric and antiferromagnetic at room temp.',
+    formula: 'BiFeO3',
+    crystalSystem: 'Rhombohedral',
+    spaceGroup: 'R3c',
+    density: 8.34,
+    applications: ['Spintronics', 'Memory storage', 'Photocatalysis']
+  },
+  {
+    name: 'Indium Tin Oxide (ITO)',
+    type: 'Transparent Conductor',
+    pattern: '21.5, 15\n30.6, 100\n35.4, 30\n37.7, 10\n41.8, 15\n45.7, 15\n51.0, 45\n60.7, 35',
+    description: 'A ternary composition of indium, tin and oxygen. It is transparent and conductive.',
+    formula: 'In2O3:Sn',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Ia-3',
+    density: 7.12,
+    applications: ['Touchscreens', 'LCDs', 'Smart windows']
+  },
+  {
+    name: 'Pyrite (FeS2)',
+    type: 'Mineral/Sulfide',
+    pattern: '28.5, 35\n33.0, 100\n37.1, 55\n40.8, 45\n47.4, 45\n56.3, 65\n59.0, 20\n64.3, 25',
+    description: 'Known as fool\'s gold, it is an iron sulfide mineral.',
+    formula: 'FeS2',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Pa-3',
+    density: 5.01,
+    applications: ['Sulfur production', 'Solar PV research']
+  },
+  {
+    name: 'Chromium (Cr)',
+    type: 'Metal',
+    pattern: '44.39, 100\n64.58, 18\n81.72, 25\n98.05, 10',
+    description: 'A steely-gray, lustrous, hard and brittle transition metal.',
+    formula: 'Cr',
+    crystalSystem: 'Cubic (BCC)',
+    spaceGroup: 'Im-3m',
+    density: 7.19,
+    applications: ['Stainless Steel', 'Electroplating']
+  },
+  {
+    name: 'Gallium Oxide (Ga2O3)',
+    type: 'Semiconductor',
+    pattern: '18.9, 35\n30.1, 45\n31.7, 55\n35.2, 100\n38.4, 60\n45.8, 30\n59.1, 25',
+    description: 'An inorganic compound and ultra-wide-bandgap semiconductor.',
+    formula: 'β-Ga2O3',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'C2/m',
+    density: 5.88,
+    applications: ['Power Electronics', 'Solar-blind Photodetectors']
+  },
+  {
+    name: 'Cadmium Telluride (CdTe)',
+    type: 'Solar Material',
+    pattern: '23.8, 100\n39.3, 60\n46.4, 45\n56.8, 15\n62.4, 20\n71.2, 15',
+    description: 'A crystalline compound used as an infrared optical window and a solar cell material.',
+    formula: 'CdTe',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'F-43m',
+    density: 5.85,
+    applications: ['Thin-film Solar Cells', 'Radiation Detectors']
+  },
+  {
+    name: 'Bismuth Telluride (Bi2Te3)',
+    type: 'Thermoelectric',
+    pattern: '17.4, 45\n27.6, 100\n38.2, 40\n41.1, 35\n44.6, 25\n50.3, 15\n54.1, 15',
+    description: 'A gray powder that is a compound of bismuth and tellurium. It is a semiconductor and thermoelectric material.',
+    formula: 'Bi2Te3',
+    crystalSystem: 'Trigonal',
+    spaceGroup: 'R-3m',
+    density: 7.74,
+    applications: ['Thermoelectric Cooling', 'Power Generation']
+  },
+  {
+    name: 'Tin Oxide (SnO2)',
+    type: 'Ceramic/Sensor',
+    pattern: '26.6, 100\n33.9, 75\n37.9, 25\n38.9, 20\n51.8, 65\n54.7, 15\n61.9, 20',
+    description: 'The mineral cassiterite, the main ore of tin. Used as a gas sensor material.',
+    formula: 'SnO2',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'P42/mnm',
+    density: 6.95,
+    applications: ['Gas Sensors', 'Opacifiers', 'TCOs']
   }
 ];
 
@@ -749,6 +826,16 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'WC' ? 'Tungsten Carbide' :
                         type === 'Fe3O4' ? 'Magnetite' :
                         type === 'MAPbI3' ? 'Methylammonium Lead Iodide' :
+                        type === 'SiC' ? 'Silicon Carbide' :
+                        type === 'GaAs' ? 'Gallium Arsenide' :
+                        type === 'BFO' ? 'Bismuth Ferrite' :
+                        type === 'ITO' ? 'Indium Tin Oxide' :
+                        type === 'FeS2' ? 'Pyrite' :
+                        type === 'Cr' ? 'Chromium' :
+                        type === 'Ga2O3' ? 'Gallium Oxide' :
+                        type === 'CdTe' ? 'Cadmium Telluride' :
+                        type === 'Bi2Te3' ? 'Bismuth Telluride' :
+                        type === 'SnO2' ? 'Tin Oxide' :
                         type === 'PTFE' ? 'Polytetrafluoroethylene' :
                         type === 'NaCl' ? 'Halite' :
                         type === 'KCl' ? 'Sylvite' :
@@ -1257,6 +1344,16 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'WC', label: 'WC' },
                     { id: 'Fe3O4', label: 'Fe3O4' },
                     { id: 'MAPbI3', label: 'Perovskite' },
+                    { id: 'SiC', label: 'SiC' },
+                    { id: 'GaAs', label: 'GaAs' },
+                    { id: 'Ga2O3', label: 'Ga2O3' },
+                    { id: 'CdTe', label: 'CdTe' },
+                    { id: 'Bi2Te3', label: 'Bi2Te3' },
+                    { id: 'SnO2', label: 'SnO2' },
+                    { id: 'BFO', label: 'BFO' },
+                    { id: 'ITO', label: 'ITO' },
+                    { id: 'FeS2', label: 'FeS2' },
+                    { id: 'Cr', label: 'Cr' },
                     { id: 'Complex', label: 'Complex Mix' }
                   ].map(ex => (
                     <button 
