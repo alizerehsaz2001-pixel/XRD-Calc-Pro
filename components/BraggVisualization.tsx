@@ -36,11 +36,13 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
   const centerX = width / 2;
   
   // Physics calculations
-  const theta = localTwoTheta / 2;
-  const thetaRad = (theta * Math.PI) / 180;
+  const theta = (localTwoTheta || 0) / 2;
+  const thetaRad = isNaN(theta) ? 0 : (theta * Math.PI) / 180;
   
   // Normalized spacing (d) - assuming initial theta is roughly at a peak
-  const dSpacing = wavelength / (2 * Math.sin((initialTwoTheta / 2) * Math.PI / 180));
+  const dRefTheta = (initialTwoTheta || 20) / 2;
+  const dRefThetaRad = (dRefTheta * Math.PI) / 180;
+  const dSpacing = wavelength / (2 * Math.max(0.0001, Math.sin(dRefThetaRad)));
 
   // Constructive interference check (Bragg Condition)
   // Signal strength based on how close sin(theta) is to nλ/2d

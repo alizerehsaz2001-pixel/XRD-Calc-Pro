@@ -67,7 +67,9 @@ export const AIChatSupport: React.FC = () => {
         sources: sources.length > 0 ? sources : undefined
       }]);
     } catch (error: any) {
-      console.error("Chat Error:", error);
+      if (!isQuotaError(error) && !isPermissionError(error)) {
+        console.error("Chat Error:", error);
+      }
       
       let errorMsg = "Sorry, I'm having trouble connecting to the network right now.";
       if (isQuotaError(error)) {
@@ -75,7 +77,7 @@ export const AIChatSupport: React.FC = () => {
       } else if (isPermissionError(error)) {
         errorMsg = "Sorry, my neural access is restricted (403). Grounding tools unavailable. Check API key.";
       }
-      setMessages(prev => [...prev, { id: `error-${Date.now()}`, role: 'model', text: errorMsg }]);
+      setMessages(prev => [...prev, { id: `error-${Date.now()}-${Math.random().toString(36).substring(2,7)}`, role: 'model', text: errorMsg }]);
     } finally {
       setLoading(false);
     }

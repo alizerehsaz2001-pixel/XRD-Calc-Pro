@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { analyzeDiffractionImage } from '../services/geminiService';
+import { analyzeDiffractionImage, isQuotaError, isPermissionError } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 import { 
   Camera, Upload, Search, FileText, Zap, 
@@ -73,9 +73,10 @@ export const ImageAnalysisModule: React.FC = () => {
       setResult(analysis);
       setHistory(prev => [{ context: finalPrompt, result: analysis, date: new Date().toLocaleTimeString() }, ...prev.slice(0, 4)]);
     } catch (err: any) {
-      const errorStr = typeof err === 'string' ? err : JSON.stringify(err);
-      if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+      if (isQuotaError(err)) {
         setError("Quota exhausted (429/RESOURCE_EXHAUSTED). Analysis unavailable.");
+      } else if (isPermissionError(err)) {
+        setError("Neural access restricted (403). Grounding or Multi-modal tools denied. Check API key.");
       } else {
         setError("Analysis Engine Fault: Check connectivity or image clarity.");
       }

@@ -1,9 +1,9 @@
 
 import { GoogleGenAI, Type, Chat, GroundingChunk, ThinkingLevel } from "@google/genai";
-import { AIResponse, CrystalMindResponse, GroundingSource, StandardWavelength } from '../types';
+import { AIResponse, GroundingSource, StandardWavelength } from '../types';
 
-// Initialize Gemini Client using process.env.API_KEY directly
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize Gemini Client using process.env.GEMINI_API_KEY directly
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
 
 const extractSources = (metadata: any): GroundingSource[] => {
   if (!metadata?.groundingChunks) return [];
@@ -51,8 +51,8 @@ export const isPermissionError = (error: any): boolean => {
 
 export const generateScientificImage = async (prompt: string, size: '1K' | '2K' | '4K'): Promise<string | null> => {
   // Create a new instance to ensure the most up-to-date API key is used (if selected via UI)
-  const dynamicAi = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const model = 'gemini-3-pro-image-preview';
+  const dynamicAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+  const model = 'imagen-3.0-generate-001'; // Fallback to a targetable name if available, or just use flash
 
   try {
     const response = await dynamicAi.models.generateContent({
@@ -81,7 +81,9 @@ export const generateScientificImage = async (prompt: string, size: '1K' | '2K' 
     }
     return null;
   } catch (error: any) {
-    console.error("Image Generation Error:", error);
+    if (!isQuotaError(error) && !isPermissionError(error)) {
+      console.error("Image Generation Error:", error);
+    }
     if (isQuotaError(error)) throw new Error("Quota exceeded (429).");
     if (isPermissionError(error)) throw new Error("Permission denied (403). API key might not have image generation access.");
     throw error;
@@ -90,7 +92,7 @@ export const generateScientificImage = async (prompt: string, size: '1K' | '2K' 
 
 export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> => {
   try {
-    const model = 'gemini-3.1-pro-preview';
+    const model = 'gemini-2.0-flash';
     const response = await ai.models.generateContent({
       model,
       contents: `Search for and provide a comprehensive list of the most current and accurate standard characteristic X-ray wavelengths (K-alpha weighted averages for Cu, Mo, Co, Fe, Cr, Ag) and common neutron wavelengths (standard thermal and cold source averages). 
@@ -98,7 +100,6 @@ export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> 
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
         responseSchema: {
           type: Type.ARRAY,
           items: {
@@ -114,11 +115,14 @@ export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> 
       }
     });
 
-    const text = response.text;
+    let text = response.text;
     if (!text) return [];
+    text = text.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
     return JSON.parse(text) as StandardWavelength[];
   } catch (error: any) {
-    console.error("Error fetching wavelengths:", error);
+    if (!isQuotaError(error) && !isPermissionError(error)) {
+      console.error("Error fetching wavelengths:", error);
+    }
     if (isQuotaError(error)) {
       return [{ label: "Cu K-alpha (Quota Fallback)", value: 1.5406, type: "X-Ray" }];
     }
@@ -131,7 +135,7 @@ export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> 
 
 export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
   try {
-    const model = 'gemini-3.1-pro-preview';
+    const model = 'gemini-2.0-flash';
     
     const response = await ai.models.generateContent({
       model,
@@ -143,7 +147,6 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
         responseSchema: {
           type: Type.OBJECT,
           properties: {
@@ -196,15 +199,18 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
       }
     });
 
-    const text = response.text;
+    let text = response.text;
     if (!text) throw new Error("No response from AI");
     
+    text = text.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
     const result = JSON.parse(text) as AIResponse;
     result.sources = extractSources(response.candidates?.[0]?.groundingMetadata);
     
     return result;
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
+    if (!isQuotaError(error) && !isPermissionError(error)) {
+      console.error("Gemini API Error:", error);
+    }
     if (isQuotaError(error)) {
       throw new Error("Quota exceeded (429). Please wait and try again later.");
     }
@@ -217,13 +223,12 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
 
 export const explainResults = async (resultsSummary: string): Promise<string> => {
    try {
-    const model = 'gemini-3.1-pro-preview';
+    const model = 'gemini-2.0-flash';
     const response = await ai.models.generateContent({
       model,
       contents: `As a crystallography expert, briefly interpret these diffraction results: ${resultsSummary}. Focus on d-spacing trends and potential crystal quality indicators. Keep it under 50 words.`,
       config: {
-        tools: [{ googleSearch: {} }],
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        tools: [{ googleSearch: {} }]
       }
     });
     return response.text || "Could not generate explanation.";
@@ -240,7 +245,7 @@ export const explainResults = async (resultsSummary: string): Promise<string> =>
 
 export const analyzeDiffractionImage = async (imageBase64: string, userContext: string): Promise<string> => {
   try {
-    const model = 'gemini-3.1-pro-preview';
+    const model = 'gemini-2.0-flash';
     
     const matches = imageBase64.match(/^data:(.+);base64,(.+)$/);
     if (!matches || matches.length < 3) {
@@ -278,15 +283,14 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
         ]
       },
       config: {
-        thinkingConfig: {
-          thinkingLevel: ThinkingLevel.HIGH, 
-        }
       }
     });
 
     return response.text || "No analysis could be generated for this image.";
   } catch (error: any) {
-    console.error("Gemini Image Analysis Error:", error);
+    if (!isQuotaError(error) && !isPermissionError(error)) {
+      console.error("Gemini Image Analysis Error:", error);
+    }
     if (isQuotaError(error)) throw new Error("Quota exceeded (429).");
     if (isPermissionError(error)) throw new Error("Permission denied (403). API key might result in restriction for image analysis.");
     throw error;
@@ -295,124 +299,10 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
 
 export const createSupportChat = (isSmart: boolean = false): Chat => {
   return ai.chats.create({
-    model: 'gemini-3.1-pro-preview',
+    model: 'gemini-2.0-flash',
     config: {
       systemInstruction: "You are 'Crystal', the AI support assistant for the Bragg-Engine crystallography app. You are helpful, scientifically accurate, and concise. You help users (especially Raf) understand diffraction concepts (Bragg's law, Scherrer equation, Rietveld refinement) and navigate the app. Use the Google Search tool to provide accurate, up-to-date scientific information.",
-      tools: [{ googleSearch: {} }],
-      thinkingConfig: { thinkingLevel: isSmart ? ThinkingLevel.HIGH : ThinkingLevel.LOW }
+      tools: [{ googleSearch: {} }]
     }
   });
-};
-
-// --- CrystalMind-Control (Database Integration) ---
-
-export const searchCrystalDatabase = async (command: string, elements: string[], target: "MaterialsProject" | "COD" | "AMCSD" | "All", peaks?: number[]): Promise<CrystalMindResponse> => {
-  try {
-    const model = 'gemini-3.1-pro-preview';
-    
-    // Construct domain-specific search instructions
-    const targetInfo = {
-      "MaterialsProject": { name: "Materials Project", domain: "materialsproject.org", idFormat: "mp-ID" },
-      "COD": { name: "Crystallography Open Database (COD)", domain: "crystallography.net", idFormat: "COD-ID" },
-      "AMCSD": { name: "American Mineralogist Crystal Structure Database", domain: "rruff.geo.arizona.edu", idFormat: "AMCSD-ID" },
-      "All": { name: "All Databases", domain: null, idFormat: "Mixed IDs" }
-    };
-
-    const activeTarget = targetInfo[target];
-
-    // Explicitly force site-specific searching in the system prompt
-    let prompt = `You are "CrystalMind-Control", the database integration module.
-    
-    COMMAND: "${command}"
-    ELEMENTS: ${elements.join(', ')}
-    TARGET DATABASE: ${activeTarget.name}
-
-    SEARCH PROTOCOL:
-    ${target !== 'All' 
-      ? `You are RESTRICTED to ${activeTarget.name}. When using the Google Search tool, you MUST strictly use the site operator: "site:${activeTarget.domain}" in your search queries to find the material page. Example: "site:${activeTarget.domain} ${elements.join(' ')} crystal structure". Do NOT retrieve data from any other domain.` 
-      : 'Search across major crystallographic databases (Materials Project, COD, AMCSD).'}
-
-    TASK:
-    1. Search for phases matching the composition and/or peaks.
-    2. Retrieve strictly verified data from the target database using Google Search.
-    3. Return the data in the specified JSON format.
-
-    REQUIRED FIELDS:
-    - Formula, Phase Name
-    - Database ID (Must verify ID exists in ${activeTarget.name})
-    - Lattice Parameters (a, b, c, alpha, beta, gamma)
-    - Space Group
-    - Atomic Positions (element, x, y, z) - Crucial for simulation
-    - Volume, Density, Band Gap, Energy Above Hull, Stability (is_stable)
-
-    OUTPUT JSON:
-    {
-      "module": "CrystalMind-Control",
-      "action": "Database_Search",
-      "status": "success",
-      "query_parameters": {
-        "elements_included": [string],
-        "elements_excluded": [string],
-        "strict_match": boolean,
-        "database_target": "${target}"
-      },
-      "search_results": [
-        {
-          "phase_name": string,
-          "formula": string,
-          "database_id": string,
-          "space_group": string,
-          "crystal_system": string,
-          "point_group": string,
-          "lattice_params": { "a": number, "b": number, "c": number, "alpha": number, "beta": number, "gamma": number },
-          "atomic_positions": [
-            { "element": string, "x": number, "y": number, "z": number, "occupancy": number }
-          ],
-          "volume": number, "density": number, "energy_above_hull": number, "band_gap": number, "is_stable": boolean,
-          "figure_of_merit": number, "cif_url": string
-        }
-      ],
-      "control_message": string
-    }`;
-
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
-      }
-    });
-    
-    const text = response.text || "";
-    // Robust JSON cleaning
-    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    
-    const result = JSON.parse(jsonString) as CrystalMindResponse;
-    result.sources = extractSources(response.candidates?.[0]?.groundingMetadata);
-    
-    return result;
-
-  } catch (error: any) {
-    console.error("CrystalMind-Control Search Error:", error);
-    
-    const isQuota = isQuotaError(error);
-    const isPermission = isPermissionError(error);
-
-    let controlMessage = "Search protocol failed. Database connectivity offline or query malformed.";
-    if (isQuota) {
-      controlMessage = "CRITICAL: Neural link quota exhausted (429). Please wait for buffer reset before additional queries.";
-    } else if (isPermission) {
-      controlMessage = "ERROR: Neural access restricted (403). Permission denied for database grounding tools. Check API settings.";
-    }
-
-    return {
-      module: "CrystalMind-Control",
-      action: "Database_Search",
-      status: "error",
-      query_parameters: { elements_included: elements, elements_excluded: [], strict_match: false, database_target: target },
-      search_results: [],
-      control_message: controlMessage
-    };
-  }
 };

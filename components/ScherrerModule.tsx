@@ -339,13 +339,13 @@ export const ScherrerModule: React.FC = () => {
                 <div className="flex justify-between items-end mb-2">
                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Resolution Limit</span>
                    <span className="text-[10px] font-black text-amber-500/80 font-mono">
-                     ~{((wavelength * constantK) / ((useCaglioti ? Math.sqrt(caglioti.w) : instFwhm) * (Math.PI / 180) * 0.95)).toFixed(0)} nm
+                     ~{((wavelength * constantK) / (Math.max(0.0001, (useCaglioti ? Math.sqrt(caglioti.w) : instFwhm)) * (Math.PI / 180) * 0.95)).toFixed(0)} nm
                    </span>
                 </div>
                 <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-slate-800">
                    <motion.div 
                      initial={{ width: 0 }}
-                     animate={{ width: `${Math.min(100, (1 / (useCaglioti ? Math.sqrt(caglioti.w) : instFwhm)) * 5)}%` }}
+                     animate={{ width: `${Math.min(100, (1 / Math.max(0.0001, (useCaglioti ? Math.sqrt(caglioti.w) : instFwhm))) * 5)}%` }}
                      className="h-full bg-gradient-to-r from-amber-600 to-amber-400"
                    />
                 </div>
@@ -450,29 +450,166 @@ export const ScherrerModule: React.FC = () => {
               <div className="p-3 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
                  <Zap className="w-5 h-5 text-indigo-400" />
               </div>
-              <h3 className="text-xl font-black text-white uppercase tracking-tight">Grain Morphology Sim</h3>
+              <div className="flex-1">
+                <h3 className="text-xl font-black text-white uppercase tracking-tight">Crystallite Morphology Lab</h3>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Physical Domain Modeling</p>
+              </div>
+              <div className="hidden md:flex items-center gap-2 bg-slate-950/50 px-3 py-1.5 rounded-lg border border-slate-800">
+                <Settings className="w-3 h-3 text-slate-500" />
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Physics Mode: Scherrer Ideal</span>
+              </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-8 items-center bg-black/40 p-6 rounded-2xl border border-slate-800/50 shadow-inner">
-               <div className="w-32 h-32 flex items-center justify-center bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl relative">
-                  <div className="absolute inset-0 bg-indigo-500/5 rounded-full animate-pulse" />
-                  <span className="text-6xl filter drop-shadow-[0_0_15px_rgba(165,180,252,0.4)] animate-bounce-slow">
-                    {K_FACTORS.find(k => k.label === selectedKType)?.icon || '✎'}
-                  </span>
-                  <div className="absolute bottom-2 right-2 text-[9px] font-black text-indigo-500 uppercase">Simulated Unit</div>
-               </div>
-               <div className="flex-1 space-y-3">
-                  <div>
-                    <h4 className="text-xs font-black text-slate-300 uppercase tracking-widest">{selectedKType} Geometry</h4>
-                    <p className="text-[11px] text-slate-400 font-medium leading-relaxed mt-1">
-                      Current factor <span className="text-amber-400 font-mono font-bold">K={constantK.toFixed(3)}</span> assumes {K_FACTORS.find(k => k.label === selectedKType)?.desc.toLowerCase()}. This value weights the path length through the crystallite averaged over all orientations.
-                    </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left Side: 3D Visualization */}
+              <div className="bg-black/40 p-6 rounded-2xl border border-slate-800/50 shadow-inner flex flex-col items-center">
+                <div className="w-full aspect-square max-w-[240px] flex items-center justify-center bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden perspective-1000">
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent animate-pulse" />
+                  
+                  {/* Dynamic 3D Shape Representation */}
+                  <motion.div 
+                    key={selectedKType}
+                    initial={{ scale: 0.5, rotateY: 0, opacity: 0 }}
+                    animate={{ scale: 1, rotateY: 360, opacity: 1 }}
+                    transition={{ duration: 1.5, rotateY: { repeat: Infinity, duration: 15, ease: "linear" } }}
+                    className="relative"
+                  >
+                    {selectedKType === 'Spherical' && (
+                      <div className="w-32 h-32 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-700 shadow-[0_0_50px_rgba(79,70,229,0.4)] relative">
+                        <div className="absolute inset-0 rounded-full border-2 border-white/20 blur-[1px]" />
+                        <div className="absolute top-4 left-4 w-8 h-8 rounded-full bg-white/30 blur-md" />
+                      </div>
+                    )}
+                    {selectedKType === 'Cubic' && (
+                      <div className="relative w-24 h-24 transform-style-3d">
+                        <div className="absolute inset-0 bg-indigo-600 border border-white/20 transform translate-z-12" />
+                        <div className="absolute inset-0 bg-indigo-800 border border-white/20 transform rotate-y-90 translate-x-12" />
+                        <div className="absolute inset-0 bg-indigo-700 border border-white/20 transform rotate-x-90 -translate-y-12" />
+                      </div>
+                    )}
+                    {selectedKType === 'Platelets' && (
+                      <div className="relative w-32 h-8 transform-style-3d">
+                        <div className="absolute inset-0 bg-indigo-600/80 border border-white/20 transform translate-z-16" />
+                        <div className="absolute inset-0 bg-indigo-800/80 border border-white/20 transform rotate-y-90 translate-x-16" />
+                        <div className="absolute inset-0 bg-indigo-700/80 border border-white/20 transform rotate-x-90 -translate-y-4" />
+                      </div>
+                    )}
+                    {selectedKType === 'Octahedral' && (
+                      <div className="relative w-0 h-0 border-l-[50px] border-l-transparent border-r-[50px] border-r-transparent border-b-[80px] border-b-indigo-500 drop-shadow-[0_0_30px_rgba(79,70,229,0.3)]">
+                        <div className="absolute top-[80px] left-[-50px] w-0 h-0 border-l-[50px] border-l-transparent border-r-[50px] border-r-transparent border-t-[80px] border-t-indigo-600 opacity-80" />
+                      </div>
+                    )}
+                    {selectedKType === 'Nanowires' && (
+                      <div className="w-12 h-40 bg-gradient-to-r from-indigo-700 via-indigo-500 to-indigo-700 rounded-full shadow-[0_0_40px_rgba(79,70,229,0.3)] border border-white/10" />
+                    )}
+                    {selectedKType === 'Custom' && (
+                      <div className="text-8xl filter drop-shadow-[0_0_20px_rgba(165,180,252,0.5)]">✎</div>
+                    )}
+                  </motion.div>
+
+                  <div className="absolute bottom-4 left-4 right-4 flex flex-col gap-1">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{selectedKType} Domain</span>
+                      <span className="text-[11px] font-mono font-black text-white">{avgSize.toFixed(1)}nm</span>
+                    </div>
+                    <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, (avgSize / 200) * 100)}%` }}
+                        className="h-full bg-indigo-500"
+                      />
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <span className="text-[9px] font-black bg-indigo-500/10 text-indigo-400 px-2.5 py-1 rounded-md border border-indigo-500/20 uppercase tracking-widest">Isotropic</span>
-                    <span className="text-[9px] font-black bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-md border border-emerald-500/20 uppercase tracking-widest">Coherent</span>
-                  </div>
-               </div>
+                </div>
+
+                <div className="mt-4 w-full grid grid-cols-2 gap-3">
+                   <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">Aspect Ratio</p>
+                      <p className="text-xs font-mono font-black text-slate-300">
+                        {selectedKType === 'Platelets' ? '5.2:1' : selectedKType === 'Nanowires' ? '0.1:10' : '1:1'}
+                      </p>
+                   </div>
+                   <div className="bg-slate-950/40 p-3 rounded-xl border border-white/5">
+                      <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mb-1">Surface/Vol</p>
+                      <p className="text-xs font-mono font-black text-slate-300">
+                        {(6 / (avgSize || 1)).toFixed(3)} Å⁻¹
+                      </p>
+                   </div>
+                </div>
+              </div>
+
+              {/* Right Side: Peak Profile Simulator */}
+              <div className="bg-black/40 p-6 rounded-2xl border border-slate-800/50 shadow-inner flex flex-col">
+                 <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Spectral Response</h4>
+                    <div className="flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                       <span className="text-[9px] font-black text-amber-500/80 uppercase">Simulated Convolution</span>
+                    </div>
+                 </div>
+
+                 <div className="flex-1 bg-slate-950/50 rounded-2xl border border-slate-800 relative flex flex-col justify-end p-4 h-[180px] overflow-hidden group/graph">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,0.05),transparent)] pointer-events-none" />
+                    
+                    {/* Simulated Peak Grid */}
+                    <div className="absolute inset-x-4 top-4 bottom-12 grid grid-cols-5 gap-0 border-l border-b border-white/5">
+                       {[...Array(5)].map((_, i) => (
+                         <div key={i} className="border-r border-white/5 h-full relative">
+                            <span className="absolute bottom-[-16px] left-[-4px] text-[7px] font-mono text-slate-600">2θ₀{i ? `+${i*0.5}` : ''}</span>
+                         </div>
+                       ))}
+                    </div>
+
+                    {/* Instrumental Peak (Reference) - Static narrow */}
+                    <svg className="absolute inset-0 w-full h-full p-4 pointer-events-none opacity-40 overflow-visible" viewBox="0 0 200 100" preserveAspectRatio="none">
+                       <path 
+                         d="M 20 90 Q 100 -20, 180 90" 
+                         fill="none" 
+                         stroke="#475569" 
+                         strokeWidth="1.5" 
+                         strokeDasharray="4 2"
+                         className="translate-x-[40%] scale-x-[0.1]"
+                       />
+                    </svg>
+
+                    {/* Sample Peak (Dynamic Broadening) */}
+                    <div className="relative h-full w-full flex items-end justify-center">
+                       <motion.div 
+                         animate={{ 
+                           width: `${Math.max(10, (100 / (avgSize || 10)) * 5)}%`,
+                           height: `${Math.min(95, 20 + (avgSize || 0) * 0.5)}%`
+                         }}
+                         transition={{ type: "spring", stiffness: 100, damping: 15 }}
+                         className="bg-gradient-to-t from-indigo-600/20 to-indigo-400 rounded-t-full border-t border-x border-indigo-400/50 relative group-hover/graph:from-indigo-500/30 transition-colors"
+                       >
+                         <div className="absolute -top-1 w-full flex justify-center">
+                            <div className="w-1 h-1 bg-white rounded-full animate-ping" />
+                         </div>
+                         
+                         {/* FWHM Indicator Line */}
+                         <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-indigo-300/40 border-t border-dashed border-indigo-400/20">
+                            <span className="absolute -right-12 top-[-8px] text-[8px] font-mono font-black text-indigo-400">β</span>
+                         </div>
+                       </motion.div>
+                    </div>
+
+                    <div className="mt-4 flex flex-col gap-1 z-10">
+                       <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase">
+                          <span>Inst. Width (Binst)</span>
+                          <span className="font-mono text-slate-300">{instFwhm}°</span>
+                       </div>
+                       <div className="flex justify-between items-center text-[10px] font-black text-indigo-400 uppercase">
+                          <span>Physical Broadening (β)</span>
+                          <span className="font-mono">{results.length > 0 && !results[0].error ? results[0].betaCorrected.toFixed(3) : '0.000'}°</span>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="mt-4 flex gap-4 text-[9px] font-bold text-slate-500 leading-relaxed italic border-t border-slate-800/40 pt-4">
+                    <Info className="w-3 h-3 text-indigo-500 shrink-0" />
+                    <p>The visual simulator depicts Lorentzian convolution of crystallite size vs. instrumental profile. Narrower peaks indicate larger coherent scattering domains.</p>
+                 </div>
+              </div>
             </div>
 
             <div className="mt-6 pt-6 border-t border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden group/summary">

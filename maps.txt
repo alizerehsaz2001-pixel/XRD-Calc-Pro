@@ -1,0 +1,618 @@
+components/WilliamsonHallModule.tsx-
+components/WilliamsonHallModule.tsx-  // Prepare chart data
+components/WilliamsonHallModule.tsx:  const chartData = result ? result.points.map(p => ({
+components/WilliamsonHallModule.tsx-    x: p.x,
+components/WilliamsonHallModule.tsx-    y: p.y,
+--
+components/WilliamsonHallModule.tsx-                      className="absolute top-12 left-0 right-0 mt-2 bg-slate-800 rounded-xl border border-slate-700 shadow-2xl overflow-hidden z-50 py-1"
+components/WilliamsonHallModule.tsx-                    >
+components/WilliamsonHallModule.tsx:                      {K_FACTORS.map((k) => (
+components/WilliamsonHallModule.tsx-                        <button
+components/WilliamsonHallModule.tsx-                          key={k.label}
+--
+components/NeutronModule.tsx-      if (data.atoms && Array.isArray(data.atoms)) {
+components/NeutronModule.tsx-        // Map imported atoms to NeutronAtom structure, looking up scattering lengths if needed
+components/NeutronModule.tsx:        const newAtoms = data.atoms.map((a: any) => ({
+components/NeutronModule.tsx-          id: a.id || Date.now().toString() + Math.random(),
+components/NeutronModule.tsx-          element: a.element,
+--
+components/NeutronModule.tsx-
+components/NeutronModule.tsx-  const updateAtom = (id: string, field: keyof NeutronAtom, value: any) => {
+components/NeutronModule.tsx:    setAtoms(atoms.map(a => {
+components/NeutronModule.tsx-      if (a.id === id) {
+components/NeutronModule.tsx-        const updated = { ...a, [field]: value };
+--
+components/NeutronModule.tsx-
+components/NeutronModule.tsx-  // Merge results for chart
+components/NeutronModule.tsx:  const chartData = neutronResults.map(n => {
+components/NeutronModule.tsx-    const x = xrayResults.find(x => x.hkl.join('') === n.hkl.join(''));
+components/NeutronModule.tsx-    return {
+--
+components/NeutronModule.tsx-                 />
+components/NeutronModule.tsx-                 <div className="flex flex-wrap gap-1.5 mt-3">
+components/NeutronModule.tsx:                   {availableWavelengths.map(aw => (
+components/NeutronModule.tsx-                     <button 
+components/NeutronModule.tsx-                        key={aw.label} 
+--
+components/NeutronModule.tsx-              
+components/NeutronModule.tsx-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+components/NeutronModule.tsx:                {atoms.map((atom) => (
+components/NeutronModule.tsx-                  <div key={atom.id} className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50 relative group">
+components/NeutronModule.tsx-                    <div className="flex justify-between items-center mb-3">
+--
+components/NeutronModule.tsx-                         className="font-bold bg-black/40 text-white border border-slate-700 px-2 py-1 rounded-lg cursor-pointer text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+components/NeutronModule.tsx-                       >
+components/NeutronModule.tsx:                         {Object.keys(NEUTRON_SCATTERING_LENGTHS).map(el => (
+components/NeutronModule.tsx-                           <option key={el} value={el}>{el}</option>
+components/NeutronModule.tsx-                         ))}
+--
+components/NeutronModule.tsx-                </thead>
+components/NeutronModule.tsx-                <tbody className="divide-y divide-slate-800/50">
+components/NeutronModule.tsx:                   {chartData.map((r, i) => (
+components/NeutronModule.tsx-                      <tr key={`${r.twoTheta}-${i}`} className="bg-slate-900 hover:bg-slate-800/80 transition-colors group">
+components/NeutronModule.tsx-                         <td className="px-5 py-2.5 font-mono font-bold text-slate-200 group-hover:text-white transition-colors">{r.hkl.join(' ')}</td>
+--
+components/RietveldModule.tsx-                  
+components/RietveldModule.tsx-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+components/RietveldModule.tsx:                    {phases.map((phase, idx) => (
+components/RietveldModule.tsx-                      <div key={`phase-ref-${idx}-${phase.name}`} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 relative group">
+components/RietveldModule.tsx-                        {phases.length > 1 && (
+--
+components/RietveldModule.tsx-                   <h3 className="text-sm font-semibold text-slate-800 dark:text-white mb-3 uppercase tracking-wide">Refinement Strategy</h3>
+components/RietveldModule.tsx-                   <div className="space-y-2">
+components/RietveldModule.tsx:                     {result.refinement_strategy.map((step, i) => (
+components/RietveldModule.tsx-                       <div key={`step-${i}`} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 p-2 rounded border border-slate-100 dark:border-slate-800">
+components/RietveldModule.tsx-                         <div className="w-5 h-5 rounded-full bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 flex items-center justify-center text-xs font-bold">
+--
+components/BraggInput.tsx-          </div>
+components/BraggInput.tsx-          <div className="mt-3 grid grid-cols-3 gap-1.5">
+components/BraggInput.tsx:            {availableWavelengths.map((sw, i) => (
+components/BraggInput.tsx-              <button 
+components/BraggInput.tsx-                key={`${sw.label}-${i}`}
+--
+components/CrystalMindModule.tsx-      const elements = elems.split(/[\s,]+/).filter(s => s);
+components/CrystalMindModule.tsx-      const numericalPeaks = peaks 
+components/CrystalMindModule.tsx:        ? peaks.split(/[\s,]+/).map(parseFloat).filter(n => !isNaN(n))
+components/CrystalMindModule.tsx-        : undefined;
+components/CrystalMindModule.tsx-
+--
+components/CrystalMindModule.tsx-                   </label>
+components/CrystalMindModule.tsx-                   <div className="flex items-center gap-1">
+components/CrystalMindModule.tsx:                      {elementsInput.split(/[\s,]+/).filter(e => e).slice(0,3).map((el, i) => (
+components/CrystalMindModule.tsx-                        <span key={`${el}-${i}`} className="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 text-[9px] font-mono font-bold rounded shadow-sm border border-indigo-500/30">
+components/CrystalMindModule.tsx-                          {el}
+--
+components/CrystalMindModule.tsx-                      { id: 'AMCSD', label: 'Min. Structs', tag: 'AMCSD' },
+components/CrystalMindModule.tsx-                      { id: 'All', label: 'Global Search', tag: 'ALL' }
+components/CrystalMindModule.tsx:                    ].map(v => (
+components/CrystalMindModule.tsx-                       <button
+components/CrystalMindModule.tsx-                         key={v.id}
+--
+components/CrystalMindModule.tsx-             </h3>
+components/CrystalMindModule.tsx-             <div className="space-y-2">
+components/CrystalMindModule.tsx:               {history.map((item, idx) => (
+components/CrystalMindModule.tsx-                 <button 
+components/CrystalMindModule.tsx-                   key={`${item.control_message?.substring(0, 10)}-${idx}`}
+--
+components/CrystalMindModule.tsx-            )}
+components/CrystalMindModule.tsx-
+components/CrystalMindModule.tsx:            {response?.search_results.map((res, idx) => (
+components/CrystalMindModule.tsx-               <motion.div
+components/CrystalMindModule.tsx-                 key={`${res.database_id}-${idx}`}
+--
+components/CrystalMindModule.tsx-               </h3>
+components/CrystalMindModule.tsx-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+components/CrystalMindModule.tsx:                  {response.sources.map((source, sIdx) => (
+components/CrystalMindModule.tsx-                    <a key={`${source.uri}-${sIdx}`} href={source.uri} target="_blank" rel="noreferrer" className="flex items-start gap-4 p-4 bg-black/40 rounded-2xl border border-slate-800/50 hover:bg-cyan-950/20 hover:border-cyan-500/30 transition-all group/cite">
+components/CrystalMindModule.tsx-                      <div className="w-8 h-8 shrink-0 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700 group-hover/cite:bg-cyan-500/10 group-hover/cite:border-cyan-500/30 transition-colors">
+--
+components/CrystalMindModule.tsx-    const simData = {
+components/CrystalMindModule.tsx-      lattice: result.lattice_params,
+components/CrystalMindModule.tsx:      atoms: result.atomic_positions?.map((pos, idx) => ({
+components/CrystalMindModule.tsx-        id: idx.toString(),
+components/CrystalMindModule.tsx-        element: pos.element,
+--
+components/CrystalMindModule.tsx-               </div>
+components/CrystalMindModule.tsx-               <div className="divide-y divide-slate-800/50">
+components/CrystalMindModule.tsx:                 {result.atomic_positions.slice(0, 4).map((pos, i) => (
+components/CrystalMindModule.tsx-                   <div key={`${pos.element}-${i}`} className="grid grid-cols-4 gap-2 text-[11px] font-mono text-slate-400 px-4 py-2 hover:bg-slate-800/30 transition-colors">
+components/CrystalMindModule.tsx-                     <span className="font-black text-cyan-400">{pos.element}</span>
+--
+components/CrystalMindModule.tsx-           <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-lg border border-slate-800">
+components/CrystalMindModule.tsx-             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mr-2">Angles</span>
+components/CrystalMindModule.tsx:             {['α', 'β', 'γ'].map((angle, i) => {
+components/CrystalMindModule.tsx-               const key = i === 0 ? 'alpha' : i === 1 ? 'beta' : 'gamma';
+components/CrystalMindModule.tsx-               return (
+--
+components/BraggVisualization.tsx-             </div>
+components/BraggVisualization.tsx-             <div className="h-16 flex items-end gap-1 px-1">
+components/BraggVisualization.tsx:                {[...Array(20)].map((_, i) => {
+components/BraggVisualization.tsx-                  const h = Math.max(10, signalStrength * (100 - i * 4) * Math.random() + 5);
+components/BraggVisualization.tsx-                  return (
+--
+components/BraggVisualization.tsx-
+components/BraggVisualization.tsx-              {/* Atoms */}
+components/BraggVisualization.tsx:              {atoms.map((atom, i) => (
+components/BraggVisualization.tsx-                <circle key={`atom-${atom.x}-${atom.y}-${i}`} cx={atom.x} cy={atom.y} r="6" fill="url(#atomGrad)" opacity="0.6" />
+components/BraggVisualization.tsx-              ))}
+--
+components/SelectionRulesModule.tsx-  const handleValidate = () => {
+components/SelectionRulesModule.tsx-    const hklList = parseHKLString(hklInput);
+components/SelectionRulesModule.tsx:    const validationResults = hklList.map(hkl => validateSelectionRule(system, hkl));
+components/SelectionRulesModule.tsx-    setResults(validationResults);
+components/SelectionRulesModule.tsx-  };
+--
+components/SelectionRulesModule.tsx-                    className="absolute top-full left-0 right-0 mt-3 bg-slate-900/95 backdrop-blur-xl rounded-2xl border-2 border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 max-h-[400px] overflow-y-auto custom-scrollbar"
+components/SelectionRulesModule.tsx-                  >
+components/SelectionRulesModule.tsx:                    {systemGroups.map((group, gIdx) => (
+components/SelectionRulesModule.tsx-                      <div key={gIdx} className="border-b border-slate-800/50 last:border-0">
+components/SelectionRulesModule.tsx-                        <div className="px-5 py-3 bg-slate-800/30 flex items-center gap-2">
+--
+components/SelectionRulesModule.tsx-                        </div>
+components/SelectionRulesModule.tsx-                        <div className="p-2 grid grid-cols-1 gap-1">
+components/SelectionRulesModule.tsx:                          {group.options.map((option, oIdx) => (
+components/SelectionRulesModule.tsx-                            <button
+components/SelectionRulesModule.tsx-                              key={oIdx}
+--
+components/SelectionRulesModule.tsx-                  />
+components/SelectionRulesModule.tsx-                  <div className="flex justify-between mt-2 px-0.5">
+components/SelectionRulesModule.tsx:                    {[1, 2, 3, 4, 5, 6].map(v => (
+components/SelectionRulesModule.tsx-                       <span key={v} className={`text-[8px] font-bold font-mono transition-colors ${maxIndex === v ? 'text-emerald-500' : 'text-slate-600'}`}>
+components/SelectionRulesModule.tsx-                         {v}
+--
+components/SelectionRulesModule.tsx-              </div>
+components/SelectionRulesModule.tsx-              <div className="flex flex-wrap gap-2">
+components/SelectionRulesModule.tsx:                {systemDetails[system as keyof typeof systemDetails].examples.split(',').map((ex, i) => (
+components/SelectionRulesModule.tsx-                  <span key={`ex-${ex.trim()}-${i}`} className="text-[10px] font-bold text-slate-300 bg-slate-700/50 px-2 py-1 rounded border border-slate-600/50">
+components/SelectionRulesModule.tsx-                    {ex.trim()}
+--
+components/SelectionRulesModule.tsx-                </div>
+components/SelectionRulesModule.tsx-                <div className="flex flex-wrap gap-2">
+components/SelectionRulesModule.tsx:                  {currentSymmetry.rotation.map((r, idx) => (
+components/SelectionRulesModule.tsx-                    <span key={`rot-${r}-${idx}`} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">
+components/SelectionRulesModule.tsx-                      {r}
+--
+components/SelectionRulesModule.tsx-                   <div className="flex flex-col justify-center">
+components/SelectionRulesModule.tsx-                     <div className="flex gap-1.5 mb-1.5">
+components/SelectionRulesModule.tsx:                        {[...Array(Math.min(5, Math.ceil(currentSymmetry.operations / 8)))].map((_, i) => (
+components/SelectionRulesModule.tsx-                          <motion.div 
+components/SelectionRulesModule.tsx-                            key={`scan-bar-${i}`}
+--
+components/SelectionRulesModule.tsx-               { id: 'F', label: 'Face-Centered', desc: 'Corners + Faces' },
+components/SelectionRulesModule.tsx-               { id: 'C', label: 'Base-Centered', desc: 'Corners + Pair' }
+components/SelectionRulesModule.tsx:             ].map((type) => (
+components/SelectionRulesModule.tsx-               <div key={type.id} className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex flex-col items-center text-center hover:bg-slate-800/60 transition-all">
+components/SelectionRulesModule.tsx-                  <span className="text-sm font-black text-emerald-400 mb-1">{type.id}</span>
+--
+components/SelectionRulesModule.tsx-            
+components/SelectionRulesModule.tsx-            <div className="flex items-center gap-1.5 bg-slate-800/50 p-1.5 rounded-xl border border-slate-700">
+components/SelectionRulesModule.tsx:              {(['All', 'Allowed', 'Forbidden'] as const).map((f) => (
+components/SelectionRulesModule.tsx-                <button
+components/SelectionRulesModule.tsx-                  key={f}
+--
+components/SelectionRulesModule.tsx-                  <tbody className="divide-y divide-slate-800/50">
+components/SelectionRulesModule.tsx-                    <AnimatePresence mode="popLayout">
+components/SelectionRulesModule.tsx:                      {filteredResults.map((res, index) => (
+components/SelectionRulesModule.tsx-                        <motion.tr 
+components/SelectionRulesModule.tsx-                          layout
+--
+components/ResultsTable.tsx-    
+components/ResultsTable.tsx-    // Data rows
+components/ResultsTable.tsx:    const rows = results.map(r => [
+components/ResultsTable.tsx-      r.hkl || '',
+components/ResultsTable.tsx-      r.twoTheta.toFixed(4),
+--
+components/ResultsTable.tsx-    const csvContent = [
+components/ResultsTable.tsx-      headers.join(','),
+components/ResultsTable.tsx:      ...rows.map(row => row.join(','))
+components/ResultsTable.tsx-    ].join('\n');
+components/ResultsTable.tsx-
+--
+components/ResultsTable.tsx-          </thead>
+components/ResultsTable.tsx-          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+components/ResultsTable.tsx:            {results.map((row, index) => (
+components/ResultsTable.tsx-              <tr key={`${row.twoTheta}-${index}`} className="bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+components/ResultsTable.tsx-                <td className="px-6 py-3 font-bold text-indigo-600 dark:text-indigo-400">({row.hkl || '?'})</td>
+--
+components/DiffractionChart.tsx-    if (results.length === 0) return { points: [], peakData: [] };
+components/DiffractionChart.tsx-
+components/DiffractionChart.tsx:    const minTheta = Math.max(0, Math.min(...results.map(r => r.twoTheta)) - 10);
+components/DiffractionChart.tsx:    const maxTheta = Math.max(...results.map(r => r.twoTheta)) + 10;
+components/DiffractionChart.tsx-    
+components/DiffractionChart.tsx-    const points = [];
+--
+components/DiffractionChart.tsx-
+components/DiffractionChart.tsx-    // Add peak markers for tooltips
+components/DiffractionChart.tsx:    const peakData = results.map(r => ({
+components/DiffractionChart.tsx-      twoTheta: r.twoTheta,
+components/DiffractionChart.tsx-      intensity: 100,
+--
+components/PromptEngineeringModule.tsx-          </div>
+components/PromptEngineeringModule.tsx-          <div className="flex flex-wrap gap-2">
+components/PromptEngineeringModule.tsx:            {suggestions.map((s, i) => (
+components/PromptEngineeringModule.tsx-              <button
+components/PromptEngineeringModule.tsx-                key={`prompt-sugg-${s.substring(0, 5)}-${i}`}
+--
+components/ScherrerModule.tsx-    const peaks = parseScherrerInput(inputData);
+components/ScherrerModule.tsx-    const computed = peaks
+components/ScherrerModule.tsx:      .map(p => {
+components/ScherrerModule.tsx-        const thetaRad = (p.twoTheta / 2) * Math.PI / 180;
+components/ScherrerModule.tsx-        const currentInstFwhm = useCaglioti 
+--
+components/ScherrerModule.tsx-
+components/ScherrerModule.tsx-                <div className="grid grid-cols-5 gap-2">
+components/ScherrerModule.tsx:                  {WAVELENGTH_PRESETS.map((p) => (
+components/ScherrerModule.tsx-                    <button
+components/ScherrerModule.tsx-                      key={p.target}
+--
+components/ScherrerModule.tsx-                      className="absolute top-12 left-0 right-0 mt-2 bg-slate-800 rounded-xl border border-slate-700 shadow-2xl overflow-hidden z-50 py-1"
+components/ScherrerModule.tsx-                    >
+components/ScherrerModule.tsx:                      {K_FACTORS.map((k) => (
+components/ScherrerModule.tsx-                        <button
+components/ScherrerModule.tsx-                          key={k.label}
+--
+components/ScherrerModule.tsx-                  </div>
+components/ScherrerModule.tsx-                  <div className="flex gap-2">
+components/ScherrerModule.tsx:                     {[0.05, 0.08, 0.12].map(val => (
+components/ScherrerModule.tsx-                       <button 
+components/ScherrerModule.tsx-                         key={val}
+--
+components/ScherrerModule.tsx-                <div className="space-y-3">
+components/ScherrerModule.tsx-                  <div className="grid grid-cols-3 gap-2 mb-2">
+components/ScherrerModule.tsx:                    {CAGLIOTI_PRESETS.map(p => (
+components/ScherrerModule.tsx-                      <button
+components/ScherrerModule.tsx-                        key={p.label}
+--
+components/ScherrerModule.tsx-                  </thead>
+components/ScherrerModule.tsx-                  <tbody className="divide-y divide-slate-800/50">
+components/ScherrerModule.tsx:                    {results.map((row, index) => (
+components/ScherrerModule.tsx-                      <tr key={`${row.twoTheta}-${index}`} className="bg-slate-900/10 hover:bg-slate-800/30 transition-all group/row hover:shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+components/ScherrerModule.tsx-                        <td className="px-8 py-5 font-mono text-sm font-bold text-white group-hover/row:text-indigo-400 transition-colors">{row.twoTheta.toFixed(3)}°</td>
+--
+components/LearnModule.tsx-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 px-2">User Guide</h2>
+components/LearnModule.tsx-          <div className="space-y-1">
+components/LearnModule.tsx:            {topics.map((topic) => (
+components/LearnModule.tsx-              <button
+components/LearnModule.tsx-                key={topic.id}
+--
+components/LearnModule.tsx-                   { t: 'Magnetic Diffraction', d: 'Visualize magnetic peak contributions from spin structures.' },
+components/LearnModule.tsx-                   { t: 'Rietveld Setup', d: 'Generate initial parameters and strategy for external refinement software.' },
+components/LearnModule.tsx:                 ].map((m, i) => (
+components/LearnModule.tsx-                   <div key={`module-desc-${m.t}-${i}`} className="p-4 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+components/LearnModule.tsx-                     <h4 className="font-bold text-indigo-600 dark:text-indigo-400 text-sm mb-1">{m.t}</h4>
+--
+components/LandingPage.tsx-        
+components/LandingPage.tsx-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 md:space-y-4 scroll-smooth">
+components/LandingPage.tsx:           {features.map((f, i) => (
+components/LandingPage.tsx-             <div key={`${f.title}-${i}`} className="bg-white/5 border border-white/10 p-4 rounded-xl hover:bg-white/10 transition-all duration-300 group cursor-default hover:border-indigo-500/30">
+components/LandingPage.tsx-               <div className="flex items-center gap-3 mb-2">
+--
+components/ImageGenerationModule.tsx-              </label>
+components/ImageGenerationModule.tsx-              <div className="grid grid-cols-3 gap-2">
+components/ImageGenerationModule.tsx:                {(['1K', '2K', '4K'] as const).map((s) => (
+components/ImageGenerationModule.tsx-                  <button
+components/ImageGenerationModule.tsx-                    key={s}
+--
+components/ProfilePage.tsx-                <h3 className="font-bold text-slate-900 mb-4 uppercase text-xs tracking-wider text-slate-500">Tech Stack</h3>
+components/ProfilePage.tsx-                <div className="flex flex-wrap gap-2">
+components/ProfilePage.tsx:                  {['React 19', 'TypeScript', 'Tailwind CSS', 'Next.js', 'Python', 'Three.js', 'D3.js', 'PostgreSQL', 'Docker'].map(skill => (
+components/ProfilePage.tsx-                    <span key={skill} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm">
+components/ProfilePage.tsx-                      {skill}
+--
+components/LabAgent.tsx-           const chunks = groundingMetadata.groundingChunks as any[];
+components/LabAgent.tsx-           const sources = chunks
+components/LabAgent.tsx:              .map((chunk) => chunk.web ? { title: chunk.web.title, uri: chunk.web.uri } : null)
+components/LabAgent.tsx-              .filter((s): s is GroundingSource => s !== null);
+components/LabAgent.tsx-           
+--
+components/LabAgent.tsx-            ...newMessages[lastMsgIdx], 
+components/LabAgent.tsx-            text: fullText,
+components/LabAgent.tsx:            sources: finalSources.length > 0 ? Array.from(new Set(finalSources.map(s => JSON.stringify(s)))).map(s => JSON.parse(s)) : undefined,
+components/LabAgent.tsx-            isStreaming: false
+components/LabAgent.tsx-          };
+--
+components/LabAgent.tsx-          className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,0.05),transparent)] relative scroll-smooth"
+components/LabAgent.tsx-        >
+components/LabAgent.tsx:          {messages.map((msg) => (
+components/LabAgent.tsx-            <div 
+components/LabAgent.tsx-              key={msg.id}
+--
+components/LabAgent.tsx-                    </div>
+components/LabAgent.tsx-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+components/LabAgent.tsx:                      {msg.sources.map((s, i) => (
+components/LabAgent.tsx-                        <a key={`${s.uri}-${i}`} href={s.uri} target="_blank" rel="noreferrer" className="flex items-start gap-3 p-3 bg-slate-950/50 rounded-2xl border border-white/5 hover:border-emerald-500/40 hover:bg-slate-900 transition-all group/link shadow-md">
+components/LabAgent.tsx-                           <div className="w-7 h-7 shrink-0 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+--
+components/LabAgent.tsx-                 <p className="text-xs text-slate-400 leading-relaxed font-semibold italic">"Orchestrating structural analysis and database synthesis."</p>
+components/LabAgent.tsx-                 <div className="flex flex-wrap gap-2">
+components/LabAgent.tsx:                   {['HPC_GROUNDED', 'DIFFRACTION_MODELER', 'ATOMIC_SOLVER'].map(tag => (
+components/LabAgent.tsx-                     <span key={tag} className="px-3 py-1.5 bg-white/5 rounded-lg text-[9px] font-mono font-black text-indigo-100 border border-white/5 uppercase tracking-[0.1em]">{tag}</span>
+components/LabAgent.tsx-                   ))}
+--
+components/LabAgent.tsx-           
+components/LabAgent.tsx-           <div className="space-y-3.5">
+components/LabAgent.tsx:             {suggestions.map((s, i) => (
+components/LabAgent.tsx-               <button 
+components/LabAgent.tsx-                key={`suggestion-${s.substring(0, 10)}-${i}`}
+--
+components/FWHMModule.tsx-              <label className="block text-sm font-bold text-slate-700 mb-3">Profile Type</label>
+components/FWHMModule.tsx-              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+components/FWHMModule.tsx:                {(['Gaussian', 'Lorentzian', 'Pseudo-Voigt'] as const).map(t => (
+components/FWHMModule.tsx-                  <button
+components/FWHMModule.tsx-                    key={t}
+--
+components/FWHMModule.tsx-                {analysis.messages.length > 0 ? (
+components/FWHMModule.tsx-                  <ul className="space-y-1">
+components/FWHMModule.tsx:                    {analysis.messages.map((msg, idx) => (
+components/FWHMModule.tsx-                      <li key={`${msg.text}-${idx}`} className={`text-xs flex gap-2 ${
+components/FWHMModule.tsx-                        msg.type === 'warning' ? 'text-amber-700' : 'text-slate-600'
+--
+components/WarrenAverbachModule.tsx-      if (response.text) {
+components/WarrenAverbachModule.tsx-        const data = JSON.parse(response.text);
+components/WarrenAverbachModule.tsx:        const formattedData = data.map((p: any) => `${p.L.toFixed(1)}, ${p.A1.toFixed(3)}, ${p.A2.toFixed(3)}`).join('\n');
+components/WarrenAverbachModule.tsx-        setInputData(formattedData);
+components/WarrenAverbachModule.tsx-      }
+--
+components/WarrenAverbachModule.tsx-                      className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 p-1"
+components/WarrenAverbachModule.tsx-                    >
+components/WarrenAverbachModule.tsx:                      {MATERIAL_PRESETS.map((m) => (
+components/WarrenAverbachModule.tsx-                        <button
+components/WarrenAverbachModule.tsx-                          key={m.label}
+--
+components/WarrenAverbachModule.tsx-                </thead>
+components/WarrenAverbachModule.tsx-                <tbody className="divide-y divide-slate-800/50 font-mono text-xs">
+components/WarrenAverbachModule.tsx:                   {result && result.sizeDistribution.map((row, i) => (
+components/WarrenAverbachModule.tsx-                      <tr key={`${row.L_nm}-${i}`} className="group hover:bg-slate-800/20 transition-all duration-300">
+components/WarrenAverbachModule.tsx-                         <td className="px-8 py-4 font-black text-slate-300 border-l border-transparent group-hover:border-emerald-500/50 group-hover:pl-10 transition-all">
+--
+components/AIChatSupport.tsx-      const sources: GroundingSource[] = groundingMetadata?.groundingChunks 
+components/AIChatSupport.tsx-        ? groundingMetadata.groundingChunks
+components/AIChatSupport.tsx:          .map((chunk: GroundingChunk) => chunk.web ? { title: chunk.web.title, uri: chunk.web.uri } : null)
+components/AIChatSupport.tsx-          .filter((s: any): s is GroundingSource => s !== null)
+components/AIChatSupport.tsx-        : [];
+--
+components/AIChatSupport.tsx-          {/* Messages Area */}
+components/AIChatSupport.tsx-          <div className="flex-1 bg-slate-50 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+components/AIChatSupport.tsx:            {messages.map((msg) => (
+components/AIChatSupport.tsx-              <div 
+components/AIChatSupport.tsx-                key={msg.id} 
+--
+components/AIChatSupport.tsx-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Sources:</p>
+components/AIChatSupport.tsx-                      <div className="flex flex-col gap-0.5">
+components/AIChatSupport.tsx:                        {msg.sources.map((s, i) => (
+components/AIChatSupport.tsx-                          <a key={`${s.uri}-${i}`} href={s.uri} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-500 hover:underline truncate">
+components/AIChatSupport.tsx-                            • {s.title}
+--
+components/BraggHistory.tsx-
+components/BraggHistory.tsx-      <div className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+components/BraggHistory.tsx:        {history.map((item, index) => (
+components/BraggHistory.tsx-          <div 
+components/BraggHistory.tsx-            key={`${item.id}-${index}`}
+--
+components/IntegralBreadthAdvancedModule.tsx-
+components/IntegralBreadthAdvancedModule.tsx-  // Prepare chart data
+components/IntegralBreadthAdvancedModule.tsx:  const chartData = result ? result.points.map(p => {
+components/IntegralBreadthAdvancedModule.tsx-    const fitY = result.regression.slope * p.x + result.regression.intercept;
+components/IntegralBreadthAdvancedModule.tsx-    return {
+--
+components/IntegralBreadthAdvancedModule.tsx-                        className="absolute top-full right-0 mt-2 w-[240px] bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50 p-1"
+components/IntegralBreadthAdvancedModule.tsx-                      >
+components/IntegralBreadthAdvancedModule.tsx:                        {PRESETS.map((p) => (
+components/IntegralBreadthAdvancedModule.tsx-                          <button
+components/IntegralBreadthAdvancedModule.tsx-                            key={p.label}
+--
+components/GeminiAssistant.tsx-              </div>
+components/GeminiAssistant.tsx-              <div className="flex flex-wrap gap-2">
+components/GeminiAssistant.tsx:                {suggestion.peaks.slice(0, 8).map((p, i) => (
+components/GeminiAssistant.tsx-                  <div key={`${p}-${i}`} className="flex flex-col items-center bg-slate-900/50 border border-slate-700 p-2.5 rounded-lg min-w-[60px] group hover:border-violet-500 hover:bg-slate-800 transition-colors cursor-default">
+components/GeminiAssistant.tsx-                    <span className="text-xs font-bold font-mono text-white">{p.toFixed(2)}°</span>
+--
+components/GeminiAssistant.tsx-                </p>
+components/GeminiAssistant.tsx-                <div className="flex flex-col gap-2">
+components/GeminiAssistant.tsx:                  {suggestion.sources.map((s, i) => (
+components/GeminiAssistant.tsx-                    <a key={`${s.uri}-${i}`} href={s.uri} target="_blank" rel="noreferrer" className="text-xs text-slate-400 hover:text-violet-300 transition-colors truncate flex items-center gap-2 bg-slate-800/20 p-2 rounded-lg border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600">
+components/GeminiAssistant.tsx-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-600 group-hover:bg-violet-400"></span>
+--
+components/DeepLearningModule.tsx-          card_id: "DB-MATCH-001",
+components/DeepLearningModule.tsx-          formula: matchedMaterial.formula,
+components/DeepLearningModule.tsx:          matched_peaks: parseXYData(matchedMaterial.pattern).map(p => ({
+components/DeepLearningModule.tsx-            refT: p.twoTheta,
+components/DeepLearningModule.tsx-            obsT: p.twoTheta,
+--
+components/DeepLearningModule.tsx-          card_id: "AI-GEN-001",
+components/DeepLearningModule.tsx-          formula: aiMaterialData.formula,
+components/DeepLearningModule.tsx:          matched_peaks: parseXYData(aiMaterialData.pattern).map(p => ({
+components/DeepLearningModule.tsx-            refT: p.twoTheta,
+components/DeepLearningModule.tsx-            obsT: p.twoTheta,
+--
+components/DeepLearningModule.tsx-
+components/DeepLearningModule.tsx---- Matched Peaks ---
+components/DeepLearningModule.tsx:${selectedCandidate.matched_peaks?.map(p => `Ref: ${p.refT.toFixed(2)}° | Obs: ${p.obsT.toFixed(2)}° | Int: ${p.refI}`).join('\n') || "No detailed peak data"}
+components/DeepLearningModule.tsx-
+components/DeepLearningModule.tsx---- Applications ---
+--
+components/DeepLearningModule.tsx-    if (!isDiscrete) {
+components/DeepLearningModule.tsx-      // If it's continuous experimental data, just map it and add ref intensity if matched
+components/DeepLearningModule.tsx:      return sortedPoints.map(p => {
+components/DeepLearningModule.tsx-         let refInt = null;
+components/DeepLearningModule.tsx-         // For continuous, we just show reference as sticks or we don't merge them.
+--
+components/DeepLearningModule.tsx-
+components/DeepLearningModule.tsx-  // We keep refData as scatter for continuous case
+components/DeepLearningModule.tsx:  const refData = selectedCandidate?.matched_peaks?.map(mp => ({
+components/DeepLearningModule.tsx-    twoTheta: mp.refT,
+components/DeepLearningModule.tsx-    refIntensity: mp.refI,
+--
+components/DeepLearningModule.tsx-        <div className="bg-slate-900 text-white p-2 rounded shadow-lg text-xs border border-slate-700">
+components/DeepLearningModule.tsx-          <p className="font-bold mb-1">2θ: {label}°</p>
+components/DeepLearningModule.tsx:          {payload.map((p: any, idx: number) => (
+components/DeepLearningModule.tsx-            <p key={`tooltip-${p.name}-${idx}`} style={{ color: p.color }}>
+components/DeepLearningModule.tsx-              {p.name}: {p.value}
+--
+components/DeepLearningModule.tsx-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Pooling Op</label>
+components/DeepLearningModule.tsx-                <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
+components/DeepLearningModule.tsx:                   {['max', 'avg'].map(op => (
+components/DeepLearningModule.tsx-                     <button
+components/DeepLearningModule.tsx-                       key={op}
+--
+components/DeepLearningModule.tsx-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Activation</label>
+components/DeepLearningModule.tsx-                <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
+components/DeepLearningModule.tsx:                   {['ReLU', 'GELU'].map(fn => (
+components/DeepLearningModule.tsx-                     <button
+components/DeepLearningModule.tsx-                       key={fn}
+--
+components/DeepLearningModule.tsx-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Optimization</label>
+components/DeepLearningModule.tsx-                <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
+components/DeepLearningModule.tsx:                   {['Adam', 'RMSProp'].map(opt => (
+components/DeepLearningModule.tsx-                     <button
+components/DeepLearningModule.tsx-                       key={opt}
+--
+components/DeepLearningModule.tsx-                  {MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.formula.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
+components/DeepLearningModule.tsx-                    <div className="p-1">
+components/DeepLearningModule.tsx:                      {MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.formula.toLowerCase().includes(searchTerm.toLowerCase())).map((material, idx) => (
+components/DeepLearningModule.tsx-                        <button
+components/DeepLearningModule.tsx-                          key={`${material.name}-${idx}`}
+--
+components/DeepLearningModule.tsx-                    { id: 'Tungsten', label: 'W' },
+components/DeepLearningModule.tsx-                    { id: 'HAP', label: 'HAp' }
+components/DeepLearningModule.tsx:                  ].map(ex => (
+components/DeepLearningModule.tsx-                    <button 
+components/DeepLearningModule.tsx-                      key={ex.id}
+--
+components/DeepLearningModule.tsx-             {/* Vertical connecting line */}
+components/DeepLearningModule.tsx-             <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-slate-800/80 z-0"></div>
+components/DeepLearningModule.tsx:             {steps.slice(1).map((step, idx) => {
+components/DeepLearningModule.tsx-               const stepIdx = idx + 1;
+components/DeepLearningModule.tsx-               const isActive = progressStep === stepIdx;
+--
+components/DeepLearningModule.tsx-                             </div>
+components/DeepLearningModule.tsx-                             <div className="grid grid-cols-8 gap-1 w-full max-w-[180px]">
+components/DeepLearningModule.tsx:                               {[...Array(16)].map((_, i) => (
+components/DeepLearningModule.tsx-                                 <div key={`pulse-${i}`} className="h-2 rounded-[2px] bg-violet-500 animate-[pulse_1s_ease-in-out_infinite]" style={{ opacity: Math.random() * 0.8 + 0.2, animationDelay: `${i * 0.05}s` }} />
+components/DeepLearningModule.tsx-                               ))}
+--
+components/DeepLearningModule.tsx-                    </div>
+components/DeepLearningModule.tsx-                    <div className="flex flex-wrap gap-2">
+components/DeepLearningModule.tsx:                      {selectedCandidate.applications?.map((app, i) => (
+components/DeepLearningModule.tsx-                        <span key={`app-${app}-${i}`} className="text-xs font-bold bg-slate-900 shadow-inner text-slate-300 px-3.5 py-2 rounded-lg border border-slate-700 hover:border-amber-500/50 hover:text-amber-100 transition-colors cursor-default">
+components/DeepLearningModule.tsx-                          {app}
+--
+components/DeepLearningModule.tsx-                    </div>
+components/DeepLearningModule.tsx-                    <div className="flex flex-wrap gap-2">
+components/DeepLearningModule.tsx:                      {selectedCandidate.hazards?.map((hazard, i) => (
+components/DeepLearningModule.tsx-                        <span key={`hazard-${hazard}-${i}`} className="text-[11px] font-black bg-rose-500/10 text-rose-400 px-3 py-1.5 rounded-lg border border-rose-500/20 uppercase tracking-widest cursor-default shadow-sm">
+components/DeepLearningModule.tsx-                          {hazard}
+--
+components/DeepLearningModule.tsx-                </div>
+components/DeepLearningModule.tsx-                <div className="flex gap-1">
+components/DeepLearningModule.tsx:                   {[...Array(4)].map((_, i) => (
+components/DeepLearningModule.tsx-                     <div key={`dot-${i}`} className="w-6 h-1 rounded-full bg-violet-500 opacity-20" />
+components/DeepLearningModule.tsx-                   ))}
+--
+components/DeepLearningModule.tsx-                  { name: 'Conv_Block_3 (Structural Hierarchy)', color: 'from-indigo-600 to-blue-600' },
+components/DeepLearningModule.tsx-                  { name: 'Global_Avg_Pool (Final Consensus)', color: 'from-blue-600 to-emerald-600' }
+components/DeepLearningModule.tsx:                ].map((layer, lIdx) => (
+components/DeepLearningModule.tsx-                  <div key={`layer-${layer.name}-${lIdx}`} className="space-y-1.5">
+components/DeepLearningModule.tsx-                    <div className="flex justify-between items-center px-1">
+--
+components/DeepLearningModule.tsx-                    </div>
+components/DeepLearningModule.tsx-                    <div className="h-6 w-full bg-slate-950 rounded-lg overflow-hidden flex border border-slate-800 shadow-inner">
+components/DeepLearningModule.tsx:                      {[...Array(40)].map((_, i) => {
+components/DeepLearningModule.tsx-                         const val = Math.random();
+components/DeepLearningModule.tsx-                         const op = val > 0.8 ? 1 : val > 0.4 ? 0.6 : 0.2;
+--
+components/DeepLearningModule.tsx-                  "Relative intensities are consistent",
+components/DeepLearningModule.tsx-                  "Chemical composition is plausible",
+components/DeepLearningModule.tsx:                ].map((item, i) => (
+components/DeepLearningModule.tsx-                  <label key={`check-${i}`} className="flex items-start gap-3 bg-slate-800/20 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600 transition-all cursor-pointer group">
+components/DeepLearningModule.tsx-                    <div className="relative flex items-center justify-center mt-0.5">
+--
+components/DeepLearningModule.tsx-        {/* Predictions List */}
+components/DeepLearningModule.tsx-        <div className="grid grid-cols-1 gap-4">
+components/DeepLearningModule.tsx:           {result?.candidates.map((candidate, idx) => (
+components/DeepLearningModule.tsx-             <div 
+components/DeepLearningModule.tsx-               key={`${candidate.phase_name}-${idx}`} 
+--
+components/DeepLearningModule.tsx-                   </p>
+components/DeepLearningModule.tsx-                   <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
+components/DeepLearningModule.tsx:                     {candidate.matched_peaks?.map((mp, i) => (
+components/DeepLearningModule.tsx-                       <div key={`peak-${mp.refT}-${i}`} className="bg-slate-950/50 p-2 rounded-lg border border-slate-800 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
+components/DeepLearningModule.tsx-                         <span className="text-slate-400 font-mono text-[11px]">{mp.refT.toFixed(2)}°</span>
+--
+components/MagneticNeutronModule.tsx-
+components/MagneticNeutronModule.tsx-  const updateAtom = (id: string, field: keyof MagneticAtom, value: any) => {
+components/MagneticNeutronModule.tsx:    setAtoms(atoms.map(a => {
+components/MagneticNeutronModule.tsx-      if (a.id === id) {
+components/MagneticNeutronModule.tsx-        const updated = { ...a, [field]: value };
+--
+components/MagneticNeutronModule.tsx-      }
+components/MagneticNeutronModule.tsx-      if (data.atoms && Array.isArray(data.atoms)) {
+components/MagneticNeutronModule.tsx:        const newAtoms = data.atoms.map((a: any) => ({
+components/MagneticNeutronModule.tsx-          id: a.id || Date.now().toString() + Math.random(),
+components/MagneticNeutronModule.tsx-          element: a.element,
+--
+components/MagneticNeutronModule.tsx-               <label className="block text-sm font-medium text-slate-700 mb-2">Magnetic Atoms</label>
+components/MagneticNeutronModule.tsx-               <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+components/MagneticNeutronModule.tsx:                 {atoms.map((atom) => (
+components/MagneticNeutronModule.tsx-                   <div key={atom.id} className="bg-slate-50 p-3 rounded border border-slate-200 text-xs">
+components/MagneticNeutronModule.tsx-                     <div className="flex justify-between items-center mb-2 font-semibold text-slate-700">
+--
+components/MagneticNeutronModule.tsx-                           className="w-full px-1 py-1 bg-slate-900 text-white border border-slate-700 rounded text-sm font-bold"
+components/MagneticNeutronModule.tsx-                         >
+components/MagneticNeutronModule.tsx:                           {Object.keys(NEUTRON_SCATTERING_LENGTHS).map(el => (
+components/MagneticNeutronModule.tsx-                             <option key={el} value={el}>{el}</option>
+components/MagneticNeutronModule.tsx-                           ))}
+--
+components/MagneticNeutronModule.tsx-                         >
+components/MagneticNeutronModule.tsx-                           <option value="">Generic</option>
+components/MagneticNeutronModule.tsx:                           {Object.keys(MAGNETIC_FORM_FACTORS).map(ion => (
+components/MagneticNeutronModule.tsx-                             <option key={ion} value={ion}>{ion}</option>
+components/MagneticNeutronModule.tsx-                           ))}
+--
+components/MagneticNeutronModule.tsx-                </thead>
+components/MagneticNeutronModule.tsx-                <tbody className="divide-y divide-slate-200">
+components/MagneticNeutronModule.tsx:                   {results.map((r, i) => (
+components/MagneticNeutronModule.tsx-                      <tr key={`${r.twoTheta}-${i}`} className="bg-white hover:bg-slate-50 transition-colors">
+components/MagneticNeutronModule.tsx-                         <td className="px-4 py-2 font-mono font-bold text-slate-900">
+--
+components/IntegralBreadthModule.tsx-      if (response.text) {
+components/IntegralBreadthModule.tsx-        const data = JSON.parse(response.text);
+components/IntegralBreadthModule.tsx:        const formattedData = data.map((p: any) => `${p.twoTheta.toFixed(2)}, ${p.fwhm.toFixed(3)}, ${p.area.toFixed(1)}, ${p.imax.toFixed(0)}`).join('\n');
+components/IntegralBreadthModule.tsx-        setInputData(formattedData);
+components/IntegralBreadthModule.tsx-      }
+--
+components/IntegralBreadthModule.tsx-    const peaks = parseIntegralBreadthInput(inputData);
+components/IntegralBreadthModule.tsx-    const computed = peaks
+components/IntegralBreadthModule.tsx:      .map(p => calculateIntegralBreadth(wavelength, constantK, p))
+components/IntegralBreadthModule.tsx-      .filter((r): r is IntegralBreadthResult => r !== null);
+components/IntegralBreadthModule.tsx-    
+--
+components/IntegralBreadthModule.tsx-                </thead>
+components/IntegralBreadthModule.tsx-                <tbody className="divide-y divide-slate-800/50 bg-slate-900/30">
+components/IntegralBreadthModule.tsx:                  {results.map((res, index) => {
+components/IntegralBreadthModule.tsx-                    const profile = getProfileType(res.shapeFactorPhi);
+components/IntegralBreadthModule.tsx-                    return (
+--
+components/ImageAnalysisModule.tsx-                        >
+components/ImageAnalysisModule.tsx-                          <div className="absolute top-4 left-4 flex gap-1">
+components/ImageAnalysisModule.tsx:                            {[1, 2, 3].map(i => <div key={`pulse-${i}`} className="w-1 h-3 bg-sky-500/50 rounded-full animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />)}
+components/ImageAnalysisModule.tsx-                          </div>
+components/ImageAnalysisModule.tsx-                          <div className="absolute bottom-4 right-4 text-[8px] font-black font-mono text-sky-400 uppercase tracking-widest bg-black/80 px-2 py-1 rounded-md border border-sky-500/30">
+--
+components/ImageAnalysisModule.tsx-              </div>
+components/ImageAnalysisModule.tsx-              <div className="grid grid-cols-2 gap-3">
+components/ImageAnalysisModule.tsx:                {ANALYSIS_PRESETS.map((preset) => (
+components/ImageAnalysisModule.tsx-                  <button
+components/ImageAnalysisModule.tsx-                    key={preset.id}
+--
+components/ImageAnalysisModule.tsx-             </div>
+components/ImageAnalysisModule.tsx-             <div className="space-y-2">
+components/ImageAnalysisModule.tsx:                {history.map((item, idx) => (
+components/ImageAnalysisModule.tsx-                  <div key={`history-${idx}-${item.context?.substring(0,5)}`} className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-slate-800/50 text-[10px] hover:border-sky-500/20 transition-all cursor-pointer group">
+components/ImageAnalysisModule.tsx-                     <span className="font-bold text-slate-400 capitalize truncate max-w-[120px]">{item.context || "Standard Diagnostic"}</span>
+--
+components/ImageAnalysisModule.tsx-                  className="space-y-8"
+components/ImageAnalysisModule.tsx-                >
+components/ImageAnalysisModule.tsx:                  {[1, 2, 3, 4].map(i => (
+components/ImageAnalysisModule.tsx-                    <div key={`skeleton-${i}`} className="space-y-3">
+components/ImageAnalysisModule.tsx-                      <div className="h-3 w-1/4 bg-slate-800/50 rounded-full animate-pulse" />

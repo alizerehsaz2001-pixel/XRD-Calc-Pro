@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { generateScientificImage } from '../services/geminiService';
+import { generateScientificImage, isQuotaError, isPermissionError } from '../services/geminiService';
 
 export const ImageGenerationModule: React.FC = () => {
   const [prompt, setPrompt] = useState('');
@@ -38,8 +38,9 @@ export const ImageGenerationModule: React.FC = () => {
         setError("Generation completed but no image was returned. Try a different prompt.");
       }
     } catch (e: any) {
-      console.error(e);
-      const errorStr = typeof e === 'string' ? e : JSON.stringify(e);
+      if (!isQuotaError(e) && !isPermissionError(e)) {
+        console.error(e);
+      }
       if (e.message && e.message.includes("Requested entity was not found")) {
         // Reset key selection state and prompt user again
         setError("The selected API Key project was not found. Please select a valid key.");
@@ -48,8 +49,10 @@ export const ImageGenerationModule: React.FC = () => {
         } catch (retryErr) {
           // ignore
         }
-      } else if (errorStr.includes('429') || errorStr.includes('quota') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+      } else if (isQuotaError(e)) {
          setError("Quota exhausted (429/RESOURCE_EXHAUSTED). Please wait and try again.");
+      } else if (isPermissionError(e)) {
+         setError("Permission denied (403). API key project might not have 'gemini-3-pro-image-preview' enabled.");
       } else {
         setError("Failed to generate image. " + (e.message || "Unknown error."));
       }

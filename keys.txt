@@ -1,0 +1,83 @@
+components/AIChatSupport.tsx:                key={msg.id} 
+components/AIChatSupport.tsx:                          <a key={`${s.uri}-${i}`} href={s.uri} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-500 hover:underline truncate">
+components/BraggHistory.tsx:            key={`${item.id}-${index}`}
+components/BraggInput.tsx:                key={`${sw.label}-${i}`}
+components/BraggVisualization.tsx:                      key={`bar-${i}`} 
+components/BraggVisualization.tsx:                <circle key={`atom-${atom.x}-${atom.y}-${i}`} cx={atom.x} cy={atom.y} r="6" fill="url(#atomGrad)" opacity="0.6" />
+components/CrystalMindModule.tsx:                        <span key={`${el}-${i}`} className="px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 text-[9px] font-mono font-bold rounded shadow-sm border border-indigo-500/30">
+components/CrystalMindModule.tsx:                         key={v.id}
+components/CrystalMindModule.tsx:                   key={`${item.control_message?.substring(0, 10)}-${idx}`}
+components/CrystalMindModule.tsx:                 key={`${res.database_id}-${idx}`}
+components/CrystalMindModule.tsx:                    <a key={`${source.uri}-${sIdx}`} href={source.uri} target="_blank" rel="noreferrer" className="flex items-start gap-4 p-4 bg-black/40 rounded-2xl border border-slate-800/50 hover:bg-cyan-950/20 hover:border-cyan-500/30 transition-all group/cite">
+components/CrystalMindModule.tsx:                   <div key={`${pos.element}-${i}`} className="grid grid-cols-4 gap-2 text-[11px] font-mono text-slate-400 px-4 py-2 hover:bg-slate-800/30 transition-colors">
+components/CrystalMindModule.tsx:                 <span key={angle} className="text-[11px] font-mono font-bold text-slate-400 flex items-center gap-1">
+components/DeepLearningModule.tsx:            <p key={`tooltip-${p.name}-${idx}`} style={{ color: p.color }}>
+components/DeepLearningModule.tsx:                       key={op}
+components/DeepLearningModule.tsx:                       key={fn}
+components/DeepLearningModule.tsx:                       key={opt}
+components/DeepLearningModule.tsx:                          key={`${material.name}-${idx}`}
+components/DeepLearningModule.tsx:                      key={ex.id}
+components/DeepLearningModule.tsx:                 <div key={`${step.label}-${idx}`} className={`relative z-10 flex flex-col gap-1 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-40'}`}>
+components/DeepLearningModule.tsx:                                 <div key={`pulse-${i}`} className="h-2 rounded-[2px] bg-violet-500 animate-[pulse_1s_ease-in-out_infinite]" style={{ opacity: Math.random() * 0.8 + 0.2, animationDelay: `${i * 0.05}s` }} />
+components/DeepLearningModule.tsx:                        <span key={`app-${app}-${i}`} className="text-xs font-bold bg-slate-900 shadow-inner text-slate-300 px-3.5 py-2 rounded-lg border border-slate-700 hover:border-amber-500/50 hover:text-amber-100 transition-colors cursor-default">
+components/DeepLearningModule.tsx:                        <span key={`hazard-${hazard}-${i}`} className="text-[11px] font-black bg-rose-500/10 text-rose-400 px-3 py-1.5 rounded-lg border border-rose-500/20 uppercase tracking-widest cursor-default shadow-sm">
+components/DeepLearningModule.tsx:                     <div key={`dot-${i}`} className="w-6 h-1 rounded-full bg-violet-500 opacity-20" />
+components/DeepLearningModule.tsx:                  <div key={`layer-${layer.name}-${lIdx}`} className="space-y-1.5">
+components/DeepLearningModule.tsx:                             key={`layer-block-${i}`} 
+components/DeepLearningModule.tsx:                  <label key={`check-${i}`} className="flex items-start gap-3 bg-slate-800/20 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600 transition-all cursor-pointer group">
+components/DeepLearningModule.tsx:               key={`${candidate.phase_name}-${idx}`} 
+components/DeepLearningModule.tsx:                       <div key={`peak-${mp.refT}-${i}`} className="bg-slate-950/50 p-2 rounded-lg border border-slate-800 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
+components/FWHMModule.tsx:                    key={t}
+components/FWHMModule.tsx:                      <li key={`${msg.text}-${idx}`} className={`text-xs flex gap-2 ${
+components/GeminiAssistant.tsx:                  <div key={`${p}-${i}`} className="flex flex-col items-center bg-slate-900/50 border border-slate-700 p-2.5 rounded-lg min-w-[60px] group hover:border-violet-500 hover:bg-slate-800 transition-colors cursor-default">
+components/GeminiAssistant.tsx:                    <a key={`${s.uri}-${i}`} href={s.uri} target="_blank" rel="noreferrer" className="text-xs text-slate-400 hover:text-violet-300 transition-colors truncate flex items-center gap-2 bg-slate-800/20 p-2 rounded-lg border border-slate-700/50 hover:bg-slate-800/60 hover:border-slate-600">
+components/ImageAnalysisModule.tsx:                    key="preview"
+components/ImageAnalysisModule.tsx:                            {[1, 2, 3].map(i => <div key={`pulse-${i}`} className="w-1 h-3 bg-sky-500/50 rounded-full animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />)}
+components/ImageAnalysisModule.tsx:                    key="upload"
+components/ImageAnalysisModule.tsx:                    key={preset.id}
+components/ImageAnalysisModule.tsx:                  <div key={`history-${idx}-${item.context?.substring(0,5)}`} className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-slate-800/50 text-[10px] hover:border-sky-500/20 transition-all cursor-pointer group">
+components/ImageAnalysisModule.tsx:                  key="empty"
+components/ImageAnalysisModule.tsx:                  key="loading"
+components/ImageAnalysisModule.tsx:                    <div key={`skeleton-${i}`} className="space-y-3">
+components/ImageAnalysisModule.tsx:                  key="result"
+components/ImageGenerationModule.tsx:                    key={s}
+components/IntegralBreadthAdvancedModule.tsx:                            key={p.label}
+components/IntegralBreadthModule.tsx:                      <tr key={`${res.twoTheta}-${index}`} className="hover:bg-purple-900/10 transition-colors group">
+components/LabAgent.tsx:              key={msg.id}
+components/LabAgent.tsx:                        <a key={`${s.uri}-${i}`} href={s.uri} target="_blank" rel="noreferrer" className="flex items-start gap-3 p-3 bg-slate-950/50 rounded-2xl border border-white/5 hover:border-emerald-500/40 hover:bg-slate-900 transition-all group/link shadow-md">
+components/LabAgent.tsx:                     <span key={tag} className="px-3 py-1.5 bg-white/5 rounded-lg text-[9px] font-mono font-black text-indigo-100 border border-white/5 uppercase tracking-[0.1em]">{tag}</span>
+components/LabAgent.tsx:                key={`suggestion-${s.substring(0, 10)}-${i}`}
+components/LandingPage.tsx:             <div key={`${f.title}-${i}`} className="bg-white/5 border border-white/10 p-4 rounded-xl hover:bg-white/10 transition-all duration-300 group cursor-default hover:border-indigo-500/30">
+components/LearnModule.tsx:                key={topic.id}
+components/LearnModule.tsx:                   <div key={`module-desc-${m.t}-${i}`} className="p-4 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
+components/MagneticNeutronModule.tsx:                   <div key={atom.id} className="bg-slate-50 p-3 rounded border border-slate-200 text-xs">
+components/MagneticNeutronModule.tsx:                             <option key={el} value={el}>{el}</option>
+components/MagneticNeutronModule.tsx:                             <option key={ion} value={ion}>{ion}</option>
+components/MagneticNeutronModule.tsx:                      <tr key={`${r.twoTheta}-${i}`} className="bg-white hover:bg-slate-50 transition-colors">
+components/NeutronModule.tsx:                        key={aw.label} 
+components/NeutronModule.tsx:                  <div key={atom.id} className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50 relative group">
+components/NeutronModule.tsx:                           <option key={el} value={el}>{el}</option>
+components/NeutronModule.tsx:                      <tr key={`${r.twoTheta}-${i}`} className="bg-slate-900 hover:bg-slate-800/80 transition-colors group">
+components/ProfilePage.tsx:                    <span key={skill} className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 shadow-sm">
+components/PromptEngineeringModule.tsx:                key={`prompt-sugg-${s.substring(0, 5)}-${i}`}
+components/ResultsTable.tsx:              <tr key={`${row.twoTheta}-${index}`} className="bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+components/RietveldModule.tsx:                      <div key={`phase-ref-${idx}-${phase.name}`} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 relative group">
+components/RietveldModule.tsx:                       <div key={`step-${i}`} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 p-2 rounded border border-slate-100 dark:border-slate-800">
+components/ScherrerModule.tsx:                      key={p.target}
+components/ScherrerModule.tsx:                          key={k.label}
+components/ScherrerModule.tsx:                         key={val}
+components/ScherrerModule.tsx:                        key={p.label}
+components/ScherrerModule.tsx:                      <tr key={`${row.twoTheta}-${index}`} className="bg-slate-900/10 hover:bg-slate-800/30 transition-all group/row hover:shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+components/SelectionRulesModule.tsx:                      <div key={gIdx} className="border-b border-slate-800/50 last:border-0">
+components/SelectionRulesModule.tsx:                              key={oIdx}
+components/SelectionRulesModule.tsx:                       <span key={v} className={`text-[8px] font-bold font-mono transition-colors ${maxIndex === v ? 'text-emerald-500' : 'text-slate-600'}`}>
+components/SelectionRulesModule.tsx:                  <span key={`ex-${ex.trim()}-${i}`} className="text-[10px] font-bold text-slate-300 bg-slate-700/50 px-2 py-1 rounded border border-slate-600/50">
+components/SelectionRulesModule.tsx:                    <span key={`rot-${r}-${idx}`} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">
+components/SelectionRulesModule.tsx:                 key={system}
+components/SelectionRulesModule.tsx:                            key={`scan-bar-${i}`}
+components/SelectionRulesModule.tsx:               <div key={type.id} className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex flex-col items-center text-center hover:bg-slate-800/60 transition-all">
+components/SelectionRulesModule.tsx:                  key={f}
+components/SelectionRulesModule.tsx:                          key={`${res.hkl.join('-')}-${index}`} 
+components/WarrenAverbachModule.tsx:                          key={m.label}
+components/WarrenAverbachModule.tsx:                      <tr key={`${row.L_nm}-${i}`} className="group hover:bg-slate-800/20 transition-all duration-300">
+components/WilliamsonHallModule.tsx:                          key={k.label}

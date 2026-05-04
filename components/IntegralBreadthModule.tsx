@@ -18,9 +18,9 @@ export const IntegralBreadthModule: React.FC = () => {
     if (!searchQuery.trim()) return;
     setIsThinking(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
       const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-2.0-flash',
         contents: `Generate realistic X-ray diffraction peak data for ${searchQuery} using Cu K-alpha radiation (1.5406 Å).
         Provide 3 to 5 major peaks. For each peak, provide:
         - 2Theta (degrees)
@@ -30,7 +30,6 @@ export const IntegralBreadthModule: React.FC = () => {
         Make sure Area and Imax are physically realistic (e.g., Area ≈ FWHM * Imax * shape_factor).
         Return ONLY a JSON array of objects.`,
         config: {
-          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.ARRAY,
@@ -49,7 +48,9 @@ export const IntegralBreadthModule: React.FC = () => {
       });
 
       if (response.text) {
-        const data = JSON.parse(response.text);
+        let rawText = response.text;
+        rawText = rawText.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
+        const data = JSON.parse(rawText);
         const formattedData = data.map((p: any) => `${p.twoTheta.toFixed(2)}, ${p.fwhm.toFixed(3)}, ${p.area.toFixed(1)}, ${p.imax.toFixed(0)}`).join('\n');
         setInputData(formattedData);
       }

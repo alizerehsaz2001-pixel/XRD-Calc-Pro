@@ -162,6 +162,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               fill="#10b981"
               shape={(props: any) => {
                 const { cx, cy } = props;
+                if (cx === undefined || cy === undefined || isNaN(cx) || isNaN(cy)) return null;
                 return (
                   <g>
                     <line x1={cx} y1={cy} x2={cx} y2={cy + 300} stroke="#10b981" strokeWidth={2} strokeDasharray="3 3" opacity={0.4} />

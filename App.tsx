@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
 import { DiffractionChart } from './components/DiffractionChart';
-import { GeminiAssistant } from './components/GeminiAssistant';
+import { TestMaterialsModule } from './components/TestMaterialsModule';
 import { SelectionRulesModule } from './components/SelectionRulesModule';
 import { ScherrerModule } from './components/ScherrerModule';
 import { WilliamsonHallModule } from './components/WilliamsonHallModule';
@@ -14,15 +14,12 @@ import { RietveldModule } from './components/RietveldModule';
 import { NeutronModule } from './components/NeutronModule';
 import { MagneticNeutronModule } from './components/MagneticNeutronModule';
 import { DeepLearningModule } from './components/DeepLearningModule';
-import { LabAgent } from './components/LabAgent';
 import { FWHMModule } from './components/FWHMModule';
 import { ImageAnalysisModule } from './components/ImageAnalysisModule';
-import { CrystalMindModule } from './components/CrystalMindModule';
 import { ImageGenerationModule } from './components/ImageGenerationModule';
 import { ProfilePage } from './components/ProfilePage';
 import { LearnModule } from './components/LearnModule';
 import { AIChatSupport } from './components/AIChatSupport';
-import { PromptEngineeringModule } from './components/PromptEngineeringModule';
 import { ModuleIntro } from './components/ModuleIntro';
 import { LandingPage } from './components/LandingPage';
 import { RegistrationPage } from './components/RegistrationPage';
@@ -32,7 +29,7 @@ import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap } from 'lucide-react';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'crystal_mind' | 'image_gen' | 'learn' | 'profile' | 'agent' | 'prompt_eng';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'learn' | 'profile';
 
 const App: React.FC = () => {
   const [isRegistered, setIsRegistered] = useState<boolean>(() => {
@@ -181,11 +178,8 @@ const App: React.FC = () => {
     { id: 'neutron', label: 'Neutron Diffraction', group: 'Advanced Sim' },
     { id: 'magnetic', label: 'Magnetic Diffraction', group: 'Advanced Sim' },
     { id: 'dl', label: 'PhaseID Neural Net', group: 'AI Tools' },
-    { id: 'agent', label: 'Crystal Intelligence Hub', group: 'AI Tools' },
-    { id: 'prompt_eng', label: 'Prompt Engineering', group: 'AI Tools' },
     { id: 'image_analysis', label: 'Image Analysis', group: 'AI Tools' },
     { id: 'image_gen', label: 'Scientific Illustrator', group: 'AI Tools' },
-    { id: 'crystal_mind', label: 'CrystalMind Control', group: 'AI Tools' },
     { id: 'learn', label: 'App Tutorial', group: 'About' },
     { id: 'profile', label: 'Designer Profile', group: 'About' },
   ];
@@ -327,7 +321,7 @@ const App: React.FC = () => {
                           onRestore={restoreHistory} 
                           onClear={clearHistory} 
                         />
-                        <GeminiAssistant onLoadPeaks={handleAILoad} />
+                        <TestMaterialsModule onLoadMaterial={handleAILoad} />
                         
                         <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-800 dark:border-white/5 ring-1 ring-white/10">
                            <div className="flex justify-between items-center mb-3">
@@ -370,11 +364,8 @@ const App: React.FC = () => {
                   {activeModule === 'neutron' && <NeutronModule />}
                   {activeModule === 'magnetic' && <MagneticNeutronModule />}
                   {activeModule === 'dl' && <DeepLearningModule />}
-                  {activeModule === 'agent' && <LabAgent />}
-                  {activeModule === 'prompt_eng' && <PromptEngineeringModule />}
                   {activeModule === 'image_analysis' && <ImageAnalysisModule />}
                   {activeModule === 'image_gen' && <ImageGenerationModule />}
-                  {activeModule === 'crystal_mind' && <CrystalMindModule />}
                   {activeModule === 'learn' && <LearnModule />}
                   {activeModule === 'profile' && <ProfilePage />}
                 </>

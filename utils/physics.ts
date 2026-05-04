@@ -27,9 +27,9 @@ export const simulatePeak = (
   const stepSize = (end - start) / steps;
 
   // HWHM = Half Width at Half Maximum
-  const gamma = fwhm / 2;
+  const gamma = Math.max(0.0001, fwhm / 2);
   // Gaussian sigma
-  const sigma = fwhm / (2 * Math.sqrt(2 * Math.log(2)));
+  const sigma = Math.max(0.0001, fwhm / (2 * Math.sqrt(2 * Math.log(2))));
 
   for (let i = 0; i <= steps; i++) {
     const x = start + i * stepSize;

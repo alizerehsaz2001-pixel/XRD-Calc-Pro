@@ -61,9 +61,9 @@ export const WarrenAverbachModule: React.FC = () => {
     if (!searchQuery.trim()) return;
     setIsThinking(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
       const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-2.0-flash',
         contents: `Generate realistic Fourier coefficients for Warren-Averbach analysis of ${searchQuery}.
         Provide 8 to 12 data points. For each point, provide:
         - L (column length in nm, starting from 1 or 2, increasing)
@@ -72,7 +72,6 @@ export const WarrenAverbachModule: React.FC = () => {
         Make sure the decay is physically realistic (A2 decays faster due to strain).
         Return ONLY a JSON array of objects.`,
         config: {
-          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.ARRAY,
@@ -90,7 +89,9 @@ export const WarrenAverbachModule: React.FC = () => {
       });
 
       if (response.text) {
-        const data = JSON.parse(response.text);
+        let rawText = response.text;
+        rawText = rawText.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
+        const data = JSON.parse(rawText);
         const formattedData = data.map((p: any) => `${p.L.toFixed(1)}, ${p.A1.toFixed(3)}, ${p.A2.toFixed(3)}`).join('\n');
         setInputData(formattedData);
       }
