@@ -90,9 +90,15 @@ export const FWHMModule: React.FC = () => {
           </h2>
 
           <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-3">Profile Type</label>
-              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <div className="space-y-4">
+              <label className="block text-xs font-black text-slate-500 uppercase tracking-[0.2em] flex items-center justify-between">
+                <span>Profile Kernel</span>
+                <span className="text-[9px] bg-orange-100 text-orange-600 px-2.5 py-1 rounded-full border border-orange-200 shadow-sm leading-none flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                  {type === 'Pseudo-Voigt' ? 'Hybrid Mode' : 'Single Kernel'}
+                </span>
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {(['Gaussian', 'Lorentzian', 'Pseudo-Voigt'] as const).map(t => (
                   <button
                     key={t}
@@ -102,59 +108,84 @@ export const FWHMModule: React.FC = () => {
                       else if (t === 'Lorentzian') setEta(1);
                       else setEta(0.5);
                     }}
-                    className={`flex-1 py-2.5 px-2 text-[11px] sm:text-xs font-bold rounded-lg transition-all duration-200 ${
+                    className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-1 ${
                       type === t 
-                        ? 'bg-white text-orange-600 shadow-sm ring-1 ring-slate-200/50' 
-                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                        ? 'bg-gradient-to-br from-orange-50 to-rose-50 border-orange-400 shadow-md ring-1 ring-orange-400/20' 
+                        : 'bg-white border-slate-200 hover:border-orange-300 hover:bg-orange-50/10 hover:shadow-sm'
                     }`}
                   >
-                    {t === 'Pseudo-Voigt' ? 'P-Voigt' : t}
+                    {type === t && <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-rose-500" />}
+                    <span className={`text-xs font-black uppercase tracking-wider mb-1.5 transition-colors ${type === t ? 'text-orange-600' : 'text-slate-600 group-hover:text-slate-900'}`}>
+                      {t === 'Pseudo-Voigt' ? 'P-Voigt' : t}
+                    </span>
+                    <span className={`text-[10px] font-mono tracking-tighter ${type === t ? 'text-orange-500/80' : 'text-slate-400'}`}>
+                      {t === 'Gaussian' ? 'η = 0' : t === 'Lorentzian' ? 'η = 1' : '0 < η < 1'}
+                    </span>
+                    
+                    {/* Tiny visual representation */}
+                    <div className="mt-3 h-5 w-14 flex items-end justify-center gap-[2px] opacity-60">
+                       {t === 'Gaussian' && [2, 4, 8, 12, 16, 12, 8, 4, 2].map((h, i) => <div key={i} className={`w-1 bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                       {t === 'Lorentzian' && [3, 4, 5, 8, 16, 8, 5, 4, 3].map((h, i) => <div key={i} className={`w-1 bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                       {t === 'Pseudo-Voigt' && [2.5, 4, 6.5, 10, 16, 10, 6.5, 4, 2.5].map((h, i) => <div key={i} className={`w-1 bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                    </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-bold text-slate-700">Peak Center (2θ)</label>
-                <span className="text-xs font-mono text-orange-600 font-bold">{center.toFixed(2)}°</span>
+            <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-200/60 space-y-6 shadow-inner ring-1 ring-white/50">
+              <div className="group">
+                <div className="flex justify-between items-end mb-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">Peak Center (2θ)</label>
+                  <div className="bg-white px-2.5 py-1 rounded-md shadow-sm border border-slate-200 relative overflow-hidden">
+                    <span className="text-xs font-mono text-orange-600 font-bold relative z-10">{center.toFixed(2)}°</span>
+                    <div className="absolute inset-0 bg-orange-500/5" />
+                  </div>
+                </div>
+                <input
+                  type="range" min="10" max="150" step="0.1"
+                  value={center} onChange={(e) => setCenter(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                />
               </div>
-              <input
-                type="range" min="10" max="150" step="0.1"
-                value={center} onChange={(e) => setCenter(parseFloat(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
-              />
-            </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-bold text-slate-700">FWHM (Δ2θ)</label>
-                <span className="text-xs font-mono text-orange-600 font-bold">{fwhm.toFixed(3)}°</span>
+              <div className="group">
+                <div className="flex justify-between items-end mb-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">FWHM (Δ2θ)</label>
+                  <div className="bg-white px-2.5 py-1 rounded-md shadow-sm border border-slate-200 relative overflow-hidden">
+                    <span className="text-xs font-mono text-orange-600 font-bold relative z-10">{fwhm.toFixed(3)}°</span>
+                    <div className="absolute inset-0 bg-orange-500/5" />
+                  </div>
+                </div>
+                <input
+                  type="range" min="0.01" max="5" step="0.01"
+                  value={fwhm} onChange={(e) => setFwhm(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                />
               </div>
-              <input
-                type="range" min="0.01" max="5" step="0.01"
-                value={fwhm} onChange={(e) => setFwhm(parseFloat(e.target.value))}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
-              />
-            </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-bold text-slate-700">Mixing Factor (η)</label>
-                <span className="text-xs font-mono text-orange-600 font-bold">{(eta * 100).toFixed(0)}% L</span>
-              </div>
-              <input
-                type="range" min="0" max="1" step="0.01"
-                value={eta} 
-                onChange={(e) => setEta(parseFloat(e.target.value))}
-                disabled={type !== 'Pseudo-Voigt'}
-                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
-                  type === 'Pseudo-Voigt' ? 'bg-slate-200 accent-orange-600' : 'bg-slate-100 accent-slate-400 cursor-not-allowed'
-                }`}
-              />
-              <div className="flex justify-between text-[10px] text-slate-400 mt-1 uppercase font-bold">
-                <span>Gaussian</span>
-                <span>Lorentzian</span>
+              <div className={`group transition-all duration-300 ${type !== 'Pseudo-Voigt' ? 'opacity-40 grayscale-[0.5]' : 'opacity-100 grayscale-0'}`}>
+                <div className="flex justify-between items-end mb-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">Mixing Factor (η)</label>
+                  <div className="bg-white px-2 py-1 xl:px-2.5 rounded-md shadow-sm border border-slate-200 flex items-center gap-1.5 xl:gap-2 relative overflow-hidden">
+                    <span className="text-xs font-mono text-orange-600 font-bold relative z-10">{(eta * 100).toFixed(0)}%</span>
+                    <span className="text-[9px] font-black text-slate-400 uppercase relative z-10">Lorentzian</span>
+                    <div className="absolute inset-0 bg-orange-500/5" />
+                  </div>
+                </div>
+                <input
+                  type="range" min="0" max="1" step="0.01"
+                  value={eta} 
+                  onChange={(e) => setEta(parseFloat(e.target.value))}
+                  disabled={type !== 'Pseudo-Voigt'}
+                  className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer transition-all focus:outline-none ${
+                    type === 'Pseudo-Voigt' ? 'bg-slate-200 accent-orange-500 hover:accent-orange-600 focus:ring-2 focus:ring-orange-500/20' : 'bg-slate-200 accent-slate-400 cursor-not-allowed'
+                  }`}
+                />
+                <div className="flex justify-between text-[9px] text-slate-400 mt-3 font-black uppercase tracking-widest">
+                  <span className={`transition-colors ${type === 'Pseudo-Voigt' && eta < 0.5 ? 'text-orange-500' : ''}`}>Gaussian (0)</span>
+                  <span className={`transition-colors ${type === 'Pseudo-Voigt' &&  eta > 0.5 ? 'text-orange-500' : ''}`}>Lorentzian (1)</span>
+                </div>
               </div>
             </div>
 
