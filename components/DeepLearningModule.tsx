@@ -1273,6 +1273,166 @@ const MATERIAL_DB = [
     magneticProperties: 'Ferromagnetic (High Coercivity)',
     opticalProperties: 'Metallic (usually plated)',
     hazards: ['Mechanical Pinching', 'Brittle']
+  },
+  {
+    name: 'Titanium Carbide (TiC)',
+    type: 'Ultra-hard Ceramic',
+    pattern: '35.9, 100\n41.7, 85\n60.4, 60\n72.3, 45\n76.0, 15\n89.8, 20',
+    description: 'An extremely hard refractory ceramic material, similar to tungsten carbide.',
+    formula: 'TiC',
+    crystalSystem: 'Cubic (NaCl-type)',
+    spaceGroup: 'Fm-3m',
+    density: 4.93,
+    applications: ['Cutting Tools', 'Coatings', 'Abrasives'],
+    molecularWeight: 59.88,
+    elasticModulus: 450
+  },
+  {
+    name: 'Chromium(III) Oxide (Cr2O3)',
+    type: 'Oxide Ceramic/Mineral',
+    pattern: '24.5, 40\n33.6, 100\n36.2, 75\n41.5, 25\n50.2, 40\n54.8, 90\n63.4, 20\n65.1, 35',
+    description: 'Eskolaite, a hard green mineral used as a pigment and for polishing.',
+    formula: 'Cr2O3',
+    crystalSystem: 'Trigonal (Corundum)',
+    spaceGroup: 'R-3c',
+    density: 5.22,
+    applications: ['Green Pigments', 'Polishing compounds', 'Refractories'],
+    molecularWeight: 151.99,
+    bandGap: 3.4
+  },
+  {
+    name: 'Cobalt Ferrite (CoFe2O4)',
+    type: 'Magnetic Ceramic',
+    pattern: '30.1, 40\n35.4, 100\n37.1, 15\n43.1, 30\n53.4, 25\n57.0, 45\n62.6, 60',
+    description: 'A hard magnetic material with high coercivity and moderate saturation magnetization.',
+    formula: 'CoFe2O4',
+    crystalSystem: 'Cubic (Spinel)',
+    spaceGroup: 'Fd-3m',
+    density: 5.29,
+    applications: ['Magnetic Recording', 'Ferrofluids', 'Magnetostrictive Sensors'],
+    molecularWeight: 234.62,
+    magneticProperties: 'Ferrimagnetic'
+  },
+  {
+    name: 'Bismuth Oxychloride (BiOCl)',
+    type: 'Photocatalyst/Pigment',
+    pattern: '12.0, 100\n24.2, 35\n25.8, 85\n32.5, 75\n33.4, 80\n40.7, 45\n46.6, 60\n49.3, 55',
+    description: 'A layered material with excellent light-harvesting and photocatalytic properties.',
+    formula: 'BiOCl',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'P4/nmm',
+    density: 7.72,
+    applications: ['Cosmetic Pigments', 'Photocatalysis', 'Optical Coatings'],
+    molecularWeight: 260.43,
+    bandGap: 3.2
+  },
+  {
+    name: 'Cesium Lead Iodide (CsPbI3)',
+    type: 'Perovskite/Photovoltaic',
+    pattern: '14.2, 100\n20.1, 45\n24.6, 35\n28.6, 90\n32.1, 25\n35.3, 30\n40.8, 55',
+    description: 'An all-inorganic perovskite material with high thermal stability for solar cells.',
+    formula: 'CsPbI3',
+    crystalSystem: 'Cubic (at high temp)',
+    spaceGroup: 'Pm-3m',
+    density: 5.04,
+    applications: ['Tandem Solar Cells', 'LEDs', 'Scintillators'],
+    molecularWeight: 720.82,
+    bandGap: 1.73
+  },
+  {
+    name: 'Titanium MXene (Ti3C2Tx)',
+    type: '2D Material',
+    pattern: '9.2, 100\n18.4, 15\n27.6, 10\n34.2, 5\n38.9, 12\n42.1, 8\n60.5, 10',
+    description: 'A prominent member of the MXene family of two-dimensional transition metal carbides.',
+    formula: 'Ti3C2Tx',
+    crystalSystem: 'Hexagonal (Layered)',
+    spaceGroup: 'P63/mmc',
+    density: 4.8,
+    applications: ['Energy Storage', 'EMI Shielding', 'Water Purification'],
+    opticalProperties: 'Metallic conductivity and hydrophilic surface'
+  },
+  {
+    name: 'UiO-66 (Zr-MOF)',
+    type: 'Metal-Organic Framework',
+    pattern: '7.4, 100\n8.5, 95\n12.1, 45\n14.1, 15\n14.8, 20\n17.1, 25\n25.7, 10',
+    description: 'A highly stable zirconium-based MOF with exceptional chemical and thermal resistance.',
+    formula: 'Zr6O4(OH)4(BDC)6',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 1.2,
+    applications: ['Gas Adsorption', 'Chemical Sensing', 'Catalysis'],
+    molecularWeight: 1622.0
+  },
+  {
+    name: 'HKUST-1 (Cu-MOF)',
+    type: 'Metal-Organic Framework',
+    pattern: '6.7, 100\n9.5, 65\n11.6, 85\n13.4, 25\n14.7, 20\n17.5, 40\n19.0, 35\n26.0, 15',
+    description: 'A well-known copper-based MOF with high surface area and open metal sites.',
+    formula: 'Cu3(BTC)2',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 0.88,
+    applications: ['Gas Storage', 'Small Molecule Separation', 'Sensors'],
+    molecularWeight: 604.87
+  },
+  {
+    name: 'Molybdenum Trioxide (MoO3)',
+    type: 'Semiconductor/Oxide',
+    pattern: '12.8, 100\n23.3, 85\n25.7, 95\n27.3, 75\n33.7, 45\n39.0, 35\n49.3, 40',
+    description: 'An n-type semiconductor used in electrochromic devices and catalysis.',
+    formula: 'α-MoO3',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pbnm',
+    density: 4.69,
+    applications: ['Catalysis', 'Gas Sensors', 'Smart Windows'],
+    molecularWeight: 143.94,
+    bandGap: 3.0
+  },
+  {
+    name: 'Vanadium(III) Oxide (V2O3)',
+    type: 'Oxide/Mott Insulator',
+    pattern: '24.3, 35\n33.0, 100\n36.2, 80\n41.2, 20\n49.7, 30\n54.0, 95\n62.9, 15\n64.1, 25',
+    description: 'A classic Mott insulator that undergoes a metal-insulator transition around 150 K.',
+    formula: 'V2O3',
+    crystalSystem: 'Trigonal (Corundum)',
+    spaceGroup: 'R-3c',
+    density: 4.87,
+    applications: ['Electronic Threshold Switches', 'Cryogenic Thermometers'],
+    molecularWeight: 149.88
+  },
+  {
+    name: 'Hematite (Fe2O3)',
+    type: 'Oxide Mineral',
+    pattern: '24.1, 40\n33.2, 100\n35.6, 75\n40.9, 25\n49.5, 40\n54.1, 85\n62.5, 30\n64.0, 35',
+    description: 'The mineral form of iron(III) oxide, one of several iron oxides.',
+    formula: 'Fe2O3',
+    crystalSystem: 'Trigonal',
+    spaceGroup: 'R-3c',
+    density: 5.24,
+    applications: ['Iron Ore', 'Pigments', 'Polishing compounds'],
+    magneticProperties: 'Antiferromagnetic/Weak Ferromagnetic'
+  },
+  {
+    name: 'Perovskite (CaTiO3)',
+    type: 'Definitive Perovskite',
+    pattern: '23.2, 25\n33.1, 100\n40.3, 15\n47.5, 45\n53.8, 10\n59.2, 35\n69.6, 30',
+    description: 'The namesake of the perovskite crystal structure, found in the Earth\'s mantle.',
+    formula: 'CaTiO3',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pbnm',
+    density: 3.98,
+    applications: ['Geological Studies', 'High-temp Ceramics']
+  },
+  {
+    name: 'Feldspar (Orthoclase)',
+    type: 'Silicate Mineral',
+    pattern: '13.1, 30\n21.0, 25\n23.6, 100\n26.5, 80\n27.8, 45\n29.9, 15',
+    description: 'A common rock-forming tectosilicate mineral.',
+    formula: 'KAlSi3O8',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'C2/m',
+    density: 2.56,
+    applications: ['Glassmaking', 'Ceramics', 'Abrasives']
   }
 ];
 
@@ -1546,6 +1706,18 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     } else if (type === 'Complex') {
       setInputData(`25.28, 60\n26.64, 100\n27.44, 40\n38.12, 30\n44.30, 15`);
       setSearchTerm("Complex Mixture (Quartz + Rutile + Anatase + Ag)");
+    } else if (type === 'Modern-Ceramic') {
+      setInputData(`28.17, 30\n31.47, 20\n35.9, 100\n41.7, 85\n50.12, 10\n60.4, 60\n72.3, 45`);
+      setSearchTerm("Modern Ceramic (TiC + ZrO2)");
+    } else if (type === 'Solar-Mix') {
+      setInputData(`14.15, 100\n14.2, 90\n20.1, 45\n24.5, 45\n28.4, 60\n28.6, 90\n31.8, 30\n32.1, 25\n40.6, 20\n40.8, 55`);
+      setSearchTerm("Solar Mix (Hybrid MAPbI3 + Inorganic CsPbI3)");
+    } else if (type === 'Cathode-Mix') {
+      setInputData(`18.9, 100\n36.7, 45\n37.3, 50\n38.4, 85\n44.3, 40\n45.2, 40\n64.4, 25\n77.4, 25`);
+      setSearchTerm("Cathode Mix (LCO + NMC-111)");
+    } else if (type === 'Geological-Suite') {
+      setInputData(`20.86, 35\n23.6, 60\n24.1, 40\n26.64, 100\n29.40, 100\n33.2, 80\n36.54, 12\n54.1, 85`);
+      setSearchTerm("Geological Suite (Quartz + Calcite + Hematite + Feldspar)");
     } else {
       // Generic finder for all single phase examples
       const searchKey = type === 'HAP' ? 'Hydroxyapatite' : 
@@ -1633,6 +1805,19 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'Zircaloy' ? 'Zircaloy-4' :
                         type === 'NuclearGraphite' ? 'Nuclear Graphite' :
                         type === 'Nd2Fe14B' ? 'Neodymium Magnet' :
+                        type === 'TiC' ? 'Titanium Carbide' :
+                        type === 'Cr2O3' ? 'Chromium(III) Oxide' :
+                        type === 'CoFe2O4' ? 'Cobalt Ferrite' :
+                        type === 'BiOCl' ? 'Bismuth Oxychloride' :
+                        type === 'CsPbI3' ? 'Cesium Lead Iodide' :
+                        type === 'Ti3C2' ? 'Titanium MXene' :
+                        type === 'UiO66' ? 'UiO-66' :
+                        type === 'HKUST1' ? 'HKUST-1' :
+                        type === 'MoO3' ? 'Molybdenum Trioxide' :
+                        type === 'V2O3' ? 'Vanadium(III) Oxide' :
+                        type === 'Hematite' ? 'Hematite(Fe2O3)' :
+                        type === 'PerovskiteCat' ? 'Perovskite (CaTiO3)' :
+                        type === 'Feldspar' ? 'Feldspar (Orthoclase)' :
                         type;
       
       const mat = MATERIAL_DB.find(m => m.name.includes(searchKey));
@@ -2184,6 +2369,23 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Zircaloy', label: 'Zircaloy-4' },
                     { id: 'NuclearGraphite', label: 'Nuclear Graphite' },
                     { id: 'Nd2Fe14B', label: 'Nd Magnet' },
+                    { id: 'TiC', label: 'TiC' },
+                    { id: 'Cr2O3', label: 'Cr2O3' },
+                    { id: 'CoFe2O4', label: 'CoFe2O4' },
+                    { id: 'BiOCl', label: 'BiOCl' },
+                    { id: 'CsPbI3', label: 'CsPbI3' },
+                    { id: 'Ti3C2', label: 'MXene' },
+                    { id: 'UiO66', label: 'UiO-66' },
+                    { id: 'HKUST1', label: 'HKUST-1' },
+                    { id: 'MoO3', label: 'MoO3' },
+                    { id: 'V2O3', label: 'V2O3' },
+                    { id: 'Modern-Ceramic', label: 'Modern Ceramic' },
+                    { id: 'Solar-Mix', label: 'Solar Mix' },
+                    { id: 'Cathode-Mix', label: 'Cathode Mix' },
+                    { id: 'Geological-Suite', label: 'Geo-Suite' },
+                    { id: 'Hematite', label: 'Hematite' },
+                    { id: 'Feldspar', label: 'Feldspar' },
+                    { id: 'PerovskiteCat', label: 'Perovskite Cat' },
                     { id: 'Complex', label: 'Complex Mix' }
                   ].map(ex => (
                     <button 

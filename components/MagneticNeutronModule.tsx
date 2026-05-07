@@ -80,7 +80,7 @@ export const MagneticNeutronModule: React.FC = () => {
     }
   };
 
-  const loadPreset = (type: 'Ferro' | 'AntiFerro') => {
+  const loadPreset = (type: 'Ferro' | 'AntiFerro' | 'Ferrimagnetic' | 'Spiral') => {
     if (type === 'Ferro') {
       setLatticeA(2.87); 
       setAtoms([
@@ -91,6 +91,21 @@ export const MagneticNeutronModule: React.FC = () => {
       setAtoms([
         { id: '1', element: 'Mn', label: 'Mn (Up)', b: -3.73, x: 0, y: 0, z: 0, B_iso: 0.5, mx: 0, my: 0, mz: 5, ion: 'Mn2+' },
         { id: '2', element: 'Mn', label: 'Mn (Down)', b: -3.73, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5, mx: 0, my: 0, mz: -5, ion: 'Mn2+' },
+      ]);
+    } else if (type === 'Ferrimagnetic') {
+      setLatticeA(8.39); // Magnetite-like
+      setAtoms([
+        { id: '1', element: 'Fe', label: 'Fe (Tet)', b: 9.45, x: 0.125, y: 0.125, z: 0.125, B_iso: 0.5, mx: 0, my: 0, mz: 4.0, ion: 'Fe3+' },
+        { id: '2', element: 'Fe', label: 'Fe (Oct 1)', b: 9.45, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5, mx: 0, my: 0, mz: -4.0, ion: 'Fe2+' },
+        { id: '3', element: 'Fe', label: 'Fe (Oct 2)', b: 9.45, x: 0.125, y: 0.5, z: 0.5, B_iso: 0.5, mx: 0, my: 0, mz: -4.0, ion: 'Fe3+' },
+      ]);
+    } else if (type === 'Spiral') {
+      setLatticeA(5.24); // Complex spiral-like
+      setAtoms([
+        { id: '1', element: 'Co', label: 'Co 1', b: 2.49, x: 0, y: 0, z: 0, B_iso: 0.5, mx: 3.5, my: 0, mz: 0, ion: 'Co2+' },
+        { id: '2', element: 'Co', label: 'Co 2', b: 2.49, x: 0.5, y: 0, z: 0, B_iso: 0.5, mx: 0, my: 3.5, mz: 0, ion: 'Co2+' },
+        { id: '3', element: 'Co', label: 'Co 3', b: 2.49, x: 0, y: 0.5, z: 0, B_iso: 0.5, mx: -3.5, my: 0, mz: 0, ion: 'Co2+' },
+        { id: '4', element: 'Co', label: 'Co 4', b: 2.49, x: 0.5, y: 0.5, z: 0, B_iso: 0.5, mx: 0, my: -3.5, mz: 0, ion: 'Co2+' },
       ]);
     }
   };
@@ -123,11 +138,17 @@ export const MagneticNeutronModule: React.FC = () => {
           </div>
 
           <div className="flex gap-3 mb-8 relative z-10 overflow-x-auto pb-2 scrollbar-hide">
-            <button onClick={() => loadPreset('Ferro')} className="px-4 py-2 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">Ferromagnetic</span>
+            <button onClick={() => loadPreset('Ferro')} className="px-4 py-1.5 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group shrink-0">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">Ferro</span>
             </button>
-            <button onClick={() => loadPreset('AntiFerro')} className="px-4 py-2 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group">
+            <button onClick={() => loadPreset('AntiFerro')} className="px-4 py-1.5 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group shrink-0">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">Anti-Ferro</span>
+            </button>
+            <button onClick={() => loadPreset('Ferrimagnetic')} className="px-4 py-1.5 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group shrink-0">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">Ferrimagnetic</span>
+            </button>
+            <button onClick={() => loadPreset('Spiral')} className="px-4 py-1.5 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group shrink-0">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">Spiral Pinwheel</span>
             </button>
           </div>
 
