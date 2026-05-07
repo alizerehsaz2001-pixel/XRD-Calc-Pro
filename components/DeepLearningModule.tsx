@@ -1105,6 +1105,134 @@ const MATERIAL_DB = [
     hazards: ['Radioactive (Mild)']
   },
   {
+    name: 'Boron Carbide (B4C)',
+    type: 'Nuclear/Control Material',
+    pattern: '23.5, 20\n34.9, 80\n37.8, 100\n39.1, 15\n44.8, 25\n53.4, 30',
+    description: 'An extremely hard boron-carbon ceramic used in tank armor, bulletproof vests, and notably as control rods in nuclear reactors for neutron absorption.',
+    formula: 'B4C',
+    crystalSystem: 'Rhombohedral',
+    spaceGroup: 'R-3m',
+    density: 2.52,
+    applications: ['Control Rods', 'Armor Plating', 'Abrasives'],
+    molecularWeight: 55.25,
+    elasticModulus: 450,
+    hazards: ['Hard dust inhalation']
+  },
+  {
+    name: 'Gadolinium Oxide (Gd2O3)',
+    type: 'Nuclear/Burnable Poison',
+    pattern: '28.6, 100\n33.1, 35\n47.5, 45\n56.4, 40\n59.1, 15\n69.5, 20',
+    description: 'A chemical compound used as a neutron-absorbing "burnable poison" in nuclear fuel to manage reactivity over time.',
+    formula: 'Gd2O3',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Ia-3',
+    density: 7.40,
+    applications: ['Neutron Absorption', 'Contrast Agents', 'Phosphors'],
+    molecularWeight: 362.50,
+    bandGap: 5.4,
+    opticalProperties: 'White powder, paramagnetic'
+  },
+  {
+    name: 'Plutonium Dioxide (PuO2)',
+    type: 'Nuclear/Fuel',
+    pattern: '28.6, 100\n33.1, 40\n47.5, 55\n56.4, 45\n59.1, 10\n69.5, 20',
+    description: 'A stable ceramic form of plutonium used in MOX fuel and radioisotope thermoelectric generators (RTGs).',
+    formula: 'PuO2',
+    crystalSystem: 'Cubic (Fluorite)',
+    spaceGroup: 'Fm-3m',
+    density: 11.46,
+    applications: ['MOX Fuel', 'Deep Space Power (RTGs)'],
+    molecularWeight: 271.0,
+    hazards: ['Highly Radioactive', 'Alpha Emitter', 'Chemically Toxic']
+  },
+  {
+    name: 'Lead (Pb)',
+    type: 'Metal/Shielding',
+    pattern: '31.3, 100\n36.3, 40\n52.2, 35\n62.1, 45\n65.2, 10\n77.0, 15',
+    description: 'A dense, soft, malleable post-transition metal used extensively for radiation shielding due to its high atomic number and density.',
+    formula: 'Pb',
+    crystalSystem: 'Cubic (FCC)',
+    spaceGroup: 'Fm-3m',
+    density: 11.34,
+    applications: ['Radiation Shielding', 'Batteries', 'Weights'],
+    molecularWeight: 207.2,
+    hazards: ['Neurotoxic', 'Heavy Metal']
+  },
+  {
+    name: 'Zirconium Hydride (ZrH2)',
+    type: 'Nuclear/Moderator',
+    pattern: '28.5, 30\n33.0, 100\n47.5, 40\n56.5, 45\n59.2, 15',
+    description: 'A metallic hydride used as a moderator and fuel component in specialty reactors like TRIGA.',
+    formula: 'ZrH2',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'I4/mmm',
+    density: 5.60,
+    applications: ['TRIGA Reactor Fuel', 'Neutron Moderation'],
+    molecularWeight: 93.24
+  },
+  {
+    name: 'Beryllium Oxide (BeO)',
+    type: 'Nuclear/Reflector',
+    pattern: '38.5, 100\n41.2, 45\n44.0, 40\n59.3, 20\n69.8, 15',
+    description: 'An inorganic compound with high thermal conductivity and low neutron capture cross-section, used as a neutron reflector.',
+    formula: 'BeO',
+    crystalSystem: 'Hexagonal (Wurtzite)',
+    spaceGroup: 'P63mc',
+    density: 3.01,
+    applications: ['Neutron Reflectors', 'Heat Sinks', 'High-temp Ceramics'],
+    molecularWeight: 25.01,
+    hazards: ['Extremely Toxic', 'Berylliosis risk']
+  },
+  {
+    name: 'Austenite (γ-Fe)',
+    type: 'Metallurgy/Phase',
+    pattern: '43.6, 100\n50.8, 45\n74.7, 30\n90.7, 25\n95.9, 10',
+    description: 'The face-centered cubic (FCC) phase of iron. High temperature stable phase often retained in stainless steels.',
+    formula: 'γ-Fe',
+    crystalSystem: 'Cubic (FCC)',
+    spaceGroup: 'Fm-3m',
+    density: 7.98,
+    applications: ['Stainless Steels', 'Shape Memory Alloys'],
+    molecularWeight: 55.85
+  },
+  {
+    name: 'Martensite (α\'-Fe)',
+    type: 'Metallurgy/Phase',
+    pattern: '44.7, 100\n65.0, 15\n82.3, 25\n98.9, 10',
+    description: 'A very hard, supersaturated solid solution of carbon in iron. Characterized by a body-centered tetragonal (BCT) structure formed by rapid quenching.',
+    formula: 'α\'-Fe',
+    crystalSystem: 'Tetragonal (BCT)',
+    spaceGroup: 'I4/mmm',
+    density: 7.85,
+    applications: ['Hardened Steel', 'Tooling'],
+    molecularWeight: 55.85
+  },
+  {
+    name: 'Cementite (Fe3C)',
+    type: 'Metallurgy/Carbide',
+    pattern: '37.7, 60\n39.8, 80\n40.6, 100\n42.9, 70\n43.7, 90\n44.5, 85\n44.9, 95',
+    description: 'An intermetallic compound of iron and carbon. Hard and brittle, it is a key constituent in most steels and cast irons.',
+    formula: 'Fe3C',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pnma',
+    density: 7.67,
+    applications: ['Steel Reinforcement', 'Cast Iron'],
+    molecularWeight: 179.55
+  },
+  {
+    name: 'Titanium-6Al-4V (α+β)',
+    type: 'Metallurgy/Alloy',
+    pattern: '35.1, 40\n38.4, 100\n40.2, 80\n53.0, 30\n63.2, 25\n70.6, 20',
+    description: 'The most common titanium alloy. Consists of a dual-phase microstructure of alpha and beta phases, offering high strength and corrosion resistance.',
+    formula: 'Ti-6Al-4V',
+    crystalSystem: 'HCP + BCC',
+    spaceGroup: 'P63/mmc + Im-3m',
+    density: 4.43,
+    applications: ['Aerospace', 'Medical Implants', 'Marine Engineering'],
+    molecularWeight: 47.87,
+    hazards: ['Combustible dust']
+  },
+  {
     name: 'Zircaloy-4',
     type: 'Nuclear/Cladding',
     pattern: '31.9, 30\n34.8, 100\n36.5, 90\n47.9, 20\n63.4, 15\n68.1, 10',
@@ -1933,8 +2061,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                      <button onClick={() => setMixtureList([])} className="text-[10px] font-bold text-rose-500 hover:underline">Reset</button>
                    </div>
                    <div className="flex flex-wrap gap-2">
-                      {mixtureList.map(m => (
-                        <div key={m} className="flex items-center gap-1 bg-white border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-700 shadow-sm">
+                      {mixtureList.map((m, mIdx) => (
+                        <div key={`mix-${m}-${mIdx}`} className="flex items-center gap-1 bg-white border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-700 shadow-sm">
                           {m}
                           <button onClick={() => {
                             const nl = mixtureList.filter(x => x !== m);
@@ -2350,7 +2478,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   <div className="flex items-center gap-3 mt-1">
                     <div className="flex gap-1">
                       {[...Array(5)].map((_, i) => (
-                        <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < 4 ? 'bg-emerald-500' : 'bg-slate-700'}`} />
+                        <div key={`integrity-dot-${i}`} className={`w-1.5 h-1.5 rounded-full ${i < 4 ? 'bg-emerald-500' : 'bg-slate-700'}`} />
                       ))}
                     </div>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Confidence Score: {selectedCandidate.confidence_score.toFixed(1)}%</p>
@@ -2404,7 +2532,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                          { label: 'Magnetism', val: selectedCandidate.magneticProperties, unit: '', icon: Database },
                          { label: 'Optical', val: selectedCandidate.opticalProperties, unit: '', icon: Eye },
                        ].map((item, i) => item.val !== undefined && (
-                         <div key={i} className="flex gap-4 group/item">
+                         <div key={`item-${i}`} className="flex gap-4 group/item">
                            <div className="p-2.5 h-fit bg-slate-900 rounded-xl border border-slate-800 group-hover/item:border-violet-500/30 transition-colors">
                              <item.icon className="w-4 h-4 text-slate-500 group-hover/item:text-violet-400 transition-colors" />
                            </div>
@@ -2437,7 +2565,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { l: 'Density', v: selectedCandidate.density ? `${selectedCandidate.density} g/cm³` : "N/A", c: 'text-white font-mono' },
                         { l: 'Database ID', v: selectedCandidate.card_id, c: 'text-blue-400 font-mono bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20' }
                       ].map((row, i) => (
-                        <div key={i} className="flex justify-between items-center group/row">
+                        <div key={`${row.l}-${i}`} className="flex justify-between items-center group/row">
                           <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest group-hover/row:text-slate-400 transition-colors">{row.l}</span>
                           <span className={`text-xs font-black ${row.c}`}>{row.v}</span>
                         </div>
@@ -2455,7 +2583,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     </div>
                     <div className="flex flex-wrap gap-2.5">
                       {selectedCandidate.applications?.map((app, i) => (
-                        <span key={i} className="text-[10px] font-black bg-slate-900 text-slate-400 px-4 py-2 rounded-xl border border-slate-800 hover:text-white transition-colors">
+                        <span key={`app-${i}`} className="text-[10px] font-black bg-slate-900 text-slate-400 px-4 py-2 rounded-xl border border-slate-800 hover:text-white transition-colors">
                           {app}
                         </span>
                       )) || <span className="text-[10px] text-slate-600 italic">No industrial data available.</span>}
@@ -2470,7 +2598,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     <div className="flex flex-wrap gap-2.5">
                       {selectedCandidate.hazards && selectedCandidate.hazards.length > 0 ? (
                         selectedCandidate.hazards.map((hazard, i) => (
-                          <span key={i} className="text-[9px] font-black bg-rose-500/10 text-rose-400 px-3 py-1.5 rounded-lg border border-rose-500/20 uppercase tracking-widest">
+                          <span key={`hazard-${i}`} className="text-[9px] font-black bg-rose-500/10 text-rose-400 px-3 py-1.5 rounded-lg border border-rose-500/20 uppercase tracking-widest">
                             {hazard}
                           </span>
                         ))
@@ -2484,46 +2612,117 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 </div>
               </div>
 
-              {/* Neural Activation Heatmap */}
+              {/* Improved Neural Attention Mapping */}
               <div className="mt-12 pt-8 border-t border-slate-800">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-8">
                   <div>
                     <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       <Activity className="w-4 h-4 text-violet-400 animate-pulse" />
                       Neural Attention Mapping
                     </h4>
-                    <p className="text-[10px] text-slate-500 font-bold mt-1">Convolutional activation patterns detected for {selectedCandidate.phase_name}</p>
+                    <p className="text-[10px] text-slate-500 font-bold mt-1">Spatial feature activation across convolutional filters for {selectedCandidate.phase_name}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="px-3 py-1 bg-violet-500/10 rounded-md border border-violet-500/20 text-[9px] font-black text-violet-300 uppercase tracking-tighter">Mode: Attention_Softmax</span>
                   </div>
                 </div>
                 
-                <div className="space-y-5">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {[
-                    { name: 'Feature_Extraction_L1', color: 'from-violet-600 to-indigo-600' },
-                    { name: 'Structural_Hierarchy_L3', color: 'from-indigo-600 to-blue-600' },
-                    { name: 'Final_Classification_Pool', color: 'from-blue-600 to-emerald-600' }
+                    { name: 'Primary_Features', color: 'from-violet-600 to-indigo-600', rows: 4, cols: 12 },
+                    { name: 'Structural_Synthesis', color: 'from-indigo-600 to-blue-600', rows: 4, cols: 12 },
+                    { name: 'Lattice_Inference', color: 'from-blue-600 to-emerald-600', rows: 4, cols: 12 }
                   ].map((layer, lIdx) => (
-                    <div key={lIdx} className="space-y-2">
+                    <div key={lIdx} className="space-y-3 group/layer">
                       <div className="flex justify-between items-center px-1">
-                        <span className="text-[9px] font-mono font-black text-slate-500">{layer.name}</span>
-                        <span className="text-[9px] font-mono text-slate-600 uppercase tracking-tighter">Layer Status: Optimized</span>
+                        <span className="text-[9px] font-mono font-black text-slate-500 group-hover/layer:text-slate-300 transition-colors uppercase tracking-tight">{layer.name}</span>
+                        <div className="flex items-center gap-1.5">
+                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
+                           <span className="text-[8px] font-mono text-slate-600 uppercase">Active</span>
+                        </div>
                       </div>
-                      <div className="h-6 w-full bg-black rounded-lg overflow-hidden flex border border-slate-800/50 shadow-inner">
-                        {[...Array(40)].map((_, i) => {
-                           const val = Math.random();
-                           const op = val > 0.8 ? 1 : val > 0.4 ? 0.6 : 0.2;
-                           return (
-                             <div 
-                               key={i} 
-                               className={`flex-1 h-full bg-gradient-to-t ${layer.color} transition-all duration-700`}
-                               style={{ opacity: op }}
-                             />
-                           );
-                         })}
+                      
+                      <div className="relative p-1 bg-black/40 rounded-xl border border-slate-800/80 overflow-hidden shadow-2xl">
+                        {/* Scanline Effect */}
+                        <motion.div 
+                          className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/5 to-transparent z-10 pointer-events-none"
+                          animate={{ x: ['-100%', '300%'] }}
+                          transition={{ repeat: Infinity, duration: 3, ease: "linear", delay: lIdx * 0.5 }}
+                        />
+                        
+                        <div className="grid grid-cols-12 gap-1 relative z-0">
+                          {[...Array(layer.rows * layer.cols)].map((_, i) => {
+                            const seed = (i * 13 + lIdx * 17) % 100;
+                            const isActive = seed > 40;
+                            const intensity = isActive ? (seed / 100) : 0.1;
+                            
+                            return (
+                              <motion.div 
+                                key={`node-${lIdx}-${i}`}
+                                initial={{ opacity: 0.1 }}
+                                animate={{ 
+                                  opacity: [0.3, intensity, 0.3],
+                                  scale: isActive ? [1, 1.05, 1] : 1
+                                }}
+                                transition={{ 
+                                  repeat: Infinity, 
+                                  duration: 2 + Math.random() * 2,
+                                  delay: Math.random() * 2
+                                }}
+                                className={`aspect-square rounded-sm bg-gradient-to-br ${layer.color} border border-white/5`}
+                                style={{ 
+                                  opacity: intensity,
+                                  boxShadow: isActive && intensity > 0.7 ? `0 0 8px rgba(139, 92, 246, ${intensity * 0.4})` : 'none'
+                                }}
+                                title={`Node ${i} - Activation: ${(intensity * 100).toFixed(1)}%`}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center px-1">
+                         <div className="h-0.5 flex-1 bg-slate-800/50 rounded-full overflow-hidden mr-3">
+                            <motion.div 
+                              className={`h-full bg-gradient-to-r ${layer.color}`}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${60 + Math.random() * 40}%` }}
+                              transition={{ repeat: Infinity, repeatType: 'reverse', duration: 4 }}
+                            />
+                         </div>
+                         <span className="text-[8px] font-mono text-slate-600">INF_00{lIdx + 1}</span>
                       </div>
                     </div>
                   ))}
                 </div>
+                
+                <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-900/30 rounded-2xl border border-slate-800/50">
+                   {[
+                     { label: 'Latency', val: '14ms', icon: Activity },
+                     { label: 'Compute', val: '0.8 TFLOPS', icon: Zap },
+                     { label: 'Layer Depth', val: '52', icon: Layers },
+                     { label: 'Optimizer', val: 'AdamW', icon: Settings },
+                   ].map((metric, i) => (
+                     <div key={`metric-data-${metric.label}-${i}`} className="flex items-center gap-3">
+                       <div className="p-1.5 bg-slate-800 rounded-lg">
+                         <metric.icon className="w-3 h-3 text-slate-500" />
+                       </div>
+                       <div className="flex flex-col">
+                         <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest">{metric.label}</span>
+                         <span className="text-[10px] text-slate-300 font-mono font-bold leading-tight">{metric.val}</span>
+                       </div>
+                     </div>
+                   ))}
+                </div>
               </div>
+                
+
+
+
+
+
+ 
+
 
               {/* Verification Checklist */}
               <div className="mt-10 pt-8 border-t border-slate-800">
@@ -2534,7 +2733,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     "Relative intensity verified",
                     "Composition confirmed",
                   ].map((item, i) => (
-                    <label key={i} className="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition-all cursor-pointer group">
+                    <label key={`audit-${i}`} className="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition-all cursor-pointer group">
                       <input type="checkbox" className="peer w-4 h-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20" />
                       <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors">{item}</span>
                     </label>

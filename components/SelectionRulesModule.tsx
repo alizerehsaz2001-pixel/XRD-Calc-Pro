@@ -359,7 +359,7 @@ export const SelectionRulesModule: React.FC = () => {
                     className="absolute top-full left-0 right-0 mt-3 bg-slate-900/95 backdrop-blur-xl rounded-2xl border-2 border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 max-h-[400px] overflow-y-auto custom-scrollbar"
                   >
                     {systemGroups.map((group, gIdx) => (
-                      <div key={gIdx} className="border-b border-slate-800/50 last:border-0">
+                      <div key={`group-${group.label}-${gIdx}`} className="border-b border-slate-800/50 last:border-0">
                         <div className="px-5 py-3 bg-slate-800/30 flex items-center gap-2">
                           <div className="text-emerald-500/70">{group.icon}</div>
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
@@ -369,7 +369,7 @@ export const SelectionRulesModule: React.FC = () => {
                         <div className="p-2 grid grid-cols-1 gap-1">
                           {group.options.map((option, oIdx) => (
                             <button
-                              key={oIdx}
+                              key={`opt-${option.value}-${oIdx}`}
                               onClick={() => {
                                 setSystem(option.value as CrystalSystem);
                                 setIsSystemMenuOpen(false);

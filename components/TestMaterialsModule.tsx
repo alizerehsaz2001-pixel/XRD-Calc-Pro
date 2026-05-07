@@ -9,7 +9,7 @@ interface MaterialPreset {
   peaks: number[];
   hkls: string[];
   description: string;
-  category: 'Standard' | 'Metal' | 'Ceramic' | 'Perovskite' | 'Biomaterial' | 'Nuclear' | 'Thermoelectric';
+  category: 'Standard' | 'Metal' | 'Ceramic' | 'Perovskite' | 'Biomaterial' | 'Nuclear' | 'Thermoelectric' | 'Metallurgy';
 }
 
 const PRESETS: MaterialPreset[] = [
@@ -165,6 +165,51 @@ const PRESETS: MaterialPreset[] = [
     hkls: ['111', '200', '220', '311', '222'],
     description: 'Primary nuclear fuel in light water reactors, possessing a fluorite structure.',
     category: 'Nuclear'
+  },
+  {
+    name: 'Thorium Dioxide',
+    formula: 'ThO2',
+    wavelength: 1.5406,
+    peaks: [27.6, 31.9, 45.8, 54.4, 57.0],
+    hkls: ['111', '200', '220', '311', '222'],
+    description: 'Fertile nuclear material with the highest melting point of all oxides.',
+    category: 'Nuclear'
+  },
+  {
+    name: 'Zircaloy-4',
+    formula: 'Zr Alloy',
+    wavelength: 1.5406,
+    peaks: [31.9, 34.8, 36.5, 47.9],
+    hkls: ['100', '002', '101', '102'],
+    description: 'Zirconium alloy used for nuclear fuel cladding due to low neutron absorption.',
+    category: 'Nuclear'
+  },
+  {
+    name: 'Stainless Steel 316L',
+    formula: 'Fe-Cr-Ni',
+    wavelength: 1.5406,
+    peaks: [43.6, 50.8, 74.7],
+    hkls: ['111', '200', '220'],
+    description: 'Low-carbon FCC austenitic steel with excellent corrosion resistance.',
+    category: 'Metallurgy'
+  },
+  {
+    name: 'Aluminum 6061',
+    formula: 'Al-Mg-Si',
+    wavelength: 1.5406,
+    peaks: [38.5, 44.7, 65.1],
+    hkls: ['111', '200', '220'],
+    description: 'Common structural aluminum alloy with high strength-to-weight ratio.',
+    category: 'Metallurgy'
+  },
+  {
+    name: 'Brass (CW614N)',
+    formula: 'CuZn39Pb3',
+    wavelength: 1.5406,
+    peaks: [42.1, 49.0, 71.8],
+    hkls: ['111', '200', '220'],
+    description: 'Alpha-beta duplex brass with good machinability.',
+    category: 'Metallurgy'
   },
   {
     name: 'Bismuth Telluride',

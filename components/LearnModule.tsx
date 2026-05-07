@@ -103,7 +103,7 @@ export const LearnModule: React.FC = () => {
                         { title: 'Analyze Output', desc: 'Generate multi-dimensional visualizations and downloadable scientific reports.', icon: Zap },
                         { title: 'Invoke Intelligence', desc: 'Query the Neural Net or Crystal Intelligence Hub for complex phase identification.', icon: Sparkles }
                      ].map((step, i) => (
-                       <div key={i} className="group p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 hover:border-indigo-500/30 transition-all">
+                       <div key={`step-${i}`} className="group p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 hover:border-indigo-500/30 transition-all">
                           <div className="flex items-center justify-between mb-6">
                             <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center justify-center text-indigo-600 group-hover:scale-110 group-hover:rotate-6 transition-transform">
                                <step.icon className="w-6 h-6" />
@@ -131,7 +131,7 @@ export const LearnModule: React.FC = () => {
                        { label: 'Crystallite Size', hint: '2θ, FWHM pairs (space separated)', eg: '28.44, 0.25\n47.30, 0.28', color: 'border-emerald-500/30', text: 'text-emerald-400' },
                        { label: 'Neural PhaseID', hint: 'XY datasets (2θ, Intensity)', eg: '28.44, 100\n28.50, 45', color: 'border-violet-500/30', text: 'text-violet-400' }
                      ].map((item, i) => (
-                       <div key={i} className={`p-8 bg-slate-950 rounded-[2rem] border ${item.color} relative group overflow-hidden`}>
+                       <div key={`format-${i}`} className={`p-8 bg-slate-950 rounded-[2rem] border ${item.color} relative group overflow-hidden`}>
                           <div className="flex items-center justify-between mb-4 relative z-10">
                             <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] font-sans ${item.text}`}>{item.label}</h4>
                             <span className="text-[10px] text-slate-600 font-mono italic">{item.hint}</span>
@@ -156,7 +156,7 @@ export const LearnModule: React.FC = () => {
                        { t: 'Computer Vision Analysis', d: 'Extract peak locations directly from plot images or PDF captures.', icon: Database, color: 'text-sky-500', bg: 'bg-sky-500/10' },
                        { t: 'Strategic Reasoning', d: 'The Crystal Intelligence Hub helps design analytical pathways for novel materials.', icon: Brain, color: 'text-violet-500', bg: 'bg-violet-500/10' },
                      ].map((item, i) => (
-                       <div key={i} className="group flex gap-8 p-10 bg-slate-50 dark:bg-slate-800/30 rounded-[3rem] border border-slate-100 dark:border-slate-800 hover:border-indigo-500/20 transition-all items-center">
+                       <div key={`ai-${i}`} className="group flex gap-8 p-10 bg-slate-50 dark:bg-slate-800/30 rounded-[3rem] border border-slate-100 dark:border-slate-800 hover:border-indigo-500/20 transition-all items-center">
                           <div className={`p-6 rounded-[2rem] ${item.bg} group-hover:scale-110 transition-transform`}>
                              <item.icon className={`w-8 h-8 ${item.color}`} />
                           </div>
@@ -188,7 +188,7 @@ export const LearnModule: React.FC = () => {
                        { t: 'Rietveld Refiner', d: 'Full pattern fitting for structural parameter optimization.' },
                        { t: 'Scientific Illustrator', d: 'High-fidelity generation of structural and experimental diagrams.' }
                      ].map((m, i) => (
-                       <div key={i} className="p-6 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-3xl hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group font-sans">
+                       <div key={`mod-${i}`} className="p-6 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-3xl hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group font-sans">
                          <div className="flex items-center justify-between mb-4">
                             <h4 className="text-sm font-black text-indigo-500 uppercase tracking-widest">{m.t}</h4>
                             <div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-800 group-hover:bg-indigo-500 transition-colors" />
@@ -213,7 +213,7 @@ export const LearnModule: React.FC = () => {
                       { q: 'The Neural Net is failing to trigger.', a: 'Ensure peak lists are 2θ, Intensity pairs and that your browser is not in offline mode.' },
                       { q: 'Negative slope on W-H Plot?', a: 'Typically caused by compressive strain or inaccurate peak indexing. Re-evaluate hkl assignments.' }
                     ].map((item, i) => (
-                      <div key={i} className="p-10 bg-slate-50 dark:bg-slate-950 rounded-[2.5rem] border border-slate-100 dark:border-slate-900 group font-sans">
+                      <div key={`faq-${i}`} className="p-10 bg-slate-50 dark:bg-slate-950 rounded-[2.5rem] border border-slate-100 dark:border-slate-900 group font-sans">
                          <div className="flex items-center gap-4 mb-6">
                             <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
                                <LifeBuoy className="w-5 h-5" />
@@ -234,7 +234,7 @@ export const LearnModule: React.FC = () => {
              <div className="flex items-center gap-4">
                 <div className="flex -space-x-2">
                    {[1,2,3].map(i => (
-                     <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-800" />
+                     <div key={`validator-${i}`} className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-800" />
                    ))}
                 </div>
                 <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] font-sans">Validated by Research Guild</span>

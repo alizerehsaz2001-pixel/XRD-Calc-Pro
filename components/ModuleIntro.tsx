@@ -258,7 +258,7 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
     formulas: null
   };
 
-  const containerVariants = {
+  const containerVariants: any = {
     hidden: { opacity: 0, y: 30 },
     visible: { 
       opacity: 1, 
