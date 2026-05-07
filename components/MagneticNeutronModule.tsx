@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MagneticAtom, MagneticResult } from '../types';
+import { MagneticAtom, MagneticResult, LatticeParameters } from '../types';
 import { calculateMagneticDiffraction, NEUTRON_SCATTERING_LENGTHS, MAGNETIC_FORM_FACTORS } from '../utils/physics';
 import {
   ComposedChart,
@@ -12,12 +12,14 @@ import {
   Legend
 } from 'recharts';
 
-import { Upload, Atom, Zap, Info, Layers } from 'lucide-react';
+import { Upload, Atom, Zap, Info, Layers, Download, Move } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const MagneticNeutronModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(2.4); 
-  const [latticeA, setLatticeA] = useState<number>(4.0);
+  const [lattice, setLattice] = useState<LatticeParameters>({
+    a: 4.0, b: 4.0, c: 4.0, alpha: 90, beta: 90, gamma: 90
+  });
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState("");
   
@@ -29,13 +31,30 @@ export const MagneticNeutronModule: React.FC = () => {
   const [results, setResults] = useState<MagneticResult[]>([]);
 
   const handleCalculate = () => {
-    const computed = calculateMagneticDiffraction(wavelength, { a: latticeA }, atoms);
+    const computed = calculateMagneticDiffraction(wavelength, lattice, atoms);
     setResults(computed);
+  };
+
+  const handleExport = () => {
+    const data = {
+      lattice,
+      atoms,
+      wavelength,
+      type: 'Magnetic Neutron',
+      timestamp: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `magnetic-structure-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
     handleCalculate();
-  }, [atoms, wavelength, latticeA]);
+  }, [atoms, wavelength, lattice]);
 
   const updateAtom = (id: string, field: keyof MagneticAtom, value: any) => {
     setAtoms(atoms.map(a => {
@@ -53,8 +72,15 @@ export const MagneticNeutronModule: React.FC = () => {
   const handleImport = () => {
     try {
       const data = JSON.parse(importJson);
-      if (data.lattice && data.lattice.a) {
-        setLatticeA(data.lattice.a);
+      if (data.lattice) {
+        setLattice({
+          a: data.lattice.a || 4.0,
+          b: data.lattice.b || data.lattice.a || 4.0,
+          c: data.lattice.c || data.lattice.a || 4.0,
+          alpha: data.lattice.alpha || 90,
+          beta: data.lattice.beta || 90,
+          gamma: data.lattice.gamma || 90
+        });
       }
       if (data.atoms && Array.isArray(data.atoms)) {
         const newAtoms = data.atoms.map((a: any) => ({
@@ -82,25 +108,25 @@ export const MagneticNeutronModule: React.FC = () => {
 
   const loadPreset = (type: 'Ferro' | 'AntiFerro' | 'Ferrimagnetic' | 'Spiral') => {
     if (type === 'Ferro') {
-      setLatticeA(2.87); 
+      setLattice({ a: 2.87, b: 2.87, c: 2.87, alpha: 90, beta: 90, gamma: 90 }); 
       setAtoms([
         { id: '1', element: 'Fe', label: 'Fe', b: 9.45, x: 0, y: 0, z: 0, B_iso: 0.4, mx: 0, my: 0, mz: 2.2, ion: 'Fe3+' },
       ]);
     } else if (type === 'AntiFerro') {
-      setLatticeA(4.0);
+      setLattice({ a: 4.0, b: 4.0, c: 4.0, alpha: 90, beta: 90, gamma: 90 });
       setAtoms([
         { id: '1', element: 'Mn', label: 'Mn (Up)', b: -3.73, x: 0, y: 0, z: 0, B_iso: 0.5, mx: 0, my: 0, mz: 5, ion: 'Mn2+' },
         { id: '2', element: 'Mn', label: 'Mn (Down)', b: -3.73, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5, mx: 0, my: 0, mz: -5, ion: 'Mn2+' },
       ]);
     } else if (type === 'Ferrimagnetic') {
-      setLatticeA(8.39); // Magnetite-like
+      setLattice({ a: 8.39, b: 8.39, c: 8.39, alpha: 90, beta: 90, gamma: 90 }); // Magnetite-like
       setAtoms([
         { id: '1', element: 'Fe', label: 'Fe (Tet)', b: 9.45, x: 0.125, y: 0.125, z: 0.125, B_iso: 0.5, mx: 0, my: 0, mz: 4.0, ion: 'Fe3+' },
         { id: '2', element: 'Fe', label: 'Fe (Oct 1)', b: 9.45, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5, mx: 0, my: 0, mz: -4.0, ion: 'Fe2+' },
         { id: '3', element: 'Fe', label: 'Fe (Oct 2)', b: 9.45, x: 0.125, y: 0.5, z: 0.5, B_iso: 0.5, mx: 0, my: 0, mz: -4.0, ion: 'Fe3+' },
       ]);
     } else if (type === 'Spiral') {
-      setLatticeA(5.24); // Complex spiral-like
+      setLattice({ a: 5.24, b: 5.24, c: 5.24, alpha: 90, beta: 90, gamma: 90 }); // Complex spiral-like
       setAtoms([
         { id: '1', element: 'Co', label: 'Co 1', b: 2.49, x: 0, y: 0, z: 0, B_iso: 0.5, mx: 3.5, my: 0, mz: 0, ion: 'Co2+' },
         { id: '2', element: 'Co', label: 'Co 2', b: 2.49, x: 0.5, y: 0, z: 0, B_iso: 0.5, mx: 0, my: 3.5, mz: 0, ion: 'Co2+' },
@@ -134,22 +160,31 @@ export const MagneticNeutronModule: React.FC = () => {
               >
                 <Upload className="w-4 h-4 text-indigo-400" />
               </button>
+              <button 
+                onClick={handleExport}
+                className="p-2 bg-slate-950 border border-slate-800 rounded-xl hover:border-emerald-500/50 transition-colors"
+                title="Export Structure"
+              >
+                <Download className="w-4 h-4 text-emerald-400" />
+              </button>
             </div>
           </div>
 
           <div className="flex gap-3 mb-8 relative z-10 overflow-x-auto pb-2 scrollbar-hide">
-            <button onClick={() => loadPreset('Ferro')} className="px-4 py-1.5 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group shrink-0">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">Ferro</span>
-            </button>
-            <button onClick={() => loadPreset('AntiFerro')} className="px-4 py-1.5 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group shrink-0">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">Anti-Ferro</span>
-            </button>
-            <button onClick={() => loadPreset('Ferrimagnetic')} className="px-4 py-1.5 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group shrink-0">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">Ferrimagnetic</span>
-            </button>
-            <button onClick={() => loadPreset('Spiral')} className="px-4 py-1.5 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group shrink-0">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">Spiral Pinwheel</span>
-            </button>
+            {[
+              { id: 'Ferro', label: 'Ferro' },
+              { id: 'AntiFerro', label: 'Anti-Ferro' },
+              { id: 'Ferrimagnetic', label: 'Ferrimagnetic' },
+              { id: 'Spiral', label: 'Spiral Pinwheel' }
+            ].map(p => (
+              <button 
+                key={p.id}
+                onClick={() => loadPreset(p.id as any)} 
+                className="px-4 py-1.5 bg-slate-950/40 border border-slate-800 rounded-xl transition-all hover:bg-slate-800 hover:border-slate-700 group shrink-0"
+              >
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-white transition-colors">{p.label}</span>
+              </button>
+            ))}
           </div>
 
           <AnimatePresence>
@@ -190,26 +225,51 @@ export const MagneticNeutronModule: React.FC = () => {
           </AnimatePresence>
 
           <div className="space-y-8">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength (Å)</label>
-                 <input
-                  type="number"
-                  step="0.1"
-                  value={wavelength}
-                  onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                  className="w-full px-4 py-3 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                 />
-              </div>
-              <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Lattice a (Å)</label>
-                 <input
-                  type="number"
-                  step="0.01"
-                  value={latticeA}
-                  onChange={(e) => setLatticeA(parseFloat(e.target.value))}
-                  className="w-full px-4 py-3 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
-                 />
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength (Å)</label>
+                   <input
+                    type="number"
+                    step="0.1"
+                    value={wavelength}
+                    onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-inner"
+                   />
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    {['a', 'b', 'c'].map((axis) => (
+                      <div key={axis} className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{axis} (Å)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={lattice[axis as keyof LatticeParameters]}
+                          onChange={(e) => setLattice({ ...lattice, [axis]: parseFloat(e.target.value) })}
+                          className="w-full px-3 py-2 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {['alpha', 'beta', 'gamma'].map((angle) => (
+                      <div key={angle} className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                          {angle === 'alpha' ? 'α' : angle === 'beta' ? 'β' : 'γ'}°
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={lattice[angle as keyof LatticeParameters]}
+                          onChange={(e) => setLattice({ ...lattice, [angle]: parseFloat(e.target.value) })}
+                          className="w-full px-3 py-2 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -221,13 +281,20 @@ export const MagneticNeutronModule: React.FC = () => {
                  </div>
                </div>
                
-               <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
+               <div className="space-y-4 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
                  {atoms.map((atom) => (
                    <div key={atom.id} className="bg-slate-950/30 p-5 rounded-2xl border border-slate-800/80 group/atom hover:border-slate-700 transition-colors">
                      <div className="flex justify-between items-center mb-4">
                         <div className="flex items-center gap-3">
                           <span className="text-sm font-black text-white">{atom.label}</span>
                           <span className="text-[10px] font-bold text-slate-600 bg-black/40 px-2 py-0.5 border border-slate-800 rounded-md">b={atom.b} fm</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           {/* Small vector indicator */}
+                           <div className="flex items-center gap-1 bg-black/20 p-1 rounded-md border border-slate-800">
+                              <Move className="w-3 h-3 text-indigo-500" style={{ transform: `rotate(${Math.atan2(atom.my, atom.mx) * (180/Math.PI)}deg)` }} />
+                              <span className="text-[8px] font-black text-slate-500">M</span>
+                           </div>
                         </div>
                      </div>
                      
@@ -237,7 +304,7 @@ export const MagneticNeutronModule: React.FC = () => {
                          <select 
                            value={atom.element}
                            onChange={(e) => updateAtom(atom.id, 'element', e.target.value)}
-                           className="w-full px-3 py-2 bg-slate-900 text-white border border-slate-800 rounded-xl text-xs font-black focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                           className="w-full px-3 py-2 bg-slate-900 text-white border border-slate-800 rounded-xl text-xs font-black focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                          >
                            {Object.keys(NEUTRON_SCATTERING_LENGTHS).sort().map(el => (
                              <option key={el} value={el}>{el}</option>
@@ -249,7 +316,7 @@ export const MagneticNeutronModule: React.FC = () => {
                          <select 
                            value={atom.ion || ''}
                            onChange={(e) => updateAtom(atom.id, 'ion', e.target.value)}
-                           className="w-full px-3 py-2 bg-slate-900 text-white border border-slate-800 rounded-xl text-xs font-black focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                           className="w-full px-3 py-2 bg-slate-900 text-white border border-slate-800 rounded-xl text-xs font-black focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                          >
                            <option value="">Generic</option>
                            {Object.keys(MAGNETIC_FORM_FACTORS).sort().map(ion => (
@@ -260,9 +327,9 @@ export const MagneticNeutronModule: React.FC = () => {
                      </div>
 
                      <div className="grid grid-cols-3 gap-3 mb-4">
-                          <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">x</label><input type="number" step="0.1" value={atom.x} onChange={(e) => updateAtom(atom.id, 'x', parseFloat(e.target.value))} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black"/></div>
-                          <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">y</label><input type="number" step="0.1" value={atom.y} onChange={(e) => updateAtom(atom.id, 'y', parseFloat(e.target.value))} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black"/></div>
-                          <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">z</label><input type="number" step="0.1" value={atom.z} onChange={(e) => updateAtom(atom.id, 'z', parseFloat(e.target.value))} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black"/></div>
+                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">x</label><input type="number" step="0.1" value={atom.x} onChange={(e) => updateAtom(atom.id, 'x', parseFloat(e.target.value))} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
+                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">y</label><input type="number" step="0.1" value={atom.y} onChange={(e) => updateAtom(atom.id, 'y', parseFloat(e.target.value))} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
+                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">z</label><input type="number" step="0.1" value={atom.z} onChange={(e) => updateAtom(atom.id, 'z', parseFloat(e.target.value))} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
                      </div>
 
                      <div className="bg-indigo-500/5 p-4 rounded-2xl border border-indigo-500/10">
@@ -271,9 +338,9 @@ export const MagneticNeutronModule: React.FC = () => {
                           <span className="text-[10px] text-indigo-400 font-black uppercase tracking-widest">Moment Vector (μB)</span>
                         </div>
                         <div className="grid grid-cols-3 gap-3">
-                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mx</span><input type="number" step="0.1" value={atom.mx} onChange={(e) => updateAtom(atom.id, 'mx', parseFloat(e.target.value))} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none"/></div>
-                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">My</span><input type="number" step="0.1" value={atom.my} onChange={(e) => updateAtom(atom.id, 'my', parseFloat(e.target.value))} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none"/></div>
-                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mz</span><input type="number" step="0.1" value={atom.mz} onChange={(e) => updateAtom(atom.id, 'mz', parseFloat(e.target.value))} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none"/></div>
+                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mx</span><input type="number" step="0.1" value={atom.mx} onChange={(e) => updateAtom(atom.id, 'mx', parseFloat(e.target.value))} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
+                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">My</span><input type="number" step="0.1" value={atom.my} onChange={(e) => updateAtom(atom.id, 'my', parseFloat(e.target.value))} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
+                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mz</span><input type="number" step="0.1" value={atom.mz} onChange={(e) => updateAtom(atom.id, 'mz', parseFloat(e.target.value))} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
                         </div>
                      </div>
                    </div>

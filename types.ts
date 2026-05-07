@@ -182,6 +182,15 @@ export interface RietveldSetupResult {
   refinement_strategy: string[];
 }
 
+export interface LatticeParameters {
+  a: number;
+  b: number;
+  c: number;
+  alpha: number;
+  beta: number;
+  gamma: number;
+}
+
 export interface NeutronAtom {
   id: string;
   element: string;
@@ -199,6 +208,7 @@ export interface NeutronResult {
   twoTheta: number;
   F_squared: number;
   intensity: number;
+  xrayIntensity?: number;
 }
 
 export interface MagneticAtom extends NeutronAtom {
@@ -208,10 +218,7 @@ export interface MagneticAtom extends NeutronAtom {
   ion?: string; // e.g., 'Mn2+', 'Fe3+'
 }
 
-export interface MagneticResult {
-  hkl: [number, number, number];
-  twoTheta: number;
-  dSpacing: number;
+export interface MagneticResult extends NeutronResult {
   nuclearIntensity: number;
   magneticIntensity: number;
   totalIntensity: number;

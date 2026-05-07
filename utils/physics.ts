@@ -439,74 +439,138 @@ export const ATOMIC_NUMBERS: Record<string, number> = {
   Gd: 64, Sm: 62, Eu: 63, W: 74, Pt: 78
 };
 
-export const calculateNeutronDiffraction = (wavelength: number, lattice: { a: number }, atoms: NeutronAtom[], maxTwoTheta: number = 100): NeutronResult[] => {
-  const results = []; const { a } = lattice; if (a <= 0 || wavelength <= 0) return [];
+export const calculateDSpacing = (h: number, k: number, l: number, lattice: LatticeParameters): number => {
+  const { a, b, c, alpha, beta, gamma } = lattice;
+  const aRad = (alpha * Math.PI) / 180;
+  const bRad = (beta * Math.PI) / 180;
+  const gRad = (gamma * Math.PI) / 180;
+
+  // Volume of the unit cell
+  const V = a * b * c * Math.sqrt(
+    1 - Math.pow(Math.cos(aRad), 2) - Math.pow(Math.cos(bRad), 2) - Math.pow(Math.cos(gRad), 2) +
+    2 * Math.cos(aRad) * Math.cos(bRad) * Math.cos(gRad)
+  );
+
+  // General expression for d-spacing for any crystal system
+  // Using the reciprocal lattice metric tensor components
+  const s11 = Math.pow(b * c * Math.sin(aRad), 2);
+  const s22 = Math.pow(a * c * Math.sin(bRad), 2);
+  const s33 = Math.pow(a * b * Math.sin(gRad), 2);
+  const s12 = a * b * Math.pow(c, 2) * (Math.cos(aRad) * Math.cos(bRad) - Math.cos(gRad));
+  const s23 = a * Math.pow(b, 2) * c * (Math.cos(bRad) * Math.cos(gRad) - Math.cos(aRad));
+  const s13 = Math.pow(a, 2) * b * c * (Math.cos(aRad) * Math.cos(gRad) - Math.cos(bRad));
+
+  const invDSq = (
+    s11 * h * h + s22 * k * k + s33 * l * l +
+    2 * s12 * h * k + 2 * s23 * k * l + 2 * s13 * h * l
+  ) / Math.pow(V, 2);
+
+  return 1 / Math.sqrt(invDSq);
+};
+
+export const calculateNeutronDiffraction = (wavelength: number, lattice: LatticeParameters, atoms: NeutronAtom[], maxTwoTheta: number = 100): NeutronResult[] => {
+  const results = []; 
+  const { a, b, c } = lattice; 
+  if (a <= 0 || b <= 0 || c <= 0 || wavelength <= 0) return [];
+  
   const maxSinTheta = Math.sin((maxTwoTheta/2)*(Math.PI/180));
-  const maxIndex = Math.floor((2*a*maxSinTheta)/wavelength);
-  for (let h = 0; h <= maxIndex; h++) {
-    for (let k = 0; k <= maxIndex; k++) {
-      for (let l = 0; l <= maxIndex; l++) {
+  const maxDim = Math.max(a, b, c);
+  const maxIndex = Math.ceil((2 * maxDim * maxSinTheta) / wavelength);
+
+  for (let h = -maxIndex; h <= maxIndex; h++) {
+    for (let k = -maxIndex; k <= maxIndex; k++) {
+      for (let l = -maxIndex; l <= maxIndex; l++) {
         if (h === 0 && k === 0 && l === 0) continue;
-        const d = a / Math.sqrt(h*h + k*k + l*l);
-        const sinTheta = wavelength / (2*d);
+        const d = calculateDSpacing(h, k, l, lattice);
+        const sinTheta = wavelength / (2 * d);
         if (sinTheta > 1 || sinTheta > maxSinTheta) continue;
+
         let Fr = 0; let Fi = 0;
         for (const atom of atoms) {
-          const phase = 2 * Math.PI * (h*atom.x + k*atom.y + l*atom.z);
-          const weight = atom.b * Math.exp(-atom.B_iso * Math.pow(sinTheta/wavelength, 2));
+          const phase = 2 * Math.PI * (h * atom.x + k * atom.y + l * atom.z);
+          const weight = atom.b * Math.exp(-atom.B_iso * Math.pow(sinTheta / wavelength, 2));
           Fr += weight * Math.cos(phase); Fi += weight * Math.sin(phase);
         }
-        const Fsq = Fr*Fr + Fi*Fi;
-        const int = Fsq / (sinTheta * Math.sin(2 * Math.asin(sinTheta)));
-        if (int > 1e-4) results.push({ hkl: [h,k,l], dSpacing: d, twoTheta: 2*Math.asin(sinTheta)*(180/Math.PI), F_squared: Fsq, intensity: int });
+        const Fsq = Fr * Fr + Fi * Fi;
+        const theta = Math.asin(sinTheta);
+        const lp = 1 / (sinTheta * Math.sin(2 * theta));
+        const int = Fsq * lp;
+
+        if (int > 1e-4) {
+          const existing = results.find(r => Math.abs(r.twoTheta - 2 * theta * (180 / Math.PI)) < 0.01);
+          if (existing) {
+            existing.intensity += int;
+            existing.F_squared += Fsq;
+          } else {
+            results.push({ 
+              hkl: [Math.abs(h), Math.abs(k), Math.abs(l)], 
+              dSpacing: d, 
+              twoTheta: 2 * theta * (180 / Math.PI), 
+              F_squared: Fsq, 
+              intensity: int 
+            });
+          }
+        }
       }
     }
   }
+  if (results.length === 0) return [];
   const maxInt = Math.max(...results.map(r => r.intensity));
-  return results.sort((a,b) => a.twoTheta - b.twoTheta).map(r => ({ ...r, intensity: (r.intensity/maxInt)*100 }));
+  return results.sort((a, b) => a.twoTheta - b.twoTheta).map(r => ({ ...r, intensity: (r.intensity / maxInt) * 100 }));
 };
 
-export const calculateXRayDiffraction = (wavelength: number, lattice: { a: number }, atoms: NeutronAtom[], maxTwoTheta: number = 100): NeutronResult[] => {
-  const results = []; const { a } = lattice; if (a <= 0 || wavelength <= 0) return [];
-  const maxSinTheta = Math.sin((maxTwoTheta/2)*(Math.PI/180));
-  const maxIndex = Math.floor((2*a*maxSinTheta)/wavelength);
+export const calculateXRayDiffraction = (wavelength: number, lattice: LatticeParameters, atoms: NeutronAtom[], maxTwoTheta: number = 100): NeutronResult[] => {
+  const results = []; 
+  const { a, b, c } = lattice; 
+  if (a <= 0 || b <= 0 || c <= 0 || wavelength <= 0) return [];
   
-  for (let h = 0; h <= maxIndex; h++) {
-    for (let k = 0; k <= maxIndex; k++) {
-      for (let l = 0; l <= maxIndex; l++) {
+  const maxSinTheta = Math.sin((maxTwoTheta / 2) * (Math.PI / 180));
+  const maxDim = Math.max(a, b, c);
+  const maxIndex = Math.ceil((2 * maxDim * maxSinTheta) / wavelength);
+  
+  for (let h = -maxIndex; h <= maxIndex; h++) {
+    for (let k = -maxIndex; k <= maxIndex; k++) {
+      for (let l = -maxIndex; l <= maxIndex; l++) {
         if (h === 0 && k === 0 && l === 0) continue;
-        const d = a / Math.sqrt(h*h + k*k + l*l);
-        const sinTheta = wavelength / (2*d);
+        const d = calculateDSpacing(h, k, l, lattice);
+        const sinTheta = wavelength / (2 * d);
         if (sinTheta > 1 || sinTheta > maxSinTheta) continue;
         
         let Fr = 0; let Fi = 0;
-        const s = sinTheta / wavelength; // s = sin(theta)/lambda
+        const s = sinTheta / wavelength;
 
         for (const atom of atoms) {
-          const phase = 2 * Math.PI * (h*atom.x + k*atom.y + l*atom.z);
-          
-          // X-ray Form Factor Approximation
-          // f(s) approx Z * exp(-B * s^2) is a very rough approx but captures the falloff
-          // Better: f(s) = Z / (1 + (s/0.2)^2) or similar.
-          // Let's use a simple Gaussian falloff from Z to simulate electron cloud size
+          const phase = 2 * Math.PI * (h * atom.x + k * atom.y + l * atom.z);
           const Z = ATOMIC_NUMBERS[atom.element] || 10;
-          // Heuristic falloff: f(s) drops to half at s ~ 0.5 A^-1
           const f0 = Z * Math.exp(-2 * s * s); 
-
           const weight = f0 * Math.exp(-atom.B_iso * s * s);
           Fr += weight * Math.cos(phase); Fi += weight * Math.sin(phase);
         }
-        const Fsq = Fr*Fr + Fi*Fi;
-        // LP Factor
-        const lp = (1 + Math.cos(2*Math.asin(sinTheta))**2) / (sinTheta * Math.sin(2 * Math.asin(sinTheta)));
+        const Fsq = Fr * Fr + Fi * Fi;
+        const theta = Math.asin(sinTheta);
+        const lp = (1 + Math.pow(Math.cos(2 * theta), 2)) / (sinTheta * Math.sin(2 * theta));
         const int = Fsq * lp;
 
-        if (int > 1e-4) results.push({ hkl: [h,k,l], dSpacing: d, twoTheta: 2*Math.asin(sinTheta)*(180/Math.PI), F_squared: Fsq, intensity: int });
+        if (int > 1e-4) {
+          const existing = results.find(r => Math.abs(r.twoTheta - 2 * theta * (180 / Math.PI)) < 0.01);
+          if (existing) {
+            existing.intensity += int;
+          } else {
+            results.push({ 
+              hkl: [Math.abs(h), Math.abs(k), Math.abs(l)], 
+              dSpacing: d, 
+              twoTheta: 2 * theta * (180 / Math.PI), 
+              F_squared: Fsq, 
+              intensity: int 
+            });
+          }
+        }
       }
     }
   }
+  if (results.length === 0) return [];
   const maxInt = Math.max(...results.map(r => r.intensity));
-  return results.sort((a,b) => a.twoTheta - b.twoTheta).map(r => ({ ...r, intensity: (r.intensity/maxInt)*100 }));
+  return results.sort((a, b) => a.twoTheta - b.twoTheta).map(r => ({ ...r, intensity: (r.intensity / maxInt) * 100 }));
 };
 
 export const MAGNETIC_FORM_FACTORS: Record<string, { A: number, a: number, B: number, b: number, C: number, c: number, D: number }> = {
@@ -519,58 +583,103 @@ export const MAGNETIC_FORM_FACTORS: Record<string, { A: number, a: number, B: nu
   'Cr3+': { A: 0.3644, a: 12.441, B: 0.2473, b: 4.492, C: 0.3926, c: 1.458, D: -0.0043 }
 };
 
-export const calculateMagneticDiffraction = (wavelength: number, lattice: { a: number }, atoms: MagneticAtom[], maxTwoTheta: number = 100): MagneticResult[] => {
-  const results = []; const { a } = lattice; if (a <= 0 || wavelength <= 0) return [];
-  const maxSinTheta = Math.sin((maxTwoTheta/2)*(Math.PI/180));
-  const maxIndex = Math.floor((2*a*maxSinTheta)/wavelength);
-  for (let h = 0; h <= maxIndex; h++) {
-    for (let k = 0; k <= maxIndex; k++) {
-      for (let l = 0; l <= maxIndex; l++) {
+export const calculateMagneticDiffraction = (wavelength: number, lattice: LatticeParameters, atoms: MagneticAtom[], maxTwoTheta: number = 100): MagneticResult[] => {
+  const results = []; 
+  const { a, b, c } = lattice; 
+  if (a <= 0 || b <= 0 || c <= 0 || wavelength <= 0) return [];
+  
+  const maxSinTheta = Math.sin((maxTwoTheta / 2) * (Math.PI / 180));
+  const maxDim = Math.max(a, b, c);
+  const maxIndex = Math.ceil((2 * maxDim * maxSinTheta) / wavelength);
+
+  for (let h = -maxIndex; h <= maxIndex; h++) {
+    for (let k = -maxIndex; k <= maxIndex; k++) {
+      for (let l = -maxIndex; l <= maxIndex; l++) {
         if (h === 0 && k === 0 && l === 0) continue;
-        const d = a / Math.sqrt(h*h + k*k + l*l);
-        const sinTheta = wavelength / (2*d);
+        const d = calculateDSpacing(h, k, l, lattice);
+        const sinTheta = wavelength / (2 * d);
         if (sinTheta > 1 || sinTheta > maxSinTheta) continue;
-        const s = sinTheta/wavelength;
-        let Fn_r = 0; let Fn_i = 0; let Fm_r = { x: 0, y: 0, z: 0 }; let Fm_i = { x: 0, y: 0, z: 0 };
-        const Qmag = Math.sqrt(h*h + k*k + l*l); const Qhat = { x: h/Qmag, y: k/Qmag, z: l/Qmag };
+        
+        const s = sinTheta / wavelength;
+        let Fn_r = 0; let Fn_i = 0; 
+        let Fm_r = { x: 0, y: 0, z: 0 }; let Fm_i = { x: 0, y: 0, z: 0 };
+        
+        // Q vector in reciprocal space components
+        const Qmag = 1 / d; 
+        // Approx relative components for magnetic orientation:
+        const Qhat = { x: (h / a) / Qmag, y: (k / b) / Qmag, z: (l / c) / Qmag };
+
         for (const atom of atoms) {
-          const phase = 2 * Math.PI * (h*atom.x + k*atom.y + l*atom.z);
+          const phase = 2 * Math.PI * (h * atom.x + k * atom.y + l * atom.z);
           const T = Math.exp(-atom.B_iso * s * s);
-          Fn_r += atom.b * T * Math.cos(phase); Fn_i += atom.b * T * Math.sin(phase);
+          Fn_r += atom.b * T * Math.cos(phase); 
+          Fn_i += atom.b * T * Math.sin(phase);
           
-          // Magnetic Form Factor Calculation
           let f_mag = 0;
           if (atom.ion && MAGNETIC_FORM_FACTORS[atom.ion]) {
-             const { A, a, B, b, C, c, D } = MAGNETIC_FORM_FACTORS[atom.ion];
-             f_mag = A * Math.exp(-a * s * s) + B * Math.exp(-b * s * s) + C * Math.exp(-c * s * s) + D;
+             const { A, a: mA, B, b: mB, C, c: mC, D } = MAGNETIC_FORM_FACTORS[atom.ion];
+             f_mag = A * Math.exp(-mA * s * s) + B * Math.exp(-mB * s * s) + C * Math.exp(-mC * s * s) + D;
           } else {
-             // Fallback to generic Gaussian if no ion specified
              f_mag = Math.exp(-4 * s * s);
           }
 
-          const MdotQ = atom.mx*Qhat.x + atom.my*Qhat.y + atom.mz*Qhat.z;
-          const weight = 2.696 * f_mag * T; // 2.696 fm is magnetic scattering length of electron
+          const MdotQ = atom.mx * Qhat.x + atom.my * Qhat.y + atom.mz * Qhat.z;
+          const weight = 2.696 * f_mag * T; 
           
-          Fm_r.x += weight * (atom.mx - MdotQ*Qhat.x) * Math.cos(phase);
-          Fm_r.y += weight * (atom.my - MdotQ*Qhat.y) * Math.cos(phase);
-          Fm_r.z += weight * (atom.mz - MdotQ*Qhat.z) * Math.cos(phase);
+          const component = {
+            x: atom.mx - MdotQ * Qhat.x,
+            y: atom.my - MdotQ * Qhat.y,
+            z: atom.mz - MdotQ * Qhat.z
+          };
+
+          Fm_r.x += weight * component.x * Math.cos(phase);
+          Fm_r.y += weight * component.y * Math.cos(phase);
+          Fm_r.z += weight * component.z * Math.cos(phase);
           
-          Fm_i.x += weight * (atom.mx - MdotQ*Qhat.x) * Math.sin(phase);
-          Fm_i.y += weight * (atom.my - MdotQ*Qhat.y) * Math.sin(phase);
-          Fm_i.z += weight * (atom.mz - MdotQ*Qhat.z) * Math.sin(phase);
+          Fm_i.x += weight * component.x * Math.sin(phase);
+          Fm_i.y += weight * component.y * Math.sin(phase);
+          Fm_i.z += weight * component.z * Math.sin(phase);
         }
         
-        const In = (Fn_r*Fn_r + Fn_i*Fn_i); 
-        // Magnetic intensity is sum of squared moduli of vector components
-        const Im = (Fm_r.x*Fm_r.x + Fm_i.x*Fm_i.x) + (Fm_r.y*Fm_r.y + Fm_i.y*Fm_i.y) + (Fm_r.z*Fm_r.z + Fm_i.z*Fm_i.z);
+        const In = (Fn_r * Fn_r + Fn_i * Fn_i); 
+        const Im = (Fm_r.x * Fm_r.x + Fm_i.x * Fm_i.x) + (Fm_r.y * Fm_r.y + Fm_i.y * Fm_i.y) + (Fm_r.z * Fm_r.z + Fm_i.z * Fm_i.z);
         
-        const L = 1 / (sinTheta * Math.sin(2*Math.asin(sinTheta)));
-        if (In+Im > 1e-4) results.push({ hkl: [h,k,l], twoTheta: 2*Math.asin(sinTheta)*(180/Math.PI), dSpacing: d, nuclearIntensity: In*L, magneticIntensity: Im*L, totalIntensity: (In+Im)*L });
+        const theta = Math.asin(sinTheta);
+        const L = 1 / (sinTheta * Math.sin(2 * theta));
+        const total = (In + Im) * L;
+
+        if (total > 1e-4) {
+          const twoTheta = 2 * theta * (180 / Math.PI);
+          const existing = results.find(r => Math.abs(r.twoTheta - twoTheta) < 0.01);
+          if (existing) {
+            existing.nuclearIntensity += In * L;
+            existing.magneticIntensity += Im * L;
+            existing.totalIntensity += total;
+          } else {
+            results.push({ 
+              hkl: [Math.abs(h), Math.abs(k), Math.abs(l)], 
+              twoTheta, 
+              dSpacing: d, 
+              nuclearIntensity: In * L, 
+              magneticIntensity: Im * L, 
+              totalIntensity: total,
+              F_squared: In + Im,
+              intensity: total // for general NeutronResult compatibility
+            });
+          }
+        }
       }
     }
   }
+  if (results.length === 0) return [];
   const maxI = Math.max(...results.map(r => r.totalIntensity));
-  return results.sort((a,b) => a.twoTheta - b.twoTheta).map(r => ({ ...r, nuclearIntensity: (r.nuclearIntensity/maxI)*100, magneticIntensity: (r.magneticIntensity/maxI)*100, totalIntensity: (r.totalIntensity/maxI)*100 }));
+  return results.sort((a, b) => a.twoTheta - b.twoTheta).map(r => ({ 
+    ...r, 
+    nuclearIntensity: (r.nuclearIntensity / maxI) * 100, 
+    magneticIntensity: (r.magneticIntensity / maxI) * 100, 
+    totalIntensity: (r.totalIntensity / maxI) * 100,
+    intensity: (r.totalIntensity / maxI) * 100
+  }));
 };
 
 export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: number }[]): DLPhaseResult => {

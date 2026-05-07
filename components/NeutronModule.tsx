@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { NeutronAtom, NeutronResult, StandardWavelength } from '../types';
+import { NeutronAtom, NeutronResult, StandardWavelength, LatticeParameters } from '../types';
 import { calculateNeutronDiffraction, calculateXRayDiffraction, NEUTRON_SCATTERING_LENGTHS, ATOMIC_NUMBERS } from '../utils/physics';
 import { fetchStandardWavelengths } from '../services/geminiService';
 import {
@@ -15,7 +15,7 @@ import {
   Legend,
   ComposedChart
 } from 'recharts';
-import { Layers, Zap, Atom, Upload, Download, Info } from 'lucide-react';
+import { Layers, Zap, Atom, Upload, Download, Info, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const NeutronModule: React.FC = () => {
@@ -25,7 +25,9 @@ export const NeutronModule: React.FC = () => {
     { label: 'Cold (Be Filter)', value: 3.96, type: 'Neutron' },
   ]);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [latticeA, setLatticeA] = useState<number>(4.20); 
+  const [lattice, setLattice] = useState<LatticeParameters>({
+    a: 4.20, b: 4.20, c: 4.20, alpha: 90, beta: 90, gamma: 90
+  });
   const [comparisonMode, setComparisonMode] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState("");
@@ -39,15 +41,31 @@ export const NeutronModule: React.FC = () => {
   const [xrayResults, setXrayResults] = useState<NeutronResult[]>([]);
 
   const handleCalculate = () => {
-    const nResults = calculateNeutronDiffraction(wavelength, { a: latticeA }, atoms);
+    const nResults = calculateNeutronDiffraction(wavelength, lattice, atoms);
     setNeutronResults(nResults);
 
     if (comparisonMode) {
-      const xResults = calculateXRayDiffraction(wavelength, { a: latticeA }, atoms);
+      const xResults = calculateXRayDiffraction(wavelength, lattice, atoms);
       setXrayResults(xResults);
     } else {
       setXrayResults([]);
     }
+  };
+
+  const handleExport = () => {
+    const data = {
+      lattice,
+      atoms,
+      wavelength,
+      timestamp: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `neutron-structure-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleSync = async () => {
@@ -67,11 +85,17 @@ export const NeutronModule: React.FC = () => {
   const handleImport = () => {
     try {
       const data = JSON.parse(importJson);
-      if (data.lattice && data.lattice.a) {
-        setLatticeA(data.lattice.a);
+      if (data.lattice) {
+        setLattice({
+          a: data.lattice.a || 4.2,
+          b: data.lattice.b || data.lattice.a || 4.2,
+          c: data.lattice.c || data.lattice.a || 4.2,
+          alpha: data.lattice.alpha || 90,
+          beta: data.lattice.beta || 90,
+          gamma: data.lattice.gamma || 90
+        });
       }
       if (data.atoms && Array.isArray(data.atoms)) {
-        // Map imported atoms to NeutronAtom structure, looking up scattering lengths if needed
         const newAtoms = data.atoms.map((a: any) => ({
           id: a.id || Date.now().toString() + Math.random(),
           element: a.element,
@@ -93,7 +117,7 @@ export const NeutronModule: React.FC = () => {
 
   useEffect(() => {
     handleCalculate();
-  }, [atoms, wavelength, latticeA, comparisonMode]);
+  }, [atoms, wavelength, lattice, comparisonMode]);
 
   const addAtom = () => {
     setAtoms([...atoms, { 
@@ -127,29 +151,29 @@ export const NeutronModule: React.FC = () => {
 
   const loadPreset = (type: 'MgO' | 'D2O' | 'SrTiO3' | 'MnO') => {
     if (type === 'MgO') {
-       setLatticeA(4.21);
+       setLattice({ a: 4.21, b: 4.21, c: 4.21, alpha: 90, beta: 90, gamma: 90 });
        setAtoms([
          { id: '1', element: 'Mg', label: 'Mg', b: 5.38, x: 0, y: 0, z: 0, B_iso: 0.3 },
          { id: '2', element: 'O', label: 'O', b: 5.80, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5 }
        ]);
     } else if (type === 'D2O') {
-       setLatticeA(6.35);
+       setLattice({ a: 6.35, b: 6.35, c: 6.35, alpha: 90, beta: 90, gamma: 90 });
        setAtoms([
          { id: '1', element: 'O', label: 'O', b: 5.80, x: 0, y: 0, z: 0, B_iso: 1.0 },
          { id: '2', element: 'D', label: 'D', b: 6.67, x: 0.33, y: 0.33, z: 0.33, B_iso: 1.5 },
          { id: '3', element: 'D', label: 'D', b: 6.67, x: 0.66, y: 0.66, z: 0.66, B_iso: 1.5 }
        ]);
     } else if (type === 'SrTiO3') {
-       setLatticeA(3.905); 
+       setLattice({ a: 3.905, b: 3.905, c: 3.905, alpha: 90, beta: 90, gamma: 90 });
        setAtoms([
-         { id: '1', element: 'Sr', label: 'Sr', b: 7.02, x: 0, y: 0, z: 0, B_iso: 0.4 }, // Sr wasn't in list, using approx or need to add. Let's use Ti for now if Sr missing, or add Sr. Sr is ~7.02.
+         { id: '1', element: 'Sr', label: 'Sr', b: 7.02, x: 0, y: 0, z: 0, B_iso: 0.4 },
          { id: '2', element: 'Ti', label: 'Ti', b: -3.44, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.4 },
          { id: '3', element: 'O', label: 'O', b: 5.80, x: 0.5, y: 0.5, z: 0, B_iso: 0.6 },
          { id: '4', element: 'O', label: 'O', b: 5.80, x: 0.5, y: 0, z: 0.5, B_iso: 0.6 },
          { id: '5', element: 'O', label: 'O', b: 5.80, x: 0, y: 0.5, z: 0.5, B_iso: 0.6 },
        ]);
     } else if (type === 'MnO') {
-      setLatticeA(4.44);
+      setLattice({ a: 4.44, b: 4.44, c: 4.44, alpha: 90, beta: 90, gamma: 90 });
       setAtoms([
         { id: '1', element: 'Mn', label: 'Mn (Neg b!)', b: -3.73, x: 0, y: 0, z: 0, B_iso: 0.5 },
         { id: '2', element: 'O', label: 'O', b: 5.80, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.5 }
@@ -192,6 +216,16 @@ export const NeutronModule: React.FC = () => {
                 <div className="flex items-center gap-2 relative z-10">
                   <Upload className="w-3.5 h-3.5 text-indigo-400" />
                   <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Import</span>
+                </div>
+              </button>
+              <button 
+                onClick={handleExport}
+                className="group relative px-3 py-2 bg-slate-950/50 border border-slate-800 rounded-xl transition-all hover:border-emerald-500/50"
+              >
+                <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/5 rounded-xl transition-colors" />
+                <div className="flex items-center gap-2 relative z-10">
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Export</span>
                 </div>
               </button>
             </div>
@@ -249,53 +283,75 @@ export const NeutronModule: React.FC = () => {
           )}
 
           <div className="space-y-8 relative z-10">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                 <div className="flex justify-between items-center">
-                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength</label>
-                   <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/5 text-[9px] font-black text-blue-400 hover:bg-blue-500/10 transition-colors uppercase tracking-widest border border-blue-500/20">
-                     <Zap className={`w-2.5 h-2.5 ${isSyncing ? 'animate-pulse' : ''}`} /> Sync
-                   </button>
-                 </div>
-                 <div className="relative group">
-                   <input
-                    type="number"
-                    step="0.01"
-                    value={wavelength}
-                    onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                    className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700"
-                   />
-                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Å</span>
-                 </div>
-                 <div className="flex flex-wrap gap-2 mt-3">
-                   {availableWavelengths.map(aw => (
-                     <button 
-                        key={aw.label} 
-                        onClick={() => setWavelength(aw.value)}
-                        className={`px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
-                          wavelength === aw.value 
-                            ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
-                            : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
-                        }`}
-                        title={aw.label}
-                     >
-                       {aw.label.split(' ')[0]}
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                   <div className="flex justify-between items-center">
+                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength</label>
+                     <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/5 text-[9px] font-black text-blue-400 hover:bg-blue-500/10 transition-colors uppercase tracking-widest border border-blue-500/20">
+                       <Zap className={`w-2.5 h-2.5 ${isSyncing ? 'animate-pulse' : ''}`} /> Sync
                      </button>
-                   ))}
-                 </div>
-              </div>
-              <div className="space-y-2">
-                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Lattice Parameter</label>
-                 <div className="relative group">
-                   <input
-                    type="number"
-                    step="0.01"
-                    value={latticeA}
-                    onChange={(e) => setLatticeA(parseFloat(e.target.value))}
-                    className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700"
-                   />
-                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest pr-4 border-r border-slate-800">a</span>
-                 </div>
+                   </div>
+                   <div className="relative group">
+                     <input
+                      type="number"
+                      step="0.01"
+                      value={wavelength}
+                      onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                      className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700"
+                     />
+                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Å</span>
+                   </div>
+                   <div className="flex flex-wrap gap-2 mt-3">
+                     {availableWavelengths.map(aw => (
+                       <button 
+                          key={aw.label} 
+                          onClick={() => setWavelength(aw.value)}
+                          className={`px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
+                            wavelength === aw.value 
+                              ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
+                              : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                          }`}
+                          title={aw.label}
+                       >
+                         {aw.label.split(' ')[0]}
+                       </button>
+                     ))}
+                   </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    {['a', 'b', 'c'].map((axis) => (
+                      <div key={axis} className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{axis} (Å)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={lattice[axis as keyof LatticeParameters]}
+                          onChange={(e) => setLattice({ ...lattice, [axis]: parseFloat(e.target.value) })}
+                          className="w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {['alpha', 'beta', 'gamma'].map((angle) => (
+                      <div key={angle} className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                          {angle === 'alpha' ? 'α' : angle === 'beta' ? 'β' : 'γ'}°
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={lattice[angle as keyof LatticeParameters]}
+                          onChange={(e) => setLattice({ ...lattice, [angle]: parseFloat(e.target.value) })}
+                          className="w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -471,34 +527,46 @@ export const NeutronModule: React.FC = () => {
                <span className="w-4 h-[1px] bg-slate-600"></span> Reflections Table
              </h3>
           </div>
-          <div className="overflow-auto flex-1 custom-scrollbar">
-             <table className="w-full text-sm text-left text-slate-300">
-                <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-900/80 sticky top-0 backdrop-blur-sm z-10">
-                   <tr>
-                      <th className="px-5 py-3 font-bold border-b border-slate-800">HKL</th>
-                      <th className="px-5 py-3 font-bold border-b border-slate-800">2θ (°)</th>
-                      <th className="px-5 py-3 font-bold border-b border-slate-800">d (Å)</th>
-                      <th className="px-5 py-3 font-bold border-b border-slate-800 text-right text-blue-400">Neutron %</th>
-                      {comparisonMode && (
-                        <th className="px-5 py-3 font-bold border-b border-slate-800 text-right text-purple-400">X-ray %</th>
-                      )}
-                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/50">
-                   {chartData.map((r, i) => (
-                      <tr key={`${r.twoTheta}-${i}`} className="bg-slate-900 hover:bg-slate-800/80 transition-colors group">
-                         <td className="px-5 py-2.5 font-mono font-bold text-slate-200 group-hover:text-white transition-colors">{r.hkl.join(' ')}</td>
-                         <td className="px-5 py-2.5 text-slate-400 font-medium">{r.twoTheta.toFixed(2)}</td>
-                         <td className="px-5 py-2.5 text-slate-500 font-medium font-mono">{r.dSpacing.toFixed(3)}</td>
-                         <td className="px-5 py-2.5 font-bold text-right text-blue-400 bg-blue-500/5">{r.intensity.toFixed(1)}</td>
-                         {comparisonMode && (
-                           <td className="px-5 py-2.5 font-bold text-right text-purple-400 bg-purple-500/5">{r.xrayIntensity.toFixed(1)}</td>
-                         )}
-                      </tr>
-                   ))}
-                </tbody>
-             </table>
-          </div>
+           <div className="overflow-auto flex-1 custom-scrollbar">
+              <table className="w-full text-sm text-left text-slate-300 border-collapse">
+                 <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-900/80 sticky top-0 backdrop-blur-sm z-10">
+                    <tr>
+                       <th className="px-5 py-4 font-black border-b border-slate-800">HKL Plane</th>
+                       <th className="px-5 py-4 font-black border-b border-slate-800 text-center">2θ (°)</th>
+                       <th className="px-5 py-4 font-black border-b border-slate-800 text-center">d (Å)</th>
+                       <th className="px-5 py-4 font-black border-b border-slate-800 text-right">|F|²</th>
+                       <th className="px-5 py-4 font-black border-b border-slate-800 text-right text-blue-400">Int %</th>
+                       {comparisonMode && (
+                         <th className="px-5 py-4 font-black border-b border-slate-800 text-right text-purple-400">X-Ray %</th>
+                       )}
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-slate-800/30">
+                    {chartData.map((r, i) => (
+                       <tr key={`${r.twoTheta}-${i}`} className="bg-slate-900 hover:bg-slate-800/80 transition-colors group">
+                          <td className="px-5 py-3 font-mono font-bold text-slate-200 group-hover:text-white transition-colors">
+                            <span className="opacity-30 mr-1 text-[10px]">[</span>
+                            {r.hkl.join(' ')}
+                            <span className="opacity-30 ml-1 text-[10px]">]</span>
+                          </td>
+                          <td className="px-5 py-3 text-slate-400 font-medium text-center">{r.twoTheta.toFixed(2)}</td>
+                          <td className="px-5 py-3 text-slate-500 font-medium font-mono text-center">{r.dSpacing.toFixed(3)}</td>
+                          <td className="px-5 py-3 text-right font-mono text-xs text-slate-400">
+                             {r.F_squared.toFixed(1)}
+                          </td>
+                          <td className="px-5 py-3 font-bold text-right text-blue-400 bg-blue-500/5 transition-colors group-hover:bg-blue-500/10">
+                            {r.intensity.toFixed(1)}
+                          </td>
+                          {comparisonMode && (
+                            <td className="px-5 py-3 font-bold text-right text-purple-400 bg-purple-500/5 transition-colors group-hover:bg-purple-500/10">
+                              {r.xrayIntensity?.toFixed(1)}
+                            </td>
+                          )}
+                       </tr>
+                    ))}
+                 </tbody>
+              </table>
+           </div>
         </div>
       </div>
     </div>
