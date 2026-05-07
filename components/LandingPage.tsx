@@ -114,7 +114,26 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
     "SYNCHING CRYSTALLOGRAPHY DATABASE...",
   ]);
 
+  const [authId, setAuthId] = React.useState('');
+  const [authKey, setAuthKey] = React.useState('');
+  const [authStatus, setAuthStatus] = React.useState<'idle' | 'authenticating' | 'granted'>('idle');
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authId || !authKey) return;
+    setAuthStatus('authenticating');
+    setSystemLogs(prev => [...prev.slice(-3), `AUTHENTICATING ID: ${authId}...`, "VERIFYING CRYPTOGRAPHIC HANDSHAKE..."]);
+    setTimeout(() => {
+      setAuthStatus('granted');
+      setSystemLogs(prev => [...prev.slice(-3), "ACCESS GRANTED. WELCOME DR. ZEREHSAZ.", "INITIALIZING MODULES..."]);
+      setTimeout(() => {
+        onEnter();
+      }, 1200);
+    }, 2000); // simulated futuristic delay
+  };
+
   React.useEffect(() => {
+    if (authStatus !== 'idle') return;
     const logs = [
       "CALIBRATING X-RAY SOURCE [Cu-Kα]...",
       "VERIFYING GONIOMETER STEP PRECISION...",
@@ -124,11 +143,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
     ];
     let i = 0;
     const timer = setInterval(() => {
-      setSystemLogs(prev => [...prev.slice(-4), logs[i]]);
+      setSystemLogs(prev => {
+        const newLogs = [...prev, logs[i]];
+        return newLogs.length > 4 ? newLogs.slice(-4) : newLogs;
+      });
       i = (i + 1) % logs.length;
     }, 2500);
     return () => clearInterval(timer);
-  }, []);
+  }, [authStatus]);
 
   const features = [
     {
@@ -224,7 +246,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
              </div>
-             <span className="text-[9px] font-black uppercase tracking-[0.3em] text-violet-300">Phase 3 Architecture Active</span>
+             <span className="text-[9px] font-black uppercase tracking-[0.3em] text-violet-300">Restricted Access • Level 3</span>
            </motion.div>
 
            <h1 className="text-6xl sm:text-7xl lg:text-[7rem] font-black tracking-tighter mb-8 text-white uppercase italic leading-[0.85] drop-shadow-2xl flex flex-col w-full">
@@ -235,29 +257,72 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
              </span>
            </h1>
            
-           <p className="text-lg lg:text-2xl text-slate-400 max-w-xl font-medium leading-relaxed mb-12 tracking-tight">
-             The high-fidelity computational framework for <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-indigo-300 font-bold">Diffraction Physics</span>. 
-             Engineered for exact phase identification, structural synthesis, and neural lattice mapping.
-           </p>
+           <div className="w-full max-w-md mb-12">
+             <p className="text-sm text-slate-400 font-medium leading-relaxed mb-6 tracking-tight">
+               Secure computational framework for <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-300 font-bold">Diffraction Physics</span>. Please authenticate to access the laboratory modules.
+             </p>
 
-           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-6 w-full mb-16">
-             <motion.button 
-               whileHover={{ scale: 1.02 }}
-               whileTap={{ scale: 0.98 }}
-               onClick={onEnter}
-               className="group relative flex items-center justify-center px-12 py-6 bg-white text-slate-950 text-xs font-black uppercase tracking-[0.3em] rounded-2xl overflow-hidden transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(139,92,246,0.4)]"
-             >
-               <div className="absolute inset-0 bg-gradient-to-r from-violet-200 via-white to-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-               <span className="relative z-10 flex items-center gap-3">
-                 Initialize Platform
-                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform duration-300" />
-               </span>
-             </motion.button>
-             
-             <button className="flex items-center justify-center gap-3 group px-8 py-6 text-slate-400 hover:text-white border border-slate-800 rounded-2xl hover:border-violet-500/50 transition-all text-[10px] font-black uppercase tracking-widest bg-slate-900/60 backdrop-blur-md hover:shadow-[0_0_30px_rgba(139,92,246,0.1)]">
-               <Database className="w-4 h-4 text-violet-500 group-hover:text-violet-400 transition-colors" />
-               Index Library
-             </button>
+             <form onSubmit={handleLogin} className="space-y-6">
+               <div className="space-y-4">
+                 <div className="relative group/input">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Terminal className="w-4 h-4 text-slate-500 group-focus-within/input:text-violet-400 transition-colors" />
+                    </div>
+                    <input 
+                      type="text" 
+                      required
+                      disabled={authStatus !== 'idle'}
+                      placeholder="Researcher ID (e.g., AZ-2001)"
+                      value={authId}
+                      onChange={(e) => setAuthId(e.target.value)}
+                      className="w-full bg-[#030712]/50 border border-slate-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all backdrop-blur-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                 </div>
+                 
+                 <div className="relative group/input">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <ShieldCheck className="w-4 h-4 text-slate-500 group-focus-within/input:text-violet-400 transition-colors" />
+                    </div>
+                    <input 
+                      type="password" 
+                      required
+                      disabled={authStatus !== 'idle'}
+                      placeholder="Access Key / Clearance Level"
+                      value={authKey}
+                      onChange={(e) => setAuthKey(e.target.value)}
+                      className="w-full bg-[#030712]/50 border border-slate-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all backdrop-blur-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                 </div>
+               </div>
+
+               <motion.button 
+                 whileHover={{ scale: 1.02 }}
+                 whileTap={{ scale: 0.98 }}
+                 type="submit"
+                 disabled={authStatus !== 'idle'}
+                 className={`group relative w-full flex items-center justify-center px-8 py-5 bg-white text-slate-950 text-xs font-black uppercase tracking-[0.3em] rounded-2xl overflow-hidden transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(139,92,246,0.4)] disabled:opacity-80 disabled:cursor-wait ${authStatus === 'granted' ? 'bg-emerald-400 text-emerald-950 shadow-[0_0_40px_rgba(16,185,129,0.4)]' : ''}`}
+               >
+                 <div className={`absolute inset-0 bg-gradient-to-r ${authStatus === 'granted' ? 'from-emerald-300 via-emerald-400 to-emerald-200' : 'from-violet-200 via-white to-indigo-100'} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                 <span className="relative z-10 flex items-center gap-3">
+                   {authStatus === 'authenticating' ? (
+                     <>
+                       <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                       Authenticating...
+                     </>
+                   ) : authStatus === 'granted' ? (
+                     <>
+                       Access Granted
+                       <ShieldCheck className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                     </>
+                   ) : (
+                     <>
+                       Authenticate Session
+                       <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform duration-300" />
+                     </>
+                   )}
+                 </span>
+               </motion.button>
+             </form>
            </div>
            
            {/* System Status Log Box */}
