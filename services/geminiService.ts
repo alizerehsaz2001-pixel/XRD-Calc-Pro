@@ -98,7 +98,6 @@ export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> 
       contents: `Search for and provide a comprehensive list of the most current and accurate standard characteristic X-ray wavelengths (K-alpha weighted averages for Cu, Mo, Co, Fe, Cr, Ag) and common neutron wavelengths (standard thermal and cold source averages). 
       Return the data in a structured JSON list.`,
       config: {
-        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -145,7 +144,6 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
       Provide both the major peak positions (2-theta) AND their corresponding Miller indices (hkl).
       Return at least the top 5 major peaks for the Cu K-alpha wavelength.`,
       config: {
-        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,

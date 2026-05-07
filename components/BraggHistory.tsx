@@ -39,9 +39,16 @@ export const BraggHistory: React.FC<BraggHistoryProps> = ({ history, onRestore, 
             className="group p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-900 cursor-pointer transition-all active:scale-[0.98]"
           >
             <div className="flex justify-between items-start mb-2">
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
-                <Clock className="w-3 h-3" />
-                {new Date(item.timestamp).toLocaleTimeString()}
+              <div className="flex flex-col gap-0.5">
+                {item.sampleId && (
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    {item.sampleId}
+                  </span>
+                )}
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                  <Clock className="w-3 h-3" />
+                  {new Date(item.timestamp).toLocaleTimeString()}
+                </div>
               </div>
               <ArrowUpRight className="w-3 h-3 text-slate-300 group-hover:text-indigo-500 transition-colors" />
             </div>

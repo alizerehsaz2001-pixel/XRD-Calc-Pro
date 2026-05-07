@@ -15,7 +15,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus, Eye } from 'lucide-react';
 
 const MATERIAL_DB = [
   { 
@@ -27,7 +27,12 @@ const MATERIAL_DB = [
     crystalSystem: 'Cubic',
     spaceGroup: 'Fd-3m',
     density: 2.33,
-    applications: ['Electronics', 'Solar Cells', 'Semiconductors']
+    applications: ['Electronics', 'Solar Cells', 'Semiconductors'],
+    molecularWeight: 28.085,
+    bandGap: 1.11,
+    elasticModulus: 130,
+    magneticProperties: 'Diamagnetic',
+    opticalProperties: 'Opaque in visible light, transparent to IR'
   },
   { 
     name: 'Zirconia (ZrO2)', 
@@ -38,7 +43,12 @@ const MATERIAL_DB = [
     crystalSystem: 'Tetragonal',
     spaceGroup: 'P42/nmc',
     density: 5.68,
-    applications: ['Ceramics', 'Dental', 'Refractories']
+    applications: ['Ceramics', 'Dental', 'Refractories'],
+    molecularWeight: 123.22,
+    bandGap: 5.0,
+    elasticModulus: 210,
+    opticalProperties: 'High refractive index, transparent in thin films',
+    hazards: ['Respiratory irritant (dust)']
   },
   { 
     name: 'Hydroxyapatite', 
@@ -49,7 +59,10 @@ const MATERIAL_DB = [
     crystalSystem: 'Hexagonal',
     spaceGroup: 'P63/m',
     density: 3.16,
-    applications: ['Bone Grafts', 'Dental', 'Implants']
+    applications: ['Bone Grafts', 'Dental', 'Implants'],
+    molecularWeight: 1004.6,
+    elasticModulus: 114,
+    opticalProperties: 'White/translucent powder'
   },
   { 
     name: 'Zinc Oxide (ZnO)', 
@@ -82,7 +95,13 @@ const MATERIAL_DB = [
     crystalSystem: 'Hexagonal',
     spaceGroup: 'P3221',
     density: 2.65,
-    applications: ['Glass', 'Electronics', 'Construction', 'Jewelry']
+    applications: ['Glass', 'Electronics', 'Construction', 'Jewelry'],
+    molecularWeight: 60.08,
+    bandGap: 8.9,
+    elasticModulus: 71.7,
+    magneticProperties: 'Diamagnetic',
+    opticalProperties: 'Transparent, Uniaxial birefringent',
+    hazards: ['Silicosis (inhalation)']
   },
   {
     name: 'Halite (NaCl)',
@@ -952,6 +971,180 @@ const MATERIAL_DB = [
     spaceGroup: 'N/A',
     density: 1.8,
     applications: ['Water Purification', 'Composites', 'Drug Delivery']
+  },
+  {
+    name: 'Octacalcium Phosphate (OCP)',
+    type: 'Biomaterial/Mineral',
+    pattern: '4.7, 100\n9.4, 30\n22.8, 15\n26.0, 60\n31.6, 50\n33.6, 40',
+    description: 'A transient intermediate in bone and tooth formation, structurally similar to hydroxyapatite.',
+    formula: 'Ca8(HPO4)2(PO4)4·5H2O',
+    crystalSystem: 'Triclinic',
+    spaceGroup: 'P-1',
+    density: 2.61,
+    applications: ['Bone Morphogenesis Research', 'Implants']
+  },
+  {
+    name: 'Cellulose (Type Ib)',
+    type: 'Biomaterial/Polymer',
+    pattern: '14.8, 60\n16.3, 70\n20.5, 30\n22.6, 100\n34.5, 20',
+    description: 'The most abundant natural polymer, forming structural components of plant cell walls.',
+    formula: '(C6H10O5)n',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21',
+    density: 1.58,
+    applications: ['Wound Dressings', 'Tissue Scaffolds', 'Drug Delivery']
+  },
+  {
+    name: 'Chitosan',
+    type: 'Biomaterial/Polymer',
+    pattern: '10.5, 75\n20.1, 100\n21.8, 40',
+    description: 'A linear polysaccharide derived from chitin, exhibiting excellent biocompatibility and antimicrobial properties.',
+    formula: '(C6H11NO4)n',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'P212121',
+    density: 1.45,
+    applications: ['Wound Healing', 'Hemostatic Agents', 'Scaffolds']
+  },
+  {
+    name: 'Silk Fibroin (Beta-Sheet)',
+    type: 'Biomaterial/Protein',
+    pattern: '9.1, 30\n18.9, 35\n20.7, 100\n24.3, 40\n28.6, 20',
+    description: 'The structural protein in silk, forming crystalline beta-sheet regions responsible for its high tensile strength.',
+    formula: 'Amino acid copolymer',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21',
+    density: 1.35,
+    applications: ['Sutures', 'Ligament Repair', 'Biosensors']
+  },
+  {
+    name: 'Calcium Oxalate Monohydrate',
+    type: 'Biomaterial/Pathological Mineral',
+    pattern: '14.9, 100\n24.4, 45\n30.1, 30\n35.8, 20\n38.2, 25',
+    description: 'Whewellite, the primary crystalline component found in most human kidney stones.',
+    formula: 'CaC2O4·H2O',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/c',
+    density: 2.12,
+    applications: ['Urology Research', 'Biomineralization Studies']
+  },
+  {
+    name: 'Amorphous Calcium Phosphate (ACP)',
+    type: 'Biomaterial/Precursor',
+    pattern: '30.0, 100', // Typically very broad peak
+    description: 'A non-crystalline phase of calcium phosphate, the initial solid phase that precipitates from high supersaturation.',
+    formula: 'CaxHy(PO4)z·nH2O',
+    crystalSystem: 'Amorphous',
+    spaceGroup: 'N/A',
+    density: 2.50,
+    applications: ['Remineralizing Toothpastes', 'Precursor Studies']
+  },
+  {
+    name: 'Polylactic Acid (PLA)',
+    type: 'Biomaterial/Polymer',
+    pattern: '16.7, 100\n19.1, 80\n22.3, 30',
+    description: 'A biodegradable and bioactive thermoplastic aliphatic polyester derived from renewable resources.',
+    formula: '(C3H4O2)n',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'P212121',
+    density: 1.25,
+    applications: ['3D Printing', 'Medical Implants', 'Biodegradable Packaging']
+  },
+  {
+    name: 'Polyether ether ketone (PEEK)',
+    type: 'Biomaterial/Polymer',
+    pattern: '18.8, 100\n20.7, 85\n22.8, 90\n28.9, 60',
+    description: 'A versatile high-performance semicrystalline engineering thermoplastic used extensively in medical and space applications.',
+    formula: '(-C6H4-O-C6H4-O-C6H4-CO-)n',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pbcn',
+    density: 1.32,
+    applications: ['Spinal Fusion Devices', 'Aerospace Components', 'Bearings']
+  },
+  {
+    name: 'Collagen Type I',
+    type: 'Biomaterial/Protein',
+    pattern: '8.0, 30\n20.5, 100', // Typical d~1.1 nm and ~0.45 nm halos
+    description: 'The most abundant collagen of the human body, serving as a key structural fiber in tendons, bone, and skin.',
+    formula: 'Protein Polymer',
+    crystalSystem: 'Triple Helix (Hexagonal)',
+    spaceGroup: 'N/A',
+    density: 1.35,
+    applications: ['Tissue Engineering Scaffolds', 'Wound Dressings', 'Cosmetics']
+  },
+  {
+    name: 'Uranium Dioxide (UO2)',
+    type: 'Nuclear/Fuel',
+    pattern: '28.2, 100\n32.7, 45\n47.0, 50\n55.8, 40\n58.5, 30',
+    description: 'An oxide of uranium utilized as the primary nuclear fuel in light water reactors.',
+    formula: 'UO2',
+    crystalSystem: 'Cubic (Fluorite)',
+    spaceGroup: 'Fm-3m',
+    density: 10.97,
+    applications: ['Nuclear Reactor Fuel', 'Radiological Shielding'],
+    molecularWeight: 270.03,
+    bandGap: 2.2,
+    elasticModulus: 180,
+    magneticProperties: 'Paramagnetic (AFM below 30.8 K)',
+    opticalProperties: 'Opaque (dark brown/black)',
+    hazards: ['Radioactive', 'Toxic (Heavy Metal)']
+  },
+  {
+    name: 'Thorium Dioxide (ThO2)',
+    type: 'Nuclear/Fertile Material',
+    pattern: '27.6, 100\n31.9, 40\n45.8, 55\n54.4, 45\n57.0, 35',
+    description: 'A crystalline fertile powder that can be bred into fissile U-233; possesses the highest melting point of all oxides.',
+    formula: 'ThO2',
+    crystalSystem: 'Cubic (Fluorite)',
+    spaceGroup: 'Fm-3m',
+    density: 10.0,
+    applications: ['Advanced Nuclear Fuel Cycles', 'High-Temp Crucibles'],
+    molecularWeight: 264.04,
+    bandGap: 5.7,
+    elasticModulus: 250,
+    opticalProperties: 'White to slightly yellow powder',
+    hazards: ['Radioactive (Mild)']
+  },
+  {
+    name: 'Zircaloy-4',
+    type: 'Nuclear/Cladding',
+    pattern: '31.9, 30\n34.8, 100\n36.5, 90\n47.9, 20\n63.4, 15\n68.1, 10',
+    description: 'A zirconium alloy characterized by very low absorption cross-section of thermal neutrons, used for nuclear fuel cladding.',
+    formula: 'Zr-1.5Sn-0.2Fe-0.1Cr',
+    crystalSystem: 'Hexagonal (HCP)',
+    spaceGroup: 'P63/mmc',
+    density: 6.56,
+    applications: ['Nuclear Fuel Cladding', 'Reactor Core Structures'],
+    elasticModulus: 99,
+    magneticProperties: 'Paramagnetic',
+    opticalProperties: 'Metallic lustrous grey',
+    hazards: ['Pyrophoric (powder form)']
+  },
+  {
+    name: 'Nuclear Graphite',
+    type: 'Nuclear/Moderator',
+    pattern: '26.6, 100\n42.4, 15\n44.6, 25\n54.7, 30\n77.5, 10',
+    description: 'Highly purified graphite optimized for its high moderating ratio and structural stability under intense radiation.',
+    formula: 'C',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/mmc',
+    density: 2.26,
+    applications: ['Neutron Moderator', 'Reactor Reflector Components']
+  },
+  {
+    name: 'Neodymium Magnet (Nd2Fe14B)',
+    type: 'Magnetic Material',
+    pattern: '29.3, 25\n38.4, 40\n41.0, 100\n41.8, 60\n43.7, 45\n49.1, 30\n53.2, 20',
+    description: 'The strongest type of permanent magnet commercially available, featuring high coercivity and magnetic remanence.',
+    formula: 'Nd2Fe14B',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'P42/mnm',
+    density: 7.55,
+    applications: ['Electric Motors', 'Hard Disk Drives', 'Wind Turbines'],
+    molecularWeight: 1081.54,
+    elasticModulus: 151,
+    magneticProperties: 'Ferromagnetic (High Coercivity)',
+    opticalProperties: 'Metallic (usually plated)',
+    hazards: ['Mechanical Pinching', 'Brittle']
   }
 ];
 
@@ -1146,7 +1339,13 @@ export const DeepLearningModule: React.FC = () => {
           spaceGroup: matchedMaterial.spaceGroup,
           density: matchedMaterial.density,
           applications: matchedMaterial.applications,
-          materialType: matchedMaterial.type
+          materialType: matchedMaterial.type,
+          molecularWeight: (matchedMaterial as any).molecularWeight,
+          bandGap: (matchedMaterial as any).bandGap,
+          elasticModulus: (matchedMaterial as any).elasticModulus,
+          magneticProperties: (matchedMaterial as any).magneticProperties,
+          opticalProperties: (matchedMaterial as any).opticalProperties,
+          hazards: (matchedMaterial as any).hazards,
         };
         
         // Put the matched one first
@@ -1292,6 +1491,20 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'YSZ' ? 'Yttria-Stabilized Zirconia' :
                         type === 'SRO' ? 'Strontium Ruthenate' :
                         type === 'GO' ? 'Graphene Oxide' :
+                        type === 'OCP' ? 'Octacalcium Phosphate' :
+                        type === 'Cellulose' ? 'Cellulose' :
+                        type === 'Chitosan' ? 'Chitosan' :
+                        type === 'Silk' ? 'Silk Fibroin' :
+                        type === 'Whewellite' ? 'Calcium Oxalate' :
+                        type === 'ACP' ? 'Amorphous Calcium' :
+                        type === 'PLA' ? 'Polylactic Acid' :
+                        type === 'PEEK' ? 'Polyether ether ketone' :
+                        type === 'Collagen' ? 'Collagen Type I' :
+                        type === 'UO2' ? 'Uranium Dioxide' :
+                        type === 'ThO2' ? 'Thorium Dioxide' :
+                        type === 'Zircaloy' ? 'Zircaloy-4' :
+                        type === 'NuclearGraphite' ? 'Nuclear Graphite' :
+                        type === 'Nd2Fe14B' ? 'Neodymium Magnet' :
                         type;
       
       const mat = MATERIAL_DB.find(m => m.name.includes(searchKey));
@@ -1829,6 +2042,20 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'YSZ', label: '8YSZ' },
                     { id: 'SRO', label: 'SrRuO3' },
                     { id: 'GO', label: 'GO' },
+                    { id: 'OCP', label: 'OCP Bio' },
+                    { id: 'Cellulose', label: 'Cellulose' },
+                    { id: 'Chitosan', label: 'Chitosan' },
+                    { id: 'Silk', label: 'Silk Fibroin' },
+                    { id: 'Whewellite', label: 'Whewellite' },
+                    { id: 'ACP', label: 'ACP' },
+                    { id: 'PLA', label: 'PLA Bio' },
+                    { id: 'PEEK', label: 'PEEK' },
+                    { id: 'Collagen', label: 'Collagen' },
+                    { id: 'UO2', label: 'UO2 Fuel' },
+                    { id: 'ThO2', label: 'ThO2' },
+                    { id: 'Zircaloy', label: 'Zircaloy-4' },
+                    { id: 'NuclearGraphite', label: 'Nuclear Graphite' },
+                    { id: 'Nd2Fe14B', label: 'Nd Magnet' },
                     { id: 'Complex', label: 'Complex Mix' }
                   ].map(ex => (
                     <button 
@@ -2175,6 +2402,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                          { label: 'Band Gap', val: selectedCandidate.bandGap, unit: 'eV', icon: Zap },
                          { label: 'Modulus', val: selectedCandidate.elasticModulus, unit: 'GPa', icon: Activity },
                          { label: 'Magnetism', val: selectedCandidate.magneticProperties, unit: '', icon: Database },
+                         { label: 'Optical', val: selectedCandidate.opticalProperties, unit: '', icon: Eye },
                        ].map((item, i) => item.val !== undefined && (
                          <div key={i} className="flex gap-4 group/item">
                            <div className="p-2.5 h-fit bg-slate-900 rounded-xl border border-slate-800 group-hover/item:border-violet-500/30 transition-colors">
@@ -2182,7 +2410,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                            </div>
                            <div className="flex flex-col">
                              <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black mb-1 group-hover/item:text-slate-400 transition-colors">{item.label}</span>
-                             <span className="text-sm font-black font-mono text-slate-200 capitalize">
+                             <span className="text-sm font-black font-mono text-slate-200 capitalize max-w-[200px] truncate" title={String(item.val)}>
                                {item.val} {item.unit && <span className="text-slate-600 text-[10px] ml-1">{item.unit}</span>}
                              </span>
                            </div>

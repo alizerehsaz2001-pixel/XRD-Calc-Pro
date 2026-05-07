@@ -11,6 +11,15 @@ export const calculateBragg = (wavelength: number, twoTheta: number): BraggResul
   return { twoTheta, dSpacing, qVector, sinThetaOverLambda };
 };
 
+export const calculateThetaFromBragg = (wavelength: number, dSpacing: number): number | null => {
+  if (wavelength <= 0 || dSpacing <= 0) return null;
+  const sinTheta = wavelength / (2 * dSpacing);
+  if (sinTheta > 1) return null;
+  const thetaRad = Math.asin(sinTheta);
+  return thetaRad * (180 / Math.PI);
+};
+
+
 // Line Profile Simulation
 export const simulatePeak = (
   type: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt',

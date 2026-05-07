@@ -9,7 +9,7 @@ interface MaterialPreset {
   peaks: number[];
   hkls: string[];
   description: string;
-  category: 'Standard' | 'Metal' | 'Ceramic';
+  category: 'Standard' | 'Metal' | 'Ceramic' | 'Perovskite' | 'Biomaterial' | 'Nuclear' | 'Thermoelectric';
 }
 
 const PRESETS: MaterialPreset[] = [
@@ -138,6 +138,42 @@ const PRESETS: MaterialPreset[] = [
     hkls: ['111', '220', '311', '400'],
     description: 'Face-centered cubic (diamond cubic) lattice, the hardest natural material.',
     category: 'Standard'
+  },
+  {
+    name: 'Hydroxyapatite',
+    formula: 'Ca10(PO4)6(OH)2',
+    wavelength: 1.5406,
+    peaks: [25.87, 31.77, 32.19, 32.90, 34.04, 39.81],
+    hkls: ['002', '211', '112', '300', '202', '310'],
+    description: 'A naturally occurring mineral form of calcium apatite used in bone grafts.',
+    category: 'Biomaterial'
+  },
+  {
+    name: 'Barium Titanate',
+    formula: 'BaTiO3',
+    wavelength: 1.5406,
+    peaks: [22.20, 31.50, 38.90, 45.30, 50.90, 56.20],
+    hkls: ['100', '110', '111', '200', '210', '211'],
+    description: 'A dielectric ceramic used for its high dielectric constant and piezoelectric properties.',
+    category: 'Perovskite'
+  },
+  {
+    name: 'Uranium Dioxide',
+    formula: 'UO2',
+    wavelength: 1.5406,
+    peaks: [28.2, 32.7, 47.0, 55.8, 58.5],
+    hkls: ['111', '200', '220', '311', '222'],
+    description: 'Primary nuclear fuel in light water reactors, possessing a fluorite structure.',
+    category: 'Nuclear'
+  },
+  {
+    name: 'Bismuth Telluride',
+    formula: 'Bi2Te3',
+    wavelength: 1.5406,
+    peaks: [17.5, 27.6, 37.8, 41.2, 44.6, 50.3],
+    hkls: ['006', '015', '1010', '110', '0015', '205'],
+    description: 'A narrow-gap layered semiconductor and exemplary topological insulator.',
+    category: 'Thermoelectric'
   }
 ];
 
@@ -183,7 +219,11 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
               <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
                 material.category === 'Standard' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' :
                 material.category === 'Metal' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' :
-                'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                material.category === 'Ceramic' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' :
+                material.category === 'Perovskite' ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400' :
+                material.category === 'Biomaterial' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' :
+                material.category === 'Nuclear' ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400' :
+                'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400'
               }`}>
                 {material.category}
               </span>

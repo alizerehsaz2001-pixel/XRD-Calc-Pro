@@ -1,246 +1,257 @@
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Rocket, 
+  FileCode, 
+  Brain, 
+  Package, 
+  LifeBuoy, 
+  ArrowRight, 
+  Zap, 
+  Sparkles,
+  ChevronRight,
+  Database,
+  Target
+} from 'lucide-react';
 
 type Topic = 'start' | 'input' | 'ai' | 'modules' | 'troubleshoot';
 
 export const LearnModule: React.FC = () => {
   const [activeTopic, setActiveTopic] = useState<Topic>('start');
 
-  const topics: { id: Topic; label: string; icon: string }[] = [
-    { id: 'start', label: 'Getting Started', icon: '🚀' },
-    { id: 'input', label: 'Data Formatting', icon: '📝' },
-    { id: 'ai', label: 'AI Capabilities', icon: '✨' },
-    { id: 'modules', label: 'Module Guide', icon: '📦' },
-    { id: 'troubleshoot', label: 'Troubleshooting', icon: '🔧' },
+  const topics: { id: Topic; label: string; icon: any; color: string; bg: string }[] = [
+    { id: 'start', label: 'Orientation', icon: Rocket, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
+    { id: 'input', label: 'Data Protocol', icon: FileCode, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+    { id: 'ai', label: 'Neural Intelligence', icon: Brain, color: 'text-violet-500', bg: 'bg-violet-500/10' },
+    { id: 'modules', label: 'Engine Registry', icon: Package, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    { id: 'troubleshoot', label: 'Diagnostics', icon: LifeBuoy, color: 'text-rose-500', bg: 'bg-rose-500/10' },
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 min-h-[600px]">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 animate-in fade-in duration-700 min-h-[700px]">
       {/* Navigation Sidebar */}
-      <div className="lg:col-span-3 space-y-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 px-2">User Guide</h2>
-          <div className="space-y-1">
-            {topics.map((topic) => (
-              <button
-                key={topic.id}
-                onClick={() => setActiveTopic(topic.id)}
-                className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all flex items-center gap-3 ${
-                  activeTopic === topic.id
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-white'
-                }`}
-              >
-                <span>{topic.icon}</span>
-                {topic.label}
-              </button>
-            ))}
+      <div className="lg:col-span-3 space-y-8">
+        <div className="bg-white dark:bg-slate-900 overflow-hidden rounded-3xl shadow-sm border border-slate-200 dark:border-slate-800 relative group">
+          <div className="p-8 pb-4">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-6 font-sans">User Knowledge Base</h2>
+            <div className="space-y-2">
+              {topics.map((topic) => (
+                <button
+                  key={topic.id}
+                  onClick={() => setActiveTopic(topic.id)}
+                  className={`w-full text-left px-5 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-4 group/btn relative overflow-hidden ${
+                    activeTopic === topic.id
+                      ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20'
+                      : 'text-slate-500 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <topic.icon className={`w-4 h-4 transition-transform group-hover/btn:scale-110 relative z-10 ${activeTopic === topic.id ? 'text-white' : topic.color}`} />
+                  <span className="relative z-10">{topic.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-        
-        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50">
-          <h3 className="text-xs font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-widest mb-2">Pro Tip</h3>
-          <p className="text-xs text-indigo-700 dark:text-indigo-400 leading-relaxed">
-            Hover over tooltips in charts to see precise data points. Most calculations happen locally in your browser!
-          </p>
+          
+          <div className="p-8 pt-0 mt-4">
+             <div className="p-6 bg-slate-50 dark:bg-slate-950 rounded-[2rem] border border-slate-100 dark:border-slate-800 relative group/card overflow-hidden">
+                <div className="absolute top-0 right-0 p-2 opacity-10 group-hover/card:opacity-30 transition-opacity">
+                   <Target className="w-12 h-12 text-indigo-500" />
+                </div>
+                <h3 className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-3 font-sans">Operational Tip</h3>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-bold font-sans">
+                  Calculations are executed locally in your browser's V8 engine for zero-latency analysis.
+                </p>
+             </div>
+          </div>
         </div>
       </div>
 
       {/* Content Area */}
       <div className="lg:col-span-9">
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 h-full">
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden h-full flex flex-col">
           
-          {activeTopic === 'start' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Welcome to XRD-Calc Pro</h1>
-              <p className="text-lg text-slate-600 dark:text-slate-300 font-light leading-relaxed">
-                A professional-grade suite for X-ray diffraction analysis, combining classical physics engines with modern AI tools.
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                <div className="p-5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                  <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-bold mb-3">1</div>
-                  <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Select a Module</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Use the sidebar to navigate between tools. Start with <strong>Bragg Basics</strong> for standard peak analysis or <strong>Scherrer Method</strong> for size calculations.
-                  </p>
-                </div>
-                <div className="p-5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                  <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-bold mb-3">2</div>
-                  <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Input Data</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Enter your 2θ positions, FWHM values, or full pattern data. The app parses comma-separated or newline-separated values automatically.
-                  </p>
-                </div>
-                <div className="p-5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                  <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-bold mb-3">3</div>
-                  <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Analyze & Visualize</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Click "Calculate" to generate instant results, interactive charts, and downloadable CSV reports.
-                  </p>
-                </div>
-                <div className="p-5 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50">
-                  <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center font-bold mb-3">4</div>
-                  <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-2">Ask AI</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Stuck? Use the "Material Intelligence" bar or the floating chat bubble to ask crystallography questions or find standard peaks.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTopic === 'input' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Data Input Formatting</h2>
-                <p className="text-slate-600 dark:text-slate-300 mb-6">
-                  Different modules require specific data structures. Here is a quick reference guide.
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-bold text-indigo-600 dark:text-indigo-400 mb-2">Bragg Basics (Simple Lists)</h3>
-                  <div className="bg-slate-900 text-slate-300 p-4 rounded-lg font-mono text-sm">
-                    <p className="mb-2 text-slate-500">// Comma separated list of 2θ positions</p>
-                    <p>28.44, 47.30, 56.12, 69.13</p>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTopic}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="p-12 flex-1"
+            >
+              {activeTopic === 'start' && (
+                <div className="space-y-12">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                       <span className="px-4 py-1.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-indigo-500/20 font-sans">Phase 01</span>
+                       <div className="h-px w-24 bg-slate-100 dark:bg-slate-800" />
+                    </div>
+                    <h1 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter leading-none font-sans">
+                      Integrated <br />
+                      <span className="text-transparent bg-clip-text bg-gradient-to-tr from-indigo-600 to-indigo-400">Lab Protocol</span>
+                    </h1>
+                    <p className="text-xl text-slate-500 dark:text-slate-400 font-medium max-w-2xl leading-relaxed font-sans">
+                      Welcome to XRD-Calc Pro. Our environment is designed to bridge the gap between experimental data and actionable crystallographic insights.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+                     {[
+                        { title: 'Select Engine', desc: 'Navigate to the specialized module for your specific analysis requirement (Size, Strain, or PhaseID).', icon: Package },
+                        { title: 'Inject Raw Data', desc: 'Formatted peak lists are processed through our high-fidelity physics model.', icon: FileCode },
+                        { title: 'Analyze Output', desc: 'Generate multi-dimensional visualizations and downloadable scientific reports.', icon: Zap },
+                        { title: 'Invoke Intelligence', desc: 'Query the Neural Net or Crystal Intelligence Hub for complex phase identification.', icon: Sparkles }
+                     ].map((step, i) => (
+                       <div key={i} className="group p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 hover:border-indigo-500/30 transition-all">
+                          <div className="flex items-center justify-between mb-6">
+                            <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex items-center justify-center text-indigo-600 group-hover:scale-110 group-hover:rotate-6 transition-transform">
+                               <step.icon className="w-6 h-6" />
+                            </div>
+                            <span className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest italic font-mono">{String(i + 1).padStart(2, '0')}</span>
+                          </div>
+                          <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-2 tracking-tighter font-sans">{step.title}</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-bold leading-relaxed font-sans">{step.desc}</p>
+                       </div>
+                     ))}
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <h3 className="text-lg font-bold text-amber-600 dark:text-amber-400 mb-2">Scherrer / W-H (Paired Data)</h3>
-                  <div className="bg-slate-900 text-slate-300 p-4 rounded-lg font-mono text-sm">
-                    <p className="mb-2 text-slate-500">// Each line: 2θ, FWHM</p>
-                    <p>28.44, 0.25</p>
-                    <p>47.30, 0.28</p>
-                    <p>56.12, 0.32</p>
+              {activeTopic === 'input' && (
+                <div className="space-y-12">
+                  <div className="space-y-4">
+                    <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none font-sans">Data Formatting Standards</h2>
+                    <p className="text-lg text-slate-500 dark:text-slate-400 font-medium font-sans">Precision begins with the input. Use these standard schemas for accurate analysis.</p>
+                  </div>
+
+                  <div className="space-y-8">
+                     {[
+                       { label: 'Bragg Basics', hint: 'Simple 2θ peaks', eg: '28.44, 47.30, 56.12', color: 'border-indigo-500/30', text: 'text-indigo-400' },
+                       { label: 'Crystallite Size', hint: '2θ, FWHM pairs (space separated)', eg: '28.44, 0.25\n47.30, 0.28', color: 'border-emerald-500/30', text: 'text-emerald-400' },
+                       { label: 'Neural PhaseID', hint: 'XY datasets (2θ, Intensity)', eg: '28.44, 100\n28.50, 45', color: 'border-violet-500/30', text: 'text-violet-400' }
+                     ].map((item, i) => (
+                       <div key={i} className={`p-8 bg-slate-950 rounded-[2rem] border ${item.color} relative group overflow-hidden`}>
+                          <div className="flex items-center justify-between mb-4 relative z-10">
+                            <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] font-sans ${item.text}`}>{item.label}</h4>
+                            <span className="text-[10px] text-slate-600 font-mono italic">{item.hint}</span>
+                          </div>
+                          <pre className="text-sm font-mono text-slate-300 relative z-10 whitespace-pre-wrap">{item.eg}</pre>
+                       </div>
+                     ))}
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <h3 className="text-lg font-bold text-purple-600 dark:text-purple-400 mb-2">Integral Breadth (Advanced)</h3>
-                  <div className="bg-slate-900 text-slate-300 p-4 rounded-lg font-mono text-sm">
-                    <p className="mb-2 text-slate-500">// Each line: 2θ, Area, Imax</p>
-                    <p>28.44, 230, 1000</p>
-                    <p>47.30, 280, 950</p>
+              {activeTopic === 'ai' && (
+                <div className="space-y-12">
+                   <div className="space-y-4">
+                    <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none font-sans">Intelligence Ecosystem</h2>
+                    <p className="text-lg text-slate-500 dark:text-slate-400 font-medium font-sans">Augmenting traditional physics with state-of-the-art vision and reasoning models.</p>
+                  </div>
+
+                  <div className="grid gap-6">
+                     {[
+                       { t: 'Material Intelligence', d: 'Natural language search for peak cards and crystal properties.', icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+                       { t: 'Computer Vision Analysis', d: 'Extract peak locations directly from plot images or PDF captures.', icon: Database, color: 'text-sky-500', bg: 'bg-sky-500/10' },
+                       { t: 'Strategic Reasoning', d: 'The Crystal Intelligence Hub helps design analytical pathways for novel materials.', icon: Brain, color: 'text-violet-500', bg: 'bg-violet-500/10' },
+                     ].map((item, i) => (
+                       <div key={i} className="group flex gap-8 p-10 bg-slate-50 dark:bg-slate-800/30 rounded-[3rem] border border-slate-100 dark:border-slate-800 hover:border-indigo-500/20 transition-all items-center">
+                          <div className={`p-6 rounded-[2rem] ${item.bg} group-hover:scale-110 transition-transform`}>
+                             <item.icon className={`w-8 h-8 ${item.color}`} />
+                          </div>
+                          <div className="flex-1">
+                             <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter mb-2 font-sans">{item.t}</h3>
+                             <p className="text-base text-slate-500 dark:text-slate-400 font-bold leading-tight font-sans">{item.d}</p>
+                          </div>
+                          <button className="p-4 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 hover:text-indigo-500 transition-colors">
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+                       </div>
+                     ))}
                   </div>
                 </div>
+              )}
 
-                <div>
-                   <h3 className="text-lg font-bold text-violet-600 dark:text-violet-400 mb-2">Deep Learning (XY Data)</h3>
-                   <div className="bg-slate-900 text-slate-300 p-4 rounded-lg font-mono text-sm">
-                    <p className="mb-2 text-slate-500">// Each line: 2θ, Intensity</p>
-                    <p>28.44, 100</p>
-                    <p>47.30, 55</p>
+              {activeTopic === 'modules' && (
+                <div className="space-y-12">
+                  <div className="space-y-4">
+                    <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none font-sans">Engine Registry</h2>
+                    <p className="text-lg text-slate-500 dark:text-slate-400 font-medium font-sans">A specialized suite of tools for every stage of diffraction analysis.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     {[
+                       { t: 'Bragg Basics', d: 'The foundation: d-spacing, Q-vectors, and lattice fundamentals.' },
+                       { t: 'Williamson-Hall', d: 'Separation of Size and Strain broadening via linear regression.' },
+                       { t: 'Magnetic Core', d: 'Analysis of spin-orbit contributions to neutron scattering.' },
+                       { t: 'Neutral PhaseID', d: 'AI-accelerated peak matching against global databases.' },
+                       { t: 'Rietveld Refiner', d: 'Full pattern fitting for structural parameter optimization.' },
+                       { t: 'Scientific Illustrator', d: 'High-fidelity generation of structural and experimental diagrams.' }
+                     ].map((m, i) => (
+                       <div key={i} className="p-6 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-3xl hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group font-sans">
+                         <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-sm font-black text-indigo-500 uppercase tracking-widest">{m.t}</h4>
+                            <div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-800 group-hover:bg-indigo-500 transition-colors" />
+                         </div>
+                         <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">{m.d}</p>
+                       </div>
+                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {activeTopic === 'ai' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Gemini AI Integration</h2>
-              
-              <div className="grid gap-6">
-                 <div className="flex gap-4 items-start">
-                   <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-xl">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                     </svg>
-                   </div>
-                   <div>
-                     <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Material Intelligence</h3>
-                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                       Located in the <strong>Bragg Basics</strong> module. Type any material name (e.g., "Gold", "Perovskite") to instantly fetch standard peak positions, lattice parameters, and space groups.
-                     </p>
-                   </div>
-                 </div>
-
-                 <div className="flex gap-4 items-start">
-                   <div className="p-3 bg-sky-100 dark:bg-sky-900/30 text-sky-600 rounded-xl">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                     </svg>
-                   </div>
-                   <div>
-                     <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Image Analysis</h3>
-                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                       Upload an image of a diffraction plot or a data table. The AI (Gemini 1.5 Pro) will extract peak positions, identify phases, or summarize the visible data for you.
-                     </p>
-                   </div>
-                 </div>
-
-                 <div className="flex gap-4 items-start">
-                   <div className="p-3 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 rounded-xl">
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                     </svg>
-                   </div>
-                   <div>
-                     <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">CrystalMind Control</h3>
-                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                       An advanced agent that can search specific databases (COD, Materials Project) for crystal structures based on composition (e.g., "Ti, O") or peak fingerprints.
-                     </p>
-                   </div>
-                 </div>
-              </div>
-            </div>
-          )}
-
-          {activeTopic === 'modules' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Module Capabilities</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                 {[
-                   { t: 'Bragg Basics', d: 'd-spacing, Q-vector, and standard peak calculations.' },
-                   { t: 'FWHM Analysis', d: 'Visualize Gaussian, Lorentzian, and Pseudo-Voigt peak shapes.' },
-                   { t: 'Scherrer Method', d: 'Basic crystallite size estimation from peak broadening.' },
-                   { t: 'Williamson-Hall', d: 'Separate size and strain effects using linear regression.' },
-                   { t: 'Warren-Averbach', d: 'Fourier analysis for detailed microstructure distribution.' },
-                   { t: 'Neutron Diffraction', d: 'Simulate nuclear scattering patterns (isotope sensitive).' },
-                   { t: 'Magnetic Diffraction', d: 'Visualize magnetic peak contributions from spin structures.' },
-                   { t: 'Rietveld Setup', d: 'Generate initial parameters and strategy for external refinement software.' },
-                 ].map((m, i) => (
-                   <div key={`module-desc-${m.t}-${i}`} className="p-4 border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30 rounded-lg">
-                     <h4 className="font-bold text-indigo-600 dark:text-indigo-400 text-sm mb-1">{m.t}</h4>
-                     <p className="text-xs text-slate-600 dark:text-slate-400">{m.d}</p>
-                   </div>
-                 ))}
-              </div>
-            </div>
-          )}
-
-          {activeTopic === 'troubleshoot' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Common Issues</h2>
-              
-              <div className="space-y-4">
-                <div className="collapse bg-base-200">
-                   <div className="font-bold text-slate-800 dark:text-slate-200">My crystallite size is negative or zero.</div>
-                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                     This usually happens if your <strong>Instrument FWHM</strong> is larger than your <strong>Observed FWHM</strong>. 
-                     Ensure you subtract the instrumental broadening correctly. The app sets size to 0 if broadening is non-physical.
-                   </p>
+              {activeTopic === 'troubleshoot' && (
+                <div className="space-y-12">
+                  <div className="space-y-4">
+                    <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none font-sans">Status Diagnostics</h2>
+                    <p className="text-lg text-slate-500 dark:text-slate-400 font-medium font-sans">Resolve common environmental and data-integrity conflicts.</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {[
+                      { q: 'Why is my crystallite size appearing as 0?', a: 'This occurs when Instrumental Broadening exceeds Observed Broadening. Check your calibration specimen data.' },
+                      { q: 'The Neural Net is failing to trigger.', a: 'Ensure peak lists are 2θ, Intensity pairs and that your browser is not in offline mode.' },
+                      { q: 'Negative slope on W-H Plot?', a: 'Typically caused by compressive strain or inaccurate peak indexing. Re-evaluate hkl assignments.' }
+                    ].map((item, i) => (
+                      <div key={i} className="p-10 bg-slate-50 dark:bg-slate-950 rounded-[2.5rem] border border-slate-100 dark:border-slate-900 group font-sans">
+                         <div className="flex items-center gap-4 mb-6">
+                            <div className="w-10 h-10 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
+                               <LifeBuoy className="w-5 h-5" />
+                            </div>
+                            <h4 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">{item.q}</h4>
+                         </div>
+                         <p className="text-sm text-slate-600 dark:text-slate-400 font-bold pl-14">{item.a}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
 
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                   <div className="font-bold text-slate-800 dark:text-slate-200">AI search isn't working.</div>
-                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                     Check your internet connection. If you are using the Image Generation feature, ensure you have selected a valid paid API key project via the popup.
-                   </p>
+          {/* Footer Navigation */}
+          <div className="p-8 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+             <div className="flex items-center gap-4">
+                <div className="flex -space-x-2">
+                   {[1,2,3].map(i => (
+                     <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-800" />
+                   ))}
                 </div>
-
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                   <div className="font-bold text-slate-800 dark:text-slate-200">Williamson-Hall plot has a negative slope.</div>
-                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                     A negative slope implies compressive strain or data errors. Ensure your data points are accurate and consistent.
-                   </p>
-                </div>
-              </div>
-            </div>
-          )}
+                <span className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] font-sans">Validated by Research Guild</span>
+             </div>
+             
+             <button 
+               onClick={() => {
+                 const currentIndex = topics.findIndex(t => t.id === activeTopic);
+                 const nextTopic = topics[(currentIndex + 1) % topics.length].id;
+                 setActiveTopic(nextTopic);
+               }}
+               className="flex items-center gap-4 px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] hover:scale-105 transition-transform active:scale-95 shadow-xl font-sans"
+             >
+               Next Directive
+               <ArrowRight className="w-4 h-4" />
+             </button>
+          </div>
 
         </div>
       </div>

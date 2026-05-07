@@ -4,6 +4,8 @@ import { fetchStandardWavelengths } from '../services/geminiService';
 import { StandardWavelength } from '../types';
 
 interface BraggInputProps {
+  sampleId?: string;
+  setSampleId?: (val: string) => void;
   wavelength: number;
   setWavelength: (val: number) => void;
   rawPeaks: string;
@@ -14,6 +16,8 @@ interface BraggInputProps {
 }
 
 export const BraggInput: React.FC<BraggInputProps> = ({
+  sampleId = '',
+  setSampleId,
   wavelength,
   setWavelength,
   rawPeaks,
@@ -69,6 +73,22 @@ export const BraggInput: React.FC<BraggInputProps> = ({
       </div>
       
       <div className="space-y-6">
+        {setSampleId && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              Sample ID
+            </label>
+            <input
+              type="text"
+              value={sampleId}
+              onChange={(e) => setSampleId(e.target.value)}
+              placeholder="e.g., TiO2-NP-001"
+              maxLength={50}
+              className="w-full px-4 py-2 bg-slate-50 text-slate-900 border border-slate-300 dark:bg-slate-950 dark:text-white dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors font-bold"
+            />
+          </div>
+        )}
+        
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Wavelength (Å)

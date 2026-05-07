@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk'>('light');
   
   // Bragg State
+  const [sampleId, setSampleId] = useState<string>('');
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [rawPeaks, setRawPeaks] = useState<string>('28.44, 47.30, 56.12, 69.13, 76.38'); 
   const [rawHKL, setRawHKL] = useState<string>('111, 220, 311, 400, 331');
@@ -99,6 +100,7 @@ const App: React.FC = () => {
       const newItem: BraggHistoryItem = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         timestamp: new Date().toISOString(),
+        sampleId: sampleId.trim() || undefined,
         wavelength,
         rawPeaks,
         rawHKL,
@@ -114,6 +116,7 @@ const App: React.FC = () => {
   };
 
   const restoreHistory = (item: BraggHistoryItem) => {
+    if (item.sampleId) setSampleId(item.sampleId);
     setWavelength(item.wavelength);
     setRawPeaks(item.rawPeaks);
     setRawHKL(item.rawHKL);
@@ -180,8 +183,8 @@ const App: React.FC = () => {
     { id: 'dl', label: 'PhaseID Neural Net', group: 'AI Tools' },
     { id: 'image_analysis', label: 'Image Analysis', group: 'AI Tools' },
     { id: 'image_gen', label: 'Scientific Illustrator', group: 'AI Tools' },
-    { id: 'learn', label: 'App Tutorial', group: 'About' },
-    { id: 'profile', label: 'Designer Profile', group: 'About' },
+    { id: 'learn', label: 'Protocol Guide', group: 'Intelligence' },
+    { id: 'profile', label: 'Laboratory Director', group: 'Intelligence' },
   ];
 
   return (
@@ -203,7 +206,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-            {['Fundamentals', 'Size & Strain', 'Advanced Sim', 'AI Tools', 'About'].map((group) => (
+            {['Fundamentals', 'Size & Strain', 'Advanced Sim', 'AI Tools', 'Intelligence'].map((group) => (
               <div key={group} className="space-y-2">
                 <h3 className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3">
                   {group}
@@ -308,6 +311,8 @@ const App: React.FC = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 items-start">
                       <div className="lg:col-span-4 space-y-6">
                         <BraggInput 
+                          sampleId={sampleId}
+                          setSampleId={setSampleId}
                           wavelength={wavelength}
                           setWavelength={setWavelength}
                           rawPeaks={rawPeaks}

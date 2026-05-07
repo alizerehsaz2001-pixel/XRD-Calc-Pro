@@ -27,6 +27,7 @@ export interface BraggState {
 export interface BraggHistoryItem {
   id: string;
   timestamp: string;
+  sampleId?: string;
   wavelength: number;
   rawPeaks: string;
   rawHKL: string;
