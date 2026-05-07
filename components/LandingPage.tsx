@@ -24,6 +24,8 @@ import {
 
 interface LandingPageProps {
   onEnter: () => void;
+  theme: string;
+  setTheme: (theme: any) => void;
 }
 
 const XrdPattern = () => {
@@ -89,7 +91,7 @@ const FeatureCard = ({ title, description, icon: Icon, index }: { title: string,
     whileInView={{ opacity: 1, x: 0 }}
     viewport={{ once: true }}
     transition={{ delay: index * 0.1, duration: 0.5 }}
-    className="group relative bg-[#0a0f1d]/40 backdrop-blur-md border border-slate-800/60 p-6 rounded-3xl hover:border-violet-500/40 transition-all duration-500 cursor-default overflow-hidden shadow-xl"
+    className="group relative bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-6 rounded-3xl hover:border-violet-500/40 transition-all duration-500 cursor-default overflow-hidden shadow-xl"
   >
     <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-transparent to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
     {/* Inner glow line */}
@@ -107,7 +109,7 @@ const FeatureCard = ({ title, description, icon: Icon, index }: { title: string,
   </motion.div>
 );
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, theme, setTheme }) => {
   const [systemLogs, setSystemLogs] = React.useState<string[]>([
     "INITIALIZING CORE ANALYTICS...",
     "LOADING BRAGG GEOMETRY ENGINE...",
@@ -186,7 +188,30 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white flex flex-col lg:flex-row overflow-hidden font-sans selection:bg-violet-500/30">
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col lg:flex-row overflow-hidden font-sans selection:bg-violet-500/30 relative">
+      
+      {/* Theme Switcher on Landing */}
+      <div className="absolute top-6 right-6 z-50 flex items-center gap-2 bg-black/40 backdrop-blur-xl p-1.5 rounded-full border border-white/10 shadow-2xl">
+        {['light', 'dark', 'cyberpunk', 'terminal', 'synthwave'].map((t) => (
+          <button
+            key={t}
+            onClick={() => setTheme(t)}
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+              theme === t 
+                ? 'bg-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.6)]' 
+                : 'text-slate-400 hover:text-white hover:bg-white/10'
+            }`}
+            title={`${t.charAt(0).toUpperCase() + t.slice(1)} Mode`}
+          >
+            {t === 'light' && <div className="w-3 h-3 rounded-full bg-slate-200" />}
+            {t === 'dark' && <div className="w-3 h-3 rounded-full bg-slate-800 border border-slate-600" />}
+            {t === 'cyberpunk' && <Zap className="w-4 h-4" />}
+            {t === 'terminal' && <Terminal className="w-4 h-4" />}
+            {t === 'synthwave' && <Activity className="w-4 h-4" />}
+          </button>
+        ))}
+      </div>
+
       {/* HUD Lines & Grid Decor */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,#000_70%,transparent_100%)]" />
@@ -228,7 +253,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
       </motion.div>
 
       {/* Left Main Content - Hero */}
-      <div className="relative z-20 w-full lg:w-3/5 flex flex-col items-center justify-center p-8 lg:p-20 h-screen lg:h-screen overflow-y-auto shrink-0 border-b lg:border-b-0 lg:border-r border-slate-800/60 bg-[#020617]/70 backdrop-blur-2xl shadow-2xl">
+      <div className="relative z-20 w-full lg:w-3/5 flex flex-col items-center justify-center p-8 lg:p-20 h-screen lg:h-screen overflow-y-auto shrink-0 border-b lg:border-b-0 lg:border-r border-slate-800/60 bg-slate-950/70 backdrop-blur-2xl shadow-2xl">
         <motion.div 
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -275,7 +300,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                       placeholder="Researcher ID (e.g., AZ-2001)"
                       value={authId}
                       onChange={(e) => setAuthId(e.target.value)}
-                      className="w-full bg-[#030712]/50 border border-slate-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all backdrop-blur-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-slate-950/50 border border-slate-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all backdrop-blur-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                  </div>
                  
@@ -290,7 +315,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
                       placeholder="Access Key / Clearance Level"
                       value={authKey}
                       onChange={(e) => setAuthKey(e.target.value)}
-                      className="w-full bg-[#030712]/50 border border-slate-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all backdrop-blur-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-slate-950/50 border border-slate-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all backdrop-blur-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                  </div>
                </div>
@@ -330,7 +355,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
               {/* Outer decorative borders */}
               <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500/20 to-indigo-500/20 rounded-[2.2rem] blur opacity-50 group-hover:opacity-100 transition duration-1000"></div>
               
-              <div className="relative p-6 sm:p-8 bg-[#030712]/80 border border-slate-800/80 rounded-[2rem] backdrop-blur-2xl overflow-hidden">
+              <div className="relative p-6 sm:p-8 bg-slate-950/80 border border-slate-800/80 rounded-[2rem] backdrop-blur-2xl overflow-hidden">
                 <div className="absolute top-0 left-[20%] w-[60%] h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
                 
                 <div className="absolute top-5 right-6 flex gap-2">
@@ -364,8 +389,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnter }) => {
       </div>
 
       {/* Right Sidebar - Module Explorer */}
-      <div className="relative z-10 flex-1 lg:w-2/5 flex flex-col h-screen lg:h-screen bg-[#050816]/60 backdrop-blur-3xl shadow-[-20px_0_50px_rgba(0,0,0,0.5)]">
-        <div className="flex flex-col p-8 lg:p-12 border-b border-slate-800/80 sticky top-0 bg-[#050816]/90 backdrop-blur-xl z-30">
+      <div className="relative z-10 flex-1 lg:w-2/5 flex flex-col h-screen lg:h-screen bg-slate-900/60 backdrop-blur-3xl shadow-[-20px_0_50px_rgba(0,0,0,0.5)]">
+        <div className="flex flex-col p-8 lg:p-12 border-b border-slate-800/80 sticky top-0 bg-slate-900/90 backdrop-blur-xl z-30">
            <div className="flex items-center gap-3 mb-2">
              <div className="flex space-x-1">
                 <span className="w-1.5 h-6 bg-violet-500 rounded-full animate-pulse"></span>

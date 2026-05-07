@@ -27,7 +27,7 @@ import { BraggHistory } from './components/BraggHistory';
 import { BraggVisualization } from './components/BraggVisualization';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap } from 'lucide-react';
+import { Zap, Terminal, Music } from 'lucide-react';
 
 type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'learn' | 'profile';
 
@@ -38,7 +38,7 @@ const App: React.FC = () => {
   const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [activeModule, setActiveModule] = useState<Module>('bragg');
   const [isExplained, setIsExplained] = useState<boolean>(false);
-  const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave'>('light');
   
   // Bragg State
   const [sampleId, setSampleId] = useState<string>('');
@@ -68,11 +68,9 @@ const App: React.FC = () => {
   // Apply theme classes to document element
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove('dark', 'cyberpunk');
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else if (theme === 'cyberpunk') {
-      root.classList.add('cyberpunk');
+    root.classList.remove('dark', 'cyberpunk', 'terminal', 'synthwave');
+    if (theme !== 'light') {
+      root.classList.add(theme);
     }
   }, [theme]);
 
@@ -163,7 +161,7 @@ const App: React.FC = () => {
   if (!hasEntered) {
     return (
       <div className={theme === 'light' ? '' : theme}>
-        <LandingPage onEnter={() => setHasEntered(true)} />
+        <LandingPage onEnter={() => setHasEntered(true)} theme={theme} setTheme={setTheme} />
       </div>
     );
   }
@@ -262,6 +260,20 @@ const App: React.FC = () => {
               >
                 <Zap className="h-4 w-4" />
               </button>
+              <button 
+                onClick={() => setTheme('terminal')}
+                className={`flex items-center justify-center p-2 rounded-lg transition-all ${theme === 'terminal' ? 'bg-green-600 text-black shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-green-500'}`}
+                title="Terminal Mode"
+              >
+                <Terminal className="h-4 w-4" />
+              </button>
+              <button 
+                onClick={() => setTheme('synthwave')}
+                className={`flex items-center justify-center p-2 rounded-lg transition-all ${theme === 'synthwave' ? 'bg-fuchsia-600 text-white shadow-[0_0_10px_rgba(192,38,211,0.5)]' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-fuchsia-500'}`}
+                title="Synthwave Mode"
+              >
+                <Music className="h-4 w-4" />
+              </button>
             </div>
             <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
               <div className="mb-1 font-bold">v2.5.0 • Lab Active</div>
@@ -282,11 +294,13 @@ const App: React.FC = () => {
               <select
                 value={theme}
                 onChange={(e) => setTheme(e.target.value as any)}
-                className={`block w-24 rounded-lg border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-2 pr-2 text-[10px] outline-none`}
+                className={`block w-28 rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-2 pr-2 text-[10px] outline-none`}
               >
                 <option value="light">Light</option>
                 <option value="dark">Dark</option>
                 <option value="cyberpunk">Cyber</option>
+                <option value="terminal">Terminal</option>
+                <option value="synthwave">Synth</option>
               </select>
               <select
                 value={activeModule}
