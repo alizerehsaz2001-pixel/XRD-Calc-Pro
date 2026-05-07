@@ -64,6 +64,7 @@ export interface SelectionRuleResult {
 export interface ScherrerInput {
   twoTheta: number;
   fwhmObs: number;
+  intensity?: number;
 }
 
 export interface ScherrerResult {
@@ -71,6 +72,7 @@ export interface ScherrerResult {
   fwhmObs: number;
   betaCorrected: number; // degrees
   sizeNm: number;
+  intensity?: number;
   error?: string;
 }
 

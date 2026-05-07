@@ -163,12 +163,21 @@ export const validateSelectionRule = (system: CrystalSystem, hkl: [number, numbe
 };
 
 export const parseScherrerInput = (input: string): ScherrerInput[] => {
-  const parts = input.replace(/\n/g, ',').split(/[\s,]+/).filter(s => s.trim() !== '');
-  const numbers = parts.map(s => parseFloat(s)).filter(n => !isNaN(n));
+  const lines = input.split('\n').filter(l => l.trim() !== '');
   const results: ScherrerInput[] = [];
-  for(let i=0; i<numbers.length; i+=2) {
-    if (i+1 < numbers.length && numbers[i] > 0 && numbers[i] < 180 && numbers[i+1] > 0) {
-      results.push({ twoTheta: numbers[i], fwhmObs: numbers[i+1] });
+  
+  for (const line of lines) {
+    const parts = line.split(/[\s,]+/).filter(s => s.trim() !== '');
+    const nums = parts.map(s => parseFloat(s)).filter(n => !isNaN(n));
+    
+    if (nums.length >= 2) {
+      if (nums[0] > 0 && nums[0] < 180 && nums[1] > 0) {
+        results.push({ 
+          twoTheta: nums[0], 
+          fwhmObs: nums[1],
+          intensity: nums.length >= 3 ? nums[2] : undefined
+        });
+      }
     }
   }
   return results;
@@ -178,36 +187,50 @@ export const calculateScherrer = (
   wavelength: number, 
   K: number, 
   instFwhm: number, 
-  peak: ScherrerInput
+  peak: ScherrerInput,
+  broadeningModel: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' = 'Gaussian'
 ): ScherrerResult | null => {
   if (wavelength <= 0) return null;
-  const { twoTheta, fwhmObs } = peak;
+  const { twoTheta, fwhmObs, intensity } = peak;
   if (twoTheta <= 0 || twoTheta >= 180 || fwhmObs <= 0) return null;
   const thetaRad = (twoTheta / 2) * (Math.PI / 180);
   const betaObsRad = fwhmObs * (Math.PI / 180);
   const betaInstRad = instFwhm * (Math.PI / 180);
 
-  // Enhancement: Use specific user-requested error message when broadening is non-physical
   if (betaObsRad <= betaInstRad) {
     return { 
       twoTheta, 
       fwhmObs, 
       betaCorrected: 0, 
       sizeNm: 0, 
+      intensity,
       error: "Corrected FWHM is zero or negative, cannot calculate size for this peak." 
     };
   }
 
-  const betaSq = Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad);
-  const betaSampleRad = Math.sqrt(betaSq);
+  let betaSampleRad = 0;
+  if (broadeningModel === 'Gaussian') {
+    betaSampleRad = Math.sqrt(Math.pow(betaObsRad, 2) - Math.pow(betaInstRad, 2));
+  } else if (broadeningModel === 'Lorentzian') {
+    betaSampleRad = betaObsRad - betaInstRad;
+  } else {
+    // Pseudo-Voigt approximation (intermediate)
+    // Beta = sqrt( (B_obs - B_inst) * (B_obs^2 - B_inst^2)^0.5 )
+    // A common simplified PV coupling:
+    const diff = betaObsRad - betaInstRad;
+    const diffSq = Math.pow(betaObsRad, 2) - Math.pow(betaInstRad, 2);
+    betaSampleRad = (diff + Math.sqrt(diffSq)) / 2;
+  }
+
   const betaCorrectedDeg = betaSampleRad * (180 / Math.PI);
 
-  if (betaSampleRad === 0) {
+  if (betaSampleRad <= 0) {
     return { 
       twoTheta, 
       fwhmObs, 
       betaCorrected: 0, 
       sizeNm: 0, 
+      intensity,
       error: "Zero physical broadening detected, size cannot be determined." 
     };
   }
@@ -215,7 +238,7 @@ export const calculateScherrer = (
   const cosTheta = Math.cos(thetaRad);
   if (Math.abs(cosTheta) < 1e-10) return null;
   const sizeNm = (K * wavelength) / (betaSampleRad * cosTheta) / 10;
-  return { twoTheta, fwhmObs, betaCorrected: betaCorrectedDeg, sizeNm };
+  return { twoTheta, fwhmObs, betaCorrected: betaCorrectedDeg, sizeNm, intensity };
 };
 
 export const calculateWilliamsonHall = (wavelength: number, K: number, instFwhm: number, peaks: ScherrerInput[]): WHResult | null => {

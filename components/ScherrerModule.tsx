@@ -33,8 +33,9 @@ export const ScherrerModule: React.FC = () => {
   const [instFwhm, setInstFwhm] = useState<number>(0.1); // Instrumental broadening
   const [useCaglioti, setUseCaglioti] = useState(false);
   const [caglioti, setCaglioti] = useState({ u: 0.004, v: -0.002, w: 0.01 });
-  const [inputData, setInputData] = useState<string>("28.44, 0.25\n47.30, 0.28\n56.12, 0.32");
+  const [inputData, setInputData] = useState<string>("28.44, 0.25, 100\n47.30, 0.28, 45\n56.12, 0.32, 20");
   const [selectedKType, setSelectedKType] = useState<string>('Cubic (0.9)');
+  const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt'>('Gaussian');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
   
   const [results, setResults] = useState<ScherrerResult[]>([]);
@@ -61,17 +62,29 @@ export const ScherrerModule: React.FC = () => {
         const currentInstFwhm = useCaglioti 
           ? Math.sqrt(Math.max(0.000001, caglioti.u * Math.pow(Math.tan(thetaRad), 2) + caglioti.v * Math.tan(thetaRad) + caglioti.w))
           : instFwhm;
-        return calculateScherrer(wavelength, constantK, currentInstFwhm, p);
+        return calculateScherrer(wavelength, constantK, currentInstFwhm, p, broadeningModel);
       })
       .filter((r): r is ScherrerResult => r !== null); 
     
     setResults(computed);
     
-    // Only calculate average for valid, non-error peaks
+    // Improved Averaging: Weighted average if intensities are present
     const validResults = computed.filter(r => !r.error && r.sizeNm > 0);
     if (validResults.length > 0) {
-      const sum = validResults.reduce((acc, curr) => acc + curr.sizeNm, 0);
-      setAvgSize(sum / validResults.length);
+      const hasIntensities = validResults.some(r => r.intensity !== undefined && r.intensity > 0);
+      if (hasIntensities) {
+        let totalWeight = 0;
+        let weightedSum = 0;
+        validResults.forEach(r => {
+          const weight = r.intensity || 0;
+          weightedSum += r.sizeNm * weight;
+          totalWeight += weight;
+        });
+        setAvgSize(totalWeight > 0 ? weightedSum / totalWeight : 0);
+      } else {
+        const sum = validResults.reduce((acc, curr) => acc + curr.sizeNm, 0);
+        setAvgSize(sum / validResults.length);
+      }
     } else {
       setAvgSize(0);
     }
@@ -80,7 +93,7 @@ export const ScherrerModule: React.FC = () => {
   useEffect(() => {
     handleCalculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wavelength, constantK, instFwhm, inputData, useCaglioti, caglioti]);
+  }, [wavelength, constantK, instFwhm, inputData, useCaglioti, caglioti, broadeningModel]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
@@ -356,6 +369,33 @@ export const ScherrerModule: React.FC = () => {
             </div>
 
             <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+              <div className="flex items-center gap-2 mb-4 justify-between">
+                <div className="flex items-center gap-2">
+                   <Settings className="w-3.5 h-3.5 text-amber-400" />
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                     Broadening Model
+                   </label>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                 {(['Gaussian', 'Lorentzian', 'Pseudo-Voigt'] as const).map(model => (
+                   <button
+                     key={model}
+                     onClick={() => setBroadeningModel(model)}
+                     className={`py-2 px-1 rounded-xl border text-[8px] font-black uppercase tracking-tight transition-all
+                       ${broadeningModel === model ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-black/20 border-slate-800 text-slate-600 hover:text-slate-400'}
+                     `}
+                   >
+                     {model === 'Pseudo-Voigt' ? 'Voigt-Approx' : model}
+                   </button>
+                 ))}
+              </div>
+              <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-3 leading-relaxed">
+                Determines how Instrumental and Sample peaks are decoupled.
+              </p>
+            </div>
+
+            <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                    <Database className="w-4 h-4 text-amber-400" />
@@ -364,13 +404,13 @@ export const ScherrerModule: React.FC = () => {
                    </label>
                 </div>
                 <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-md border border-slate-700/50">
-                  <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Format: 2θ, FWHM</span>
+                  <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Format: 2θ, FWHM, [Int]</span>
                 </div>
               </div>
               <textarea
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}
-                placeholder="28.44, 0.2&#10;47.30, 0.25"
+                placeholder="28.44, 0.2, 100&#10;47.30, 0.25, 45"
                 className="w-full h-32 px-5 py-4 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/40 rounded-2xl focus:ring-2 focus:ring-amber-500/10 outline-none font-mono text-xs leading-loose resize-none transition-all shadow-inner custom-scrollbar"
                 spellCheck={false}
               />
@@ -434,7 +474,7 @@ export const ScherrerModule: React.FC = () => {
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Core Assumptions</span>
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed font-bold relative z-10">
-                Postulates that <span className="text-rose-400 font-bold">100% of broadening</span> derives from finite size effects. Lattice strain, stacking faults, and instrumental profile convolution are ignored. Use <span className="text-white bg-slate-800 px-1 py-0.5 rounded">Williamson-Hall</span> for rigorous decoupling.
+                Postulates that <span className="text-rose-400 font-bold">100% of broadening</span> derives from finite size effects. Lattice strain, stacking faults, and instrumental profile convolution are ignored. Decoupling relies on <span className="text-white bg-slate-800 px-1 py-0.5 rounded">{broadeningModel}</span> distribution profiles.
               </p>
             </div>
           </div>
@@ -458,7 +498,9 @@ export const ScherrerModule: React.FC = () => {
                   <div>
                     <h3 className="text-lg font-black text-white uppercase tracking-tight leading-none mb-1">Mean Crystallite Size</h3>
                     <div className="flex items-center gap-2">
-                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Aggregate</span>
+                       <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                         {results.some(r => r.intensity !== undefined && r.intensity > 0) ? 'Intensity-Weighted Avg' : 'Arithmetic Mean'}
+                       </span>
                        <span className="w-1 h-1 bg-slate-700 rounded-full" />
                        <span className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest">{results.filter(r => !r.error).length} Peaks Resolved</span>
                     </div>
@@ -552,7 +594,7 @@ export const ScherrerModule: React.FC = () => {
                     <tr>
                       <th scope="col" className="px-8 py-5 font-black border-b border-slate-800"><div className="flex items-center gap-2"><span className="w-1 h-3 bg-indigo-500 rounded-full" /> 2θ [deg]</div></th>
                       <th scope="col" className="px-8 py-5 font-black border-b border-slate-800"><div className="flex items-center gap-2"><span className="w-1 h-3 bg-slate-500 rounded-full" /> FWHM Obs [deg]</div></th>
-                      <th scope="col" className="px-8 py-5 font-black border-b border-slate-800"><div className="flex items-center gap-2"><span className="w-1 h-3 bg-emerald-500 rounded-full" /> β Corrected [deg]</div></th>
+                      <th scope="col" className="px-8 py-5 font-black border-b border-slate-800"><div className="flex items-center gap-2"><span className="w-1 h-3 bg-emerald-500 rounded-full" /> Intensity</div></th>
                       <th scope="col" className="px-8 py-5 font-black border-b border-slate-800 text-right"><span className="text-amber-500">Domain Size [nm]</span></th>
                     </tr>
                   </thead>
@@ -562,7 +604,7 @@ export const ScherrerModule: React.FC = () => {
                         <td className="px-8 py-5 font-mono text-sm font-bold text-white group-hover/row:text-indigo-400 transition-colors">{row.twoTheta.toFixed(3)}°</td>
                         <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400">{row.fwhmObs.toFixed(4)}°</td>
                         <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400">
-                          {row.error ? <span className="text-slate-600">-</span> : `${row.betaCorrected.toFixed(4)}°`}
+                          {row.intensity !== undefined ? row.intensity.toFixed(1) : <span className="text-slate-700">N/A</span>}
                         </td>
                         <td className="px-8 py-5 text-right">
                           {row.error ? (
