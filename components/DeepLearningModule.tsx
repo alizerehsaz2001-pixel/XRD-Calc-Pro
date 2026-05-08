@@ -2610,130 +2610,153 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       <div className="lg:col-span-8 space-y-6">
         
         {/* Visualizer */}
-        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] shadow-[0_0_50px_rgba(30,58,138,0.1)] border border-[#1e293b] h-[480px] flex flex-col relative overflow-hidden group/vis">
+        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2.5rem] shadow-[0_0_80px_rgba(30,58,138,0.15)] border border-[#1e293b] h-[720px] flex flex-col relative overflow-hidden group/vis">
           {/* Subtle grid background to look like a terminal/software UI */}
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen"></div>
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-50" />
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent opacity-60" />
           
-          <div className="flex justify-between items-center mb-5 px-2 relative z-10">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 bg-cyan-500/20 blur-lg rounded-full" />
-                <div className="w-10 h-10 rounded-xl bg-[#070D18] border border-cyan-500/40 flex items-center justify-center relative shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-                  <Activity className="w-5 h-5 text-cyan-400" />
+          <div className="flex flex-col gap-6 mb-6 relative z-10">
+            <div className="flex justify-between items-center px-2">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-cyan-500/20 blur-lg rounded-full" />
+                  <div className="w-12 h-12 rounded-2xl bg-[#070D18] border border-cyan-500/40 flex items-center justify-center relative shadow-[0_0_20px_rgba(34,211,238,0.25)]">
+                    <Activity className="w-6 h-6 text-cyan-400" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white tracking-[0.15em] uppercase drop-shadow-lg">Phase Match Visualization</h3>
+                  <div className="flex items-center gap-3">
+                    <p className="text-[10px] text-cyan-400/80 font-mono uppercase tracking-[0.2em] font-black">Convolutional Feature Overlay</p>
+                    <div className="w-1 h-1 rounded-full bg-cyan-500/50" />
+                    <p className="text-[9px] text-cyan-500/40 font-mono uppercase tracking-widest">Active_Stream_v4.2</p>
+                  </div>
                 </div>
               </div>
-              <div>
-                <h3 className="text-base font-black text-white tracking-[0.1em] uppercase drop-shadow-md">Phase Match Visualization</h3>
-                <div className="flex items-center gap-3">
-                  <p className="text-[10px] text-cyan-400/80 font-mono uppercase tracking-[0.2em] font-black">Convolutional Feature Overlay</p>
-                  <div className="w-1 h-1 rounded-full bg-cyan-500/50" />
-                  <p className="text-[9px] text-cyan-500/40 font-mono uppercase tracking-widest">Active_Stream</p>
+              
+              {selectedCandidate && (
+                <div className="flex gap-4">
+                  <div className="hidden md:flex flex-col items-end justify-center px-4 py-2 bg-[#0B1221] border border-[#1e293b] rounded-2xl shadow-inner">
+                    <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black mb-1">Engine Stability</p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <div key={i} className={`w-1 h-3 rounded-full ${i <= 4 ? 'bg-cyan-500' : 'bg-slate-800'}`} />
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-mono font-black text-cyan-400">98.2%</span>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-black px-5 py-2.5 rounded-2xl flex items-center gap-3 border shadow-inner backdrop-blur-md uppercase tracking-widest transition-all
+                    ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.15)]' : 
+                      selectedCandidate.match_quality === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.15)]' : 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.15)]'}
+                  `}>
+                    <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]' : selectedCandidate.match_quality === 'Good' ? 'bg-blue-400' : 'bg-amber-400'}`} />
+                    {selectedCandidate.match_quality || "Match"} Precision
+                  </span>
                 </div>
-              </div>
+              )}
             </div>
-            
+
+            {/* Analytics HUD Bar - Repositioned for clarity and no overlap */}
             {selectedCandidate && (
-              <div className="flex gap-3">
-                <span className={`text-[10px] font-black px-4 py-2 rounded-xl flex items-center gap-2 border shadow-inner backdrop-blur-sm uppercase tracking-widest
-                  ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.1)]' : 
-                    selectedCandidate.match_quality === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]'}
-                `}>
-                  <div className={`w-2 h-2 rounded-full animate-pulse ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]' : selectedCandidate.match_quality === 'Good' ? 'bg-blue-400' : 'bg-amber-400'}`} />
-                  {selectedCandidate.match_quality || "Match"} Quality
-                </span>
-                <span className="text-[10px] font-black bg-[#0B1221] text-indigo-300 px-4 py-2 rounded-xl border border-indigo-500/30 flex items-center gap-2 backdrop-blur-md uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.1)]">
-                  <Database className="w-3.5 h-3.5 text-indigo-400" />
-                  Overlay: {selectedCandidate.phase_name}
-                </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 px-2">
+                <div className="border-l-2 border-cyan-500 pl-4 bg-[#0B1221]/80 backdrop-blur-md p-3.5 rounded-r-2xl shadow-[0_0_30px_rgba(34,211,238,0.05)] border-y border-r border-[#1e293b]/80 group/hud transition-transform hover:translate-x-1">
+                  <p className="text-[10px] font-mono text-cyan-500/80 uppercase tracking-widest leading-none mb-2 font-black">Target Identity</p>
+                  <p className="text-lg font-black text-white font-mono drop-shadow-[0_0_10px_rgba(34,211,238,0.4)] leading-none truncate">{selectedCandidate.phase_name}</p>
+                  <div className="flex items-center gap-2 mt-2.5 overflow-hidden font-mono">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-tighter">Profile:</span>
+                    <span className="text-[9px] text-slate-400 flex gap-1.5 items-center bg-slate-900/50 px-2 py-0.5 rounded border border-slate-800">
+                      <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></span>
+                      σ² = 0.5 (GAUSSIAN)
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="border-l-2 border-rose-500/80 pl-4 bg-[#0B1221]/80 backdrop-blur-md p-3.5 rounded-r-2xl shadow-[0_0_30px_rgba(244,63,94,0.05)] border-y border-r border-[#1e293b]/80 group/hud transition-transform hover:translate-x-1">
+                  <p className="text-[10px] font-mono text-rose-500/80 uppercase tracking-widest leading-none mb-2 font-black">Feature Detection</p>
+                  <div className="flex items-end gap-2">
+                    <p className="text-2xl font-black text-rose-400 font-mono leading-none drop-shadow-[0_0_15px_rgba(244,63,94,0.4)]">{selectedCandidate.matched_peaks?.length || 0}</p>
+                    <span className="text-[11px] font-mono font-black text-slate-400 leading-none mb-1 tracking-widest">UNIT PEAKS</span>
+                  </div>
+                  <div className="mt-3 w-full h-1 bg-slate-900 rounded-full overflow-hidden flex shadow-inner">
+                    <div className="h-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]" style={{ width: '75%' }} />
+                    <div className="h-full bg-rose-500/20" style={{ width: '25%' }} />
+                  </div>
+                </div>
+
+                <div className="border-l-2 border-indigo-500/80 pl-4 bg-[#0B1221]/80 backdrop-blur-md p-3.5 rounded-r-2xl shadow-[0_0_30px_rgba(99,102,241,0.05)] border-y border-r border-[#1e293b]/80 group/hud transition-transform hover:translate-x-1">
+                  <p className="text-[10px] font-mono text-indigo-500/80 uppercase tracking-widest leading-none mb-2 font-black">Database Hash</p>
+                  <div className="flex items-center gap-2">
+                    <Database className="w-5 h-5 text-indigo-400" />
+                    <p className="text-base font-black text-white font-mono leading-none truncate">REF-{selectedCandidate.phase_name?.substring(0, 4)}-67X2</p>
+                  </div>
+                  <div className="mt-3 flex gap-1.5 overflow-hidden">
+                    {['X-RAY', 'CU-Kα', '0.154NM'].map(tag => (
+                      <span key={tag} className="text-[8px] font-black font-mono text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20 uppercase whitespace-nowrap">{tag}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
           
-          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-[#0B1221]/80 rounded-[1.5rem] border border-[#1e293b] p-0 shadow-inner overflow-hidden flex flex-col group/chart">
+          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-[#0B1221]/90 rounded-[2rem] border border-[#1e293b] p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all hover:border-cyan-500/30">
              
             {/* Animated Scanline Overlay */}
             <motion.div 
-               className="absolute top-0 bottom-0 w-[200px] bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent pointer-events-none mix-blend-screen z-0"
-               animate={{ left: ['-30%', '130%'] }}
-               transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+               className="absolute top-0 bottom-0 w-[300px] bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent pointer-events-none mix-blend-screen z-0"
+               animate={{ left: ['-50%', '150%'] }}
+               transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
             />
 
             {/* HUD / Crosshair Overlay */}
-            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen opacity-70 group-hover/chart:opacity-100 transition-opacity duration-700">
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen opacity-50 group-hover/chart:opacity-80 transition-opacity duration-1000">
                {/* Vertical & Horizontal Dashed Grid */}
-               <div className="absolute left-1/4 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
-               <div className="absolute left-1/2 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
-               <div className="absolute right-1/4 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
+               <div className="absolute left-1/4 top-0 bottom-0 border-l border-cyan-500/15 border-dashed" />
+               <div className="absolute left-1/2 top-0 bottom-0 border-l border-cyan-500/15 border-dashed" />
+               <div className="absolute right-1/4 top-0 bottom-0 border-l border-cyan-500/15 border-dashed" />
                
-               <div className="absolute top-1/4 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
-               <div className="absolute top-1/2 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
-               <div className="absolute bottom-1/4 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
+               <div className="absolute top-1/4 left-0 right-0 border-t border-cyan-500/15 border-dashed" />
+               <div className="absolute top-1/2 left-0 right-0 border-t border-cyan-500/15 border-dashed" />
+               <div className="absolute bottom-1/4 left-0 right-0 border-t border-cyan-500/15 border-dashed" />
                
                {/* Dynamic Targeting Reticles */}
-               <div className="absolute left-8 top-8 w-16 h-16">
-                  <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-500/40" />
-                  <div className="absolute top-0 left-0 w-[2px] h-full bg-cyan-500/40" />
-                  <div className="absolute top-[4px] left-[4px] text-[8px] font-mono text-cyan-500/60 uppercase tracking-widest font-black">Q1:ALPHA</div>
+               <div className="absolute left-12 top-12 w-20 h-20">
+                  <div className="absolute top-0 left-0 w-full h-[1px] bg-cyan-500/30" />
+                  <div className="absolute top-0 left-0 w-[1px] h-full bg-cyan-500/30" />
+                  <div className="absolute top-[6px] left-[6px] text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest font-black">SCAN_A:01</div>
                </div>
                
-               <div className="absolute right-8 top-8 w-16 h-16">
-                  <div className="absolute top-0 right-0 w-full h-[2px] bg-cyan-500/40" />
-                  <div className="absolute top-0 right-0 w-[2px] h-full bg-cyan-500/40" />
-                  <div className="absolute top-[4px] right-[4px] text-[8px] font-mono text-cyan-500/60 uppercase tracking-widest font-black">Q2:BETA</div>
+               <div className="absolute right-12 top-12 w-20 h-20">
+                  <div className="absolute top-0 right-0 w-full h-[1px] bg-cyan-500/30" />
+                  <div className="absolute top-0 right-0 w-[1px] h-full bg-cyan-500/30" />
+                  <div className="absolute top-[6px] right-[6px] text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest font-black">SCAN_B:02</div>
                </div>
                
-               <div className="absolute left-8 bottom-8 w-16 h-16">
-                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-cyan-500/40" />
-                  <div className="absolute bottom-0 left-0 w-[2px] h-full bg-cyan-500/40" />
-                  <div className="absolute bottom-[4px] left-[4px] text-[8px] font-mono text-cyan-500/60 uppercase tracking-widest font-black">Q3:GAMMA</div>
+               <div className="absolute left-12 bottom-12 w-20 h-20">
+                  <div className="absolute bottom-0 left-0 w-full h-[1px] bg-cyan-500/30" />
+                  <div className="absolute bottom-0 left-0 w-[1px] h-full bg-cyan-500/30" />
+                  <div className="absolute bottom-[6px] left-[6px] text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest font-black">SCAN_C:03</div>
                </div>
                
-               <div className="absolute right-8 bottom-8 w-16 h-16">
-                  <div className="absolute bottom-0 right-0 w-full h-[2px] bg-cyan-500/40" />
-                  <div className="absolute bottom-0 right-0 w-[2px] h-full bg-cyan-500/40" />
-                  <div className="absolute bottom-[4px] right-[4px] text-[8px] font-mono text-cyan-500/60 uppercase tracking-widest font-black">Q4:DELTA</div>
-               </div>
-               
-               {/* Center Aim */}
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border border-cyan-500/10 rounded-full flex items-center justify-center">
-                  <div className="absolute inset-0 border border-cyan-500/20 rounded-full border-t-cyan-400/50 animate-[spin_10s_linear_infinite]" />
-                  <div className="absolute inset-4 border border-cyan-500/10 rounded-full border-b-cyan-400/40 animate-[spin_15s_linear_infinite_reverse]" />
-                  <div className="absolute inset-12 border border-cyan-500/5 rounded-full border-r-cyan-400/20 animate-[spin_5s_linear_infinite]" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 shadow-[0_0_10px_rgba(34,211,238,1)] animate-ping" />
+               <div className="absolute right-12 bottom-12 w-20 h-20">
+                  <div className="absolute bottom-0 right-0 w-full h-[1px] bg-cyan-500/30" />
+                  <div className="absolute bottom-0 right-0 w-[1px] h-full bg-cyan-500/30" />
+                  <div className="absolute bottom-[6px] right-[6px] text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest font-black">SCAN_D:04</div>
                </div>
             </div>
 
-            <div className="absolute top-3 left-3 flex gap-2 z-10 bg-[#050B14]/80 px-2.5 py-1 rounded-md border border-[#1e293b]/50 backdrop-blur-sm">
-               <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse mt-0.5"></span>
-               <span className="text-[9px] font-mono font-black text-cyan-400 uppercase tracking-widest">Live Sync</span>
+            <div className="absolute top-4 left-4 flex gap-2.5 z-10 bg-[#050B14]/90 px-3 py-1.5 rounded-xl border border-[#1e293b]/80 backdrop-blur-md shadow-xl">
+               <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse mt-1"></span>
+               <span className="text-[10px] font-mono font-black text-cyan-400 uppercase tracking-widest">System Live Sync</span>
+               <div className="w-[1px] h-3 bg-slate-800 mx-1 self-center" />
+               <span className="text-[9px] font-mono text-slate-500 uppercase font-black">2048_SAMP</span>
             </div>
             
-            {/* Added analytics overlays */}
-            {selectedCandidate && (
-               <div className="absolute top-[85px] left-6 z-20 pointer-events-none flex flex-col gap-3">
-                  <div className="border-l-2 border-cyan-500 pl-3 bg-[#0B1221]/90 backdrop-blur-md p-2.5 rounded-r-xl shadow-[0_0_20px_rgba(34,211,238,0.1)] border-y border-r border-[#1e293b]/80">
-                     <p className="text-[9px] font-mono text-cyan-500/80 uppercase tracking-widest leading-none mb-1.5 font-black">Target Identity</p>
-                     <p className="text-sm font-black text-white font-mono drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] leading-none">{selectedCandidate.phase_name}</p>
-                     <p className="text-[9px] font-mono text-slate-400 mt-2 flex gap-1.5 items-center">
-                        <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" style={{ backgroundColor: '#f43f5e' }}></span>
-                        σ² = 0.5 (GAUSSIAN PEAK)
-                     </p>
-                  </div>
-                  
-                  <div className="border-l-2 border-rose-500/80 pl-3 bg-[#0B1221]/90 backdrop-blur-md p-2.5 rounded-r-xl shadow-[0_0_20px_rgba(244,63,94,0.1)] border-y border-r border-[#1e293b]/80">
-                     <p className="text-[9px] font-mono text-cyan-500/80 uppercase tracking-widest leading-none mb-1.5 font-black">Active Features</p>
-                     <div className="flex items-end gap-1.5 mt-1">
-                        <p className="text-xl font-black text-rose-400 font-mono leading-none drop-shadow-[0_0_10px_rgba(244,63,94,0.4)]">{selectedCandidate.matched_peaks?.length || 0}</p>
-                        <span className="text-[10px] font-mono font-black text-slate-400 leading-none mb-[1px] tracking-widest">PEAKS</span>
-                     </div>
-                  </div>
-               </div>
-            )}
-
-            <div className="flex-1 relative mt-[32px] mx-[16px] mb-[16px] z-10">
+            <div className="flex-1 relative mt-[16px] mx-[20px] mb-[16px] z-10">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
                   <defs>
                     <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.8}/>
