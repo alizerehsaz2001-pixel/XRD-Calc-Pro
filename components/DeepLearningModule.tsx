@@ -2588,127 +2588,149 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       <div className="lg:col-span-8 space-y-6">
         
         {/* Visualizer */}
-        <div className="bg-[#050B14] p-5 rounded-2xl shadow-[0_0_40px_rgba(30,58,138,0.15)] border border-[#1e293b]/80 h-[450px] flex flex-col relative overflow-hidden group">
+        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] shadow-[0_0_50px_rgba(30,58,138,0.1)] border border-[#1e293b] h-[480px] flex flex-col relative overflow-hidden group/vis">
           {/* Subtle grid background to look like a terminal/software UI */}
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-screen"></div>
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen"></div>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-50" />
           
-          <div className="flex justify-between items-center mb-4 px-2 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
-                <Activity className="w-4 h-4 text-cyan-400" />
+          <div className="flex justify-between items-center mb-5 px-2 relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-cyan-500/20 blur-lg rounded-full" />
+                <div className="w-10 h-10 rounded-xl bg-[#070D18] border border-cyan-500/40 flex items-center justify-center relative shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+                  <Activity className="w-5 h-5 text-cyan-400" />
+                </div>
               </div>
               <div>
-                <h3 className="text-base font-bold text-white tracking-tight">Phase Match Visualization</h3>
-                <p className="text-[10px] text-cyan-500/80 font-mono uppercase tracking-widest">Convolutional Feature Overlay</p>
+                <h3 className="text-base font-black text-white tracking-[0.1em] uppercase drop-shadow-md">Phase Match Visualization</h3>
+                <div className="flex items-center gap-3">
+                  <p className="text-[10px] text-cyan-400/80 font-mono uppercase tracking-[0.2em] font-black">Convolutional Feature Overlay</p>
+                  <div className="w-1 h-1 rounded-full bg-cyan-500/50" />
+                  <p className="text-[9px] text-cyan-500/40 font-mono uppercase tracking-widest">Active_Stream</p>
+                </div>
               </div>
             </div>
             
             {selectedCandidate && (
-              <div className="flex gap-2">
-                <span className={`text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 border shadow-inner backdrop-blur-sm
-                  ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
-                    selectedCandidate.match_quality === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}
+              <div className="flex gap-3">
+                <span className={`text-[10px] font-black px-4 py-2 rounded-xl flex items-center gap-2 border shadow-inner backdrop-blur-sm uppercase tracking-widest
+                  ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.1)]' : 
+                    selectedCandidate.match_quality === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]' : 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]'}
                 `}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]' : selectedCandidate.match_quality === 'Good' ? 'bg-blue-400' : 'bg-amber-400'}`} />
+                  <div className={`w-2 h-2 rounded-full animate-pulse ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]' : selectedCandidate.match_quality === 'Good' ? 'bg-blue-400' : 'bg-amber-400'}`} />
                   {selectedCandidate.match_quality || "Match"} Quality
                 </span>
-                <span className="text-xs font-bold bg-[#1e1b4b] text-[#a5b4fc] px-3 py-1.5 rounded-lg border border-[#312e81] flex items-center gap-2 backdrop-blur-sm">
-                  <Database className="w-3 h-3 text-[#818cf8]" />
-                  DB Overlay: {selectedCandidate.phase_name}
+                <span className="text-[10px] font-black bg-[#0B1221] text-indigo-300 px-4 py-2 rounded-xl border border-indigo-500/30 flex items-center gap-2 backdrop-blur-md uppercase tracking-widest shadow-[0_0_15px_rgba(99,102,241,0.1)]">
+                  <Database className="w-3.5 h-3.5 text-indigo-400" />
+                  Overlay: {selectedCandidate.phase_name}
                 </span>
               </div>
             )}
           </div>
           
-          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-[#070D18] rounded-xl border border-[#1e293b] p-0 shadow-inner overflow-hidden flex flex-col">
+          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-[#0B1221]/80 rounded-[1.5rem] border border-[#1e293b] p-0 shadow-inner overflow-hidden flex flex-col group/chart">
              
+            {/* Animated Scanline Overlay */}
+            <motion.div 
+               className="absolute top-0 bottom-0 w-[200px] bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent pointer-events-none mix-blend-screen z-0"
+               animate={{ left: ['-30%', '130%'] }}
+               transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+            />
+
             {/* HUD / Crosshair Overlay */}
-            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen">
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen opacity-70 group-hover/chart:opacity-100 transition-opacity duration-700">
                {/* Vertical & Horizontal Dashed Grid */}
-               <div className="absolute left-1/4 top-0 bottom-0 border-l border-cyan-500/10 border-dashed" />
-               <div className="absolute left-1/2 top-0 bottom-0 border-l border-cyan-500/10 border-dashed" />
-               <div className="absolute right-1/4 top-0 bottom-0 border-l border-cyan-500/10 border-dashed" />
+               <div className="absolute left-1/4 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
+               <div className="absolute left-1/2 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
+               <div className="absolute right-1/4 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
                
-               <div className="absolute top-1/4 left-0 right-0 border-t border-cyan-500/10 border-dashed" />
-               <div className="absolute top-1/2 left-0 right-0 border-t border-cyan-500/10 border-dashed" />
-               <div className="absolute bottom-1/4 left-0 right-0 border-t border-cyan-500/10 border-dashed" />
+               <div className="absolute top-1/4 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
+               <div className="absolute top-1/2 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
+               <div className="absolute bottom-1/4 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
                
                {/* Dynamic Targeting Reticles */}
-               <div className="absolute left-8 top-8 w-12 h-12">
-                  <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-500/30 opacity-70" />
-                  <div className="absolute top-0 left-0 w-[2px] h-full bg-cyan-500/30 opacity-70" />
-                  <div className="absolute top-[2px] left-[2px] text-[8px] font-mono text-cyan-500/50 uppercase">Q3:ALPHA</div>
+               <div className="absolute left-8 top-8 w-16 h-16">
+                  <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-500/40" />
+                  <div className="absolute top-0 left-0 w-[2px] h-full bg-cyan-500/40" />
+                  <div className="absolute top-[4px] left-[4px] text-[8px] font-mono text-cyan-500/60 uppercase tracking-widest font-black">Q1:ALPHA</div>
                </div>
                
-               <div className="absolute right-8 top-8 w-12 h-12">
-                  <div className="absolute top-0 right-0 w-full h-[2px] bg-cyan-500/30 opacity-70" />
-                  <div className="absolute top-0 right-0 w-[2px] h-full bg-cyan-500/30 opacity-70" />
-                  <div className="absolute top-[2px] right-[2px] text-[8px] font-mono text-cyan-500/50 uppercase">Q1:BETA</div>
+               <div className="absolute right-8 top-8 w-16 h-16">
+                  <div className="absolute top-0 right-0 w-full h-[2px] bg-cyan-500/40" />
+                  <div className="absolute top-0 right-0 w-[2px] h-full bg-cyan-500/40" />
+                  <div className="absolute top-[4px] right-[4px] text-[8px] font-mono text-cyan-500/60 uppercase tracking-widest font-black">Q2:BETA</div>
                </div>
                
-               <div className="absolute left-8 bottom-8 w-12 h-12">
-                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-cyan-500/30 opacity-70" />
-                  <div className="absolute bottom-0 left-0 w-[2px] h-full bg-cyan-500/30 opacity-70" />
-                  <div className="absolute bottom-[2px] left-[2px] text-[8px] font-mono text-cyan-500/50 uppercase">Q4:GAMMA</div>
+               <div className="absolute left-8 bottom-8 w-16 h-16">
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-cyan-500/40" />
+                  <div className="absolute bottom-0 left-0 w-[2px] h-full bg-cyan-500/40" />
+                  <div className="absolute bottom-[4px] left-[4px] text-[8px] font-mono text-cyan-500/60 uppercase tracking-widest font-black">Q3:GAMMA</div>
                </div>
                
-               <div className="absolute right-8 bottom-8 w-12 h-12">
-                  <div className="absolute bottom-0 right-0 w-full h-[2px] bg-cyan-500/30 opacity-70" />
-                  <div className="absolute bottom-0 right-0 w-[2px] h-full bg-cyan-500/30 opacity-70" />
-                  <div className="absolute bottom-[2px] right-[2px] text-[8px] font-mono text-cyan-500/50 uppercase">Q2:DELTA</div>
+               <div className="absolute right-8 bottom-8 w-16 h-16">
+                  <div className="absolute bottom-0 right-0 w-full h-[2px] bg-cyan-500/40" />
+                  <div className="absolute bottom-0 right-0 w-[2px] h-full bg-cyan-500/40" />
+                  <div className="absolute bottom-[4px] right-[4px] text-[8px] font-mono text-cyan-500/60 uppercase tracking-widest font-black">Q4:DELTA</div>
                </div>
                
                {/* Center Aim */}
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-cyan-500/10 rounded-full flex items-center justify-center">
-                  <div className="w-1 h-1 rounded-full bg-cyan-500/30" />
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 border border-cyan-500/10 rounded-full flex items-center justify-center">
+                  <div className="absolute inset-0 border border-cyan-500/20 rounded-full border-t-cyan-400/50 animate-[spin_10s_linear_infinite]" />
+                  <div className="absolute inset-4 border border-cyan-500/10 rounded-full border-b-cyan-400/40 animate-[spin_15s_linear_infinite_reverse]" />
+                  <div className="absolute inset-12 border border-cyan-500/5 rounded-full border-r-cyan-400/20 animate-[spin_5s_linear_infinite]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400/80 shadow-[0_0_10px_rgba(34,211,238,1)] animate-ping" />
                </div>
             </div>
 
-            <div className="absolute top-2 left-2 flex gap-1 z-10">
-               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/50 animate-ping"></span>
-               <span className="text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest">LIVE TRACKING</span>
+            <div className="absolute top-3 left-3 flex gap-2 z-10 bg-[#050B14]/80 px-2.5 py-1 rounded-md border border-[#1e293b]/50 backdrop-blur-sm">
+               <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse mt-0.5"></span>
+               <span className="text-[9px] font-mono font-black text-cyan-400 uppercase tracking-widest">Live Sync</span>
             </div>
             
             {/* Added analytics overlays */}
             {selectedCandidate && (
                <div className="absolute top-[85px] left-6 z-20 pointer-events-none flex flex-col gap-3">
-                  <div className="border-l-2 border-cyan-500 pl-3 bg-[#0B1221]/80 backdrop-blur-md p-2 rounded-r-lg shadow-lg border-y border-r border-[#1e293b]/50">
-                     <p className="text-[9px] font-mono text-cyan-500/80 uppercase tracking-widest leading-none mb-1.5">Target Identity</p>
-                     <p className="text-base font-black text-white font-mono drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] leading-none">{selectedCandidate.phase_name}</p>
+                  <div className="border-l-2 border-cyan-500 pl-3 bg-[#0B1221]/90 backdrop-blur-md p-2.5 rounded-r-xl shadow-[0_0_20px_rgba(34,211,238,0.1)] border-y border-r border-[#1e293b]/80">
+                     <p className="text-[9px] font-mono text-cyan-500/80 uppercase tracking-widest leading-none mb-1.5 font-black">Target Identity</p>
+                     <p className="text-sm font-black text-white font-mono drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] leading-none">{selectedCandidate.phase_name}</p>
                      <p className="text-[9px] font-mono text-slate-400 mt-2 flex gap-1.5 items-center">
-                        <span className="w-1.5 h-1.5 bg-f43f5e rounded-full" style={{ backgroundColor: '#f43f5e' }}></span>
+                        <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" style={{ backgroundColor: '#f43f5e' }}></span>
                         σ² = 0.5 (GAUSSIAN PEAK)
                      </p>
                   </div>
                   
-                  <div className="border-l-2 border-rose-500/80 pl-3 bg-[#0B1221]/80 backdrop-blur-md p-2 rounded-r-lg shadow-lg border-y border-r border-[#1e293b]/50">
-                     <p className="text-[9px] font-mono text-cyan-500/80 uppercase tracking-widest leading-none mb-1.5">Active Features</p>
+                  <div className="border-l-2 border-rose-500/80 pl-3 bg-[#0B1221]/90 backdrop-blur-md p-2.5 rounded-r-xl shadow-[0_0_20px_rgba(244,63,94,0.1)] border-y border-r border-[#1e293b]/80">
+                     <p className="text-[9px] font-mono text-cyan-500/80 uppercase tracking-widest leading-none mb-1.5 font-black">Active Features</p>
                      <div className="flex items-end gap-1.5 mt-1">
-                        <p className="text-base font-black text-rose-400 font-mono leading-none drop-shadow-[0_0_8px_rgba(244,63,94,0.3)]">{selectedCandidate.matched_peaks?.length || 0}</p>
-                        <span className="text-[10px] font-mono text-slate-400 leading-none mb-[1px]">PEAKS</span>
+                        <p className="text-xl font-black text-rose-400 font-mono leading-none drop-shadow-[0_0_10px_rgba(244,63,94,0.4)]">{selectedCandidate.matched_peaks?.length || 0}</p>
+                        <span className="text-[10px] font-mono font-black text-slate-400 leading-none mb-[1px] tracking-widest">PEAKS</span>
                      </div>
                   </div>
                </div>
             )}
 
-            <div className="flex-1 relative mt-[28px] mx-[10px] mb-[10px]">
+            <div className="flex-1 relative mt-[32px] mx-[16px] mb-[16px] z-10">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
                   <defs>
                     <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.6}/>
+                      <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.8}/>
                       <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.05}/>
                     </linearGradient>
                     <linearGradient id="colorInput" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.5}/>
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.6}/>
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                     </linearGradient>
                     <linearGradient id="colorRv" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4}/>
+                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.5}/>
                       <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
                     </linearGradient>
+                    <linearGradient id="colorResid" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                    </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="2 4" vertical={false} stroke="#1e293b" strokeOpacity={0.8} />
+                  <CartesianGrid strokeDasharray="3 6" vertical={false} stroke="#1e293b" opacity={0.6} />
                   <XAxis 
                     dataKey="twoTheta" 
                     type="number" 
@@ -2717,20 +2739,21 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     allowDataOverflow 
                     name="2θ"
                     stroke="#475569"
-                    tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'monospace' }}
+                    tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold' }}
                     tickFormatter={(value) => value.toFixed(1)}
+                    dy={10}
                   />
                   <YAxis hide domain={[0, 'dataMax']} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(34,211,238,0.08)', stroke: '#22d3ee', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                  <Legend verticalAlign="top" align="right" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace', top: '-20px', right: '10px' }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(34,211,238,0.05)', stroke: '#22d3ee', strokeWidth: 1.5, strokeDasharray: '4 4' }} />
+                  <Legend verticalAlign="top" align="right" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', fontFamily: 'monospace', top: '-15px', right: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }} />
                   
                   {isSimulating && scanPos !== null && (
                      <ReferenceLine 
                        x={scanPos} 
                        stroke="#22d3ee" 
-                       strokeWidth={1} 
+                       strokeWidth={1.5} 
                        strokeDasharray="3 3"
-                       label={{ value: 'SCANNING', position: 'insideTopLeft', fill: '#22d3ee', fontSize: 9, fontWeight: 'bold', fontFamily: 'monospace' }} 
+                       label={{ value: 'SCANNING IN PROGRESS //', position: 'insideTopLeft', fill: '#22d3ee', fontSize: 9, fontWeight: 'bold', fontFamily: 'monospace', letterSpacing: '0.1em' }} 
                      />
                   )}
 
@@ -2742,7 +2765,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                        stroke="#3b82f6" 
                        fill="url(#colorInput)" 
                        strokeWidth={2}
-                       name="Input Data points" 
+                       name="Input Points" 
                        activeDot={{ r: 4, fill: '#3b82f6', stroke: '#0B1221', strokeWidth: 2 }}
                      />
                   ) : (
@@ -2753,7 +2776,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                        fill="url(#colorUv)" 
                        strokeWidth={2.5}
                        name="Input Pattern" 
-                       activeDot={{ r: 5, fill: '#22d3ee', stroke: '#050b14', strokeWidth: 2, className: 'drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' }}
+                       activeDot={{ r: 6, fill: '#22d3ee', stroke: '#050b14', strokeWidth: 2, className: 'drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]' }}
                      />
                   )}
                   
@@ -2766,22 +2789,22 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                        fill="url(#colorRv)" 
                        fillOpacity={0.4}
                        strokeWidth={2}
-                       strokeDasharray="5 5"
+                       strokeDasharray="4 4"
                        name={`${selectedCandidate.phase_name} (Simulation)`} 
                      />
                   )}
                   
                   {/* Residual / Error Difference Curve */}
                   {selectedCandidate && (
-                     <Line 
+                     <Area 
                        type="monotone" 
                        dataKey="residual" 
                        stroke="#f59e0b" 
+                       fill="url(#colorResid)"
+                       fillOpacity={0.5}
                        strokeWidth={1.5}
                        strokeDasharray="2 2"
-                       dot={false}
-                       name="Error Residual Limit" 
-                       opacity={0.8}
+                       name="Error Limit" 
                      />
                   )}
                   
@@ -2790,7 +2813,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     <Scatter 
                       data={refData} 
                       dataKey="refIntensity" 
-                      name={`${selectedCandidate.phase_name} (Database Matches)`} 
+                      name={`${selectedCandidate.phase_name} (Database DB)`} 
                       fill="#f43f5e"
                       shape={(props: any) => {
                         const { cx, cy, yAxis } = props;
@@ -2813,21 +2836,21 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
             
             {/* Correlation Confidence Bar */}
             {selectedCandidate && (
-              <div className="absolute bottom-0 left-0 right-0 h-10 bg-slate-900/90 border-t border-slate-800 flex items-center px-4 gap-4 z-10 backdrop-blur-md">
-                <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest whitespace-nowrap">Spectral Correlation</span>
-                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden flex">
+              <div className="absolute bottom-0 left-0 right-0 h-10 bg-[#070D18]/90 border-t border-[#1e293b]/80 flex items-center px-6 gap-4 z-10 backdrop-blur-xl">
+                <span className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Spectral Correlation</span>
+                <div className="flex-1 h-2 bg-[#0B1221] border border-[#1e293b] rounded-full overflow-hidden flex shadow-inner">
                   <div 
                     className={`h-full transition-all duration-1000 ${
                       selectedCandidate.match_quality === 'Excellent' 
-                        ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]' 
+                        ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]' 
                         : selectedCandidate.match_quality === 'Good' 
-                          ? 'bg-gradient-to-r from-blue-500 to-cyan-400' 
-                          : 'bg-gradient-to-r from-amber-500 to-rose-400'
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-400 shadow-[0_0_15px_rgba(59,130,246,0.6)]' 
+                          : 'bg-gradient-to-r from-amber-500 to-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)]'
                     }`} 
                     style={{ width: `${selectedCandidate.confidence_score}%` }} 
                   />
                 </div>
-                <span className="text-[10px] font-mono font-black text-white">{selectedCandidate.confidence_score?.toFixed ? selectedCandidate.confidence_score.toFixed(1) : selectedCandidate.confidence_score}%</span>
+                <span className="text-xs font-mono font-black text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">{selectedCandidate.confidence_score?.toFixed ? selectedCandidate.confidence_score.toFixed(1) : selectedCandidate.confidence_score}%</span>
               </div>
             )}
           </div>
