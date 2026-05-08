@@ -6,7 +6,7 @@ import {
 import { 
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
   Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, 
-  Binary, Zap, Gauge, LineChart as ChartIcon
+  Binary, Zap, Gauge, LineChart as ChartIcon, Database
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak } from '../utils/physics';
@@ -587,14 +587,14 @@ export const RietveldModule: React.FC = () => {
         </div>
       ) : (
         // --- Setup Generator Tab Content ---
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
           {/* Configuration */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
-              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-teal-600 rounded-full opacity-10 blur-2xl"></div>
+            <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] shadow-[0_0_50px_rgba(20,184,166,0.05)] border border-[#1e293b] relative overflow-hidden">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-teal-600 rounded-full opacity-10 blur-[60px]"></div>
               
               <div className="flex items-center gap-3 mb-6 relative z-10">
-                <div className="p-2.5 bg-teal-500/20 rounded-xl border border-teal-500/30">
+                <div className="p-2.5 bg-teal-500/20 rounded-xl border border-teal-500/30 shadow-inner">
                   <Settings className="w-5 h-5 text-teal-400" />
                 </div>
                 <h2 className="text-xl font-bold text-white">Refinement Setup</h2>
@@ -602,37 +602,37 @@ export const RietveldModule: React.FC = () => {
     
               <div className="space-y-6 relative z-10">
                 {/* Global Settings */}
-                <div className="space-y-4 pb-6 border-b border-slate-800">
-                  <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-4 h-[1px] bg-slate-700"></span> Global Parameters
+                <div className="space-y-4 pb-6 border-b border-[#1e293b]">
+                  <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-4 h-[2px] bg-[#1e293b]"></span> Global Parameters
                   </h3>
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Max Observed Intensity</label>
+                  <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] shadow-inner">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Max Observed Intensity</label>
                     <input
                       type="number"
                       value={maxObsIntensity}
                       onChange={(e) => setMaxObsIntensity(parseFloat(e.target.value))}
-                      className="w-full px-4 py-2.5 bg-black/40 text-teal-400 border border-slate-700 rounded-lg text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+                      className="w-full px-4 py-2.5 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Background Model</label>
+                    <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] shadow-inner">
+                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Background Model</label>
                        <select 
                           value={bgModel}
                           onChange={(e) => setBgModel(e.target.value as any)}
-                          className="w-full px-3 py-2.5 bg-black/40 text-teal-400 border border-slate-700 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+                          className="w-full px-3 py-2.5 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
                        >
                          <option value="Chebyshev_6_term">Chebyshev (6-term)</option>
                          <option value="Linear_Interpolation">Linear Interp</option>
                        </select>
                     </div>
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50">
-                       <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Profile Function</label>
+                    <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] shadow-inner">
+                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Profile Function</label>
                        <select 
                           value={profileShape}
                           onChange={(e) => setProfileShape(e.target.value as any)}
-                          className="w-full px-3 py-2.5 bg-black/40 text-teal-400 border border-slate-700 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+                          className="w-full px-3 py-2.5 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
                        >
                          <option value="Thompson-Cox-Hastings">Thompson-Cox-Hastings</option>
                          <option value="Pseudo-Voigt">Pseudo-Voigt</option>
@@ -644,21 +644,21 @@ export const RietveldModule: React.FC = () => {
                 {/* Phases */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
-                     <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                       <span className="w-4 h-[1px] bg-slate-700"></span> Phases
+                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                       <span className="w-4 h-[2px] bg-[#1e293b]"></span> Phases
                      </h3>
-                     <button onClick={addPhase} className="text-[10px] uppercase tracking-widest text-teal-400 font-bold hover:text-teal-300 flex items-center gap-1 bg-teal-500/10 px-2.5 py-1 rounded-md border border-teal-500/20 transition-all">
+                     <button onClick={addPhase} className="text-[10px] uppercase tracking-widest text-teal-400 font-black hover:text-teal-300 flex items-center gap-1 bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 rounded-lg border border-teal-500/30 transition-all shadow-sm">
                        + Add Phase
                      </button>
                   </div>
                   
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {phases.map((phase, idx) => (
-                      <div key={`phase-ref-${idx}-${phase.name}`} className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 relative group">
+                      <div key={`phase-ref-${idx}-${phase.name}`} className="bg-[#0B1221] p-5 rounded-2xl border border-[#1e293b] shadow-inner relative group/phase transition-colors hover:border-teal-500/30">
                         {phases.length > 1 && (
                           <button 
                             onClick={() => removePhase(idx)}
-                            className="absolute top-3 right-3 text-slate-500 hover:text-red-400 bg-black/40 p-1.5 rounded-lg border border-slate-700 hover:border-red-500/50 transition-all"
+                            className="absolute top-4 right-4 text-slate-500 hover:text-red-400 bg-[#050B14] p-1.5 rounded-lg border border-[#1e293b] hover:border-red-500/50 transition-all shadow-sm"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -668,21 +668,21 @@ export const RietveldModule: React.FC = () => {
                         
                         <div className="grid gap-4">
                           <div>
-                            <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">Phase Name</label>
+                            <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-black mb-2">Phase Name</label>
                             <input
                               type="text"
                               value={phase.name}
                               onChange={(e) => updatePhase(idx, 'name', e.target.value)}
-                              className="w-full px-3 py-2 bg-black/40 text-white border border-slate-700 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+                              className="w-full px-4 py-2 bg-[#050B14] text-white border border-[#1e293b] rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">System</label>
+                              <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-black mb-2">System</label>
                               <select
                                 value={phase.crystalSystem}
                                 onChange={(e) => updatePhase(idx, 'crystalSystem', e.target.value)}
-                                className="w-full px-3 py-2 bg-black/40 text-white border border-slate-700 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"
+                                className="w-full px-3 py-2 bg-[#050B14] text-white border border-[#1e293b] rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
                               >
                                 <option value="Cubic">Cubic</option>
                                 <option value="Tetragonal">Tetragonal</option>
@@ -693,53 +693,53 @@ export const RietveldModule: React.FC = () => {
                               </select>
                             </div>
                             <div>
-                               <label className="block text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold mb-1">a (Å)</label>
+                               <label className="block text-[10px] uppercase text-slate-500 font-black mb-2 tracking-widest">a (Å)</label>
                                <input
                                 type="number"
                                 step="0.01"
                                 value={phase.a}
                                 onChange={(e) => updatePhase(idx, 'a', parseFloat(e.target.value))}
-                                className="w-full px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded text-sm font-bold font-mono"
+                                className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 shadow-inner"
                               />
                             </div>
                           </div>
                           
                           {/* Conditional inputs for non-cubic */}
                           {['Tetragonal', 'Orthorhombic', 'Hexagonal', 'Monoclinic', 'Triclinic'].includes(phase.crystalSystem) && (
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-3 gap-3">
                                  {['Orthorhombic', 'Monoclinic', 'Triclinic', 'Hexagonal', 'Tetragonal'].includes(phase.crystalSystem) && (
                                     <div>
-                                       <label className="block text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold mb-1">c (Å)</label>
+                                       <label className="block text-[10px] uppercase text-slate-500 font-black mb-2 tracking-widest">c (Å)</label>
                                        <input
                                           type="number"
                                           step="0.01"
                                           value={phase.c || phase.a}
                                           onChange={(e) => updatePhase(idx, 'c', parseFloat(e.target.value))}
-                                          className="w-full px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded text-sm font-bold font-mono"
+                                          className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 shadow-inner"
                                         />
                                     </div>
                                  )}
                                  {['Orthorhombic', 'Monoclinic', 'Triclinic'].includes(phase.crystalSystem) && (
                                     <div>
-                                       <label className="block text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold mb-1">b (Å)</label>
+                                       <label className="block text-[10px] uppercase text-slate-500 font-black mb-2 tracking-widest">b (Å)</label>
                                        <input
                                           type="number"
                                           step="0.01"
                                           value={phase.b || phase.a}
                                           onChange={(e) => updatePhase(idx, 'b', parseFloat(e.target.value))}
-                                          className="w-full px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded text-sm font-bold font-mono"
+                                          className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 shadow-inner"
                                         />
                                     </div>
                                  )}
                                  {['Monoclinic', 'Triclinic'].includes(phase.crystalSystem) && (
                                     <div>
-                                       <label className="block text-[10px] uppercase text-slate-500 dark:text-slate-400 font-bold mb-1">β (°)</label>
+                                       <label className="block text-[10px] uppercase text-slate-500 font-black mb-2 tracking-widest">β (°)</label>
                                        <input
                                           type="number"
                                           step="0.1"
                                           value={phase.beta || 90}
                                           onChange={(e) => updatePhase(idx, 'beta', parseFloat(e.target.value))}
-                                          className="w-full px-2 py-1 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded text-sm font-bold font-mono"
+                                          className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 shadow-inner"
                                         />
                                     </div>
                                  )}
@@ -753,7 +753,7 @@ export const RietveldModule: React.FC = () => {
     
                 <button
                   onClick={handleGenerate}
-                  className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+                  className="w-full py-4 mt-4 bg-teal-600 hover:bg-teal-500 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(13,148,136,0.3)] hover:shadow-[0_0_30px_rgba(20,184,166,0.5)] transition-all active:scale-[0.98] border border-teal-500/50"
                 >
                   Generate Control Parameters
                 </button>
@@ -767,15 +767,23 @@ export const RietveldModule: React.FC = () => {
                
                {/* Strategy Card */}
                {result && (
-                 <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800">
-                   <h3 className="text-sm font-semibold text-slate-800 dark:text-white mb-3 uppercase tracking-wide">Refinement Strategy</h3>
-                   <div className="space-y-2">
+                 <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] shadow-[0_0_50px_rgba(20,184,166,0.05)] border border-[#1e293b] relative overflow-hidden group">
+                   <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-teal-500/10 rounded-full blur-[60px] group-hover:bg-teal-500/20 transition-all duration-700"></div>
+                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
+                   
+                   <h3 className="text-xs font-black text-teal-400 mb-4 uppercase tracking-[0.2em] flex items-center gap-2 relative z-10">
+                     <Activity className="w-4 h-4" />
+                     Refinement Execution Plan
+                   </h3>
+                   <div className="space-y-3 relative z-10">
                      {result.refinement_strategy.map((step, i) => (
-                       <div key={`step-${i}`} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 p-2 rounded border border-slate-100 dark:border-slate-800">
-                         <div className="w-5 h-5 rounded-full bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 flex items-center justify-center text-xs font-bold">
+                       <div key={`step-${i}`} className="flex items-start gap-4 text-sm text-slate-300 bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] shadow-inner transition-all hover:bg-[#070D18]">
+                         <div className="w-6 h-6 shrink-0 rounded-lg bg-[#050B14] border border-teal-500/30 text-teal-400 flex items-center justify-center text-xs font-black shadow-[0_0_10px_rgba(20,184,166,0.2)]">
                            {i+1}
                          </div>
-                         {step.replace(/^\d+\.\s*/, '')}
+                         <div className="pt-0.5 leading-relaxed font-medium">
+                           {step.replace(/^\d+\.\s*/, '')}
+                         </div>
                        </div>
                      ))}
                    </div>
@@ -783,25 +791,35 @@ export const RietveldModule: React.FC = () => {
                )}
     
                {/* JSON Output */}
-               <div className="bg-slate-900 rounded-xl shadow-lg border border-slate-800 overflow-hidden flex flex-col flex-1 min-h-[400px]">
-                 <div className="p-3 border-b border-slate-800 bg-slate-950 flex justify-between items-center">
-                   <h3 className="font-mono text-sm text-teal-400">control_file.json</h3>
+               <div className="bg-[#050B14]/80 backdrop-blur-md rounded-[2rem] shadow-[0_0_50px_rgba(20,184,166,0.05)] border border-[#1e293b] overflow-hidden flex flex-col flex-1 min-h-[400px] relative">
+                 <div className="absolute inset-0 bg-grid-slate-800/10 [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] pointer-events-none" />
+                 <div className="p-4 border-b border-[#1e293b] bg-[#070D18]/80 flex justify-between items-center relative z-10 backdrop-blur-md">
+                   <h3 className="font-mono text-xs font-black tracking-widest text-teal-400 flex items-center gap-2">
+                     <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+                     CONTROL_FILE.JSON
+                   </h3>
                    <button 
                       onClick={() => result && navigator.clipboard.writeText(JSON.stringify(result, null, 2))}
-                      className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1"
+                      className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-teal-400 hover:bg-teal-500/10 px-3 py-1.5 rounded-lg border border-transparent hover:border-teal-500/30 transition-all flex items-center gap-1.5"
                    >
-                     <Download className="w-3 h-3" />
+                     <Download className="w-3.5 h-3.5" />
                      Copy JSON
                    </button>
                  </div>
-                 <div className="p-4 overflow-auto flex-1 custom-scrollbar">
+                 <div className="p-6 overflow-auto flex-1 custom-scrollbar relative z-10">
                     {result ? (
-                      <pre className="font-mono text-xs md:text-sm text-slate-300 leading-relaxed">
-                        {JSON.stringify(result, null, 2)}
+                      <pre className="font-mono text-[13px] text-teal-100/80 leading-relaxed">
+                        {JSON.stringify(result, null, 2).split('\n').map((line, i) => (
+                           <div key={i} className="flex hover:bg-white/5 px-2 -mx-2 rounded transition-colors group">
+                              <span className="w-8 shrink-0 text-slate-600 select-none text-right pr-4 group-hover:text-teal-500/50">{i + 1}</span>
+                              <span className="break-all">{line}</span>
+                           </div>
+                        ))}
                       </pre>
                     ) : (
-                      <div className="flex items-center justify-center h-full text-slate-600 text-sm font-mono">
-                        // Configure parameters and click generate
+                      <div className="flex flex-col items-center justify-center h-full text-[#1e293b] text-sm font-mono font-black space-y-4 select-none">
+                        <Database className="w-16 h-16 opacity-50" />
+                        <span className="uppercase tracking-[0.2em]">// AWAITING PARAMETERS_</span>
                       </div>
                     )}
                  </div>

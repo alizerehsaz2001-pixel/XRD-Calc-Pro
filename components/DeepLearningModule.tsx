@@ -2486,19 +2486,41 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
         </div>
 
         {/* Deep Learning Architecture Status */}
-        <div className="bg-slate-900 p-6 rounded-2xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/10 rounded-full blur-3xl group-hover:bg-violet-600/20 transition-colors duration-1000" />
-           <h3 className="font-bold text-lg mb-2 flex items-center gap-3 relative z-10">
-             <div className="p-1.5 bg-violet-500/20 rounded-lg border border-violet-500/30">
-               <Brain className="w-5 h-5 text-violet-400" />
+        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-[0_0_50px_rgba(139,92,246,0.1)] relative overflow-hidden group/engine">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/10 rounded-full blur-[60px] group-hover/engine:bg-violet-600/20 transition-colors duration-1000 pointer-events-none" />
+           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
+           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-50" />
+
+           <div className="flex items-center gap-4 mb-3 relative z-10">
+             <div className="relative">
+               <div className="absolute inset-0 bg-violet-500/20 blur-lg rounded-full" />
+               <div className="w-12 h-12 bg-[#070D18] rounded-xl border border-violet-500/40 flex items-center justify-center relative shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+                 <Brain className="w-6 h-6 text-violet-400" />
+               </div>
              </div>
-             Convolutional Engine
-           </h3>
-           <p className="text-xs text-slate-400 font-mono mb-6 relative z-10 uppercase tracking-tighter">ARCH: XRD-{engineConfig.multiScale ? 'Res' : 'Conv'}Net-50 v4.2 • {engineConfig.activation} • {engineConfig.filters}F</p>
+             <div>
+               <h3 className="font-black text-lg text-white uppercase tracking-[0.1em] drop-shadow-md">
+                 Convolutional Engine
+               </h3>
+               <p className="text-[10px] text-violet-400/80 font-mono uppercase tracking-[0.2em] font-black mt-1">ARCH: XRD-{engineConfig.multiScale ? 'Res' : 'Conv'}Net-50 v4.2</p>
+             </div>
+           </div>
            
-           <div className="space-y-5 relative z-10">
+           <div className="flex gap-2 mb-8 relative z-10 ml-[64px]">
+             <span className="px-3 py-1.5 bg-[#0B1221] border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-violet-300 uppercase tracking-widest shadow-inner">{engineConfig.activation}</span>
+             <span className="px-3 py-1.5 bg-[#0B1221] border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-violet-300 uppercase tracking-widest shadow-inner">{engineConfig.filters}F</span>
+             <span className="px-3 py-1.5 bg-[#0B1221] border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-violet-300 uppercase tracking-widest shadow-inner">{engineConfig.kernelSize}x{engineConfig.kernelSize}</span>
+           </div>
+           
+           <div className="space-y-6 relative z-10">
              {/* Vertical connecting line */}
-             <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-slate-800/80 z-0"></div>
+             <div className="absolute left-[15px] top-4 bottom-4 w-[2px] bg-[#1e293b] z-0 shadow-[0_0_10px_rgba(30,41,59,0.5)]"></div>
+             {/* Dynamic pulse on the line if active */}
+             {isSimulating && (
+               <div className="absolute left-[15px] top-0 bottom-0 w-[2px] z-0 overflow-hidden">
+                  <div className="w-full h-1/3 bg-gradient-to-b from-transparent via-violet-500 to-transparent animate-[scanline_2s_ease-in-out_infinite]" />
+               </div>
+             )}
              {steps.slice(1).map((step, idx) => {
                const stepIdx = idx + 1;
                const isActive = progressStep === stepIdx;
@@ -2506,16 +2528,16 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                const Icon = step.icon;
                
                return (
-                 <div key={`${step.label}-${idx}`} className={`relative z-10 flex flex-col gap-1 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-40'}`}>
-                   <div className="flex items-center gap-3">
-                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all duration-500 shrink-0
+                 <div key={`${step.label}-${idx}`} className={`relative z-10 flex flex-col gap-2 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-40'}`}>
+                   <div className="flex items-center gap-4">
+                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all duration-500 shrink-0 relative
                        ${isActive ? 'border-violet-500 bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.4)] scale-110 rotate-3' : 
-                         isCompleted ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-slate-700 bg-slate-900 text-slate-600'}
+                         isCompleted ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-[#1e293b] bg-[#070D18] text-slate-600 shadow-inner'}
                      `}>
                        {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />}
                      </div>
                      <div className="flex-1 min-w-0">
-                       <span className={`text-sm font-bold block truncate ${isActive ? 'text-violet-300' : isCompleted ? 'text-slate-200' : 'text-slate-500'}`}>
+                       <span className={`text-sm font-black block truncate tracking-wide ${isActive ? 'text-violet-300 drop-shadow-md' : isCompleted ? 'text-slate-200' : 'text-slate-500'}`}>
                          {step.label}
                        </span>
                      </div>
@@ -2523,8 +2545,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                      {/* Activation Metrics */}
                      {isActive && (
                        <div className="flex items-center gap-2">
-                         <div className="text-[9px] font-mono text-emerald-400 flex flex-col items-end">
-                           <span>OPT: ADAM</span>
+                         <div className="text-[10px] font-mono text-emerald-400 flex flex-col items-end font-black drop-shadow-sm">
+                           <span>OPT: ADAMW</span>
                            <span>{idx === 2 ? `CANDS: ~${(100 + Math.random() * 50).toFixed(0)}K` : `ACC: ${(95 + Math.random() * 4).toFixed(2)}%`}</span>
                          </div>
                        </div>
@@ -2533,46 +2555,46 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                    
                    {/* Layer Details & Visualizations */}
                    {(isActive || isCompleted) && (
-                     <div className="ml-11 mt-1 pl-2 border-l border-slate-700/50">
+                     <div className="ml-12 mt-1 pl-4 border-l border-[#1e293b]">
                          {idx === 0 && isActive && (
-                            <div className="text-[9px] text-slate-400 font-mono space-y-1 mb-2">
-                               <p className="animate-pulse flex items-center gap-2"><span className="text-violet-500">&gt;</span> Tensor shape: [1, 2048, 1]</p>
-                               <p className="animate-pulse flex items-center gap-2" style={{animationDelay: '0.2s'}}><span className="text-violet-500">&gt;</span> Kern Size: {engineConfig.kernelSize}x{engineConfig.kernelSize}</p>
-                               <p className="animate-pulse flex items-center gap-2" style={{animationDelay: '0.4s'}}><span className="text-violet-500">&gt;</span> Augmentation: Noise Injection</p>
+                            <div className="text-[10px] text-slate-400 font-mono space-y-1 mb-2 font-black uppercase tracking-widest bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                               <p className="animate-pulse flex items-center gap-2 text-violet-300"><span className="text-violet-500 font-bold">&gt;</span> Tensor shape: [1, 2048, 1]</p>
+                               <p className="animate-pulse flex items-center gap-2 text-violet-300" style={{animationDelay: '0.2s'}}><span className="text-violet-500 font-bold">&gt;</span> Kern Size: {engineConfig.kernelSize}x{engineConfig.kernelSize}</p>
+                               <p className="animate-pulse flex items-center gap-2 text-violet-300" style={{animationDelay: '0.4s'}}><span className="text-violet-500 font-bold">&gt;</span> Augmentation: Noise Injection</p>
                             </div>
                          )}
                          
                          {idx === 1 && isActive && (
                            <div className="mb-2">
-                             <div className="text-[9px] text-slate-400 font-mono space-y-1 mb-2">
-                                <p className="flex justify-between"><span>Conv1D_1: [{engineConfig.filters}, {engineConfig.kernelSize}]</span> <span className="text-violet-400 font-black">{Math.floor(Math.random() * 99)}ms</span></p>
-                                <p className="flex justify-between"><span>Activation: {engineConfig.activation}</span> <span className="text-emerald-400 font-black">STABLE</span></p>
-                                <p className="flex justify-between"><span>Fusion: {engineConfig.multiScale ? 'ENABLED' : 'DISABLED'}</span> <span className="text-violet-400 font-black">{Math.floor(Math.random() * 99)}ms</span></p>
+                             <div className="text-[9px] text-slate-400 font-mono space-y-1.5 mb-2 bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner font-black uppercase tracking-widest">
+                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Conv1D_1: [{engineConfig.filters}, {engineConfig.kernelSize}]</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded">{Math.floor(Math.random() * 99)}ms</span></p>
+                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Activation: {engineConfig.activation}</span> <span className="text-emerald-400 drop-shadow-sm px-1.5 py-0.5 bg-emerald-500/10 rounded animate-pulse">STABLE</span></p>
+                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Fusion: {engineConfig.multiScale ? 'ENABLED' : 'DISABLED'}</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded">{Math.floor(Math.random() * 99)}ms</span></p>
                              </div>
-                             <div className="grid grid-cols-8 gap-1 w-full max-w-[180px]">
+                             <div className="grid grid-cols-8 gap-1.5 w-full">
                                {[...Array(16)].map((_, i) => (
-                                 <div key={`pulse-${i}`} className="h-2 rounded-[2px] bg-violet-500 animate-[pulse_1s_ease-in-out_infinite]" style={{ opacity: Math.random() * 0.8 + 0.2, animationDelay: `${i * 0.05}s` }} />
+                                 <div key={`pulse-${i}`} className="h-2.5 rounded-[3px] bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)] animate-[pulse_1s_ease-in-out_infinite]" style={{ opacity: Math.random() * 0.7 + 0.3, animationDelay: `${i * 0.05}s` }} />
                                ))}
                              </div>
-                             <p className="text-[8px] text-slate-500 font-mono mt-1.5 uppercase tracking-widest text-right max-w-[180px]">Feature Map Activations</p>
+                             <p className="text-[10px] text-slate-500 font-mono mt-2 uppercase tracking-widest text-right font-black">Feature Map Activations</p>
                            </div>
                          )}
 
                          {idx === 2 && isActive && (
-                            <div className="text-[9px] text-slate-400 font-mono space-y-1.5 mb-2 mt-1">
-                               <p className="animate-pulse text-cyan-400 flex items-center gap-1.5"><Database className="w-3 h-3" /> Loading Index HNSW-1M...</p>
-                               <p>Performing Cosine Similarity Search</p>
-                               <div className="w-full max-w-[180px] bg-slate-800 h-1 mt-1 rounded-full overflow-hidden">
-                                  <div className="bg-cyan-500 h-full animate-[progress_1.5s_ease-in-out_infinite]" style={{width: `${10 + Math.random() * 80}%`}}></div>
+                            <div className="text-[10px] text-slate-400 font-mono space-y-2 mb-2 mt-2 bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner font-black uppercase tracking-widest">
+                               <p className="animate-pulse text-cyan-400 flex items-center gap-2 drop-shadow-sm"><Database className="w-3.5 h-3.5 text-cyan-500" /> Loading Index HNSW-1M...</p>
+                               <p className="text-violet-300">Performing Cosine Similarity Search</p>
+                               <div className="w-full bg-[#070D18] h-1.5 mt-2 rounded-full overflow-hidden border border-[#1e293b]">
+                                  <div className="bg-gradient-to-r from-cyan-600 to-cyan-400 h-full animate-[progress_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(34,211,238,0.6)]" style={{width: `${10 + Math.random() * 80}%`}}></div>
                                </div>
                             </div>
                          )}
 
                          {idx === 3 && isActive && (
-                            <div className="text-[9px] text-slate-400 font-mono space-y-1 mb-2">
-                               <p className="flex justify-between"><span>Dense_1</span> <span>Softmax Evaluation</span></p>
-                               <p className="text-emerald-400 animate-pulse my-1">Computing Confidence Thresholds...</p>
-                               <p className="flex justify-between text-slate-500"><span>Loss</span> <span>Categorical Cross-Entropy</span></p>
+                            <div className="text-[10px] text-slate-400 font-mono space-y-1.5 mb-2 mt-2 bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner font-black uppercase tracking-widest">
+                               <p className="flex justify-between items-center"><span className="text-violet-300">Dense_1</span> <span className="bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded drop-shadow-sm">Softmax</span></p>
+                               <p className="text-emerald-400 animate-pulse my-2 drop-shadow-sm">Computing Confidence Thresholds...</p>
+                               <p className="flex justify-between items-center text-slate-500"><span>Loss</span> <span>Cat_Cross_Ent</span></p>
                             </div>
                          )}
                      </div>

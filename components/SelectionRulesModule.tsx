@@ -301,7 +301,7 @@ export const SelectionRulesModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500 items-start">
       {/* Configuration Sidebar */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-slate-900 p-6 rounded-2xl shadow-lg border border-slate-800 relative overflow-hidden">
+        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.05)] border border-[#1e293b] relative overflow-hidden">
           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-600 rounded-full opacity-10 blur-2xl"></div>
           
           <div className="flex items-center gap-3 mb-6 relative z-10">
@@ -326,7 +326,7 @@ export const SelectionRulesModule: React.FC = () => {
               
               <button
                 onClick={() => setIsSystemMenuOpen(!isSystemMenuOpen)}
-                className="w-full px-4 py-4 bg-slate-800/50 hover:bg-slate-800 border-2 border-slate-700/50 hover:border-emerald-500/40 rounded-2xl outline-none transition-all flex items-center justify-between group shadow-xl backdrop-blur-sm"
+                className="w-full px-4 py-4 bg-[#0B1221] hover:bg-[#0f172a] border-2 border-[#1e293b] hover:border-emerald-500/40 rounded-2xl outline-none transition-all flex items-center justify-between group shadow-inner backdrop-blur-sm"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400 font-black text-xs shadow-inner">
@@ -337,14 +337,14 @@ export const SelectionRulesModule: React.FC = () => {
                       {systemGroups.flatMap(g => g.options).find(o => o.value === system)?.label}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700/50">
+                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none bg-[#050B14] px-1.5 py-0.5 rounded border border-[#1e293b]">
                         {systemGroups.find(g => g.options.some(o => o.value === system))?.label} System
                       </span>
                       {systemGroups.find(g => g.options.some(o => o.value === system))?.icon}
                     </div>
                   </div>
                 </div>
-                <div className="p-1.5 bg-slate-900/50 rounded-lg group-hover:bg-emerald-500/10 transition-colors">
+                <div className="p-1.5 bg-[#050B14] rounded-lg group-hover:bg-emerald-500/10 transition-colors border border-[#1e293b]">
                   <ChevronDown className={`w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-transform duration-300 ${isSystemMenuOpen ? 'rotate-180' : ''}`} />
                 </div>
               </button>
@@ -356,11 +356,11 @@ export const SelectionRulesModule: React.FC = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 4, scale: 0.98 }}
                     transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="absolute top-full left-0 right-0 mt-3 bg-slate-900/95 backdrop-blur-xl rounded-2xl border-2 border-slate-700 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 max-h-[400px] overflow-y-auto custom-scrollbar"
+                    className="absolute top-full left-0 right-0 mt-3 bg-[#0B1221]/95 backdrop-blur-xl rounded-2xl border-2 border-[#1e293b] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 max-h-[400px] overflow-y-auto custom-scrollbar"
                   >
                     {systemGroups.map((group, gIdx) => (
-                      <div key={`group-${group.label}-${gIdx}`} className="border-b border-slate-800/50 last:border-0">
-                        <div className="px-5 py-3 bg-slate-800/30 flex items-center gap-2">
+                      <div key={`group-${group.label}-${gIdx}`} className="border-b border-[#1e293b] last:border-0">
+                        <div className="px-5 py-3 bg-[#050B14]/80 flex items-center gap-2 shadow-inner">
                           <div className="text-emerald-500/70">{group.icon}</div>
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                             {group.label} Architectural Model
@@ -375,14 +375,14 @@ export const SelectionRulesModule: React.FC = () => {
                                 setIsSystemMenuOpen(false);
                               }}
                               className={`w-full px-4 py-3 rounded-xl flex items-center justify-between transition-all group/item
-                                ${system === option.value ? 'bg-emerald-500/10 border border-emerald-500/20' : 'hover:bg-slate-800/80 border border-transparent'}
+                                ${system === option.value ? 'bg-emerald-500/10 border border-emerald-500/20' : 'hover:bg-[#0f172a] border border-transparent'}
                               `}
                             >
                               <div className="flex items-center gap-4">
                                 <div className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center text-[11px] font-black transition-all
                                   ${system === option.value 
                                     ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.2)]' 
-                                    : 'bg-slate-900 border-slate-700 text-slate-500 group-hover/item:border-slate-500 shadow-inner'}
+                                    : 'bg-[#050B14] border-[#1e293b] text-slate-500 group-hover/item:border-slate-500 shadow-inner'}
                                 `}>
                                   {option.badge}
                                 </div>
@@ -408,7 +408,7 @@ export const SelectionRulesModule: React.FC = () => {
               </AnimatePresence>
             </div>
 
-            <div className="p-5 bg-black/60 rounded-2xl border border-slate-700/50 shadow-inner group/rule transition-all hover:border-emerald-500/30">
+            <div className="p-5 bg-[#050B14] rounded-2xl border border-[#1e293b] shadow-inner group/rule transition-all hover:border-emerald-500/30">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
@@ -421,7 +421,7 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-slate-800/30 p-5 rounded-2xl border border-slate-700/50 shadow-inner">
+            <div className="bg-[#0B1221] p-5 rounded-2xl border border-[#1e293b] shadow-inner">
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                   <Filter className="w-4 h-4 text-emerald-400" />
@@ -440,7 +440,7 @@ export const SelectionRulesModule: React.FC = () => {
                     type="range" min="1" max="6" step="1"
                     value={maxIndex}
                     onChange={(e) => setMaxIndex(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all hover:bg-slate-600"
+                    className="w-full h-1.5 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all hover:bg-slate-600"
                   />
                   <div className="flex justify-between mt-2 px-0.5">
                     {[1, 2, 3, 4, 5, 6].map(v => (
@@ -452,7 +452,7 @@ export const SelectionRulesModule: React.FC = () => {
                 </div>
                 <button
                   onClick={generateHKLs}
-                  className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-[10px] font-black rounded-xl transition-all border border-slate-600 flex items-center gap-2 shadow-lg active:scale-95 uppercase tracking-widest"
+                  className="px-5 py-2.5 bg-[#050B14] hover:bg-[#0f172a] text-emerald-400 text-[10px] font-black rounded-xl transition-all border border-[#1e293b] flex items-center gap-2 shadow-inner active:scale-95 uppercase tracking-widest"
                 >
                   <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   Execute
@@ -471,7 +471,7 @@ export const SelectionRulesModule: React.FC = () => {
                   </label>
                 </div>
                 <div className="flex items-center gap-2">
-                   <div className="h-1 w-8 bg-slate-800 rounded-full overflow-hidden">
+                   <div className="h-1 w-8 bg-[#1e293b] rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ x: '-100%' }}
                         animate={{ x: '100%' }}
@@ -493,7 +493,7 @@ export const SelectionRulesModule: React.FC = () => {
                   value={hklInput}
                   onChange={(e) => setHklInput(e.target.value)}
                   placeholder="e.g. 1 0 0, 1 1 0, 1 1 1"
-                  className="w-full h-36 px-5 py-6 bg-[#0a0f18] text-emerald-400 border-2 border-slate-800 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 outline-none transition-all font-mono text-sm leading-relaxed resize-none shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] custom-scrollbar"
+                  className="w-full h-36 px-5 py-6 bg-[#050B14] text-emerald-400 border-2 border-[#1e293b] rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 outline-none transition-all font-mono text-sm leading-relaxed resize-none shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] custom-scrollbar"
                   spellCheck={false}
                 />
                 <div className="absolute bottom-3 left-5 text-[8px] font-mono text-slate-600 uppercase tracking-widest opacity-0 group-focus-within/indices:opacity-100 transition-opacity">
@@ -514,8 +514,8 @@ export const SelectionRulesModule: React.FC = () => {
         </div>
 
         {/* Physical Context Card */}
-        <div className="bg-slate-900 p-6 rounded-2xl text-white border border-slate-800 shadow-xl relative overflow-hidden group">
-          <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-all duration-700"></div>
+        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-blue-500/10 rounded-full blur-[60px] group-hover:bg-blue-500/20 transition-all duration-700"></div>
           
           <div className="flex items-center gap-4 mb-6 relative z-10">
             <div className="p-2.5 bg-blue-500/20 rounded-xl border border-blue-500/30">
@@ -528,7 +528,7 @@ export const SelectionRulesModule: React.FC = () => {
           </div>
 
           <div className="space-y-4 relative z-10">
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+            <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
               <div className="flex items-center gap-2 mb-2">
                 <Atom className="w-3.5 h-3.5 text-blue-400" />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Origin of Extinction</span>
@@ -538,27 +538,27 @@ export const SelectionRulesModule: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+            <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
               <div className="flex items-center gap-2 mb-2">
                 <Binary className="w-3.5 h-3.5 text-blue-400" />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Structure Factor Formula</span>
               </div>
-              <div className="bg-black/60 p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-slate-700 shadow-inner">
+              <div className="bg-[#050B14] p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-[#1e293b] shadow-inner">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
-                  <span className="truncate">{systemDetails[system as keyof typeof systemDetails].formula}</span>
+                  <span className="truncate drop-shadow-sm">{systemDetails[system as keyof typeof systemDetails].formula}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+            <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
               <div className="flex items-center gap-2 mb-2">
                 <Beaker className="w-3.5 h-3.5 text-blue-400" />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Natural Occurrence</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {systemDetails[system as keyof typeof systemDetails].examples.split(',').map((ex, i) => (
-                  <span key={`ex-${ex.trim()}-${i}`} className="text-[10px] font-bold text-slate-300 bg-slate-700/50 px-2 py-1 rounded border border-slate-600/50">
+                  <span key={`ex-${ex.trim()}-${i}`} className="text-[10px] font-bold text-slate-300 bg-[#070D18] px-2 py-1 rounded border border-[#1e293b]">
                     {ex.trim()}
                   </span>
                 ))}
@@ -568,8 +568,8 @@ export const SelectionRulesModule: React.FC = () => {
         </div>
 
         {/* Symmetry Intelligence Card */}
-        <div className="bg-slate-900 p-6 rounded-2xl text-white border border-slate-800 shadow-xl overflow-hidden relative group">
-          <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-700"></div>
+        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-xl overflow-hidden relative group">
+          <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-indigo-500/10 rounded-full blur-[60px] group-hover:bg-indigo-500/20 transition-all duration-700"></div>
           
           <div className="flex items-center justify-between mb-6 relative z-10">
             <div className="flex items-center gap-3">
@@ -591,21 +591,21 @@ export const SelectionRulesModule: React.FC = () => {
 
           <div className="space-y-4 relative z-10 mt-2">
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
                 <div className="flex items-center gap-2 mb-3">
                   <RotateCw className="w-4 h-4 text-indigo-400" />
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rotation Ops</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {currentSymmetry.rotation.map((r, idx) => (
-                    <span key={`rot-${r}-${idx}`} className="text-[10px] font-bold text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">
+                    <span key={`rot-${r}-${idx}`} className="text-[10px] font-bold text-indigo-300 bg-[#070D18] px-2 py-1 rounded border border-[#1e293b]">
                       {r}
                     </span>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+              <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
                 <div className="flex items-center gap-2 mb-3">
                   <Split className="w-4 h-4 text-indigo-400" />
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reflection Planes</span>
@@ -617,38 +617,38 @@ export const SelectionRulesModule: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all flex items-center justify-between">
+              <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between shadow-inner">
                 <div className="flex items-center gap-2">
                   <Hexagon className="w-4 h-4 text-indigo-400" />
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inversion</span>
                 </div>
-                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border ${currentSymmetry.inversion ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-slate-400 bg-slate-500/10 border-slate-500/20'}`}>
+                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded border ${currentSymmetry.inversion ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-slate-500 bg-slate-900 border-slate-800'}`}>
                   {currentSymmetry.inversion ? 'Present' : 'Absent'}
                 </span>
               </div>
-              <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all flex items-center justify-between">
+              <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between shadow-inner">
                 <div className="flex items-center gap-2">
                   <Component className="w-4 h-4 text-indigo-400" />
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identity</span>
                 </div>
-                <span className="text-[11px] font-mono text-indigo-400 font-black bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">{currentSymmetry.identity}</span>
+                <span className="text-[11px] font-mono text-indigo-400 font-black bg-[#070D18] px-2 py-0.5 rounded border border-[#1e293b]">{currentSymmetry.identity}</span>
               </div>
             </div>
 
-            <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 shadow-inner">
+            <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] shadow-inner">
                <div className="flex items-center gap-2 mb-3">
                  <Network className="w-4 h-4 text-indigo-400" />
                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Engine Interpretation</span>
                </div>
-               <div className="bg-black/60 p-4 rounded-xl font-mono text-xs text-indigo-300 border border-slate-700 flex gap-3 items-start">
+               <div className="bg-[#050B14] p-4 rounded-xl font-mono text-xs text-indigo-300 border border-[#1e293b] flex gap-3 items-start shadow-inner">
                   <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse mt-1.5 shrink-0" />
                   <p className="leading-relaxed">"{currentSymmetry.description}"</p>
                </div>
             </div>
             
             {/* Visualizer Mockup Area */}
-            <div className="h-24 bg-black/40 rounded-xl border border-slate-800 flex items-center justify-center relative overflow-hidden">
-               <div className="absolute inset-0 bg-grid-slate-800/20 [mask-image:linear-gradient(to_bottom,transparent,black,transparent)]"></div>
+            <div className="h-24 bg-[#050B14] rounded-xl border border-[#1e293b] flex items-center justify-center relative overflow-hidden shadow-inner">
+               <div className="absolute inset-0 bg-grid-slate-800/20 [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] opacity-30"></div>
                
                <motion.div 
                  key={system}
@@ -661,7 +661,7 @@ export const SelectionRulesModule: React.FC = () => {
                    <motion.div 
                      animate={{ rotate: 360 }}
                      transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                     className="w-12 h-12 border border-indigo-500/30 rounded-lg flex items-center justify-center relative bg-slate-900/50 backdrop-blur-sm"
+                     className="w-12 h-12 border border-indigo-500/30 rounded-lg flex items-center justify-center relative bg-[#0B1221] backdrop-blur-sm shadow-[0_0_15px_rgba(99,102,241,0.1)]"
                    >
                      <div className="absolute inset-0 border-t border-indigo-500/50 scale-x-125 rotate-45" />
                      <div className="absolute inset-0 border-t border-indigo-500/50 scale-x-125 -rotate-45" />
@@ -687,8 +687,8 @@ export const SelectionRulesModule: React.FC = () => {
           </div>
         </div>
         {/* Lattice Centering Quick Reference */}
-        <div className="bg-slate-900 p-6 rounded-2xl text-white border border-slate-800 shadow-xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-all duration-700"></div>
+        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-emerald-500/10 rounded-full blur-[60px] group-hover:bg-emerald-500/20 transition-all duration-700"></div>
           
           <div className="flex items-center gap-4 mb-6 relative z-10">
             <div className="p-2.5 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
@@ -707,7 +707,7 @@ export const SelectionRulesModule: React.FC = () => {
                { id: 'F', label: 'Face-Centered', desc: 'Corners + Faces' },
                { id: 'C', label: 'Base-Centered', desc: 'Corners + Pair' }
              ].map((type) => (
-               <div key={type.id} className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 flex flex-col items-center text-center hover:bg-slate-800/60 transition-all">
+               <div key={type.id} className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] flex flex-col items-center text-center hover:bg-[#070D18] transition-all shadow-inner">
                   <span className="text-sm font-black text-emerald-400 mb-1">{type.id}</span>
                   <span className="text-[9px] font-bold text-slate-300 uppercase leading-none mb-1">{type.label}</span>
                   <span className="text-[8px] text-slate-500 leading-tight">{type.desc}</span>
@@ -719,14 +719,15 @@ export const SelectionRulesModule: React.FC = () => {
 
       {/* Results Section */}
       <div className="lg:col-span-8 space-y-6">
-        <div className="bg-slate-900 rounded-2xl shadow-lg border border-slate-800 overflow-hidden flex flex-col min-h-[600px]">
-          <div className="p-6 border-b border-slate-800 bg-slate-800/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="bg-[#050B14]/80 backdrop-blur-md rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.05)] border border-[#1e293b] overflow-hidden flex flex-col min-h-[600px] relative">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
+          <div className="p-6 border-b border-[#1e293b] bg-[#070D18]/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
             <div>
               <h3 className="text-lg font-bold text-white">Validation Results</h3>
               <p className="text-xs text-slate-400 font-medium mt-1">Systematic absences for {systemDetails[system as keyof typeof systemDetails].title}</p>
             </div>
             
-            <div className="flex items-center gap-1.5 bg-slate-800/50 p-1.5 rounded-xl border border-slate-700">
+            <div className="flex items-center gap-1.5 bg-[#0B1221] p-1.5 rounded-xl border border-[#1e293b]">
               {(['All', 'Allowed', 'Forbidden'] as const).map((f) => (
                 <button
                   key={f}
@@ -753,14 +754,14 @@ export const SelectionRulesModule: React.FC = () => {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                  <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-slate-800/40 border-b border-slate-700">
+                  <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-[#0B1221] border-b border-[#1e293b]">
                     <tr>
                       <th className="px-8 py-4 font-bold">Reflection (h k l)</th>
                       <th className="px-8 py-4 font-bold">Status</th>
                       <th className="px-8 py-4 font-bold">Physical Reason</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/50">
+                  <tbody className="divide-y divide-[#1e293b]">
                     <AnimatePresence mode="popLayout">
                       {filteredResults.map((res, index) => (
                         <motion.tr 
@@ -769,7 +770,7 @@ export const SelectionRulesModule: React.FC = () => {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
                           key={`${res.hkl.join('-')}-${index}`} 
-                          className="group hover:bg-slate-800/30 transition-colors"
+                          className="group hover:bg-[#0B1221] transition-colors"
                         >
                           <td className="px-8 py-5">
                             <div className="flex items-center gap-3">
@@ -803,7 +804,7 @@ export const SelectionRulesModule: React.FC = () => {
             )}
           </div>
 
-          <div className="p-4 bg-slate-800/40 border-t border-slate-800 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          <div className="p-4 bg-[#0B1221] border-t border-[#1e293b] flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
             <div className="flex gap-6">
               <span className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-emerald-400">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
