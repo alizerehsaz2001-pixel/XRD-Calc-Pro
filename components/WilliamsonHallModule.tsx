@@ -29,6 +29,33 @@ const K_FACTORS = [
   { label: 'Custom', value: 0, desc: 'User-defined dimensionless shape factor', icon: '✎' }
 ];
 
+const WH_PRESETS = [
+  { 
+    name: 'Silicon (Standard)', 
+    data: "28.44, 0.12\n47.30, 0.15\n56.12, 0.18\n69.13, 0.22\n76.38, 0.25", 
+    wavelength: 1.5406, 
+    k: 0.9, 
+    desc: 'Nearly zero strain reference.',
+    icon: '💎'
+  },
+  { 
+    name: 'Polypropylene (iPP)', 
+    data: "14.1, 0.35\n16.9, 0.42\n18.6, 0.48\n21.2, 0.55\n21.8, 0.58", 
+    wavelength: 1.5406, 
+    k: 0.94, 
+    desc: 'Semi-crystalline polymer with significant strain.',
+    icon: '🌀'
+  },
+  { 
+    name: 'Strained Cu Film', 
+    data: "43.30, 0.45\n50.43, 0.52\n74.13, 0.72\n89.93, 0.95", 
+    wavelength: 1.5406, 
+    k: 0.9, 
+    desc: 'Metals with processing-induced stress.',
+    icon: '🎞️'
+  }
+];
+
 export const WilliamsonHallModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
@@ -235,6 +262,32 @@ export const WilliamsonHallModule: React.FC = () => {
                   <span>Format: 2θ, FWHM</span>
                 </div>
               </div>
+
+              {/* Presets Grid */}
+              <div className="grid grid-cols-1 gap-2 mb-4">
+                {WH_PRESETS.map(p => (
+                  <button
+                    key={p.name}
+                    onClick={() => {
+                      setInputData(p.data);
+                      setWavelength(p.wavelength);
+                      setConstantK(p.k);
+                      const kMatch = K_FACTORS.find(kf => kf.value === p.k);
+                      if (kMatch) setSelectedKType(kMatch.label);
+                    }}
+                    className="flex items-center gap-3 p-2.5 rounded-xl bg-black/40 border border-slate-800 hover:border-cyan-500/30 hover:bg-black/60 transition-all text-left group/btn"
+                  >
+                    <span className="text-xl bg-slate-900 w-10 h-10 flex items-center justify-center rounded-lg border border-slate-800 group-hover/btn:border-cyan-500/20 shrink-0">
+                      {p.icon}
+                    </span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-black text-slate-200 truncate">{p.name}</span>
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider truncate">{p.desc}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
               <textarea
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}

@@ -15,7 +15,7 @@ import {
   Target
 } from 'lucide-react';
 
-type Topic = 'start' | 'input' | 'ai' | 'modules' | 'troubleshoot';
+type Topic = 'start' | 'input' | 'ai' | 'modules' | 'polymers' | 'troubleshoot';
 
 export const LearnModule: React.FC = () => {
   const [activeTopic, setActiveTopic] = useState<Topic>('start');
@@ -25,6 +25,7 @@ export const LearnModule: React.FC = () => {
     { id: 'input', label: 'Data Protocol', icon: FileCode, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
     { id: 'ai', label: 'Neural Intelligence', icon: Brain, color: 'text-violet-500', bg: 'bg-violet-500/10' },
     { id: 'modules', label: 'Engine Registry', icon: Package, color: 'text-amber-500', bg: 'bg-amber-500/10' },
+    { id: 'polymers', label: 'Polymer Theory', icon: Database, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
     { id: 'troubleshoot', label: 'Diagnostics', icon: LifeBuoy, color: 'text-rose-500', bg: 'bg-rose-500/10' },
   ];
 
@@ -196,6 +197,58 @@ export const LearnModule: React.FC = () => {
                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">{m.d}</p>
                        </div>
                      ))}
+                  </div>
+                </div>
+              )}
+
+              {activeTopic === 'polymers' && (
+                <div className="space-y-12">
+                  <div className="space-y-4">
+                    <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter leading-none font-sans">Polymer Crystallinity</h2>
+                    <p className="text-lg text-slate-500 dark:text-slate-400 font-medium font-sans">Understanding the complex semi-crystalline nature of long-chain molecules.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <div className="p-8 bg-cyan-50 dark:bg-cyan-900/10 border border-cyan-100 dark:border-cyan-800 rounded-3xl">
+                        <h4 className="text-xs font-black text-cyan-500 uppercase tracking-widest mb-4">The Crystallinity Index (CI)</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-bold font-sans mb-4">
+                           CI = [∫ I_c dh] / [∫ I_c + I_a dh]
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-bold leading-relaxed font-sans">
+                           CI is calculated by integrating the area under the crystalline peaks (I_c) and dividing it by the total area (Crystalline + Amorphous halo).
+                        </p>
+                     </div>
+                     <div className="p-8 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800 rounded-3xl">
+                        <h4 className="text-xs font-black text-indigo-500 uppercase tracking-widest mb-4">Amorphous Halo</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-bold font-sans mb-4">
+                           Broad, non-Bragg scattering
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-bold leading-relaxed font-sans">
+                           Unlike metals, polymers exhibit a characteristic "hump" between 15-25° (2θ) representing disordered domains.
+                        </p>
+                     </div>
+                  </div>
+
+                  <div className="bg-slate-900 rounded-[2.5rem] p-10 border border-slate-800 relative overflow-hidden">
+                     <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <Database className="w-32 h-32 text-cyan-500" />
+                     </div>
+                     <h3 className="text-lg font-black text-white uppercase tracking-tighter mb-4 z-10 relative">Operational Notes</h3>
+                     <ul className="space-y-4 z-10 relative">
+                        {[
+                          'Peak Profile: Use Pearson VII or Pseudo-Voigt models as polymer peaks are often more Gaussian than Lorentzian.',
+                          'Thermal History: Crystallinity is highly dependent on cooling rates from the melt.',
+                          'Orientation: Processing (extrusion/stretching) induces preferred orientation (Texture), affecting relative intensities.',
+                          'Lamellar Thickness: The Scherrer equation in polymers provides an estimate of the lamellar crystallite thickness (L_c).'
+                        ].map((note, i) => (
+                           <li key={i} className="flex gap-4 items-start text-xs text-slate-400 font-bold leading-relaxed">
+                              <span className="w-5 h-5 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-500/30 font-mono italic">
+                                 {i + 1}
+                              </span>
+                              {note}
+                           </li>
+                        ))}
+                     </ul>
                   </div>
                 </div>
               )}

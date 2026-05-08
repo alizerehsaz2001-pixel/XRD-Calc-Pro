@@ -87,6 +87,39 @@ const MATERIAL_DB = [
     applications: ['Non-stick coatings', 'Lubricants']
   },
   {
+    name: 'Polyethylene (HDPE)',
+    type: 'Polymer',
+    pattern: '21.5, 100\n24.0, 45\n30.1, 12\n36.3, 8',
+    description: 'High-density polyethylene, a versatile thermoplastic polymer.',
+    formula: '(C2H4)n',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pnam',
+    density: 0.95,
+    applications: ['Plastic bottles', 'Pipes', 'Geomembranes']
+  },
+  {
+    name: 'Polypropylene (iPP)',
+    type: 'Polymer',
+    pattern: '14.1, 100\n16.9, 85\n18.6, 75\n21.2, 40\n21.8, 45',
+    description: 'Isotactic polypropylene, alpha-form semi-crystalline structure.',
+    formula: '(C3H6)n',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/c',
+    density: 0.90,
+    applications: ['Packaging', 'Textiles', 'Automotive parts']
+  },
+  {
+    name: 'Nylon 6 (Polyamide)',
+    type: 'Polymer',
+    pattern: '20.3, 100\n23.7, 90',
+    description: 'A semi-crystalline polyamide synthesized via ring-opening polymerization.',
+    formula: '(C6H11NO)n',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/a',
+    density: 1.13,
+    applications: ['Fibers', 'Mechanical parts', 'Musical strings']
+  },
+  {
     name: 'Quartz (SiO2)',
     type: 'Ceramic/Mineral',
     pattern: '20.86, 35\n26.64, 100\n36.54, 12\n39.47, 9\n40.29, 8\n42.45, 8\n45.79, 9\n50.14, 14\n59.95, 9\n67.74, 7\n68.14, 8',

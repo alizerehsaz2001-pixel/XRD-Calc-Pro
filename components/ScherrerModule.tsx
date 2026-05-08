@@ -31,6 +31,41 @@ const CAGLIOTI_PRESETS = [
   { label: 'Neutron Diffractometer', u: 0.02, v: -0.01, w: 0.05 },
 ];
 
+const SCHERRER_PRESETS = [
+  { 
+    name: 'Silicon (NIST 640)', 
+    data: "28.442, 0.12, 100\n47.302, 0.15, 60\n56.123, 0.18, 40", 
+    wavelength: 1.5406, 
+    k: 0.9, 
+    desc: 'High-crystallinity calibration standard.',
+    icon: '💎'
+  },
+  { 
+    name: 'Polyethylene (HDPE)', 
+    data: "21.5, 0.45, 100\n24.0, 0.52, 45\n30.1, 0.65, 15", 
+    wavelength: 1.5406, 
+    k: 0.9, 
+    desc: 'Semi-crystalline polymer with broad peaks.',
+    icon: '▤'
+  },
+  { 
+    name: 'Zinc Oxide (Nano)', 
+    data: "31.77, 0.35, 100\n34.42, 0.38, 80\n36.25, 0.42, 120", 
+    wavelength: 1.5406, 
+    k: 0.94, 
+    desc: 'Common nanoparticle reference material.',
+    icon: '⚪'
+  },
+  { 
+    name: 'Au Nanowires', 
+    data: "38.19, 0.55\n44.39, 0.62\n64.58, 0.78", 
+    wavelength: 1.5406, 
+    k: 1.1, 
+    desc: 'Highly anisotropic 1D gold structures.',
+    icon: '┃'
+  }
+];
+
 export const ScherrerModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
@@ -411,6 +446,33 @@ export const ScherrerModule: React.FC = () => {
                   <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">Format: 2θ, FWHM, [Int]</span>
                 </div>
               </div>
+
+              {/* Presets Grid */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {SCHERRER_PRESETS.map(p => (
+                  <button
+                    key={p.name}
+                    onClick={() => {
+                      setInputData(p.data);
+                      setWavelength(p.wavelength);
+                      setConstantK(p.k);
+                      // Try to find matching K label
+                      const kMatch = K_FACTORS.find(kf => kf.value === p.k);
+                      if (kMatch) setSelectedKType(kMatch.label);
+                    }}
+                    className="flex items-center gap-2 p-2 rounded-xl bg-black/40 border border-slate-800 hover:border-amber-500/30 hover:bg-black/60 transition-all text-left group/btn"
+                  >
+                    <span className="text-lg bg-slate-900 w-8 h-8 flex items-center justify-center rounded-lg border border-slate-800 group-hover/btn:border-amber-500/20 shrink-0">
+                      {p.icon}
+                    </span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[10px] font-black text-slate-200 truncate">{p.name}</span>
+                      <span className="text-[7px] font-bold text-slate-500 uppercase tracking-wider truncate">{p.desc}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
               <textarea
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}

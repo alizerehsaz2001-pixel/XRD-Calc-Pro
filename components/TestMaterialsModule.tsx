@@ -9,7 +9,7 @@ interface MaterialPreset {
   peaks: number[];
   hkls: string[];
   description: string;
-  category: 'Standard' | 'Metal' | 'Ceramic' | 'Perovskite' | 'Biomaterial' | 'Nuclear' | 'Thermoelectric' | 'Metallurgy';
+  category: 'Standard' | 'Metal' | 'Ceramic' | 'Perovskite' | 'Biomaterial' | 'Nuclear' | 'Thermoelectric' | 'Metallurgy' | 'Polymer';
 }
 
 const PRESETS: MaterialPreset[] = [
@@ -21,6 +21,51 @@ const PRESETS: MaterialPreset[] = [
     hkls: ['111', '220', '311', '400', '331', '422', '511'],
     description: 'Internal standard for peak position and line-broadening calibration.',
     category: 'Standard'
+  },
+  {
+    name: 'Polyethylene (HDPE)',
+    formula: '(C2H4)n',
+    wavelength: 1.5406,
+    peaks: [21.5, 24.0, 30.1, 36.3, 39.7],
+    hkls: ['110', '200', '210', '020', '011'],
+    description: 'High-density semi-crystalline polymer with characteristic orthorhombic unit cell peaks.',
+    category: 'Polymer'
+  },
+  {
+    name: 'Polypropylene (Isotactic)',
+    formula: '(C3H6)n',
+    wavelength: 1.5406,
+    peaks: [14.1, 16.9, 18.6, 21.2, 21.8],
+    hkls: ['110', '040', '130', '111', '041'],
+    description: 'Alpha-form isotactic PP, showing multiple sharp reflections due to its monoclinic structure.',
+    category: 'Polymer'
+  },
+  {
+    name: 'PTFE (Teflon)',
+    formula: '(CF2)n',
+    wavelength: 1.5406,
+    peaks: [18.1, 31.5, 36.6, 41.2],
+    hkls: ['100', '110', '200', '107'],
+    description: 'Highly crystalline polymer with a major reflection at 18 degrees corresponding to chain spacing.',
+    category: 'Polymer'
+  },
+  {
+    name: 'Nylon 6',
+    formula: '(C6H11NO)n',
+    wavelength: 1.5406,
+    peaks: [20.3, 23.7],
+    hkls: ['200', '002+202'],
+    description: 'Alpha-crystalline phase of Polyamide 6, often used to study thermal annealing effects.',
+    category: 'Polymer'
+  },
+  {
+    name: 'Polyethylene Terephthalate',
+    formula: '(C10H8O4)n',
+    wavelength: 1.5406,
+    peaks: [16.2, 17.5, 22.8, 26.1],
+    hkls: ['010', '110', '100', '110'],
+    description: 'Crystalline PET showing typical peaks formed during slow cooling or drawing.',
+    category: 'Polymer'
   },
   {
     name: 'Aluminum',
@@ -268,6 +313,7 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
                 material.category === 'Perovskite' ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/10 dark:text-violet-400' :
                 material.category === 'Biomaterial' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400' :
                 material.category === 'Nuclear' ? 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400' :
+                material.category === 'Polymer' ? 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-500/10 dark:text-fuchsia-400' :
                 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400'
               }`}>
                 {material.category}

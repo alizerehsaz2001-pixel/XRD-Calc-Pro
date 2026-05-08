@@ -18,6 +18,33 @@ const K_FACTORS = [
   { label: 'Custom', value: 0, desc: 'User-defined dimensionless shape factor', icon: '✎' }
 ];
 
+const IB_PRESETS = [
+  { 
+    name: 'Silicon (NIST)', 
+    data: "28.44, 0.22, 230, 1000\n47.30, 0.26, 280, 950\n56.12, 0.31, 350, 900", 
+    wavelength: 1.5406, 
+    k: 1.0, 
+    desc: 'High-resolution standard peaks.',
+    icon: '💎'
+  },
+  { 
+    name: 'PET (Semi-cryst)', 
+    data: "16.2, 0.55, 600, 850\n17.5, 0.48, 520, 820\n26.1, 0.42, 450, 900", 
+    wavelength: 1.5406, 
+    k: 0.9, 
+    desc: 'Polymer peaks with profile asymmetry.',
+    icon: '🧵'
+  },
+  { 
+    name: 'PTFE (Crystalline)', 
+    data: "18.1, 0.38, 420, 1000\n31.5, 0.45, 500, 950\n36.6, 0.52, 580, 900", 
+    wavelength: 1.5406, 
+    k: 0.9, 
+    desc: 'Highly crystalline polymer reference.',
+    icon: '🍳'
+  }
+];
+
 export const IntegralBreadthModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
@@ -282,6 +309,32 @@ export const IntegralBreadthModule: React.FC = () => {
                   <span>Format: 2θ, FWHM, Area, Imax</span>
                 </div>
               </div>
+
+              {/* Presets Grid */}
+              <div className="grid grid-cols-1 gap-2 mb-4">
+                {IB_PRESETS.map(p => (
+                  <button
+                    key={p.name}
+                    onClick={() => {
+                      setInputData(p.data);
+                      setWavelength(p.wavelength);
+                      setConstantK(p.k);
+                      const kMatch = K_FACTORS.find(kf => kf.value === p.k);
+                      if (kMatch) setSelectedKType(kMatch.label);
+                    }}
+                    className="flex items-center gap-3 p-2.5 rounded-xl bg-black/40 border border-slate-800 hover:border-purple-500/30 hover:bg-black/60 transition-all text-left group/btn"
+                  >
+                    <span className="text-xl bg-slate-900 w-10 h-10 flex items-center justify-center rounded-lg border border-slate-800 group-hover/btn:border-purple-500/20 shrink-0">
+                      {p.icon}
+                    </span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-black text-slate-200 truncate">{p.name}</span>
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider truncate">{p.desc}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
               <textarea
                 value={inputData}
                 onChange={(e) => setInputData(e.target.value)}
