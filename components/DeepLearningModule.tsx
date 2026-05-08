@@ -6,6 +6,7 @@ import {
   ComposedChart,
   Bar,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -15,7 +16,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus, Eye } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus, Eye, Scan } from 'lucide-react';
 
 const MATERIAL_DB = [
   { 
@@ -1868,18 +1869,26 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     
     // Sort parsed points
     const sortedPoints = [...parsedPoints].sort((a, b) => a.twoTheta - b.twoTheta);
+    const sigma = 0.5; // Controls width of the simulated peaks
+    const sigma22 = Math.max(0.0001, 2 * sigma * sigma);
     
     if (!isDiscrete) {
-      // If it's continuous experimental data, just map it and add ref intensity if matched
+      // If it's continuous experimental data, calculate match and residual
       return sortedPoints.map(p => {
-         let refInt = null;
-         // For continuous, we just show reference as sticks or we don't merge them.
-         // Wait, merging them into the continuous is hard because x-values won't match exactly.
-         // Better to return the raw data and use Scatter for ref Data
+         let refIntensity = 0;
+         if (selectedCandidate && selectedCandidate.matched_peaks) {
+            for (const mp of selectedCandidate.matched_peaks) {
+               refIntensity += mp.refI * Math.exp(-Math.pow(p.twoTheta - mp.refT, 2) / sigma22);
+            }
+         }
+         
+         const residual = selectedCandidate ? Math.abs(p.intensity - refIntensity) : null;
+         
          return {
            twoTheta: p.twoTheta,
            intensity: p.intensity,
-           refIntensity: null
+           refIntensity: selectedCandidate ? Number(refIntensity.toFixed(1)) : null,
+           residual: residual !== null ? Number(residual.toFixed(1)) : null
          };
       });
     }
@@ -1889,8 +1898,6 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     const maxT = sortedPoints[sortedPoints.length - 1].twoTheta + 10;
     
     const data = [];
-    const sigma = 0.5; // Controls width of the simulated peaks
-    const sigma22 = Math.max(0.0001, 2 * sigma * sigma);
 
     for (let t = minT; t <= maxT; t += 0.2) {
       let intensity = 0;
@@ -1905,10 +1912,13 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
          }
       }
       
+      const residual = selectedCandidate ? Math.abs(intensity - refIntensity) : null;
+
       data.push({
         twoTheta: Number(t.toFixed(2)),
         intensity: Number(intensity.toFixed(1)),
-        refIntensity: selectedCandidate ? Number(refIntensity.toFixed(1)) : null
+        refIntensity: selectedCandidate ? Number(refIntensity.toFixed(1)) : null,
+        residual: residual !== null ? Number(residual.toFixed(1)) : null
       });
     }
     return data;
@@ -1927,13 +1937,31 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-slate-900 text-white p-2 rounded shadow-lg text-xs border border-slate-700">
-          <p className="font-bold mb-1">2θ: {label}°</p>
-          {payload.map((p: any, idx: number) => (
-            <p key={`tooltip-${p.name}-${idx}`} style={{ color: p.color }}>
-              {p.name}: {p.value}
-            </p>
-          ))}
+        <div className="bg-[#050B14]/95 backdrop-blur-md text-slate-200 p-4 rounded-xl shadow-2xl text-xs border border-cyan-500/30">
+          <div className="flex justify-between items-center mb-3 pb-2 border-b border-cyan-500/20">
+             <div className="flex items-center gap-2">
+                <Scan className="w-4 h-4 text-cyan-400" />
+                <span className="font-bold text-cyan-400 font-mono tracking-widest uppercase">Target 2θ</span>
+             </div>
+             <p className="font-black text-white font-mono">{label?.toFixed ? label.toFixed(2) : label}°</p>
+          </div>
+          
+          <div className="space-y-2">
+            {payload.map((p: any, idx: number) => (
+              <div key={`tooltip-${p.name}-${idx}`} className="flex items-center justify-between gap-6 py-1 px-2 rounded-lg bg-white/5 border border-white/5">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-[2px]" style={{ backgroundColor: p.color, boxShadow: `0 0 8px ${p.color}` }} />
+                  <span className="text-slate-300 font-medium truncate max-w-[150px]">{p.name}</span>
+                </div>
+                <span className="font-mono font-black" style={{ color: p.color }}>{p.value?.toFixed ? p.value.toFixed(1) : p.value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-3 pt-2 border-t border-slate-800 flex justify-between items-center">
+             <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Signal Confidence</span>
+             <span className="text-[10px] text-emerald-400 font-mono font-black">HIGH</span>
+          </div>
         </div>
       );
     }
@@ -2560,129 +2588,258 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       <div className="lg:col-span-8 space-y-6">
         
         {/* Visualizer */}
-        <div className="bg-slate-900 p-5 rounded-2xl shadow-xl border border-slate-800 h-[450px] flex flex-col relative overflow-hidden group">
+        <div className="bg-[#050B14] p-5 rounded-2xl shadow-[0_0_40px_rgba(30,58,138,0.15)] border border-[#1e293b]/80 h-[450px] flex flex-col relative overflow-hidden group">
           {/* Subtle grid background to look like a terminal/software UI */}
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none mix-blend-overlay"></div>
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-screen"></div>
           
           <div className="flex justify-between items-center mb-4 px-2 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
-                <Activity className="w-4 h-4 text-indigo-400" />
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+                <Activity className="w-4 h-4 text-cyan-400" />
               </div>
               <div>
                 <h3 className="text-base font-bold text-white tracking-tight">Phase Match Visualization</h3>
-                <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">Convolutional Feature Overlay</p>
+                <p className="text-[10px] text-cyan-500/80 font-mono uppercase tracking-widest">Convolutional Feature Overlay</p>
               </div>
             </div>
             
             {selectedCandidate && (
               <div className="flex gap-2">
                 <span className={`text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 border shadow-inner backdrop-blur-sm
-                  ${selectedCandidate.match_quality === 'Excellent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                  ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
                     selectedCandidate.match_quality === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}
                 `}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${selectedCandidate.match_quality === 'Excellent' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : selectedCandidate.match_quality === 'Good' ? 'bg-blue-400' : 'bg-amber-400'}`} />
+                  <div className={`w-1.5 h-1.5 rounded-full ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]' : selectedCandidate.match_quality === 'Good' ? 'bg-blue-400' : 'bg-amber-400'}`} />
                   {selectedCandidate.match_quality || "Match"} Quality
                 </span>
-                <span className="text-xs font-bold bg-violet-500/10 text-violet-300 px-3 py-1.5 rounded-lg border border-violet-500/20 flex items-center gap-2 backdrop-blur-sm">
-                  <Database className="w-3 h-3 text-violet-400" />
+                <span className="text-xs font-bold bg-[#1e1b4b] text-[#a5b4fc] px-3 py-1.5 rounded-lg border border-[#312e81] flex items-center gap-2 backdrop-blur-sm">
+                  <Database className="w-3 h-3 text-[#818cf8]" />
                   DB Overlay: {selectedCandidate.phase_name}
                 </span>
               </div>
             )}
           </div>
           
-          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-slate-950/80 rounded-xl border border-white/5 p-2 shadow-inner">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
-                <defs>
-                  <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorRv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
-                <XAxis 
-                  dataKey="twoTheta" 
-                  type="number" 
-                  domain={[0, 'dataMax + 5']} 
-                  unit="°" 
-                  allowDataOverflow 
-                  name="2θ"
-                  stroke="#94a3b8"
-                  tick={{ fill: '#94a3b8', fontSize: 11 }}
-                />
-                <YAxis hide />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#cbd5e1' }} />
-                
-                {isSimulating && scanPos !== null && (
-                   <ReferenceLine 
-                     x={scanPos} 
-                     stroke="#8b5cf6" 
-                     strokeWidth={2} 
-                     label={{ value: 'Neural Scan', position: 'top', fill: '#8b5cf6', fontSize: 10, fontWeight: 'bold' }} 
-                   />
-                )}
+          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-[#070D18] rounded-xl border border-[#1e293b] p-0 shadow-inner overflow-hidden flex flex-col">
+             
+            {/* HUD / Crosshair Overlay */}
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen">
+               {/* Vertical & Horizontal Dashed Grid */}
+               <div className="absolute left-1/4 top-0 bottom-0 border-l border-cyan-500/10 border-dashed" />
+               <div className="absolute left-1/2 top-0 bottom-0 border-l border-cyan-500/10 border-dashed" />
+               <div className="absolute right-1/4 top-0 bottom-0 border-l border-cyan-500/10 border-dashed" />
+               
+               <div className="absolute top-1/4 left-0 right-0 border-t border-cyan-500/10 border-dashed" />
+               <div className="absolute top-1/2 left-0 right-0 border-t border-cyan-500/10 border-dashed" />
+               <div className="absolute bottom-1/4 left-0 right-0 border-t border-cyan-500/10 border-dashed" />
+               
+               {/* Dynamic Targeting Reticles */}
+               <div className="absolute left-8 top-8 w-12 h-12">
+                  <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-500/30 opacity-70" />
+                  <div className="absolute top-0 left-0 w-[2px] h-full bg-cyan-500/30 opacity-70" />
+                  <div className="absolute top-[2px] left-[2px] text-[8px] font-mono text-cyan-500/50 uppercase">Q3:ALPHA</div>
+               </div>
+               
+               <div className="absolute right-8 top-8 w-12 h-12">
+                  <div className="absolute top-0 right-0 w-full h-[2px] bg-cyan-500/30 opacity-70" />
+                  <div className="absolute top-0 right-0 w-[2px] h-full bg-cyan-500/30 opacity-70" />
+                  <div className="absolute top-[2px] right-[2px] text-[8px] font-mono text-cyan-500/50 uppercase">Q1:BETA</div>
+               </div>
+               
+               <div className="absolute left-8 bottom-8 w-12 h-12">
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-cyan-500/30 opacity-70" />
+                  <div className="absolute bottom-0 left-0 w-[2px] h-full bg-cyan-500/30 opacity-70" />
+                  <div className="absolute bottom-[2px] left-[2px] text-[8px] font-mono text-cyan-500/50 uppercase">Q4:GAMMA</div>
+               </div>
+               
+               <div className="absolute right-8 bottom-8 w-12 h-12">
+                  <div className="absolute bottom-0 right-0 w-full h-[2px] bg-cyan-500/30 opacity-70" />
+                  <div className="absolute bottom-0 right-0 w-[2px] h-full bg-cyan-500/30 opacity-70" />
+                  <div className="absolute bottom-[2px] right-[2px] text-[8px] font-mono text-cyan-500/50 uppercase">Q2:DELTA</div>
+               </div>
+               
+               {/* Center Aim */}
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border border-cyan-500/10 rounded-full flex items-center justify-center">
+                  <div className="w-1 h-1 rounded-full bg-cyan-500/30" />
+               </div>
+            </div>
 
-                {/* Input Data */}
-                {isDiscrete ? (
-                   <Area 
-                     type="monotone" 
-                     dataKey="intensity" 
-                     stroke="#8b5cf6" 
-                     fill="url(#colorUv)" 
-                     strokeWidth={2}
-                     name="Simulated Diffractogram" 
-                     activeDot={{ r: 4, fill: '#8b5cf6', stroke: '#fff' }}
-                   />
-                ) : (
-                   <Area 
-                     type="monotone" 
-                     dataKey="intensity" 
-                     stroke="#6366f1" 
-                     fill="url(#colorUv)" 
-                     strokeWidth={2}
-                     name="Input Pattern" 
-                   />
-                )}
-                
-                {/* Reference Data (Gaussian Simulation Overlay) */}
-                {isDiscrete && selectedCandidate && (
-                   <Area 
-                     type="monotone" 
-                     dataKey="refIntensity" 
-                     stroke="#f43f5e" 
-                     fill="url(#colorRv)" 
-                     fillOpacity={0.3}
-                     strokeWidth={1.5}
-                     strokeDasharray="4 4"
-                     name={`${selectedCandidate.phase_name} (Gaussian Fit)`} 
-                   />
-                )}
-                
-                {/* Reference Stick Data */}
-                {selectedCandidate && (
-                  <Scatter 
-                    data={refData} 
-                    dataKey="refIntensity" 
-                    name={`${selectedCandidate.phase_name} (Database Sticks)`} 
-                    fill="#f43f5e" 
-                    shape="diamond"
+            <div className="absolute top-2 left-2 flex gap-1 z-10">
+               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/50 animate-ping"></span>
+               <span className="text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest">LIVE TRACKING</span>
+            </div>
+
+            <div className="flex-1 relative mt-[28px] mx-[10px] mb-[10px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                  <defs>
+                    <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.6}/>
+                      <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.05}/>
+                    </linearGradient>
+                    <linearGradient id="colorInput" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.5}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorRv" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="2 4" vertical={false} stroke="#1e293b" strokeOpacity={0.8} />
+                  <XAxis 
+                    dataKey="twoTheta" 
+                    type="number" 
+                    domain={['dataMin - 1', 'dataMax + 1']} 
+                    unit="°" 
+                    allowDataOverflow 
+                    name="2θ"
+                    stroke="#475569"
+                    tick={{ fill: '#64748b', fontSize: 11, fontFamily: 'monospace' }}
+                    tickFormatter={(value) => value.toFixed(1)}
                   />
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
+                  <YAxis hide domain={[0, 'dataMax']} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(34,211,238,0.08)', stroke: '#22d3ee', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                  <Legend verticalAlign="top" align="right" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace', top: '-20px', right: '10px' }} />
+                  
+                  {isSimulating && scanPos !== null && (
+                     <ReferenceLine 
+                       x={scanPos} 
+                       stroke="#22d3ee" 
+                       strokeWidth={1} 
+                       strokeDasharray="3 3"
+                       label={{ value: 'SCANNING', position: 'insideTopLeft', fill: '#22d3ee', fontSize: 9, fontWeight: 'bold', fontFamily: 'monospace' }} 
+                     />
+                  )}
+
+                  {/* Input Data */}
+                  {isDiscrete ? (
+                     <Area 
+                       type="stepAfter" 
+                       dataKey="intensity" 
+                       stroke="#3b82f6" 
+                       fill="url(#colorInput)" 
+                       strokeWidth={2}
+                       name="Input Data points" 
+                       activeDot={{ r: 4, fill: '#3b82f6', stroke: '#0B1221', strokeWidth: 2 }}
+                     />
+                  ) : (
+                     <Area 
+                       type="monotone" 
+                       dataKey="intensity" 
+                       stroke="#22d3ee" 
+                       fill="url(#colorUv)" 
+                       strokeWidth={2.5}
+                       name="Input Pattern" 
+                       activeDot={{ r: 5, fill: '#22d3ee', stroke: '#050b14', strokeWidth: 2, className: 'drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' }}
+                     />
+                  )}
+                  
+                  {/* Reference Data (Gaussian Simulation Overlay) */}
+                  {isDiscrete && selectedCandidate && (
+                     <Area 
+                       type="monotone" 
+                       dataKey="refIntensity" 
+                       stroke="#f43f5e" 
+                       fill="url(#colorRv)" 
+                       fillOpacity={0.4}
+                       strokeWidth={2}
+                       strokeDasharray="5 5"
+                       name={`${selectedCandidate.phase_name} (Simulation)`} 
+                     />
+                  )}
+                  
+                  {/* Residual / Error Difference Curve */}
+                  {selectedCandidate && (
+                     <Line 
+                       type="monotone" 
+                       dataKey="residual" 
+                       stroke="#f59e0b" 
+                       strokeWidth={1.5}
+                       strokeDasharray="2 2"
+                       dot={false}
+                       name="Error Residual Limit" 
+                       opacity={0.8}
+                     />
+                  )}
+                  
+                  {/* Reference Stick Data */}
+                  {selectedCandidate && (
+                    <Scatter 
+                      data={refData} 
+                      dataKey="refIntensity" 
+                      name={`${selectedCandidate.phase_name} (Database Matches)`} 
+                      fill="#f43f5e"
+                      shape={(props: any) => {
+                        const { cx, cy, yAxis } = props;
+                        const bottomY = yAxis && typeof yAxis.scale === 'function' ? yAxis.scale(0) : cy + 500;
+                        return (
+                          <g className="transition-all duration-300">
+                            {/* Stem */}
+                            <line x1={cx} y1={bottomY} x2={cx} y2={cy} stroke="#fb7185" strokeWidth={2} strokeOpacity={0.8} strokeDasharray="3 3" />
+                            {/* Head */}
+                            <path d={`M${cx},${cy - 8} L${cx - 5},${cy} L${cx},${cy + 8} L${cx + 5},${cy} Z`} fill="#f43f5e" className="drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+                            <circle cx={cx} cy={cy} r={2} fill="#fff" />
+                          </g>
+                        );
+                      }}
+                    />
+                  )}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Correlation Confidence Bar */}
+            {selectedCandidate && (
+              <div className="absolute bottom-0 left-0 right-0 h-10 bg-slate-900/90 border-t border-slate-800 flex items-center px-4 gap-4 z-10 backdrop-blur-md">
+                <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest whitespace-nowrap">Spectral Correlation</span>
+                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden flex">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${
+                      selectedCandidate.match_quality === 'Excellent' 
+                        ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]' 
+                        : selectedCandidate.match_quality === 'Good' 
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-400' 
+                          : 'bg-gradient-to-r from-amber-500 to-rose-400'
+                    }`} 
+                    style={{ width: `${selectedCandidate.confidence_score}%` }} 
+                  />
+                </div>
+                <span className="text-[10px] font-mono font-black text-white">{selectedCandidate.confidence_score?.toFixed ? selectedCandidate.confidence_score.toFixed(1) : selectedCandidate.confidence_score}%</span>
+              </div>
+            )}
           </div>
           {!inputData.trim() && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-md rounded-2xl z-20 border border-slate-800">
-               <Layers className="w-12 h-12 text-slate-700 mb-4 animate-pulse opacity-50" />
-               <p className="text-slate-400 font-medium">Network Awaiting Input Data</p>
-               <p className="text-xs text-slate-500 font-mono mt-2">SYS_STATUS: STANDBY</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#050B14]/90 backdrop-blur-md rounded-2xl z-20 border border-[#1e293b] overflow-hidden">
+               {/* Decorative background grid for empty state */}
+               <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(34, 211, 238, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 211, 238, 0.2) 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+               
+               <div className="relative mb-8 z-10 flex flex-col items-center">
+                 <div className="relative flex items-center justify-center w-32 h-32 mb-6">
+                   <svg className="absolute inset-0 w-full h-full text-cyan-900/40 animate-[spin_10s_linear_infinite]" viewBox="0 0 100 100">
+                     <circle cx="50" cy="50" r="48" fill="none" strokeWidth="1" stroke="currentColor" strokeDasharray="4 8" />
+                     <circle cx="50" cy="50" r="40" fill="none" strokeWidth="1" stroke="currentColor" strokeDasharray="2 4" />
+                   </svg>
+                   <Scan className="w-12 h-12 text-cyan-500 animate-pulse relative z-10 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]" />
+                   <div className="absolute left-0 right-0 h-[2px] bg-cyan-500/80 top-1/2 -translate-y-1/2 shadow-[0_0_10px_rgba(34,211,238,1)] animate-[scan_2s_ease-in-out_infinite]" />
+                 </div>
+                 
+                 <p className="text-white font-black tracking-[0.3em] uppercase text-xl mb-2 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">System Standby</p>
+                 <div className="flex gap-4 items-center bg-[#0d1627] px-4 py-2 rounded-lg border border-cyan-500/20 shadow-inner">
+                   <div className="flex gap-1.5 items-center">
+                     <div className="w-2 h-2 rounded-full bg-rose-500 animate-[ping_2s_infinite]" />
+                     <p className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">Input Stream: Offline</p>
+                   </div>
+                   <div className="w-px h-4 bg-slate-800" />
+                   <div className="flex gap-1.5 items-center">
+                     <div className="w-2 h-2 rounded-full bg-cyan-500/40" />
+                     <p className="text-[10px] text-cyan-500/40 font-mono tracking-widest uppercase">Model: Inactive</p>
+                   </div>
+                 </div>
+               </div>
+               
+               {/* Simulated Data Tracks bg */}
+               <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-cyan-900/10 to-transparent pointer-events-none" />
             </div>
           )}
         </div>
