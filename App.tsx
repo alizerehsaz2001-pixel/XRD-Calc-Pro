@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
 import { DiffractionChart } from './components/DiffractionChart';
@@ -23,6 +23,7 @@ import { AIChatSupport } from './components/AIChatSupport';
 import { ModuleIntro } from './components/ModuleIntro';
 import { LandingPage } from './components/LandingPage';
 import { RegistrationPage } from './components/RegistrationPage';
+import { SideSeekBar } from './components/SideSeekBar';
 import { BraggHistory } from './components/BraggHistory';
 import { BraggVisualization } from './components/BraggVisualization';
 import { calculateBragg, parsePeakString } from './utils/physics';
@@ -39,6 +40,7 @@ const App: React.FC = () => {
   const [activeModule, setActiveModule] = useState<Module>('bragg');
   const [isExplained, setIsExplained] = useState<boolean>(false);
   const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave'>('light');
+  const mainContentRef = useRef<HTMLDivElement>(null);
   
   // Bragg State
   const [sampleId, setSampleId] = useState<string>('');
@@ -281,6 +283,8 @@ const App: React.FC = () => {
             </div>
           </div>
         </aside>
+        
+        <SideSeekBar targetRef={mainContentRef} theme={theme} />
 
         <div className={`flex-1 flex flex-col h-full overflow-hidden ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 transition-colors duration-300`}>
           <div className={`md:hidden ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'} border-b p-4 flex justify-between items-center z-20 shrink-0`}>
@@ -312,7 +316,7 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <main className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar relative">
+          <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar relative">
             <div className="max-w-7xl mx-auto">
               {!isExplained ? (
                 <ModuleIntro 

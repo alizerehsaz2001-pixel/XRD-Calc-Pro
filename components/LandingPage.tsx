@@ -1,5 +1,4 @@
-
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { 
   Zap, 
@@ -18,426 +17,618 @@ import {
   Cpu,
   MonitorCheck,
   ShieldCheck,
-  Search,
-  Sparkles
+  Sparkles,
+  ChevronRight,
+  Shield,
+  Star,
+  Users,
+  CheckCircle2,
+  Globe,
+  Smartphone,
+  Apple,
+  PlayCircle,
+  Download,
+  Twitter,
+  Github,
+  Linkedin,
+  Mail,
+  Box,
+  Binary,
+  Shapes,
+  Atom
 } from 'lucide-react';
 
-interface LandingPageProps {
-  onEnter: () => void;
-  theme: string;
-  setTheme: (theme: any) => void;
-}
+import { SideSeekBar } from './SideSeekBar';
 
-const XrdPattern = () => {
-  const path = useMemo(() => {
-    const points = Array.from({ length: 200 }, (_, i) => {
-      const x = i * (1000 / 200);
-      const noise = Math.random() * 8;
-      let y = 180 - noise;
-      
-      const peaks = [
-        { pos: 150, height: 120, width: 5 },
-        { pos: 280, height: 40, width: 8 },
-        { pos: 330, height: 160, width: 4 },
-        { pos: 360, height: 70, width: 4 },
-        { pos: 550, height: 110, width: 10 },
-        { pos: 780, height: 60, width: 12 },
-        { pos: 850, height: 30, width: 15 },
-      ];
-      
-      peaks.forEach(peak => {
-        // Lorentzian profile
-        y -= peak.height / (1 + Math.pow((x - peak.pos) / peak.width, 2));
-      });
-      
-      return `${x},${y}`;
-    }).join(' L ');
-    
-    return `M 0,200 L 0,180 L ${points} L 1000,180 L 1000,200 Z`;
-  }, []);
-
-  return (
-    <div className="absolute bottom-0 left-0 w-full h-[40vh] pointer-events-none overflow-hidden z-0 [mask-image:linear-gradient(to_bottom,transparent_0%,black_30%,black_100%)]">
-      <motion.svg 
-        className="w-[200%] md:w-[150%] h-full opacity-20 origin-bottom" 
-        preserveAspectRatio="none" 
-        viewBox="0 0 1000 200"
-        initial={{ opacity: 0, y: 50, scaleY: 0 }}
-        animate={{ opacity: 0.15, y: 0, scaleY: 1 }}
-        transition={{ duration: 2, ease: "easeOut" }}
-      >
-        <defs>
-          <linearGradient id="trace-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="1" />
-            <stop offset="80%" stopColor="#4f46e5" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#020617" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path 
-           d={path}
-           fill="url(#trace-grad)"
-           stroke="#a78bfa"
-           strokeWidth="1.5"
-           className="drop-shadow-[0_0_15px_rgba(139,92,246,0.8)]"
-        />
-      </motion.svg>
+// --- Background Decorations ---
+const DiffractionGrid = () => (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,#4f46e520,transparent_70%)]" />
+    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] mix-blend-overlay"></div>
+    <div className="grid grid-cols-8 gap-px opacity-20 h-full w-full">
+      {Array.from({ length: 64 }).map((_, i) => (
+        <div key={i} className="border-[0.5px] border-slate-800" />
+      ))}
     </div>
-  );
-};
+  </div>
+);
+
+// --- Reusable Components ---
+const SectionHeading = ({ badge, title, description, center = false }: { badge: string, title: string, description: string, center?: boolean }) => (
+  <div className={`mb-16 ${center ? 'text-center max-w-3xl mx-auto' : 'max-w-3xl'}`}>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 mb-4"
+    >
+      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-400">{badge}</span>
+    </motion.div>
+    <motion.h2 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: 0.1 }}
+      className="text-4xl md:text-6xl font-black text-white mb-6 uppercase italic tracking-tighter leading-none"
+    >
+      {title}
+    </motion.h2>
+    <motion.p 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: 0.2 }}
+      className="text-lg text-slate-400 font-medium leading-relaxed"
+    >
+      {description}
+    </motion.p>
+  </div>
+);
 
 const FeatureCard = ({ title, description, icon: Icon, index }: { title: string, description: string, icon: any, index: number }) => (
   <motion.div 
-    initial={{ opacity: 0, x: -20 }}
-    whileInView={{ opacity: 1, x: 0 }}
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
-    transition={{ delay: index * 0.1, duration: 0.5 }}
-    className="group relative bg-slate-900/40 backdrop-blur-md border border-slate-800/60 p-6 rounded-3xl hover:border-violet-500/40 transition-all duration-500 cursor-default overflow-hidden shadow-xl"
+    transition={{ delay: index * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+    className="group relative bg-[#0B1221]/40 backdrop-blur-xl border border-white/5 p-8 rounded-[2.5rem] hover:border-violet-500/40 transition-all duration-700 cursor-default overflow-hidden shadow-2xl hover:translate-y-[-8px]"
   >
     <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-transparent to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-    {/* Inner glow line */}
-    <div className="absolute top-0 left-[10%] w-[80%] h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
     
-    <div className="flex items-start gap-4 relative z-10">
-      <div className="shrink-0 w-12 h-12 rounded-2xl bg-slate-900/80 border border-slate-700/50 flex items-center justify-center text-violet-400 group-hover:scale-110 group-hover:bg-violet-500/20 group-hover:border-violet-500/50 group-hover:text-violet-300 transition-all duration-500 shadow-[0_0_20px_rgba(0,0,0,0.5)] group-hover:shadow-[0_0_30px_rgba(139,92,246,0.3)]">
-        <Icon className="w-6 h-6" />
+    <div className="flex flex-col items-start gap-6 relative z-10 h-full">
+      <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-violet-400 group-hover:scale-110 group-hover:bg-violet-500/20 group-hover:border-violet-500/40 group-hover:text-violet-300 transition-all duration-500 shadow-inner">
+        <Icon className="w-7 h-7" />
       </div>
       <div>
-        <h3 className="font-black text-xs uppercase tracking-widest text-slate-200 group-hover:text-white transition-colors mb-2 leading-tight">{title}</h3>
-        <p className="text-xs text-slate-500 leading-relaxed group-hover:text-slate-400 transition-colors font-medium">{description}</p>
+        <h3 className="font-black text-[11px] uppercase tracking-[0.3em] text-slate-300 group-hover:text-white transition-colors mb-4 leading-none">
+          <span className="text-violet-500/50 mr-3 italic font-mono">/{(index + 1).toString().padStart(2, '0')}</span>
+          {title}
+        </h3>
+        <p className="text-[13px] text-slate-500 leading-relaxed group-hover:text-slate-300 transition-colors font-medium">
+          {description}
+        </p>
       </div>
     </div>
   </motion.div>
 );
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onEnter, theme, setTheme }) => {
-  const [systemLogs, setSystemLogs] = React.useState<string[]>([
-    "INITIALIZING CORE ANALYTICS...",
-    "LOADING BRAGG GEOMETRY ENGINE...",
-    "SYNCHING CRYSTALLOGRAPHY DATABASE...",
-  ]);
+const PlatformIcon = ({ icon: Icon, label, desc }: { icon: any, label: string, desc: string }) => (
+  <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group shadow-xl">
+    <div className="p-3 bg-slate-900 rounded-xl group-hover:bg-violet-500 transition-colors shadow-inner">
+      <Icon className="w-6 h-6 text-violet-400 group-hover:text-white" />
+    </div>
+    <div>
+      <p className="text-sm font-black text-white tracking-wider leading-none mb-1">{label}</p>
+      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">{desc}</p>
+    </div>
+  </div>
+);
 
-  const [authId, setAuthId] = React.useState('');
-  const [authKey, setAuthKey] = React.useState('');
-  const [authStatus, setAuthStatus] = React.useState<'idle' | 'authenticating' | 'granted'>('idle');
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!authId || !authKey) return;
-    setAuthStatus('authenticating');
-    setSystemLogs(prev => [...prev.slice(-3), `AUTHENTICATING ID: ${authId}...`, "VERIFYING CRYPTOGRAPHIC HANDSHAKE..."]);
-    setTimeout(() => {
-      setAuthStatus('granted');
-      setSystemLogs(prev => [...prev.slice(-3), "ACCESS GRANTED. WELCOME DR. ZEREHSAZ.", "INITIALIZING MODULES..."]);
-      setTimeout(() => {
-        onEnter();
-      }, 1200);
-    }, 2000); // simulated futuristic delay
-  };
+// --- Main Page Component ---
+export const LandingPage = ({ onEnter, setTheme, theme }: { 
+  onEnter: () => void, 
+  setTheme: (theme: any) => void,
+  theme: string
+}) => {
+  const [isScrolled, setIsScrolled] = useState(false);
 
   React.useEffect(() => {
-    if (authStatus !== 'idle') return;
-    const logs = [
-      "CALIBRATING X-RAY SOURCE [Cu-Kα]...",
-      "VERIFYING GONIOMETER STEP PRECISION...",
-      "FETCHING ATOMIC FORM FACTORS...",
-      "RECALIBRATING MONOCHROMATOR...",
-      "SYSTEM STABLE. READY FOR ACQUISITION."
-    ];
-    let i = 0;
-    const timer = setInterval(() => {
-      setSystemLogs(prev => {
-        const newLogs = [...prev, logs[i]];
-        return newLogs.length > 4 ? newLogs.slice(-4) : newLogs;
-      });
-      i = (i + 1) % logs.length;
-    }, 2500);
-    return () => clearInterval(timer);
-  }, [authStatus]);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const features = [
     {
-      title: "Diffraction Core",
-      description: "Bragg geometry, d-spacing transitions, and reciprocal space mapping computation.",
-      icon: Radio
+      title: "AI Peak Search",
+      description: "Proprietary deep learning models that identify phase signatures with 98.4% accuracy even in high-noise datasets.",
+      icon: Brain
     },
     {
-      title: "Profile Analysis",
-      description: "Voigt-profile modeling and advanced FWHM deconvolution algorithms.",
-      icon: Activity
+      title: "Rietveld Engine",
+      description: "Hardware-accelerated refinement with real-time parameter optimization and visual live-sync monitoring.",
+      icon: Cpu
     },
     {
-      title: "Structure Logic",
-      description: "Atomic form factors and extinction rules for Bravais lattices.",
-      icon: Layers
+      title: "Crystallographic DB",
+      description: "Direct integration with global databases (COD/AMCSD) for seamless phase matching and structural lookup.",
+      icon: Database
     },
     {
-      title: "Microstructure",
-      description: "Strain/Size separation via Scherrer and Williamson-Hall analyses.",
-      icon: Microscope
+      title: "Cross-Platform Sync",
+      description: "Analyze results on your desktop, and instantly review refinement strategy on your mobile device.",
+      icon: Smartphone
     },
     {
-      title: "Fourier Synthesis",
-      description: "Warren-Averbach analysis of nanostructured imperfections and columns.",
+      title: "Advanced Symmetry",
+      description: "Automated space group determination and systematic absence validation using lattice centering intelligence.",
       icon: Hexagon
     },
     {
-      title: "Phase ID Layer",
-      description: "AI-accelerated Hanawalt search and spectral matching engine.",
-      icon: Brain
+      title: "Enterprise Grade",
+      description: "Encrypted data pipelines and multi-user workspace environments designed for institutional research teams.",
+      icon: ShieldCheck
     }
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col lg:flex-row overflow-hidden font-sans selection:bg-violet-500/30 relative">
+    <div className="min-h-screen bg-[#020617] text-white flex flex-col font-sans selection:bg-violet-500/30 relative">
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.08] pointer-events-none z-50 contrast-150 brightness-100" />
       
-      {/* Theme Switcher on Landing */}
-      <div className="absolute top-6 right-6 z-50 flex items-center gap-2 bg-black/40 backdrop-blur-xl p-1.5 rounded-full border border-white/10 shadow-2xl">
+      {/* Side Seek Navigation */}
+      <SideSeekBar theme={theme} />
+
+      {/* Theme Switcher Shared with App */}
+      <div className="fixed top-24 right-6 z-[110] flex flex-col gap-2 bg-white/5 backdrop-blur-2xl p-1.5 rounded-2xl border border-white/10 shadow-2xl opacity-0 hover:opacity-100 transition-opacity duration-300">
         {['light', 'dark', 'cyberpunk', 'terminal', 'synthwave'].map((t) => (
           <button
             key={t}
-            onClick={() => setTheme(t)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-              theme === t 
-                ? 'bg-violet-500 text-white shadow-[0_0_15px_rgba(139,92,246,0.6)]' 
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
+            onClick={() => setTheme(t as any)}
+            className={`w-6 h-6 rounded-lg transition-all ${
+              theme === t ? 'bg-violet-500 scale-110 shadow-lg shadow-violet-500/50' : 'bg-slate-800 opacity-50 hover:opacity-100'
             }`}
-            title={`${t.charAt(0).toUpperCase() + t.slice(1)} Mode`}
-          >
-            {t === 'light' && <div className="w-3 h-3 rounded-full bg-slate-200" />}
-            {t === 'dark' && <div className="w-3 h-3 rounded-full bg-slate-800 border border-slate-600" />}
-            {t === 'cyberpunk' && <Zap className="w-4 h-4" />}
-            {t === 'terminal' && <Terminal className="w-4 h-4" />}
-            {t === 'synthwave' && <Activity className="w-4 h-4" />}
-          </button>
+          />
         ))}
       </div>
 
-      {/* HUD Lines & Grid Decor */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_80%_60%_at_50%_0%,#000_70%,transparent_100%)]" />
-        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
-        <div className="absolute top-0 left-1/4 w-[1px] h-32 bg-gradient-to-b from-indigo-500/40 to-transparent" />
-        <div className="absolute top-0 right-1/4 w-[1px] h-32 bg-gradient-to-b from-violet-500/40 to-transparent" />
-      </div>
+      {/* Dynamic Navbar */}
+      <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 ${isScrolled ? 'bg-[#050B14]/80 backdrop-blur-xl border-b border-white/5 py-4 shadow-2xl' : 'bg-transparent py-8'}`}>
+        <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.3)] group-hover:rotate-12 transition-transform">
+              <FlaskConical className="w-6 h-6 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-black italic tracking-tighter leading-none">XRD-Calc<span className="text-violet-400">Pro</span></span>
+              <span className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-500 mt-0.5">Computational Suite</span>
+            </div>
+          </div>
 
-      {/* Dynamic XRD Pattern */}
-      <XrdPattern />
+          <div className="hidden md:flex items-center gap-10 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#platform" className="hover:text-white transition-colors">Platforms</a>
+            <a href="#about" className="hover:text-white transition-colors">Performance</a>
+            <div className="w-px h-6 bg-white/10" />
+            <button 
+              onClick={onEnter}
+              className="hover:text-white transition-colors"
+            >
+              Log In
+            </button>
+            <button 
+              onClick={onEnter}
+              className="bg-violet-600 hover:bg-violet-500 px-8 py-3 rounded-full shadow-[0_10px_30px_rgba(139,92,246,0.2)] transition-all text-white active:scale-95"
+            >
+              Get Started
+            </button>
+          </div>
 
-      {/* Glow Orbs */}
-      <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-indigo-600/10 rounded-full blur-[180px] pointer-events-none animate-pulse duration-10000" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-violet-600/10 rounded-full blur-[180px] pointer-events-none animate-pulse duration-7000 delay-1000" />
-
-      {/* Decorative Radial Grid (Diffraction Simulation) */}
-      <motion.div 
-        animate={{ rotate: 360 }}
-        transition={{ duration: 200, repeat: Infinity, ease: "linear" }}
-        className="absolute top-1/2 left-[-20%] md:left-1/4 -translate-x-1/2 -translate-y-1/2 w-[1600px] h-[1600px] rounded-full pointer-events-none z-0"
-      >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] border border-violet-500/[0.04] rounded-full" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-indigo-500/[0.06] rounded-full border-dashed" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-violet-500/[0.08] rounded-full" />
-        
-        {/* Reciprocal lattice points */}
-        <div className="absolute top-1/2 left-1/2 w-full h-[1px] -translate-x-1/2 -translate-y-1/2 rotate-45">
-           <div className="absolute left-[30%] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-violet-400/50 blur-[1px] shadow-[0_0_10px_#8b5cf6]" />
-           <div className="absolute right-[30%] top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-violet-400/50 blur-[1px] shadow-[0_0_10px_#8b5cf6]" />
+          <button onClick={onEnter} className="md:hidden p-3 bg-white/5 rounded-xl border border-white/10">
+            <ArrowRight className="w-5 h-5 text-violet-400" />
+          </button>
         </div>
-        <div className="absolute top-1/2 left-1/2 w-full h-[1px] -translate-x-1/2 -translate-y-1/2 rotate-[135deg]">
-           <div className="absolute left-[20%] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-indigo-400/60 shadow-[0_0_8px_#6366f1]" />
-           <div className="absolute right-[20%] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-indigo-400/30 blur-[2px]" />
-        </div>
-        <div className="absolute top-1/2 left-1/2 w-full h-[1px] -translate-x-1/2 -translate-y-1/2 rotate-90 bg-indigo-500-[0.01]">
-           <div className="absolute left-[40%] top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-white/80 shadow-[0_0_5px_#fff]" />
-           <div className="absolute right-[40%] top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-white/80 shadow-[0_0_5px_#fff]" />
-        </div>
-      </motion.div>
+      </nav>
 
-      {/* Left Main Content - Hero */}
-      <div className="relative z-20 w-full lg:w-3/5 flex flex-col items-center justify-center p-8 lg:p-20 h-screen lg:h-screen overflow-y-auto shrink-0 border-b lg:border-b-0 lg:border-r border-slate-800/60 bg-slate-950/70 backdrop-blur-2xl shadow-2xl">
-        <motion.div 
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-          className="max-w-2xl w-full flex flex-col items-start text-left"
-        >
-           {/* Superior Top Badge */}
-           <motion.div 
-             initial={{ opacity: 0, scale: 0.9 }}
-             animate={{ opacity: 1, scale: 1 }}
-             transition={{ delay: 0.5, duration: 0.8 }}
-             className="flex items-center gap-3 px-4 py-2 rounded-full border border-violet-500/30 bg-violet-500/10 mb-10 shadow-[0_0_30px_rgba(139,92,246,0.15)]"
-           >
-             <div className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
-             </div>
-             <span className="text-[9px] font-black uppercase tracking-[0.3em] text-violet-300">Restricted Access • Level 3</span>
-           </motion.div>
+      <main className="flex-1 relative z-10">
+        {/* --- Hero Section --- */}
+        <section className="relative px-6 pt-48 pb-32 md:pb-56 min-h-[90vh] flex items-center overflow-hidden">
+          <DiffractionGrid />
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10 w-full">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div 
+                className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-violet-600/10 border border-violet-500/30 mb-8 shadow-2xl backdrop-blur-sm"
+              >
+                <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-300/80">Trusted by 2,400+ Global Laboratories</span>
+              </div>
 
-           <h1 className="text-6xl sm:text-7xl lg:text-[7rem] font-black tracking-tighter mb-8 text-white uppercase italic leading-[0.85] drop-shadow-2xl flex flex-col w-full">
-             <span>XRD-</span>
-             <span className="flex items-center gap-4">
-                Calc<span className="text-transparent bg-clip-text bg-gradient-to-tr from-violet-400 via-indigo-300 to-sky-200">Pro</span>
-                <Sparkles className="w-12 h-12 text-violet-400 opacity-60 animate-pulse mt-4 hidden sm:block" />
-             </span>
-           </h1>
-           
-           <div className="w-full max-w-md mb-12">
-             <p className="text-sm text-slate-400 font-medium leading-relaxed mb-6 tracking-tight">
-               Secure computational framework for <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-300 font-bold">Diffraction Physics</span>. Please authenticate to access the laboratory modules.
-             </p>
-
-             <form onSubmit={handleLogin} className="space-y-6">
-               <div className="space-y-4">
-                 <div className="relative group/input">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Terminal className="w-4 h-4 text-slate-500 group-focus-within/input:text-violet-400 transition-colors" />
-                    </div>
-                    <input 
-                      type="text" 
-                      required
-                      disabled={authStatus !== 'idle'}
-                      placeholder="Researcher ID (e.g., AZ-2001)"
-                      value={authId}
-                      onChange={(e) => setAuthId(e.target.value)}
-                      className="w-full bg-slate-950/50 border border-slate-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all backdrop-blur-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                 </div>
-                 
-                 <div className="relative group/input">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <ShieldCheck className="w-4 h-4 text-slate-500 group-focus-within/input:text-violet-400 transition-colors" />
-                    </div>
-                    <input 
-                      type="password" 
-                      required
-                      disabled={authStatus !== 'idle'}
-                      placeholder="Access Key / Clearance Level"
-                      value={authKey}
-                      onChange={(e) => setAuthKey(e.target.value)}
-                      className="w-full bg-slate-950/50 border border-slate-800/80 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/50 transition-all backdrop-blur-xl shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                 </div>
-               </div>
-
-               <motion.button 
-                 whileHover={{ scale: 1.02 }}
-                 whileTap={{ scale: 0.98 }}
-                 type="submit"
-                 disabled={authStatus !== 'idle'}
-                 className={`group relative w-full flex items-center justify-center px-8 py-5 bg-white text-slate-950 text-xs font-black uppercase tracking-[0.3em] rounded-2xl overflow-hidden transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] hover:shadow-[0_0_60px_rgba(139,92,246,0.4)] disabled:opacity-80 disabled:cursor-wait ${authStatus === 'granted' ? 'bg-emerald-400 text-emerald-950 shadow-[0_0_40px_rgba(16,185,129,0.4)]' : ''}`}
-               >
-                 <div className={`absolute inset-0 bg-gradient-to-r ${authStatus === 'granted' ? 'from-emerald-300 via-emerald-400 to-emerald-200' : 'from-violet-200 via-white to-indigo-100'} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-                 <span className="relative z-10 flex items-center gap-3">
-                   {authStatus === 'authenticating' ? (
-                     <>
-                       <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                       Authenticating...
-                     </>
-                   ) : authStatus === 'granted' ? (
-                     <>
-                       Access Granted
-                       <ShieldCheck className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-                     </>
-                   ) : (
-                     <>
-                       Authenticate Session
-                       <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform duration-300" />
-                     </>
-                   )}
-                 </span>
-               </motion.button>
-             </form>
-           </div>
-           
-           {/* System Status Log Box */}
-           <div className="w-full relative group">
-              {/* Outer decorative borders */}
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500/20 to-indigo-500/20 rounded-[2.2rem] blur opacity-50 group-hover:opacity-100 transition duration-1000"></div>
+              <h1 className="text-6xl sm:text-7xl lg:text-[7.5rem] font-black tracking-tighter mb-8 text-white uppercase italic leading-[1] drop-shadow-2xl flex flex-col">
+                <span className="opacity-70">XRD-</span>
+                <span className="flex items-center gap-4">
+                  Calc<span className="text-transparent bg-clip-text bg-gradient-to-tr from-violet-500 via-indigo-400 to-cyan-300 drop-shadow-[0_0_30px_rgba(139,92,246,0.4)]">Pro</span>
+                  <Sparkles className="w-12 h-12 text-violet-400 opacity-40 animate-pulse mt-4 hidden sm:block" />
+                </span>
+              </h1>
               
-              <div className="relative p-6 sm:p-8 bg-slate-950/80 border border-slate-800/80 rounded-[2rem] backdrop-blur-2xl overflow-hidden">
-                <div className="absolute top-0 left-[20%] w-[60%] h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
-                
-                <div className="absolute top-5 right-6 flex gap-2">
-                  <div className="w-2 h-2 rounded-full bg-slate-700" />
-                  <div className="w-2 h-2 rounded-full bg-slate-700" />
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_#10b981]" />
+              <p className="text-xl sm:text-2xl text-slate-400 font-medium mb-12 leading-relaxed max-w-2xl tracking-tight">
+                Accelerate your material science discovery with hardware-enabled XRD analysis. 
+                Deploy <span className="text-white font-bold italic">AI-driven refinement</span> strategies in seconds.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-6">
+                <button 
+                  onClick={onEnter}
+                  className="flex-1 sm:flex-none px-12 py-6 bg-violet-600 hover:bg-violet-500 rounded-2xl flex items-center justify-center gap-4 transition-all shadow-[0_20px_60px_rgba(139,92,246,0.3)] active:scale-95 group relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                  <span className="text-sm font-black uppercase tracking-[0.3em] italic relative z-10">Get Control Access</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform relative z-10" />
+                </button>
+                <button className="flex-1 sm:flex-none px-12 py-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex items-center justify-center gap-4 transition-all backdrop-blur-xl group shadow-2xl">
+                  <PlayCircle className="w-5 h-5 text-violet-400" />
+                  <span className="text-sm font-black uppercase tracking-[0.3em] italic">Watch AI Demo</span>
+                </button>
+              </div>
+
+              <div className="mt-20 grid grid-cols-2 sm:grid-cols-3 gap-10">
+                <div className="space-y-1">
+                  <p className="text-4xl font-black italic text-white leading-none tracking-tighter">0.15s</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Latency per Peak</p>
                 </div>
-                
-                <div className="flex items-center gap-3 mb-6 relative z-10">
-                  <Cpu className="w-5 h-5 text-indigo-400" />
-                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] text-slate-400 drop-shadow-md">Kernel Telemetry</span>
+                <div className="space-y-1">
+                  <p className="text-4xl font-black italic text-white leading-none tracking-tighter">1.2M+</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">COD Profiles Loaded</p>
                 </div>
-                
-                <div className="space-y-3 font-mono relative z-10">
-                  {systemLogs.map((log, idx) => (
-                    <motion.div 
-                      key={idx}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex items-start sm:items-center gap-3 text-[10px] sm:text-[11px]"
-                    >
-                      <span className="text-emerald-500/50 shrink-0">[{new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span>
-                      <span className={`tracking-tight leading-loose ${idx === systemLogs.length - 1 ? 'text-indigo-300 font-bold drop-shadow-[0_0_5px_rgba(99,102,241,0.5)]' : 'text-slate-500'}`}>{log}</span>
-                    </motion.div>
-                  ))}
+                <div className="space-y-1 hidden sm:block">
+                  <div className="flex gap-1 mb-2">
+                    {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 text-amber-500 fill-amber-500" />)}
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Standard Excellence</p>
                 </div>
               </div>
-           </div>
-           
-        </motion.div>
-      </div>
+            </motion.div>
 
-      {/* Right Sidebar - Module Explorer */}
-      <div className="relative z-10 flex-1 lg:w-2/5 flex flex-col h-screen lg:h-screen bg-slate-900/60 backdrop-blur-3xl shadow-[-20px_0_50px_rgba(0,0,0,0.5)]">
-        <div className="flex flex-col p-8 lg:p-12 border-b border-slate-800/80 sticky top-0 bg-slate-900/90 backdrop-blur-xl z-30">
-           <div className="flex items-center gap-3 mb-2">
-             <div className="flex space-x-1">
-                <span className="w-1.5 h-6 bg-violet-500 rounded-full animate-pulse"></span>
-                <span className="w-1.5 h-4 bg-indigo-500 rounded-full animate-pulse delay-75 mt-1"></span>
-                <span className="w-1.5 h-5 bg-sky-500 rounded-full animate-pulse delay-150 mt-0.5"></span>
-             </div>
-             <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Integrated Suite</h2>
+            <motion.div 
+               initial={{ opacity: 0, scale: 0.9, x: 50 }}
+               animate={{ opacity: 1, scale: 1, x: 0 }}
+               transition={{ duration: 1.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+               className="relative group perspective-2000 hidden lg:block"
+            >
+              <div className="absolute inset-0 bg-violet-600/10 blur-[150px] rounded-full group-hover:bg-violet-600/20 transition-all duration-1000" />
+              <div className="relative z-10 transform rotate-y-[-12deg] rotate-x-[8deg] group-hover:rotate-0 group-hover:scale-105 transition-all duration-1000">
+                <div className="bg-[#050B14]/80 backdrop-blur-sm rounded-[3rem] border border-white/10 overflow-hidden shadow-[0_60px_100px_-20px_rgba(0,0,0,1)] aspect-[16/11] flex flex-col ring-1 ring-white/20">
+                  <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between backdrop-blur-md">
+                    <div className="flex gap-2">
+                      <div className="w-3 h-3 rounded-full bg-rose-500/80 shadow-[0_0_10px_rgba(244,63,94,0.3)]" />
+                      <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                      <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="w-32 h-2.5 bg-white/5 rounded-full overflow-hidden">
+                        <motion.div animate={{ width: ['0%', '100%'] }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }} className="h-full bg-violet-500" />
+                      </div>
+                      <div className="w-12 h-2.5 bg-white/10 rounded-full" />
+                    </div>
+                  </div>
+                  <div className="flex-1 p-8 flex flex-col gap-6">
+                    <div className="h-48 w-full bg-[#070D18] rounded-3xl border border-white/5 relative overflow-hidden flex items-end p-6 gap-3 group/chart">
+                       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none" />
+                       {Array.from({ length: 24 }).map((_, i) => (
+                         <div key={i} className="flex-1 bg-violet-500/40 rounded-t-lg transition-all group-hover/chart:bg-violet-500/60" style={{ height: `${Math.sin(i * 0.4) * 40 + 60}%` }} />
+                       ))}
+                       <div className="absolute top-1/2 left-0 w-full h-px bg-cyan-500/30 border-dashed animate-pulse" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-6 flex-1">
+                      <div className="bg-white/5 rounded-3xl border border-white/5 p-6 shadow-inner flex flex-col justify-between">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                          <Activity className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">RMS Residual</p>
+                          <p className="text-xl font-black font-mono text-white">0.0423</p>
+                        </div>
+                      </div>
+                      <div className="bg-white/5 rounded-3xl border border-white/5 p-6 shadow-inner flex flex-col justify-between">
+                        <div className="w-8 h-8 rounded-lg bg-violet-500/20 border border-violet-500/30 flex items-center justify-center">
+                          <Cpu className="w-4 h-4 text-violet-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Cores Active</p>
+                          <p className="text-xl font-black font-mono text-white">X92-A</p>
+                        </div>
+                      </div>
+                      <div className="bg-white/5 rounded-3xl border border-white/5 p-6 shadow-inner flex flex-col justify-between">
+                        <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
+                          <Shapes className="w-4 h-4 text-cyan-400" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Symmetry</p>
+                          <p className="text-xl font-black font-mono text-white">Fm-3m</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* --- Trust Logos --- */}
+        <section className="py-20 border-y border-white/5 bg-white/[0.02] relative z-10">
+          <div className="max-w-7xl mx-auto px-6">
+            <p className="text-center text-[11px] font-black text-slate-500 uppercase tracking-[0.4em] mb-12 italic opacity-80">Institutional Research & Enterprise Partners</p>
+            <div className="flex flex-wrap justify-center items-center gap-16 md:gap-32 opacity-25 grayscale hover:grayscale-0 transition-all duration-1000">
+               {['Stanford', 'Oxford', 'CERN', 'Lawrence Berkeley', 'NASA'].map(logo => (
+                 <span key={logo} className="text-2xl font-black italic tracking-tighter text-white uppercase select-none">{logo}</span>
+               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* --- Capabilities Grid --- */}
+        <section id="features" className="py-32 px-6 relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-violet-600/5 blur-[200px] rounded-full pointer-events-none" />
+          <div className="max-w-7xl mx-auto relative z-10">
+            <SectionHeading 
+              badge="Standard Suite"
+              title="Next-Generation Analysis Framework"
+              description="A multi-modal environment designed for high-resolution refinement, automated peak identification, and structural simulation."
+              center
+            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+              {features.map((f, i) => (
+                <FeatureCard key={i} index={i} {...f} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* --- Platform Synergy --- */}
+        <section id="platform" className="py-32 px-6 bg-[#050B14]/40 border-y border-white/5 relative z-10">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <SectionHeading 
+                badge="Universal Access"
+                title="Your Lab, Synchronized."
+                description="Analysis happens at the speed of thought. Push updates from the field directly to your refinement stack via mobile, or execute massive batches using our high-performance Cloud Terminal."
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <PlatformIcon icon={Globe} label="Cloud Terminal" desc="Browser Access" />
+                <PlatformIcon icon={Smartphone} label="Mobile Pro" desc="iOS & Android" />
+                <PlatformIcon icon={MonitorCheck} label="Workstation" desc="Native Build" />
+                <PlatformIcon icon={Binary} label="Engine API" desc="Direct SDK" />
+              </div>
+
+              <div className="mt-16 flex flex-wrap gap-6">
+                 <button className="flex items-center gap-4 bg-black py-4 px-8 rounded-2xl border border-white/10 hover:border-violet-500/50 transition-all shadow-xl group">
+                    <Apple className="w-7 h-7 text-white" />
+                    <div className="flex flex-col items-start leading-none group-hover:scale-105 transition-transform">
+                      <span className="text-[9px] uppercase tracking-[0.2em] font-black text-slate-500 mb-1">Download on</span>
+                      <span className="text-lg font-black tracking-tighter text-white">App Store</span>
+                    </div>
+                 </button>
+                 <button className="flex items-center gap-4 bg-black py-4 px-8 rounded-2xl border border-white/10 hover:border-violet-500/50 transition-all shadow-xl group">
+                    <PlayCircle className="w-7 h-7 text-violet-400" />
+                    <div className="flex flex-col items-start leading-none group-hover:scale-105 transition-transform">
+                      <span className="text-[9px] uppercase tracking-[0.2em] font-black text-slate-500 mb-1">Available on</span>
+                      <span className="text-lg font-black tracking-tighter text-white">Google Play</span>
+                    </div>
+                 </button>
+              </div>
+            </motion.div>
+            
+            <div className="relative">
+               <div className="absolute inset-0 bg-violet-600/20 blur-[150px] rounded-full opacity-60" />
+               <motion.div 
+                 initial={{ opacity: 0, rotate: 10, scale: 0.9 }}
+                 whileInView={{ opacity: 1, rotate: -5, scale: 1 }}
+                 viewport={{ once: true }}
+                 transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                 className="relative z-10 flex flex-col items-center"
+               >
+                  <div className="relative w-full max-w-sm aspect-[9/19] bg-[#020617] ring-[12px] ring-slate-800 rounded-[3.5rem] overflow-hidden shadow-[0_80px_100px_-30px_rgba(0,0,0,0.8)] border border-white/10">
+                     <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-6 bg-slate-800 rounded-full z-20" />
+                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-transparent to-violet-500/10 pointer-events-none" />
+                     
+                     <div className="p-8 pt-20 h-full flex flex-col gap-8">
+                        <div className="h-40 bg-white/5 rounded-[2rem] border border-white/10 flex items-center justify-center relative overflow-hidden">
+                           <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/10 to-transparent" />
+                           <Activity className="w-12 h-12 text-violet-500 opacity-30" />
+                        </div>
+                        <div className="space-y-4">
+                           <div className="h-5 w-3/4 bg-white/10 rounded-full" />
+                           <div className="h-5 w-1/2 bg-white/10 rounded-full" />
+                        </div>
+                        <div className="flex-1 bg-white/5 rounded-[2.5rem] border border-white/5 p-6 space-y-4">
+                           <div className="flex justify-between items-center">
+                              <div className="w-12 h-2.5 bg-violet-500/30 rounded-full" />
+                              <div className="w-8 h-2.5 bg-white/10 rounded-full" />
+                           </div>
+                           <div className="h-24 w-full bg-black/40 rounded-2xl border border-white/5" />
+                        </div>
+                     </div>
+                  </div>
+               </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* --- Testimonial / Performance --- */}
+        <section id="about" className="py-40 px-6 relative z-10">
+           <div className="max-w-7xl mx-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                 <div>
+                    <h2 className="text-5xl md:text-6xl font-black italic text-white uppercase tracking-tighter leading-none mb-10">
+                      Engineered for<br />
+                      The Heavyweight<br />
+                      Research Teams.
+                    </h2>
+                    <p className="text-xl text-slate-400 font-medium mb-12 leading-relaxed max-w-xl">
+                      We don't do toy models. XRD-CalcPro is built on industrial-grade physics engines designed to handle multi-gigabyte data runs with zero thermal throttling.
+                    </p>
+                    <div className="space-y-6">
+                       {[
+                         { label: "Hardware Accelerated", desc: "Native GPU support for massive refinement batches.", icon: Zap },
+                         { label: "Institutional Trust", desc: "Bank-level encryption for proprietary chemical signatures.", icon: ShieldCheck },
+                         { label: "Ph.D. Validated", desc: "Every model output is checked against NIST standards.", icon: FlaskConical }
+                       ].map((item, i) => (
+                         <div key={i} className="flex gap-6 items-start">
+                            <div className="w-12 h-12 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center shrink-0">
+                               <item.icon className="w-6 h-6 text-violet-400" />
+                            </div>
+                            <div>
+                               <p className="text-sm font-black text-white uppercase tracking-widest mb-1 italic">{item.label}</p>
+                               <p className="text-xs text-slate-500 font-medium">{item.desc}</p>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                 </div>
+                 
+                 <div className="relative group">
+                    <div className="absolute inset-0 bg-violet-600/10 blur-[100px] rounded-full" />
+                    <div className="relative bg-[#0B1221]/80 backdrop-blur-3xl border border-white/10 p-12 md:p-16 rounded-[4rem] shadow-2xl">
+                       <div className="absolute -top-12 -left-12 text-[15rem] font-black text-white/[0.03] italic pointer-events-none select-none">"</div>
+                       <blockquote className="text-2xl md:text-3xl font-medium italic text-slate-200 leading-relaxed relative z-10 mb-12">
+                         "The transition to XRD-CalcPro was instantaneous. We reduced our phase validation bottleneck by almost 80%, allowing our lab to process four times as many samples as last year."
+                       </blockquote>
+                       <div className="flex items-center gap-6">
+                          <div className="w-16 h-16 rounded-full bg-violet-600/20 border border-violet-500/30 overflow-hidden ring-4 ring-white/5">
+                             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=scientist" alt="User" />
+                          </div>
+                          <div>
+                             <p className="text-lg font-black italic uppercase tracking-tighter text-white">Dr. Sarah Andersson</p>
+                             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mt-0.5">Head of Material Science, Quantum Tech Inst.</p>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+              </div>
            </div>
-           <h3 className="text-2xl font-black text-white uppercase italic tracking-tight">Laboratory Modules</h3>
+        </section>
+
+        {/* --- Final CTA Overlay --- */}
+        <section className="py-20 pb-48 px-6 relative z-10">
+           <div className="max-w-7xl mx-auto">
+              <div className="relative p-12 md:p-32 bg-gradient-to-br from-violet-600 via-indigo-700 to-indigo-900 rounded-[4rem] overflow-hidden group shadow-[0_50px_100px_-20px_rgba(139,92,246,0.3)]">
+                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+                 <div className="absolute -bottom-24 -right-24 w-[600px] h-[600px] bg-white/5 blur-[150px] rounded-full" />
+                 
+                 <div className="relative z-10 text-center max-w-3xl mx-auto">
+                    <h2 className="text-5xl md:text-7xl font-black text-white mb-10 italic uppercase tracking-tighter leading-none">Ready to Lead The Material Revolution?</h2>
+                    <p className="text-xl md:text-2xl text-white/80 font-medium mb-16 leading-relaxed">
+                       Secure your lab's spot in the next generation of crystallography. Start your 30-day institutional trial today.
+                    </p>
+                    
+                    <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                       <button onClick={onEnter} className="px-14 py-7 bg-white text-violet-700 rounded-3xl font-black uppercase tracking-[0.3em] italic text-sm hover:scale-105 hover:bg-slate-50 transition-all shadow-2xl active:scale-95 shadow-white/20">
+                          Initialize Free Trial
+                       </button>
+                       <button onClick={onEnter} className="px-14 py-7 bg-violet-800/40 text-white border-2 border-white/20 backdrop-blur-2xl rounded-3xl font-black uppercase tracking-[0.3em] italic text-sm hover:bg-violet-800/60 transition-all active:scale-95">
+                          View Pricing
+                       </button>
+                    </div>
+
+                    <div className="mt-16 flex items-center justify-center gap-10">
+                       <div className="flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-white/70">No Credit Card Required</span>
+                       </div>
+                       <div className="flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-white/70">Full API Access</span>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-black py-32 px-6 border-t border-white/5 relative z-10">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-20">
+          <div className="lg:col-span-2">
+             <div className="flex items-center gap-3 mb-10">
+                <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center">
+                  <FlaskConical className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-2xl font-black italic tracking-tighter text-white uppercase">XRD-Calc<span className="text-violet-400">Pro</span></span>
+             </div>
+             <p className="text-slate-500 text-base font-medium leading-relaxed mb-12 max-w-sm">
+               The global leader in AI-driven crystallographic computation. Trusted by researchers to push the boundaries of materials science.
+             </p>
+             <div className="flex gap-4">
+                {[Twitter, Github, Linkedin, Mail].map((Icon, i) => (
+                  <a key={i} href="#" className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-violet-500/50 hover:bg-violet-500/10 transition-all">
+                    <Icon className="w-5 h-5" />
+                  </a>
+                ))}
+             </div>
+          </div>
+          
+          <div>
+            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 italic text-violet-400">Core Suite</h4>
+            <ul className="space-y-5 text-sm font-medium text-slate-500">
+              <li className="hover:text-white transition-colors cursor-pointer">Peak Detection AI</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Phase Matching Engine</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Refinement Strategy</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Lattice Analytics</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Systematic Absences</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 italic text-violet-400">Company</h4>
+            <ul className="space-y-5 text-sm font-medium text-slate-500">
+              <li className="hover:text-white transition-colors cursor-pointer">The Mission</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Partners</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Case Studies</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Pricing Model</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Security Core</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 italic text-violet-400">Support</h4>
+            <ul className="space-y-5 text-sm font-medium text-slate-500">
+              <li className="hover:text-white transition-colors cursor-pointer">Documentation</li>
+              <li className="hover:text-white transition-colors cursor-pointer">API Reference</li>
+              <li className="hover:text-white transition-colors cursor-pointer">System Status</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Help Center</li>
+              <li className="hover:text-white transition-colors cursor-pointer">Contact Lab</li>
+            </ul>
+          </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10">
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5">
-             {features.map((f, i) => (
-               <FeatureCard key={f.title} {...f} index={i} />
-             ))}
+        <div className="max-w-7xl mx-auto mt-32 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
+           <div className="flex flex-col md:flex-row items-center gap-10">
+              <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">© 2026 XRD-CALC PRO SYSTEMS INC.</p>
+              <div className="flex gap-8 text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">
+                 <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>
+                 <span className="hover:text-white cursor-pointer transition-colors">Terms of Use</span>
+                 <span className="hover:text-white cursor-pointer transition-colors">Cookie Auth</span>
+              </div>
            </div>
-           
-           <div className="mt-12 flex flex-col gap-6 p-8 border border-slate-800/60 rounded-[2.5rem] bg-gradient-to-br from-slate-900/40 to-slate-950/40">
-             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center">
-                   <ShieldCheck className="w-6 h-6 text-emerald-400" />
-                </div>
-                <div>
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-300">Authored By</h4>
-                   <p className="text-lg font-serif italic text-white">Ali Zerehsaz</p>
-                </div>
-             </div>
-             <div className="h-px w-full bg-slate-800/80" />
-             <div className="grid grid-cols-2 gap-4">
-                <div>
-                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Version</p>
-                   <p className="text-xs font-mono text-slate-300">v2.5.0-b</p>
-                </div>
-                <div>
-                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Core Engine</p>
-                   <p className="text-xs font-mono text-indigo-300">Q-Physics 4.2</p>
-                </div>
-             </div>
-           </div>
-
-           <div className="pt-10 pb-12 opacity-30">
-              <p className="text-[10px] font-mono text-slate-500 text-center uppercase tracking-[0.5em]">// EOF</p>
+           <div className="flex items-center gap-4 bg-white/5 px-4 py-2 rounded-full border border-white/10 group cursor-default">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] group-hover:text-white transition-colors">Global Network: Online</span>
            </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 };
-
