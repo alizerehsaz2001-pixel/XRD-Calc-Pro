@@ -1,4 +1,4 @@
-import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult } from '../types';
+import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
 
 export const calculateBragg = (wavelength: number, twoTheta: number): BraggResult | null => {
   if (wavelength <= 0 || twoTheta <= 0 || twoTheta >= 180) return null;
@@ -163,23 +163,49 @@ export const validateSelectionRule = (system: CrystalSystem, hkl: [number, numbe
 };
 
 export const parseScherrerInput = (input: string): ScherrerInput[] => {
+  if (!input || typeof input !== 'string') {
+    if (input === undefined || input === null) {
+      console.warn('Scherrer Parser: Input is null or undefined.');
+    }
+    return [];
+  }
+
   const lines = input.split('\n').filter(l => l.trim() !== '');
   const results: ScherrerInput[] = [];
   
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
     const parts = line.split(/[\s,]+/).filter(s => s.trim() !== '');
-    const nums = parts.map(s => parseFloat(s)).filter(n => !isNaN(n));
+    const nums = parts.map(s => parseFloat(s));
     
-    if (nums.length >= 2) {
-      if (nums[0] > 0 && nums[0] < 180 && nums[1] > 0) {
-        results.push({ 
-          twoTheta: nums[0], 
-          fwhmObs: nums[1],
-          intensity: nums.length >= 3 ? nums[2] : undefined
-        });
-      }
+    if (nums.some(n => isNaN(n))) {
+      console.warn(`Scherrer Parser: Non-numeric data found on line ${i + 1}: "${line}"`);
+      continue;
     }
+
+    if (nums.length < 2) {
+      console.warn(`Scherrer Parser: Line ${i + 1} incomplete. Expected at least (2θ, FWHM).`);
+      continue;
+    }
+
+    const [twoTheta, fwhmObs] = nums;
+    const intensity = nums.length >= 3 ? nums[2] : undefined;
+
+    if (twoTheta <= 0 || twoTheta >= 180) {
+      console.warn(`Scherrer Parser: Line ${i + 1} 2θ value (${twoTheta}) out of valid range (0-180).`);
+      continue;
+    }
+
+    if (fwhmObs <= 0 || fwhmObs > 20) {
+      console.warn(`Scherrer Parser: Line ${i + 1} FWHM value (${fwhmObs}) is physically improbable or invalid.`);
+      continue;
+    }
+
+    results.push({ twoTheta, fwhmObs, intensity });
   }
+  
   return results;
 };
 
@@ -420,23 +446,26 @@ export const generateRietveldSetup = (input: RietveldSetupInput): RietveldSetupR
 export const NEUTRON_SCATTERING_LENGTHS: Record<string, number> = {
   H: -3.74, D: 6.67, Li: -1.90, Be: 7.79, B: 5.30, C: 6.65, N: 9.36, O: 5.80, F: 5.65, 
   Na: 3.63, Mg: 5.38, Al: 3.45, Si: 4.15, P: 5.13, S: 2.85, Cl: 9.58, K: 3.67, Ca: 4.70, 
-  Ti: -3.44, V: -0.38, Cr: 3.64, Mn: -3.73, Fe: 9.45, Co: 2.49, Ni: 10.3, Cu: 7.72, Zn: 5.68, 
-  Zr: 7.16, Ag: 5.92, Cd: 4.87, Au: 7.63, Pb: 9.40, U: 8.42,
-  // Additional interesting scatterers
-  Gd: 6.5, // High absorption usually, but real part is here
-  Sm: 0.8,
-  Eu: 7.22,
-  W: 4.86,
-  Pt: 9.60
+  Sc: 12.29, Ti: -3.44, V: -0.38, Cr: 3.64, Mn: -3.73, Fe: 9.45, Co: 2.49, Ni: 10.3, Cu: 7.72, Zn: 5.68, 
+  Ga: 7.29, Ge: 8.19, As: 6.62, Se: 7.97, Br: 6.79, Rb: 7.09, Sr: 7.02, Y: 7.75, Zr: 7.16, Nb: 7.05,
+  Mo: 6.72, Tc: 6.80, Ru: 7.03, Rh: 5.88, Pd: 5.91, Ag: 5.92, Cd: 4.87, In: 4.06, Sn: 6.22, Sb: 5.57,
+  Te: 5.80, I: 5.28, Xe: 4.90, Cs: 5.42, Ba: 5.07, La: 8.24, Ce: 4.84, Pr: 4.58, Nd: 7.69, Pm: 12.6,
+  Sm: 0.8, Eu: 7.22, Gd: 6.5, Tb: 7.38, Dy: 16.9, Ho: 8.01, Er: 7.79, Tm: 7.07, Yb: 12.4, Lu: 7.21,
+  Hf: 7.77, Ta: 6.91, W: 4.86, Re: 9.16, Os: 10.7, Ir: 10.6, Pt: 9.60, Au: 7.63, Hg: 12.66, Tl: 8.77,
+  Pb: 9.40, Bi: 8.53, Th: 10.31, Pa: 9.1, U: 8.42
 };
 
 // Approximate Atomic Numbers for X-ray Form Factor (f ~ Z at theta=0)
 export const ATOMIC_NUMBERS: Record<string, number> = {
   H: 1, D: 1, Li: 3, Be: 4, B: 5, C: 6, N: 7, O: 8, F: 9,
   Na: 11, Mg: 12, Al: 13, Si: 14, P: 15, S: 16, Cl: 17, K: 19, Ca: 20,
-  Ti: 22, V: 23, Cr: 24, Mn: 25, Fe: 26, Co: 27, Ni: 28, Cu: 29, Zn: 30,
-  Zr: 40, Ag: 47, Cd: 48, Au: 79, Pb: 82, U: 92,
-  Gd: 64, Sm: 62, Eu: 63, W: 74, Pt: 78
+  Sc: 21, Ti: 22, V: 23, Cr: 24, Mn: 25, Fe: 26, Co: 27, Ni: 28, Cu: 29, Zn: 30,
+  Ga: 31, Ge: 32, As: 33, Se: 34, Br: 35, Rb: 37, Sr: 38, Y: 39, Zr: 40, Nb: 41,
+  Mo: 42, Tc: 43, Ru: 44, Rh: 45, Pd: 46, Ag: 47, Cd: 48, In: 49, Sn: 50, Sb: 51,
+  Te: 52, I: 53, Xe: 54, Cs: 55, Ba: 56, La: 57, Ce: 58, Pr: 59, Nd: 60, Pm: 61,
+  Sm: 62, Eu: 63, Gd: 64, Tb: 65, Dy: 66, Ho: 67, Er: 68, Tm: 69, Yb: 70, Lu: 71,
+  Hf: 72, Ta: 73, W: 74, Re: 75, Os: 76, Ir: 77, Pt: 78, Au: 79, Hg: 80, Tl: 81,
+  Pb: 82, Bi: 83, Th: 90, Pa: 91, U: 92
 };
 
 export const calculateDSpacing = (h: number, k: number, l: number, lattice: LatticeParameters): number => {

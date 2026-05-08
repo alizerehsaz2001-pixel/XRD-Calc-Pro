@@ -22,10 +22,16 @@ const PRESETS = [
 ];
 
 const K_FACTORS = [
-  { label: 'Spherical', value: 0.94, desc: 'Isotropic spherical grains' },
-  { label: 'Cubic', value: 0.9, desc: 'General cubic symmetry' },
-  { label: 'Platelets', value: 0.89, desc: 'High aspect ratio grains' },
-  { label: 'Nanowires', value: 1.1, desc: 'Highly anisotropic structures' }
+  { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
+  { label: 'Spherical', value: 0.94, desc: 'Optimized for isotropic spherical particles (FWHM-based)', icon: '⚪' },
+  { label: 'Cubic {100}', value: 0.943, desc: 'Exact factor for cubic crystallites with {100} facets', icon: '⬜' },
+  { label: 'Cubic {111}', value: 0.84, desc: 'Calculated for cubic shapes with {111} orientation', icon: '🧊' },
+  { label: 'Octahedral', value: 0.94, desc: 'Common for spinel/diamond structured materials', icon: '◇' },
+  { label: 'Tetrahedral', value: 0.73, desc: 'Calculated for triangular/tetrahedral geometries', icon: '▲' },
+  { label: 'Platelets/Disks', value: 0.89, desc: 'Low aspect ratio plate-like grains', icon: '▤' },
+  { label: 'Nanowires/Rods', value: 1.1, desc: 'Calculated for high-anisotropy 1D structures', icon: '┃' },
+  { label: 'Integral Breadth', value: 1.0, desc: 'Theoretical value when using Integral Breadth instead of FWHM', icon: '∫' },
+  { label: 'Custom', value: 0, desc: 'User-defined dimensionless shape factor', icon: '✎' }
 ];
 
 export const IntegralBreadthAdvancedModule: React.FC = () => {
@@ -37,7 +43,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
   const [result, setResult] = useState<IBAdvancedResult | null>(null);
   
   const [isWavelengthMenuOpen, setIsWavelengthMenuOpen] = useState(false);
-  const [selectedKType, setSelectedKType] = useState<string>('Cubic');
+  const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -213,9 +219,14 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                     <div className="flex gap-2">
                        <button
                         onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
-                        className="flex-1 px-4 py-3 bg-black/60 text-pink-400 border border-slate-600 hover:border-pink-500 rounded-xl outline-none font-bold text-xs transition-all flex items-center justify-between"
+                        className="flex-1 px-4 py-3 bg-black/60 text-pink-400 border border-slate-600 hover:border-pink-500 rounded-xl outline-none transition-all flex items-center justify-between group shadow-inner"
                        >
-                         <span>{selectedKType} ({constantK})</span>
+                         <div className="flex items-center gap-2">
+                           <span className="text-base group-hover:scale-110 transition-transform">
+                             {K_FACTORS.find(k => k.label === selectedKType)?.icon || '⚡'}
+                           </span>
+                           <span className="text-xs font-bold">{selectedKType}</span>
+                         </div>
                          <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isKTypeMenuOpen ? 'rotate-180' : ''}`} />
                        </button>
                        <input
@@ -226,7 +237,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                             setConstantK(parseFloat(e.target.value));
                             setSelectedKType('Custom');
                           }}
-                          className="w-20 px-3 py-3 bg-black/60 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none font-mono text-xs font-bold text-center"
+                          className="w-20 px-3 py-3 bg-black/60 text-pink-400 border border-slate-600 focus:border-pink-500 rounded-xl focus:ring-2 focus:ring-pink-500/20 outline-none font-mono text-xs font-black text-center"
                         />
                     </div>
                     
@@ -246,10 +257,13 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                                 setSelectedKType(k.label);
                                 setIsKTypeMenuOpen(false);
                               }}
-                              className={`w-full text-left px-3 py-2 rounded-lg flex flex-col gap-0.5 hover:bg-slate-700/50 transition-colors ${selectedKType === k.label ? 'bg-pink-500/10' : ''}`}
+                              className={`w-full text-left px-3 py-2 flex items-center gap-3 hover:bg-slate-700/50 transition-colors ${selectedKType === k.label ? 'bg-pink-500/10' : ''}`}
                             >
-                              <span className={`text-[11px] font-black ${selectedKType === k.label ? 'text-pink-400' : 'text-slate-300'}`}>{k.label} ({k.value})</span>
-                              <span className="text-[9px] text-slate-500 font-bold">{k.desc}</span>
+                              <span className="text-xl w-8 h-8 flex items-center justify-center bg-slate-900/50 rounded-lg border border-slate-700">{k.icon}</span>
+                              <div className="flex flex-col gap-0.5">
+                                <span className={`text-[11px] font-black ${selectedKType === k.label ? 'text-pink-400' : 'text-slate-300'}`}>{k.label} {k.value !== 0 && `(${k.value})`}</span>
+                                <span className="text-[9px] text-slate-500 font-bold leading-tight">{k.desc}</span>
+                              </div>
                             </button>
                           ))}
                         </motion.div>

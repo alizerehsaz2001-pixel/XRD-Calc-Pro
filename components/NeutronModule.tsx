@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { NeutronAtom, NeutronResult, StandardWavelength, LatticeParameters } from '../types';
+import { NeutronAtom, NeutronResult, StandardWavelength, LatticeParameters, CrystalSystem } from '../types';
 import { calculateNeutronDiffraction, calculateXRayDiffraction, NEUTRON_SCATTERING_LENGTHS, ATOMIC_NUMBERS } from '../utils/physics';
 import { fetchStandardWavelengths } from '../services/geminiService';
 import {
@@ -32,10 +32,33 @@ export const NeutronModule: React.FC = () => {
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState("");
   
+  const [crystalSystem, setCrystalSystem] = useState<CrystalSystem>('Cubic');
   const [atoms, setAtoms] = useState<NeutronAtom[]>([
     { id: '1', element: 'O', label: 'Oxygen', b: 5.80, x: 0, y: 0, z: 0, B_iso: 0.5 },
     { id: '2', element: 'Mg', label: 'Magnesium', b: 5.38, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.4 },
   ]);
+
+  const applySymmetry = (system: CrystalSystem, l: LatticeParameters) => {
+    switch (system) {
+      case 'Cubic':
+        return { ...l, b: l.a, c: l.a, alpha: 90, beta: 90, gamma: 90 };
+      case 'Tetragonal':
+        return { ...l, b: l.a, alpha: 90, beta: 90, gamma: 90 };
+      case 'Hexagonal':
+        return { ...l, b: l.a, alpha: 90, beta: 90, gamma: 120 };
+      case 'Orthorhombic':
+        return { ...l, alpha: 90, beta: 90, gamma: 90 };
+      case 'Monoclinic':
+        return { ...l, alpha: 90, gamma: 90 };
+      default:
+        return l;
+    }
+  };
+
+  const handleLatticeChange = (field: keyof LatticeParameters, value: number) => {
+    const nextLattice = { ...lattice, [field]: value };
+    setLattice(applySymmetry(crystalSystem, nextLattice));
+  };
 
   const [neutronResults, setNeutronResults] = useState<NeutronResult[]>([]);
   const [xrayResults, setXrayResults] = useState<NeutronResult[]>([]);
@@ -282,78 +305,89 @@ export const NeutronModule: React.FC = () => {
             </div>
           )}
 
-          <div className="space-y-8 relative z-10">
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                   <div className="flex justify-between items-center">
-                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength</label>
-                     <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/5 text-[9px] font-black text-blue-400 hover:bg-blue-500/10 transition-colors uppercase tracking-widest border border-blue-500/20">
-                       <Zap className={`w-2.5 h-2.5 ${isSyncing ? 'animate-pulse' : ''}`} /> Sync
-                     </button>
-                   </div>
-                   <div className="relative group">
-                     <input
-                      type="number"
-                      step="0.01"
-                      value={wavelength}
-                      onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                      className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700"
-                     />
-                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Å</span>
-                   </div>
-                   <div className="flex flex-wrap gap-2 mt-3">
-                     {availableWavelengths.map(aw => (
-                       <button 
-                          key={aw.label} 
-                          onClick={() => setWavelength(aw.value)}
-                          className={`px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
-                            wavelength === aw.value 
-                              ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
-                              : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'
-                          }`}
-                          title={aw.label}
-                       >
-                         {aw.label.split(' ')[0]}
-                       </button>
-                     ))}
-                   </div>
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Crystal System</label>
+                <div className="relative">
+                  <select
+                    value={crystalSystem}
+                    onChange={(e) => {
+                      const sys = e.target.value as CrystalSystem;
+                      setCrystalSystem(sys);
+                      setLattice(applySymmetry(sys, lattice));
+                    }}
+                    className="w-full appearance-none px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer pr-10"
+                  >
+                    {['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic', 'Triclinic'].map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                 </div>
-                
+              </div>
+              <div className="space-y-2">
+                 <div className="flex justify-between items-center">
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength</label>
+                   <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/5 text-[9px] font-black text-blue-400 hover:bg-blue-500/10 transition-colors uppercase tracking-widest border border-blue-500/20">
+                     <Zap className={`w-2.5 h-2.5 ${isSyncing ? 'animate-pulse' : ''}`} /> Sync
+                   </button>
+                 </div>
+                 <div className="relative group">
+                   <input
+                    type="number"
+                    step="0.01"
+                    value={wavelength}
+                    onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700"
+                   />
+                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Å</span>
+                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-8 relative z-10">
+              <div className="space-y-6">
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-3">
-                    {['a', 'b', 'c'].map((axis) => (
-                      <div key={axis} className="space-y-1.5">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{axis} (Å)</label>
+                    {[
+                      { axis: 'a', disabled: false },
+                      { axis: 'b', disabled: ['Cubic', 'Tetragonal', 'Hexagonal'].includes(crystalSystem) },
+                      { axis: 'c', disabled: ['Cubic'].includes(crystalSystem) }
+                    ].map((item) => (
+                      <div key={item.axis} className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{item.axis} (Å)</label>
                         <input
                           type="number"
                           step="0.01"
-                          value={lattice[axis as keyof LatticeParameters]}
-                          onChange={(e) => setLattice({ ...lattice, [axis]: parseFloat(e.target.value) })}
-                          className="w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none"
+                          disabled={item.disabled}
+                          value={lattice[item.axis as keyof LatticeParameters]}
+                          onChange={(e) => handleLatticeChange(item.axis as keyof LatticeParameters, parseFloat(e.target.value))}
+                          className={`w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${item.disabled ? 'opacity-40 cursor-not-allowed bg-slate-900 border-dashed' : 'hover:border-slate-700'}`}
                         />
                       </div>
                     ))}
                   </div>
                   <div className="grid grid-cols-3 gap-3">
-                    {['alpha', 'beta', 'gamma'].map((angle) => (
-                      <div key={angle} className="space-y-1.5">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">
-                          {angle === 'alpha' ? 'α' : angle === 'beta' ? 'β' : 'γ'}°
-                        </label>
+                    {[
+                      { angle: 'alpha', label: 'α', disabled: ['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic'].includes(crystalSystem) },
+                      { angle: 'beta', label: 'β', disabled: ['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic'].includes(crystalSystem) },
+                      { angle: 'gamma', label: 'γ', disabled: ['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic'].includes(crystalSystem) }
+                    ].map((item) => (
+                      <div key={item.angle} className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{item.label}°</label>
                         <input
                           type="number"
                           step="0.1"
-                          value={lattice[angle as keyof LatticeParameters]}
-                          onChange={(e) => setLattice({ ...lattice, [angle]: parseFloat(e.target.value) })}
-                          className="w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none"
+                          disabled={item.disabled}
+                          value={lattice[item.angle as keyof LatticeParameters]}
+                          onChange={(e) => handleLatticeChange(item.angle as keyof LatticeParameters, parseFloat(e.target.value))}
+                          className={`w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${item.disabled ? 'opacity-40 cursor-not-allowed bg-slate-900 border-dashed' : 'hover:border-slate-700'}`}
                         />
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
-            </div>
 
             <div className="pt-8 border-t border-slate-800/50">
               <div className="flex justify-between items-center mb-4">

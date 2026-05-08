@@ -5,11 +5,15 @@ import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, Shield
 import { motion, AnimatePresence } from 'motion/react';
 
 const K_FACTORS = [
-  { label: 'Spherical', value: 0.94, desc: 'Optimized for isotropic spherical morphologies', icon: '⚪' },
-  { label: 'Cubic', value: 0.9, desc: 'Standard approximation for general cubic symmetry', icon: '⬜' },
-  { label: 'Platelets', value: 0.89, desc: 'High aspect ratio plate-like grains', icon: '▤' },
+  { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
+  { label: 'Spherical', value: 0.94, desc: 'Optimized for isotropic spherical particles (FWHM-based)', icon: '⚪' },
+  { label: 'Cubic {100}', value: 0.943, desc: 'Exact factor for cubic crystallites with {100} facets', icon: '⬜' },
+  { label: 'Cubic {111}', value: 0.84, desc: 'Calculated for cubic shapes with {111} orientation', icon: '🧊' },
   { label: 'Octahedral', value: 0.94, desc: 'Common for spinel/diamond structured materials', icon: '◇' },
-  { label: 'Nanowires', value: 1.1, desc: 'Calculated for high-anisotropy 1D structures', icon: '┃' },
+  { label: 'Tetrahedral', value: 0.73, desc: 'Calculated for triangular/tetrahedral geometries', icon: '▲' },
+  { label: 'Platelets/Disks', value: 0.89, desc: 'Low aspect ratio plate-like grains', icon: '▤' },
+  { label: 'Nanowires/Rods', value: 1.1, desc: 'Calculated for high-anisotropy 1D structures', icon: '┃' },
+  { label: 'Integral Breadth', value: 1.0, desc: 'Theoretical value when using Integral Breadth instead of FWHM', icon: '∫' },
   { label: 'Custom', value: 0, desc: 'User-defined dimensionless shape factor', icon: '✎' }
 ];
 
@@ -34,7 +38,7 @@ export const ScherrerModule: React.FC = () => {
   const [useCaglioti, setUseCaglioti] = useState(false);
   const [caglioti, setCaglioti] = useState({ u: 0.004, v: -0.002, w: 0.01 });
   const [inputData, setInputData] = useState<string>("28.44, 0.25, 100\n47.30, 0.28, 45\n56.12, 0.32, 20");
-  const [selectedKType, setSelectedKType] = useState<string>('Cubic (0.9)');
+  const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt'>('Gaussian');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
   

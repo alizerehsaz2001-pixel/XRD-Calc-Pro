@@ -1,12 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { IntegralBreadthInput, IntegralBreadthResult } from '../types';
 import { parseIntegralBreadthInput, calculateIntegralBreadth } from '../utils/physics';
-import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion } from 'lucide-react';
+import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion, ChevronDown, Check } from 'lucide-react';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
+import { motion, AnimatePresence } from 'motion/react';
+
+const K_FACTORS = [
+  { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
+  { label: 'Spherical', value: 0.94, desc: 'Optimized for isotropic spherical particles (FWHM-based)', icon: '⚪' },
+  { label: 'Cubic {100}', value: 0.943, desc: 'Exact factor for cubic crystallites with {100} facets', icon: '⬜' },
+  { label: 'Cubic {111}', value: 0.84, desc: 'Calculated for cubic shapes with {111} orientation', icon: '🧊' },
+  { label: 'Octahedral', value: 0.94, desc: 'Common for spinel/diamond structured materials', icon: '◇' },
+  { label: 'Tetrahedral', value: 0.73, desc: 'Calculated for triangular/tetrahedral geometries', icon: '▲' },
+  { label: 'Platelets/Disks', value: 0.89, desc: 'Low aspect ratio plate-like grains', icon: '▤' },
+  { label: 'Nanowires/Rods', value: 1.1, desc: 'Calculated for high-anisotropy 1D structures', icon: '┃' },
+  { label: 'Integral Breadth', value: 1.0, desc: 'Theoretical value when using Integral Breadth instead of FWHM (Recommended for IB method)', icon: '∫' },
+  { label: 'Custom', value: 0, desc: 'User-defined dimensionless shape factor', icon: '✎' }
+];
 
 export const IntegralBreadthModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
+  const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
+  const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
+  const kMenuRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (kMenuRef.current && !kMenuRef.current.contains(event.target as Node)) {
+        setIsKTypeMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Default Example: 2Theta, FWHM, Area, Imax
   const [inputData, setInputData] = useState<string>("28.44, 0.22, 230, 1000\n47.30, 0.26, 280, 950\n56.12, 0.31, 350, 900");
   const [results, setResults] = useState<IntegralBreadthResult[]>([]);
@@ -161,15 +189,88 @@ export const IntegralBreadthModule: React.FC = () => {
 
             <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
               <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                Constant K
+                Shape Factor (K)
               </label>
-              <input
-                type="number"
-                step="0.1"
-                value={constantK}
-                onChange={(e) => setConstantK(parseFloat(e.target.value))}
-                className="w-full px-4 py-3 bg-black/40 text-purple-400 border border-slate-600 focus:border-purple-500 rounded-lg focus:ring-2 focus:ring-purple-500/20 outline-none font-mono text-sm transition-all placeholder:text-slate-600"
-              />
+              <div className="space-y-3 relative" ref={kMenuRef}>
+                <button
+                  onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
+                  className="w-full px-4 py-3 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-purple-500/50 rounded-xl outline-none transition-all flex items-center justify-between group shadow-inner"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity text-purple-400">
+                      {K_FACTORS.find(k => k.label === selectedKType)?.icon || '⚡'}
+                    </span>
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-sm font-bold text-white leading-none">
+                        {selectedKType}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isKTypeMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {isKTypeMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-12 left-0 right-0 mt-2 bg-slate-800 rounded-xl border border-slate-700 shadow-2xl overflow-hidden z-50 py-1"
+                    >
+                      {K_FACTORS.map((k) => (
+                        <button
+                          key={k.label}
+                          onClick={() => {
+                            setSelectedKType(k.label);
+                            if (k.value !== 0) setConstantK(k.value);
+                            setIsKTypeMenuOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 flex items-center justify-between hover:bg-slate-700/50 transition-colors group/item
+                            ${selectedKType === k.label ? 'bg-purple-500/10' : ''}
+                          `}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl bg-slate-900/50 w-10 h-10 flex items-center justify-center rounded-lg border border-slate-700 group-hover/item:border-purple-500/30 transition-colors">
+                              {k.icon}
+                            </span>
+                            <div className="flex flex-col items-start text-left">
+                              <span className={`text-sm font-bold transition-colors ${selectedKType === k.label ? 'text-purple-400' : 'text-slate-200'}`}>
+                                {k.label} {k.value !== 0 && `(${k.value})`}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                {k.desc}
+                              </span>
+                            </div>
+                          </div>
+                          {selectedKType === k.label && <Check className="w-4 h-4 text-purple-400 shrink-0 ml-2" />}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                <div className="flex items-center gap-3">
+                  <div className="relative w-24">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={constantK}
+                      onChange={(e) => {
+                        setConstantK(parseFloat(e.target.value));
+                        setSelectedKType('Custom');
+                      }}
+                      className="w-full px-4 py-3 bg-black/60 text-purple-400 border border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none font-mono text-xs font-black transition-all text-center"
+                    />
+                  </div>
+                  <div className="flex-1 flex items-start gap-2 text-[9px] font-bold text-slate-400 bg-slate-800/60 p-3 rounded-xl border border-slate-700 h-full min-h-[48px]">
+                    <Info className="w-3.5 h-3.5 text-purple-500 shrink-0 mt-0.5" />
+                    <span className="leading-tight uppercase tracking-widest">
+                       {K_FACTORS.find(k => k.label.includes(selectedKType) || k.label === selectedKType)?.desc || 'Dimensionless factor relating crystal shape to diffraction peak width.'}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="bg-slate-800/40 p-5 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">

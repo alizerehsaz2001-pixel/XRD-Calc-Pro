@@ -17,9 +17,16 @@ import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, A
 import { motion, AnimatePresence } from 'motion/react';
 
 const K_FACTORS = [
-  { label: 'Spherical (0.94)', value: 0.94, desc: 'Common for spherical crystallites' },
-  { label: 'Cubic (0.9)', value: 0.9, desc: 'Common for cubic crystallites' },
-  { label: 'Typical (0.89)', value: 0.89, desc: 'Standard generic value' }
+  { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
+  { label: 'Spherical', value: 0.94, desc: 'Optimized for isotropic spherical particles (FWHM-based)', icon: '⚪' },
+  { label: 'Cubic {100}', value: 0.943, desc: 'Exact factor for cubic crystallites with {100} facets', icon: '⬜' },
+  { label: 'Cubic {111}', value: 0.84, desc: 'Calculated for cubic shapes with {111} orientation', icon: '🧊' },
+  { label: 'Octahedral', value: 0.94, desc: 'Common for spinel/diamond structured materials', icon: '◇' },
+  { label: 'Tetrahedral', value: 0.73, desc: 'Calculated for triangular/tetrahedral geometries', icon: '▲' },
+  { label: 'Platelets/Disks', value: 0.89, desc: 'Low aspect ratio plate-like grains', icon: '▤' },
+  { label: 'Nanowires/Rods', value: 1.1, desc: 'Calculated for high-anisotropy 1D structures', icon: '┃' },
+  { label: 'Integral Breadth', value: 1.0, desc: 'Theoretical value when using Integral Breadth instead of FWHM', icon: '∫' },
+  { label: 'Custom', value: 0, desc: 'User-defined dimensionless shape factor', icon: '✎' }
 ];
 
 export const WilliamsonHallModule: React.FC = () => {
@@ -28,7 +35,7 @@ export const WilliamsonHallModule: React.FC = () => {
   const [instFwhm, setInstFwhm] = useState<number>(0.1);
   const [inputData, setInputData] = useState<string>("28.44, 0.25\n47.30, 0.28\n56.12, 0.32\n69.13, 0.38\n76.38, 0.42");
   const [result, setResult] = useState<WHResult | null>(null);
-  const [selectedKType, setSelectedKType] = useState<string>('Cubic (0.9)');
+  const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
 
   // Ref for clicking outside
@@ -126,10 +133,15 @@ export const WilliamsonHallModule: React.FC = () => {
                   onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
                   className="w-full px-4 py-3 bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-cyan-500/50 rounded-xl outline-none transition-all flex items-center justify-between group shadow-inner"
                 >
-                  <div className="flex flex-col items-start gap-0.5">
-                    <span className="text-sm font-bold text-white leading-none">
-                      {selectedKType}
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg opacity-80 group-hover:opacity-100 transition-opacity text-cyan-400">
+                      {K_FACTORS.find(k => k.label === selectedKType)?.icon || '⚡'}
                     </span>
+                    <div className="flex flex-col items-start gap-0.5">
+                      <span className="text-sm font-bold text-white leading-none">
+                        {selectedKType}
+                      </span>
+                    </div>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isKTypeMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -155,13 +167,18 @@ export const WilliamsonHallModule: React.FC = () => {
                             ${selectedKType === k.label ? 'bg-cyan-500/10' : ''}
                           `}
                         >
-                          <div className="flex flex-col items-start text-left">
-                            <span className={`text-sm font-bold transition-colors ${selectedKType === k.label ? 'text-cyan-400' : 'text-slate-200'}`}>
-                              {k.label}
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl bg-slate-900/50 w-10 h-10 flex items-center justify-center rounded-lg border border-slate-700 group-hover/item:border-cyan-500/30 transition-colors">
+                              {k.icon}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-medium mt-0.5">
-                              {k.desc}
-                            </span>
+                            <div className="flex flex-col items-start text-left">
+                              <span className={`text-sm font-bold transition-colors ${selectedKType === k.label ? 'text-cyan-400' : 'text-slate-200'}`}>
+                                {k.label} {k.value !== 0 && `(${k.value})`}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                                {k.desc}
+                              </span>
+                            </div>
                           </div>
                           {selectedKType === k.label && <Check className="w-4 h-4 text-cyan-400 shrink-0 ml-2" />}
                         </button>
