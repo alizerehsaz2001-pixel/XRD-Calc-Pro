@@ -249,6 +249,8 @@ const App: React.FC = () => {
                 <option value="en">English</option>
                 <option value="de">Deutsch</option>
                 <option value="fr">Français</option>
+                <option value="es">Español</option>
+                <option value="ru">Русский</option>
                 <option value="pt">Português</option>
                 <option value="he">עברית</option>
                 <option value="fa">فارسی</option>
@@ -321,6 +323,8 @@ const App: React.FC = () => {
                 <option value="en">EN</option>
                 <option value="de">DE</option>
                 <option value="fr">FR</option>
+                <option value="es">ES</option>
+                <option value="ru">RU</option>
                 <option value="pt">PT</option>
                 <option value="he">HE</option>
                 <option value="fa">FA</option>

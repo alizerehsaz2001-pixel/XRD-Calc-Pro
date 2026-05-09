@@ -252,6 +252,8 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
               <option value="en" className="bg-slate-900">EN</option>
               <option value="de" className="bg-slate-900">DE</option>
               <option value="fr" className="bg-slate-900">FR</option>
+              <option value="es" className="bg-slate-900">ES</option>
+              <option value="ru" className="bg-slate-900">RU</option>
               <option value="pt" className="bg-slate-900">PT</option>
               <option value="he" className="bg-slate-900">HE</option>
               <option value="fa" className="bg-slate-900">FA</option>
