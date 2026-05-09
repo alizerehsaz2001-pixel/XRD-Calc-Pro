@@ -2658,100 +2658,123 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               )}
             </div>
 
-            {/* Analytics HUD Bar - Repositioned for clarity and no overlap */}
+            {/* Advanced Analytics HUD Bar */}
             {selectedCandidate && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 px-2">
-                <div className="border-l-2 border-cyan-500 pl-4 bg-[#0B1221]/80 backdrop-blur-md p-3.5 rounded-r-2xl shadow-[0_0_30px_rgba(34,211,238,0.05)] border-y border-r border-[#1e293b]/80 group/hud transition-transform hover:translate-x-1">
-                  <p className="text-[10px] font-mono text-cyan-500/80 uppercase tracking-widest leading-none mb-2 font-black">Target Identity</p>
-                  <p className="text-lg font-black text-white font-mono drop-shadow-[0_0_10px_rgba(34,211,238,0.4)] leading-none truncate">{selectedCandidate.phase_name}</p>
-                  <div className="flex items-center gap-2 mt-2.5 overflow-hidden font-mono">
-                    <span className="text-[10px] text-slate-500 uppercase tracking-tighter">Profile:</span>
-                    <span className="text-[9px] text-slate-400 flex gap-1.5 items-center bg-slate-900/50 px-2 py-0.5 rounded border border-slate-800">
-                      <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-cyan-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(34,211,238,0.05)] transition-all hover:border-cyan-500/50">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 blur-2xl rounded-full -translate-y-12 translate-x-12" />
+                  <div className="flex justify-between items-start mb-2 relative z-10">
+                    <p className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-black flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-sm bg-cyan-500 animate-pulse" /> Target Identity
+                    </p>
+                    <div className="px-2 py-0.5 rounded border border-cyan-500/30 bg-cyan-500/10 text-[8px] font-mono font-black text-cyan-300">
+                      ID_CONF: {selectedCandidate.confidence_score}
+                    </div>
+                  </div>
+                  <p className="text-xl font-black text-white font-mono drop-shadow-md truncate relative z-10">{selectedCandidate.phase_name}</p>
+                  <div className="flex items-center gap-2 mt-3 font-mono relative z-10">
+                    <span className="text-[10px] text-slate-500 uppercase">Profile:</span>
+                    <span className="text-[9px] text-cyan-400 flex gap-1.5 items-center bg-[#070D18] px-2 py-1 rounded border border-cyan-500/20">
+                      <span className="w-1 h-3 bg-cyan-500/50 rounded-full"></span>
                       σ² = 0.5 (GAUSSIAN)
                     </span>
                   </div>
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500 to-transparent" />
                 </div>
                 
-                <div className="border-l-2 border-rose-500/80 pl-4 bg-[#0B1221]/80 backdrop-blur-md p-3.5 rounded-r-2xl shadow-[0_0_30px_rgba(244,63,94,0.05)] border-y border-r border-[#1e293b]/80 group/hud transition-transform hover:translate-x-1">
-                  <p className="text-[10px] font-mono text-rose-500/80 uppercase tracking-widest leading-none mb-2 font-black">Feature Detection</p>
-                  <div className="flex items-end gap-2">
-                    <p className="text-2xl font-black text-rose-400 font-mono leading-none drop-shadow-[0_0_15px_rgba(244,63,94,0.4)]">{selectedCandidate.matched_peaks?.length || 0}</p>
-                    <span className="text-[11px] font-mono font-black text-slate-400 leading-none mb-1 tracking-widest">UNIT PEAKS</span>
+                <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-rose-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(244,63,94,0.05)] transition-all hover:border-rose-500/50">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 blur-2xl rounded-full -translate-y-12 translate-x-12" />
+                  <div className="flex justify-between items-start mb-2 relative z-10">
+                    <p className="text-[10px] font-mono text-rose-400 uppercase tracking-widest font-black flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-sm bg-rose-500 animate-pulse" /> Feature Detection
+                    </p>
                   </div>
-                  <div className="mt-3 w-full h-1 bg-slate-900 rounded-full overflow-hidden flex shadow-inner">
-                    <div className="h-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]" style={{ width: '75%' }} />
-                    <div className="h-full bg-rose-500/20" style={{ width: '25%' }} />
+                  <div className="flex items-end gap-2 relative z-10">
+                    <p className="text-3xl font-black text-rose-400 font-mono leading-none drop-shadow-[0_0_10px_rgba(244,63,94,0.4)]">{selectedCandidate.matched_peaks?.length || 0}</p>
+                    <span className="text-[10px] font-mono font-black text-slate-400 mb-1 tracking-widest">UNIT PEAKS</span>
                   </div>
+                  <div className="mt-3 w-full h-1.5 bg-[#070D18] rounded-full overflow-hidden flex border border-white/5 relative z-10">
+                    <div className="h-full bg-gradient-to-r from-rose-500 to-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.8)]" style={{ width: '75%' }} />
+                  </div>
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-rose-500 to-transparent" />
                 </div>
 
-                <div className="border-l-2 border-indigo-500/80 pl-4 bg-[#0B1221]/80 backdrop-blur-md p-3.5 rounded-r-2xl shadow-[0_0_30px_rgba(99,102,241,0.05)] border-y border-r border-[#1e293b]/80 group/hud transition-transform hover:translate-x-1">
-                  <p className="text-[10px] font-mono text-indigo-500/80 uppercase tracking-widest leading-none mb-2 font-black">Database Hash</p>
-                  <div className="flex items-center gap-2">
-                    <Database className="w-5 h-5 text-indigo-400" />
-                    <p className="text-base font-black text-white font-mono leading-none truncate">REF-{selectedCandidate.phase_name?.substring(0, 4)}-67X2</p>
+                <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-indigo-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(99,102,241,0.05)] transition-all hover:border-indigo-500/50">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 blur-2xl rounded-full -translate-y-12 translate-x-12" />
+                  <div className="flex justify-between items-start mb-2 relative z-10">
+                    <p className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest font-black flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-sm bg-indigo-500 animate-pulse" /> Database Link
+                    </p>
+                    <Database className="w-3.5 h-3.5 text-indigo-400" />
                   </div>
-                  <div className="mt-3 flex gap-1.5 overflow-hidden">
+                  <p className="text-lg font-black text-white font-mono truncate relative z-10 drop-shadow-md">REF-{selectedCandidate.phase_name?.substring(0, 4)}-67X</p>
+                  <div className="mt-3 flex gap-1.5 overflow-hidden relative z-10">
                     {['X-RAY', 'CU-Kα', '0.154NM'].map(tag => (
-                      <span key={tag} className="text-[8px] font-black font-mono text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20 uppercase whitespace-nowrap">{tag}</span>
+                      <span key={tag} className="text-[8px] font-black font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30 uppercase">{tag}</span>
                     ))}
                   </div>
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 to-transparent" />
                 </div>
               </div>
             )}
           </div>
           
-          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-[#0B1221]/90 rounded-[2rem] border border-[#1e293b] p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all hover:border-cyan-500/30">
+          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-[#070D18] rounded-[2rem] border border-[#1e293b]/80 p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all hover:border-cyan-500/40">
              
             {/* Animated Scanline Overlay */}
             <motion.div 
-               className="absolute top-0 bottom-0 w-[300px] bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent pointer-events-none mix-blend-screen z-0"
+               className="absolute top-0 bottom-0 w-[400px] bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent pointer-events-none mix-blend-screen z-0"
                animate={{ left: ['-50%', '150%'] }}
                transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
             />
 
+            {/* Glowing orb behind graph */}
+            {selectedCandidate && (
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-cyan-500/5 blur-[100px] rounded-full pointer-events-none z-0" />
+            )}
+
             {/* HUD / Crosshair Overlay */}
-            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen opacity-50 group-hover/chart:opacity-80 transition-opacity duration-1000">
+            <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden mix-blend-screen opacity-40 group-hover/chart:opacity-80 transition-opacity duration-1000">
                {/* Vertical & Horizontal Dashed Grid */}
-               <div className="absolute left-1/4 top-0 bottom-0 border-l border-cyan-500/15 border-dashed" />
-               <div className="absolute left-1/2 top-0 bottom-0 border-l border-cyan-500/15 border-dashed" />
-               <div className="absolute right-1/4 top-0 bottom-0 border-l border-cyan-500/15 border-dashed" />
+               <div className="absolute left-1/4 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
+               <div className="absolute left-1/2 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
+               <div className="absolute right-1/4 top-0 bottom-0 border-l border-cyan-500/20 border-dashed" />
                
-               <div className="absolute top-1/4 left-0 right-0 border-t border-cyan-500/15 border-dashed" />
-               <div className="absolute top-1/2 left-0 right-0 border-t border-cyan-500/15 border-dashed" />
-               <div className="absolute bottom-1/4 left-0 right-0 border-t border-cyan-500/15 border-dashed" />
+               <div className="absolute top-1/4 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
+               <div className="absolute top-1/2 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
+               <div className="absolute bottom-1/4 left-0 right-0 border-t border-cyan-500/20 border-dashed" />
                
                {/* Dynamic Targeting Reticles */}
                <div className="absolute left-12 top-12 w-20 h-20">
-                  <div className="absolute top-0 left-0 w-full h-[1px] bg-cyan-500/30" />
-                  <div className="absolute top-0 left-0 w-[1px] h-full bg-cyan-500/30" />
-                  <div className="absolute top-[6px] left-[6px] text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest font-black">SCAN_A:01</div>
+                  <div className="absolute top-0 left-0 w-[40%] h-[2px] bg-cyan-500/60" />
+                  <div className="absolute top-0 left-0 w-[2px] h-[40%] bg-cyan-500/60" />
+                  <div className="absolute top-[8px] left-[8px] text-[8px] font-mono text-cyan-400/80 uppercase tracking-widest font-black">SCAN_A:01</div>
                </div>
                
                <div className="absolute right-12 top-12 w-20 h-20">
-                  <div className="absolute top-0 right-0 w-full h-[1px] bg-cyan-500/30" />
-                  <div className="absolute top-0 right-0 w-[1px] h-full bg-cyan-500/30" />
-                  <div className="absolute top-[6px] right-[6px] text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest font-black">SCAN_B:02</div>
+                  <div className="absolute top-0 right-0 w-[40%] h-[2px] bg-cyan-500/60" />
+                  <div className="absolute top-0 right-0 w-[2px] h-[40%] bg-cyan-500/60" />
+                  <div className="absolute top-[8px] right-[8px] text-[8px] font-mono text-cyan-400/80 uppercase tracking-widest font-black">SCAN_B:02</div>
                </div>
                
                <div className="absolute left-12 bottom-12 w-20 h-20">
-                  <div className="absolute bottom-0 left-0 w-full h-[1px] bg-cyan-500/30" />
-                  <div className="absolute bottom-0 left-0 w-[1px] h-full bg-cyan-500/30" />
-                  <div className="absolute bottom-[6px] left-[6px] text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest font-black">SCAN_C:03</div>
+                  <div className="absolute bottom-0 left-0 w-[40%] h-[2px] bg-cyan-500/60" />
+                  <div className="absolute bottom-0 left-0 w-[2px] h-[40%] bg-cyan-500/60" />
+                  <div className="absolute bottom-[8px] left-[8px] text-[8px] font-mono text-cyan-400/80 uppercase tracking-widest font-black">SCAN_C:03</div>
                </div>
                
                <div className="absolute right-12 bottom-12 w-20 h-20">
-                  <div className="absolute bottom-0 right-0 w-full h-[1px] bg-cyan-500/30" />
-                  <div className="absolute bottom-0 right-0 w-[1px] h-full bg-cyan-500/30" />
-                  <div className="absolute bottom-[6px] right-[6px] text-[8px] font-mono text-cyan-500/50 uppercase tracking-widest font-black">SCAN_D:04</div>
+                  <div className="absolute bottom-0 right-0 w-[40%] h-[2px] bg-cyan-500/60" />
+                  <div className="absolute bottom-0 right-0 w-[2px] h-[40%] bg-cyan-500/60" />
+                  <div className="absolute bottom-[8px] right-[8px] text-[8px] font-mono text-cyan-400/80 uppercase tracking-widest font-black">SCAN_D:04</div>
                </div>
             </div>
 
-            <div className="absolute top-4 left-4 flex gap-2.5 z-10 bg-[#050B14]/90 px-3 py-1.5 rounded-xl border border-[#1e293b]/80 backdrop-blur-md shadow-xl">
-               <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse mt-1"></span>
-               <span className="text-[10px] font-mono font-black text-cyan-400 uppercase tracking-widest">System Live Sync</span>
-               <div className="w-[1px] h-3 bg-slate-800 mx-1 self-center" />
-               <span className="text-[9px] font-mono text-slate-500 uppercase font-black">2048_SAMP</span>
+            <div className="absolute top-4 left-4 flex gap-2.5 z-10 bg-[#0A101C]/90 px-4 py-2 rounded-xl border border-cyan-500/20 backdrop-blur-md shadow-[0_0_15px_rgba(34,211,238,0.1)]">
+               <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse mt-0.5 shadow-[0_0_10px_rgba(34,211,238,0.6)]"></span>
+               <span className="text-[10px] font-mono font-black text-cyan-300 uppercase tracking-widest">Live Sync</span>
+               <div className="w-[1px] h-3 bg-cyan-500/30 mx-1 self-center" />
+               <span className="text-[9px] font-mono text-cyan-500/60 uppercase font-black">2048_SAMP</span>
             </div>
             
             <div className="flex-1 relative mt-[16px] mx-[20px] mb-[16px] z-10">

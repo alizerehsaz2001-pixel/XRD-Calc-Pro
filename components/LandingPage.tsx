@@ -45,13 +45,46 @@ const DiffractionGrid = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
     <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,#4f46e520,transparent_70%)]" />
     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] mix-blend-overlay"></div>
-    <div className="grid grid-cols-8 gap-px opacity-20 h-full w-full">
-      {Array.from({ length: 64 }).map((_, i) => (
+    <div className="grid grid-cols-8 md:grid-cols-12 gap-px opacity-20 h-full w-full">
+      {Array.from({ length: 96 }).map((_, i) => (
         <div key={i} className="border-[0.5px] border-slate-800" />
       ))}
     </div>
+    <div className="absolute top-0 left-[20%] w-[1px] h-full bg-gradient-to-b from-transparent via-violet-500/50 to-transparent" />
+    <div className="absolute top-1/3 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
   </div>
 );
+
+// --- 3D Lattice Decoration ---
+const CrystalLattice = () => {
+  const nodes = [
+    { x: '20%', y: '20%', z: 0 }, { x: '80%', y: '20%', z: 0 },
+    { x: '20%', y: '80%', z: 0 }, { x: '80%', y: '80%', z: 0 },
+    { x: '35%', y: '35%', z: 1 }, { x: '95%', y: '35%', z: 1 },
+    { x: '35%', y: '95%', z: 1 }, { x: '95%', y: '95%', z: 1 },
+  ];
+  return (
+    <motion.div 
+      animate={{ rotateY: 360, rotateX: 360 }}
+      transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+      className="absolute top-[20%] right-[10%] w-[400px] h-[400px] pointer-events-none opacity-[0.15] hidden lg:block perspective-1000 transform-style-3d"
+    >
+      {nodes.map((n, i) => (
+        <motion.div 
+          key={i}
+          className="absolute w-4 h-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.8)]"
+          style={{ left: n.x, top: n.y, translateZ: n.z ? '100px' : '-100px' }}
+        />
+      ))}
+      <svg className="absolute inset-0 w-full h-full" style={{ transform: 'translateZ(0)' }}>
+         <line x1="20%" y1="20%" x2="80%" y2="20%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
+         <line x1="20%" y1="80%" x2="80%" y2="80%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
+         <line x1="20%" y1="20%" x2="20%" y2="80%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
+         <line x1="80%" y1="20%" x2="80%" y2="80%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
+      </svg>
+    </motion.div>
+  );
+};
 
 // --- Reusable Components ---
 const SectionHeading = ({ badge, title, description, center = false }: { badge: string, title: string, description: string, center?: boolean }) => (
@@ -235,6 +268,7 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
         {/* --- Hero Section --- */}
         <section className="relative px-6 pt-48 pb-32 md:pb-56 min-h-[90vh] flex items-center overflow-hidden">
           <DiffractionGrid />
+          <CrystalLattice />
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10 w-full">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -248,11 +282,11 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-300/80">Trusted by 2,400+ Global Laboratories</span>
               </div>
 
-              <h1 className="text-6xl sm:text-7xl lg:text-[7.5rem] font-black tracking-tighter mb-8 text-white uppercase italic leading-[1] drop-shadow-2xl flex flex-col">
+              <h1 className="text-5xl sm:text-6xl lg:text-[6rem] font-black tracking-tighter mb-8 text-white uppercase italic leading-[1.1] drop-shadow-2xl flex flex-col md:block">
                 <span className="opacity-70">XRD-</span>
-                <span className="flex items-center gap-4">
+                <span className="inline-flex items-center gap-4">
                   Calc<span className="text-transparent bg-clip-text bg-gradient-to-tr from-violet-500 via-indigo-400 to-cyan-300 drop-shadow-[0_0_30px_rgba(139,92,246,0.4)]">Pro</span>
-                  <Sparkles className="w-12 h-12 text-violet-400 opacity-40 animate-pulse mt-4 hidden sm:block" />
+                  <Sparkles className="w-10 h-10 text-violet-400 opacity-40 animate-pulse mt-1 hidden sm:inline-block" />
                 </span>
               </h1>
               
@@ -391,6 +425,69 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
           </div>
         </section>
 
+        {/* --- Code / API Integration Section --- */}
+        <section className="py-32 px-6 bg-[#030812] border-y border-white/5 relative z-10">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="order-2 lg:order-1"
+            >
+               <div className="bg-[#050A14] border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl relative">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-cyan-400 to-emerald-500" />
+                  <div className="px-6 py-4 border-b border-white/5 flex items-center gap-4 bg-white/[0.02]">
+                    <div className="flex gap-2">
+                      <div className="w-3 h-3 rounded-full bg-[#FF5F56]" />
+                      <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
+                      <div className="w-3 h-3 rounded-full bg-[#27C93F]" />
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-500 flex-1 text-center">analysis_engine.py</div>
+                  </div>
+                  <pre className="p-6 md:p-8 overflow-x-auto custom-scrollbar font-mono text-xs md:text-sm leading-relaxed text-slate-300">
+                    <code className="block">
+                      <span className="text-violet-400">import</span> xrd_calc <span className="text-violet-400">as</span> xrd{'\n\n'}
+                      <span className="text-slate-500"># Initiative engine with hardware acceleration</span>{'\n'}
+                      engine = xrd.Engine(gpu_acceleration=<span className="text-cyan-400">True</span>, precision=<span className="text-emerald-400">'FP64'</span>){'\n\n'}
+                      <span className="text-slate-500"># Load multi-modal diffraction pattern</span>{'\n'}
+                      dataset = engine.load_pattern(<span className="text-emerald-400">"sample_alpha_09.xy"</span>){'\n\n'}
+                      <span className="text-slate-500"># Execute AI-driven peak detection & matching</span>{'\n'}
+                      phases, residuals = engine.refine_structure({'\n'}
+                      {'    '}dataset=dataset,{'\n'}
+                      {'    '}database=<span className="text-emerald-400">"COD_2026"</span>,{'\n'}
+                      {'    '}tolerance=<span className="text-cyan-400">0.005</span>{'\n'}
+                      ){'\n\n'}
+                      <span className="text-violet-400">if</span> residuals.rms &lt; <span className="text-cyan-400">0.05</span>:{'\n'}
+                      {'    '}engine.export_cif(phases, <span className="text-emerald-400">"refined_output.cif"</span>){'\n'}
+                      {'    '}print(<span className="text-emerald-400">"Phase Matching Complete. High Confidence."</span>){'\n'}
+                    </code>
+                  </pre>
+               </div>
+            </motion.div>
+            
+            <div className="order-1 lg:order-2">
+               <SectionHeading 
+                 badge="Headless Operation"
+                 title="Automate with Python SDK."
+                 description="Integrate XRD-CalcPro directly into your CI/CD computational pipelines. Trigger refinements from LIMS (Laboratory Information Management Systems) and export results programmatically."
+               />
+               <ul className="space-y-6 mt-8 pl-4 border-l-2 border-violet-500/20">
+                 <li className="flex flex-col gap-2 relative">
+                   <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-violet-500 ring-4 ring-[#030812]" />
+                   <h4 className="text-white font-black uppercase tracking-widest text-sm italic">Direct COD Integration</h4>
+                   <p className="text-slate-400 text-sm">Query over 500,000 structures in milliseconds using our specialized vector-search methodology.</p>
+                 </li>
+                 <li className="flex flex-col gap-2 relative">
+                   <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-cyan-500 ring-4 ring-[#030812]" />
+                   <h4 className="text-white font-black uppercase tracking-widest text-sm italic">Headless Rietveld</h4>
+                   <p className="text-slate-400 text-sm">Optimize background polynomials and displacement parameters automatically via gradient descent.</p>
+                 </li>
+               </ul>
+            </div>
+          </div>
+        </section>
+
         {/* --- Platform Synergy --- */}
         <section id="platform" className="py-32 px-6 bg-[#050B14]/40 border-y border-white/5 relative z-10">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
@@ -518,6 +615,60 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
                  </div>
               </div>
            </div>
+        </section>
+
+        {/* --- Live Computation Terminal --- */}
+        <section className="py-20 px-6 relative z-10 w-full overflow-hidden">
+          <div className="absolute inset-0 bg-black" />
+          <div className="max-w-7xl mx-auto relative z-10 flex flex-col md:flex-row gap-16 items-center">
+             <div className="flex-1">
+                 <h2 className="text-3xl md:text-5xl font-black italic text-white uppercase tracking-tighter leading-none mb-6">
+                   Deep Learning Model in Action
+                 </h2>
+                 <p className="text-lg text-slate-400 font-medium leading-relaxed max-w-lg mb-8">
+                    Watch the XRD-CalcPro cluster classify phases in real time, pulling from live COD datasets to match peak signatures instantly.
+                 </p>
+                 <div className="flex gap-4">
+                    <div className="bg-white/10 px-4 py-2 rounded-full border border-white/10 flex items-center gap-2">
+                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Cluster Status:</p>
+                       <span className="text-[10px] text-emerald-400 uppercase tracking-widest font-black animate-pulse">Running</span>
+                    </div>
+                 </div>
+             </div>
+             
+             <div className="flex-1 w-full max-w-2xl bg-[#0a0a0a] border border-cyan-500/30 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(34,211,238,0.1)] relative">
+                <div className="absolute top-0 left-0 w-full h-8 bg-white/5 border-b border-cyan-500/20 flex items-center px-4 gap-2 z-20">
+                   <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
+                   <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
+                   <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
+                   <span className="text-[10px] font-mono text-cyan-400/50 ml-2">XRD_TERMINAL_V4</span>
+                </div>
+                <div className="p-6 pt-12 font-mono text-[11px] leading-loose h-[300px] overflow-hidden relative flex flex-col justify-end">
+                   <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-[#0a0a0a] to-transparent z-10" />
+                   <motion.div 
+                     animate={{ y: [0, -150] }} 
+                     transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
+                     className="text-cyan-500/70 absolute bottom-[-150px]"
+                   >
+                     <p>&gt; Initializing Rietveld refinement engine...</p>
+                     <p>&gt; Loading sample data... [1.2MB] OK</p>
+                     <p>&gt; Background subtraction... Polynomial order 6... OK</p>
+                     <p>&gt; Locating peaks... Found 14 distinct reflections.</p>
+                     <p className="text-emerald-400">&gt; Commencing database search against COD_2026...</p>
+                     <p>&gt; MATCH FOUND: Silicon Dioxide (SiO2) - Quartz</p>
+                     <p>&gt; Confidence: 99.1% | Reference: COD 9009666</p>
+                     <p>&gt; Refinement Cycle 1... Rwp = 12.4%</p>
+                     <p>&gt; Refinement Cycle 2... Rwp = 8.1%</p>
+                     <p>&gt; Refinement Cycle 3... Rwp = 5.3%</p>
+                     <p className="text-emerald-400">&gt; Convergence reached. Final Rwp: 5.3%.</p>
+                     <p>&gt; Exporting CIF...</p>
+                     <br/>
+                     <p>&gt; SYSTEM IDLE. Awaiting new batch...</p>
+                     <br/><br/><br/>
+                   </motion.div>
+                </div>
+             </div>
+          </div>
         </section>
 
         {/* --- Final CTA Overlay --- */}
