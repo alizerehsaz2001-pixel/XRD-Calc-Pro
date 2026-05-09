@@ -784,7 +784,7 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
         
         <div className="max-w-7xl mx-auto mt-32 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
            <div className="flex flex-col md:flex-row items-center gap-10">
-              <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">© 2026 XRD-CALC PRO SYSTEMS INC.</p>
+              <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">© 2026 XRD-CALC PRO SYSTEMS INC. • Designed by Ali Zerehsaz</p>
               <div className="flex gap-8 text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">
                  <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>
                  <span className="hover:text-white cursor-pointer transition-colors">Terms of Use</span>

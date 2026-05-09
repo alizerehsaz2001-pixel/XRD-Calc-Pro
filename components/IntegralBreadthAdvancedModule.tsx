@@ -41,6 +41,16 @@ const MATERIAL_PRESETS = [
     label: 'Iron (Fe) Nanoparticles', 
     data: "44.67, 850, 900\n65.02, 920, 850\n82.33, 1100, 800",
     desc: 'High-anisotropy Fe grains'
+  },
+  { 
+    label: 'Stainless Steel 316L', 
+    data: "43.6, 320, 1000\n50.8, 380, 950\n74.7, 450, 850\n90.7, 520, 800\n95.9, 580, 750",
+    desc: 'Austenitic SS (Cold Worked)'
+  },
+  { 
+    label: 'Ti-6Al-4V (Grade 5)', 
+    data: "35.1, 410, 1100\n38.4, 460, 1050\n40.2, 490, 1000\n53.0, 580, 900\n63.3, 650, 850",
+    desc: 'Alpha-phase Titanium Alloy'
   }
 ];
 
@@ -332,13 +342,12 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-colors shadow-inner relative overflow-hidden">
-              <div className="flex justify-between items-center mb-4">
-                <label className="block text-[10px] font-black text-emerald-400/80 uppercase tracking-widest flex items-center gap-2">
-                  <Database className="w-3.5 h-3.5" />
-                  Material Presets
-                </label>
-              </div>
+            <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-colors shadow-inner relative group/params">
+              <div className="absolute top-0 right-0 p-4 opacity-5 bg-gradient-to-br from-pink-500 to-purple-500 rounded-bl-full pointer-events-none group-hover/params:opacity-10 transition-opacity overflow-hidden"></div>
+              <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                <Zap className="w-3.5 h-3.5 text-pink-400" />
+                Material Presets
+              </h3>
               
               <div className="relative mb-6" ref={matMenuRef}>
                 <button
@@ -359,24 +368,26 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 p-1"
                     >
-                      {MATERIAL_PRESETS.map((m) => (
-                        <button
-                          key={m.label}
-                          onClick={() => {
-                            setSelectedMaterial(m.label);
-                            setInputData(m.data);
-                            setIsMaterialMenuOpen(false);
-                          }}
-                          className={`w-full px-4 py-3 flex flex-col items-start hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === m.label ? 'bg-emerald-500/10' : ''}`}
-                        >
-                          <span className={`text-sm font-black ${selectedMaterial === m.label ? 'text-emerald-400' : 'text-slate-300'}`}>
-                            {m.label}
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
-                            {m.desc}
-                          </span>
-                        </button>
-                      ))}
+                      <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                        {MATERIAL_PRESETS.map((m) => (
+                          <button
+                            key={m.label}
+                            onClick={() => {
+                              setSelectedMaterial(m.label);
+                              setInputData(m.data);
+                              setIsMaterialMenuOpen(false);
+                            }}
+                            className={`w-full px-4 py-3 flex flex-col items-start hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === m.label ? 'bg-emerald-500/10' : ''}`}
+                          >
+                            <span className={`text-sm font-black ${selectedMaterial === m.label ? 'text-emerald-400' : 'text-slate-300'}`}>
+                              {m.label}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                              {m.desc}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                       <button
                         onClick={() => {
                           setSelectedMaterial('Custom Data');

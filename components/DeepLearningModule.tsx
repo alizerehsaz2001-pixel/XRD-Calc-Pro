@@ -1467,6 +1467,171 @@ const MATERIAL_DB = [
     spaceGroup: 'C2/m',
     density: 2.56,
     applications: ['Glassmaking', 'Ceramics', 'Abrasives']
+  },
+  {
+    name: 'Stainless Steel 316L',
+    type: 'Metal Alloy',
+    pattern: '43.6, 100\n50.8, 45\n74.7, 25\n90.7, 20\n95.9, 10',
+    description: 'Low-carbon FCC austenitic steel with excellent corrosion resistance containing Mo.',
+    formula: 'Fe-Cr-Ni-Mo (316L)',
+    crystalSystem: 'Cubic (FCC)',
+    spaceGroup: 'Fm-3m',
+    density: 8.0,
+    applications: ['Medical Implants', 'Marine Hardware', 'Chemical Processing']
+  },
+  {
+    name: 'Stainless Steel 304',
+    type: 'Metal Alloy',
+    pattern: '43.5, 100\n50.7, 45\n74.5, 25\n90.5, 20\n95.7, 10',
+    description: 'The most common austenitic stainless steel, widely used in various industries.',
+    formula: 'Fe-Cr-Ni (304)',
+    crystalSystem: 'Cubic (FCC)',
+    spaceGroup: 'Fm-3m',
+    density: 7.93,
+    applications: ['Food Processing', 'Kitchenware', 'Building Facades']
+  },
+  {
+    name: 'Ti-6Al-4V (Grade 5)',
+    type: 'Metal Alloy',
+    pattern: '35.1, 30\n38.4, 30\n40.2, 100\n53.0, 20\n63.3, 25\n70.6, 20\n76.2, 15',
+    description: 'High-strength alpha-beta titanium alloy, widely used in aerospace and medical implants.',
+    formula: 'Ti-6Al-4V',
+    crystalSystem: 'Hexagonal (Alpha) + Cubic (Beta)',
+    spaceGroup: 'P63/mmc',
+    density: 4.43,
+    applications: ['Aerospace Structures', 'Engine Components', 'Surgical Tools']
+  },
+  {
+    name: 'Brass (C26000)',
+    type: 'Metal Alloy',
+    pattern: '42.6, 100\n49.6, 45\n72.8, 20\n88.1, 15',
+    description: 'A copper-zinc alloy (70-30), exhibiting good strength and corrosion resistance.',
+    formula: 'Cu-Zn (Brass)',
+    crystalSystem: 'Cubic (FCC)',
+    spaceGroup: 'Fm-3m',
+    density: 8.53,
+    applications: ['Ammunition', 'Plumbing', 'Musical Instruments']
+  },
+  {
+    name: 'Inconel 718',
+    type: 'Superalloy',
+    pattern: '43.8, 100\n51.0, 48\n75.1, 22\n91.2, 18',
+    description: 'Nickel-chromium-based superalloy used for high-temperature applications.',
+    formula: 'Ni-Cr-Fe-Nb-Mo',
+    crystalSystem: 'Cubic (FCC)',
+    spaceGroup: 'Fm-3m',
+    density: 8.19,
+    applications: ['Jet Engines', 'Gas Turbines', 'Nuclear Reactors']
+  },
+  {
+    name: 'SBA-15 (Mesoporous Silica)',
+    type: 'Drug Delivery',
+    pattern: '0.9, 100\n1.6, 30\n1.8, 25',
+    description: 'Hexagonal mesoporous silica with high surface area and thick walls.',
+    formula: 'SiO2',
+    crystalSystem: 'Hexagonal (2D)',
+    spaceGroup: 'p6mm',
+    density: 0.6,
+    applications: ['Drug Loading', 'Catalysis', 'Adsorption']
+  },
+  {
+    name: 'MCM-41 (Mesoporous Silica)',
+    type: 'Drug Delivery',
+    pattern: '2.1, 100\n3.6, 15\n4.2, 10',
+    description: 'Ordered mesoporous material with high pore volume and surface area.',
+    formula: 'SiO2',
+    crystalSystem: 'Hexagonal (2D)',
+    spaceGroup: 'p6mm',
+    density: 0.7,
+    applications: ['Controlled Release', 'Environmental Remediation']
+  },
+  {
+    name: 'MOF-5 (Zinc Tera-terephthalate)',
+    type: 'Framework',
+    pattern: '6.8, 100\n9.7, 45\n13.8, 35\n14.1, 20',
+    description: 'Classic Metal-Organic Framework with high porosity for gas storage and drug delivery.',
+    formula: 'Zn4O(BDC)3',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    density: 0.59,
+    applications: ['Hydrogen Storage', 'Drug Delivery Carriers']
+  },
+  {
+    name: 'ZIF-8 (Zeolitic Imidazolate Framework)',
+    type: 'Framework',
+    pattern: '7.3, 100\n10.3, 40\n12.7, 30\n14.7, 15\n16.4, 25\n18.0, 10',
+    description: 'Chemically stable MOF used for pH-responsive drug delivery.',
+    formula: 'Zn(mIm)2',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'I-43m',
+    density: 0.95,
+    applications: ['Biotech', 'Drug Encapsulation', 'Gas Separation']
+  },
+  {
+    name: 'Ibuprofen (Crystalline)',
+    type: 'Pharmaceutical',
+    pattern: '6.1, 80\n12.2, 50\n16.6, 100\n17.7, 45\n18.9, 60\n20.2, 70\n22.3, 90',
+    description: 'Propionic acid derivative drug, showing sharp Bragg peaks in its crystalline form.',
+    formula: 'C13H18O2',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/c',
+    density: 1.03,
+    applications: ['Anti-inflammatory', 'Drug Delivery Studies']
+  },
+  {
+    name: 'Paracetamol (Acetaminophen)',
+    type: 'Pharmaceutical',
+    pattern: '12.1, 40\n15.5, 60\n18.2, 100\n20.4, 35\n23.5, 45\n24.4, 80\n32.8, 20',
+    description: 'Common analgesic. Studied for polymorphic transitions in drug formulation.',
+    formula: 'C8H9NO2',
+    crystalSystem: 'Monoclinic (Form I)',
+    spaceGroup: 'P21/n',
+    density: 1.29,
+    applications: ['Analgesics', 'Crystallization Research']
+  },
+  {
+    name: 'Magnetite (Fe3O4)',
+    type: 'Magnetic Oxide',
+    pattern: '30.1, 30\n35.4, 100\n43.1, 20\n53.4, 10\n57.0, 30\n62.6, 40',
+    description: 'A common ferrimagnetic iron oxide mineral with an inverse spinel structure.',
+    formula: 'Fe3O4',
+    crystalSystem: 'Cubic (Spinel)',
+    spaceGroup: 'Fd-3m',
+    density: 5.17,
+    applications: ['Magnetic Storage', 'Biomedical Imaging', 'Catalysis']
+  },
+  {
+    name: 'Polyethylene (PE)',
+    type: 'Polymer',
+    pattern: '21.5, 100\n24.0, 45\n36.3, 10',
+    description: 'Semicrystalline thermoplastic showing characteristic orthorhombic crystalline peaks.',
+    formula: '(C2H4)n',
+    crystalSystem: 'Orthorhombic (Crystalline)',
+    spaceGroup: 'Pnam',
+    density: 0.94,
+    applications: ['Packaging', 'Consumer Goods', 'Industrial Pipes']
+  },
+  {
+    name: 'YBCO Superconductor',
+    type: 'Superconductor',
+    pattern: '32.5, 80\n32.8, 100\n38.5, 20\n46.7, 45\n58.1, 30',
+    description: 'High-temperature superconducting ceramic material (Yttrium Barium Copper Oxide).',
+    formula: 'YBa2Cu3O7',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pmmm',
+    density: 6.38,
+    applications: ['Maglev Trains', 'MRI Machines', 'Particle Accelerators']
+  },
+  {
+    name: 'Portland Cement (Alite)',
+    type: 'Construction material',
+    pattern: '29.4, 100\n32.2, 80\n32.6, 85\n34.4, 40\n41.2, 35\n51.7, 30',
+    description: 'The primary active phase (Tricalcium Silicate) in Portland cement clinker.',
+    formula: 'Ca3SiO5 (C3S)',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'Cm',
+    density: 3.15,
+    applications: ['Infrastructure', 'Building Construction', 'Concrete']
   }
 ];
 
@@ -1852,6 +2017,21 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'Hematite' ? 'Hematite(Fe2O3)' :
                         type === 'PerovskiteCat' ? 'Perovskite (CaTiO3)' :
                         type === 'Feldspar' ? 'Feldspar (Orthoclase)' :
+                        type === 'SS316L' ? 'Stainless Steel 316L' :
+                        type === 'SS304' ? 'Stainless Steel 304' :
+                        type === 'Ti64' ? 'Ti-6Al-4V (Grade 5)' :
+                        type === 'Brass' ? 'Brass (C26000)' :
+                        type === 'Inconel' ? 'Inconel 718' :
+                        type === 'SBA15' ? 'SBA-15' :
+                        type === 'MCM41' ? 'MCM-41' :
+                        type === 'MOF5' ? 'MOF-5' :
+                        type === 'ZIF8' ? 'ZIF-8' :
+                        type === 'Ibuprofen' ? 'Ibuprofen' :
+                        type === 'Paracetamol' ? 'Paracetamol' :
+                        type === 'Magnetite' ? 'Magnetite (Fe3O4)' :
+                        type === 'PE' ? 'Polyethylene (PE)' :
+                        type === 'YBCO' ? 'YBCO Superconductor' :
+                        type === 'Cement' ? 'Portland Cement (Alite)' :
                         type;
       
       const mat = MATERIAL_DB.find(m => m.name.includes(searchKey));
@@ -2447,6 +2627,19 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Hematite', label: 'Hematite' },
                     { id: 'Feldspar', label: 'Feldspar' },
                     { id: 'PerovskiteCat', label: 'Perovskite Cat' },
+                    { id: 'SS316L', label: 'Stainless Steel 316L' },
+                    { id: 'Ti64', label: 'Ti-6Al-4V' },
+                    { id: 'SS304', label: 'SS 304' },
+                    { id: 'Brass', label: 'Brass' },
+                    { id: 'Inconel', label: 'Inconel 718' },
+                    { id: 'SBA15', label: 'SBA-15 Silica' },
+                    { id: 'ZIF8', label: 'ZIF-8 MOF' },
+                    { id: 'Ibuprofen', label: 'Ibuprofen' },
+                    { id: 'Paracetamol', label: 'Paracetamol' },
+                    { id: 'Magnetite', label: 'Magnetite' },
+                    { id: 'PE', label: 'Polymer (PE)' },
+                    { id: 'YBCO', label: 'YBCO' },
+                    { id: 'Cement', label: 'Clinker' },
                     { id: 'Complex', label: 'Complex Mix' }
                   ].map(ex => (
                     <button 

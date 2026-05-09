@@ -16,17 +16,49 @@ import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 
 const MATERIAL_PRESETS = [
-  { label: 'Gold (Au)', d1: 2.3551, d2: 1.1776, desc: '(111) and (222) reflections' },
-  { label: 'Silicon (Si)', d1: 3.1355, d2: 1.5678, desc: '(111) and (222) reflections' },
-  { label: 'Aluminum (Al)', d1: 2.338, d2: 1.169, desc: '(111) and (222) reflections' },
-  { label: 'Copper (Cu)', d1: 2.087, d2: 1.0435, desc: '(111) and (222) reflections' },
-  { label: 'Nickel (Ni)', d1: 2.034, d2: 1.017, desc: '(111) and (222) reflections' },
-  { label: 'Silver (Ag)', d1: 2.359, d2: 1.179, desc: '(111) and (222) reflections' },
-  { label: 'Platinum (Pt)', d1: 2.265, d2: 1.132, desc: '(111) and (222) reflections' },
-  { label: 'Iron (alpha-Fe)', d1: 2.027, d2: 1.0135, desc: '(110) and (220) reflections' },
-  { label: 'MgO', d1: 2.106, d2: 1.053, desc: '(200) and (400) reflections' },
-  { label: 'Zirconia (ZrO2)', d1: 2.966, d2: 1.483, desc: '(111) and (222) reflections' },
-  { label: 'Zinc Oxide (ZnO)', d1: 2.814, d2: 1.407, desc: '(100) and (200) reflections' }
+  { 
+    label: 'Gold (Au)', 
+    d1: 2.3551, 
+    d2: 1.1776, 
+    desc: '(111) and (222) reflections',
+    data: "# L[nm], A(d1), A(d2)\n1, 0.98, 0.95\n2, 0.95, 0.88\n3, 0.92, 0.82\n4, 0.89, 0.76\n5, 0.86, 0.71\n8, 0.78, 0.58\n10, 0.73, 0.51\n15, 0.62, 0.36\n20, 0.53, 0.25"
+  },
+  { 
+    label: 'Silicon (Si)', 
+    d1: 3.1355, 
+    d2: 1.5678, 
+    desc: '(111) and (222) reflections',
+    data: "# L[nm], A(d1), A(d2)\n1, 0.99, 0.98\n2, 0.98, 0.96\n3, 0.97, 0.94\n4, 0.96, 0.92\n5, 0.95, 0.90\n8, 0.92, 0.84\n10, 0.90, 0.80\n20, 0.80, 0.60"
+  },
+  { 
+    label: 'Aluminum (Al)', 
+    d1: 2.338, 
+    d2: 1.169, 
+    desc: '(111) and (222) reflections',
+    data: "# L[nm], A(d1), A(d2)\n1, 0.97, 0.92\n2, 0.93, 0.84\n3, 0.89, 0.76\n4, 0.85, 0.69\n5, 0.81, 0.63\n8, 0.71, 0.48\n10, 0.64, 0.40\n15, 0.50, 0.25"
+  },
+  { 
+    label: 'Copper (Cu)', 
+    d1: 2.087, 
+    d2: 1.0435, 
+    desc: '(111) and (222) reflections',
+    data: "# L[nm], A(d1), A(d2)\n1, 0.95, 0.88\n2, 0.89, 0.77\n3, 0.83, 0.67\n4, 0.78, 0.58\n5, 0.73, 0.51\n8, 0.61, 0.35\n10, 0.54, 0.27\n15, 0.41, 0.15"
+  },
+  { 
+    label: 'Nickel (Ni)', 
+    d1: 2.034, 
+    d2: 1.017, 
+    desc: '(111) and (222) reflections',
+    data: "# L[nm], A(d1), A(d2)\n1, 0.94, 0.85\n2, 0.87, 0.72\n3, 0.81, 0.61\n4, 0.75, 0.52\n5, 0.70, 0.44\n8, 0.57, 0.28\n10, 0.49, 0.21\n15, 0.35, 0.10"
+  },
+  { label: 'Silver (Ag)', d1: 2.359, d2: 1.179, desc: '(111) and (222) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.96, 0.90\n2, 0.92, 0.81" },
+  { label: 'Platinum (Pt)', d1: 2.265, d2: 1.132, desc: '(111) and (222) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.98, 0.94\n2, 0.95, 0.87" },
+  { label: 'Iron (alpha-Fe)', d1: 2.027, d2: 1.0135, desc: '(110) and (220) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.93, 0.82\n2, 0.85, 0.68" },
+  { label: 'MgO', d1: 2.106, d2: 1.053, desc: '(200) and (400) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.99, 0.97\n2, 0.98, 0.94" },
+  { label: 'Zirconia (ZrO2)', d1: 2.966, d2: 1.483, desc: '(111) and (222) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.97, 0.93\n2, 0.94, 0.85" },
+  { label: 'Zinc Oxide (ZnO)', d1: 2.814, d2: 1.407, desc: '(100) and (200) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.96, 0.91\n2, 0.92, 0.82" },
+  { label: 'Ti-6Al-4V (alpha)', d1: 2.342, d2: 1.171, desc: '(101) and (202) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.92, 0.80\n2, 0.84, 0.65" },
+  { label: 'Stainless Steel 316L', d1: 2.078, d2: 1.039, desc: '(111) and (222) reflections', data: "# L[nm], A(d1), A(d2)\n1, 0.94, 0.86\n2, 0.87, 0.74" }
 ];
 
 export const WarrenAverbachModule: React.FC = () => {
@@ -199,8 +231,8 @@ export const WarrenAverbachModule: React.FC = () => {
 
           <div className="space-y-6 relative z-10">
             {/* Material Presets */}
-            <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-rose-500/30 transition-all group/params shadow-inner relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-5 bg-gradient-to-br from-rose-500 to-orange-500 rounded-bl-full pointer-events-none group-hover/params:opacity-10 transition-opacity"></div>
+            <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-rose-500/30 transition-all group/params shadow-inner relative">
+              <div className="absolute top-0 right-0 p-4 opacity-5 bg-gradient-to-br from-rose-500 to-orange-500 rounded-bl-full pointer-events-none group-hover/params:opacity-10 transition-opacity overflow-hidden"></div>
               <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">
                 Material Preset
               </label>
@@ -223,25 +255,28 @@ export const WarrenAverbachModule: React.FC = () => {
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 p-1"
                     >
-                      {MATERIAL_PRESETS.map((m) => (
-                        <button
-                          key={m.label}
-                          onClick={() => {
-                            setSelectedMaterial(m.label);
-                            setD1(m.d1);
-                            setD2(m.d2);
-                            setIsMaterialMenuOpen(false);
-                          }}
-                          className={`w-full px-4 py-3 flex flex-col items-start hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === m.label ? 'bg-rose-500/10' : ''}`}
-                        >
-                          <span className={`text-sm font-black ${selectedMaterial === m.label ? 'text-rose-400' : 'text-slate-300'}`}>
-                            {m.label}
-                          </span>
-                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
-                            {m.desc}
-                          </span>
-                        </button>
-                      ))}
+                      <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                        {MATERIAL_PRESETS.map((m) => (
+                          <button
+                            key={m.label}
+                            onClick={() => {
+                              setSelectedMaterial(m.label);
+                              setD1(m.d1);
+                              setD2(m.d2);
+                              if (m.data) setInputData(m.data);
+                              setIsMaterialMenuOpen(false);
+                            }}
+                            className={`w-full px-4 py-3 flex flex-col items-start hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === m.label ? 'bg-rose-500/10' : ''}`}
+                          >
+                            <span className={`text-sm font-black ${selectedMaterial === m.label ? 'text-rose-400' : 'text-slate-300'}`}>
+                              {m.label}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                              {m.desc}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                       <button
                         onClick={() => {
                           setSelectedMaterial('Custom');

@@ -233,9 +233,27 @@ const PRESETS: MaterialPreset[] = [
     name: 'Stainless Steel 316L',
     formula: 'Fe-Cr-Ni',
     wavelength: 1.5406,
-    peaks: [43.6, 50.8, 74.7],
-    hkls: ['111', '200', '220'],
+    peaks: [43.6, 50.8, 74.7, 90.7, 95.9],
+    hkls: ['111', '200', '220', '311', '222'],
     description: 'Low-carbon FCC austenitic steel with excellent corrosion resistance.',
+    category: 'Metallurgy'
+  },
+  {
+    name: 'Stainless Steel 304',
+    formula: 'Fe-Cr-Ni (304)',
+    wavelength: 1.5406,
+    peaks: [43.5, 50.7, 74.5, 90.5, 95.7],
+    hkls: ['111', '200', '220', '311', '222'],
+    description: 'Common austenitic stainless steel, widely used in food and medical industries.',
+    category: 'Metallurgy'
+  },
+  {
+    name: 'Ti-6Al-4V (Grade 5)',
+    formula: 'Ti-6Al-4V',
+    wavelength: 1.5406,
+    peaks: [35.1, 38.4, 40.2, 53.0, 63.3, 70.6, 76.2],
+    hkls: ['100', '002', '101', '102', '110', '103', '112'],
+    description: 'Alpha-beta titanium alloy with high strength-to-weight ratio and corrosion resistance.',
     category: 'Metallurgy'
   },
   {
@@ -264,6 +282,51 @@ const PRESETS: MaterialPreset[] = [
     hkls: ['006', '015', '1010', '110', '0015', '205'],
     description: 'A narrow-gap layered semiconductor and exemplary topological insulator.',
     category: 'Thermoelectric'
+  },
+  {
+    name: 'Gallium Nitride',
+    formula: 'GaN',
+    wavelength: 1.5406,
+    peaks: [32.39, 34.56, 36.84, 48.08, 57.77, 63.34],
+    hkls: ['100', '002', '101', '102', '110', '103'],
+    description: 'Wide-bandgap semiconductor with wurtzite structure, used in LEDs and power electronics.',
+    category: 'Ceramic'
+  },
+  {
+    name: 'Molybdenum Disulfide',
+    formula: 'MoS2',
+    wavelength: 1.5406,
+    peaks: [14.38, 29.02, 32.67, 33.51, 35.87, 39.54, 44.15],
+    hkls: ['002', '004', '100', '101', '102', '103', '006'],
+    description: 'Layered transition metal dichalcogenide used for lubricants and 2D electronics.',
+    category: 'Ceramic'
+  },
+  {
+    name: 'Lithium Iron Phosphate',
+    formula: 'LiFePO4',
+    wavelength: 1.5406,
+    peaks: [17.2, 20.8, 25.6, 29.7, 32.2, 35.6, 36.5],
+    hkls: ['011', '020', '111', '120', '121', '031', '211'],
+    description: 'Olivine-structure cathode material for high-safety lithium-ion batteries.',
+    category: 'Ceramic'
+  },
+  {
+    name: 'Titanium Nitride',
+    formula: 'TiN',
+    wavelength: 1.5406,
+    peaks: [36.66, 42.60, 61.81, 74.07, 77.96],
+    hkls: ['111', '200', '220', '311', '222'],
+    description: 'Hard ceramic coating material with a rock-salt structure and high thermal stability.',
+    category: 'Ceramic'
+  },
+  {
+    name: 'Tantalum',
+    formula: 'Ta',
+    wavelength: 1.5406,
+    peaks: [38.47, 55.55, 69.58, 82.45, 95.03],
+    hkls: ['110', '200', '211', '220', '310'],
+    description: 'BCC refractory metal with excellent corrosion resistance and biocompatibility.',
+    category: 'Metal'
   }
 ];
 
