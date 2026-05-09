@@ -12,10 +12,13 @@
   "dependencies": {
     "@google/genai": "^1.41.0",
     "express": "^5.2.1",
+    "i18next": "^26.0.10",
+    "i18next-browser-languagedetector": "^8.2.1",
     "lucide-react": "^0.575.0",
     "motion": "^12.34.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-i18next": "^17.0.7",
     "react-markdown": "^10.1.0",
     "recharts": "^3.7.0",
     "tsx": "^4.21.0"

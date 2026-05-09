@@ -20,7 +20,13 @@ const MATERIAL_PRESETS = [
   { label: 'Silicon (Si)', d1: 3.1355, d2: 1.5678, desc: '(111) and (222) reflections' },
   { label: 'Aluminum (Al)', d1: 2.338, d2: 1.169, desc: '(111) and (222) reflections' },
   { label: 'Copper (Cu)', d1: 2.087, d2: 1.0435, desc: '(111) and (222) reflections' },
-  { label: 'Nickel (Ni)', d1: 2.034, d2: 1.017, desc: '(111) and (222) reflections' }
+  { label: 'Nickel (Ni)', d1: 2.034, d2: 1.017, desc: '(111) and (222) reflections' },
+  { label: 'Silver (Ag)', d1: 2.359, d2: 1.179, desc: '(111) and (222) reflections' },
+  { label: 'Platinum (Pt)', d1: 2.265, d2: 1.132, desc: '(111) and (222) reflections' },
+  { label: 'Iron (alpha-Fe)', d1: 2.027, d2: 1.0135, desc: '(110) and (220) reflections' },
+  { label: 'MgO', d1: 2.106, d2: 1.053, desc: '(200) and (400) reflections' },
+  { label: 'Zirconia (ZrO2)', d1: 2.966, d2: 1.483, desc: '(111) and (222) reflections' },
+  { label: 'Zinc Oxide (ZnO)', d1: 2.814, d2: 1.407, desc: '(100) and (200) reflections' }
 ];
 
 export const WarrenAverbachModule: React.FC = () => {
@@ -348,7 +354,10 @@ export const WarrenAverbachModule: React.FC = () => {
               <div className="relative group/textarea z-10">
                 <textarea
                   value={inputData}
-                  onChange={(e) => setInputData(e.target.value)}
+                  onChange={(e) => {
+                    setInputData(e.target.value);
+                    setSelectedMaterial('Custom');
+                  }}
                   placeholder="L_nm, A(d1), A(d2)&#10;1, 0.95, 0.90&#10;2, 0.90, 0.81&#10;3, 0.85, 0.73"
                   className="w-full h-40 px-5 py-4 bg-[#0A101C] text-rose-300 border border-white/10 rounded-lg focus:ring-1 focus:ring-rose-500/20 focus:border-rose-500/50 outline-none font-mono text-xs leading-loose resize-none transition-all shadow-inner custom-scrollbar"
                   spellCheck={false}

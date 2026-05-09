@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { BraggResult } from '../types';
 
 interface ResultsTableProps {
@@ -7,6 +8,7 @@ interface ResultsTableProps {
 }
 
 export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
+  const { t } = useTranslation();
   const exportToCSV = () => {
     if (results.length === 0) return;
     
@@ -48,8 +50,8 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     return (
       <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 min-h-[300px] flex items-center justify-center text-slate-400 dark:text-slate-500 transition-colors">
         <div className="text-center">
-          <p>No results calculated yet.</p>
-          <p className="text-sm">Enter peaks and click Calculate.</p>
+          <p>{t('No results')}</p>
+          <p className="text-sm">{t('Enter peaks prompt')}</p>
         </div>
       </div>
     );
@@ -58,7 +60,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-300 dark:border-slate-800 overflow-hidden flex flex-col min-h-[400px] transition-colors">
       <div className="p-4 border-b border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50 flex justify-between items-center">
-        <h3 className="font-bold text-slate-800 dark:text-slate-100">Calculated Data</h3>
+        <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('Calculated Data')}</h3>
         <div className="flex items-center gap-2">
           <button 
             onClick={exportToCSV}
@@ -68,10 +70,10 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            Export CSV
+            {t('Export CSV')}
           </button>
           <span className="text-xs font-mono bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded-full font-bold">
-            {results.length} Peaks
+            {results.length} {t('Peaks')}
           </span>
         </div>
       </div>
@@ -79,11 +81,11 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         <table className="w-full text-sm text-left text-slate-800 dark:text-slate-200">
           <thead className="text-xs text-slate-900 dark:text-slate-400 uppercase bg-slate-200 dark:bg-slate-800 sticky top-0 z-10">
             <tr>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">HKL</th>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">2θ (deg)</th>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">d-spacing (Å)</th>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">Q (1/Å)</th>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">sin(θ)/λ</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('HKL')}</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('2theta_deg')}</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('d_spacing')}</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('Q_vector')}</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('sin_theta')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">

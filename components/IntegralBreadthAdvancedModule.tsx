@@ -12,13 +12,36 @@ import {
   Scatter,
   Legend
 } from 'recharts';
-import { RefreshCw, Trash2, Settings2, Info, FileText, ArrowUpRight, TrendingUp, ChevronDown, Zap, Download } from 'lucide-react';
+import { RefreshCw, Trash2, Settings2, Info, FileText, ArrowUpRight, TrendingUp, ChevronDown, Zap, Download, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-const PRESETS = [
+const WAVELENGTH_PRESETS = [
   { label: 'Cu K-alpha', wavelength: 1.5406, desc: 'Standard lab X-ray source' },
   { label: 'Mo K-alpha', wavelength: 0.7107, desc: 'High energy X-ray source' },
   { label: 'Co K-alpha', wavelength: 1.7890, desc: 'Avoids Fe fluorescence' }
+];
+
+const MATERIAL_PRESETS = [
+  { 
+    label: 'Silicon (Si) Standard', 
+    data: "28.44, 230, 1000\n47.30, 280, 950\n56.12, 350, 900\n69.13, 400, 850\n76.38, 450, 800",
+    desc: 'NIST 640 Silicon peaks'
+  },
+  { 
+    label: 'Cerium Oxide (CeO2)', 
+    data: "28.55, 310, 1200\n33.08, 410, 1100\n47.48, 550, 1000\n56.33, 620, 950\n59.08, 680, 900",
+    desc: 'Nanocrystalline Ceria (High Strain)'
+  },
+  { 
+    label: 'Aluminum (Al)', 
+    data: "38.47, 450, 1100\n44.72, 480, 1050\n65.10, 520, 1000\n78.23, 560, 950",
+    desc: 'Annealed Aluminum powder'
+  },
+  { 
+    label: 'Iron (Fe) Nanoparticles', 
+    data: "44.67, 850, 900\n65.02, 920, 850\n82.33, 1100, 800",
+    desc: 'High-anisotropy Fe grains'
+  }
 ];
 
 const K_FACTORS = [
@@ -43,16 +66,22 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
   const [result, setResult] = useState<IBAdvancedResult | null>(null);
   
   const [isWavelengthMenuOpen, setIsWavelengthMenuOpen] = useState(false);
+  const [isMaterialMenuOpen, setIsMaterialMenuOpen] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<string>(MATERIAL_PRESETS[0].label);
   const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
+  const matMenuRef = useRef<HTMLDivElement>(null);
   const kMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsWavelengthMenuOpen(false);
+      }
+      if (matMenuRef.current && !matMenuRef.current.contains(event.target as Node)) {
+        setIsMaterialMenuOpen(false);
       }
       if (kMenuRef.current && !kMenuRef.current.contains(event.target as Node)) {
         setIsKTypeMenuOpen(false);
@@ -66,7 +95,8 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
     setWavelength(1.5406);
     setConstantK(0.9);
     setInstBetaIB(0.1);
-    setInputData("28.44, 230, 1000\n47.30, 280, 950\n56.12, 350, 900\n69.13, 400, 850\n76.38, 450, 800");
+    setInputData(MATERIAL_PRESETS[0].data);
+    setSelectedMaterial(MATERIAL_PRESETS[0].label);
   };
 
   const handleClear = () => {
@@ -202,7 +232,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                         exit={{ opacity: 0, y: -5, scale: 0.95 }}
                         className="absolute top-[110%] right-0 w-[240px] bg-[#070D18] border border-pink-500/30 rounded-xl shadow-[0_5px_30px_rgba(0,0,0,0.5)] overflow-hidden z-[100] p-1"
                       >
-                        {PRESETS.map((p) => (
+                        {WAVELENGTH_PRESETS.map((p) => (
                           <button
                             key={p.label}
                             onClick={() => {
@@ -303,6 +333,65 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
             </div>
 
             <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-colors shadow-inner relative overflow-hidden">
+              <div className="flex justify-between items-center mb-4">
+                <label className="block text-[10px] font-black text-emerald-400/80 uppercase tracking-widest flex items-center gap-2">
+                  <Database className="w-3.5 h-3.5" />
+                  Material Presets
+                </label>
+              </div>
+              
+              <div className="relative mb-6" ref={matMenuRef}>
+                <button
+                  onClick={() => setIsMaterialMenuOpen(!isMaterialMenuOpen)}
+                  className="w-full px-4 py-2.5 bg-[#0A101C] border border-white/10 hover:border-emerald-500/40 rounded-lg outline-none transition-all flex items-center justify-between shadow-inner"
+                >
+                  <span className="text-sm font-black text-emerald-300">
+                    {selectedMaterial}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isMaterialMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {isMaterialMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 p-1"
+                    >
+                      {MATERIAL_PRESETS.map((m) => (
+                        <button
+                          key={m.label}
+                          onClick={() => {
+                            setSelectedMaterial(m.label);
+                            setInputData(m.data);
+                            setIsMaterialMenuOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 flex flex-col items-start hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === m.label ? 'bg-emerald-500/10' : ''}`}
+                        >
+                          <span className={`text-sm font-black ${selectedMaterial === m.label ? 'text-emerald-400' : 'text-slate-300'}`}>
+                            {m.label}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                            {m.desc}
+                          </span>
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => {
+                          setSelectedMaterial('Custom Data');
+                          setIsMaterialMenuOpen(false);
+                        }}
+                        className={`w-full px-4 py-3 flex items-center justify-between hover:bg-white/5 transition-colors rounded-xl ${selectedMaterial === 'Custom Data' ? 'bg-emerald-500/10 text-emerald-400' : 'text-slate-300'}`}
+                      >
+                        <span className="text-sm font-black">Custom Data</span>
+                        <Settings2 className="w-3.5 h-3.5 opacity-50" />
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <div className="flex justify-between items-end mb-4">
                 <label className="block text-[10px] font-black text-emerald-400/80 uppercase tracking-widest flex items-center gap-2">
                   <FileText className="w-3.5 h-3.5" />
@@ -318,7 +407,10 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
               <div className="relative font-mono text-xs">
                 <textarea
                   value={inputData}
-                  onChange={(e) => setInputData(e.target.value)}
+                  onChange={(e) => {
+                    setInputData(e.target.value);
+                    setSelectedMaterial('Custom Data');
+                  }}
                   placeholder="28.44, 230, 1000&#10;47.30, 280, 950"
                   className="w-full h-32 px-4 py-3 bg-[#0A101C] text-emerald-300 border border-white/10 focus:border-emerald-500/50 rounded-lg focus:ring-1 focus:ring-emerald-500/20 outline-none custom-scrollbar transition-all leading-relaxed placeholder:text-slate-700 shadow-inner"
                   spellCheck="false"

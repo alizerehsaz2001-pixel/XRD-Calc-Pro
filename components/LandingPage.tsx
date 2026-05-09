@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { 
   Zap, 
@@ -163,7 +164,10 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
   setTheme: (theme: any) => void,
   theme: string
 }) => {
+  const { t, i18n } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const isRTL = i18n.language === 'he' || i18n.language === 'fa';
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -235,11 +239,23 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-black italic tracking-tighter leading-none">XRD-Calc<span className="text-violet-400">Pro</span></span>
-              <span className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-500 mt-0.5">Computational Suite</span>
+              <span className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-500 mt-0.5">{t('Computational Suite')}</span>
             </div>
           </div>
 
           <div className="hidden md:flex items-center gap-10 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+            <select 
+              value={i18n.language}
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              className="bg-transparent border-none text-[11px] font-black uppercase tracking-[0.2em] outline-none cursor-pointer hover:text-white transition-colors"
+            >
+              <option value="en" className="bg-slate-900">EN</option>
+              <option value="de" className="bg-slate-900">DE</option>
+              <option value="fr" className="bg-slate-900">FR</option>
+              <option value="pt" className="bg-slate-900">PT</option>
+              <option value="he" className="bg-slate-900">HE</option>
+              <option value="fa" className="bg-slate-900">FA</option>
+            </select>
             <a href="#features" className="hover:text-white transition-colors">Features</a>
             <a href="#platform" className="hover:text-white transition-colors">Platforms</a>
             <a href="#about" className="hover:text-white transition-colors">Performance</a>
@@ -248,13 +264,13 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
               onClick={onEnter}
               className="hover:text-white transition-colors"
             >
-              Log In
+              {t('Log In')}
             </button>
             <button 
               onClick={onEnter}
               className="bg-violet-600 hover:bg-violet-500 px-8 py-3 rounded-full shadow-[0_10px_30px_rgba(139,92,246,0.2)] transition-all text-white active:scale-95"
             >
-              Get Started
+              {t('Get Started')}
             </button>
           </div>
 
@@ -279,7 +295,7 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
                 className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-violet-600/10 border border-violet-500/30 mb-8 shadow-2xl backdrop-blur-sm"
               >
                 <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-300/80">Trusted by 2,400+ Global Laboratories</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-300/80">{t('Trusted labs')}</span>
               </div>
 
               <h1 className="text-5xl sm:text-6xl lg:text-[6rem] font-black tracking-tighter mb-8 text-white uppercase italic leading-[1.1] drop-shadow-2xl flex flex-col md:block">
@@ -291,8 +307,7 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
               </h1>
               
               <p className="text-xl sm:text-2xl text-slate-400 font-medium mb-12 leading-relaxed max-w-2xl tracking-tight">
-                Accelerate your material science discovery with hardware-enabled XRD analysis. 
-                Deploy <span className="text-white font-bold italic">AI-driven refinement</span> strategies in seconds.
+                {t('Hero Description')}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-6">
@@ -301,12 +316,12 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
                   className="flex-1 sm:flex-none px-12 py-6 bg-violet-600 hover:bg-violet-500 rounded-2xl flex items-center justify-center gap-4 transition-all shadow-[0_20px_60px_rgba(139,92,246,0.3)] active:scale-95 group relative overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                  <span className="text-sm font-black uppercase tracking-[0.3em] italic relative z-10">Get Control Access</span>
+                  <span className="text-sm font-black uppercase tracking-[0.3em] italic relative z-10">{t('Get Control Access')}</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform relative z-10" />
                 </button>
                 <button className="flex-1 sm:flex-none px-12 py-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex items-center justify-center gap-4 transition-all backdrop-blur-xl group shadow-2xl">
                   <PlayCircle className="w-5 h-5 text-violet-400" />
-                  <span className="text-sm font-black uppercase tracking-[0.3em] italic">Watch AI Demo</span>
+                  <span className="text-sm font-black uppercase tracking-[0.3em] italic">{t('Watch AI Demo')}</span>
                 </button>
               </div>
 

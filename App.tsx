@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
 import { DiffractionChart } from './components/DiffractionChart';
@@ -33,6 +34,7 @@ import { Zap, Terminal, Music } from 'lucide-react';
 type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'learn' | 'profile';
 
 const App: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [isRegistered, setIsRegistered] = useState<boolean>(() => {
     return !!localStorage.getItem('xrd_user_registration');
   });
@@ -169,26 +171,28 @@ const App: React.FC = () => {
   }
 
   const modules: { id: Module; label: string; icon?: string; group?: string }[] = [
-    { id: 'bragg', label: 'Bragg Basics', group: 'Fundamentals' },
-    { id: 'fwhm', label: 'FWHM Analysis', group: 'Fundamentals' },
-    { id: 'selection', label: 'Selection Rules', group: 'Fundamentals' },
-    { id: 'scherrer', label: 'Scherrer Method', group: 'Size & Strain' },
-    { id: 'wh', label: 'Williamson-Hall', group: 'Size & Strain' },
-    { id: 'integral', label: 'Integral Breadth', group: 'Size & Strain' },
-    { id: 'integral_adv', label: 'IB Advanced (W-H)', group: 'Size & Strain' },
-    { id: 'wa', label: 'Warren-Averbach', group: 'Size & Strain' },
-    { id: 'rietveld', label: 'Rietveld Setup', group: 'Advanced Sim' },
-    { id: 'neutron', label: 'Neutron Diffraction', group: 'Advanced Sim' },
-    { id: 'magnetic', label: 'Magnetic Diffraction', group: 'Advanced Sim' },
-    { id: 'dl', label: 'PhaseID Neural Net', group: 'AI Tools' },
-    { id: 'image_analysis', label: 'Image Analysis', group: 'AI Tools' },
-    { id: 'image_gen', label: 'Scientific Illustrator', group: 'AI Tools' },
-    { id: 'learn', label: 'Protocol Guide', group: 'Intelligence' },
-    { id: 'profile', label: 'Laboratory Director', group: 'Intelligence' },
+    { id: 'bragg', label: t('Bragg Basics'), group: t('Fundamentals') },
+    { id: 'fwhm', label: t('FWHM Analysis'), group: t('Fundamentals') },
+    { id: 'selection', label: t('Selection Rules'), group: t('Fundamentals') },
+    { id: 'scherrer', label: t('Scherrer Method'), group: t('Size & Strain') },
+    { id: 'wh', label: t('Williamson-Hall'), group: t('Size & Strain') },
+    { id: 'integral', label: t('Integral Breadth'), group: t('Size & Strain') },
+    { id: 'integral_adv', label: t('IB Advanced (W-H)'), group: t('Size & Strain') },
+    { id: 'wa', label: t('Warren-Averbach'), group: t('Size & Strain') },
+    { id: 'rietveld', label: t('Rietveld Setup'), group: t('Advanced Sim') },
+    { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
+    { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
+    { id: 'dl', label: t('PhaseID Neural Net'), group: t('AI Tools') },
+    { id: 'image_analysis', label: t('Image Analysis'), group: t('AI Tools') },
+    { id: 'image_gen', label: t('Scientific Illustrator'), group: t('AI Tools') },
+    { id: 'learn', label: t('Protocol Guide'), group: t('Intelligence') },
+    { id: 'profile', label: t('Laboratory Director'), group: t('Intelligence') },
   ];
 
+  const isRTL = i18n.language === 'he' || i18n.language === 'fa';
+
   return (
-    <div className={`${theme === 'light' ? '' : theme} h-full`}>
+    <div className={`${theme === 'light' ? '' : theme} h-full`} dir={isRTL ? 'rtl' : 'ltr'}>
       <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
         
         {/* Sidebar Navigation */}
@@ -201,12 +205,12 @@ const App: React.FC = () => {
                <span className={`font-extrabold text-xl tracking-tight ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} block leading-none`}>
                  XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
                </span>
-               <span className={`text-[10px] ${theme === 'cyberpunk' ? 'text-cyber-blue' : 'text-slate-500'} font-mono uppercase tracking-widest mt-1 block`}>Scientific Suite</span>
+               <span className={`text-[10px] ${theme === 'cyberpunk' ? 'text-cyber-blue' : 'text-slate-500'} font-mono uppercase tracking-widest mt-1 block`}>{t('Scientific Suite')}</span>
              </div>
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-            {['Fundamentals', 'Size & Strain', 'Advanced Sim', 'AI Tools', 'Intelligence'].map((group) => (
+            {[t('Fundamentals'), t('Size & Strain'), t('Advanced Sim'), t('AI Tools'), t('Intelligence')].map((group) => (
               <div key={group} className="space-y-2">
                 <h3 className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3">
                   {group}
@@ -236,6 +240,20 @@ const App: React.FC = () => {
           </div>
           
           <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-1 mb-2">
+              <select 
+                value={i18n.language}
+                onChange={(e) => i18n.changeLanguage(e.target.value)}
+                className={`col-span-2 text-[10px] font-bold p-2 rounded-lg ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-none'}`}
+              >
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+                <option value="fr">Français</option>
+                <option value="pt">Português</option>
+                <option value="he">עברית</option>
+                <option value="fa">فارسی</option>
+              </select>
+            </div>
             <div className="grid grid-cols-3 gap-1">
               <button 
                 onClick={() => setTheme('light')}
@@ -278,8 +296,8 @@ const App: React.FC = () => {
               </button>
             </div>
             <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
-              <div className="mb-1 font-bold">v2.5.0 • Lab Active</div>
-              <div className="opacity-60">Designed by Ali Zerehsaz</div>
+              <div className="mb-1 font-bold">v2.5.0 • {t('Lab Active')}</div>
+              <div className="opacity-60">{t('Designed by')} Ali Zerehsaz</div>
             </div>
           </div>
         </aside>
@@ -295,6 +313,18 @@ const App: React.FC = () => {
               <span className={`font-bold text-lg ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'}`}>XRD-Calc Pro</span>
             </div>
             <div className="flex items-center gap-2">
+              <select
+                value={i18n.language}
+                onChange={(e) => i18n.changeLanguage(e.target.value)}
+                className={`block w-20 rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-1 pr-1 text-[10px] outline-none`}
+              >
+                <option value="en">EN</option>
+                <option value="de">DE</option>
+                <option value="fr">FR</option>
+                <option value="pt">PT</option>
+                <option value="he">HE</option>
+                <option value="fa">FA</option>
+              </select>
               <select
                 value={theme}
                 onChange={(e) => setTheme(e.target.value as any)}
@@ -396,10 +426,10 @@ const App: React.FC = () => {
             </div>
             <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 text-center space-y-2">
               <p className="text-slate-400 dark:text-slate-500 text-xs">
-                XRD-Calc Pro Laboratory Environment • Designed by Ali Zerehsaz
+                XRD-Calc Pro {t('Laboratory Environment')} • {t('Designed by')} Ali Zerehsaz
               </p>
               <p className="text-[10px] text-slate-400 dark:text-slate-600 max-w-2xl mx-auto italic leading-relaxed">
-                Disclaimer: AI-generated insights and phase identifications are probabilistic. Scientific results should always be manually verified against standard databases (ICDD/COD) before publication or critical decision-making.
+                {t('Disclaimer')}
               </p>
             </div>
           </main>

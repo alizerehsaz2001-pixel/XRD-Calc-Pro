@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { fetchStandardWavelengths } from '../services/geminiService';
 import { StandardWavelength } from '../types';
 
@@ -26,6 +27,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   setRawHKL,
   onCalculate
 }) => {
+  const { t } = useTranslation();
   const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>([
     { label: 'Cu Kα', value: 1.5406, type: 'X-Ray' },
     { label: 'Mo Kα', value: 0.7107, type: 'X-Ray' },
@@ -57,7 +59,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
           </svg>
-          Parameters
+          {t('Parameters')}
         </h2>
         <button 
           onClick={handleSync}
@@ -68,7 +70,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
           <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${isSyncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          {isSyncing ? 'Syncing...' : 'Sync Standards'}
+          {isSyncing ? t('Syncing') : t('Sync Standards')}
         </button>
       </div>
       
@@ -76,7 +78,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
         {setSampleId && (
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Sample ID
+              {t('Sample ID')}
             </label>
             <input
               type="text"
@@ -91,7 +93,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
         
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-            Wavelength (Å)
+            {t('Wavelength')}
           </label>
           <div className="relative">
             <input
@@ -125,7 +127,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              2θ Peaks (deg)
+              {t('2Theta Peaks')}
             </label>
             <textarea
               value={rawPeaks}
@@ -136,7 +138,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Miller Indices (hkl)
+              {t('Miller Indices')}
             </label>
             <textarea
               value={rawHKL}
@@ -147,14 +149,14 @@ export const BraggInput: React.FC<BraggInputProps> = ({
           </div>
         </div>
         <p className="text-[10px] text-slate-500 dark:text-slate-400 -mt-4 italic">
-          Separate multiple entries with commas. HKL indices will map 1:1 to peaks.
+          {t('Input Guide')}
         </p>
 
         <button
           onClick={onCalculate}
           className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
         >
-          Calculate Parameters
+          {t('Calculate')}
         </button>
       </div>
     </div>

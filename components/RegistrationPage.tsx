@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Mail, Building, ArrowRight } from 'lucide-react';
 
 interface RegistrationPageProps {
@@ -6,6 +7,7 @@ interface RegistrationPageProps {
 }
 
 export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [organization, setOrganization] = useState('');
@@ -43,14 +45,14 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
           <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-500/30 mb-6 text-3xl font-bold text-white">
             λ
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome to XRD-Calc Pro</h1>
-          <p className="text-slate-400">Please register to access the laboratory.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('Welcome')}</h1>
+          <p className="text-slate-400">{t('Register description')}</p>
         </div>
 
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Full Name</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('Full Name')}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <User className="w-4 h-4" />
@@ -67,7 +69,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Email Address</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('Email Address')}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <Mail className="w-4 h-4" />
@@ -84,7 +86,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Organization / Institute</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('Organization')}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
                   <Building className="w-4 h-4" />
@@ -104,13 +106,13 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
               type="submit"
               className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
             >
-              Complete Registration <ArrowRight className="w-4 h-4" />
+              {t('Complete Registration')} <ArrowRight className="w-4 h-4" />
             </button>
           </form>
         </div>
         
         <p className="text-center text-xs text-slate-500 mt-6">
-          By registering, you agree to use this tool for scientific and educational purposes.
+          {t('Agreement')}
         </p>
       </div>
     </div>
