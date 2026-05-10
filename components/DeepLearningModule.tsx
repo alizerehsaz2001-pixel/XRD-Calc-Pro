@@ -16,7 +16,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus, Eye, Scan } from 'lucide-react';
+import { Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus, Eye, Scan, BookOpen, Microscope, Cpu } from 'lucide-react';
 
 const MATERIAL_DB = [
   { 
@@ -1655,11 +1655,37 @@ export const DeepLearningModule: React.FC = () => {
     pooling: 'max',
     depth: 50,
     learningRate: 0.001,
-    batchNorm: true
+    batchNorm: true,
+    confidenceThreshold: 50
   });
 
   // Search & Advanced Tools State
   const [searchTerm, setSearchTerm] = useState("");
+  
+  const getFilteredMaterials = () => {
+    if (!searchTerm.trim()) return [];
+    const keywords = searchTerm.toLowerCase().split(/\s+/).filter(Boolean);
+    
+    return MATERIAL_DB.map(material => {
+      let score = 0;
+      keywords.forEach(kw => {
+        if (material.name.toLowerCase().includes(kw)) score += 10;
+        if (material.formula.toLowerCase().includes(kw)) score += 10;
+        if (material.crystalSystem?.toLowerCase().includes(kw)) score += 5;
+        if (material.type?.toLowerCase().includes(kw)) score += 5;
+        if (material.spaceGroup?.toLowerCase().includes(kw)) score += 3;
+        if (material.applications?.some(app => app.toLowerCase().includes(kw))) score += 2;
+      });
+      return { material, score };
+    })
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(item => item.material)
+    .slice(0, 10); // Return top 10 relevant
+  };
+  
+  const searchResults = getFilteredMaterials();
+
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLatticeModalOpen, setIsLatticeModalOpen] = useState(false);
   const [latticeResult, setLatticeResult] = useState<{ a: number, error: string } | null>(null);
@@ -1755,14 +1781,8 @@ export const DeepLearningModule: React.FC = () => {
   const handleSmartSearch = () => {
     if (!searchTerm.trim()) return;
     
-    // Search Local DB with fuzzing
-    const matches = MATERIAL_DB.filter(m => 
-      m.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      m.formula.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    
-    if (matches.length > 0) {
-      handleMaterialSelect(matches[0]);
+    if (searchResults.length > 0) {
+      handleMaterialSelect(searchResults[0]);
     } else {
       // If no exact name match, try to find by peak similarity (Advance local feature)
       const points = parseXYData(inputData);
@@ -2271,6 +2291,22 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   className="w-full accent-indigo-600 h-1 bg-slate-100 rounded-full appearance-none cursor-pointer"
                 />
              </div>
+             
+             <div className="space-y-1.5">
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Min Confidence</label>
+                  <span className="text-[10px] font-mono font-black text-emerald-600">{engineConfig.confidenceThreshold}%</span>
+                </div>
+                <input 
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={engineConfig.confidenceThreshold}
+                  onChange={(e) => setEngineConfig({...engineConfig, confidenceThreshold: parseInt(e.target.value)})}
+                  className="w-full accent-emerald-600 h-1 bg-slate-100 rounded-full appearance-none cursor-pointer"
+                />
+             </div>
 
              <div className="flex items-center justify-between cursor-pointer group">
                 <div className="flex flex-col">
@@ -2351,9 +2387,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               {/* Suggestions Dropdown */}
               {showSuggestions && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 max-h-72 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
-                  {MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.formula.toLowerCase().includes(searchTerm.toLowerCase())).length > 0 ? (
+                  {searchResults.length > 0 ? (
                     <div className="p-1">
-                      {MATERIAL_DB.filter(m => m.name.toLowerCase().includes(searchTerm.toLowerCase()) || m.formula.toLowerCase().includes(searchTerm.toLowerCase())).map((material, idx) => (
+                      {searchResults.map((material, idx) => (
                         <button
                           key={`${material.name}-${idx}`}
                           onClick={() => handleMaterialSelect(material)}
@@ -2794,6 +2830,63 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                  </div>
                );
              })}
+           </div>
+        </div>
+        {/* Neural Network Analytical Guide */}
+        <div className="bg-gradient-to-br from-[#0B1221] to-[#070D18] p-6 rounded-[2rem] border border-[#1e293b] shadow-xl relative overflow-hidden group/guide mt-6">
+           <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+           
+           <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+                 <BookOpen className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                 <h3 className="font-black text-sm text-white uppercase tracking-widest leading-none">Neural Guide</h3>
+                 <p className="text-[9px] text-slate-500 font-mono uppercase tracking-[0.2em] mt-1">Constituent Logic & Features</p>
+              </div>
+           </div>
+
+           <div className="space-y-4">
+              <div className="p-3.5 bg-white/[0.03] rounded-2xl border border-white/5 hover:border-indigo-500/30 transition-all">
+                 <div className="flex items-center gap-2.5 mb-2">
+                    <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Network Architecture</span>
+                 </div>
+                 <p className="text-[10px] text-slate-400 leading-relaxed">
+                    Utilizes a <span className="text-indigo-300">ResNet-50</span> based 1D-Convolutional backbone. The "Kernel Shift" (3x3 to 7x7) determines the receptive field for peak grouping, while "Feature Maps" dictate the breadth of distinct crystalline signatures the engine can hold in memory.
+                 </p>
+              </div>
+
+              <div className="p-3.5 bg-white/[0.03] rounded-2xl border border-white/5 hover:border-cyan-500/30 transition-all">
+                 <div className="flex items-center gap-2.5 mb-2">
+                    <Microscope className="w-3.5 h-3.5 text-cyan-400" />
+                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Feature Constituents</span>
+                 </div>
+                 <ul className="space-y-2">
+                    <li className="flex gap-2 text-[9px] text-slate-400">
+                       <span className="text-cyan-500 font-bold">01.</span>
+                       <span><strong className="text-slate-300">2θ Mapping:</strong> Absolute peak positions provide the primary identifier for lattice spacing (d-spacing).</span>
+                    </li>
+                    <li className="flex gap-2 text-[9px] text-slate-400">
+                       <span className="text-cyan-500 font-bold">02.</span>
+                       <span><strong className="text-slate-300">Relative I:</strong> The "filters" parameter helps the network learn the hierarchy of peak intensities, which is crucial for distinguishing overlapping phases.</span>
+                    </li>
+                    <li className="flex gap-2 text-[9px] text-slate-400">
+                       <span className="text-cyan-500 font-bold">03.</span>
+                       <span><strong className="text-slate-300">FWHM Analysis:</strong> Peak broadening is used as a latent feature to estimate crystallinity and crystallite size, aiding in phase disambiguation.</span>
+                    </li>
+                 </ul>
+              </div>
+
+              <div className="p-3.5 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
+                 <div className="flex items-center gap-2.5 mb-2">
+                    <Info className="w-3.5 h-3.5 text-indigo-400" />
+                    <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Optimization Tip</span>
+                 </div>
+                 <p className="text-[10px] text-slate-400 italic">
+                    "For multiphase mixtures, ensure 'Multi-Scale Fusion' is active to allow the network to correlate disparate peak clusters across the 2θ spectrum."
+                 </p>
+              </div>
            </div>
         </div>
       </div>
@@ -3518,7 +3611,13 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
         {/* Predictions List */}
         <div className="grid grid-cols-1 gap-4">
-           {result?.candidates.map((candidate, idx) => (
+           {result?.candidates.filter(c => c.confidence_score >= engineConfig.confidenceThreshold).length === 0 && result && (
+             <div className="bg-[#050B14] p-8 rounded-[1.5rem] border border-[#1e293b] text-center">
+               <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">No phases meet the confidence threshold of {engineConfig.confidenceThreshold}%</p>
+               <button onClick={() => setEngineConfig({...engineConfig, confidenceThreshold: 0})} className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors">Reset Threshold</button>
+             </div>
+           )}
+           {result?.candidates.filter(c => c.confidence_score >= engineConfig.confidenceThreshold).map((candidate, idx) => (
              <div 
                key={`${candidate.phase_name}-${idx}`} 
                onClick={() => setSelectedCandidate(candidate)}

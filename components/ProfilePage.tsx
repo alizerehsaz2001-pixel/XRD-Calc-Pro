@@ -18,7 +18,13 @@ import {
   Camera,
   Sparkles,
   Search,
-  ChevronRight
+  ChevronRight,
+  Activity,
+  FileText,
+  Microscope,
+  Box,
+  Brain,
+  Database
 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
@@ -173,11 +179,51 @@ export const ProfilePage: React.FC = () => {
                         </div>
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Expertise Domains</h3>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {['Diffraction Physics', 'Symmetry Logic', 'Neural Architecture', 'Phase Identification', 'Spectrum Analysis', 'Lattice Topology'].map(skill => (
-                          <span key={skill} className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 text-[9px] font-black uppercase tracking-widest rounded-xl border border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-500 transition-colors cursor-default">
-                            {skill}
-                          </span>
+                      <div className="flex flex-col gap-3">
+                        {['Diffraction Physics', 'Symmetry Logic', 'Neural Architecture', 'Phase Identification', 'Spectrum Analysis', 'Lattice Topology'].map((skill, index) => (
+                          <div key={skill} className="space-y-1.5 flex-1">
+                            <div className="flex justify-between items-center px-1">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{skill}</span>
+                              <span className="text-[9px] font-mono font-bold text-indigo-500">{95 - (index * 4)}%</span>
+                            </div>
+                            <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${95 - (index * 4)}%` }}
+                                transition={{ duration: 1.5, delay: 0.5 + (index * 0.1) }}
+                                className={`h-full ${index % 2 === 0 ? 'bg-indigo-500' : 'bg-rose-500'}`} 
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                   </div>
+
+                   <div className="group p-8 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 hover:border-emerald-500/30 transition-all shadow-sm">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="p-3 bg-emerald-500/10 rounded-2xl">
+                           <Activity className="w-5 h-5 text-emerald-500" />
+                        </div>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Active Research</h3>
+                      </div>
+                      <div className="space-y-4">
+                        {[
+                          { title: 'Project NEURON', status: 'In Progress', progress: 65, color: 'emerald' },
+                          { title: 'Lattice-LLM V2', status: 'Optimization', progress: 88, color: 'indigo' },
+                        ].map((item, i) => (
+                          <div key={i} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                             <div className="flex justify-between items-center mb-2">
+                                <span className="text-xs font-black uppercase tracking-tighter text-slate-700 dark:text-slate-300">{item.title}</span>
+                                <span className={`text-[8px] font-black uppercase tracking-widest text-${item.color}-500 px-2 py-0.5 bg-${item.color}-500/10 rounded-full`}>{item.status}</span>
+                             </div>
+                             <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${item.progress}%` }}
+                                  className={`h-full bg-${item.color}-500`} 
+                                />
+                             </div>
+                          </div>
                         ))}
                       </div>
                    </div>
@@ -237,6 +283,26 @@ export const ProfilePage: React.FC = () => {
                          <Code className="w-20 h-20 text-white" />
                       </div>
                    </div>
+
+                   <div className="p-8 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:border-blue-500/30 transition-all">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="p-3 bg-blue-500/10 rounded-2xl">
+                           <FileText className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">Recent Publications</h3>
+                      </div>
+                      <div className="space-y-4">
+                        {[
+                          { title: 'Neural XRD identification for multicomponent alloys', journal: 'Nature Materials', date: '2024' },
+                          { title: 'Symmetry group optimization using reinforcement learning', journal: 'Applied Physics Letters', date: '2023' },
+                        ].map((pub, i) => (
+                          <div key={i} className="group/pub cursor-pointer">
+                             <span className="block text-[8px] font-black text-indigo-500 uppercase tracking-widest mb-1">{pub.journal} • {pub.date}</span>
+                             <p className="text-xs font-bold text-slate-700 dark:text-slate-300 group-hover/pub:text-indigo-500 transition-colors uppercase tracking-tight">{pub.title}</p>
+                          </div>
+                        ))}
+                      </div>
+                   </div>
                 </div>
              </div>
           </motion.div>
@@ -263,6 +329,34 @@ export const ProfilePage: React.FC = () => {
                    <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                       {item.desc}
                    </p>
+                </div>
+              ))}
+           </div>
+        </motion.div>
+
+        {/* Systems Architecture */}
+        <motion.div variants={itemVariants} className="mt-16 lg:mt-24 pt-12 border-t border-slate-200 dark:border-slate-800">
+           <div className="flex items-center gap-4 mb-12">
+              <div className="p-4 bg-indigo-500 rounded-3xl shadow-xl shadow-indigo-500/20">
+                 <Cpu className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                 <h2 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Systems Architecture</h2>
+                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Proprietary Laboratory Infrastructure</p>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 lg:px-0">
+              {[
+                { label: 'Bragg Core', value: 'V4.2.1', icon: Box },
+                { label: 'Neural Node', value: 'Active', icon: Brain },
+                { label: 'Lattice DB', value: '840k Entries', icon: Database },
+                { label: 'Cloud Sync', value: 'Secured', icon: Globe }
+              ].map((sys, i) => (
+                <div key={i} className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 group hover:shadow-lg transition-all">
+                   <sys.icon className="w-5 h-5 text-indigo-500 mb-4 group-hover:scale-110 transition-transform" />
+                   <span className="block text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{sys.label}</span>
+                   <span className="text-lg font-black text-slate-900 dark:text-white font-mono uppercase italic">{sys.value}</span>
                 </div>
               ))}
            </div>

@@ -27,6 +27,7 @@ import { RegistrationPage } from './components/RegistrationPage';
 import { SideSeekBar } from './components/SideSeekBar';
 import { BraggHistory } from './components/BraggHistory';
 import { BraggVisualization } from './components/BraggVisualization';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music } from 'lucide-react';
@@ -239,65 +240,43 @@ const App: React.FC = () => {
             <div className="h-8"></div>
           </div>
           
-          <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col gap-2">
-            <div className="grid grid-cols-2 gap-1 mb-2">
-              <select 
-                value={i18n.language}
-                onChange={(e) => i18n.changeLanguage(e.target.value)}
-                className={`col-span-2 text-[10px] font-bold p-2 rounded-lg ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border-none'}`}
-              >
-                <option value="en">English</option>
-                <option value="de">Deutsch</option>
-                <option value="fr">Français</option>
-                <option value="es">Español</option>
-                <option value="ru">Русский</option>
-                <option value="pt">Português</option>
-                <option value="he">עברית</option>
-                <option value="fa">فارسی</option>
-              </select>
+          <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col gap-3">
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">{t('Language')}</label>
+                <select 
+                  value={i18n.language}
+                  onChange={(e) => i18n.changeLanguage(e.target.value)}
+                  className={`w-full text-xs font-bold p-2.5 rounded-xl transition-all outline-none border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : theme === 'terminal' ? 'bg-black border-green-500 text-green-500' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-transparent focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-800'}`}
+                >
+                  <option value="en">English</option>
+                  <option value="de">Deutsch</option>
+                  <option value="fr">Français</option>
+                  <option value="es">Español</option>
+                  <option value="ru">Русский</option>
+                  <option value="pt">Português</option>
+                  <option value="he">עברית</option>
+                  <option value="fa">فارسی</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">{t('Visual Theme')}</label>
+                <select 
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value as any)}
+                  className={`w-full text-xs font-bold p-2.5 rounded-xl transition-all outline-none border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : theme === 'terminal' ? 'bg-black border-green-500 text-green-500' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-transparent focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-800'}`}
+                >
+                  <option value="light">Light Mode</option>
+                  <option value="dark">Dark Mode</option>
+                  <option value="cyberpunk">Cyberpunk 2077</option>
+                  <option value="terminal">Retro Terminal</option>
+                  <option value="synthwave">Neon Synthwave</option>
+                </select>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-1">
-              <button 
-                onClick={() => setTheme('light')}
-                className={`flex items-center justify-center p-2 rounded-lg transition-all ${theme === 'light' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white'}`}
-                title="Light Mode"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              </button>
-              <button 
-                onClick={() => setTheme('dark')}
-                className={`flex items-center justify-center p-2 rounded-lg transition-all ${theme === 'dark' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white'}`}
-                title="Dark Mode"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              </button>
-              <button 
-                onClick={() => setTheme('cyberpunk')}
-                className={`flex items-center justify-center p-2 rounded-lg transition-all ${theme === 'cyberpunk' ? 'bg-pink-600 text-white shadow-[0_0_10px_rgba(219,39,119,0.5)]' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-pink-500'}`}
-                title="Cyberpunk Mode"
-              >
-                <Zap className="h-4 w-4" />
-              </button>
-              <button 
-                onClick={() => setTheme('terminal')}
-                className={`flex items-center justify-center p-2 rounded-lg transition-all ${theme === 'terminal' ? 'bg-green-600 text-black shadow-[0_0_10px_rgba(34,197,94,0.5)]' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-green-500'}`}
-                title="Terminal Mode"
-              >
-                <Terminal className="h-4 w-4" />
-              </button>
-              <button 
-                onClick={() => setTheme('synthwave')}
-                className={`flex items-center justify-center p-2 rounded-lg transition-all ${theme === 'synthwave' ? 'bg-fuchsia-600 text-white shadow-[0_0_10px_rgba(192,38,211,0.5)]' : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-fuchsia-500'}`}
-                title="Synthwave Mode"
-              >
-                <Music className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
+
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center mt-2">
               <div className="mb-1 font-bold">v2.5.0 • {t('Lab Active')}</div>
               <div className="opacity-60">{t('Designed by')} Ali Zerehsaz</div>
             </div>
@@ -358,7 +337,7 @@ const App: React.FC = () => {
                   onUnderstand={() => setIsExplained(true)} 
                 />
               ) : (
-                <>
+                <ErrorBoundary key={activeModule}>
                   {activeModule === 'bragg' && (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500 items-start">
                       <div className="lg:col-span-4 space-y-6">
@@ -425,7 +404,7 @@ const App: React.FC = () => {
                   {activeModule === 'image_gen' && <ImageGenerationModule />}
                   {activeModule === 'learn' && <LearnModule />}
                   {activeModule === 'profile' && <ProfilePage />}
-                </>
+                </ErrorBoundary>
               )}
             </div>
             <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 text-center space-y-2">
