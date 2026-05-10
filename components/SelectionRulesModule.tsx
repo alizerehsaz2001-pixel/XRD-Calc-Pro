@@ -6,7 +6,7 @@ import {
   CheckCircle2, XCircle, Info, RefreshCw, Filter, BookOpen, 
   Layers, Zap, ChevronDown, Check, Maximize, RotateCw, 
   Split, CircleDot, ShieldQuestion, Loader2, Atom, Binary, Beaker,
-  Network, Hexagon, Component, Box, Cuboid, Pyramid
+  Network, Hexagon, Component, Box, Cuboid, Pyramid, Download
 } from 'lucide-react';
 
 export const SelectionRulesModule: React.FC = () => {
@@ -88,6 +88,24 @@ export const SelectionRulesModule: React.FC = () => {
     handleValidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [system]);
+
+  const handleSave = () => {
+    if (results.length === 0) return;
+    
+    const csvHeader = "Reflection (h k l),Status,Reason\n";
+    const csvRows = results.map(res => 
+      `"(${res.hkl.join(' ')})","${res.status}","${res.reason.replace(/"/g, '""')}"`
+    ).join("\n");
+    
+    const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `validation_results_${system}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const filteredResults = useMemo(() => {
     if (filter === 'All') return results;
@@ -727,20 +745,31 @@ export const SelectionRulesModule: React.FC = () => {
               <p className="text-xs text-slate-400 font-medium mt-1">Systematic absences for {systemDetails[system as keyof typeof systemDetails].title}</p>
             </div>
             
-            <div className="flex items-center gap-1.5 bg-[#0B1221] p-1.5 rounded-xl border border-[#1e293b]">
-              {(['All', 'Allowed', 'Forbidden'] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                    filter === f 
-                      ? 'bg-emerald-600 text-white shadow-md' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-700'
-                  }`}
-                >
-                  {f}
-                </button>
-              ))}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-1.5 bg-[#0B1221] p-1.5 rounded-xl border border-[#1e293b]">
+                {(['All', 'Allowed', 'Forbidden'] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      filter === f 
+                        ? 'bg-emerald-600 text-white shadow-md' 
+                        : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={handleSave}
+                disabled={results.length === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-black rounded-xl transition-all border border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed group/save shadow-inner uppercase tracking-widest"
+              >
+                <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+                Save CSV
+              </button>
             </div>
           </div>
 

@@ -3185,8 +3185,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 </div>
                 
                 <div className="flex-1">
-                  <h3 className="text-2xl font-black text-white uppercase tracking-tighter drop-shadow-md">Synthesis Intelligence</h3>
-                  <div className="flex items-center gap-4 mt-2">
+                  <h3 className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-indigo-300 uppercase tracking-tighter drop-shadow-sm pb-1">Synthesis Intelligence</h3>
+                  <div className="flex items-center gap-4 mt-3">
                     <div className="flex gap-1.5 p-1 bg-black/40 rounded-full border border-white/5">
                       {[...Array(5)].map((_, i) => (
                         <div key={`integrity-dot-${i}`} className={`w-2 h-2 rounded-full shadow-inner ${i < 4 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-700'}`} />
@@ -3196,25 +3196,27 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     <p className="text-[11px] font-black text-indigo-300/80 uppercase tracking-[0.2em]">C-Score: {selectedCandidate.confidence_score.toFixed(1)}%</p>
                   </div>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4 mt-6 md:mt-0">
                    <button 
                      onClick={handleLatticeEstimation}
-                     className="group relative px-6 py-3 bg-[#050B14] border border-[#1e293b] hover:border-emerald-500/50 rounded-xl transition-all active:scale-95 shadow-lg overflow-hidden"
+                     className="group relative px-8 py-4 bg-[#050B14] border border-[#1e293b] hover:border-emerald-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)] overflow-hidden"
                    >
-                     <div className="absolute inset-0 bg-emerald-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                     <div className="flex items-center gap-3 relative z-10">
-                       <Calculator className="w-5 h-5 text-emerald-400 group-hover:rotate-12 transition-transform duration-300" />
-                       <span className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Lattice AI</span>
+                     <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(16,185,129,0.15),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                     <div className="flex items-center justify-center gap-4 relative z-10">
+                       <Calculator className="w-5 h-5 text-emerald-400 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                       <span className="text-[11px] font-black text-slate-300 group-hover:text-emerald-50 uppercase tracking-[0.3em]">Lattice AI</span>
                      </div>
                    </button>
                    <button 
                      onClick={handleGenerateReport}
-                     className="group relative px-6 py-3 bg-[#050B14] border border-[#1e293b] hover:border-violet-500/50 rounded-xl transition-all active:scale-95 shadow-lg overflow-hidden"
+                     className="group relative px-8 py-4 bg-[#050B14] border border-[#1e293b] hover:border-violet-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)] overflow-hidden"
                    >
-                     <div className="absolute inset-0 bg-violet-500/5 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                     <div className="flex items-center gap-3 relative z-10">
-                       <FileText className="w-5 h-5 text-violet-400 group-hover:-translate-y-1 transition-transform duration-300" />
-                       <span className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Export Map</span>
+                     <div className="absolute inset-0 bg-gradient-to-t from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(139,92,246,0.15),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                     <div className="flex items-center justify-center gap-4 relative z-10">
+                       <FileText className="w-5 h-5 text-violet-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+                       <span className="text-[11px] font-black text-slate-300 group-hover:text-violet-50 uppercase tracking-[0.3em]">Export Map</span>
                      </div>
                    </button>
                 </div>
@@ -3230,36 +3232,34 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/10 rounded-tl-3xl" />
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/10 rounded-br-3xl" />
                     
-                    <div className="flex flex-wrap items-end gap-6 mb-10 relative z-10">
-                      <h2 className="text-5xl font-black text-white tracking-tighter leading-none group-hover:text-violet-300 transition-colors duration-500 drop-shadow-lg">{selectedCandidate.phase_name}</h2>
-                      <div className="flex gap-3 mb-1">
-                        <span className="px-5 py-2.5 bg-violet-500/10 text-violet-300 text-sm font-mono font-black rounded-lg border border-violet-500/30 backdrop-blur-sm shadow-[0_0_15px_rgba(139,92,246,0.2)]">{selectedCandidate.formula}</span>
-                        <span className="px-5 py-2.5 bg-[#0B1221] text-emerald-400 text-[11px] font-black uppercase tracking-[0.2em] rounded-lg border border-emerald-500/20 shadow-inner">{selectedCandidate.materialType || "Standard Matrix"}</span>
-                      </div>
+                    <div className="flex flex-wrap items-end gap-6 mb-8 relative z-10">
+                      <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)' }} className="font-black text-white tracking-tighter leading-none group-hover:text-violet-300 transition-colors duration-500 drop-shadow-lg">{selectedCandidate.phase_name}</h2>
+                    </div>
+                    <div className="flex gap-3 mb-10 relative z-10">
+                      <span className="px-5 py-2.5 bg-violet-500/10 text-violet-300 text-sm font-mono font-black rounded-lg border border-violet-500/30 backdrop-blur-sm shadow-[0_0_15px_rgba(139,92,246,0.2)]">{selectedCandidate.formula}</span>
+                      <span className="px-5 py-2.5 bg-[#0B1221] text-emerald-400 text-[11px] font-black uppercase tracking-[0.2em] rounded-lg border border-emerald-500/20 shadow-inner">{selectedCandidate.materialType || "Standard Matrix"}</span>
                     </div>
                     
-                    <p className="text-lg text-slate-300 leading-relaxed max-w-3xl relative z-10 mb-12 font-medium">
+                    <p className="text-lg text-slate-400 leading-relaxed max-w-3xl relative z-10 mb-12 font-medium">
                       {selectedCandidate.description || "Phase identification complete. Detailed morphological synthesis and mechanical property mapping for this specific lattice configuration are being processed by the intelligence engine."}
                     </p>
                     
-                    <div className="mt-auto pt-10 border-t border-[#1e293b] flex flex-wrap gap-10 relative z-10 bg-gradient-to-t from-[#0B1221]/50 to-transparent -mx-10 px-10 -mb-10 pb-10">
+                    <div className="mt-auto pt-10 border-t border-[#1e293b] grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10 bg-gradient-to-t from-[#0B1221]/50 to-transparent -mx-10 px-10 -mb-10 pb-10">
                        {[
                          { label: 'Molecular Wt', val: selectedCandidate.molecularWeight, unit: 'g/mol', icon: Layers },
                          { label: 'Band Gap', val: selectedCandidate.bandGap, unit: 'eV', icon: Zap },
                          { label: 'Modulus', val: selectedCandidate.elasticModulus, unit: 'GPa', icon: Activity },
                          { label: 'Magnetism', val: selectedCandidate.magneticProperties, unit: '', icon: Database },
                          { label: 'Optical', val: selectedCandidate.opticalProperties, unit: '', icon: Eye },
-                       ].map((item, i) => item.val !== undefined && (
-                         <div key={`item-${i}`} className="flex gap-5 group/item items-center">
-                           <div className="p-3 h-fit bg-[#0B1221] rounded-xl border border-[#1e293b] group-hover/item:border-violet-500/50 group-hover/item:bg-violet-500/5 transition-all shadow-inner">
-                             <item.icon className="w-5 h-5 text-slate-500 group-hover/item:text-violet-400 transition-colors drop-shadow-md" />
+                       ].filter(i => i.val !== undefined).slice(0, 4).map((item, i) => (
+                         <div key={`item-${i}`} className="flex flex-col group/item">
+                           <div className="flex items-center gap-2 mb-2">
+                             <item.icon className="w-3.5 h-3.5 text-slate-600 group-hover/item:text-violet-400 transition-colors" />
+                             <span className="text-[10px] text-slate-500 font-serif italic tracking-wide group-hover/item:text-slate-400 transition-colors">{item.label}</span>
                            </div>
-                           <div className="flex flex-col">
-                             <span className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-black mb-1 group-hover/item:text-slate-400 transition-colors">{item.label}</span>
-                             <span className="text-base font-black font-mono text-slate-200 capitalize max-w-[200px] truncate" title={String(item.val)}>
-                               {item.val} {item.unit && <span className="text-indigo-400/70 text-xs ml-1">{item.unit}</span>}
-                             </span>
-                           </div>
+                           <span className="text-xl font-black font-mono text-slate-200 capitalize truncate" title={String(item.val)}>
+                             {item.val} {item.unit && <span className="text-indigo-400/50 text-xs ml-1 font-sans">{item.unit}</span>}
+                           </span>
                          </div>
                        ))}
                     </div>
@@ -3268,26 +3268,26 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
                 {/* Crystallography */}
                 <div className="md:col-span-4">
-                  <div className="bg-[#050B14]/80 p-8 rounded-[2rem] border border-[#1e293b] h-full relative overflow-hidden group/card shadow-inner transition-all hover:border-indigo-500/30 hover:shadow-[0_0_30px_rgba(99,102,241,0.1)]">
+                  <div className="bg-[#050B14]/80 p-8 rounded-[2rem] border border-[#1e293b] h-full relative overflow-hidden group/card shadow-inner transition-all hover:border-indigo-500/30 hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] flex flex-col justify-between">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[50px] pointer-events-none group-hover:bg-indigo-500/10 transition-colors duration-500" />
                     
-                    <div className="flex items-center gap-4 mb-10">
-                      <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/30 shadow-inner group-hover/card:bg-indigo-500/20 transition-colors">
+                    <div className="flex items-center gap-4 mb-10 relative z-10">
+                      <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/30 shadow-inner group-hover/card:bg-indigo-500/20 transition-colors relative">
                         <Database className="w-5 h-5 text-indigo-400 drop-shadow-md" />
                       </div>
                       <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover/card:text-indigo-300 transition-colors">Cell Metrics</span>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-8 relative z-10">
+                    <div className="grid grid-cols-1 relative z-10 border-t border-[#1e293b]">
                       {[
                         { l: 'Crystal System', v: selectedCandidate.crystalSystem || "Unknown", c: 'text-white' },
-                        { l: 'Space Group', v: selectedCandidate.spaceGroup || "N/A", c: 'text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/30 shadow-inner' },
-                        { l: 'Density', v: selectedCandidate.density ? `${selectedCandidate.density} g/cm³` : "N/A", c: 'text-indigo-300 bg-indigo-500/5 px-3 py-1 rounded-lg border border-indigo-500/20' },
-                        { l: 'Database ID', v: selectedCandidate.card_id, c: 'text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-lg border border-cyan-500/30 shadow-inner' }
+                        { l: 'Space Group', v: selectedCandidate.spaceGroup || "N/A", c: 'text-emerald-400' },
+                        { l: 'Density', v: selectedCandidate.density ? `${selectedCandidate.density} g/cm³` : "N/A", c: 'text-indigo-300 font-mono' },
+                        { l: 'Database ID', v: selectedCandidate.card_id, c: 'text-cyan-400 font-mono' }
                       ].map((row, i) => (
-                        <div key={`${row.l}-${i}`} className="flex justify-between items-center group/row border-b border-[#1e293b]/50 pb-4 last:border-0 last:pb-0">
-                          <span className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] group-hover/row:text-slate-400 transition-colors">{row.l}</span>
-                          <span className={`text-xs font-black font-mono tracking-wide ${row.c}`}>{row.v}</span>
+                        <div key={`${row.l}-${i}`} className="grid grid-cols-2 items-center group/row border-b border-[#1e293b] py-4 hover:bg-white/[0.02] transition-colors -mx-8 px-8 cursor-default">
+                          <span className="text-[10px] text-slate-500 uppercase font-bold tracking-[0.15em] group-hover/row:text-slate-400 transition-colors">{row.l}</span>
+                          <span className={`text-sm font-black tracking-wide text-right ${row.c}`}>{row.v}</span>
                         </div>
                       ))}
                     </div>
@@ -3296,89 +3296,117 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
                 {/* Applications & Safety */}
                 <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-[#050B14]/80 p-8 rounded-[2rem] border border-[#1e293b] hover:border-amber-500/30 transition-all group/bento shadow-inner hover:shadow-[0_0_30px_rgba(245,158,11,0.05)] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-[50px] pointer-events-none group-hover/bento:bg-amber-500/10 transition-colors duration-500" />
-                    <div className="flex items-center gap-4 mb-8 relative z-10">
-                      <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/30 shadow-inner group-hover/bento:bg-amber-500/20 transition-colors">
-                        <Zap className="w-5 h-5 text-amber-400 drop-shadow-md" />
+                  <div className="bg-[#050B14]/80 p-10 rounded-[2rem] border border-[#1e293b] hover:border-amber-500/30 transition-all group/bento shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] hover:shadow-[inset_0_2px_40px_rgba(245,158,11,0.05),0_10px_40px_rgba(245,158,11,0.1)] relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none group-hover/bento:bg-amber-500/15 transition-colors duration-700" />
+                    
+                    <div>
+                      <div className="flex items-center gap-4 mb-10 relative z-10">
+                        <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/30 shadow-inner group-hover/bento:bg-amber-500/20 transition-colors">
+                          <Zap className="w-6 h-6 text-amber-400 drop-shadow-md" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-black text-amber-500/50 uppercase tracking-[0.3em] font-sans block mb-1">Target Sectors</span>
+                          <span className="text-xl font-serif italic text-amber-100/90 tracking-wide">Industrial Applications</span>
+                        </div>
                       </div>
-                      <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover/bento:text-amber-300 transition-colors">Industrial Applications</span>
-                    </div>
-                    <div className="flex flex-wrap gap-3 relative z-10">
-                      {selectedCandidate.applications && selectedCandidate.applications.length > 0 ? (
-                        selectedCandidate.applications.map((app, i) => (
-                          <span key={`app-${i}`} className="text-[11px] font-black uppercase tracking-wider bg-[#0B1221] text-slate-400 px-4 py-2.5 rounded-xl border border-[#1e293b] hover:text-amber-300 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all shadow-inner">
-                            {app}
-                          </span>
-                        ))
-                      ) : (
-                         <span className="text-xs font-black text-slate-600 font-mono italic">No primary applications recorded in network database.</span>
-                      )}
+                      
+                      <div className="flex flex-wrap gap-4 relative z-10">
+                        {selectedCandidate.applications && selectedCandidate.applications.length > 0 ? (
+                          selectedCandidate.applications.map((app, i) => (
+                            <span key={`app-${i}`} className="text-xs font-black uppercase tracking-widest bg-amber-500/5 text-amber-200/80 px-5 py-3 rounded-xl border border-amber-500/20 hover:text-amber-100 hover:border-amber-500/50 hover:bg-amber-500/20 transition-all shadow-inner hover:scale-105 active:scale-95 cursor-default">
+                              {app}
+                            </span>
+                          ))
+                        ) : (
+                           <span className="text-sm font-black text-slate-600 font-mono italic">No primary applications recorded in network database.</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-[#050B14]/80 p-8 rounded-[2rem] border border-[#1e293b] hover:border-rose-500/30 transition-all group/bento shadow-inner hover:shadow-[0_0_30px_rgba(244,63,94,0.05)] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-[50px] pointer-events-none group-hover/bento:bg-rose-500/10 transition-colors duration-500" />
-                    <div className="flex items-center gap-4 mb-8 relative z-10">
-                      <div className="p-3 bg-rose-500/10 rounded-xl border border-rose-500/30 shadow-inner group-hover/bento:bg-rose-500/20 transition-colors">
-                        <ShieldAlert className="w-5 h-5 text-rose-400 drop-shadow-md" />
+                  <div className="bg-[#050B14]/80 p-10 rounded-[2rem] border border-[#1e293b] hover:border-rose-500/30 transition-all group/bento shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] hover:shadow-[inset_0_2px_40px_rgba(244,63,94,0.05),0_10px_40px_rgba(244,63,94,0.1)] relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/5 rounded-full blur-[80px] pointer-events-none group-hover/bento:bg-rose-500/15 transition-colors duration-700" />
+                    
+                    <div>
+                      <div className="flex items-center gap-4 mb-10 relative z-10">
+                        <div className="p-4 bg-rose-500/10 rounded-2xl border border-rose-500/30 shadow-inner group-hover/bento:bg-rose-500/20 transition-colors">
+                          <ShieldAlert className="w-6 h-6 text-rose-400 drop-shadow-md" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-black text-rose-500/50 uppercase tracking-[0.3em] font-sans block mb-1">Safety Constraints</span>
+                          <span className="text-xl font-serif italic text-rose-100/90 tracking-wide">Hazard Profile</span>
+                        </div>
                       </div>
-                      <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover/bento:text-rose-300 transition-colors">Hazard Profile</span>
-                    </div>
-                    <div className="flex flex-wrap gap-3 relative z-10">
-                      {selectedCandidate.hazards && selectedCandidate.hazards.length > 0 ? (
-                        selectedCandidate.hazards.map((hazard, i) => (
-                          <span key={`hazard-${i}`} className="text-[11px] font-black uppercase tracking-wider bg-[#0B1221] text-rose-400/80 px-4 py-2.5 rounded-xl border border-[#1e293b] hover:text-rose-300 hover:border-rose-500/40 hover:bg-rose-500/10 transition-all shadow-inner">
-                            {hazard}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-[11px] font-black text-emerald-500 flex items-center gap-2 px-3 py-2 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
-                          <CheckCircle className="w-4 h-4" /> NON-TOXIC RESPONSE
-                        </span>
-                      )}
+                      
+                      <div className="flex flex-col gap-3 relative z-10">
+                        {selectedCandidate.hazards && selectedCandidate.hazards.length > 0 ? (
+                          selectedCandidate.hazards.map((hazard, i) => (
+                            <div key={`hazard-${i}`} className="flex items-start gap-4 p-4 rounded-xl border border-rose-500/10 bg-rose-500/5 hover:bg-rose-500/10 transition-colors">
+                              <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-2 shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+                              <span className="text-sm font-medium text-rose-200/90 leading-relaxed uppercase tracking-widest font-mono">
+                                {hazard}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center gap-4 p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+                            <CheckCircle className="w-8 h-8 text-emerald-500 animate-pulse" /> 
+                            <div>
+                               <span className="block text-lg font-black text-emerald-400 uppercase tracking-widest mb-1">Non-Toxic Response</span>
+                               <span className="text-xs font-medium text-emerald-500/70 font-mono">Material exhibits stable environmental limits.</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Improved Neural Attention Mapping */}
-              <div className="mt-14 pt-10 border-t border-[#1e293b] relative">
+              <div className="mt-14 pt-12 border-t border-[#1e293b] relative">
                 {/* Glow from line */}
                 <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
                 
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
                   <div>
-                    <h4 className="text-sm font-black text-white uppercase tracking-[0.2em] flex items-center gap-3 drop-shadow-md">
-                      <Activity className="w-5 h-5 text-violet-400 animate-pulse drop-shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
+                    <h4 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-3 drop-shadow-md mb-2">
+                      <Activity className="w-6 h-6 text-violet-400 animate-pulse drop-shadow-[0_0_12px_rgba(167,139,250,0.6)]" />
                       Neural Attention Mapping
                     </h4>
-                    <p className="text-[10px] text-slate-400 font-mono mt-1.5 uppercase tracking-widest">Spatial feature activation across convolutional filters for <span className="text-violet-300 drop-shadow-md">{selectedCandidate.phase_name}</span></p>
+                    <p className="text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">Spatial feature activation across convolutional filters for <span className="text-violet-300 font-black drop-shadow-md">{selectedCandidate.phase_name}</span></p>
                   </div>
-                  <div className="flex gap-2">
-                    <span className="px-4 py-2 bg-violet-500/10 rounded-lg border border-violet-500/30 text-[10px] font-black text-violet-300 uppercase tracking-widest shadow-inner">Mode: Attention_Softmax</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-1.5 p-1 bg-black/40 rounded-full border border-white/5">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={`mode-dot-${i}`} className={`w-2 h-2 rounded-full shadow-inner ${i < 4 ? 'bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.6)]' : 'bg-slate-700'}`} />
+                      ))}
+                    </div>
+                    <span className="px-4 py-2 bg-violet-500/10 rounded-xl border border-violet-500/30 text-[10px] font-black text-violet-300 uppercase tracking-[0.2em] shadow-[inset_0_2px_10px_rgba(139,92,246,0.1)]">Attention_Softmax_v3</span>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {[
-                    { name: 'Primary_Features', color: 'from-violet-600 to-indigo-600', rows: 4, cols: 12 },
-                    { name: 'Structural_Synthesis', color: 'from-indigo-600 to-blue-600', rows: 4, cols: 12 },
-                    { name: 'Lattice_Inference', color: 'from-blue-600 to-emerald-600', rows: 4, cols: 12 }
+                    { name: 'Primary_Features', color: 'from-violet-500 to-indigo-500', rings: 'rgba(139, 92, 246, 0.4)', rows: 4, cols: 12 },
+                    { name: 'Structural_Synthesis', color: 'from-indigo-500 to-blue-500', rings: 'rgba(99, 102, 241, 0.4)', rows: 4, cols: 12 },
+                    { name: 'Lattice_Inference', color: 'from-blue-500 to-emerald-500', rings: 'rgba(56, 189, 248, 0.4)', rows: 4, cols: 12 }
                   ].map((layer, lIdx) => (
-                    <div key={lIdx} className="space-y-4 group/layer">
-                      <div className="flex justify-between items-center px-2">
-                        <span className="text-[11px] font-mono font-black text-slate-500 group-hover/layer:text-white transition-colors uppercase tracking-[0.2em] relative z-10">{layer.name}</span>
+                    <div key={lIdx} className="space-y-4 group/layer relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent rounded-[2rem] -m-4 pointer-events-none group-hover/layer:bg-white/[0.04] transition-colors duration-500" />
+                      
+                      <div className="flex justify-between items-center px-2 relative z-10">
+                        <span className="text-xs font-mono font-black text-slate-500 group-hover/layer:text-white transition-colors uppercase tracking-[0.2em]">{layer.name}</span>
                         <div className="flex items-center gap-2">
                            <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-                           <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Active</span>
+                           <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em]">Active</span>
                         </div>
                       </div>
                       
-                      <div className="relative p-2 bg-[#050B14] rounded-xl border border-[#1e293b] overflow-hidden shadow-inner group-hover/layer:border-slate-700 transition-colors">
+                      <div className="relative p-3 bg-[#050B14]/80 rounded-[1.5rem] border border-[#1e293b] overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group-hover/layer:border-slate-700/80 transition-all duration-500 z-10">
                         {/* Scanline Effect */}
                         <motion.div 
-                          className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/5 to-transparent z-10 pointer-events-none"
+                          className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent z-10 pointer-events-none"
                           animate={{ x: ['-200%', '300%'] }}
                           transition={{ repeat: Infinity, duration: 2.5, ease: "linear", delay: lIdx * 0.3 }}
                         />
@@ -3394,28 +3422,28 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                                 key={`node-${lIdx}-${i}`}
                                 initial={{ opacity: 0.1 }}
                                 animate={{ 
-                                  opacity: isActive ? [intensity * 0.5, intensity, intensity * 0.5] : intensity,
-                                  scale: isActive ? [0.95, 1, 0.95] : 1
+                                  opacity: isActive ? [intensity * 0.4, intensity * 0.8, intensity * 0.4] : intensity,
+                                  scale: isActive ? [0.98, 1.05, 0.98] : 1
                                 }}
                                 transition={{ 
                                   repeat: Infinity, 
                                   duration: 2 + (seed % 3),
                                   delay: (i % 10) * 0.1 
                                 }}
-                                className={`aspect-square rounded-[3px] bg-gradient-to-br border ${isActive ? `border-white/10 ${layer.color}` : 'border-[#1e293b]/50 bg-slate-900'} shadow-inner`}
-                                style={{ 
-                                  opacity: intensity,
-                                  boxShadow: isActive && intensity > 0.7 ? `0 0 10px rgba(139, 92, 246, ${intensity * 0.5})` : 'none'
-                                }}
-                                title={`Node ${i} - Activation: ${(intensity * 100).toFixed(1)}%`}
-                              />
+                                className={`aspect-square rounded-[4px] relative`}
+                              >
+                                <div className={`absolute inset-0 rounded-[4px] bg-gradient-to-br border ${isActive ? `border-white/20 ${layer.color}` : 'border-[#1e293b]/50 bg-slate-900'} shadow-inner`} />
+                                {isActive && intensity > 0.7 && (
+                                  <div className="absolute inset-0 rounded-[4px] shadow-lg" style={{ boxShadow: `0 0 12px ${layer.rings}` }} />
+                                )}
+                              </motion.div>
                             );
                           })}
                         </div>
                       </div>
                       
-                      <div className="flex justify-between items-center px-1">
-                         <div className="h-0.5 flex-1 bg-slate-800/50 rounded-full overflow-hidden mr-3">
+                      <div className="flex justify-between items-center px-2 relative z-10">
+                         <div className="h-1 flex-1 bg-slate-800/80 rounded-full overflow-hidden mr-4 shadow-inner">
                             <motion.div 
                               className={`h-full bg-gradient-to-r ${layer.color}`}
                               initial={{ width: '40%' }}
@@ -3423,27 +3451,27 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                               transition={{ repeat: Infinity, duration: 3 + lIdx, ease: "easeInOut" }}
                             />
                          </div>
-                         <span className="text-[9px] font-mono font-black text-[#1e293b] group-hover/layer:text-slate-500 transition-colors uppercase tracking-[0.2em]">INF_00{lIdx + 1}</span>
+                         <span className="text-[10px] font-mono font-black text-[#1e293b] group-hover/layer:text-slate-500 transition-colors uppercase tracking-[0.3em]">INF_00{lIdx + 1}</span>
                       </div>
                     </div>
                   ))}
                 </div>
                 
-                <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-[#050B14] rounded-2xl border border-[#1e293b] shadow-inner relative overflow-hidden">
-                   <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[60px] pointer-events-none" />
+                <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 p-8 bg-gradient-to-br from-[#050B14] to-[#0B1221]/80 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
+                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.05),transparent_50%)] pointer-events-none" />
                    {[
-                     { label: 'Latency', val: '14ms', icon: Activity, color: 'text-cyan-400' },
-                     { label: 'Compute', val: '0.8 TFLOPS', icon: Zap, color: 'text-amber-400' },
-                     { label: 'Layer Depth', val: '52', icon: Layers, color: 'text-violet-400' },
-                     { label: 'Optimizer', val: 'AdamW', icon: Settings, color: 'text-emerald-400' },
+                     { label: 'Latency', val: '14ms', icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
+                     { label: 'Compute', val: '0.8 TFLOPS', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+                     { label: 'Layer Depth', val: '52', icon: Layers, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
+                     { label: 'Optimizer', val: 'AdamW', icon: Settings, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
                    ].map((metric, i) => (
-                     <div key={`metric-data-${metric.label}-${i}`} className="flex items-center gap-4 relative z-10 p-2 hover:bg-white/5 rounded-xl transition-colors">
-                       <div className="p-2 bg-[#0B1221] border border-[#1e293b] rounded-xl shadow-inner">
-                         <metric.icon className={`w-4 h-4 ${metric.color}`} />
+                     <div key={`metric-data-${metric.label}-${i}`} className="flex items-center gap-5 relative z-10 p-3 hover:bg-white/[0.02] rounded-2xl transition-all cursor-default hover:scale-105 active:scale-95 duration-300 hover:shadow-lg hover:-translate-y-1">
+                       <div className={`p-3 ${metric.bg} border ${metric.border} rounded-2xl shadow-inner`}>
+                         <metric.icon className={`w-5 h-5 ${metric.color} drop-shadow-md`} />
                        </div>
-                       <div className="flex flex-col">
-                         <span className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] mb-0.5">{metric.label}</span>
-                         <span className="text-xs text-white font-mono font-black drop-shadow-sm">{metric.val}</span>
+                       <div className="flex flex-col gap-1">
+                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">{metric.label}</span>
+                         <span className="text-sm text-white font-mono font-black tracking-wide drop-shadow-sm">{metric.val}</span>
                        </div>
                      </div>
                    ))}
@@ -3459,17 +3487,26 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
 
               {/* Verification Checklist */}
-              <div className="mt-10 pt-8 border-t border-slate-800">
-                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Verification Audit</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="mt-14 pt-12 border-t border-[#1e293b]">
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-500/50" />
+                  Verification Audit Protocol
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   {[
-                    "Lattice alignment checked",
-                    "Relative intensity verified",
-                    "Composition confirmed",
+                     { label: "Lattice Alignment", desc: "Spacing delta < 0.01Å", active: true },
+                     { label: "Relative Intensity", desc: "Profile variance < 5%", active: true },
+                     { label: "Phase Composition", desc: "Purity bounds verified", active: true },
                   ].map((item, i) => (
-                    <label key={`audit-${i}`} className="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition-all cursor-pointer group">
-                      <input type="checkbox" className="peer w-4 h-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20" />
-                      <span className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors">{item}</span>
+                    <label key={`audit-${i}`} className="flex items-start gap-4 bg-[#050B14] p-5 rounded-2xl border border-[#1e293b] hover:border-emerald-500/30 transition-all cursor-pointer group hover:bg-[#080E1A] shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)]">
+                      <div className="relative flex items-center justify-center mt-0.5">
+                        <input type="checkbox" defaultChecked={item.active} className="peer w-5 h-5 rounded-[4px] border-[#1e293b] bg-slate-900/50 text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-0 cursor-pointer transition-all" />
+                        <div className="absolute inset-0 pointer-events-none rounded-[4px] peer-checked:shadow-[0_0_12px_rgba(16,185,129,0.4)] transition-shadow" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                         <span className="text-xs font-black text-slate-300 group-hover:text-emerald-100 transition-colors uppercase tracking-wide">{item.label}</span>
+                         <span className="text-[10px] font-mono text-slate-500">{item.desc}</span>
+                      </div>
                     </label>
                   ))}
                 </div>
@@ -3485,30 +3522,30 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
              <div 
                key={`${candidate.phase_name}-${idx}`} 
                onClick={() => setSelectedCandidate(candidate)}
-               className={`bg-slate-900 p-5 rounded-xl shadow-sm border cursor-pointer transition-all group overflow-hidden relative
-                 ${selectedCandidate?.phase_name === candidate.phase_name ? 'border-violet-500 shadow-[0_0_20px_rgba(139,92,246,0.3)] bg-slate-800' : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/50'}
+               className={`bg-[#050B14] p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-300 group overflow-hidden relative
+                 ${selectedCandidate?.phase_name === candidate.phase_name ? 'border-violet-500/50 shadow-[0_0_30px_rgba(139,92,246,0.15)] bg-[#0B1221]' : 'border-[#1e293b] hover:border-violet-500/30 hover:bg-[#080E1A]'}
                `}
              >
                {selectedCandidate?.phase_name === candidate.phase_name && (
                  <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 to-transparent pointer-events-none" />
                )}
-               <div className="flex justify-between items-start mb-3 relative z-10">
-                 <div className="flex items-center gap-4">
-                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-inner border
-                     ${idx === 0 ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 text-emerald-400 border-emerald-500/30' : 
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+                 <div className="flex items-center gap-5">
+                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner border
+                     ${idx === 0 ? 'bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 text-emerald-400 border-emerald-500/30 shadow-[0_0_15px_rgba(52,211,153,0.3)]' : 
                        idx === 1 ? 'bg-gradient-to-br from-slate-700 to-slate-800 text-slate-300 border-slate-600' :
                        idx === 2 ? 'bg-gradient-to-br from-amber-500/20 to-amber-600/20 text-amber-400 border-amber-500/30' :
                        'bg-slate-900 text-slate-600 border-slate-800'}
                    `}>
                      #{idx + 1}
                    </div>
-                   <div>
-                     <h4 className="font-bold text-lg text-white group-hover:text-violet-400 transition-colors">{candidate.phase_name}</h4>
-                     <div className="flex flex-wrap gap-2 text-xs mt-1">
-                       <span className="font-mono bg-slate-950 text-slate-400 px-2 py-0.5 rounded-md border border-slate-800">{candidate.formula}</span>
-                       <span className="text-slate-500 flex items-center"><Database className="w-3 h-3 mr-1"/>{candidate.card_id}</span>
+                   <div className="flex flex-col gap-1">
+                     <h4 className={`text-xl font-black tracking-wide transition-colors ${selectedCandidate?.phase_name === candidate.phase_name ? 'text-violet-300' : 'text-slate-200 group-hover:text-white'}`}>{candidate.phase_name}</h4>
+                     <div className="flex flex-wrap items-center gap-3">
+                       <span className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded bg-white/5 border ${selectedCandidate?.phase_name === candidate.phase_name ? 'text-violet-200 border-violet-500/30' : 'text-slate-400 border-white/10'}`}>{candidate.formula}</span>
+                       <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1 uppercase tracking-widest"><Database className="w-3 h-3"/> {candidate.card_id}</span>
                        {candidate.match_quality && (
-                         <span className={`px-2 py-0.5 rounded-md font-bold border
+                         <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border shadow-inner
                            ${candidate.match_quality === 'Excellent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 
                              candidate.match_quality === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'}
                          `}>
@@ -3518,44 +3555,35 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                      </div>
                    </div>
                  </div>
-                 <div className="text-right flex flex-col items-end">
-                   <span className={`text-3xl font-black tracking-tighter shadow-sm
-                     ${candidate.confidence_score > 80 ? 'text-emerald-500' : candidate.confidence_score > 50 ? 'text-violet-500' : 'text-amber-500'}
-                   `}>
-                     {candidate.confidence_score.toFixed(1)}%
-                   </span>
-                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1 flex items-center gap-1">
-                     <Activity className="w-3 h-3" />
-                     Network Conf
-                   </p>
+                 <div className="flex flex-col items-end w-full md:w-auto">
+                   <div className="flex items-center gap-4 w-full md:w-auto mt-2 md:mt-0">
+                     <div className="flex-1 md:w-32 bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800 shadow-inner">
+                       <div 
+                         className={`h-full rounded-none transition-all duration-1000 ease-out ${candidate.confidence_score > 80 ? 'bg-emerald-500' : candidate.confidence_score > 50 ? 'bg-violet-500' : 'bg-amber-500'}`}
+                         style={{ width: `${candidate.confidence_score}%` }}
+                       />
+                     </div>
+                     <span className={`text-3xl md:text-2xl font-black font-mono tracking-tighter drop-shadow-md w-24 text-right
+                       ${candidate.confidence_score > 80 ? 'text-emerald-400' : candidate.confidence_score > 50 ? 'text-violet-400' : 'text-amber-400'}
+                     `}>
+                       {candidate.confidence_score.toFixed(1)}<span className="text-sm text-slate-500 font-sans">%</span>
+                     </span>
+                   </div>
                  </div>
-               </div>
-               
-               <div className="w-full bg-slate-950 rounded-full h-2 mt-4 overflow-hidden border border-slate-800 relative z-10 box-content">
-                 <div 
-                   className={`h-full rounded-none transition-all duration-1000 ease-out ${candidate.confidence_score > 80 ? 'bg-emerald-500' : candidate.confidence_score > 50 ? 'bg-violet-500' : 'bg-amber-500'}`}
-                   style={{ width: `${candidate.confidence_score}%` }}
-                 ></div>
                </div>
 
                {selectedCandidate?.phase_name === candidate.phase_name && (
-                 <div className="mt-5 pt-5 border-t border-slate-700/50 animate-in slide-in-from-top-2 relative z-10">
-                   <p className="text-[10px] font-bold text-slate-400 uppercase mb-3 flex items-center gap-2 tracking-widest">
-                     <CheckCircle className="w-3 h-3 text-emerald-400"/> Feature Map Verification
+                 <div className="mt-8 pt-6 border-t border-[#1e293b] animate-in slide-in-from-top-4 relative z-10">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                     <CheckCircle className="w-4 h-4 text-emerald-400"/> Feature Alignment Verification
                    </p>
-                   <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 text-xs">
+                   <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2">
                      {candidate.matched_peaks?.map((mp, i) => (
-                       <div key={`peak-${mp.refT}-${i}`} className="bg-slate-950/50 p-2 rounded-lg border border-slate-800 flex justify-between items-center group-hover:bg-slate-900 transition-colors">
-                         <span className="text-slate-400 font-mono text-[11px]">{mp.refT.toFixed(2)}°</span>
-                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
+                       <div key={`peak-${mp.refT}-${i}`} className="bg-[#050B14] p-2 rounded-xl border border-[#1e293b] flex justify-between items-center group-hover:border-slate-700 transition-colors shadow-inner">
+                         <span className="text-slate-400 font-mono text-xs">{mp.refT.toFixed(2)}°</span>
+                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                        </div>
                      ))}
-                   </div>
-                   <div className="mt-4 flex items-center gap-2 p-2 rounded bg-slate-950 border border-slate-800">
-                     <div className="w-2 h-2 rounded bg-violet-500 animate-pulse" />
-                     <p className="text-[10px] text-slate-500 font-mono">
-                       Select other candidates to compare convolutional feature overlays.
-                     </p>
                    </div>
                  </div>
                )}
@@ -3563,12 +3591,11 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
            ))}
            
            {!result && !isSimulating && (
-             <div className="h-40 flex flex-col items-center justify-center bg-slate-900/50 rounded-2xl border border-dashed border-slate-700 text-slate-500 relative overflow-hidden group">
-               <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-               <Database className="w-10 h-10 mb-3 opacity-30 group-hover:hidden" />
-               <Brain className="w-10 h-10 mb-3 text-violet-500 hidden group-hover:block animate-bounce opacity-80" />
-               <p className="font-bold tracking-tight text-slate-300">Awaiting Neural Evaluation</p>
-               <p className="text-xs mt-1 font-mono text-slate-500 uppercase tracking-widest">Load data to initialize the network</p>
+             <div className="h-48 flex flex-col items-center justify-center bg-[#050B14] rounded-[2rem] border border-dashed border-[#1e293b] relative overflow-hidden group">
+               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.05),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+               <Brain className="w-12 h-12 mb-4 text-violet-500/50 group-hover:text-violet-400 hover:scale-110 transition-all duration-500 drop-shadow-md" />
+               <p className="font-black text-xl text-slate-300 tracking-tight group-hover:text-white transition-colors">Awaiting Inference Protocol</p>
+               <p className="text-[10px] mt-2 font-mono text-slate-500 uppercase tracking-[0.2em]">Load input data to initialize neural core</p>
              </div>
            )}
         </div>

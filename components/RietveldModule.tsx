@@ -19,15 +19,17 @@ interface SimulationParams {
   a: number;
   scale: number;
   fwhm: number;
+  eta: number;
+  zeroShift: number;
   background: number;
   noise: number;
 }
 
 const TARGET_PARAMS: Record<string, SimulationParams> = {
-  'Simple Cubic': { a: 4.0, scale: 1000, fwhm: 0.5, background: 50, noise: 20 },
-  'BCC': { a: 3.5, scale: 1200, fwhm: 0.4, background: 40, noise: 15 },
-  'FCC': { a: 4.5, scale: 1500, fwhm: 0.6, background: 60, noise: 25 },
-  'Quartz': { a: 4.913, scale: 800, fwhm: 0.3, background: 80, noise: 30 }, // 'a' here is just a placeholder or scaling factor
+  'Simple Cubic': { a: 4.0, scale: 1000, fwhm: 0.5, eta: 0.5, zeroShift: 0.0, background: 50, noise: 20 },
+  'BCC': { a: 3.5, scale: 1200, fwhm: 0.4, eta: 0.6, zeroShift: 0.0, background: 40, noise: 15 },
+  'FCC': { a: 4.5, scale: 1500, fwhm: 0.6, eta: 0.4, zeroShift: 0.0, background: 60, noise: 25 },
+  'Quartz': { a: 4.913, scale: 800, fwhm: 0.3, eta: 0.7, zeroShift: 0.0, background: 80, noise: 30 }, // 'a' here is just a placeholder or scaling factor
 };
 
 const QUARTZ_PEAKS = [
@@ -102,10 +104,10 @@ export const RietveldModule: React.FC = () => {
           // Delta 2theta approx -2 * tan(theta) * delta_a / a
           // Let's just say 'a' slider shifts the pattern
           const shift = (params.a - TARGET_PARAMS['Quartz'].a) * 2; 
-          const pos = peak.t - shift;
+          const pos = peak.t - shift + params.zeroShift;
           
           const profile = simulatePeak(
-            'Pseudo-Voigt', pos, params.fwhm, 0.5, 
+            'Pseudo-Voigt', pos, params.fwhm, params.eta, 
             peak.i * (params.scale / 100), 
             [pos - 5, pos + 5], 100
           );
@@ -144,7 +146,7 @@ export const RietveldModule: React.FC = () => {
               if (sinTheta >= 1) continue;
               
               const theta = Math.asin(sinTheta);
-              const twoTheta = 2 * theta * (180 / Math.PI);
+              const twoTheta = 2 * theta * (180 / Math.PI) + params.zeroShift;
 
               if (twoTheta >= SIMULATION_RANGE.start && twoTheta <= SIMULATION_RANGE.end) {
                 // Approximate intensity (multiplicity * LP factor * structure factor)
@@ -166,7 +168,7 @@ export const RietveldModule: React.FC = () => {
                 intensity *= (mult / 10); 
 
                 const profile = simulatePeak(
-                  'Pseudo-Voigt', twoTheta, params.fwhm, 0.5, 
+                  'Pseudo-Voigt', twoTheta, params.fwhm, params.eta, 
                   intensity * (params.scale / 1000), 
                   [twoTheta - 5, twoTheta + 5], 100
                 );
@@ -218,10 +220,12 @@ export const RietveldModule: React.FC = () => {
           const diffA = targetParams.a - prev.a;
           const diffScale = targetParams.scale - prev.scale;
           const diffFwhm = targetParams.fwhm - prev.fwhm;
+          const diffEta = targetParams.eta - prev.eta;
+          const diffZeroShift = targetParams.zeroShift - prev.zeroShift;
           const diffBkg = targetParams.background - prev.background;
 
           // Check convergence
-          if (Math.abs(diffA) < 0.001 && Math.abs(diffScale) < 1 && Math.abs(diffFwhm) < 0.001) {
+          if (Math.abs(diffA) < 0.001 && Math.abs(diffScale) < 1 && Math.abs(diffFwhm) < 0.001 && Math.abs(diffEta) < 0.01 && Math.abs(diffZeroShift) < 0.01) {
             setIsAutoRefining(false);
             return prev;
           }
@@ -231,6 +235,8 @@ export const RietveldModule: React.FC = () => {
             a: prev.a + diffA * step,
             scale: prev.scale + diffScale * step,
             fwhm: prev.fwhm + diffFwhm * step,
+            eta: prev.eta + diffEta * step,
+            zeroShift: prev.zeroShift + diffZeroShift * step,
             background: prev.background + diffBkg * step
           };
         });
@@ -328,6 +334,8 @@ export const RietveldModule: React.FC = () => {
                         a: TARGET_PARAMS[simPhase].a * 1.05,
                         scale: TARGET_PARAMS[simPhase].scale * 0.8,
                         fwhm: TARGET_PARAMS[simPhase].fwhm * 1.5,
+                        eta: Math.min(1, TARGET_PARAMS[simPhase].eta * 1.2),
+                        zeroShift: 0.15,
                         background: TARGET_PARAMS[simPhase].background * 1.2
                       });
                       setIsAutoRefining(false);
@@ -372,7 +380,16 @@ export const RietveldModule: React.FC = () => {
                         <Ruler className="w-3.5 h-3.5 text-teal-400" />
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
                       </div>
-                      <span className="text-xs font-mono font-black text-teal-400 bg-black/60 px-2 py-1 rounded-lg border border-slate-700/50 shadow-inner">{userParams.a.toFixed(4)} Å</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={userParams.a}
+                          onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value) || userParams.a})}
+                          className="w-16 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                        />
+                        <span className="text-[10px] font-black text-slate-500">Å</span>
+                      </div>
                     </div>
                     <input 
                       type="range" 
@@ -391,7 +408,13 @@ export const RietveldModule: React.FC = () => {
                         <Maximize className="w-3.5 h-3.5 text-teal-400" />
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Intensity Scale</label>
                       </div>
-                      <span className="text-xs font-mono font-black text-teal-400 bg-black/60 px-2 py-1 rounded-lg border border-slate-700/50 shadow-inner">{userParams.scale.toFixed(0)}</span>
+                      <input
+                        type="number"
+                        step="10"
+                        value={userParams.scale}
+                        onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value) || userParams.scale})}
+                        className="w-16 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                      />
                     </div>
                     <input 
                       type="range" 
@@ -410,7 +433,16 @@ export const RietveldModule: React.FC = () => {
                         <Binary className="w-3.5 h-3.5 text-teal-400" />
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Profile Width</label>
                       </div>
-                      <span className="text-xs font-mono font-black text-teal-400 bg-black/60 px-2 py-1 rounded-lg border border-slate-700/50 shadow-inner">{userParams.fwhm.toFixed(3)}°</span>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={userParams.fwhm}
+                          onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value) || userParams.fwhm})}
+                          className="w-14 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                        />
+                        <span className="text-[10px] font-black text-slate-500">°</span>
+                      </div>
                     </div>
                     <input 
                       type="range" 
@@ -427,9 +459,70 @@ export const RietveldModule: React.FC = () => {
                     <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center gap-2">
                         <ChartIcon className="w-3.5 h-3.5 text-teal-400" />
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mix Factor (η)</label>
+                      </div>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="1"
+                        value={userParams.eta}
+                        onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value) || 0})}
+                        className="w-14 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                      />
+                    </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="1" 
+                      step="0.01"
+                      value={userParams.eta}
+                      onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value)})}
+                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
+                    />
+                  </div>
+
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-2">
+                        <ChartIcon className="w-3.5 h-3.5 text-teal-400" />
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zero Shift</label>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={userParams.zeroShift}
+                          onChange={(e) => setUserParams({...userParams, zeroShift: parseFloat(e.target.value) || 0})}
+                          className="w-16 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                        />
+                        <span className="text-[10px] font-black text-slate-500">°</span>
+                      </div>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="-1.0" 
+                      max="1.0" 
+                      step="0.01"
+                      value={userParams.zeroShift}
+                      onChange={(e) => setUserParams({...userParams, zeroShift: parseFloat(e.target.value)})}
+                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
+                    />
+                  </div>
+
+                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-2">
+                        <ChartIcon className="w-3.5 h-3.5 text-teal-400" />
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noise Floor</label>
                       </div>
-                      <span className="text-xs font-mono font-black text-teal-400 bg-black/60 px-2 py-1 rounded-lg border border-slate-700/50 shadow-inner">{userParams.background.toFixed(0)}</span>
+                      <input
+                        type="number"
+                        step="1"
+                        value={userParams.background}
+                        onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value) || userParams.background})}
+                        className="w-16 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                      />
                     </div>
                     <input 
                       type="range" 

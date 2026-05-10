@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { RotateCcw } from 'lucide-react';
 import { simulatePeak } from '../utils/physics';
 import { FWHMResult } from '../types';
 import {
@@ -11,18 +12,50 @@ import {
   ResponsiveContainer,
   ReferenceLine,
   ReferenceArea,
+  ReferenceDot,
   Label
 } from 'recharts';
 
 export const FWHMModule: React.FC = () => {
   const [type, setType] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII'>('Pseudo-Voigt');
   const [center, setCenter] = useState<number>(30);
-  const [fwhm, setFwhm] = useState<number>(0.5);
+  const [fwhmManual, setFwhmManual] = useState<number>(0.5);
   const [eta, setEta] = useState<number>(0.5);
   const [amplitude, setAmplitude] = useState<number>(100);
   
+  const [useCaglioti, setUseCaglioti] = useState<boolean>(false);
+  const [cagliotiPreset, setCagliotiPreset] = useState<string>('Lab (Cu Kα)');
+  const [cagliotiParams, setCagliotiParams] = useState<{u: number, v: number, w: number}>({ u: 0.04, v: -0.02, w: 0.04 });
+
+  const CAGLIOTI_PRESETS: Record<string, { u: number, v: number, w: number }> = {
+    'Lab (Cu Kα)': { u: 0.04, v: -0.02, w: 0.04 },
+    'Synchrotron': { u: 0.002, v: -0.001, w: 0.002 },
+    'Neutron': { u: 0.1, v: -0.05, w: 0.1 }
+  };
+
+  const fwhm = React.useMemo(() => {
+    if (useCaglioti) {
+      const thetaRad = (center / 2) * (Math.PI / 180);
+      const tanTheta = Math.tan(thetaRad);
+      const val = cagliotiParams.u * tanTheta * tanTheta + cagliotiParams.v * tanTheta + cagliotiParams.w;
+      return val > 0 ? Math.sqrt(val) : 0.01;
+    }
+    return fwhmManual;
+  }, [useCaglioti, cagliotiParams, center, fwhmManual]);
+  
   const [chartData, setChartData] = useState<any[]>([]);
   const [stats, setStats] = useState<FWHMResult | null>(null);
+  
+  const resetToDefaults = () => {
+    setType('Pseudo-Voigt');
+    setCenter(30);
+    setFwhmManual(0.5);
+    setEta(0.5);
+    setAmplitude(100);
+    setUseCaglioti(false);
+    setCagliotiPreset('Lab (Cu Kα)');
+    setCagliotiParams({ u: 0.04, v: -0.02, w: 0.04 });
+  };
   
   const [mousePos, setMousePos] = useState<{ x: number, y: number } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -89,12 +122,22 @@ export const FWHMModule: React.FC = () => {
       {/* Configuration Sidebar */}
       <div className="lg:col-span-4 space-y-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="text-xl font-semibold text-slate-800 mb-6 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            Line Profile Simulator
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Line Profile Simulator
+            </h2>
+            <button 
+              onClick={resetToDefaults}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 group"
+              title="Reset all parameters to defaults"
+            >
+              <RotateCcw className="w-3.5 h-3.5 group-hover:rotate-[-45deg] transition-transform" />
+              Reset
+            </button>
+          </div>
 
           <div className="space-y-6">
             <div className="space-y-4">
@@ -159,18 +202,69 @@ export const FWHMModule: React.FC = () => {
               </div>
 
               <div className="group">
-                <div className="flex justify-between items-end mb-3">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">FWHM (Δ2θ)</label>
-                  <div className="bg-white px-2.5 py-1 rounded-md shadow-sm border border-slate-200 relative overflow-hidden">
-                    <span className="text-xs font-mono text-orange-600 font-bold relative z-10">{fwhm.toFixed(3)}°</span>
-                    <div className="absolute inset-0 bg-orange-500/5" />
+                <div className="flex justify-between items-center mb-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">
+                    FWHM {useCaglioti ? '(Caglioti Calculated)' : '(Δ2θ)'}
+                  </label>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setUseCaglioti(!useCaglioti)}
+                      className={`text-[9px] px-2 py-1 rounded border font-bold uppercase tracking-wider transition-colors ${useCaglioti ? 'bg-orange-100 border-orange-300 text-orange-600' : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'}`}
+                    >
+                      Instrumental
+                    </button>
+                    <div className="bg-white px-2.5 py-1 rounded-md shadow-sm border border-slate-200 relative overflow-hidden flex items-center">
+                      <span className={`text-xs font-mono font-bold relative z-10 ${useCaglioti ? 'text-slate-500' : 'text-orange-600'}`}>{fwhm.toFixed(3)}°</span>
+                      <div className={`absolute inset-0 ${useCaglioti ? 'bg-slate-100' : 'bg-orange-500/5'}`} />
+                    </div>
                   </div>
                 </div>
-                <input
-                  type="range" min="0.01" max="5" step="0.01"
-                  value={fwhm} onChange={(e) => setFwhm(parseFloat(e.target.value))}
-                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-                />
+
+                {!useCaglioti ? (
+                  <input
+                    type="range" min="0.01" max="5" step="0.01"
+                    value={fwhmManual} onChange={(e) => setFwhmManual(parseFloat(e.target.value))}
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                  />
+                ) : (
+                  <div className="bg-orange-50/50 p-3 rounded-lg border border-orange-200/50 mt-2 space-y-3">
+                    <div className="flex justify-between items-center">
+                       <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Diffractometer</span>
+                       <select 
+                         value={cagliotiPreset}
+                         onChange={(e) => {
+                           const val = e.target.value;
+                           setCagliotiPreset(val);
+                           if (CAGLIOTI_PRESETS[val]) {
+                             setCagliotiParams(CAGLIOTI_PRESETS[val]);
+                           }
+                         }}
+                         className="text-[10px] bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-orange-400 text-slate-700"
+                       >
+                         {Object.keys(CAGLIOTI_PRESETS).map(k => <option key={k} value={k}>{k}</option>)}
+                         <option value="Custom">Custom</option>
+                       </select>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                       {['u', 'v', 'w'].map(param => (
+                         <div key={param} className="flex flex-col">
+                           <span className="text-[9px] font-black text-slate-400 uppercase">{param}</span>
+                           <input 
+                             type="number"
+                             step="0.001"
+                             value={cagliotiParams[param as keyof typeof cagliotiParams] === 0 ? "0" : cagliotiParams[param as keyof typeof cagliotiParams]}
+                             onChange={(e) => {
+                               setCagliotiPreset('Custom');
+                               setCagliotiParams({...cagliotiParams, [param]: parseFloat(e.target.value) || 0});
+                             }}
+                             className="w-full bg-white border border-slate-200 rounded text-[10px] p-1 font-mono text-slate-700 focus:outline-none focus:border-orange-400"
+                           />
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className={`group transition-all duration-300 ${type === 'Gaussian' || type === 'Lorentzian' ? 'opacity-40 grayscale-[0.5]' : 'opacity-100 grayscale-0'}`}>
@@ -220,6 +314,8 @@ export const FWHMModule: React.FC = () => {
                    {JSON.stringify({
                      module: "FWHM-Basics",
                      profile_type: type,
+                     caglioti_active: useCaglioti,
+                     ...(useCaglioti ? { caglioti_params: cagliotiParams, diffractometer: cagliotiPreset } : {}),
                      results: stats
                    }, null, 2)}
                  </pre>
@@ -369,18 +465,19 @@ export const FWHMModule: React.FC = () => {
                  )}
 
                  {/* Peak Position Line */}
-                 <ReferenceLine x={center} stroke="#1e293b" strokeDasharray="3 3">
-                    <Label value="Peak position 2θ" position="top" fill="#1e293b" fontSize={11} fontWeight="bold" offset={10} />
+                 <ReferenceLine x={center} stroke="#6366f1" strokeDasharray="3 3" opacity={0.6}>
+                    <Label value="Center" position="top" fill="#6366f1" fontSize={11} fontWeight="bold" offset={10} />
                  </ReferenceLine>
+                 <ReferenceDot x={center} y={amplitude} r={5} fill="#6366f1" stroke="white" strokeWidth={2} isFront={true} />
 
                  {/* Imax Line */}
                  <ReferenceLine y={amplitude} stroke="#94a3b8" strokeDasharray="3 3">
-                    <Label value="Imax" position="insideLeft" fill="#1e293b" fontSize={11} fontWeight="bold" offset={10} />
+                    <Label value="Imax" position="insideLeft" fill="#64748b" fontSize={11} fontWeight="bold" offset={10} />
                  </ReferenceLine>
 
                  {/* Half Max Line */}
                  <ReferenceLine y={amplitude / 2} stroke="#94a3b8" strokeDasharray="3 3">
-                    <Label value="Imax / 2" position="insideLeft" fill="#1e293b" fontSize={11} fontWeight="bold" offset={10} />
+                    <Label value="Imax / 2" position="insideLeft" fill="#64748b" fontSize={11} fontWeight="bold" offset={10} />
                  </ReferenceLine>
 
                  {/* FWHM Arrow Segment */}
@@ -389,11 +486,13 @@ export const FWHMModule: React.FC = () => {
                      { x: center - fwhm / 2, y: amplitude / 2 }, 
                      { x: center + fwhm / 2, y: amplitude / 2 }
                    ]} 
-                   stroke="#1e293b" 
-                   strokeWidth={2}
+                   stroke="#f97316" 
+                   strokeWidth={3}
                  >
-                   <Label value="FWHM" position="top" fill="#1e293b" fontSize={11} fontWeight="bold" offset={5} />
+                   <Label value={`FWHM ≈ ${fwhm.toFixed(3)}°`} position="top" fill="#ea580c" fontSize={12} fontWeight="900" offset={8} />
                  </ReferenceLine>
+                 <ReferenceDot x={center - fwhm / 2} y={amplitude / 2} r={5} fill="#f97316" stroke="white" strokeWidth={2} isFront={true} />
+                 <ReferenceDot x={center + fwhm / 2} y={amplitude / 2} r={5} fill="#f97316" stroke="white" strokeWidth={2} isFront={true} />
 
                  {/* Main Peak Area */}
                  <Area 
