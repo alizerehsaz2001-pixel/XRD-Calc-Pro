@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { fetchStandardWavelengths } from '../services/geminiService';
 import { StandardWavelength } from '../types';
+import { XRAY_WAVELENGTHS } from '../utils/physics';
 
 interface BraggInputProps {
   sampleId?: string;
@@ -28,14 +29,9 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   onCalculate
 }) => {
   const { t } = useTranslation();
-  const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>([
-    { label: 'Cu Kα', value: 1.5406, type: 'X-Ray' },
-    { label: 'Mo Kα', value: 0.7107, type: 'X-Ray' },
-    { label: 'Co Kα', value: 1.7890, type: 'X-Ray' },
-    { label: 'Fe Kα', value: 1.9360, type: 'X-Ray' },
-    { label: 'Cr Kα', value: 2.2897, type: 'X-Ray' },
-    { label: 'Ag Kα', value: 0.5594, type: 'X-Ray' },
-  ]);
+  const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>(
+    Object.entries(XRAY_WAVELENGTHS).map(([label, value]) => ({ label, value, type: 'X-Ray' }))
+  );
   const [isSyncing, setIsSyncing] = useState(false);
 
   const handleSync = async () => {

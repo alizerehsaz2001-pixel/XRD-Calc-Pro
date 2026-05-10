@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { IntegralBreadthInput, IntegralBreadthResult } from '../types';
-import { parseIntegralBreadthInput, calculateIntegralBreadth } from '../utils/physics';
+import { parseIntegralBreadthInput, calculateIntegralBreadth, XRAY_WAVELENGTHS } from '../utils/physics';
 import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion, ChevronDown, Check } from 'lucide-react';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
@@ -219,12 +219,23 @@ export const IntegralBreadthModule: React.FC = () => {
                     onChange={(e) => setWavelength(parseFloat(e.target.value))}
                     className="w-full px-4 py-2.5 bg-[#0A101C] text-purple-300 border border-white/10 focus:border-purple-500/50 rounded-lg focus:ring-1 focus:ring-purple-500/20 outline-none font-mono text-sm transition-all"
                   />
-                  <button 
-                    onClick={() => setWavelength(1.5406)}
-                    className="absolute right-1.5 top-1.5 bottom-1.5 px-2 text-[8px] font-black text-slate-500 bg-white/5 hover:bg-purple-500/20 hover:text-purple-400 border border-white/5 hover:border-purple-500/40 rounded transition-colors flex items-center justify-center uppercase tracking-widest"
-                  >
-                    Cu-Kα
-                  </button>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] font-black text-slate-700">Å</div>
+                </div>
+                <div className="mt-3 grid grid-cols-4 gap-1.5">
+                  {Object.entries(XRAY_WAVELENGTHS).slice(0, 4).map(([name, val]) => (
+                    <button
+                      key={name}
+                      onClick={() => setWavelength(val)}
+                      className={`py-1.5 px-0.5 rounded border text-[8px] font-black uppercase tracking-tight transition-all
+                        ${wavelength === val 
+                          ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' 
+                          : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'
+                        }
+                      `}
+                    >
+                      {name.replace(' Kα', '').replace(' (avg)', '')}
+                    </button>
+                  ))}
                 </div>
               </div>
 

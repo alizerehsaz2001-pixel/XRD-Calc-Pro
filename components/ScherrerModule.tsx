@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ScherrerInput, ScherrerResult } from '../types';
-import { parseScherrerInput, calculateScherrer } from '../utils/physics';
+import { parseScherrerInput, calculateScherrer, XRAY_WAVELENGTHS } from '../utils/physics';
 import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -15,14 +15,6 @@ const K_FACTORS = [
   { label: 'Nanowires/Rods', value: 1.1, desc: 'Calculated for high-anisotropy 1D structures', icon: '┃' },
   { label: 'Integral Breadth', value: 1.0, desc: 'Theoretical value when using Integral Breadth instead of FWHM', icon: '∫' },
   { label: 'Custom', value: 0, desc: 'User-defined dimensionless shape factor', icon: '✎' }
-];
-
-const WAVELENGTH_PRESETS = [
-  { target: 'Cu Kα', value: 1.5406, color: 'emerald' },
-  { target: 'Mo Kα', value: 0.7107, color: 'blue' },
-  { target: 'Co Kα', value: 1.7890, color: 'rose' },
-  { target: 'Cr Kα', value: 2.2897, color: 'violet' },
-  { target: 'Ag Kα', value: 0.5594, color: 'sky' }
 ];
 
 const CAGLIOTI_PRESETS = [
@@ -204,20 +196,20 @@ export const ScherrerModule: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-5 gap-2">
-                  {WAVELENGTH_PRESETS.map((p) => (
+                <div className="grid grid-cols-4 gap-2">
+                  {Object.entries(XRAY_WAVELENGTHS).map(([name, val]) => (
                     <button
-                      key={p.target}
-                      onClick={() => setWavelength(p.value)}
-                      className={`py-2 px-1 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all active:scale-90 flex flex-col items-center justify-center gap-1
-                        ${wavelength === p.value 
+                      key={name}
+                      onClick={() => setWavelength(val)}
+                      className={`py-2 px-1 rounded-xl border text-[8px] font-black uppercase tracking-tight transition-all active:scale-90 flex flex-col items-center justify-center gap-1
+                        ${wavelength === val 
                           ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' 
                           : 'bg-black/20 border-slate-700/50 text-slate-500 hover:border-slate-600 hover:text-slate-400'
                         }
                       `}
                     >
-                      <span>{p.target.split(' ')[0]}</span>
-                      <span className="opacity-50 text-[7px]">{p.value.toFixed(2)}</span>
+                      <span className="truncate w-full text-center">{name.replace(' Kα', '').replace(' (avg)', '')}</span>
+                      <span className="opacity-50 text-[6px]">{val.toFixed(3)}</span>
                     </button>
                   ))}
                 </div>

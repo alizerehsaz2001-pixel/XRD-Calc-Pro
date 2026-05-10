@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { NeutronAtom, NeutronResult, StandardWavelength, LatticeParameters, CrystalSystem } from '../types';
-import { calculateNeutronDiffraction, calculateXRayDiffraction, NEUTRON_SCATTERING_LENGTHS, ATOMIC_NUMBERS } from '../utils/physics';
+import { calculateNeutronDiffraction, calculateXRayDiffraction, NEUTRON_SCATTERING_LENGTHS, ATOMIC_NUMBERS, NEUTRON_WAVELENGTHS } from '../utils/physics';
 import { fetchStandardWavelengths } from '../services/geminiService';
 import {
   BarChart,
@@ -327,7 +327,7 @@ export const NeutronModule: React.FC = () => {
               </div>
               <div className="space-y-2">
                  <div className="flex justify-between items-center">
-                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength</label>
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength (Å)</label>
                    <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/5 text-[9px] font-black text-blue-400 hover:bg-blue-500/10 transition-colors uppercase tracking-widest border border-blue-500/20">
                      <Zap className={`w-2.5 h-2.5 ${isSyncing ? 'animate-pulse' : ''}`} /> Sync
                    </button>
@@ -338,9 +338,25 @@ export const NeutronModule: React.FC = () => {
                     step="0.01"
                     value={wavelength}
                     onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                    className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700"
+                    className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700 shadow-inner"
                    />
-                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600 uppercase tracking-widest">Å</span>
+                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-700 uppercase tracking-widest">Å</span>
+                 </div>
+                 <div className="mt-3 grid grid-cols-2 gap-2">
+                   {Object.entries(NEUTRON_WAVELENGTHS).map(([name, val]) => (
+                     <button
+                       key={name}
+                       onClick={() => setWavelength(val)}
+                       className={`py-1.5 px-2 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all
+                         ${wavelength === val 
+                           ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' 
+                           : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-400 hover:border-slate-700'
+                         }
+                       `}
+                     >
+                       {name.replace(' (avg)', '')}
+                     </button>
+                   ))}
                  </div>
               </div>
             </div>

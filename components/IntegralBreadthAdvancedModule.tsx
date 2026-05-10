@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { parseIBAdvancedInput, calculateIBAdvanced } from '../utils/physics';
+import { parseIBAdvancedInput, calculateIBAdvanced, XRAY_WAVELENGTHS } from '../utils/physics';
 import { IBAdvancedResult } from '../types';
 import {
   ComposedChart,
@@ -14,12 +14,6 @@ import {
 } from 'recharts';
 import { RefreshCw, Trash2, Settings2, Info, FileText, ArrowUpRight, TrendingUp, ChevronDown, Zap, Download, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-
-const WAVELENGTH_PRESETS = [
-  { label: 'Cu K-alpha', wavelength: 1.5406, desc: 'Standard lab X-ray source' },
-  { label: 'Mo K-alpha', wavelength: 0.7107, desc: 'High energy X-ray source' },
-  { label: 'Co K-alpha', wavelength: 1.7890, desc: 'Avoids Fe fluorescence' }
-];
 
 const MATERIAL_PRESETS = [
   { 
@@ -226,38 +220,24 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                       onChange={(e) => setWavelength(parseFloat(e.target.value))}
                       className="w-full px-4 py-2.5 bg-[#0A101C] text-pink-300 border border-white/10 focus:border-pink-500/50 rounded-lg focus:ring-1 focus:ring-pink-500/20 outline-none font-mono text-sm transition-all shadow-inner"
                     />
-                    <button
-                      onClick={() => setIsWavelengthMenuOpen(!isWavelengthMenuOpen)}
-                      className="absolute right-1.5 top-1.5 bottom-1.5 p-1.5 bg-white/5 hover:bg-pink-500/20 rounded-md border border-white/5 hover:border-pink-500/40 transition-colors"
-                    >
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                    </button>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] font-black text-slate-700">Å</div>
                   </div>
-                  
-                  <AnimatePresence>
-                    {isWavelengthMenuOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                        className="absolute top-[110%] right-0 w-[240px] bg-[#070D18] border border-pink-500/30 rounded-xl shadow-[0_5px_30px_rgba(0,0,0,0.5)] overflow-hidden z-[100] p-1"
+                  <div className="mt-3 grid grid-cols-4 gap-1.5">
+                    {Object.entries(XRAY_WAVELENGTHS).slice(0, 4).map(([name, val]) => (
+                      <button
+                        key={name}
+                        onClick={() => setWavelength(val)}
+                        className={`py-1.5 px-0.5 rounded border text-[8px] font-black uppercase tracking-tight transition-all
+                          ${wavelength === val 
+                            ? 'bg-pink-500/20 border-pink-500/50 text-pink-400' 
+                            : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'
+                          }
+                        `}
                       >
-                        {WAVELENGTH_PRESETS.map((p) => (
-                          <button
-                            key={p.label}
-                            onClick={() => {
-                              setWavelength(p.wavelength);
-                              setIsWavelengthMenuOpen(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-lg flex flex-col gap-0.5 hover:bg-pink-500/10 transition-colors ${wavelength === p.wavelength ? 'bg-pink-500/5' : ''}`}
-                          >
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${wavelength === p.wavelength ? 'text-pink-400' : 'text-slate-300'}`}>{p.label}</span>
-                            <span className="text-[8px] text-slate-500 font-mono font-bold truncate max-w-full">{p.desc}</span>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        {name.replace(' Kα', '').replace(' (avg)', '')}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">

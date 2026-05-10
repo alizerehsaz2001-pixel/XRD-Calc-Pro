@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MagneticAtom, MagneticResult, LatticeParameters } from '../types';
-import { calculateMagneticDiffraction, NEUTRON_SCATTERING_LENGTHS, MAGNETIC_FORM_FACTORS } from '../utils/physics';
+import { calculateMagneticDiffraction, NEUTRON_SCATTERING_LENGTHS, MAGNETIC_FORM_FACTORS, NEUTRON_WAVELENGTHS } from '../utils/physics';
 import {
   ComposedChart,
   Bar,
@@ -229,13 +229,32 @@ export const MagneticNeutronModule: React.FC = () => {
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">
                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength (Å)</label>
-                   <input
-                    type="number"
-                    step="0.1"
-                    value={wavelength}
-                    onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                    className="w-full px-4 py-3 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-inner"
-                   />
+                   <div className="relative group">
+                     <input
+                      type="number"
+                      step="0.01"
+                      value={wavelength}
+                      onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                      className="w-full px-4 py-3 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-inner"
+                     />
+                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-700 uppercase tracking-widest">Å</span>
+                   </div>
+                   <div className="mt-3 grid grid-cols-2 gap-2">
+                     {Object.entries(NEUTRON_WAVELENGTHS).map(([name, val]) => (
+                       <button
+                         key={name}
+                         onClick={() => setWavelength(val)}
+                         className={`py-1.5 px-2 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all
+                           ${wavelength === val 
+                             ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400' 
+                             : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-400 hover:border-slate-700'
+                           }
+                         `}
+                       >
+                         {name.replace(' (avg)', '')}
+                       </button>
+                     ))}
+                   </div>
                 </div>
                 
                 <div className="space-y-4">

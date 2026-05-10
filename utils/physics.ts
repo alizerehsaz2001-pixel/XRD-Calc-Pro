@@ -474,6 +474,24 @@ export const generateRietveldSetup = (input: RietveldSetupInput): RietveldSetupR
   };
 };
 
+export const XRAY_WAVELENGTHS: Record<string, number> = {
+  'Cu Kα (avg)': 1.54184,
+  'Cu Kα1': 1.54056,
+  'Mo Kα (avg)': 0.71073,
+  'Mo Kα1': 0.70930,
+  'Co Kα (avg)': 1.78897,
+  'Cr Kα (avg)': 2.28970,
+  'Fe Kα (avg)': 1.93604,
+  'Ag Kα (avg)': 0.55941,
+};
+
+export const NEUTRON_WAVELENGTHS: Record<string, number> = {
+  'Thermal (avg)': 1.54,
+  'Cold (avg)': 3.96,
+  'D2O Moderated': 1.25,
+  'Graphite Mono': 2.367,
+};
+
 export const NEUTRON_SCATTERING_LENGTHS: Record<string, number> = {
   H: -3.74, D: 6.67, Li: -1.90, Be: 7.79, B: 5.30, C: 6.65, N: 9.36, O: 5.80, F: 5.65, 
   Na: 3.63, Mg: 5.38, Al: 3.45, Si: 4.15, P: 5.13, S: 2.85, Cl: 9.58, K: 3.67, Ca: 4.70, 

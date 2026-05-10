@@ -468,7 +468,7 @@ export const FWHMModule: React.FC = () => {
                  <ReferenceLine x={center} stroke="#6366f1" strokeDasharray="3 3" opacity={0.6}>
                     <Label value="Center" position="top" fill="#6366f1" fontSize={11} fontWeight="bold" offset={10} />
                  </ReferenceLine>
-                 <ReferenceDot x={center} y={amplitude} r={5} fill="#6366f1" stroke="white" strokeWidth={2} isFront={true} />
+                 <ReferenceDot x={center} y={amplitude} r={5} fill="#6366f1" stroke="white" strokeWidth={2} />
 
                  {/* Imax Line */}
                  <ReferenceLine y={amplitude} stroke="#94a3b8" strokeDasharray="3 3">
@@ -491,8 +491,8 @@ export const FWHMModule: React.FC = () => {
                  >
                    <Label value={`FWHM ≈ ${fwhm.toFixed(3)}°`} position="top" fill="#ea580c" fontSize={12} fontWeight="900" offset={8} />
                  </ReferenceLine>
-                 <ReferenceDot x={center - fwhm / 2} y={amplitude / 2} r={5} fill="#f97316" stroke="white" strokeWidth={2} isFront={true} />
-                 <ReferenceDot x={center + fwhm / 2} y={amplitude / 2} r={5} fill="#f97316" stroke="white" strokeWidth={2} isFront={true} />
+                 <ReferenceDot x={center - fwhm / 2} y={amplitude / 2} r={5} fill="#f97316" stroke="white" strokeWidth={2} />
+                 <ReferenceDot x={center + fwhm / 2} y={amplitude / 2} r={5} fill="#f97316" stroke="white" strokeWidth={2} />
 
                  {/* Main Peak Area */}
                  <Area 
