@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Maximize2, Move, Waves, Play, Pause, RotateCw, Activity, Atom, Info } from 'lucide-react';
+import { useSettings } from './SettingsContext';
 
 interface BraggVisualizationProps {
   wavelength: number;
@@ -8,6 +9,7 @@ interface BraggVisualizationProps {
 }
 
 export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ wavelength, twoTheta: initialTwoTheta }) => {
+  const { precision } = useSettings();
   const [localTwoTheta, setLocalTwoTheta] = useState(initialTwoTheta);
   const [isAutoScanning, setIsAutoScanning] = useState(false);
 
@@ -159,7 +161,7 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
             <div className="relative z-10">
               <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Bragg Resolution</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black font-mono text-emerald-400 tracking-tighter">{theta.toFixed(2)}°</span>
+                <span className="text-2xl font-black font-mono text-emerald-400 tracking-tighter">{theta.toFixed(precision)}°</span>
                 <span className="text-[9px] font-bold text-slate-600 uppercase">Theta</span>
               </div>
             </div>
@@ -170,7 +172,7 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
              <div className="relative z-10">
               <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1">Atom Spacing</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black font-mono text-amber-400 tracking-tighter">{dSpacing.toFixed(4)}</span>
+                <span className="text-2xl font-black font-mono text-amber-400 tracking-tighter">{dSpacing.toFixed(precision)}</span>
                 <span className="text-[9px] font-bold text-slate-600 uppercase">Ångström</span>
               </div>
             </div>

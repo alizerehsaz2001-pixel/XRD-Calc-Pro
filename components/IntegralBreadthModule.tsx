@@ -4,6 +4,7 @@ import { parseIntegralBreadthInput, calculateIntegralBreadth, XRAY_WAVELENGTHS }
 import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion, ChevronDown, Check } from 'lucide-react';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSettings } from './SettingsContext';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -46,6 +47,7 @@ const IB_PRESETS = [
 ];
 
 export const IntegralBreadthModule: React.FC = () => {
+  const { precision } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
   const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
@@ -448,7 +450,7 @@ export const IntegralBreadthModule: React.FC = () => {
              <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Calculated from {results.length} peaks using Integral Breadth</p>
            </div>
            <div className="text-right flex items-end justify-start sm:justify-end gap-2 relative z-10 bg-[#070D18] px-6 py-4 rounded-2xl border border-cyan-500/20 shadow-inner">
-             <span className="text-5xl font-black text-cyan-400 font-mono tracking-tighter drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">{avgSize.toFixed(2)}</span>
+             <span className="text-5xl font-black text-cyan-400 font-mono tracking-tighter drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">{avgSize.toFixed(precision)}</span>
              <span className="text-xl text-cyan-500/60 font-black mb-1">NM</span>
            </div>
         </div>
@@ -492,13 +494,13 @@ export const IntegralBreadthModule: React.FC = () => {
                     return (
                       <tr key={`${res.twoTheta}-${index}`} className="hover:bg-cyan-500/5 transition-colors group/row">
                         <td className="px-6 py-4 font-mono font-bold text-slate-300 group-hover/row:text-white transition-colors">
-                          {res.twoTheta.toFixed(2)}
+                          {res.twoTheta.toFixed(precision)}
                         </td>
                         <td className="px-6 py-4 font-mono text-cyan-400/80 font-bold group-hover/row:text-cyan-300 transition-colors">
-                          {res.integralBreadthDeg.toFixed(4)}
+                          {res.integralBreadthDeg.toFixed(precision)}
                         </td>
                         <td className="px-6 py-4 font-mono text-purple-400/80 group-hover/row:text-purple-300 transition-colors">
-                          {res.shapeFactorPhi.toFixed(3)}
+                          {res.shapeFactorPhi.toFixed(precision)}
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2 py-1 rounded border text-[8px] font-black uppercase tracking-[0.2em] ${
@@ -510,7 +512,7 @@ export const IntegralBreadthModule: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 font-mono text-right font-black text-emerald-400 text-lg drop-shadow-[0_0_10px_rgba(52,211,153,0.2)]">
-                          {res.calcSizeNm.toFixed(2)}
+                          {res.calcSizeNm.toFixed(precision)}
                         </td>
                       </tr>
                     );

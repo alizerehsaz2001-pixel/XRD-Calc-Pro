@@ -28,6 +28,7 @@ import { SideSeekBar } from './components/SideSeekBar';
 import { BraggHistory } from './components/BraggHistory';
 import { BraggVisualization } from './components/BraggVisualization';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { SettingsContext } from './components/SettingsContext';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music } from 'lucide-react';
@@ -43,6 +44,7 @@ const App: React.FC = () => {
   const [activeModule, setActiveModule] = useState<Module>('bragg');
   const [isExplained, setIsExplained] = useState<boolean>(false);
   const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave'>('light');
+  const [precision, setPrecision] = useState<number>(4);
   const mainContentRef = useRef<HTMLDivElement>(null);
   
   // Bragg State
@@ -193,8 +195,9 @@ const App: React.FC = () => {
   const isRTL = i18n.language === 'he' || i18n.language === 'fa';
 
   return (
-    <div className={`${theme === 'light' ? '' : theme} h-full`} dir={isRTL ? 'rtl' : 'ltr'}>
-      <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
+    <SettingsContext.Provider value={{ precision }}>
+      <div className={`${theme === 'light' ? '' : theme} h-full`} dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
         
         {/* Sidebar Navigation */}
         <aside className={`hidden md:flex w-72 flex-col ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'} border-r h-full shrink-0 z-20 shadow-2xl relative transition-colors`}>
@@ -272,6 +275,20 @@ const App: React.FC = () => {
                   <option value="cyberpunk">Cyberpunk 2077</option>
                   <option value="terminal">Retro Terminal</option>
                   <option value="synthwave">Neon Synthwave</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">{t('Data Precision')}</label>
+                <select 
+                  value={precision}
+                  onChange={(e) => setPrecision(parseInt(e.target.value))}
+                  className={`w-full text-xs font-bold p-2.5 rounded-xl transition-all outline-none border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : theme === 'terminal' ? 'bg-black border-green-500 text-green-500' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-transparent focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-800'}`}
+                >
+                  <option value="2">2 Decimals (Standard)</option>
+                  <option value="4">4 Decimals (High)</option>
+                  <option value="6">6 Decimals (Analytical)</option>
+                  <option value="8">8 Decimals (Scientific)</option>
                 </select>
               </div>
             </div>
@@ -420,6 +437,7 @@ const App: React.FC = () => {
         </div>
       </div>
     </div>
+    </SettingsContext.Provider>
   );
 };
 

@@ -63,7 +63,10 @@ const resources = {
       "2theta_deg": "2θ (deg)",
       "d_spacing": "d-spacing (Å)",
       "Q_vector": "Q (1/Å)",
-      "sin_theta": "sin(θ)/λ"
+      "sin_theta": "sin(θ)/λ",
+      "Language": "Language",
+      "Visual Theme": "Visual Theme",
+      "Data Precision": "Data Precision"
     }
   },
   de: {
@@ -126,7 +129,10 @@ const resources = {
       "2theta_deg": "2θ (Grad)",
       "d_spacing": "d-Abstand (Å)",
       "Q_vector": "Q (1/Å)",
-      "sin_theta": "sin(θ)/λ"
+      "sin_theta": "sin(θ)/λ",
+      "Language": "Sprache",
+      "Visual Theme": "Visuelles Thema",
+      "Data Precision": "Datenpräzision"
     }
   },
   fr: {
@@ -189,7 +195,10 @@ const resources = {
       "2theta_deg": "2θ (deg)",
       "d_spacing": "distance d (Å)",
       "Q_vector": "Q (1/Å)",
-      "sin_theta": "sin(θ)/λ"
+      "sin_theta": "sin(θ)/λ",
+      "Language": "Langue",
+      "Visual Theme": "Thème Visuel",
+      "Data Precision": "Précision des Données"
     }
   },
   pt: {

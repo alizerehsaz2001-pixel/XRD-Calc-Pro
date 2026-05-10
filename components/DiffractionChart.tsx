@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { Activity, Terminal } from 'lucide-react';
 import { BraggResult } from '../types';
+import { useSettings } from './SettingsContext';
 
 interface DiffractionChartProps {
   results: BraggResult[];
@@ -19,6 +20,7 @@ interface DiffractionChartProps {
 }
 
 export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, materialName }) => {
+  const { precision } = useSettings();
   const chartData = useMemo(() => {
     if (results.length === 0) return { points: [], peakData: [] };
 
@@ -70,7 +72,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
           <div className="space-y-4">
             <div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Bragg Angularity</p>
-              <p className="text-xl font-black text-white font-mono tracking-tighter">2θ: {d.twoTheta.toFixed(3)}°</p>
+              <p className="text-xl font-black text-white font-mono tracking-tighter">2θ: {d.twoTheta.toFixed(Math.min(precision, 3))}°</p>
             </div>
 
             {d.isPeak && (
@@ -85,11 +87,11 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 <div className="grid grid-cols-2 gap-3">
                    <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                      <p className="text-[8px] font-black text-slate-500 uppercase mb-0.5">d-spacing</p>
-                     <p className="text-[11px] font-bold text-emerald-400 font-mono">{d.dSpacing?.toFixed(4)} Å</p>
+                     <p className="text-[11px] font-bold text-emerald-400 font-mono">{d.dSpacing?.toFixed(precision)} Å</p>
                    </div>
                    <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                      <p className="text-[8px] font-black text-slate-500 uppercase mb-0.5">Q-vector</p>
-                     <p className="text-[11px] font-bold text-sky-400 font-mono">{d.q?.toFixed(4)}</p>
+                     <p className="text-[11px] font-bold text-sky-400 font-mono">{d.q?.toFixed(precision)}</p>
                    </div>
                 </div>
               </>

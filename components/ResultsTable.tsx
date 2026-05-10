@@ -2,6 +2,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { BraggResult } from '../types';
+import { useSettings } from './SettingsContext';
 
 interface ResultsTableProps {
   results: BraggResult[];
@@ -9,6 +10,8 @@ interface ResultsTableProps {
 
 export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   const { t } = useTranslation();
+  const { precision } = useSettings();
+  
   const exportToCSV = () => {
     if (results.length === 0) return;
     
@@ -18,10 +21,10 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     // Data rows
     const rows = results.map(r => [
       r.hkl || '',
-      r.twoTheta.toFixed(4),
-      r.dSpacing.toFixed(4),
-      r.qVector.toFixed(4),
-      r.sinThetaOverLambda.toFixed(4)
+      r.twoTheta.toFixed(precision),
+      r.dSpacing.toFixed(precision),
+      r.qVector.toFixed(precision),
+      r.sinThetaOverLambda.toFixed(precision)
     ]);
     
     // Combine headers and rows
@@ -92,10 +95,10 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
             {results.map((row, index) => (
               <tr key={`${row.twoTheta}-${index}`} className="bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
                 <td className="px-6 py-3 font-bold text-indigo-600 dark:text-indigo-400">({row.hkl || '?'})</td>
-                <td className="px-6 py-3 font-bold text-slate-900 dark:text-slate-100">{row.twoTheta.toFixed(3)}</td>
-                <td className="px-6 py-3 text-indigo-700 dark:text-indigo-300 font-bold font-mono">{row.dSpacing.toFixed(4)}</td>
-                <td className="px-6 py-3 font-mono text-slate-700 dark:text-slate-400">{row.qVector.toFixed(4)}</td>
-                <td className="px-6 py-3 font-mono text-slate-700 dark:text-slate-400">{row.sinThetaOverLambda.toFixed(4)}</td>
+                <td className="px-6 py-3 font-bold text-slate-900 dark:text-slate-100">{row.twoTheta.toFixed(Math.min(precision, 3))}</td>
+                <td className="px-6 py-3 text-indigo-700 dark:text-indigo-300 font-bold font-mono">{row.dSpacing.toFixed(precision)}</td>
+                <td className="px-6 py-3 font-mono text-slate-700 dark:text-slate-400">{row.qVector.toFixed(precision)}</td>
+                <td className="px-6 py-3 font-mono text-slate-700 dark:text-slate-400">{row.sinThetaOverLambda.toFixed(precision)}</td>
               </tr>
             ))}
           </tbody>

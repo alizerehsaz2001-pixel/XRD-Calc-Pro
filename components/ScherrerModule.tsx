@@ -3,6 +3,7 @@ import { ScherrerInput, ScherrerResult } from '../types';
 import { parseScherrerInput, calculateScherrer, XRAY_WAVELENGTHS } from '../utils/physics';
 import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSettings } from './SettingsContext';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -59,6 +60,7 @@ const SCHERRER_PRESETS = [
 ];
 
 export const ScherrerModule: React.FC = () => {
+  const { precision } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
   const [instFwhm, setInstFwhm] = useState<number>(0.1); // Instrumental broadening
@@ -90,7 +92,7 @@ export const ScherrerModule: React.FC = () => {
     
     const csvHeader = "2θ [deg],FWHM Obs [deg],Intensity,Crystallite Size [nm],Error\n";
     const csvRows = results.map(res => 
-      `${res.twoTheta.toFixed(4)},${res.fwhmObs.toFixed(4)},${res.intensity !== undefined ? res.intensity : 'N/A'},${res.error ? 'N/A' : res.sizeNm.toFixed(4)},"${res.error || ''}"`
+      `${res.twoTheta.toFixed(precision)},${res.fwhmObs.toFixed(precision)},${res.intensity !== undefined ? res.intensity.toFixed(precision) : 'N/A'},${res.error ? 'N/A' : res.sizeNm.toFixed(precision)},"${res.error || ''}"`
     ).join("\n");
     
     const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
@@ -643,7 +645,7 @@ export const ScherrerModule: React.FC = () => {
                 <div className="flex items-baseline gap-2 bg-black/40 px-8 py-5 rounded-2xl border border-slate-800 shadow-inner group-hover:border-amber-500/30 transition-all duration-500 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <span className="text-6xl font-black text-white font-mono tracking-tighter relative z-10" style={{ textShadow: '0 0 30px rgba(245,158,11,0.2)' }}>
-                    {avgSize.toFixed(2)}
+                    {avgSize.toFixed(precision)}
                   </span>
                   <span className="text-xl text-amber-500 font-black uppercase tracking-widest opacity-80 relative z-10">nm</span>
                 </div>
@@ -698,8 +700,8 @@ export const ScherrerModule: React.FC = () => {
                   <tbody className="divide-y divide-slate-800/50">
                     {results.map((row, index) => (
                       <tr key={`${row.twoTheta}-${index}`} className="bg-slate-900/10 hover:bg-slate-800/30 transition-all group/row hover:shadow-[0_0_20px_rgba(0,0,0,0.5)]">
-                        <td className="px-8 py-5 font-mono text-sm font-bold text-white group-hover/row:text-indigo-400 transition-colors">{row.twoTheta.toFixed(3)}°</td>
-                        <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400">{row.fwhmObs.toFixed(4)}°</td>
+                        <td className="px-8 py-5 font-mono text-sm font-bold text-white group-hover/row:text-indigo-400 transition-colors">{row.twoTheta.toFixed(precision)}°</td>
+                        <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400">{row.fwhmObs.toFixed(precision)}°</td>
                         <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400">
                           {row.intensity !== undefined ? row.intensity.toFixed(1) : <span className="text-slate-700">N/A</span>}
                         </td>
@@ -710,7 +712,7 @@ export const ScherrerModule: React.FC = () => {
                             </span>
                           ) : (
                             <span className="bg-[#0f1520] text-amber-400 font-mono font-black text-lg px-4 py-2 rounded-xl border border-amber-900/30 inline-block shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] min-w-[100px] text-center">
-                              {row.sizeNm.toFixed(2)}
+                              {row.sizeNm.toFixed(precision)}
                             </span>
                           )}
                         </td>
