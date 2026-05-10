@@ -466,7 +466,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Microstrain</span>
-                  <span className="text-sm font-black font-mono text-cyan-400">{result.strainPercent.toExponential(2)} <span className="text-[10px] opacity-50 font-sans tracking-widest uppercase">%</span></span>
+                  <span className="text-sm font-black font-mono text-cyan-400">{(result.strainPercent / 100 * 10000).toFixed(2)} <span className="text-[10px] opacity-50 font-sans tracking-widest uppercase">× 10⁻⁴</span></span>
                 </div>
               </div>
             )}
@@ -500,9 +500,12 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
            <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] border border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.05)] relative overflow-hidden group hover:border-cyan-500/40 transition-all">
              <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-bl-full transition-all group-hover:scale-110" />
              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 relative z-10">Microstrain (ε)</p>
-             <p className="text-3xl font-black text-white relative z-10 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">
-               {result ? result.strainPercent.toExponential(3) : '-'} <span className="text-lg text-cyan-500/80 font-mono tracking-widest uppercase">%</span>
-             </p>
+             <div className="flex flex-col mt-2 relative z-10">
+               <p className="text-3xl font-black text-white hover:text-cyan-50 transition-colors drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">
+                 {result ? (result.strainPercent / 100 * 10000).toFixed(2) : '-'} <span className="text-lg text-cyan-500/80 font-mono tracking-widest uppercase">× 10⁻⁴</span>
+               </p>
+               {result && <p className="text-[10px] text-slate-400 font-mono mt-1">({result.strainPercent.toFixed(4)}%)</p>}
+             </div>
              <p className="text-[9px] font-black text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded inline-block mt-3 border border-cyan-500/20 uppercase tracking-widest relative z-10">From W-H Slope</p>
            </div>
            

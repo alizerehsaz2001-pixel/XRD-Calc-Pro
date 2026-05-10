@@ -670,7 +670,7 @@ export const WarrenAverbachModule: React.FC = () => {
                             {row.A_size.toFixed(5)}
                          </td>
                          <td className="px-8 py-4 font-black text-cyan-400">
-                            {result.strainDistribution[i]?.rms_strain.toExponential(4)}
+                            <span className="text-white">{(result.strainDistribution[i]?.rms_strain * 10000).toFixed(2)}</span> <span className="text-[10px] text-cyan-500/50 uppercase tracking-widest font-sans">× 10⁻⁴</span>
                          </td>
                       </tr>
                    ))}

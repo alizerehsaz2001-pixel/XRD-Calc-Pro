@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 
 export const FWHMModule: React.FC = () => {
-  const [type, setType] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt'>('Pseudo-Voigt');
+  const [type, setType] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII'>('Pseudo-Voigt');
   const [center, setCenter] = useState<number>(30);
   const [fwhm, setFwhm] = useState<number>(0.5);
   const [eta, setEta] = useState<number>(0.5);
@@ -71,6 +71,13 @@ export const FWHMModule: React.FC = () => {
         if (eta < 0.2) messages.push({ type: 'info', text: "Dominantly Gaussian character (Strain/Instrument dominated)." });
         else if (eta > 0.8) messages.push({ type: 'info', text: "Dominantly Lorentzian character (Size dominated)." });
     }
+    
+    if (type === 'Pearson VII') {
+        const m = Math.max(1, eta * 10);
+        if (m < 1.5) messages.push({ type: 'info', text: `m ≈ ${m.toFixed(1)}: Dominantly Lorentzian (Size dominated).` });
+        else if (m > 5) messages.push({ type: 'info', text: `m ≈ ${m.toFixed(1)}: Approaching Gaussian (Strain/Inst. dominated).` });
+        else messages.push({ type: 'info', text: `m ≈ ${m.toFixed(1)}: Intermediate Voigt-like characteristics.` });
+    }
 
     return { status, messages };
   };
@@ -95,38 +102,40 @@ export const FWHMModule: React.FC = () => {
                 <span>Profile Kernel</span>
                 <span className="text-[9px] bg-orange-100 text-orange-600 px-2.5 py-1 rounded-full border border-orange-200 shadow-sm leading-none flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
-                  {type === 'Pseudo-Voigt' ? 'Hybrid Mode' : 'Single Kernel'}
+                  {type === 'Pseudo-Voigt' || type === 'Pearson VII' ? 'Hybrid Mode' : 'Single Kernel'}
                 </span>
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {(['Gaussian', 'Lorentzian', 'Pseudo-Voigt'] as const).map(t => (
+              <div className="grid grid-cols-2 gap-3">
+                {(['Gaussian', 'Lorentzian', 'Pseudo-Voigt', 'Pearson VII'] as const).map(t => (
                   <button
                     key={t}
                     onClick={() => {
                       setType(t);
                       if (t === 'Gaussian') setEta(0);
                       else if (t === 'Lorentzian') setEta(1);
+                      else if (t === 'Pearson VII') setEta(0.2); // Default m=2 (scaled via eta)
                       else setEta(0.5);
                     }}
-                    className={`flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-1 ${
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 relative overflow-hidden group outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-1 ${
                       type === t 
                         ? 'bg-gradient-to-br from-orange-50 to-rose-50 border-orange-400 shadow-md ring-1 ring-orange-400/20' 
                         : 'bg-white border-slate-200 hover:border-orange-300 hover:bg-orange-50/10 hover:shadow-sm'
                     }`}
                   >
                     {type === t && <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-rose-500" />}
-                    <span className={`text-xs font-black uppercase tracking-wider mb-1.5 transition-colors ${type === t ? 'text-orange-600' : 'text-slate-600 group-hover:text-slate-900'}`}>
-                      {t === 'Pseudo-Voigt' ? 'P-Voigt' : t}
+                    <span className={`text-[11px] font-black uppercase tracking-wider mb-1 transition-colors text-center ${type === t ? 'text-orange-600' : 'text-slate-600 group-hover:text-slate-900'}`}>
+                      {t === 'Pseudo-Voigt' ? 'P-Voigt' : t === 'Pearson VII' ? 'Pearson VII' : t}
                     </span>
-                    <span className={`text-[10px] font-mono tracking-tighter ${type === t ? 'text-orange-500/80' : 'text-slate-400'}`}>
-                      {t === 'Gaussian' ? 'η = 0' : t === 'Lorentzian' ? 'η = 1' : '0 < η < 1'}
+                    <span className={`text-[9px] font-mono tracking-tight text-center ${type === t ? 'text-orange-500/80' : 'text-slate-400'}`}>
+                      {t === 'Gaussian' ? 'η = 0' : t === 'Lorentzian' ? 'η = 1' : t === 'Pearson VII' ? 'm > 1' : '0 < η < 1'}
                     </span>
                     
                     {/* Tiny visual representation */}
-                    <div className="mt-3 h-5 w-14 flex items-end justify-center gap-[2px] opacity-60">
-                       {t === 'Gaussian' && [2, 4, 8, 12, 16, 12, 8, 4, 2].map((h, i) => <div key={i} className={`w-1 bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
-                       {t === 'Lorentzian' && [3, 4, 5, 8, 16, 8, 5, 4, 3].map((h, i) => <div key={i} className={`w-1 bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
-                       {t === 'Pseudo-Voigt' && [2.5, 4, 6.5, 10, 16, 10, 6.5, 4, 2.5].map((h, i) => <div key={i} className={`w-1 bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                    <div className="mt-2 h-4 w-12 flex items-end justify-center gap-[2px] opacity-60">
+                       {t === 'Gaussian' && [2, 4, 8, 12, 16, 12, 8, 4, 2].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                       {t === 'Lorentzian' && [3, 4, 5, 8, 16, 8, 5, 4, 3].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                       {t === 'Pseudo-Voigt' && [2.5, 4, 6.5, 10, 16, 10, 6.5, 4, 2.5].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                       {t === 'Pearson VII' && [2.2, 4, 7, 11, 16, 11, 7, 4, 2.2].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
                     </div>
                   </button>
                 ))}
@@ -164,12 +173,18 @@ export const FWHMModule: React.FC = () => {
                 />
               </div>
 
-              <div className={`group transition-all duration-300 ${type !== 'Pseudo-Voigt' ? 'opacity-40 grayscale-[0.5]' : 'opacity-100 grayscale-0'}`}>
+              <div className={`group transition-all duration-300 ${type === 'Gaussian' || type === 'Lorentzian' ? 'opacity-40 grayscale-[0.5]' : 'opacity-100 grayscale-0'}`}>
                 <div className="flex justify-between items-end mb-3">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">Mixing Factor (η)</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">
+                    {type === 'Pearson VII' ? 'Shape Parameter (m)' : 'Mixing Factor (η)'}
+                  </label>
                   <div className="bg-white px-2 py-1 xl:px-2.5 rounded-md shadow-sm border border-slate-200 flex items-center gap-1.5 xl:gap-2 relative overflow-hidden">
-                    <span className="text-xs font-mono text-orange-600 font-bold relative z-10">{(eta * 100).toFixed(0)}%</span>
-                    <span className="text-[9px] font-black text-slate-400 uppercase relative z-10">Lorentzian</span>
+                    <span className="text-xs font-mono text-orange-600 font-bold relative z-10">
+                      {type === 'Pearson VII' ? Math.max(1, eta * 10).toFixed(1) : `${(eta * 100).toFixed(0)}%`}
+                    </span>
+                    <span className="text-[9px] font-black text-slate-400 uppercase relative z-10">
+                      {type === 'Pearson VII' ? '' : 'Lorentzian'}
+                    </span>
                     <div className="absolute inset-0 bg-orange-500/5" />
                   </div>
                 </div>
@@ -177,14 +192,23 @@ export const FWHMModule: React.FC = () => {
                   type="range" min="0" max="1" step="0.01"
                   value={eta} 
                   onChange={(e) => setEta(parseFloat(e.target.value))}
-                  disabled={type !== 'Pseudo-Voigt'}
+                  disabled={type === 'Gaussian' || type === 'Lorentzian'}
                   className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer transition-all focus:outline-none ${
-                    type === 'Pseudo-Voigt' ? 'bg-slate-200 accent-orange-500 hover:accent-orange-600 focus:ring-2 focus:ring-orange-500/20' : 'bg-slate-200 accent-slate-400 cursor-not-allowed'
+                    type === 'Gaussian' || type === 'Lorentzian' ? 'bg-slate-200 accent-slate-400 cursor-not-allowed' : 'bg-slate-200 accent-orange-500 hover:accent-orange-600 focus:ring-2 focus:ring-orange-500/20'
                   }`}
                 />
                 <div className="flex justify-between text-[9px] text-slate-400 mt-3 font-black uppercase tracking-widest">
-                  <span className={`transition-colors ${type === 'Pseudo-Voigt' && eta < 0.5 ? 'text-orange-500' : ''}`}>Gaussian (0)</span>
-                  <span className={`transition-colors ${type === 'Pseudo-Voigt' &&  eta > 0.5 ? 'text-orange-500' : ''}`}>Lorentzian (1)</span>
+                  {type === 'Pearson VII' ? (
+                    <>
+                      <span className={`transition-colors ${eta < 0.5 ? 'text-orange-500' : ''}`}>m=1 (Lorentzian)</span>
+                      <span className={`transition-colors ${eta > 0.5 ? 'text-orange-500' : ''}`}>m=10 (Gaussian)</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className={`transition-colors ${type === 'Pseudo-Voigt' && eta < 0.5 ? 'text-orange-500' : ''}`}>Gaussian (0)</span>
+                      <span className={`transition-colors ${type === 'Pseudo-Voigt' &&  eta > 0.5 ? 'text-orange-500' : ''}`}>Lorentzian (1)</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

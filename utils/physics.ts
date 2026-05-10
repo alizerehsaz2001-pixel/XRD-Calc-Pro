@@ -22,10 +22,10 @@ export const calculateThetaFromBragg = (wavelength: number, dSpacing: number): n
 
 // Line Profile Simulation
 export const simulatePeak = (
-  type: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt',
+  type: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Pearson VII',
   center: number,
   fwhm: number,
-  eta: number, // Mixing factor for Pseudo-Voigt
+  eta: number, // mixing factor for PV, or shape parameter (m) for Pearson VII
   amplitude: number,
   range: [number, number],
   steps: number = 200
@@ -39,6 +39,12 @@ export const simulatePeak = (
   const gamma = Math.max(0.0001, fwhm / 2);
   // Gaussian sigma
   const sigma = Math.max(0.0001, fwhm / (2 * Math.sqrt(2 * Math.log(2))));
+
+  // Pearson VII variables
+  // For Pearson VII, let's use eta for the 'm' parameter, typically m >= 1.
+  // m=1 is Lorentzian, m=infinity is Gaussian
+  const m = Math.max(1, eta * 10); // scale eta from [0,1] to [1,10] since it's the PV slider. Let's reinterpret eta for Pearson VII.
+  const PVII_w = fwhm / (2 * Math.sqrt(Math.pow(2, 1/m) - 1));
 
   for (let i = 0; i <= steps; i++) {
     const x = start + i * stepSize;
@@ -56,6 +62,10 @@ export const simulatePeak = (
       else y += eta * l;
     }
 
+    if (type === 'Pearson VII') {
+      y = amplitude * Math.pow(1 + Math.pow((x - center) / PVII_w, 2), -m);
+    }
+
     points.push({ x, y });
   }
 
@@ -65,10 +75,18 @@ export const simulatePeak = (
   const areaG = amplitude * sigma * Math.sqrt(2 * Math.PI);
   const areaL = amplitude * Math.PI * gamma;
   
+  // Area of Pearson VII: amplitude * PVII_w * sqrt(PI) * Gamma(m - 0.5) / Gamma(m)
+  // Approximation for gamma function ratio or just numerical integration
   let totalArea = 0;
   if (type === 'Gaussian') totalArea = areaG;
   else if (type === 'Lorentzian') totalArea = areaL;
-  else totalArea = (1 - eta) * areaG + eta * areaL;
+  else if (type === 'Pseudo-Voigt') totalArea = (1 - eta) * areaG + eta * areaL;
+  else {
+     // numerical integration for Pearson VII since Gamma function is complex in pure JS
+     let sum = 0;
+     for (let i = 0; i < steps; i++) sum += (points[i].y + points[i+1].y) / 2 * stepSize;
+     totalArea = sum;
+  }
 
   const integralBreadth = totalArea / amplitude;
   const shapeFactor = fwhm / integralBreadth;

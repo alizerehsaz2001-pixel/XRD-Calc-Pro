@@ -416,9 +416,12 @@ export const WilliamsonHallModule: React.FC = () => {
                <TrendingUp className="w-16 h-16 text-cyan-500" />
              </div>
              <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Microstrain (ε)</p>
-             <p className="text-3xl font-black text-white mt-2 flex items-baseline gap-2 font-mono drop-shadow-[0_0_15px_rgba(34,211,238,0.4)] relative z-10">
-               {result ? result.strainPercent.toExponential(2) : '-'} <span className="text-sm font-black text-cyan-500 tracking-widest uppercase">%</span>
-             </p>
+             <div className="flex flex-col mt-2">
+               <p className="text-3xl font-black text-white flex items-baseline gap-2 font-mono drop-shadow-[0_0_15px_rgba(34,211,238,0.4)] relative z-10">
+                 {result ? (result.strainPercent / 100 * 10000).toFixed(2) : '-'} <span className="text-sm font-black text-cyan-500 tracking-widest uppercase">× 10⁻⁴</span>
+               </p>
+               {result && <p className="text-[10px] text-slate-400 font-mono mt-1">({result.strainPercent.toFixed(4)}%)</p>}
+             </div>
              <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded text-[9px] text-cyan-400 font-black uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/20 relative z-10">
                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
                Derived from Slope

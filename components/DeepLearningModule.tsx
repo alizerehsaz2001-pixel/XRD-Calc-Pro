@@ -2638,7 +2638,6 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Paracetamol', label: 'Paracetamol' },
                     { id: 'Magnetite', label: 'Magnetite' },
                     { id: 'PE', label: 'Polymer (PE)' },
-                    { id: 'YBCO', label: 'YBCO' },
                     { id: 'Cement', label: 'Clinker' },
                     { id: 'Complex', label: 'Complex Mix' }
                   ].map(ex => (
