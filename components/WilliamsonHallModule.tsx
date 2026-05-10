@@ -60,6 +60,7 @@ export const WilliamsonHallModule: React.FC = () => {
   const [constantK, setConstantK] = useState<number>(0.9);
   const [instFwhm, setInstFwhm] = useState<number>(0.1);
   const [inputData, setInputData] = useState<string>("28.44, 0.25\n47.30, 0.28\n56.12, 0.32\n69.13, 0.38\n76.38, 0.42");
+  const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian'>('Gaussian');
   const [result, setResult] = useState<WHResult | null>(null);
   const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
@@ -91,7 +92,7 @@ export const WilliamsonHallModule: React.FC = () => {
 
   const handleCalculate = () => {
     const peaks = parseScherrerInput(inputData);
-    const computed = calculateWilliamsonHall(wavelength, constantK, instFwhm, peaks);
+    const computed = calculateWilliamsonHall(wavelength, constantK, instFwhm, peaks, broadeningModel);
     setResult(computed);
   };
 
@@ -111,7 +112,7 @@ export const WilliamsonHallModule: React.FC = () => {
   useEffect(() => {
     handleCalculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wavelength, constantK, instFwhm, inputData]);
+  }, [wavelength, constantK, instFwhm, inputData, broadeningModel]);
 
   // Prepare chart data
   const chartData = result ? result.points.map(p => ({
@@ -278,10 +279,27 @@ export const WilliamsonHallModule: React.FC = () => {
                 onChange={(e) => setInstFwhm(parseFloat(e.target.value))}
                 className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
               />
-              <div className="mt-3 flex items-start gap-2 text-[9px] font-bold text-slate-400 bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <span className="leading-tight uppercase tracking-widest font-mono text-amber-500/80">
-                   <span className="text-amber-500 mr-1">&gt;</span> <span className="text-amber-400">Instrumental contribution</span> (e.g. standard reference peak width).
-                </span>
+              
+              <div className="mt-4 pt-4 border-t border-white/5">
+                <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-[0.2em]">
+                  Broadening Model
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                   {(['Gaussian', 'Lorentzian'] as const).map(model => (
+                     <button
+                       key={model}
+                       onClick={() => setBroadeningModel(model)}
+                       className={`py-2 px-1 rounded-lg border text-[9px] font-black uppercase tracking-tight transition-all
+                         ${broadeningModel === model ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400 font-black' : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'}
+                       `}
+                     >
+                       {model}
+                     </button>
+                   ))}
+                </div>
+                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-3 leading-relaxed">
+                   {broadeningModel === 'Gaussian' ? 'Quadratic (β²): Used when instrument/strain profiles are Gaussian.' : 'Linear (β): Used when broadening is dominantly Cauchy/Lorentzian.'}
+                </p>
               </div>
             </div>
 

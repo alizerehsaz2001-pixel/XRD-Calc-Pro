@@ -564,7 +564,7 @@ export const FWHMModule: React.FC = () => {
         </div>
 
         {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
            <div className="bg-orange-50 p-5 rounded-xl border border-orange-100">
               <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest block mb-2">Integral Breadth (β)</span>
               <span className="text-2xl font-bold text-slate-800 font-mono">{stats?.integralBreadth.toFixed(4)}°</span>
@@ -576,9 +576,28 @@ export const FWHMModule: React.FC = () => {
               <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">FWHM / β ratio. Pure Gaussian ≈ 0.94, Pure Lorentzian ≈ 0.64.</p>
            </div>
            <div className="bg-white p-5 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Total Integrated Area</span>
-              <span className="text-2xl font-bold text-slate-800 font-mono">{stats?.area.toFixed(1)}</span>
-              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Sum of intensity. Used for structure factor calculations.</p>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Lorentzian % (Size)</span>
+              <div className="flex items-end gap-2">
+                 <span className="text-2xl font-bold text-slate-800 font-mono">
+                   {type === 'Pseudo-Voigt' ? (eta * 100).toFixed(0) : type === 'Lorentzian' ? '100' : '0'}%
+                 </span>
+                 <div className="h-4 w-1 bg-purple-500/20 rounded-full mb-1 overflow-hidden">
+                    <div className="bg-purple-500 w-full" style={{ height: `${type === 'Pseudo-Voigt' ? eta * 100 : type === 'Lorentzian' ? 100 : 0}%` }} />
+                 </div>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Contribution attributed to finite crystallite size effects.</p>
+           </div>
+           <div className="bg-white p-5 rounded-xl border border-slate-200">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Gaussian % (Strain)</span>
+              <div className="flex items-end gap-2">
+                 <span className="text-2xl font-bold text-slate-800 font-mono">
+                   {type === 'Pseudo-Voigt' ? ((1 - eta) * 100).toFixed(0) : type === 'Gaussian' ? '100' : '0'}%
+                 </span>
+                 <div className="h-4 w-1 bg-blue-500/20 rounded-full mb-1 overflow-hidden">
+                    <div className="bg-blue-500 w-full" style={{ height: `${type === 'Pseudo-Voigt' ? (1 - eta) * 100 : type === 'Gaussian' ? 100 : 0}%` }} />
+                 </div>
+              </div>
+              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Contribution from microstrain and instrument resolution.</p>
            </div>
         </div>
 

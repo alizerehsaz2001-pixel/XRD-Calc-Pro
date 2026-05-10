@@ -258,12 +258,11 @@ export const calculateScherrer = (
   } else if (broadeningModel === 'Lorentzian') {
     betaSampleRad = betaObsRad - betaInstRad;
   } else {
-    // Pseudo-Voigt approximation (intermediate)
-    // Beta = sqrt( (B_obs - B_inst) * (B_obs^2 - B_inst^2)^0.5 )
-    // A common simplified PV coupling:
-    const diff = betaObsRad - betaInstRad;
-    const diffSq = Math.pow(betaObsRad, 2) - Math.pow(betaInstRad, 2);
-    betaSampleRad = (diff + Math.sqrt(diffSq)) / 2;
+    // Pseudo-Voigt approximation (de Keijser method / improved decoupling)
+    // Beta_sample = Beta_obs * (1 - (Beta_inst/Beta_obs)^2) for Gaussian
+    // But for a mix, we use the intermediate approximation:
+    const rho = betaInstRad / betaObsRad;
+    betaSampleRad = betaObsRad * (1 - rho * rho); // Improved approximation for general XRD peaks
   }
 
   const betaCorrectedDeg = betaSampleRad * (180 / Math.PI);
@@ -285,7 +284,13 @@ export const calculateScherrer = (
   return { twoTheta, fwhmObs, betaCorrected: betaCorrectedDeg, sizeNm, intensity };
 };
 
-export const calculateWilliamsonHall = (wavelength: number, K: number, instFwhm: number, peaks: ScherrerInput[]): WHResult | null => {
+export const calculateWilliamsonHall = (
+  wavelength: number, 
+  K: number, 
+  instFwhm: number, 
+  peaks: ScherrerInput[],
+  broadeningModel: 'Gaussian' | 'Lorentzian' = 'Gaussian'
+): WHResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
   const points: WHPoint[] = [];
   for (const peak of peaks) {
@@ -293,8 +298,16 @@ export const calculateWilliamsonHall = (wavelength: number, K: number, instFwhm:
     const thetaRad = (twoTheta / 2) * (Math.PI / 180);
     const betaObsRad = fwhmObs * (Math.PI / 180);
     const betaInstRad = instFwhm * (Math.PI / 180);
-    const betaSq = Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad);
-    const betaSampleRad = Math.sqrt(betaSq);
+    
+    let betaSampleRad = 0;
+    if (broadeningModel === 'Gaussian') {
+      const betaSq = Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad);
+      betaSampleRad = Math.sqrt(betaSq);
+    } else {
+      // Lorentzian
+      betaSampleRad = Math.max(0, betaObsRad - betaInstRad);
+    }
+    
     if (betaSampleRad <= 0) continue;
     points.push({ x: 4 * Math.sin(thetaRad), y: betaSampleRad * Math.cos(thetaRad), twoTheta });
   }

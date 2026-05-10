@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScherrerInput, ScherrerResult } from '../types';
 import { parseScherrerInput, calculateScherrer } from '../utils/physics';
-import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const K_FACTORS = [
@@ -92,6 +92,24 @@ export const ScherrerModule: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleSave = () => {
+    if (results.length === 0) return;
+    
+    const csvHeader = "2θ [deg],FWHM Obs [deg],Intensity,Crystallite Size [nm],Error\n";
+    const csvRows = results.map(res => 
+      `${res.twoTheta.toFixed(4)},${res.fwhmObs.toFixed(4)},${res.intensity !== undefined ? res.intensity : 'N/A'},${res.error ? 'N/A' : res.sizeNm.toFixed(4)},"${res.error || ''}"`
+    ).join("\n");
+    
+    const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `scherrer_results_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleCalculate = () => {
     const peaks = parseScherrerInput(inputData);
@@ -412,8 +430,12 @@ export const ScherrerModule: React.FC = () => {
                 <div className="flex items-center gap-2">
                    <Settings className="w-3.5 h-3.5 text-amber-400" />
                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                     Broadening Model
+                     Convolution Decoupling
                    </label>
+                </div>
+                <div className="flex items-center gap-1">
+                   <div className={`w-1.5 h-1.5 rounded-full ${broadeningModel === 'Gaussian' ? 'bg-indigo-500' : broadeningModel === 'Lorentzian' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                   <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{broadeningModel} Kernel</span>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -425,13 +447,20 @@ export const ScherrerModule: React.FC = () => {
                        ${broadeningModel === model ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-black/20 border-slate-800 text-slate-600 hover:text-slate-400'}
                      `}
                    >
-                     {model === 'Pseudo-Voigt' ? 'Voigt-Approx' : model}
+                     {model === 'Pseudo-Voigt' ? 'Stokes/PV' : model}
                    </button>
                  ))}
               </div>
-              <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-3 leading-relaxed">
-                Determines how Instrumental and Sample peaks are decoupled.
-              </p>
+              <div className="mt-3 p-3 bg-black/40 rounded-xl border border-slate-800/50">
+                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed">
+                  {broadeningModel === 'Gaussian' ? 'Quadratic subtraction: β²ₛ = β²ₒ - β²ᵢ. Best for strain/instrumental dominance.' : 
+                   broadeningModel === 'Lorentzian' ? 'Linear subtraction: βₛ = βₒ - βᵢ. Assumes size is the primary broadening source.' : 
+                   'Mixed method: βₛ = βₒ(1 - (βᵢ/βₒ)²). Optimized for realistic convoluted XRD peak profiles.'}
+                </p>
+                <div className="mt-2 h-1 w-full bg-slate-900 rounded-full overflow-hidden flex">
+                  <div className={`h-full transition-all duration-500 ${broadeningModel === 'Gaussian' ? 'w-1/3 bg-indigo-500' : broadeningModel === 'Lorentzian' ? 'w-full bg-emerald-500' : 'w-2/3 bg-amber-500'}`} />
+                </div>
+              </div>
             </div>
 
             <div className="bg-slate-800/40 p-5 rounded-2xl border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
@@ -634,12 +663,22 @@ export const ScherrerModule: React.FC = () => {
           <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col flex-1 min-h-[400px]">
              <div className="p-6 border-b border-slate-800 bg-black/20 flex justify-between items-center backdrop-blur-sm relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent pointer-events-none" />
-                <div className="flex items-center gap-3 relative z-10">
-                  <Database className="w-5 h-5 text-indigo-400" />
-                  <div>
-                    <h3 className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] leading-none mb-1 text-shadow-sm">Analytical Databank</h3>
-                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Peak-by-peak Resolution Metrics</p>
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="flex items-center gap-3">
+                    <Database className="w-5 h-5 text-indigo-400" />
+                    <div>
+                      <h3 className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] leading-none mb-1 text-shadow-sm">Analytical Databank</h3>
+                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Peak-by-peak Resolution Metrics</p>
+                    </div>
                   </div>
+                  <button
+                    onClick={handleSave}
+                    disabled={results.length === 0}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-black rounded-xl transition-all border border-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed group/save shadow-inner uppercase tracking-widest"
+                  >
+                    <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+                    Save CSV
+                  </button>
                 </div>
               {results.some(r => r.error) && (
                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 relative z-10">
