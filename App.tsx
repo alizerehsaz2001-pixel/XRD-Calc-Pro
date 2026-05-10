@@ -18,6 +18,7 @@ import { DeepLearningModule } from './components/DeepLearningModule';
 import { FWHMModule } from './components/FWHMModule';
 import { ImageAnalysisModule } from './components/ImageAnalysisModule';
 import { ImageGenerationModule } from './components/ImageGenerationModule';
+import { SettingsModule } from './components/SettingsModule';
 import { ProfilePage } from './components/ProfilePage';
 import { LearnModule } from './components/LearnModule';
 import { AIChatSupport } from './components/AIChatSupport';
@@ -31,9 +32,9 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext } from './components/SettingsContext';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check } from 'lucide-react';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'learn' | 'profile';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'learn' | 'profile' | 'settings';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -45,6 +46,8 @@ const App: React.FC = () => {
   const [isExplained, setIsExplained] = useState<boolean>(false);
   const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave'>('light');
   const [precision, setPrecision] = useState<number>(4);
+  const [animationsEnabled, setAnimationsEnabled] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const mainContentRef = useRef<HTMLDivElement>(null);
   
   // Bragg State
@@ -63,12 +66,12 @@ const App: React.FC = () => {
     }
   });
 
-  // Reset explanation state when module changes (except for profile/learn)
+  // Reset explanation state when module changes (except for profile/learn/settings)
   useEffect(() => {
-    if (activeModule !== 'profile' && activeModule !== 'learn') {
+    if (activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings') {
       setIsExplained(false);
     } else {
-      setIsExplained(true); // Auto-explain profile/learn
+      setIsExplained(true); // Auto-explain profile/learn/settings
     }
   }, [activeModule]);
 
@@ -190,6 +193,7 @@ const App: React.FC = () => {
     { id: 'image_gen', label: t('Scientific Illustrator'), group: t('AI Tools') },
     { id: 'learn', label: t('Protocol Guide'), group: t('Intelligence') },
     { id: 'profile', label: t('Laboratory Director'), group: t('Intelligence') },
+    { id: 'settings', label: t('Settings'), group: t('Intelligence') },
   ];
 
   const isRTL = i18n.language === 'he' || i18n.language === 'fa';
@@ -240,61 +244,11 @@ const App: React.FC = () => {
                 </div>
               </div>
             ))}
-            <div className="h-8"></div>
           </div>
           
-          <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col gap-3">
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">{t('Language')}</label>
-                <select 
-                  value={i18n.language}
-                  onChange={(e) => i18n.changeLanguage(e.target.value)}
-                  className={`w-full text-xs font-bold p-2.5 rounded-xl transition-all outline-none border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : theme === 'terminal' ? 'bg-black border-green-500 text-green-500' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-transparent focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-800'}`}
-                >
-                  <option value="en">English</option>
-                  <option value="de">Deutsch</option>
-                  <option value="fr">Français</option>
-                  <option value="es">Español</option>
-                  <option value="ru">Русский</option>
-                  <option value="pt">Português</option>
-                  <option value="he">עברית</option>
-                  <option value="fa">فارسی</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">{t('Visual Theme')}</label>
-                <select 
-                  value={theme}
-                  onChange={(e) => setTheme(e.target.value as any)}
-                  className={`w-full text-xs font-bold p-2.5 rounded-xl transition-all outline-none border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : theme === 'terminal' ? 'bg-black border-green-500 text-green-500' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-transparent focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-800'}`}
-                >
-                  <option value="light">Light Mode</option>
-                  <option value="dark">Dark Mode</option>
-                  <option value="cyberpunk">Cyberpunk 2077</option>
-                  <option value="terminal">Retro Terminal</option>
-                  <option value="synthwave">Neon Synthwave</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 ml-1">{t('Data Precision')}</label>
-                <select 
-                  value={precision}
-                  onChange={(e) => setPrecision(parseInt(e.target.value))}
-                  className={`w-full text-xs font-bold p-2.5 rounded-xl transition-all outline-none border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : theme === 'terminal' ? 'bg-black border-green-500 text-green-500' : 'bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border-transparent focus:border-indigo-500/50 focus:bg-white dark:focus:bg-slate-800'}`}
-                >
-                  <option value="2">2 Decimals (Standard)</option>
-                  <option value="4">4 Decimals (High)</option>
-                  <option value="6">6 Decimals (Analytical)</option>
-                  <option value="8">8 Decimals (Scientific)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center mt-2">
-              <div className="mb-1 font-bold">v2.5.0 • {t('Lab Active')}</div>
+          <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
+              <div className="mb-1 font-bold uppercase tracking-widest">v2.5.0 • {t('Lab Active')}</div>
               <div className="opacity-60">{t('Designed by')} Ali Zerehsaz</div>
             </div>
           </div>
@@ -320,10 +274,40 @@ const App: React.FC = () => {
                 <option value="de">DE</option>
                 <option value="fr">FR</option>
                 <option value="es">ES</option>
-                <option value="ru">RU</option>
                 <option value="pt">PT</option>
+                <option value="it">IT</option>
+                <option value="nl">NL</option>
+                <option value="ca">CA</option>
+                <option value="ru">RU</option>
+                <option value="uk">UK</option>
+                <option value="bg">BG</option>
+                <option value="cs">CS</option>
+                <option value="sk">SK</option>
+                <option value="ro">RO</option>
+                <option value="hu">HU</option>
+                <option value="pl">PL</option>
+                <option value="hr">HR</option>
+                <option value="sr">SR</option>
+                <option value="sl">SL</option>
+                <option value="tr">TR</option>
+                <option value="el">EL</option>
                 <option value="he">HE</option>
                 <option value="fa">FA</option>
+                <option value="ar">AR</option>
+                <option value="hi">HI</option>
+                <option value="bn">BN</option>
+                <option value="ja">JA</option>
+                <option value="zh">ZH</option>
+                <option value="ko">KO</option>
+                <option value="ms">MS</option>
+                <option value="tl">TL</option>
+                <option value="vi">VI</option>
+                <option value="id">ID</option>
+                <option value="sv">SV</option>
+                <option value="da">DA</option>
+                <option value="no">NO</option>
+                <option value="fi">FI</option>
+                <option value="th">TH</option>
               </select>
               <select
                 value={theme}
@@ -421,6 +405,18 @@ const App: React.FC = () => {
                   {activeModule === 'image_gen' && <ImageGenerationModule />}
                   {activeModule === 'learn' && <LearnModule />}
                   {activeModule === 'profile' && <ProfilePage />}
+                  {activeModule === 'settings' && (
+                    <SettingsModule 
+                      theme={theme}
+                      setTheme={setTheme}
+                      precision={precision}
+                      setPrecision={setPrecision}
+                      animationsEnabled={animationsEnabled}
+                      setAnimationsEnabled={setAnimationsEnabled}
+                      soundEnabled={soundEnabled}
+                      setSoundEnabled={setSoundEnabled}
+                    />
+                  )}
                 </ErrorBoundary>
               )}
             </div>

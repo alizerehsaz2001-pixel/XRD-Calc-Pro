@@ -49,18 +49,19 @@ export const isPermissionError = (error: any): boolean => {
   );
 };
 
-export const generateScientificImage = async (prompt: string, size: '1K' | '2K' | '4K'): Promise<string | null> => {
+export const generateScientificImage = async (prompt: string, size: '1K' | '2K' | '4K', styleLabel?: string): Promise<string | null> => {
   // Create a new instance to ensure the most up-to-date API key is used (if selected via UI)
   const dynamicAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-  const model = 'imagen-3.0-generate-001'; // Fallback to a targetable name if available, or just use flash
+  const model = 'imagen-3.0-generate-001'; 
 
   try {
+    const styleContext = styleLabel ? ` in the style of a ${styleLabel}` : '';
     const response = await dynamicAi.models.generateContent({
       model,
       contents: {
         parts: [
           {
-            text: `Generate a high-quality scientific illustration or diagram suitable for crystallography analysis. Prompt: ${prompt}`
+            text: `Generate a high-quality scientific illustration or diagram suitable for crystallography analysis${styleContext}. Prompt: ${prompt}`
           },
         ],
       },
@@ -292,6 +293,26 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
     if (isQuotaError(error)) throw new Error("Quota exceeded (429).");
     if (isPermissionError(error)) throw new Error("Permission denied (403). API key might result in restriction for image analysis.");
     throw error;
+  }
+};
+
+export const enhanceScientificPrompt = async (prompt: string, style: string): Promise<string> => {
+  try {
+    const model = 'gemini-2.0-flash';
+    const response = await ai.models.generateContent({
+      model,
+      contents: `You are an expert scientific illustrator. Transform the following user description into a detailed, high-quality prompt for an image generation AI. 
+
+The goal is to create a ${style} image.
+
+User Description: "${prompt}"
+
+Your output should be a single paragraph that describes colors, lighting, perspective, scientific accuracy, and artistic quality. Do not include any introductory text, just the prompt.`,
+    });
+    return response.text || prompt;
+  } catch (error) {
+    console.error("Prompt enhancement error:", error);
+    return prompt;
   }
 };
 
