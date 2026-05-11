@@ -1,15 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-  ComposedChart, Area, Scatter 
+  ComposedChart, Area, Scatter, AreaChart
 } from 'recharts';
 import { 
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
-  Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, 
-  Binary, Zap, Gauge, LineChart as ChartIcon, Database
+  Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, AlertTriangle, 
+  Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer
 } from 'lucide-react';
-import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem } from '../types';
-import { generateRietveldSetup, calculateBragg, simulatePeak } from '../utils/physics';
+import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
+import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
 
 // --- Simulation Constants & Types ---
 
@@ -54,9 +54,57 @@ export const RietveldModule: React.FC = () => {
     { name: 'Phase 1', crystalSystem: 'Cubic', a: 5.43 }
   ]);
   const [maxObsIntensity, setMaxObsIntensity] = useState<number>(5000);
-  const [bgModel, setBgModel] = useState<'Chebyshev_6_term' | 'Linear_Interpolation'>('Chebyshev_6_term');
-  const [profileShape, setProfileShape] = useState<'Thompson-Cox-Hastings' | 'Pseudo-Voigt'>('Thompson-Cox-Hastings');
+  const [bgModel, setBgModel] = useState<'Chebyshev' | 'Linear_Interpolation' | 'Polynomial' | 'Shifted_Chebyshev'>('Chebyshev');
+  const [bgTerms, setBgTerms] = useState<number>(6);
+  const [profileShape, setProfileShape] = useState<'Thompson-Cox-Hastings' | 'Pseudo-Voigt' | 'Pearson-VII'>('Thompson-Cox-Hastings');
+  const [wavelength, setWavelength] = useState<number>(1.5406);
+  const [radSource, setRadSource] = useState<string>('Cu_Ka1');
+  const [setupZeroShift, setSetupZeroShift] = useState<number>(0);
+  const [sampleDisplacement, setSampleDisplacement] = useState<number>(0);
+  const [polarization, setPolarization] = useState<number>(0);
+  const [expertMode, setExpertMode] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
   const [result, setResult] = useState<RietveldSetupResult | null>(null);
+
+  const refinementMetrics = useMemo(() => {
+    let globalActive = bgModel !== 'Linear_Interpolation' ? bgTerms : 0;
+    // Assume zero shift is refined
+    globalActive += 1; 
+    
+    let phaseParams = 0;
+    let activePhases = 0;
+    
+    phases.forEach(p => {
+      let pCount = 0;
+      if (p.refineScale) pCount++;
+      if (p.refineLattice) {
+        if (p.crystalSystem === 'Cubic') pCount += 1;
+        else if (p.crystalSystem.includes('Tetragonal') || p.crystalSystem === 'Hexagonal') pCount += 2;
+        else if (p.crystalSystem.includes('Orthorhombic')) pCount += 3;
+        else if (p.crystalSystem === 'Monoclinic') pCount += 4;
+        else pCount += 6;
+      }
+      if (p.refineProfile) pCount += 4; // U, V, W, Eta
+      if (p.refineMicrostrain) pCount++;
+      if (p.refineCrystalliteSize) pCount++;
+      if (p.refineAtomicPos) pCount += (p.atoms?.length || 0) * 3;
+      if (p.refineBiso) pCount += (p.atoms?.length || 0);
+      if (p.refineOcc) pCount += (p.atoms?.length || 0);
+      if (p.refinePrefOrient) pCount++;
+      if (p.refineExtinction) pCount++;
+      
+      if (pCount > 0) {
+        phaseParams += pCount;
+        activePhases++;
+      }
+    });
+
+    return { global: globalActive, phase: phaseParams, total: globalActive + phaseParams, activePhases };
+  }, [phases, bgModel, bgTerms]);
+
+  // --- Simulation Tracking ---
+  const [rHistory, setRHistory] = useState<{iter: number, r: number}[]>([]);
+  const [iterCount, setIterCount] = useState(0);
 
   // --- Simulation Logic ---
 
@@ -210,6 +258,29 @@ export const RietveldModule: React.FC = () => {
     return data;
   }, [userParams, targetParams, simPhase]);
 
+  // Track R-factor history
+  useEffect(() => {
+    if (isAutoRefining) {
+      setRHistory(prev => {
+        const next = [...prev, { iter: iterCount, r: rFactor }];
+        if (next.length > 50) return next.slice(1);
+        return next;
+      });
+      setIterCount(c => c + 1);
+    } else if (iterCount > 0 && rFactor < 1) {
+       // converged basically
+    } else {
+      // If manually changed and not refining, maybe clear or keep?
+      // Let's clear history when starting a new refinement
+    }
+  }, [rFactor, isAutoRefining]);
+
+  // Reset tracking when phase changes
+  useEffect(() => {
+    setRHistory([]);
+    setIterCount(0);
+  }, [simPhase]);
+
   // Auto-Refine Loop
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -249,12 +320,112 @@ export const RietveldModule: React.FC = () => {
   // --- Setup Generator Logic ---
   const updatePhase = (index: number, field: keyof RietveldPhaseInput, value: any) => {
     const newPhases = [...phases];
-    newPhases[index] = { ...newPhases[index], [field]: value };
+    const updatedPhase = { ...newPhases[index], [field]: value };
+    
+    // Lattice Synchronization logic
+    if (field === 'a' || field === 'crystalSystem') {
+      const a = field === 'a' ? value : updatedPhase.a;
+      const sys = field === 'crystalSystem' ? value : updatedPhase.crystalSystem;
+      
+      if (sys === 'Cubic') {
+        updatedPhase.b = a;
+        updatedPhase.c = a;
+      } else if (sys === 'Tetragonal' || sys === 'Hexagonal') {
+        updatedPhase.b = a;
+      }
+    }
+    
+    newPhases[index] = updatedPhase;
     setPhases(newPhases);
+  };
+
+  const addAtom = (phaseIdx: number) => {
+    const nextPhases = [...phases];
+    const currentAtoms = nextPhases[phaseIdx].atoms || [];
+    nextPhases[phaseIdx] = {
+      ...nextPhases[phaseIdx],
+      atoms: [...currentAtoms, { element: 'Si', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.5 }]
+    };
+    setPhases(nextPhases);
+  };
+
+  const updateAtom = (phaseIdx: number, atomIdx: number, field: keyof RietveldAtom, value: any) => {
+    const nextPhases = [...phases];
+    const atoms = [...(nextPhases[phaseIdx].atoms || [])];
+    atoms[atomIdx] = { ...atoms[atomIdx], [field]: value };
+    nextPhases[phaseIdx] = { ...nextPhases[phaseIdx], atoms };
+    setPhases(nextPhases);
+  };
+
+  const removeAtom = (phaseIdx: number, atomIdx: number) => {
+    const nextPhases = [...phases];
+    const atoms = (nextPhases[phaseIdx].atoms || []).filter((_, i) => i !== atomIdx);
+    nextPhases[phaseIdx] = { ...nextPhases[phaseIdx], atoms };
+    setPhases(nextPhases);
+  };
+
+  const clearAtoms = (phaseIdx: number) => {
+    const nextPhases = [...phases];
+    nextPhases[phaseIdx] = { ...nextPhases[phaseIdx], atoms: [] };
+    setPhases(nextPhases);
   };
 
   const addPhase = () => {
     setPhases([...phases, { name: `Phase ${phases.length + 1}`, crystalSystem: 'Cubic', a: 5.0 }]);
+  };
+
+  const validateSetup = () => {
+    const issues: string[] = [];
+    if (phases.length === 0) issues.push("At least one phase is required.");
+    phases.forEach((p, i) => {
+      const name = p.name || `Phase ${i+1}`;
+      if (p.a <= 0) issues.push(`${name}: Lattice parameter 'a' must be positive.`);
+      if (['Orthorhombic', 'Tetragonal', 'Hexagonal', 'Monoclinic', 'Triclinic'].includes(p.crystalSystem) && (!p.c || p.c <= 0)) {
+        issues.push(`${name}: Lattice parameter 'c' must be positive.`);
+      }
+      (p.atoms || []).forEach((atom, ai) => {
+        if (atom.occupancy < 0) issues.push(`${name}, Atom ${ai+1}: Occupancy cannot be negative.`);
+        if (atom.bIso < 0) issues.push(`${name}, Atom ${ai+1}: B-iso cannot be negative.`);
+      });
+    });
+    return issues;
+  };
+
+  const duplicatePhase = (index: number) => {
+    const phaseToCopy = phases[index];
+    setPhases([...phases, { ...JSON.parse(JSON.stringify(phaseToCopy)), name: `${phaseToCopy.name} (Copy)` }]);
+  };
+
+  const applyPreset = (index: number, presetType: 'Si' | 'LaB6' | 'Al2O3') => {
+    const presets: Record<string, Partial<RietveldPhaseInput>> = {
+      Si: { 
+        name: 'Silicon (Standard)', crystalSystem: 'Cubic', spaceGroup: 'Fd-3m', a: 5.4309, 
+        zValue: 8, molarMass: 28.085,
+        atoms: [{ element: 'Si', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.45 }]
+      },
+      LaB6: { 
+        name: 'LaB6 (Standard)', crystalSystem: 'Cubic', spaceGroup: 'Pm-3m', a: 4.156, 
+        zValue: 1, molarMass: 203.77,
+        atoms: [
+          { element: 'La', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.5 },
+          { element: 'B', x: 0.5, y: 0, z: 0, occupancy: 1, bIso: 0.6 }
+        ]
+      },
+      Al2O3: { 
+        name: 'Alumina (Alpha)', crystalSystem: 'Hexagonal', spaceGroup: 'R-3c', a: 4.758, c: 12.991,
+        zValue: 6, molarMass: 101.96,
+        atoms: [
+          { element: 'Al', x: 0, y: 0, z: 0.352, occupancy: 1, bIso: 0.3 },
+          { element: 'O', x: 0.306, y: 0, z: 0.25, occupancy: 1, bIso: 0.4 }
+        ]
+      }
+    };
+    
+    if (presets[presetType]) {
+      const newPhases = [...phases];
+      newPhases[index] = { ...newPhases[index], ...presets[presetType] };
+      setPhases(newPhases);
+    }
   };
 
   const removePhase = (index: number) => {
@@ -264,13 +435,69 @@ export const RietveldModule: React.FC = () => {
   };
 
   const handleGenerate = () => {
+    const issues = validateSetup();
+    if (issues.length > 0) {
+      setShowValidation(true);
+      return;
+    }
     const output = generateRietveldSetup({
       phases,
       maxObsIntensity,
       backgroundModel: bgModel,
-      profileShape
+      bgTerms,
+      profileShape,
+      wavelength,
+      zeroShift: setupZeroShift,
+      sampleDisplacement,
+      polarization
     });
     setResult(output);
+    setShowValidation(false);
+    // Scroll to result
+    setTimeout(() => {
+      const el = document.getElementById('rietveld-result');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const applyRefinementPreset = (phaseIdx: number, type: 'full' | 'lattice' | 'profile' | 'structure' | 'none') => {
+    const p = {...phases[phaseIdx]};
+    if (type === 'full') {
+      p.refineLattice = true;
+      p.refineProfile = true;
+      p.refineAtomicPos = true;
+      p.refineScale = true;
+      p.refineBiso = true;
+      p.refinePrefOrient = true;
+      p.refineMicrostrain = true;
+      p.refineCrystalliteSize = true;
+    } else if (type === 'lattice') {
+      p.refineLattice = true;
+      p.refineScale = true;
+      p.refineProfile = false;
+      p.refineAtomicPos = false;
+    } else if (type === 'profile') {
+      p.refineProfile = true;
+      p.refineMicrostrain = true;
+      p.refineCrystalliteSize = true;
+      p.refineLattice = false;
+    } else if (type === 'structure') {
+      p.refineAtomicPos = true;
+      p.refineBiso = true;
+      p.refineOcc = true;
+    } else {
+      p.refineLattice = false;
+      p.refineProfile = false;
+      p.refineAtomicPos = false;
+      p.refineScale = false;
+      p.refineBiso = false;
+      p.refinePrefOrient = false;
+      p.refineMicrostrain = false;
+      p.refineCrystalliteSize = false;
+    }
+    const newPhases = [...phases];
+    newPhases[phaseIdx] = p;
+    setPhases(newPhases);
   };
 
   return (
@@ -323,7 +550,15 @@ export const RietveldModule: React.FC = () => {
                   </div>
                   <div>
                     <h2 className="text-xl font-black text-white tracking-tight">Refinement Core</h2>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Parameter Matrix</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Parameter Matrix</p>
+                      {isAutoRefining && (
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-teal-500/10 border border-teal-500/20 rounded-full">
+                           <RefreshCw className="w-2.5 h-2.5 text-teal-400 animate-spin" />
+                           <span className="text-[8px] font-black text-teal-400 uppercase tracking-widest">Optimizing</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -552,12 +787,65 @@ export const RietveldModule: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="mt-4 flex items-center gap-3 bg-teal-500/5 p-4 rounded-xl border border-teal-500/10 backdrop-blur-sm">
-                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse shadow-[0_0_8px_rgba(20,184,166,0.8)] shrink-0" />
-                    <p className="text-[10px] text-teal-400/80 leading-relaxed font-bold uppercase tracking-wider">
-                      Optimization Strategy: Target Residual Reduction below 15%
-                    </p>
-                  </div>
+                  {rHistory.length > 2 && (
+                    <div className="mt-4 p-4 bg-black/40 rounded-2xl border border-slate-800/50 animate-in fade-in zoom-in duration-500">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Convergence Trend</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-bold text-teal-400/70 uppercase">Iter</span>
+                          <span className="text-[10px] font-mono font-black text-teal-400">{iterCount}</span>
+                        </div>
+                      </div>
+                      <div className="h-20 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={rHistory}>
+                            <defs>
+                              <linearGradient id="rGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <Area 
+                              type="monotone" 
+                              dataKey="r" 
+                              stroke="#14b8a6" 
+                              fill="url(#rGradient)" 
+                              strokeWidth={2}
+                              isAnimationActive={false}
+                            />
+                            <YAxis hide domain={['dataMin', 'dataMax']} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
+
+                  {isAutoRefining && (
+                    <div className="mt-4 flex items-center gap-3 bg-teal-500/10 p-4 rounded-xl border border-teal-500/20 backdrop-blur-sm animate-pulse">
+                      <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-ping shadow-[0_0_8px_rgba(20,184,166,0.8)] shrink-0" />
+                      <p className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">
+                         Status: Engine running... Minimizing {rFactor > 20 ? 'Structural Mismatch' : 'Residual Noise'}
+                      </p>
+                    </div>
+                  )}
+
+                  {!isAutoRefining && rHistory.length > 0 && rFactor < 15 && (
+                    <div className="mt-4 flex items-center gap-3 bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20 backdrop-blur-sm">
+                      <Zap className="w-4 h-4 text-emerald-400" />
+                      <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                         Refinement Converged: Global Minimum Reached
+                      </p>
+                    </div>
+                  )}
+                  
+                  {!isAutoRefining && rHistory.length === 0 && (
+                    <div className="mt-4 flex items-center gap-3 bg-teal-500/5 p-4 rounded-xl border border-teal-500/10 backdrop-blur-sm">
+                      <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse shadow-[0_0_8px_rgba(20,184,166,0.8)] shrink-0" />
+                      <p className="text-[10px] text-teal-400/80 leading-relaxed font-bold uppercase tracking-wider">
+                        Optimization Strategy: Target Residual Reduction below 15%
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -680,7 +968,52 @@ export const RietveldModule: React.FC = () => {
         </div>
       ) : (
         // --- Setup Generator Tab Content ---
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
+        <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+          {/* Refinement Dashboard Card */}
+          <div className="bg-[#0B1221] p-6 rounded-3xl border border-[#1e293b] shadow-2xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+              <RefreshCw className="w-32 h-32 rotate-12" />
+            </div>
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center">
+                    <Database className="w-5 h-5 text-teal-400" />
+                  </div>
+                  <h2 className="text-2xl font-black text-white tracking-tight">Setup Dashboard</h2>
+                </div>
+                <p className="text-slate-400 text-sm font-medium max-w-md leading-relaxed">
+                  Total refined parameters: <span className="text-teal-400 font-bold">{refinementMetrics.total}</span>. 
+                  Strategy includes <span className="text-amber-400 font-bold">{refinementMetrics.global} global</span> and <span className="text-indigo-400 font-bold">{refinementMetrics.phase} phase</span> coefficients.
+                </p>
+                <p className="text-slate-400 text-[10px] font-medium leading-relaxed mt-2 italic flex items-center gap-1.5">
+                  <Info className="w-3 h-3 text-teal-400" />
+                  Guide: Start with Scale/Bkg, then Zero-Shift, Lattice, Peak Shape, and Structure.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap md:flex-nowrap gap-4 w-full md:w-auto">
+                 <div className="flex-1 md:flex-none bg-[#050B14] px-5 py-3 rounded-2xl border border-[#1e293b] flex flex-col items-center min-w-[100px]">
+                    <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Active Flags</span>
+                    <span className="text-xl font-black text-teal-400 font-mono">{refinementMetrics.total}</span>
+                 </div>
+                 <div className="flex-1 md:flex-none bg-[#050B14] px-5 py-3 rounded-2xl border border-[#1e293b] flex flex-col items-center min-w-[100px]">
+                    <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Active Phases</span>
+                    <span className="text-xl font-black text-amber-400 font-mono">{refinementMetrics.activePhases}</span>
+                 </div>
+                 <button 
+                    onClick={handleGenerate}
+                    className="flex-1 md:flex-none px-6 py-3 bg-teal-500 hover:bg-teal-400 text-[#050B14] rounded-2xl font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(20,184,166,0.2)] hover:shadow-[0_0_30px_rgba(20,184,166,0.4)] transition-all flex items-center justify-center gap-2 group/btn"
+                  >
+                    <Zap className="w-4 h-4 group-hover:scale-125 transition-transform" />
+                    Build Strategy
+                  </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Configuration */}
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] shadow-[0_0_50px_rgba(20,184,166,0.05)] border border-[#1e293b] relative overflow-hidden">
@@ -695,41 +1028,143 @@ export const RietveldModule: React.FC = () => {
     
               <div className="space-y-6 relative z-10">
                 {/* Global Settings */}
-                <div className="space-y-4 pb-6 border-b border-[#1e293b]">
-                  <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-4 h-[2px] bg-[#1e293b]"></span> Global Parameters
-                  </h3>
-                  <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] shadow-inner">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Max Observed Intensity</label>
-                    <input
-                      type="number"
-                      value={maxObsIntensity}
-                      onChange={(e) => setMaxObsIntensity(parseFloat(e.target.value))}
-                      className="w-full px-4 py-2.5 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
-                    />
+                {/* Global Parameters Section */}
+                <div className="bg-[#0B1221] p-5 rounded-2xl border border-[#1e293b] shadow-inner space-y-5">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                       Global Configuration
+                    </h3>
+                    <button 
+                      onClick={() => setExpertMode(!expertMode)}
+                      className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border transition-all ${expertMode ? 'bg-amber-500/20 border-amber-500/40 text-amber-500' : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300'}`}
+                    >
+                      {expertMode ? 'Expert Mode: ON' : 'Expert Mode: OFF'}
+                    </button>
                   </div>
+
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] shadow-inner">
-                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Background Model</label>
-                       <select 
-                          value={bgModel}
-                          onChange={(e) => setBgModel(e.target.value as any)}
-                          className="w-full px-3 py-2.5 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
-                       >
-                         <option value="Chebyshev_6_term">Chebyshev (6-term)</option>
-                         <option value="Linear_Interpolation">Linear Interp</option>
-                       </select>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Max Obs Intensity</label>
+                      <input
+                        type="number"
+                        value={maxObsIntensity}
+                        onChange={(e) => setMaxObsIntensity(parseFloat(e.target.value))}
+                        className="w-full px-4 py-2.5 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all shadow-inner"
+                      />
                     </div>
-                    <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] shadow-inner">
-                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Profile Function</label>
-                       <select 
-                          value={profileShape}
-                          onChange={(e) => setProfileShape(e.target.value as any)}
-                          className="w-full px-3 py-2.5 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
-                       >
-                         <option value="Thompson-Cox-Hastings">Thompson-Cox-Hastings</option>
-                         <option value="Pseudo-Voigt">Pseudo-Voigt</option>
-                       </select>
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Radiation Source</label>
+                      <select 
+                         value={radSource}
+                         onChange={(e) => {
+                           setRadSource(e.target.value);
+                           if (e.target.value === 'Cu_Ka1') setWavelength(1.54056);
+                           else if (e.target.value === 'Cu_Ka_avg') setWavelength(1.5418);
+                           else if (e.target.value === 'Co_Ka1') setWavelength(1.78896);
+                           else if (e.target.value === 'Mo_Ka1') setWavelength(0.70932);
+                           else if (e.target.value === 'Cr_Ka1') setWavelength(2.2897);
+                         }}
+                         className="w-full px-3 py-2.5 bg-[#050B14] text-amber-400 border border-[#1e293b] rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
+                      >
+                        <option value="Cu_Ka1">Cu Kα1 (1.5406 Å)</option>
+                        <option value="Cu_Ka_avg">Cu Kα Avg (1.5418 Å)</option>
+                        <option value="Co_Ka1">Co Kα1 (1.7890 Å)</option>
+                        <option value="Mo_Ka1">Mo Kα1 (0.7093 Å)</option>
+                        <option value="Cr_Ka1">Cr Kα1 (2.2897 Å)</option>
+                        <option value="Custom">Custom λ</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {radSource === 'Custom' && (
+                    <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner animate-in slide-in-from-top-1">
+                      <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Custom Wavelength (Å)</label>
+                      <input
+                        type="number" step="0.0001"
+                        value={wavelength}
+                        onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                        className="w-full bg-transparent text-amber-400 text-xs font-mono font-bold focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  <div className="pt-4 border-t border-[#1e293b]/50">
+                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <Compass className="w-3 h-3" /> Instrumental Parameters
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                        <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Zero Shift (°)</label>
+                        <input
+                          type="number" step="0.001"
+                          value={setupZeroShift}
+                          onChange={(e) => setSetupZeroShift(parseFloat(e.target.value))}
+                          className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
+                        />
+                      </div>
+                      <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                        <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Sample Displ. (SyCos)</label>
+                        <input
+                          type="number" step="0.001"
+                          value={sampleDisplacement}
+                          onChange={(e) => setSampleDisplacement(parseFloat(e.target.value))}
+                          className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                      <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Polarization Factor (Lp)</label>
+                      <input
+                        type="number" step="0.001"
+                        value={polarization}
+                        onChange={(e) => setPolarization(parseFloat(e.target.value))}
+                        className="w-full bg-transparent text-amber-400 text-xs font-mono font-bold focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-[#1e293b]/50">
+                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <Activity className="w-3 h-3" /> Background & Profile
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <select 
+                           value={bgModel}
+                           onChange={(e) => setBgModel(e.target.value as any)}
+                           className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-[10px] font-bold focus:outline-none"
+                        >
+                          <option value="Chebyshev">Chebyshev Polynomial</option>
+                          <option value="Shifted_Chebyshev">Shifted Chebyshev</option>
+                          <option value="Polynomial">Standard Polynomial</option>
+                          <option value="Linear_Interpolation">Linear Background</option>
+                        </select>
+                        {bgModel !== 'Linear_Interpolation' && (
+                          <div className="flex items-center gap-2 px-2 py-1.5 bg-[#050B14] rounded-lg border border-[#1e293b]">
+                            <span className="text-[8px] font-black text-slate-500 uppercase">Terms:</span>
+                            <input 
+                              type="number" min="1" max="24"
+                              value={bgTerms}
+                              onChange={(e) => setBgTerms(parseInt(e.target.value))}
+                              className="w-full bg-transparent text-teal-400 text-[10px] font-mono font-black focus:outline-none"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <select 
+                           value={profileShape}
+                           onChange={(e) => setProfileShape(e.target.value as any)}
+                           className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-[10px] font-bold focus:outline-none"
+                        >
+                          <option value="Thompson-Cox-Hastings">Thompson-Cox (TCHZ)</option>
+                          <option value="Pseudo-Voigt">Pseudo-Voigt (η)</option>
+                          <option value="Pearson-VII">Pearson-VII (m)</option>
+                        </select>
+                        <div className="mt-2 text-[8px] font-medium text-slate-600 px-1 leading-tight">
+                          Default: Full Axial Divergence Correction included
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -748,26 +1183,157 @@ export const RietveldModule: React.FC = () => {
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {phases.map((phase, idx) => (
                       <div key={`phase-ref-${idx}-${phase.name}`} className="bg-[#0B1221] p-5 rounded-2xl border border-[#1e293b] shadow-inner relative group/phase transition-colors hover:border-teal-500/30">
-                        {phases.length > 1 && (
+                        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/phase:opacity-100 transition-opacity">
+                          <div className="relative group/presets">
+                             <button className="text-slate-500 hover:text-amber-400 bg-[#050B14] p-1.5 rounded-lg border border-[#1e293b] hover:border-amber-500/50 transition-all shadow-sm flex items-center gap-1">
+                               <PlayCircle className="w-3.5 h-3.5" />
+                               <span className="text-[7px] font-black uppercase">Refine</span>
+                             </button>
+                             <div className="absolute right-0 top-full mt-2 w-48 bg-[#0F172A] border border-slate-800 rounded-xl shadow-2xl z-50 py-1 hidden group-hover/presets:block animate-in fade-in slide-in-from-top-1">
+                               <div className="px-3 py-1.5 border-b border-slate-800 mb-1">
+                                 <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Setup Presets</span>
+                               </div>
+                               <button onClick={() => applyRefinementPreset(idx, 'full')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-teal-400 flex items-center justify-between">
+                                 <span>Full Characterization</span>
+                                 <Zap className="w-3 h-3 text-amber-500" />
+                               </button>
+                               <button onClick={() => applyRefinementPreset(idx, 'lattice')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-teal-400">Lattice & Scale Only</button>
+                               <button onClick={() => applyRefinementPreset(idx, 'profile')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-teal-400">Peak Shape Optimization</button>
+                               <button onClick={() => applyRefinementPreset(idx, 'structure')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-teal-400">Atomic Positions (SOF/Biso)</button>
+                               <div className="my-1 border-t border-slate-800"></div>
+                               <button onClick={() => applyRefinementPreset(idx, 'none')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-rose-500 hover:bg-rose-500/10">Clear All Flags</button>
+                             </div>
+                          </div>
+                          
                           <button 
-                            onClick={() => removePhase(idx)}
-                            className="absolute top-4 right-4 text-slate-500 hover:text-red-400 bg-[#050B14] p-1.5 rounded-lg border border-[#1e293b] hover:border-red-500/50 transition-all shadow-sm"
+                            onClick={() => duplicatePhase(idx)}
+                            className="text-slate-500 hover:text-teal-400 bg-[#050B14] p-1.5 rounded-lg border border-[#1e293b] hover:border-teal-500/50 transition-all shadow-sm"
+                            title="Duplicate Phase"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
+                            <RotateCcw className="w-3.5 h-3.5" />
                           </button>
-                        )}
+
+                          {phases.length > 1 && (
+                            <button 
+                              onClick={() => removePhase(idx)}
+                              className="text-slate-500 hover:text-red-400 bg-[#050B14] p-1.5 rounded-lg border border-[#1e293b] hover:border-red-500/50 transition-all shadow-sm"
+                              title="Remove Phase"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
                         
-                        <div className="grid gap-4">
-                          <div>
-                            <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-black mb-2">Phase Name</label>
-                            <input
-                              type="text"
-                              value={phase.name}
-                              onChange={(e) => updatePhase(idx, 'name', e.target.value)}
-                              className="w-full px-4 py-2 bg-[#050B14] text-white border border-[#1e293b] rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
-                            />
+                         <div className="grid gap-4">
+                           <div className="flex justify-between items-end gap-4">
+                             <div className="flex-1">
+                               <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-black mb-2">Phase Name</label>
+                               <input
+                                 type="text"
+                                 value={phase.name}
+                                 onChange={(e) => updatePhase(idx, 'name', e.target.value)}
+                                 className="w-full px-4 py-2 bg-[#050B14] text-white border border-[#1e293b] rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
+                               />
+                             </div>
+                             <div className="flex gap-2 mb-1">
+                               <button 
+                                 onClick={() => updatePhase(idx, 'refineScale', !phase.refineScale)}
+                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineScale ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
+                                 title="Refine Phase Scale"
+                               >
+                                 <Scale className="w-3 h-3" />
+                                 <span className="text-[6px] font-black tracking-tighter">SCALE</span>
+                               </button>
+                               <button 
+                                 onClick={() => updatePhase(idx, 'refineLattice', !phase.refineLattice)}
+                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineLattice ? 'bg-teal-500/20 border-teal-500/40 text-teal-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
+                                 title="Refine Lattice"
+                               >
+                                 <Ruler className="w-3 h-3" />
+                                 <span className="text-[6px] font-black tracking-tighter">LAT</span>
+                               </button>
+                               <button 
+                                 onClick={() => updatePhase(idx, 'refineProfile', !phase.refineProfile)}
+                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineProfile ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
+                                 title="Refine Profile"
+                               >
+                                 <Activity className="w-3 h-3" />
+                                 <span className="text-[6px] font-black tracking-tighter">PROF</span>
+                               </button>
+                               <button 
+                                 onClick={() => updatePhase(idx, 'refineAtomicPos', !phase.refineAtomicPos)}
+                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineAtomicPos ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
+                                 title="Refine Structure"
+                               >
+                                 <Layers className="w-3 h-3" />
+                                 <span className="text-[6px] font-black tracking-tighter">STRUC</span>
+                               </button>
+                               <button 
+                                 onClick={() => updatePhase(idx, 'refineMicrostrain', !phase.refineMicrostrain)}
+                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineMicrostrain ? 'bg-amber-500/20 border-amber-500/40 text-amber-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
+                                 title="Refine Microstrain (Gaussian)"
+                               >
+                                 <Zap className="w-3 h-3" />
+                                 <span className="text-[6px] font-black tracking-tighter">STRAIN</span>
+                               </button>
+                               <button 
+                                 onClick={() => updatePhase(idx, 'refineCrystalliteSize', !phase.refineCrystalliteSize)}
+                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineCrystalliteSize ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
+                                 title="Refine Size (Lorentzian)"
+                               >
+                                 <Maximize className="w-3 h-3" />
+                                 <span className="text-[6px] font-black tracking-tighter">SIZE</span>
+                               </button>
+                               <button 
+                                 onClick={() => updatePhase(idx, 'refineExtinction', !phase.refineExtinction)}
+                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineExtinction ? 'bg-orange-500/20 border-orange-500/40 text-orange-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
+                                 title="Refine Extinction"
+                               >
+                                 <AlertTriangle className="w-3 h-3" />
+                                 <span className="text-[6px] font-black tracking-tighter">EXT</span>
+                               </button>
+                               <button 
+                                 onClick={() => updatePhase(idx, 'refinePrefOrient', !phase.refinePrefOrient)}
+                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refinePrefOrient ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
+                                 title="Refine Preferred Orientation"
+                               >
+                                 <Compass className="w-3 h-3" />
+                                 <span className="text-[6px] font-black tracking-tighter">PREF</span>
+                               </button>
+                               <button 
+                                 onClick={() => updatePhase(idx, 'refineBiso', !phase.refineBiso)}
+                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineBiso ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
+                                 title="Refine B-iso"
+                               >
+                                 <Thermometer className="w-3 h-3" />
+                                 <span className="text-[6px] font-black tracking-tighter">BISO</span>
+                               </button>
+                             </div>
+                           </div>
+                           
+                           <div className="grid grid-cols-2 gap-4">
+                             <div>
+                                <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-black mb-2">Space Group</label>
+                               <input
+                                 type="text"
+                                 placeholder="e.g. Fd-3m"
+                                 value={phase.spaceGroup || ''}
+                                 onChange={(e) => updatePhase(idx, 'spaceGroup', e.target.value)}
+                                 className="w-full px-4 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
+                               />
+                             </div>
+                             <div>
+                                <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-black mb-2">Phase Scale</label>
+                               <input
+                                 type="number"
+                                 step="0.0001"
+                                 value={phase.scale || 1.0}
+                                 onChange={(e) => updatePhase(idx, 'scale', parseFloat(e.target.value))}
+                                 className="w-full px-4 py-2 bg-[#050B14] text-blue-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-inner"
+                               />
+                            </div>
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -786,10 +1352,10 @@ export const RietveldModule: React.FC = () => {
                               </select>
                             </div>
                             <div>
-                               <label className="block text-[10px] uppercase text-slate-500 font-black mb-2 tracking-widest">a (Å)</label>
+                               <label className="block text-[10px] uppercase text-slate-400 font-black mb-2 tracking-widest">a (Å)</label>
                                <input
                                 type="number"
-                                step="0.01"
+                                step="0.001"
                                 value={phase.a}
                                 onChange={(e) => updatePhase(idx, 'a', parseFloat(e.target.value))}
                                 className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 shadow-inner"
@@ -836,13 +1402,356 @@ export const RietveldModule: React.FC = () => {
                                         />
                                     </div>
                                  )}
-                            </div>
-                          )}
+                              </div>
+                           )}
+
+                           {/* Physical Density Calculator Fields */}
+                           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#1e293b]/50">
+                             <div>
+                               <label className="block text-[10px] uppercase text-slate-500 font-black mb-2 tracking-widest">Z (Formula Units)</label>
+                               <input
+                                  type="number"
+                                  placeholder="e.g. 8"
+                                  value={phase.zValue || ''}
+                                  onChange={(e) => updatePhase(idx, 'zValue', parseInt(e.target.value))}
+                                  className="w-full px-3 py-2.5 bg-[#050B14] text-amber-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30 shadow-inner"
+                                />
+                             </div>
+                             <div>
+                               <label className="block text-[10px] uppercase text-slate-500 font-black mb-2 tracking-widest">Molar Mass (g/mol)</label>
+                               <input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="e.g. 28.08"
+                                  value={phase.molarMass || ''}
+                                  onChange={(e) => updatePhase(idx, 'molarMass', parseFloat(e.target.value))}
+                                  className="w-full px-3 py-2.5 bg-[#050B14] text-amber-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30 shadow-inner"
+                                />
+                             </div>
+                           </div>
+
+                           {expertMode && (
+                             <div className="pt-4 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                               <h4 className="text-[9px] font-black text-rose-400/70 uppercase tracking-[0.2em] mb-2 px-1">Caglioti Peak Parameters (U, V, W)</h4>
+                               <div className="grid grid-cols-3 gap-3">
+                                 <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1 truncate">U</label>
+                                   <input
+                                      type="number"
+                                      step="0.001"
+                                      value={phase.u || 0.01}
+                                      onChange={(e) => updatePhase(idx, 'u', parseFloat(e.target.value))}
+                                      className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
+                                    />
+                                 </div>
+                                 <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1 truncate">V</label>
+                                   <input
+                                      type="number"
+                                      step="0.001"
+                                      value={phase.v || -0.01}
+                                      onChange={(e) => updatePhase(idx, 'v', parseFloat(e.target.value))}
+                                      className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
+                                    />
+                                 </div>
+                                 <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1 truncate">W</label>
+                                   <input
+                                      type="number"
+                                      step="0.001"
+                                      value={phase.w || 0.01}
+                                      onChange={(e) => updatePhase(idx, 'w', parseFloat(e.target.value))}
+                                      className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
+                                    />
+                                 </div>
+                               </div>
+
+                               <div className="grid grid-cols-2 gap-3">
+                                 <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1">LX (Size - Lorentzian)</label>
+                                   <input
+                                      type="number"
+                                      step="0.001"
+                                      value={phase.lx || 0}
+                                      onChange={(e) => updatePhase(idx, 'lx', parseFloat(e.target.value))}
+                                      className="w-full bg-transparent text-indigo-400 text-xs font-mono font-bold focus:outline-none"
+                                    />
+                                 </div>
+                                 <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1">LY (Strain - Lorentzian)</label>
+                                   <input
+                                      type="number"
+                                      step="0.001"
+                                      value={phase.ly || 0}
+                                      onChange={(e) => updatePhase(idx, 'ly', parseFloat(e.target.value))}
+                                      className="w-full bg-transparent text-indigo-400 text-xs font-mono font-bold focus:outline-none"
+                                    />
+                                 </div>
+                               </div>
+
+                               <div className="grid grid-cols-2 gap-3">
+                                 <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1">Mixing Eta (G/L Mix)</label>
+                                   <input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      max="1"
+                                      value={phase.eta || 0.5}
+                                      onChange={(e) => updatePhase(idx, 'eta', parseFloat(e.target.value))}
+                                      className="w-full bg-transparent text-teal-400 text-xs font-mono font-bold focus:outline-none"
+                                    />
+                                 </div>
+                                 <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1">March-Dollase (r)</label>
+                                   <input
+                                      type="number"
+                                      step="0.01"
+                                      value={phase.marchDollase || 1.0}
+                                      onChange={(e) => updatePhase(idx, 'marchDollase', parseFloat(e.target.value))}
+                                      className="w-full bg-transparent text-amber-400 text-xs font-mono font-bold focus:outline-none"
+                                    />
+                                 </div>
+                               </div>
+
+                               <div className="grid grid-cols-2 gap-3">
+                                 <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1">Peak Asymmetry</label>
+                                   <input
+                                      type="number"
+                                      step="0.001"
+                                      value={phase.asymmetry || 0}
+                                      onChange={(e) => updatePhase(idx, 'asymmetry', parseFloat(e.target.value))}
+                                      className="w-full bg-transparent text-emerald-400 text-xs font-mono font-bold focus:outline-none"
+                                    />
+                                 </div>
+                                 <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1">Extinction (Eb)</label>
+                                   <input
+                                      type="number"
+                                      step="0.001"
+                                      value={phase.extinction || 0}
+                                      onChange={(e) => updatePhase(idx, 'extinction', parseFloat(e.target.value))}
+                                      className="w-full bg-transparent text-orange-400 text-xs font-mono font-bold focus:outline-none"
+                                    />
+                                 </div>
+                               </div>
+
+                               {(phase.refinePrefOrient || phase.marchDollase !== undefined) && (
+                                 <div className="bg-[#0B1221] p-4 rounded-xl border border-cyan-500/20 mt-4 space-y-3 animate-in fade-in slide-in-from-top-1">
+                                    <h4 className="text-[9px] font-black text-cyan-400/70 uppercase tracking-[0.2em] flex items-center gap-2">
+                                      <Compass className="w-3 h-3" /> Preferred Orientation Setup
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                        <label className="block text-[8px] uppercase text-slate-600 font-black mb-1">March-Dollase r</label>
+                                        <input
+                                          type="number" step="0.01" min="0" max="1"
+                                          value={phase.marchDollase || 1.0}
+                                          onChange={(e) => updatePhase(idx, 'marchDollase', parseFloat(e.target.value))}
+                                          className="w-full bg-transparent text-cyan-400 text-xs font-mono font-bold focus:outline-none"
+                                        />
+                                      </div>
+                                      <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                                        <label className="block text-[8px] uppercase text-slate-600 font-black mb-1">PO Vector [HKL]</label>
+                                        <div className="flex gap-2">
+                                          {[0, 1, 2].map(i => (
+                                            <input
+                                              key={`hkl-${i}`}
+                                              type="number"
+                                              value={phase.prefOrientHKL ? phase.prefOrientHKL[i] : (i === 2 ? 1 : 0)}
+                                              onChange={(e) => {
+                                                const current = phase.prefOrientHKL || [0, 0, 1];
+                                                const next = [...current] as [number, number, number];
+                                                next[i] = parseInt(e.target.value) || 0;
+                                                updatePhase(idx, 'prefOrientHKL', next);
+                                              }}
+                                              className="w-1/3 bg-transparent text-cyan-400 text-xs font-mono font-bold focus:outline-none text-center border-b border-[#1e293b]"
+                                            />
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <p className="text-[8px] text-slate-500 font-medium italic">
+                                      r &lt; 1: Platy (needle-like) habit; r &gt; 1: Acicular habit. Usually refined along unique axis.
+                                    </p>
+                                 </div>
+                               )}
+
+                               <div className="space-y-3">
+                                 <div className="flex justify-between items-center px-1">
+                                   <div className="flex flex-col">
+                                     <h4 className="text-[9px] font-black text-teal-400/70 uppercase tracking-[0.2em]">Atomic Structure ({phase.atoms?.length || 0})</h4>
+                                     {phase.a > 0 && phase.zValue && phase.molarMass && (
+                                       <span className="text-[8px] text-slate-500 font-bold">
+                                         Estimated Density: {( (phase.zValue * phase.molarMass) / (calculateCellVolume({
+                                           a: phase.a,
+                                           b: phase.b || phase.a,
+                                           c: phase.c || phase.a,
+                                           alpha: phase.alpha || 90,
+                                           beta: phase.beta || 90,
+                                           gamma: phase.gamma || 90
+                                         }) * 0.6022) ).toFixed(3)} g/cm³
+                                       </span>
+                                     )}
+                                   </div>
+                                   <div className="flex gap-2">
+                                     {phase.atoms && phase.atoms.length > 0 && (
+                                       <button 
+                                         onClick={() => clearAtoms(idx)}
+                                         className="text-slate-400 hover:text-rose-400 text-[8px] bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 transition-all font-black uppercase tracking-widest"
+                                       >
+                                         Clear
+                                       </button>
+                                     )}
+                                     <button 
+                                       onClick={() => addAtom(idx)}
+                                       className="text-white hover:text-teal-400 text-[9px] bg-teal-500/20 px-2 py-0.5 rounded border border-teal-500/30 transition-all font-black uppercase tracking-widest"
+                                     >
+                                       + Add Atom
+                                     </button>
+                                   </div>
+                                 </div>
+                                 
+                                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                                   {(phase.atoms || []).map((atom, aIdx) => (
+                                     <div key={`atom-${idx}-${aIdx}`} className="grid grid-cols-6 gap-2 bg-[#050B14] p-2 rounded-lg border border-slate-800 relative group/atom hover:border-slate-700 transition-colors">
+                                       <div className="col-span-1">
+                                         <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5">El</label>
+                                         <input 
+                                           value={atom.element} 
+                                           onChange={(e) => updateAtom(idx, aIdx, 'element', e.target.value)}
+                                           className="w-full bg-transparent text-white text-[10px] font-bold focus:outline-none"
+                                         />
+                                       </div>
+                                       <div className="col-span-3 grid grid-cols-3 gap-1">
+                                         <div>
+                                           <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5">X</label>
+                                           <input 
+                                             type="number" step="0.001"
+                                             value={atom.x} 
+                                             onChange={(e) => updateAtom(idx, aIdx, 'x', parseFloat(e.target.value))}
+                                             className="w-full bg-transparent text-teal-400 text-[10px] font-mono focus:outline-none"
+                                           />
+                                         </div>
+                                         <div>
+                                           <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5">Y</label>
+                                           <input 
+                                             type="number" step="0.001"
+                                             value={atom.y} 
+                                             onChange={(e) => updateAtom(idx, aIdx, 'y', parseFloat(e.target.value))}
+                                             className="w-full bg-transparent text-teal-400 text-[10px] font-mono focus:outline-none"
+                                           />
+                                         </div>
+                                         <div>
+                                           <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5">Z</label>
+                                           <input 
+                                             type="number" step="0.001"
+                                             value={atom.z} 
+                                             onChange={(e) => updateAtom(idx, aIdx, 'z', parseFloat(e.target.value))}
+                                             className="w-full bg-transparent text-teal-400 text-[10px] font-mono focus:outline-none"
+                                           />
+                                         </div>
+                                       </div>
+                                       <div className="col-span-1">
+                                         <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5 text-center">SOF</label>
+                                         <input 
+                                           type="number" step="0.1"
+                                           value={atom.occupancy} 
+                                           onChange={(e) => updateAtom(idx, aIdx, 'occupancy', parseFloat(e.target.value))}
+                                           className="w-full text-center bg-transparent text-amber-400 text-[10px] font-mono focus:outline-none"
+                                         />
+                                       </div>
+                                       <div className="col-span-1 flex items-center gap-1">
+                                         <div className="flex-1">
+                                           <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5">Biso</label>
+                                           <input 
+                                             type="number" step="0.1"
+                                             value={atom.bIso} 
+                                             onChange={(e) => updateAtom(idx, aIdx, 'bIso', parseFloat(e.target.value))}
+                                             className="w-full bg-transparent text-rose-400 text-[10px] font-mono focus:outline-none"
+                                           />
+                                         </div>
+                                         <button onClick={() => removeAtom(idx, aIdx)} className="opacity-0 group-hover/atom:opacity-100 text-rose-500 hover:text-rose-400 transition-opacity">
+                                           <RotateCcw className="w-3 h-3 transform rotate-45" />
+                                         </button>
+                                       </div>
+                                     </div>
+                                   ))}
+                                   {(!phase.atoms || phase.atoms.length === 0) && (
+                                     <div className="text-center py-4 bg-[#050B14]/50 rounded-xl border border-dashed border-slate-800">
+                                       <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">No Atoms Defined - Use Defaults</span>
+                                     </div>
+                                   )}
+                                 </div>
+                               </div>
+                             </div>
+                           )}
+
+                           {/* Live Calculator Results */}
+                           <div className="mt-4 bg-gradient-to-br from-[#0B1221] to-[#050B14] p-4 rounded-2xl border border-[#1e293b] flex justify-between items-center group/calc shadow-lg animate-in slide-in-from-bottom-2">
+                             <div className="flex gap-6">
+                               <div>
+                                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Cell Volume</span>
+                                 <div className="flex items-baseline gap-1">
+                                   <span className="text-sm font-mono font-black text-teal-400">
+                                     {calculateCellVolume({
+                                        a: phase.a,
+                                        b: phase.b || phase.a,
+                                        c: phase.c || phase.a,
+                                        alpha: phase.alpha || 90,
+                                        beta: phase.beta || 90,
+                                        gamma: phase.gamma || 90
+                                     }).toFixed(3)}
+                                   </span>
+                                   <span className="text-[10px] font-bold text-slate-600">Å³</span>
+                                 </div>
+                               </div>
+                               {phase.zValue && phase.molarMass && (
+                                 <div className="border-l border-[#1e293b] pl-6">
+                                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Theoretical Density</span>
+                                   <div className="flex items-baseline gap-1">
+                                     <span className="text-sm font-mono font-black text-amber-400">
+                                       {((phase.zValue * phase.molarMass) / (0.602214 * calculateCellVolume({
+                                          a: phase.a,
+                                          b: phase.b || phase.a,
+                                          c: phase.c || phase.a,
+                                          alpha: phase.alpha || 90,
+                                          beta: phase.beta || 90,
+                                          gamma: phase.gamma || 90
+                                       }))).toFixed(3)}
+                                     </span>
+                                     <span className="text-[10px] font-bold text-slate-600">g/cm³</span>
+                                   </div>
+                                 </div>
+                               )}
+                             </div>
+                             <div className="p-2 bg-teal-500/10 rounded-lg border border-teal-500/20 group-hover/calc:border-teal-500/50 transition-all">
+                               <Calculator className="w-4 h-4 text-teal-500" />
+                             </div>
+                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
+    
+                {showValidation && (
+                  <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 mt-6 animate-in slide-in-from-top-4 duration-500">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Info className="w-4 h-4 text-rose-400" />
+                      <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Configuration Issues Detected</span>
+                    </div>
+                    <ul className="space-y-1.5">
+                      {validateSetup().map((issue, idx) => (
+                        <li key={`issue-${idx}`} className="text-[9px] text-rose-300/80 font-medium leading-tight flex items-start gap-1.5">
+                          <span className="mt-1 w-1 h-1 bg-rose-500 rounded-full shrink-0" />
+                          {issue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
     
                 <button
                   onClick={handleGenerate}
@@ -869,20 +1778,62 @@ export const RietveldModule: React.FC = () => {
                      Refinement Execution Plan
                    </h3>
                    <div className="space-y-3 relative z-10">
-                     {result.refinement_strategy.map((step, i) => (
-                       <div key={`step-${i}`} className="flex items-start gap-4 text-sm text-slate-300 bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] shadow-inner transition-all hover:bg-[#070D18]">
-                         <div className="w-6 h-6 shrink-0 rounded-lg bg-[#050B14] border border-teal-500/30 text-teal-400 flex items-center justify-center text-xs font-black shadow-[0_0_10px_rgba(20,184,166,0.2)]">
-                           {i+1}
+                     {result.refinement_strategy.map((step, i) => {
+                       const isGlobal = step.includes('Global') || step.includes('Instrument');
+                       const isLattice = step.includes('Lattice');
+                       const isProfile = step.includes('Peak Shape') || step.includes('Microstrain');
+                       const isAtomic = step.includes('Atomic') || step.includes('B-iso');
+                       
+                       return (
+                         <div key={`step-${i}`} className="flex items-start gap-4 text-sm text-slate-300 bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] shadow-inner transition-all hover:bg-[#070D18]">
+                           <div className={`w-8 h-8 shrink-0 rounded-lg bg-[#050B14] border flex items-center justify-center shadow-lg ${
+                             isGlobal ? 'border-amber-500/50 text-amber-400' :
+                             isLattice ? 'border-teal-500/50 text-teal-400' :
+                             isProfile ? 'border-rose-500/50 text-rose-400' :
+                             isAtomic ? 'border-emerald-500/50 text-emerald-400' :
+                             'border-slate-700 text-slate-500'
+                           }`}>
+                             {isGlobal && <Settings className="w-4 h-4" />}
+                             {isLattice && <Ruler className="w-4 h-4" />}
+                             {isProfile && <Activity className="w-4 h-4" />}
+                             {isAtomic && <Layers className="w-4 h-4" />}
+                             {!isGlobal && !isLattice && !isProfile && !isAtomic && <PlayCircle className="w-4 h-4" />}
+                           </div>
+                           <div className="flex-1">
+                             <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Step {i+1}</div>
+                             <div className="leading-relaxed font-bold text-slate-200">
+                               {step.replace(/^\d+\.\s*/, '')}
+                             </div>
+                           </div>
                          </div>
-                         <div className="pt-0.5 leading-relaxed font-medium">
-                           {step.replace(/^\d+\.\s*/, '')}
-                         </div>
-                       </div>
-                     ))}
+                       );
+                     })}
                    </div>
                  </div>
                )}
     
+               {/* Quality Metrics Summary */}
+               {result && result.quality_metrics && (
+                 <div className="grid grid-cols-4 gap-4 animate-in slide-in-from-top-4 duration-500">
+                    <div className="bg-[#050B14] p-4 rounded-3xl border border-[#1e293b] text-center shadow-lg group hover:border-teal-500/30 transition-all">
+                      <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Rwp (%)</span>
+                      <span className="text-xl font-mono font-black text-white group-hover:text-teal-400 transition-colors">{result.quality_metrics.r_wp.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-[#050B14] p-4 rounded-3xl border border-[#1e293b] text-center shadow-lg group hover:border-rose-500/30 transition-all">
+                      <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Rexp (%)</span>
+                      <span className="text-xl font-mono font-black text-white group-hover:text-rose-400 transition-colors">{result.quality_metrics.r_exp.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-[#050B14] p-4 rounded-3xl border border-[#1e293b] text-center shadow-lg group hover:border-amber-500/30 transition-all">
+                      <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Chi-Squared</span>
+                      <span className="text-xl font-mono font-black text-white group-hover:text-amber-400 transition-colors">{result.quality_metrics.chi_squared.toFixed(1)}</span>
+                    </div>
+                    <div className="bg-[#050B14] p-4 rounded-3xl border border-[#1e293b] text-center shadow-lg group hover:border-teal-500/30 transition-all text-ellipsis overflow-hidden">
+                      <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">GoF</span>
+                      <span className="text-xl font-mono font-black text-emerald-400">{result.quality_metrics.gof.toFixed(2)}</span>
+                    </div>
+                 </div>
+               )}
+
                {/* JSON Output */}
                <div className="bg-[#050B14]/80 backdrop-blur-md rounded-[2rem] shadow-[0_0_50px_rgba(20,184,166,0.05)] border border-[#1e293b] overflow-hidden flex flex-col flex-1 min-h-[400px] relative">
                  <div className="absolute inset-0 bg-grid-slate-800/10 [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] pointer-events-none" />
@@ -918,6 +1869,7 @@ export const RietveldModule: React.FC = () => {
                  </div>
                </div>
             </div>
+          </div>
           </div>
         </div>
       )}

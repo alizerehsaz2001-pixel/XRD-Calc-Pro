@@ -143,22 +143,68 @@ export interface WAResult {
   strainDistribution: { L_nm: number; rms_strain: number }[];
 }
 
+export interface RietveldAtom {
+  element: string;
+  x: number;
+  y: number;
+  z: number;
+  occupancy: number; 
+  bIso: number; 
+}
+
 export interface RietveldPhaseInput {
   name: string;
   crystalSystem: CrystalSystem;
+  spaceGroup?: string;
   a: number;
   b?: number;
   c?: number;
   alpha?: number;
   beta?: number;
   gamma?: number;
+  zValue?: number;
+  molarMass?: number;
+  scale?: number;
+  // Peak parameters
+  u?: number;
+  v?: number;
+  w?: number;
+  eta?: number; // Mixing factor for Pseudo-Voigt
+  shape?: number; // Shape parameter for Pearson VII
+  // Lorentzian broadening (Size/Strain)
+  lx?: number; // X parameter (Size - Lorentzian)
+  ly?: number; // Y parameter (Strain - Lorentzian)
+  // Preferred orientation
+  marchDollase?: number;
+  prefOrientHKL?: [number, number, number];
+  asymmetry?: number; // Finger-Cox-Jephcoat asymmetry
+  extinction?: number; // Primary/Secondary extinction
+  // Refinement flags
+  refineLattice?: boolean;
+  refineAtomicPos?: boolean;
+  refineOcc?: boolean;
+  refineBiso?: boolean;
+  refineProfile?: boolean;
+  refineAsymmetry?: boolean;
+  refinePrefOrient?: boolean;
+  refineMicrostrain?: boolean;
+  refineCrystalliteSize?: boolean;
+  refineExtinction?: boolean;
+  refineScale?: boolean;
+  // Atoms
+  atoms?: RietveldAtom[];
 }
 
 export interface RietveldSetupInput {
   phases: RietveldPhaseInput[];
   maxObsIntensity: number;
-  backgroundModel: 'Chebyshev_6_term' | 'Linear_Interpolation' | 'Polynomial_4_term';
+  backgroundModel: 'Chebyshev' | 'Linear_Interpolation' | 'Polynomial' | 'Shifted_Chebyshev';
+  bgTerms?: number;
   profileShape: 'Thompson-Cox-Hastings' | 'Pseudo-Voigt' | 'Pearson-VII';
+  wavelength?: number;
+  zeroShift?: number;
+  sampleDisplacement?: number; // Sample displacement (SyCos)
+  polarization?: number; // Polarization factor (Lp)
 }
 
 export interface RietveldSetupResult {
@@ -174,10 +220,41 @@ export interface RietveldSetupResult {
         alpha: number;
         beta: number;
         gamma: number;
+        volume: number;
+        density?: number;
+        spaceGroup?: string;
+      };
+      peak_parameters?: {
+        u: number;
+        v: number;
+        w: number;
+        lx?: number;
+        ly?: number;
+        mixing_eta?: number;
+        shape_factor?: number;
+        asymmetry?: number;
+      };
+      atomic_structure?: RietveldAtom[];
+      preferred_orientation?: {
+        march_dollase_r: number;
+        direction?: [number, number, number];
       };
     }[];
     background_model: string;
     profile_shape: string;
+    wavelength: number;
+    instrumental_parameters?: {
+      zero_shift: number;
+      sample_displacement?: number;
+      polarization?: number;
+      irf_file?: string;
+    };
+  };
+  quality_metrics?: {
+    r_wp: number;
+    r_exp: number;
+    gof: number;
+    chi_squared: number;
   };
   refinement_strategy: string[];
 }
