@@ -71,42 +71,44 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
             onChange={(e) => i18n.changeLanguage(e.target.value)}
             className="bg-transparent border-none text-[11px] font-black uppercase tracking-[0.2em] outline-none cursor-pointer focus:ring-0"
           >
-            <option value="en" className="bg-slate-900">EN</option>
-            <option value="de" className="bg-slate-900">DE</option>
-            <option value="fr" className="bg-slate-900">FR</option>
-            <option value="es" className="bg-slate-900">ES</option>
-            <option value="it" className="bg-slate-900">IT</option>
-            <option value="nl" className="bg-slate-900">NL</option>
-            <option value="ru" className="bg-slate-900">RU</option>
-            <option value="tr" className="bg-slate-900">TR</option>
-            <option value="ja" className="bg-slate-900">JA</option>
-            <option value="zh" className="bg-slate-900">ZH</option>
-            <option value="ko" className="bg-slate-900">KO</option>
-            <option value="ar" className="bg-slate-900">AR</option>
-            <option value="fa" className="bg-slate-900">FA</option>
-            <option value="he" className="bg-slate-900">HE</option>
-            <option value="hi" className="bg-slate-900">HI</option>
-            <option value="pt" className="bg-slate-900">PT</option>
-            <option value="pl" className="bg-slate-900">PL</option>
-            <option value="cs" className="bg-slate-900">CS</option>
-            <option value="sk" className="bg-slate-900">SK</option>
-            <option value="hr" className="bg-slate-900">HR</option>
-            <option value="sr" className="bg-slate-900">SR</option>
-            <option value="sl" className="bg-slate-900">SL</option>
-            <option value="ca" className="bg-slate-900">CA</option>
-            <option value="bg" className="bg-slate-900">BG</option>
-            <option value="ro" className="bg-slate-900">RO</option>
-            <option value="hu" className="bg-slate-900">HU</option>
-            <option value="uk" className="bg-slate-900">UK</option>
-            <option value="ms" className="bg-slate-900">MS</option>
-            <option value="tl" className="bg-slate-900">TL</option>
-            <option value="vi" className="bg-slate-900">VI</option>
-            <option value="id" className="bg-slate-900">ID</option>
-            <option value="sv" className="bg-slate-900">SV</option>
-            <option value="da" className="bg-slate-900">DA</option>
-            <option value="no" className="bg-slate-900">NO</option>
-            <option value="fi" className="bg-slate-900">FI</option>
-            <option value="th" className="bg-slate-900">TH</option>
+            <option value="en" className="bg-slate-900">English (EN)</option>
+            <option value="de" className="bg-slate-900">Deutsch (DE)</option>
+            <option value="fr" className="bg-slate-900">Français (FR)</option>
+            <option value="es" className="bg-slate-900">Español (ES)</option>
+            <option value="it" className="bg-slate-900">Italiano (IT)</option>
+            <option value="nl" className="bg-slate-900">Nederlands (NL)</option>
+            <option value="pt" className="bg-slate-900">Português (PT)</option>
+            <option value="pl" className="bg-slate-900">Polski (PL)</option>
+            <option value="hu" className="bg-slate-900">Magyar (HU)</option>
+            <option value="ru" className="bg-slate-900">Русский (RU)</option>
+            <option value="uk" className="bg-slate-900">Українська (UK)</option>
+            <option value="tr" className="bg-slate-900">Türkçe (TR)</option>
+            <option value="ja" className="bg-slate-900">日本語 (JA)</option>
+            <option value="zh" className="bg-slate-900">简体中文 (ZH)</option>
+            <option value="ko" className="bg-slate-900">한국어 (KO)</option>
+            <option value="hi" className="bg-slate-900">हिन्दी (HI)</option>
+            <option value="bn" className="bg-slate-900">বাংলা (BN)</option>
+            <option value="ar" className="bg-slate-900">العربية (AR)</option>
+            <option value="fa" className="bg-slate-900">فارسی (FA)</option>
+            <option value="he" className="bg-slate-900">עברית (HE)</option>
+            <option value="vi" className="bg-slate-900">Tiếng Việt (VI)</option>
+            <option value="id" className="bg-slate-900">Bahasa Indonesia (ID)</option>
+            <option value="ms" className="bg-slate-900">Bahasa Melayu (MS)</option>
+            <option value="th" className="bg-slate-900">ไทย (TH)</option>
+            <option value="sv" className="bg-slate-900">Svenska (SV)</option>
+            <option value="da" className="bg-slate-900">Dansk (DA)</option>
+            <option value="no" className="bg-slate-900">Norsk (NO)</option>
+            <option value="fi" className="bg-slate-900">Suomi (FI)</option>
+            <option value="cs" className="bg-slate-900">Čeština (CS)</option>
+            <option value="sk" className="bg-slate-900">Slovenčina (SK)</option>
+            <option value="ro" className="bg-slate-900">Română (RO)</option>
+            <option value="bg" className="bg-slate-900">Български (BG)</option>
+            <option value="el" className="bg-slate-900">Ελληνικά (EL)</option>
+            <option value="hr" className="bg-slate-900">Hrvatski (HR)</option>
+            <option value="sr" className="bg-slate-900">Српски (SR)</option>
+            <option value="sl" className="bg-slate-900">Slovenščina (SL)</option>
+            <option value="ca" className="bg-slate-900">Català (CA)</option>
+            <option value="tl" className="bg-slate-900">Tagalog (TL)</option>
           </select>
         </div>
       </div>

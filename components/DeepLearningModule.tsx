@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { DLPhaseResult, DLPhaseCandidate } from '../types';
 import { identifyPhasesDL, parseXYData } from '../utils/physics';
@@ -1636,6 +1637,7 @@ const MATERIAL_DB = [
 ];
 
 export const DeepLearningModule: React.FC = () => {
+  const { t } = useTranslation();
   const [inputData, setInputData] = useState<string>("");
   const [result, setResult] = useState<DLPhaseResult | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
@@ -2173,71 +2175,83 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       {/* Input Configuration */}
       <div className="lg:col-span-4 space-y-6">
         {/* Advanced Engine Configuration */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-500/20 rounded-lg border border-indigo-500/30">
-                <Settings className="w-5 h-5 text-indigo-600" />
+        <div className="bg-slate-900 p-6 rounded-[2rem] shadow-xl border border-slate-800 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none" />
+          
+          <div className="flex items-center justify-between mb-8 relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center shadow-inner relative overflow-hidden">
+                <div className="absolute inset-0 bg-indigo-500/10 blur-md rounded-full pointer-events-none" />
+                <Settings className="w-6 h-6 text-indigo-400 relative z-10" />
               </div>
               <div>
-                <h3 className="font-bold text-slate-800">Neural Config</h3>
+                <h3 className="font-black text-white text-lg tracking-tight">Neural Config</h3>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Engine Hyperparameters</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sys Ready</span>
+            <div className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-inner">
+              <div className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-slate-500'}`} />
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{isSimulating ? 'Active' : 'Ready'}</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Kernel Shift</label>
-                <select 
-                  value={engineConfig.kernelSize}
-                  onChange={(e) => setEngineConfig({...engineConfig, kernelSize: parseInt(e.target.value)})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                >
-                  <option value={3}>3x3 Narrow</option>
-                  <option value={5}>5x5 Standard</option>
-                  <option value={7}>7x7 Deep</option>
-                </select>
+          <div className="grid grid-cols-2 gap-5 relative z-10">
+             <div className="space-y-2">
+                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> Kernel Shift</label>
+                <div className="relative group/select">
+                  <select 
+                    value={engineConfig.kernelSize}
+                    onChange={(e) => setEngineConfig({...engineConfig, kernelSize: parseInt(e.target.value)})}
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all appearance-none shadow-sm cursor-pointer"
+                  >
+                    <option value={3} className="bg-slate-800">3x3 Narrow</option>
+                    <option value={5} className="bg-slate-800">5x5 Standard</option>
+                    <option value={7} className="bg-slate-800">7x7 Deep</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
+                </div>
              </div>
-             <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Feature Maps</label>
-                <select 
-                  value={engineConfig.filters}
-                  onChange={(e) => setEngineConfig({...engineConfig, filters: parseInt(e.target.value)})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                >
-                  <option value={32}>Sparse (32)</option>
-                  <option value={64}>Standard (64)</option>
-                  <option value={128}>Dense (128)</option>
-                </select>
+             <div className="space-y-2">
+                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> Feature Maps</label>
+                <div className="relative group/select">
+                  <select 
+                    value={engineConfig.filters}
+                    onChange={(e) => setEngineConfig({...engineConfig, filters: parseInt(e.target.value)})}
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all appearance-none shadow-sm cursor-pointer"
+                  >
+                    <option value={32} className="bg-slate-800">Sparse (32)</option>
+                    <option value={64} className="bg-slate-800">Standard (64)</option>
+                    <option value={128} className="bg-slate-800">Dense (128)</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
+                </div>
              </div>
              
-             <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Neural Depth</label>
-                <select 
-                  value={engineConfig.depth}
-                  onChange={(e) => setEngineConfig({...engineConfig, depth: parseInt(e.target.value)})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                >
-                  <option value={18}>18 Layers (Light)</option>
-                  <option value={34}>34 Layers (Med)</option>
-                  <option value={50}>50 Layers (Heavy)</option>
-                  <option value={101}>101 Layers (Extreme)</option>
-                </select>
+             <div className="space-y-2">
+                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> Neural Depth</label>
+                <div className="relative group/select">
+                  <select 
+                    value={engineConfig.depth}
+                    onChange={(e) => setEngineConfig({...engineConfig, depth: parseInt(e.target.value)})}
+                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all appearance-none shadow-sm cursor-pointer"
+                  >
+                    <option value={18} className="bg-slate-800">18 Layers (Light)</option>
+                    <option value={34} className="bg-slate-800">34 Layers (Med)</option>
+                    <option value={50} className="bg-slate-800">50 Layers (Heavy)</option>
+                    <option value={101} className="bg-slate-800">101 Layers (Extrm)</option>
+                  </select>
+                  <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
+                </div>
              </div>
 
-             <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Pooling Op</label>
-                <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
+             <div className="space-y-2">
+                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> Pooling Op</label>
+                <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
                    {['max', 'avg'].map(op => (
                      <button
                        key={op}
                        onClick={() => setEngineConfig({...engineConfig, pooling: op})}
-                       className={`flex-1 py-1 text-[10px] font-black rounded-md transition-all ${engineConfig.pooling === op ? 'bg-white text-indigo-600 shadow-sm border border-slate-100 uppercase' : 'text-slate-400 hover:text-slate-600 uppercase'}`}
+                       className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.pooling === op ? 'bg-indigo-600 text-white shadow-md uppercase border border-indigo-500' : 'text-slate-400 hover:text-slate-300 uppercase bg-transparent'}`}
                      >
                        {op}
                      </button>
@@ -2245,28 +2259,29 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 </div>
              </div>
 
-             <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Activation</label>
-                <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
+             <div className="space-y-2">
+                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> Activation</label>
+                <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
                    {['ReLU', 'GELU'].map(fn => (
                      <button
                        key={fn}
                        onClick={() => setEngineConfig({...engineConfig, activation: fn})}
-                       className={`flex-1 py-1 text-[10px] font-black rounded-md transition-all ${engineConfig.activation === fn ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                       className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.activation === fn ? 'bg-indigo-600 text-white shadow-md border border-indigo-500' : 'text-slate-400 hover:text-slate-300 bg-transparent'}`}
                      >
                        {fn}
                      </button>
                    ))}
                 </div>
              </div>
-             <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Optimization</label>
-                <div className="flex bg-slate-50 border border-slate-200 rounded-lg p-1">
+             
+             <div className="space-y-2">
+                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> Optimization</label>
+                <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
                    {['Adam', 'RMSProp'].map(opt => (
                      <button
                        key={opt}
                        onClick={() => setEngineConfig({...engineConfig, optimization: opt})}
-                       className={`flex-1 py-1 text-[10px] font-black rounded-md transition-all ${engineConfig.optimization === opt ? 'bg-white text-emerald-600 shadow-sm border border-slate-100' : 'text-slate-400 hover:text-slate-600'}`}
+                       className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.optimization === opt ? 'bg-indigo-600 text-white shadow-md border border-indigo-500' : 'text-slate-400 hover:text-slate-300 bg-transparent'}`}
                      >
                        {opt}
                      </button>
@@ -2275,11 +2290,11 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
              </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
-             <div className="space-y-1.5">
-                <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Base Learning Rate</label>
-                  <span className="text-[10px] font-mono font-black text-indigo-600">{engineConfig.learningRate.toFixed(4)}</span>
+          <div className="mt-8 pt-8 border-t border-slate-800 space-y-6 relative z-10">
+             <div className="space-y-3">
+                <div className="flex justify-between items-end px-1">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><Zap className="w-3.5 h-3.5 text-indigo-400" /> Base Learning Rate</label>
+                  <span className="text-xs font-mono font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">{engineConfig.learningRate.toFixed(4)}</span>
                 </div>
                 <input 
                   type="range"
@@ -2288,14 +2303,14 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   step="0.0001"
                   value={engineConfig.learningRate}
                   onChange={(e) => setEngineConfig({...engineConfig, learningRate: parseFloat(e.target.value)})}
-                  className="w-full accent-indigo-600 h-1 bg-slate-100 rounded-full appearance-none cursor-pointer"
+                  className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
                 />
              </div>
              
-             <div className="space-y-1.5">
-                <div className="flex justify-between items-center px-1">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Min Confidence</label>
-                  <span className="text-[10px] font-mono font-black text-emerald-600">{engineConfig.confidenceThreshold}%</span>
+             <div className="space-y-3">
+                <div className="flex justify-between items-end px-1">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><ShieldAlert className="w-3.5 h-3.5 text-emerald-400" /> Min Confidence</label>
+                  <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">{engineConfig.confidenceThreshold}%</span>
                 </div>
                 <input 
                   type="range"
@@ -2304,35 +2319,35 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   step="1"
                   value={engineConfig.confidenceThreshold}
                   onChange={(e) => setEngineConfig({...engineConfig, confidenceThreshold: parseInt(e.target.value)})}
-                  className="w-full accent-emerald-600 h-1 bg-slate-100 rounded-full appearance-none cursor-pointer"
+                  className="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
                 />
              </div>
 
-             <div className="flex items-center justify-between cursor-pointer group">
+             <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
                 <div className="flex flex-col">
-                   <span className="text-[11px] font-black text-slate-700 tracking-tight">Batch Normalization</span>
-                   <span className="text-[9px] text-slate-400 font-medium">Stabilize training across mini-batches</span>
+                   <span className="text-xs font-black text-slate-200 tracking-tight">Batch Normalization</span>
+                   <span className="text-[10px] text-slate-500 font-medium">Stabilize training across mini-batches</span>
                 </div>
                 <div 
                   onClick={() => setEngineConfig({...engineConfig, batchNorm: !engineConfig.batchNorm})}
-                  className={`w-9 h-4.5 rounded-full transition-all relative ${engineConfig.batchNorm ? 'bg-emerald-500' : 'bg-slate-200 shadow-inner'}`}
+                  className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.batchNorm ? 'bg-emerald-500' : 'bg-slate-700 bg-opacity-50'}`}
                 >
-                   <div className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full transition-all shadow-sm ${engineConfig.batchNorm ? 'left-5' : 'left-0.5'}`} />
+                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.batchNorm ? 'left-7' : 'left-1'}`} />
                 </div>
              </div>
 
-             <label className="flex items-center justify-between cursor-pointer group">
+             <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
                 <div className="flex flex-col">
-                   <span className="text-xs font-black text-slate-700 tracking-tight">Multi-Scale Convolutional Fusion</span>
-                   <span className="text-[10px] text-slate-400 font-medium">Aggregated hierarchical feature identification</span>
+                   <span className="text-xs font-black text-slate-200 tracking-tight">Multi-Scale Convolutional Fusion</span>
+                   <span className="text-[10px] text-slate-500 font-medium">Aggregated hierarchical identification</span>
                 </div>
                 <div 
                   onClick={() => setEngineConfig({...engineConfig, multiScale: !engineConfig.multiScale})}
-                  className={`w-10 h-5 rounded-full transition-all relative ${engineConfig.multiScale ? 'bg-indigo-600' : 'bg-slate-200 shadow-inner'}`}
+                  className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.multiScale ? 'bg-indigo-500' : 'bg-slate-700 bg-opacity-50'}`}
                 >
-                   <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all shadow-sm ${engineConfig.multiScale ? 'left-6' : 'left-1'}`} />
+                   <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.multiScale ? 'left-7' : 'left-1'}`} />
                 </div>
-             </label>
+             </div>
           </div>
         </div>
 
@@ -2714,39 +2729,82 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
         </div>
 
         {/* Deep Learning Architecture Status */}
-        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-[0_0_50px_rgba(139,92,246,0.1)] relative overflow-hidden group/engine">
-           <div className="absolute top-0 right-0 w-64 h-64 bg-violet-600/10 rounded-full blur-[60px] group-hover/engine:bg-violet-600/20 transition-colors duration-1000 pointer-events-none" />
-           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
-           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-50" />
+        <div className="bg-[#050B14]/80 backdrop-blur-xl p-8 rounded-[2.5rem] text-white border border-[#1e293b] shadow-[0_0_80px_rgba(139,92,246,0.15)] relative overflow-hidden group/engine flex flex-col gap-6 ring-1 ring-white/5">
+           {/* Advanced Animated Backgrounds */}
+           <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-violet-600/10 rounded-full blur-[80px] group-hover/engine:bg-violet-500/20 group-hover/engine:scale-110 transition-all duration-1000 pointer-events-none" />
+           <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-cyan-600/10 rounded-full blur-[60px] group-hover/engine:bg-cyan-500/20 group-hover/engine:scale-110 transition-all duration-1000 pointer-events-none" />
+           <div className="absolute inset-0 bg-[#000] opacity-30 pointer-events-none mix-blend-overlay" style={{backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '24px 24px'}} />
+           
+           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-violet-500/50 to-transparent opacity-70" />
+           
+           {/* Neural Nodes Grid Pattern Decoration */}
+           <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+             <defs>
+               <pattern id="neural-net" width="60" height="60" patternUnits="userSpaceOnUse">
+                 <circle cx="10" cy="10" r="1.5" fill="#a78bfa" />
+                 <circle cx="50" cy="30" r="1.5" fill="#38bdf8" />
+                 <path d="M 10 10 L 50 30" stroke="#a78bfa" strokeWidth="0.5" strokeOpacity="0.5" />
+                 <path d="M 50 30 L 10 50" stroke="#38bdf8" strokeWidth="0.5" strokeOpacity="0.5" />
+                 <circle cx="10" cy="50" r="1.5" fill="#a78bfa" />
+               </pattern>
+             </defs>
+             <rect width="100%" height="100%" fill="url(#neural-net)" />
+           </svg>
 
-           <div className="flex items-center gap-4 mb-3 relative z-10">
-             <div className="relative">
-               <div className="absolute inset-0 bg-violet-500/20 blur-lg rounded-full" />
-               <div className="w-12 h-12 bg-[#070D18] rounded-xl border border-violet-500/40 flex items-center justify-center relative shadow-[0_0_15px_rgba(139,92,246,0.2)]">
-                 <Brain className="w-6 h-6 text-violet-400" />
+           <div>
+             <div className="flex items-center justify-between mb-6 relative z-10">
+               <div className="flex items-center gap-5">
+                 <div className="relative group/icon cursor-default">
+                   <div className="absolute inset-0 bg-violet-500/30 blur-xl rounded-full group-hover/icon:bg-violet-400/40 transition-colors duration-500" />
+                   <div className="w-14 h-14 bg-[#070D18] rounded-2xl border border-violet-500/50 flex items-center justify-center relative shadow-[inset_0_2px_10px_rgba(255,255,255,0.05),tight_0_5px_20px_rgba(139,92,246,0.3)] group-hover/icon:border-violet-400 transition-colors duration-300">
+                     <Brain className="w-7 h-7 text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]" />
+                   </div>
+                   {isSimulating && (
+                     <div className="absolute -inset-1 rounded-2xl border border-violet-500/20 animate-ping opacity-50 pointer-events-none" style={{animationDuration: '2s'}} />
+                   )}
+                 </div>
+                 <div>
+                   <h3 className="font-black text-xl text-white uppercase tracking-[0.15em] drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+                     {t('Convolutional Engine', 'Convolutional Engine')}
+                   </h3>
+                   <div className="flex items-center gap-2 mt-1.5">
+                     <p className="text-[10px] text-violet-300/80 font-mono uppercase tracking-[0.3em] font-black">ARCH: XRD-{engineConfig.multiScale ? 'Res' : 'Conv'}Net-{engineConfig.depth}</p>
+                     <span className="text-[8px] font-black text-slate-400 bg-slate-800/50 px-1.5 py-0.5 rounded uppercase tracking-widest border border-slate-700">v4.2</span>
+                   </div>
+                 </div>
+               </div>
+               <div className="hidden md:flex flex-col items-end">
+                 <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black mb-1.5">Compute Core</span>
+                 <div className="relative overflow-hidden group/status rounded border border-violet-500/20 bg-violet-500/10 transition-all duration-300 hover:border-violet-400/40">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/status:translate-x-full transition-transform duration-1000" />
+                    <span className="text-xs font-mono font-black text-violet-300 px-3 py-1.5 flex items-center gap-2 relative z-10">
+                      <div className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-violet-400 animate-pulse shadow-[0_0_8px_rgba(167,139,250,0.6)]' : 'bg-slate-500'}`} />
+                      {isSimulating ? 'PROCESSING' : 'STANDBY'}
+                    </span>
+                 </div>
                </div>
              </div>
-             <div>
-               <h3 className="font-black text-lg text-white uppercase tracking-[0.1em] drop-shadow-md">
-                 Convolutional Engine
-               </h3>
-               <p className="text-[10px] text-violet-400/80 font-mono uppercase tracking-[0.2em] font-black mt-1">ARCH: XRD-{engineConfig.multiScale ? 'Res' : 'Conv'}Net-50 v4.2</p>
+             
+             <div className="flex gap-2.5 mb-2 relative z-10 md:ml-[76px] flex-wrap">
+               <span className="px-3 py-1.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] border border-[#1e293b]/80 rounded-lg text-[9px] font-mono font-black text-cyan-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-cyan-500/30 transition-colors cursor-default flex items-center gap-1.5">
+                 <span className="w-1 h-1 rounded-full bg-cyan-400"></span> {engineConfig.activation}
+               </span>
+               <span className="px-3 py-1.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] border border-[#1e293b]/80 rounded-lg text-[9px] font-mono font-black text-fuchsia-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-fuchsia-500/30 transition-colors cursor-default flex items-center gap-1.5">
+                 <span className="w-1 h-1 rounded-full bg-fuchsia-400"></span> {engineConfig.filters} FILTERS
+               </span>
+               <span className="px-3 py-1.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] border border-[#1e293b]/80 rounded-lg text-[9px] font-mono font-black text-emerald-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-emerald-500/30 transition-colors cursor-default flex items-center gap-1.5">
+                 <span className="w-1 h-1 rounded-full bg-emerald-400"></span> {engineConfig.kernelSize}x{engineConfig.kernelSize} KERNEL
+               </span>
              </div>
            </div>
            
-           <div className="flex gap-2 mb-8 relative z-10 ml-[64px]">
-             <span className="px-3 py-1.5 bg-[#0B1221] border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-violet-300 uppercase tracking-widest shadow-inner">{engineConfig.activation}</span>
-             <span className="px-3 py-1.5 bg-[#0B1221] border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-violet-300 uppercase tracking-widest shadow-inner">{engineConfig.filters}F</span>
-             <span className="px-3 py-1.5 bg-[#0B1221] border border-[#1e293b] rounded-lg text-[9px] font-mono font-black text-violet-300 uppercase tracking-widest shadow-inner">{engineConfig.kernelSize}x{engineConfig.kernelSize}</span>
-           </div>
-           
-           <div className="space-y-6 relative z-10">
+           <div className="space-y-7 relative z-10 flex-1 ml-5 mt-6 border-t border-[#1e293b]/50 pt-8">
              {/* Vertical connecting line */}
-             <div className="absolute left-[15px] top-4 bottom-4 w-[2px] bg-[#1e293b] z-0 shadow-[0_0_10px_rgba(30,41,59,0.5)]"></div>
+             <div className="absolute left-[15px] top-[40px] bottom-6 w-[2px] bg-[#1e293b] z-0 shadow-[0_0_10px_rgba(30,41,59,0.5)]"></div>
              {/* Dynamic pulse on the line if active */}
              {isSimulating && (
-               <div className="absolute left-[15px] top-0 bottom-0 w-[2px] z-0 overflow-hidden">
-                  <div className="w-full h-1/3 bg-gradient-to-b from-transparent via-violet-500 to-transparent animate-[scanline_2s_ease-in-out_infinite]" />
+               <div className="absolute left-[15px] top-[40px] bottom-6 w-[2px] z-0 overflow-hidden">
+                  <div className="w-full h-1/3 bg-gradient-to-b from-transparent via-violet-400 to-transparent animate-[scanline_2s_ease-in-out_infinite]" />
                </div>
              )}
              {steps.slice(1).map((step, idx) => {
@@ -2758,9 +2816,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                return (
                  <div key={`${step.label}-${idx}`} className={`relative z-10 flex flex-col gap-2 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-40'}`}>
                    <div className="flex items-center gap-4">
-                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all duration-500 shrink-0 relative
+                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all duration-500 shrink-0 relative bg-[#070D18] z-20
                        ${isActive ? 'border-violet-500 bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.4)] scale-110 rotate-3' : 
-                         isCompleted ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-[#1e293b] bg-[#070D18] text-slate-600 shadow-inner'}
+                         isCompleted ? 'border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400' : 'border-[#1e293b] text-slate-600 shadow-inner'}
                      `}>
                        {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />}
                      </div>
@@ -2774,7 +2832,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                      {isActive && (
                        <div className="flex items-center gap-2">
                          <div className="text-[10px] font-mono text-emerald-400 flex flex-col items-end font-black drop-shadow-sm">
-                           <span>OPT: ADAMW</span>
+                           <span>OPT: {engineConfig.optimization.toUpperCase()}</span>
                            <span>{idx === 2 ? `CANDS: ~${(100 + Math.random() * 50).toFixed(0)}K` : `ACC: ${(95 + Math.random() * 4).toFixed(2)}%`}</span>
                          </div>
                        </div>
@@ -2785,45 +2843,47 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                    {(isActive || isCompleted) && (
                      <div className="ml-12 mt-1 pl-4 border-l border-[#1e293b]">
                          {idx === 0 && isActive && (
-                            <div className="text-[10px] text-slate-400 font-mono space-y-1 mb-2 font-black uppercase tracking-widest bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner">
+                            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-1 mb-2 font-black uppercase tracking-widest bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner relative z-10 hover:border-violet-500/50 transition-colors">
                                <p className="animate-pulse flex items-center gap-2 text-violet-300"><span className="text-violet-500 font-bold">&gt;</span> Tensor shape: [1, 2048, 1]</p>
                                <p className="animate-pulse flex items-center gap-2 text-violet-300" style={{animationDelay: '0.2s'}}><span className="text-violet-500 font-bold">&gt;</span> Kern Size: {engineConfig.kernelSize}x{engineConfig.kernelSize}</p>
                                <p className="animate-pulse flex items-center gap-2 text-violet-300" style={{animationDelay: '0.4s'}}><span className="text-violet-500 font-bold">&gt;</span> Augmentation: Noise Injection</p>
-                            </div>
+                            </motion.div>
                          )}
                          
                          {idx === 1 && isActive && (
-                           <div className="mb-2">
-                             <div className="text-[9px] text-slate-400 font-mono space-y-1.5 mb-2 bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner font-black uppercase tracking-widest">
+                           <div className="mb-2 relative z-10">
+                             <div className="text-[9px] text-slate-400 font-mono space-y-1.5 mb-2 bg-[#0B1221]/90 backdrop-blur-md p-3.5 rounded-xl border border-violet-500/30 shadow-[inset_0_0_15px_rgba(139,92,246,0.1)] font-black uppercase tracking-widest hover:border-violet-400/60 transition-colors">
                                 <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Conv1D_1: [{engineConfig.filters}, {engineConfig.kernelSize}]</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded">{Math.floor(Math.random() * 99)}ms</span></p>
                                 <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Activation: {engineConfig.activation}</span> <span className="text-emerald-400 drop-shadow-sm px-1.5 py-0.5 bg-emerald-500/10 rounded animate-pulse">STABLE</span></p>
                                 <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Fusion: {engineConfig.multiScale ? 'ENABLED' : 'DISABLED'}</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded">{Math.floor(Math.random() * 99)}ms</span></p>
                              </div>
-                             <div className="grid grid-cols-8 gap-1.5 w-full">
-                               {[...Array(16)].map((_, i) => (
-                                 <div key={`pulse-${i}`} className="h-2.5 rounded-[3px] bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)] animate-[pulse_1s_ease-in-out_infinite]" style={{ opacity: Math.random() * 0.7 + 0.3, animationDelay: `${i * 0.05}s` }} />
+                             <div className="grid grid-cols-8 gap-1.5 w-full bg-[#0B1221]/80 p-2 rounded-xl border border-[#1e293b]">
+                               {Array.from({ length: 16 }).map((_, i) => (
+                                 <div key={`pulse-${i}`} className="h-4 rounded-[4px] bg-gradient-to-t from-violet-600 to-fuchsia-400 shadow-[0_0_10px_rgba(139,92,246,0.6)] animate-[pulse_1s_ease-in-out_infinite] relative overflow-hidden" style={{ opacity: Math.random() * 0.7 + 0.3, animationDelay: `${i * 0.05}s` }}>
+                                   <div className="absolute top-0 left-0 w-full h-[2px] bg-white/40" />
+                                 </div>
                                ))}
                              </div>
-                             <p className="text-[10px] text-slate-500 font-mono mt-2 uppercase tracking-widest text-right font-black">Feature Map Activations</p>
+                             <p className="text-[9px] text-slate-500 font-mono mt-2 uppercase tracking-[0.2em] text-right font-black flex justify-end items-center gap-1.5"><Activity className="w-3 h-3 text-violet-400" /> Feature Map Activations</p>
                            </div>
                          )}
 
                          {idx === 2 && isActive && (
-                            <div className="text-[10px] text-slate-400 font-mono space-y-2 mb-2 mt-2 bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner font-black uppercase tracking-widest">
+                            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-2 mb-2 mt-2 bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner font-black uppercase tracking-widest relative z-10 hover:border-cyan-500/50 transition-colors">
                                <p className="animate-pulse text-cyan-400 flex items-center gap-2 drop-shadow-sm"><Database className="w-3.5 h-3.5 text-cyan-500" /> Loading Index HNSW-1M...</p>
-                               <p className="text-violet-300">Performing Cosine Similarity Search</p>
+                               <p className="text-violet-300 flex items-center gap-2"><Search className="w-3 h-3 text-violet-500" /> Performing Cosine Similarity</p>
                                <div className="w-full bg-[#070D18] h-1.5 mt-2 rounded-full overflow-hidden border border-[#1e293b]">
                                   <div className="bg-gradient-to-r from-cyan-600 to-cyan-400 h-full animate-[progress_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(34,211,238,0.6)]" style={{width: `${10 + Math.random() * 80}%`}}></div>
                                </div>
-                            </div>
+                            </motion.div>
                          )}
 
                          {idx === 3 && isActive && (
-                            <div className="text-[10px] text-slate-400 font-mono space-y-1.5 mb-2 mt-2 bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner font-black uppercase tracking-widest">
+                            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-1.5 mb-2 mt-2 bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner font-black uppercase tracking-widest relative z-10 hover:border-emerald-500/50 transition-colors">
                                <p className="flex justify-between items-center"><span className="text-violet-300">Dense_1</span> <span className="bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded drop-shadow-sm">Softmax</span></p>
-                               <p className="text-emerald-400 animate-pulse my-2 drop-shadow-sm">Computing Confidence Thresholds...</p>
+                               <div className="text-emerald-400 animate-pulse my-2 drop-shadow-sm flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Computing Confidences...</div>
                                <p className="flex justify-between items-center text-slate-500"><span>Loss</span> <span>Cat_Cross_Ent</span></p>
-                            </div>
+                            </motion.div>
                          )}
                      </div>
                    )}
@@ -2831,61 +2891,59 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                );
              })}
            </div>
-        </div>
-        {/* Neural Network Analytical Guide */}
-        <div className="bg-gradient-to-br from-[#0B1221] to-[#070D18] p-6 rounded-[2rem] border border-[#1e293b] shadow-xl relative overflow-hidden group/guide mt-6">
-           <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-           
-           <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-                 <BookOpen className="w-5 h-5 text-indigo-400" />
-              </div>
-              <div>
-                 <h3 className="font-black text-sm text-white uppercase tracking-widest leading-none">Neural Guide</h3>
-                 <p className="text-[9px] text-slate-500 font-mono uppercase tracking-[0.2em] mt-1">Constituent Logic & Features</p>
-              </div>
-           </div>
 
-           <div className="space-y-4">
-              <div className="p-3.5 bg-white/[0.03] rounded-2xl border border-white/5 hover:border-indigo-500/30 transition-all">
-                 <div className="flex items-center gap-2.5 mb-2">
-                    <Cpu className="w-3.5 h-3.5 text-indigo-400" />
-                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Network Architecture</span>
+           <div className="mt-4 pt-6 border-t border-white/5 relative z-10">
+              <div className="flex items-center justify-between mb-5">
+                 <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/30 group-hover/engine:bg-indigo-500/20 transition-colors shadow-[inset_0_0_10px_rgba(99,102,241,0.2)]">
+                       <BookOpen className="w-4 h-4 text-indigo-400 group-hover/engine:rotate-3 transition-transform" />
+                    </div>
+                    <div>
+                       <h3 className="font-black text-[11px] text-white uppercase tracking-[0.2em] leading-none drop-shadow-sm">Neural Guide</h3>
+                       <p className="text-[9px] text-slate-500 font-mono uppercase tracking-[0.2em] mt-1.5 flex items-center gap-1">
+                         <span className="w-1 h-1 rounded-full bg-indigo-500"></span> Constituent Logic & Features
+                       </p>
+                    </div>
                  </div>
-                 <p className="text-[10px] text-slate-400 leading-relaxed">
-                    Utilizes a <span className="text-indigo-300">ResNet-50</span> based 1D-Convolutional backbone. The "Kernel Shift" (3x3 to 7x7) determines the receptive field for peak grouping, while "Feature Maps" dictate the breadth of distinct crystalline signatures the engine can hold in memory.
-                 </p>
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="group/fact p-4 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-2xl border border-[#1e293b]/80 hover:border-indigo-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
+                     <div className="absolute top-0 right-0 p-2 opacity-10 group-hover/fact:opacity-20 transition-opacity">
+                        <Cpu className="w-16 h-16 text-indigo-400 -rotate-12 translate-x-4 -translate-y-4" />
+                     </div>
+                     <div className="flex items-center gap-2.5 mb-3 relative z-10">
+                        <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
+                          <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Network Focus</span>
+                     </div>
+                     <p className="text-[10px] text-slate-400 leading-relaxed font-medium relative z-10">
+                        The <span className="text-white">"{engineConfig.kernelSize}x{engineConfig.kernelSize} Kernel Shift"</span> defines peak receptive field. {engineConfig.multiScale ? <span className="text-indigo-300 font-bold">Multi-Scale Fusion correlates broad patterns across the 2θ domain.</span> : 'Increase Feature Maps for complex multi-phase disambiguation.'}
+                     </p>
+                     <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-[#1e293b] pt-2 flex items-center justify-between">
+                       <span>Optimization</span>
+                       <span className="text-indigo-400">{engineConfig.optimization}</span>
+                     </div>
+                  </div>
 
-              <div className="p-3.5 bg-white/[0.03] rounded-2xl border border-white/5 hover:border-cyan-500/30 transition-all">
-                 <div className="flex items-center gap-2.5 mb-2">
-                    <Microscope className="w-3.5 h-3.5 text-cyan-400" />
-                    <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Feature Constituents</span>
-                 </div>
-                 <ul className="space-y-2">
-                    <li className="flex gap-2 text-[9px] text-slate-400">
-                       <span className="text-cyan-500 font-bold">01.</span>
-                       <span><strong className="text-slate-300">2θ Mapping:</strong> Absolute peak positions provide the primary identifier for lattice spacing (d-spacing).</span>
-                    </li>
-                    <li className="flex gap-2 text-[9px] text-slate-400">
-                       <span className="text-cyan-500 font-bold">02.</span>
-                       <span><strong className="text-slate-300">Relative I:</strong> The "filters" parameter helps the network learn the hierarchy of peak intensities, which is crucial for distinguishing overlapping phases.</span>
-                    </li>
-                    <li className="flex gap-2 text-[9px] text-slate-400">
-                       <span className="text-cyan-500 font-bold">03.</span>
-                       <span><strong className="text-slate-300">FWHM Analysis:</strong> Peak broadening is used as a latent feature to estimate crystallinity and crystallite size, aiding in phase disambiguation.</span>
-                    </li>
-                 </ul>
-              </div>
-
-              <div className="p-3.5 bg-indigo-500/5 rounded-2xl border border-indigo-500/10">
-                 <div className="flex items-center gap-2.5 mb-2">
-                    <Info className="w-3.5 h-3.5 text-indigo-400" />
-                    <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">Optimization Tip</span>
-                 </div>
-                 <p className="text-[10px] text-slate-400 italic">
-                    "For multiphase mixtures, ensure 'Multi-Scale Fusion' is active to allow the network to correlate disparate peak clusters across the 2θ spectrum."
-                 </p>
+                  <div className="group/fact p-4 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-2xl border border-[#1e293b]/80 hover:border-cyan-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
+                     <div className="absolute top-0 right-0 p-2 opacity-10 group-hover/fact:opacity-20 transition-opacity">
+                        <Microscope className="w-16 h-16 text-cyan-400 rotate-12 translate-x-4 -translate-y-4" />
+                     </div>
+                     <div className="flex items-center gap-2.5 mb-3 relative z-10">
+                        <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                          <Microscope className="w-3.5 h-3.5 text-cyan-400" />
+                        </div>
+                        <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Constituents</span>
+                     </div>
+                     <p className="text-[10px] text-slate-400 leading-relaxed font-medium relative z-10">
+                        Model prioritizes <strong className="text-cyan-300">2θ Mapping</strong> for d-spacing and <strong className="text-cyan-300">Relative Int.</strong> ({engineConfig.filters} filters) to decouple overlapping signatures in experimental data.
+                     </p>
+                     <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-[#1e293b] pt-2 flex items-center justify-between">
+                       <span>Accuracy</span>
+                       <span className="text-cyan-400">{engineConfig.activation} ACT</span>
+                     </div>
+                  </div>
               </div>
            </div>
         </div>
@@ -3268,48 +3326,51 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 Laboratory Verification Required
               </div>
 
-              <div className="flex items-center gap-6 mb-10 relative z-10">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-violet-500/20 blur-xl rounded-full" />
-                  <div className="p-4 bg-[#050B14] rounded-2xl border border-violet-500/30 relative flex items-center justify-center group overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <Brain className="w-8 h-8 text-violet-400 drop-shadow-[0_0_10px_rgba(167,139,250,0.5)] group-hover:scale-110 transition-transform duration-500" />
-                  </div>
-                </div>
-                
-                <div className="flex-1">
-                  <h3 className="text-4xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-indigo-300 uppercase tracking-tighter drop-shadow-sm pb-1">Synthesis Intelligence</h3>
-                  <div className="flex items-center gap-4 mt-3">
-                    <div className="flex gap-1.5 p-1 bg-black/40 rounded-full border border-white/5">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={`integrity-dot-${i}`} className={`w-2 h-2 rounded-full shadow-inner ${i < 4 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-700'}`} />
-                      ))}
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10 relative z-10">
+                <div className="flex flex-1 items-center gap-6">
+                  <div className="relative group/icon cursor-default">
+                    <div className="absolute inset-0 bg-violet-600/20 blur-xl rounded-full group-hover/icon:bg-violet-500/30 transition-all duration-700 pointer-events-none" />
+                    <div className="w-16 h-16 bg-[#070D18] rounded-2xl border border-violet-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05),0_5px_20px_rgba(139,92,246,0.3)] group-hover/icon:border-violet-400 transition-colors duration-500 overflow-hidden">
+                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                      <Brain className="w-8 h-8 text-violet-400 drop-shadow-[0_0_10px_rgba(167,139,250,0.5)] group-hover/icon:scale-110 group-hover/icon:text-violet-300 transition-all duration-500" />
                     </div>
-                    <div className="h-4 w-px bg-slate-700/50" />
-                    <p className="text-[11px] font-black text-indigo-300/80 uppercase tracking-[0.2em]">C-Score: {selectedCandidate.confidence_score.toFixed(1)}%</p>
+                  </div>
+                  
+                  <div className="flex-1">
+                    <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-indigo-300 uppercase tracking-tighter drop-shadow-sm pb-1 leading-tight">{t('Synthesis Intelligence', 'Synthesis Intelligence')}</h3>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="flex gap-1.5 p-1 bg-black/40 rounded-full border border-white/5 shadow-inner">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={`integrity-dot-${i}`} className={`w-2 h-2 rounded-full shadow-inner ${i < 4 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-700'}`} />
+                        ))}
+                      </div>
+                      <div className="h-4 w-px bg-slate-700/50" />
+                      <p className="text-[10px] sm:text-[11px] font-black text-indigo-300/80 uppercase tracking-[0.2em]">{t('C-Score:', 'C-Score:')} <span className="text-indigo-200">{selectedCandidate.confidence_score.toFixed(1)}%</span></p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-4 mt-6 md:mt-0">
+
+                <div className="flex flex-row md:flex-col lg:flex-row gap-3 w-full md:w-auto">
                    <button 
                      onClick={handleLatticeEstimation}
-                     className="group relative px-8 py-4 bg-[#050B14] border border-[#1e293b] hover:border-emerald-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)] overflow-hidden"
+                     className="flex-1 lg:flex-none group relative px-6 py-3.5 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-emerald-500/50 rounded-xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05)] overflow-hidden"
                    >
                      <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(16,185,129,0.15),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                     <div className="flex items-center justify-center gap-4 relative z-10">
-                       <Calculator className="w-5 h-5 text-emerald-400 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                       <span className="text-[11px] font-black text-slate-300 group-hover:text-emerald-50 uppercase tracking-[0.3em]">Lattice AI</span>
+                     <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                     <div className="flex items-center justify-center gap-3 relative z-10 w-full h-full">
+                       <Calculator className="w-4 h-4 text-emerald-400 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                       <span className="text-[10px] sm:text-[11px] font-black text-slate-300 group-hover:text-emerald-50 uppercase tracking-[0.2em] whitespace-nowrap">{t('Lattice AI', 'Lattice AI')}</span>
                      </div>
                    </button>
                    <button 
                      onClick={handleGenerateReport}
-                     className="group relative px-8 py-4 bg-[#050B14] border border-[#1e293b] hover:border-violet-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)] overflow-hidden"
+                     className="flex-1 lg:flex-none group relative px-6 py-3.5 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-violet-500/50 rounded-xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05)] overflow-hidden"
                    >
                      <div className="absolute inset-0 bg-gradient-to-t from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(139,92,246,0.15),transparent_60%)] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                     <div className="flex items-center justify-center gap-4 relative z-10">
-                       <FileText className="w-5 h-5 text-violet-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
-                       <span className="text-[11px] font-black text-slate-300 group-hover:text-violet-50 uppercase tracking-[0.3em]">Export Map</span>
+                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                     <div className="flex items-center justify-center gap-3 relative z-10 w-full h-full">
+                       <FileText className="w-4 h-4 text-violet-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+                       <span className="text-[10px] sm:text-[11px] font-black text-slate-300 group-hover:text-violet-50 uppercase tracking-[0.2em] whitespace-nowrap">{t('Export Map', 'Export Map')}</span>
                      </div>
                    </button>
                 </div>
@@ -3318,40 +3379,41 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-fr">
                 {/* Identity Card */}
                 <div className="md:col-span-8 group">
-                  <div className="bg-[#050B14]/80 p-10 rounded-[2rem] border border-[#1e293b] shadow-2xl h-full flex flex-col relative overflow-hidden transition-all duration-500 hover:border-violet-500/40 hover:shadow-[0_0_40px_rgba(139,92,246,0.1)]">
-                    <div className="absolute -top-32 -right-32 w-80 h-80 bg-violet-500/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-violet-500/20 transition-colors duration-700" />
+                  <div className="bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] shadow-2xl h-full flex flex-col relative overflow-hidden transition-all duration-500 hover:border-violet-500/40 hover:shadow-[0_0_50px_rgba(139,92,246,0.15)]">
+                    <div className="absolute -top-32 -right-32 w-96 h-96 bg-violet-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-violet-500/20 transition-all duration-700" />
+                    <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-cyan-600/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-cyan-500/20 transition-all duration-700" />
                     
                     {/* Corner accents */}
-                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/10 rounded-tl-3xl" />
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/10 rounded-br-3xl" />
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-white/10 rounded-tl-[2.5rem]" />
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-white/10 rounded-br-[2.5rem]" />
                     
-                    <div className="flex flex-wrap items-end gap-6 mb-8 relative z-10">
-                      <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)' }} className="font-black text-white tracking-tighter leading-none group-hover:text-violet-300 transition-colors duration-500 drop-shadow-lg">{selectedCandidate.phase_name}</h2>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6 mb-6 relative z-10">
+                      <h2 style={{ fontSize: 'clamp(2rem, 5vw, 4.5rem)' }} className="font-black text-white tracking-tighter leading-none group-hover:text-violet-200 transition-colors duration-500 drop-shadow-[-3px_3px_10px_rgba(0,0,0,0.8)]">{selectedCandidate.phase_name}</h2>
                     </div>
-                    <div className="flex gap-3 mb-10 relative z-10">
-                      <span className="px-5 py-2.5 bg-violet-500/10 text-violet-300 text-sm font-mono font-black rounded-lg border border-violet-500/30 backdrop-blur-sm shadow-[0_0_15px_rgba(139,92,246,0.2)]">{selectedCandidate.formula}</span>
-                      <span className="px-5 py-2.5 bg-[#0B1221] text-emerald-400 text-[11px] font-black uppercase tracking-[0.2em] rounded-lg border border-emerald-500/20 shadow-inner">{selectedCandidate.materialType || "Standard Matrix"}</span>
+                    <div className="flex flex-wrap gap-3 mb-8 relative z-10">
+                      <span className="px-5 py-2.5 bg-gradient-to-br from-violet-500/20 to-violet-500/5 text-violet-300 text-sm md:text-base font-mono font-black rounded-xl border border-violet-500/40 backdrop-blur-md shadow-[0_0_20px_rgba(139,92,246,0.2)] hover:border-violet-400 transition-colors">{selectedCandidate.formula}</span>
+                      <span className="px-5 py-2.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] text-emerald-400 text-[10px] md:text-[11px] font-black uppercase tracking-[0.25em] rounded-xl border border-[#1e293b] shadow-inner hover:border-emerald-500/40 transition-colors flex items-center justify-center">{selectedCandidate.materialType || "Standard Matrix"}</span>
                     </div>
                     
-                    <p className="text-lg text-slate-400 leading-relaxed max-w-3xl relative z-10 mb-12 font-medium">
+                    <p className="text-base sm:text-lg text-slate-400 leading-relaxed max-w-3xl relative z-10 mb-10 font-medium">
                       {selectedCandidate.description || "Phase identification complete. Detailed morphological synthesis and mechanical property mapping for this specific lattice configuration are being processed by the intelligence engine."}
                     </p>
                     
-                    <div className="mt-auto pt-10 border-t border-[#1e293b] grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10 bg-gradient-to-t from-[#0B1221]/50 to-transparent -mx-10 px-10 -mb-10 pb-10">
+                    <div className="mt-auto pt-8 border-t border-[#1e293b] grid grid-cols-2 md:grid-cols-4 gap-6 relative z-10 bg-gradient-to-t from-[#0B1221] to-transparent -mx-8 sm:-mx-10 px-8 sm:px-10 -mb-8 sm:-mb-10 pb-8 sm:pb-10 rounded-b-[2.5rem]">
                        {[
                          { label: 'Molecular Wt', val: selectedCandidate.molecularWeight, unit: 'g/mol', icon: Layers },
                          { label: 'Band Gap', val: selectedCandidate.bandGap, unit: 'eV', icon: Zap },
                          { label: 'Modulus', val: selectedCandidate.elasticModulus, unit: 'GPa', icon: Activity },
                          { label: 'Magnetism', val: selectedCandidate.magneticProperties, unit: '', icon: Database },
                          { label: 'Optical', val: selectedCandidate.opticalProperties, unit: '', icon: Eye },
-                       ].filter(i => i.val !== undefined).slice(0, 4).map((item, i) => (
-                         <div key={`item-${i}`} className="flex flex-col group/item">
+                       ].filter(i => i.val !== undefined && i.val !== '').slice(0, 4).map((item, i) => (
+                         <div key={`item-${i}`} className="flex flex-col group/item p-3 -m-3 rounded-xl hover:bg-white/[0.02] transition-colors">
                            <div className="flex items-center gap-2 mb-2">
                              <item.icon className="w-3.5 h-3.5 text-slate-600 group-hover/item:text-violet-400 transition-colors" />
-                             <span className="text-[10px] text-slate-500 font-serif italic tracking-wide group-hover/item:text-slate-400 transition-colors">{item.label}</span>
+                             <span className="text-[10px] text-slate-500 font-serif italic tracking-wider group-hover/item:text-slate-400 transition-colors">{item.label}</span>
                            </div>
-                           <span className="text-xl font-black font-mono text-slate-200 capitalize truncate" title={String(item.val)}>
-                             {item.val} {item.unit && <span className="text-indigo-400/50 text-xs ml-1 font-sans">{item.unit}</span>}
+                           <span className="text-lg md:text-xl font-black font-mono text-slate-200 capitalize truncate" title={String(item.val)}>
+                             {item.val} {item.unit && <span className="text-indigo-400/60 text-[10px] md:text-xs ml-1 font-sans">{item.unit}</span>}
                            </span>
                          </div>
                        ))}
@@ -3361,14 +3423,14 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
                 {/* Crystallography */}
                 <div className="md:col-span-4">
-                  <div className="bg-[#050B14]/80 p-8 rounded-[2rem] border border-[#1e293b] h-full relative overflow-hidden group/card shadow-inner transition-all hover:border-indigo-500/30 hover:shadow-[0_0_30px_rgba(99,102,241,0.1)] flex flex-col justify-between">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[50px] pointer-events-none group-hover:bg-indigo-500/10 transition-colors duration-500" />
+                  <div className="bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] h-full relative overflow-hidden group/card shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] transition-all duration-500 hover:border-indigo-500/40 hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-600/10 rounded-full blur-[60px] pointer-events-none group-hover/card:bg-indigo-500/20 transition-all duration-700 -translate-y-10 translate-x-10" />
                     
-                    <div className="flex items-center gap-4 mb-10 relative z-10">
-                      <div className="p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/30 shadow-inner group-hover/card:bg-indigo-500/20 transition-colors relative">
-                        <Database className="w-5 h-5 text-indigo-400 drop-shadow-md" />
+                    <div className="flex items-center gap-4 mb-8 sm:mb-10 relative z-10">
+                      <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/30 shadow-[inset_0_2px_10px_rgba(99,102,241,0.2)] group-hover/card:bg-indigo-500/20 group-hover/card:scale-110 transition-all duration-500">
+                        <Database className="w-6 h-6 text-indigo-400 drop-shadow-md" />
                       </div>
-                      <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover/card:text-indigo-300 transition-colors">Cell Metrics</span>
+                      <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] group-hover/card:text-indigo-300 transition-colors block">Cell Metrics</span>
                     </div>
 
                     <div className="grid grid-cols-1 relative z-10 border-t border-[#1e293b]">
@@ -3378,9 +3440,12 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { l: 'Density', v: selectedCandidate.density ? `${selectedCandidate.density} g/cm³` : "N/A", c: 'text-indigo-300 font-mono' },
                         { l: 'Database ID', v: selectedCandidate.card_id, c: 'text-cyan-400 font-mono' }
                       ].map((row, i) => (
-                        <div key={`${row.l}-${i}`} className="grid grid-cols-2 items-center group/row border-b border-[#1e293b] py-4 hover:bg-white/[0.02] transition-colors -mx-8 px-8 cursor-default">
-                          <span className="text-[10px] text-slate-500 uppercase font-bold tracking-[0.15em] group-hover/row:text-slate-400 transition-colors">{row.l}</span>
-                          <span className={`text-sm font-black tracking-wide text-right ${row.c}`}>{row.v}</span>
+                        <div key={`${row.l}-${i}`} className="grid grid-cols-2 items-center group/row border-b border-[#1e293b] py-5 hover:bg-white/[0.03] transition-colors -mx-8 sm:-mx-10 px-8 sm:px-10 cursor-default">
+                          <span className="text-[10px] sm:text-[11px] text-slate-500 uppercase font-bold tracking-[0.2em] group-hover/row:text-slate-400 transition-colors flex items-center gap-2">
+                             {i % 2 === 0 ? <div className="w-[3px] h-[3px] rounded-full bg-slate-600 group-hover/row:bg-indigo-400 transition-colors"></div> : <div className="w-[3px] h-[3px] rounded-full bg-slate-600 group-hover/row:bg-cyan-400 transition-colors"></div>}
+                             {row.l}
+                          </span>
+                          <span className={`text-sm sm:text-base font-black tracking-wider text-right drop-shadow-sm ${row.c}`}>{row.v}</span>
                         </div>
                       ))}
                     </div>
@@ -3389,24 +3454,26 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
                 {/* Applications & Safety */}
                 <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="bg-[#050B14]/80 p-10 rounded-[2rem] border border-[#1e293b] hover:border-amber-500/30 transition-all group/bento shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] hover:shadow-[inset_0_2px_40px_rgba(245,158,11,0.05),0_10px_40px_rgba(245,158,11,0.1)] relative overflow-hidden flex flex-col justify-between">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none group-hover/bento:bg-amber-500/15 transition-colors duration-700" />
+                  <div className="bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] hover:border-amber-500/40 transition-all duration-500 group/bento shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] hover:shadow-[inset_0_2px_40px_rgba(245,158,11,0.05),0_10px_40px_rgba(245,158,11,0.15)] relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none group-hover/bento:bg-amber-500/15 transition-all duration-700 -translate-y-10 translate-x-10" />
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-orange-500/5 rounded-full blur-[60px] pointer-events-none group-hover/bento:bg-orange-500/10 transition-all duration-700" />
                     
                     <div>
                       <div className="flex items-center gap-4 mb-10 relative z-10">
-                        <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/30 shadow-inner group-hover/bento:bg-amber-500/20 transition-colors">
+                        <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/30 shadow-[inset_0_2px_10px_rgba(245,158,11,0.2)] group-hover/bento:bg-amber-500/20 group-hover/bento:scale-110 transition-all duration-500">
                           <Zap className="w-6 h-6 text-amber-400 drop-shadow-md" />
                         </div>
                         <div>
-                          <span className="text-[10px] font-black text-amber-500/50 uppercase tracking-[0.3em] font-sans block mb-1">Target Sectors</span>
-                          <span className="text-xl font-serif italic text-amber-100/90 tracking-wide">Industrial Applications</span>
+                          <span className="text-[10px] sm:text-[11px] font-black text-amber-500/70 uppercase tracking-[0.3em] font-sans block mb-1">Target Sectors</span>
+                          <span className="text-xl sm:text-2xl font-serif italic text-amber-100/90 tracking-wider">Industrial Applications</span>
                         </div>
                       </div>
                       
                       <div className="flex flex-wrap gap-4 relative z-10">
                         {selectedCandidate.applications && selectedCandidate.applications.length > 0 ? (
                           selectedCandidate.applications.map((app, i) => (
-                            <span key={`app-${i}`} className="text-xs font-black uppercase tracking-widest bg-amber-500/5 text-amber-200/80 px-5 py-3 rounded-xl border border-amber-500/20 hover:text-amber-100 hover:border-amber-500/50 hover:bg-amber-500/20 transition-all shadow-inner hover:scale-105 active:scale-95 cursor-default">
+                            <span key={`app-${i}`} className="text-[11px] sm:text-xs font-black uppercase tracking-widest bg-amber-500/5 text-amber-200/80 px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl border border-amber-500/20 hover:text-amber-100 hover:border-amber-500/50 hover:bg-amber-500/20 transition-all duration-300 shadow-inner hover:scale-[1.02] active:scale-[0.98] cursor-default flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 group-hover/bento:animate-pulse"></span>
                               {app}
                             </span>
                           ))
@@ -3417,17 +3484,18 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     </div>
                   </div>
 
-                  <div className="bg-[#050B14]/80 p-10 rounded-[2rem] border border-[#1e293b] hover:border-rose-500/30 transition-all group/bento shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] hover:shadow-[inset_0_2px_40px_rgba(244,63,94,0.05),0_10px_40px_rgba(244,63,94,0.1)] relative overflow-hidden flex flex-col justify-between">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/5 rounded-full blur-[80px] pointer-events-none group-hover/bento:bg-rose-500/15 transition-colors duration-700" />
+                  <div className="bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] hover:border-rose-500/40 transition-all duration-500 group/bento shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] hover:shadow-[inset_0_2px_40px_rgba(244,63,94,0.05),0_10px_40px_rgba(244,63,94,0.15)] relative overflow-hidden flex flex-col justify-between">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-rose-500/5 rounded-full blur-[80px] pointer-events-none group-hover/bento:bg-rose-500/15 transition-all duration-700 -translate-y-10 translate-x-10" />
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-pink-500/5 rounded-full blur-[60px] pointer-events-none group-hover/bento:bg-pink-500/10 transition-all duration-700" />
                     
                     <div>
                       <div className="flex items-center gap-4 mb-10 relative z-10">
-                        <div className="p-4 bg-rose-500/10 rounded-2xl border border-rose-500/30 shadow-inner group-hover/bento:bg-rose-500/20 transition-colors">
+                        <div className="p-4 bg-rose-500/10 rounded-2xl border border-rose-500/30 shadow-[inset_0_2px_10px_rgba(244,63,94,0.2)] group-hover/bento:bg-rose-500/20 group-hover/bento:scale-110 transition-all duration-500">
                           <ShieldAlert className="w-6 h-6 text-rose-400 drop-shadow-md" />
                         </div>
                         <div>
-                          <span className="text-[10px] font-black text-rose-500/50 uppercase tracking-[0.3em] font-sans block mb-1">Safety Constraints</span>
-                          <span className="text-xl font-serif italic text-rose-100/90 tracking-wide">Hazard Profile</span>
+                          <span className="text-[10px] sm:text-[11px] font-black text-rose-500/70 uppercase tracking-[0.3em] font-sans block mb-1">Safety Constraints</span>
+                          <span className="text-xl sm:text-2xl font-serif italic text-rose-100/90 tracking-wider">Hazard Profile</span>
                         </div>
                       </div>
                       
@@ -3446,7 +3514,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                             <CheckCircle className="w-8 h-8 text-emerald-500 animate-pulse" /> 
                             <div>
                                <span className="block text-lg font-black text-emerald-400 uppercase tracking-widest mb-1">Non-Toxic Response</span>
-                               <span className="text-xs font-medium text-emerald-500/70 font-mono">Material exhibits stable environmental limits.</span>
+                               <span className="text-[10px] sm:text-xs font-medium text-emerald-500/70 font-mono tracking-widest">Material exhibits stable environmental limits.</span>
                             </div>
                           </div>
                         )}
@@ -3461,13 +3529,20 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 {/* Glow from line */}
                 <div className="absolute top-0 left-1/4 right-1/4 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
                 
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
-                  <div>
-                    <h4 className="text-xl font-black text-white uppercase tracking-tighter flex items-center gap-3 drop-shadow-md mb-2">
-                      <Activity className="w-6 h-6 text-violet-400 animate-pulse drop-shadow-[0_0_12px_rgba(167,139,250,0.6)]" />
-                      Neural Attention Mapping
-                    </h4>
-                    <p className="text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">Spatial feature activation across convolutional filters for <span className="text-violet-300 font-black drop-shadow-md">{selectedCandidate.phase_name}</span></p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
+                  <div className="flex items-center gap-6">
+                    <div className="relative group/map-icon cursor-default">
+                       <div className="absolute inset-0 bg-violet-600/20 blur-xl rounded-full group-hover/map-icon:bg-violet-500/30 transition-all duration-700 pointer-events-none" />
+                       <div className="w-14 h-14 bg-[#070D18] rounded-2xl border border-violet-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/map-icon:border-violet-400 transition-colors duration-500 overflow-hidden">
+                          <Activity className="w-6 h-6 text-violet-400 animate-pulse drop-shadow-[0_0_12px_rgba(167,139,250,0.6)] group-hover/map-icon:scale-110 transition-transform duration-500" />
+                       </div>
+                    </div>
+                    <div>
+                      <h4 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-1">
+                        Neural Attention Mapping
+                      </h4>
+                      <p className="text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">Spatial feature activation for <span className="text-violet-300 font-bold tracking-widest">{selectedCandidate.phase_name}</span></p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex gap-1.5 p-1 bg-black/40 rounded-full border border-white/5">
@@ -3475,59 +3550,64 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         <div key={`mode-dot-${i}`} className={`w-2 h-2 rounded-full shadow-inner ${i < 4 ? 'bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.6)]' : 'bg-slate-700'}`} />
                       ))}
                     </div>
-                    <span className="px-4 py-2 bg-violet-500/10 rounded-xl border border-violet-500/30 text-[10px] font-black text-violet-300 uppercase tracking-[0.2em] shadow-[inset_0_2px_10px_rgba(139,92,246,0.1)]">Attention_Softmax_v3</span>
+                    <span className="px-4 py-2 bg-gradient-to-r from-violet-500/10 to-violet-500/5 rounded-xl border border-violet-500/30 text-[10px] font-black text-violet-300 uppercase tracking-[0.25em] shadow-inner font-mono">Softmax_v3</span>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {[
-                    { name: 'Primary_Features', color: 'from-violet-500 to-indigo-500', rings: 'rgba(139, 92, 246, 0.4)', rows: 4, cols: 12 },
-                    { name: 'Structural_Synthesis', color: 'from-indigo-500 to-blue-500', rings: 'rgba(99, 102, 241, 0.4)', rows: 4, cols: 12 },
-                    { name: 'Lattice_Inference', color: 'from-blue-500 to-emerald-500', rings: 'rgba(56, 189, 248, 0.4)', rows: 4, cols: 12 }
+                    { name: 'Primary_Features', color: 'from-violet-500 to-indigo-500', baseColor: 'bg-violet-500/20', rings: 'rgba(139, 92, 246, 0.4)', rows: 4, cols: 12 },
+                    { name: 'Structural_Synthesis', color: 'from-indigo-500 to-blue-500', baseColor: 'bg-indigo-500/20', rings: 'rgba(99, 102, 241, 0.4)', rows: 4, cols: 12 },
+                    { name: 'Lattice_Inference', color: 'from-blue-500 to-emerald-500', baseColor: 'bg-blue-500/20', rings: 'rgba(56, 189, 248, 0.4)', rows: 4, cols: 12 }
                   ].map((layer, lIdx) => (
                     <div key={lIdx} className="space-y-4 group/layer relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent rounded-[2rem] -m-4 pointer-events-none group-hover/layer:bg-white/[0.04] transition-colors duration-500" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent rounded-[2.5rem] -m-5 pointer-events-none group-hover/layer:bg-white/[0.04] transition-colors duration-500" />
                       
-                      <div className="flex justify-between items-center px-2 relative z-10">
-                        <span className="text-xs font-mono font-black text-slate-500 group-hover/layer:text-white transition-colors uppercase tracking-[0.2em]">{layer.name}</span>
+                      <div className="flex justify-between items-center px-3 relative z-10">
+                        <span className="text-[11px] sm:text-xs font-mono font-black text-slate-500 group-hover/layer:text-white transition-colors uppercase tracking-[0.2em]">{layer.name}</span>
                         <div className="flex items-center gap-2">
                            <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
-                           <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em]">Active</span>
+                           <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] hidden sm:inline">Active</span>
                         </div>
                       </div>
                       
-                      <div className="relative p-3 bg-[#050B14]/80 rounded-[1.5rem] border border-[#1e293b] overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group-hover/layer:border-slate-700/80 transition-all duration-500 z-10">
+                      <div className="relative p-4 sm:p-5 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-[2rem] border border-[#1e293b] overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group-hover/layer:border-slate-600/80 group-hover/layer:shadow-[0_10px_30px_rgba(0,0,0,0.5)] transition-all duration-500 z-10 cursor-crosshair">
                         {/* Scanline Effect */}
                         <motion.div 
-                          className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/10 to-transparent z-10 pointer-events-none"
-                          animate={{ x: ['-200%', '300%'] }}
-                          transition={{ repeat: Infinity, duration: 2.5, ease: "linear", delay: lIdx * 0.3 }}
+                          className="absolute inset-y-0 w-[150%] bg-gradient-to-r from-transparent via-white-[0.05] to-transparent z-20 pointer-events-none"
+                          animate={{ x: ['-100%', '100%'] }}
+                          transition={{ repeat: Infinity, duration: 3, ease: "linear", delay: lIdx * 0.4 }}
+                          style={{ background: `linear-gradient(to right, transparent, ${layer.rings.replace('0.4', '0.1')}, transparent)` }}
                         />
                         
-                        <div className="grid grid-cols-12 gap-1.5 relative z-0">
+                        <div className="grid grid-cols-12 gap-1.5 sm:gap-2 relative z-0">
                           {[...Array(layer.rows * layer.cols)].map((_, i) => {
                             const seed = (i * 13 + lIdx * 17) % 100;
                             const isActive = seed > 40;
                             const intensity = isActive ? (seed / 100) : 0.05;
+                            const isHot = intensity > 0.85;
                             
                             return (
                               <motion.div 
                                 key={`node-${lIdx}-${i}`}
                                 initial={{ opacity: 0.1 }}
                                 animate={{ 
-                                  opacity: isActive ? [intensity * 0.4, intensity * 0.8, intensity * 0.4] : intensity,
-                                  scale: isActive ? [0.98, 1.05, 0.98] : 1
+                                  opacity: isActive ? [intensity * 0.4, intensity * 0.9, intensity * 0.4] : intensity,
+                                  scale: isHot ? [0.95, 1.1, 0.95] : isActive ? [0.98, 1.05, 0.98] : 1
                                 }}
                                 transition={{ 
                                   repeat: Infinity, 
-                                  duration: 2 + (seed % 3),
+                                  duration: isHot ? 1.5 + (seed % 2) : 2 + (seed % 3),
                                   delay: (i % 10) * 0.1 
                                 }}
-                                className={`aspect-square rounded-[4px] relative`}
+                                className={`aspect-square rounded-md relative overflow-hidden group/cell`}
                               >
-                                <div className={`absolute inset-0 rounded-[4px] bg-gradient-to-br border ${isActive ? `border-white/20 ${layer.color}` : 'border-[#1e293b]/50 bg-slate-900'} shadow-inner`} />
-                                {isActive && intensity > 0.7 && (
-                                  <div className="absolute inset-0 rounded-[4px] shadow-lg" style={{ boxShadow: `0 0 12px ${layer.rings}` }} />
+                                <div className={`absolute inset-0 rounded-md bg-gradient-to-br border ${isActive ? `border-white/30 ${layer.color}` : 'border-[#1e293b]/50 bg-[#070D18]'} shadow-inner transition-colors`} />
+                                {isActive && intensity > 0.6 && (
+                                  <div className="absolute inset-0 rounded-md shadow-lg opacity-80" style={{ boxShadow: `0 0 ${isHot ? '15px' : '8px'} ${layer.rings}` }} />
+                                )}
+                                {isHot && (
+                                  <div className="absolute inset-0 bg-white/20 rounded-md animate-pulse" />
                                 )}
                               </motion.div>
                             );
@@ -3535,14 +3615,16 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         </div>
                       </div>
                       
-                      <div className="flex justify-between items-center px-2 relative z-10">
-                         <div className="h-1 flex-1 bg-slate-800/80 rounded-full overflow-hidden mr-4 shadow-inner">
+                      <div className="flex justify-between items-center px-3 relative z-10 pt-2">
+                         <div className="h-1.5 flex-1 bg-[#050B14] rounded-full overflow-hidden mr-5 shadow-inner border border-[#1e293b]">
                             <motion.div 
-                              className={`h-full bg-gradient-to-r ${layer.color}`}
+                              className={`h-full bg-gradient-to-r ${layer.color} relative`}
                               initial={{ width: '40%' }}
                               animate={{ width: [`${40 + (lIdx * 10)}%`, `${80 - (lIdx * 5)}%`, `${40 + (lIdx * 10)}%`] }}
-                              transition={{ repeat: Infinity, duration: 3 + lIdx, ease: "easeInOut" }}
-                            />
+                              transition={{ repeat: Infinity, duration: 4 + lIdx, ease: "easeInOut" }}
+                            >
+                                <div className="absolute top-0 right-0 bottom-0 w-4 bg-white/30 blur-[2px]" />
+                            </motion.div>
                          </div>
                          <span className="text-[10px] font-mono font-black text-[#1e293b] group-hover/layer:text-slate-500 transition-colors uppercase tracking-[0.3em]">INF_00{lIdx + 1}</span>
                       </div>
@@ -3550,21 +3632,21 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   ))}
                 </div>
                 
-                <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-6 p-8 bg-gradient-to-br from-[#050B14] to-[#0B1221]/80 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
-                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.05),transparent_50%)] pointer-events-none" />
+                <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 p-6 sm:p-8 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-[2.5rem] border border-[#1e293b] shadow-[inset_0_2px_30px_rgba(255,255,255,0.02)] relative overflow-hidden group/metrics">
+                   <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.08),transparent_60%)] pointer-events-none group-hover/metrics:bg-[radial-gradient(ellipse_at_top_right,rgba(139,92,246,0.12),transparent_70%)] transition-colors duration-1000" />
                    {[
-                     { label: 'Latency', val: '14ms', icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20' },
-                     { label: 'Compute', val: '0.8 TFLOPS', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-                     { label: 'Layer Depth', val: '52', icon: Layers, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
-                     { label: 'Optimizer', val: 'AdamW', icon: Settings, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+                     { label: 'Latency', val: '14ms', icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', shadow: 'shadow-[0_0_15px_rgba(34,211,238,0.2)]' },
+                     { label: 'Compute', val: '0.8 TFLOPS', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', shadow: 'shadow-[0_0_15px_rgba(245,158,11,0.2)]' },
+                     { label: 'Layer Depth', val: '52', icon: Layers, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', shadow: 'shadow-[0_0_15px_rgba(139,92,246,0.2)]' },
+                     { label: 'Optimizer', val: 'AdamW', icon: Settings, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', shadow: 'shadow-[0_0_15px_rgba(16,185,129,0.2)]' },
                    ].map((metric, i) => (
-                     <div key={`metric-data-${metric.label}-${i}`} className="flex items-center gap-5 relative z-10 p-3 hover:bg-white/[0.02] rounded-2xl transition-all cursor-default hover:scale-105 active:scale-95 duration-300 hover:shadow-lg hover:-translate-y-1">
-                       <div className={`p-3 ${metric.bg} border ${metric.border} rounded-2xl shadow-inner`}>
-                         <metric.icon className={`w-5 h-5 ${metric.color} drop-shadow-md`} />
+                     <div key={`metric-data-${metric.label}-${i}`} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 relative z-10 p-4 hover:bg-white/[0.03] rounded-[1.5rem] transition-all cursor-default hover:scale-[1.02] active:scale-[0.98] duration-300 group/metric">
+                       <div className={`p-3 sm:p-4 ${metric.bg} border ${metric.border} rounded-xl sm:rounded-2xl shadow-inner group-hover/metric:${metric.shadow} transition-shadow duration-300`}>
+                         <metric.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${metric.color} drop-shadow-md group-hover/metric:scale-110 transition-transform`} />
                        </div>
                        <div className="flex flex-col gap-1">
-                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">{metric.label}</span>
-                         <span className="text-sm text-white font-mono font-black tracking-wide drop-shadow-sm">{metric.val}</span>
+                         <span className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] group-hover/metric:text-slate-400 transition-colors">{metric.label}</span>
+                         <span className="text-sm sm:text-base text-white font-mono font-black tracking-wider drop-shadow-sm">{metric.val}</span>
                        </div>
                      </div>
                    ))}
