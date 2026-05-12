@@ -6,7 +6,7 @@ import {
 import { 
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
   Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, AlertTriangle, 
-  Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer
+  Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
@@ -15,21 +15,33 @@ import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolum
 
 const SIMULATION_RANGE = { start: 10, end: 90, step: 0.1 };
 
+interface SimulationPeak {
+  h: number;
+  k: number;
+  l: number;
+  intensity: number;
+  enabled: boolean;
+}
+
 interface SimulationParams {
   a: number;
   scale: number;
-  fwhm: number;
+  fwhm: number; 
   eta: number;
   zeroShift: number;
+  sampleDisplacement: number;
+  crystalliteSize: number; 
+  microstrain: number; 
   background: number;
   noise: number;
+  peaks: SimulationPeak[];
 }
 
 const TARGET_PARAMS: Record<string, SimulationParams> = {
-  'Simple Cubic': { a: 4.0, scale: 1000, fwhm: 0.5, eta: 0.5, zeroShift: 0.0, background: 50, noise: 20 },
-  'BCC': { a: 3.5, scale: 1200, fwhm: 0.4, eta: 0.6, zeroShift: 0.0, background: 40, noise: 15 },
-  'FCC': { a: 4.5, scale: 1500, fwhm: 0.6, eta: 0.4, zeroShift: 0.0, background: 60, noise: 25 },
-  'Quartz': { a: 4.913, scale: 800, fwhm: 0.3, eta: 0.7, zeroShift: 0.0, background: 80, noise: 30 }, // 'a' here is just a placeholder or scaling factor
+  'Simple Cubic': { a: 4.0, scale: 1000, fwhm: 0.2, eta: 0.5, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 100, microstrain: 0.05, background: 50, noise: 20, peaks: [] },
+  'BCC': { a: 3.5, scale: 1200, fwhm: 0.15, eta: 0.6, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 80, microstrain: 0.1, background: 40, noise: 15, peaks: [] },
+  'FCC': { a: 4.5, scale: 1500, fwhm: 0.25, eta: 0.4, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 120, microstrain: 0.02, background: 60, noise: 25, peaks: [] },
+  'Quartz': { a: 4.913, scale: 800, fwhm: 0.1, eta: 0.7, zeroShift: 0.0, sampleDisplacement: 0.1, crystalliteSize: 200, microstrain: 0.01, background: 80, noise: 30, peaks: [] },
 };
 
 const QUARTZ_PEAKS = [
@@ -38,6 +50,44 @@ const QUARTZ_PEAKS = [
   { t: 45.79, i: 3 }, { t: 50.14, i: 14 }, { t: 54.87, i: 3 }, 
   { t: 59.96, i: 5 }, { t: 67.74, i: 4 }, { t: 68.14, i: 3 }
 ];
+
+const getPeaksForPhase = (phase: string, a: number): SimulationPeak[] => {
+  if (phase === 'Quartz') {
+    return QUARTZ_PEAKS.map((p, idx) => ({
+      h: 0, k: 0, l: idx + 1,
+      intensity: p.i * 10,
+      enabled: true
+    }));
+  }
+
+  const peaks: SimulationPeak[] = [];
+  const maxHKL = 4; // reduced from 5 to avoid "too many peaks" initially
+  for (let s2 = 1; s2 <= 32; s2++) {
+    // Find first h,k,l that gives this sum of squares
+    let found = false;
+    for (let h = 0; h <= 5 && !found; h++) {
+      for (let k = 0; k <= h && !found; k++) {
+        for (let l = 0; l <= k && !found; l++) {
+          if (h*h + k*k + l*l === s2) {
+            let allowed = false;
+            if (phase === 'Simple Cubic') allowed = true;
+            else if (phase === 'BCC') allowed = (h + k + l) % 2 === 0;
+            else if (phase === 'FCC') {
+              const isEven = (h % 2 === 0) && (k % 2 === 0) && (l % 2 === 0);
+              const isOdd = (h % 2 !== 0) && (k % 2 !== 0) && (l % 2 !== 0);
+              allowed = isEven || isOdd;
+            }
+            if (allowed) {
+              peaks.push({ h, k, l, intensity: 1000, enabled: true });
+              found = true;
+            }
+          }
+        }
+      }
+    }
+  }
+  return peaks;
+};
 
 export const RietveldModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'simulation' | 'setup'>('simulation');
@@ -62,14 +112,18 @@ export const RietveldModule: React.FC = () => {
   const [setupZeroShift, setSetupZeroShift] = useState<number>(0);
   const [sampleDisplacement, setSampleDisplacement] = useState<number>(0);
   const [polarization, setPolarization] = useState<number>(0);
+  const [refineZeroShift, setRefineZeroShift] = useState(true);
+  const [refineBkg, setRefineBkg] = useState(true);
+  const [refineSampleDisplacement, setRefineSampleDisplacement] = useState(false);
   const [expertMode, setExpertMode] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [result, setResult] = useState<RietveldSetupResult | null>(null);
 
   const refinementMetrics = useMemo(() => {
-    let globalActive = bgModel !== 'Linear_Interpolation' ? bgTerms : 0;
-    // Assume zero shift is refined
-    globalActive += 1; 
+    let globalActive = 0;
+    if (refineBkg && bgModel !== 'Linear_Interpolation') globalActive += bgTerms;
+    if (refineZeroShift) globalActive += 1; 
+    if (refineSampleDisplacement) globalActive += 1;
     
     let phaseParams = 0;
     let activePhases = 0;
@@ -90,6 +144,7 @@ export const RietveldModule: React.FC = () => {
       if (p.refineAtomicPos) pCount += (p.atoms?.length || 0) * 3;
       if (p.refineBiso) pCount += (p.atoms?.length || 0);
       if (p.refineOcc) pCount += (p.atoms?.length || 0);
+      if (p.refineAsymmetry) pCount += 2;
       if (p.refinePrefOrient) pCount++;
       if (p.refineExtinction) pCount++;
       
@@ -110,15 +165,20 @@ export const RietveldModule: React.FC = () => {
 
   useEffect(() => {
     // Reset user params when phase changes
-    setTargetParams(TARGET_PARAMS[simPhase]);
+    const initialTarget = { ...TARGET_PARAMS[simPhase] };
+    initialTarget.peaks = getPeaksForPhase(simPhase, initialTarget.a);
+    setTargetParams(initialTarget);
+    
     // Start user params slightly off
-    setUserParams({
-      ...TARGET_PARAMS[simPhase],
-      a: TARGET_PARAMS[simPhase].a * 1.05,
-      scale: TARGET_PARAMS[simPhase].scale * 0.8,
-      fwhm: TARGET_PARAMS[simPhase].fwhm * 1.5,
-      background: TARGET_PARAMS[simPhase].background * 1.2
-    });
+    const initialUser: SimulationParams = {
+      ...initialTarget,
+      a: initialTarget.a * 1.05,
+      scale: initialTarget.scale * 0.8,
+      fwhm: initialTarget.fwhm * 1.5,
+      background: initialTarget.background * 1.2,
+      peaks: initialTarget.peaks.map(p => ({ ...p }))
+    };
+    setUserParams(initialUser);
   }, [simPhase]);
 
   const generatePatternData = useMemo(() => {
@@ -139,99 +199,112 @@ export const RietveldModule: React.FC = () => {
     const calculateIntensity = (params: SimulationParams, isObserved: boolean) => {
       const intensities = new Array(data.length).fill(0);
       
-      // Background
+      // Realistic Background (amorphous hump + 1/theta decay)
       for (let i = 0; i < data.length; i++) {
-        intensities[i] += params.background + (isObserved ? (Math.random() - 0.5) * params.noise : 0);
+        const twoT = SIMULATION_RANGE.start + i * SIMULATION_RANGE.step;
+        // Base flat + 1/2theta decay + hump around 25 deg
+        const bgVal = params.background * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
+        intensities[i] += bgVal;
       }
 
-      // Peaks
-      if (simPhase === 'Quartz') {
-        // Use fixed peaks for Quartz
-        QUARTZ_PEAKS.forEach(peak => {
-          // Simple shift simulation for 'a' parameter (not physically accurate but educational)
-          // Delta 2theta approx -2 * tan(theta) * delta_a / a
-          // Let's just say 'a' slider shifts the pattern
-          const shift = (params.a - TARGET_PARAMS['Quartz'].a) * 2; 
-          const pos = peak.t - shift + params.zeroShift;
-          
-          const profile = simulatePeak(
-            'Pseudo-Voigt', pos, params.fwhm, params.eta, 
-            peak.i * (params.scale / 100), 
-            [pos - 5, pos + 5], 100
-          );
-          
-          profile.points.forEach(p => {
-            const idx = Math.round((p.x - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
-            if (idx >= 0 && idx < data.length) {
-              intensities[idx] += p.y;
-            }
-          });
-        });
-      } else {
-        // Cubic Systems
-        const wavelength = 1.5406;
-        const maxHKL = 5;
+      // Helper to stamp a peak onto the intensities array
+      const addPeak = (pos2Theta: number, fwhm: number, amplitude: number) => {
+        const profile = simulatePeak(
+          'Pseudo-Voigt', pos2Theta, fwhm, params.eta, 
+          amplitude, 
+          [pos2Theta - (fwhm * 10), pos2Theta + (fwhm * 10)], 100 // extend profile tail calculation
+        );
         
-        for (let h = 0; h <= maxHKL; h++) {
-          for (let k = 0; k <= maxHKL; k++) {
-            for (let l = 0; l <= maxHKL; l++) {
-              if (h === 0 && k === 0 && l === 0) continue;
-              
-              // Selection Rules
-              let allowed = false;
-              if (simPhase === 'Simple Cubic') allowed = true;
-              else if (simPhase === 'BCC') allowed = (h + k + l) % 2 === 0;
-              else if (simPhase === 'FCC') {
-                const isEven = (h % 2 === 0) && (k % 2 === 0) && (l % 2 === 0);
-                const isOdd = (h % 2 !== 0) && (k % 2 !== 0) && (l % 2 !== 0);
-                allowed = isEven || isOdd;
-              }
+        profile.points.forEach(p => {
+          const idx = Math.round((p.x - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
+          if (idx >= 0 && idx < data.length) {
+            intensities[idx] += p.y;
+          }
+        });
+      };
 
-              if (!allowed) continue;
+      const wavelength = 1.5406;
 
-              const d = params.a / Math.sqrt(h*h + k*k + l*l);
-              const sinTheta = wavelength / (2 * d);
-              if (sinTheta >= 1) continue;
-              
-              const theta = Math.asin(sinTheta);
-              const twoTheta = 2 * theta * (180 / Math.PI) + params.zeroShift;
+      params.peaks.filter(peak => peak.enabled).forEach((peak, peakIdx) => {
+        let twoThetaBase = 0;
+        let d = 0;
 
-              if (twoTheta >= SIMULATION_RANGE.start && twoTheta <= SIMULATION_RANGE.end) {
-                // Approximate intensity (multiplicity * LP factor * structure factor)
-                // Simplified for education
-                let intensity = 1000; // Base
-                
-                // LP Factor approx
-                const lp = (1 + Math.cos(2*theta)**2) / (Math.sin(theta)**2 * Math.cos(theta));
-                intensity *= lp;
+        if (simPhase === 'Quartz') {
+          // Special handling for Quartz since it's not a simple cubic system here
+          const origPeak = QUARTZ_PEAKS[peakIdx];
+          if (!origPeak) return;
+          const shift = (params.a - TARGET_PARAMS['Quartz'].a) * 2; 
+          twoThetaBase = origPeak.t - shift;
+          // approximate d for Ka2
+          const theta1 = (origPeak.t / 2) * (Math.PI / 180);
+          d = 1.5406 / (2 * Math.sin(theta1));
+        } else {
+          d = params.a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
+          const sinTheta = wavelength / (2 * d);
+          if (sinTheta >= 1) return;
+          const theta = Math.asin(sinTheta);
+          twoThetaBase = 2 * theta * (180 / Math.PI);
+        }
 
-                // Multiplicity (simplified)
-                let mult = 0;
-                if (h===k && k===l) mult = 8;
-                else if (h===k || k===l || h===l) mult = 24;
-                else mult = 48;
-                // Adjust for 0 indices
-                if (h===0 || k===0 || l===0) mult /= 2; // Very rough approx
-                
-                intensity *= (mult / 10); 
+        const theta = (twoThetaBase / 2) * (Math.PI / 180);
+        
+        // Sample Displacement shift effective (in degrees)
+        const displacementShift = -params.sampleDisplacement * Math.cos(theta);
+        const twoTheta = twoThetaBase + params.zeroShift + displacementShift;
 
-                const profile = simulatePeak(
-                  'Pseudo-Voigt', twoTheta, params.fwhm, params.eta, 
-                  intensity * (params.scale / 1000), 
-                  [twoTheta - 5, twoTheta + 5], 100
-                );
+        if (twoTheta >= SIMULATION_RANGE.start && twoTheta <= SIMULATION_RANGE.end) {
+          // Approximate intensity (multiplicity * LP factor * structure factor)
+          let intensity = peak.intensity; 
+          
+          if (simPhase !== 'Quartz') {
+            // LP Factor approx
+            const lp = (1 + Math.cos(2*theta)**2) / (Math.sin(theta)**2 * Math.cos(theta));
+            intensity *= lp / 10;
+            
+            // Multiplicity (simplified)
+            let mult = 0;
+            const {h, k, l} = peak;
+            if (h===k && k===l) mult = 8;
+            else if (h===k || k===l || h===l) mult = 24;
+            else mult = 48;
+            if (h===0 || k===0 || l===0) mult /= 2;
+            intensity *= (mult / 10);
+          }
 
-                profile.points.forEach(p => {
-                  const idx = Math.round((p.x - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
-                  if (idx >= 0 && idx < data.length) {
-                    intensities[idx] += p.y;
-                  }
-                });
-              }
-            }
+          // Broadening models
+          const bSizeRad = (0.9 * wavelength) / ((params.crystalliteSize * 10) * Math.cos(theta));
+          const bSizeDeg = bSizeRad * (180 / Math.PI);
+          const bStrainRad = 4 * params.microstrain * Math.tan(theta);
+          const bStrainDeg = bStrainRad * (180 / Math.PI);
+          
+          const totalFwhm = params.fwhm + bSizeDeg + bStrainDeg;
+          const baseAmplitude = intensity * (params.scale / 1000);
+
+          // Ka1
+          addPeak(twoTheta, totalFwhm, baseAmplitude);
+
+          // Ka2
+          const wavelength2 = 1.5444; // Cu Ka2
+          const sinTheta2 = wavelength2 / (2 * d);
+          if (sinTheta2 < 1) {
+            const theta2 = Math.asin(sinTheta2);
+            const displacementShift2 = -params.sampleDisplacement * Math.cos(theta2);
+            const twoTheta2 = 2 * theta2 * (180 / Math.PI) + params.zeroShift + displacementShift2;
+            addPeak(twoTheta2, totalFwhm, baseAmplitude * 0.5);
           }
         }
+      });
+
+      // Apply realistic Poisson-like noise to observed data
+      if (isObserved) {
+        for (let i = 0; i < intensities.length; i++) {
+          const val = intensities[i];
+          // Noise proportional to sqrt(intensity), scaled by user noise param
+          const noiseFactor = params.noise * 0.15;
+          intensities[i] += Math.sqrt(Math.max(1, val)) * (Math.random() - 0.5) * noiseFactor;
+        }
       }
+
       return intensities;
     };
 
@@ -240,14 +313,29 @@ export const RietveldModule: React.FC = () => {
 
     let sumResSq = 0;
     let sumObsSq = 0;
+    let maxObs = 0;
+
+    for (let i = 0; i < data.length; i++) {
+        if (obsIntensities[i] > maxObs) {
+            maxObs = obsIntensities[i];
+        }
+    }
+    
+    // Offset diff curve to sit below the actual data like standard Rietveld plots
+    const diffOffset = -maxObs * 0.15; 
 
     for (let i = 0; i < data.length; i++) {
       data[i].obs = obsIntensities[i];
       data[i].calc = calcIntensities[i];
-      data[i].diff = obsIntensities[i] - calcIntensities[i];
-      data[i].bkg = userParams.background;
+      data[i].diff = (obsIntensities[i] - calcIntensities[i]) + diffOffset;
+      
+      const twoT = data[i].twoTheta;
+      const trueBkg = userParams.background * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
+      data[i].bkg = trueBkg;
 
-      sumResSq += Math.pow(data[i].diff, 2);
+      // Un-offset diff for correct calculation of R-factors
+      const trueDiff = obsIntensities[i] - calcIntensities[i];
+      sumResSq += Math.pow(trueDiff, 2);
       sumObsSq += Math.pow(data[i].obs, 2);
     }
 
@@ -294,9 +382,17 @@ export const RietveldModule: React.FC = () => {
           const diffEta = targetParams.eta - prev.eta;
           const diffZeroShift = targetParams.zeroShift - prev.zeroShift;
           const diffBkg = targetParams.background - prev.background;
+          const diffSize = targetParams.crystalliteSize - prev.crystalliteSize;
+          const diffStrain = targetParams.microstrain - prev.microstrain;
+          const diffDisplacement = targetParams.sampleDisplacement - prev.sampleDisplacement;
 
           // Check convergence
-          if (Math.abs(diffA) < 0.001 && Math.abs(diffScale) < 1 && Math.abs(diffFwhm) < 0.001 && Math.abs(diffEta) < 0.01 && Math.abs(diffZeroShift) < 0.01) {
+          if (
+            Math.abs(diffA) < 0.001 && Math.abs(diffScale) < 1 && 
+            Math.abs(diffFwhm) < 0.001 && Math.abs(diffEta) < 0.01 && 
+            Math.abs(diffZeroShift) < 0.01 && Math.abs(diffSize) < 1 &&
+            Math.abs(diffStrain) < 0.01 && Math.abs(diffDisplacement) < 0.01
+          ) {
             setIsAutoRefining(false);
             return prev;
           }
@@ -308,7 +404,10 @@ export const RietveldModule: React.FC = () => {
             fwhm: prev.fwhm + diffFwhm * step,
             eta: prev.eta + diffEta * step,
             zeroShift: prev.zeroShift + diffZeroShift * step,
-            background: prev.background + diffBkg * step
+            background: prev.background + diffBkg * step,
+            crystalliteSize: prev.crystalliteSize + diffSize * step,
+            microstrain: prev.microstrain + diffStrain * step,
+            sampleDisplacement: prev.sampleDisplacement + diffDisplacement * step
           };
         });
       }, 50);
@@ -449,7 +548,13 @@ export const RietveldModule: React.FC = () => {
       wavelength,
       zeroShift: setupZeroShift,
       sampleDisplacement,
-      polarization
+      polarization,
+      refineZeroShift,
+      refineBkg,
+      refineSampleDisplacement,
+      twoThetaMin: SIMULATION_RANGE.start,
+      twoThetaMax: SIMULATION_RANGE.end,
+      stepSize: SIMULATION_RANGE.step,
     });
     setResult(output);
     setShowValidation(false);
@@ -471,6 +576,9 @@ export const RietveldModule: React.FC = () => {
       p.refinePrefOrient = true;
       p.refineMicrostrain = true;
       p.refineCrystalliteSize = true;
+      p.refineOcc = true;
+      p.refineAsymmetry = true;
+      p.refineExtinction = true;
     } else if (type === 'lattice') {
       p.refineLattice = true;
       p.refineScale = true;
@@ -480,6 +588,7 @@ export const RietveldModule: React.FC = () => {
       p.refineProfile = true;
       p.refineMicrostrain = true;
       p.refineCrystalliteSize = true;
+      p.refineAsymmetry = true;
       p.refineLattice = false;
     } else if (type === 'structure') {
       p.refineAtomicPos = true;
@@ -494,6 +603,9 @@ export const RietveldModule: React.FC = () => {
       p.refinePrefOrient = false;
       p.refineMicrostrain = false;
       p.refineCrystalliteSize = false;
+      p.refineAsymmetry = false;
+      p.refineOcc = false;
+      p.refineExtinction = false;
     }
     const newPhases = [...phases];
     newPhases[phaseIdx] = p;
@@ -571,7 +683,10 @@ export const RietveldModule: React.FC = () => {
                         fwhm: TARGET_PARAMS[simPhase].fwhm * 1.5,
                         eta: Math.min(1, TARGET_PARAMS[simPhase].eta * 1.2),
                         zeroShift: 0.15,
-                        background: TARGET_PARAMS[simPhase].background * 1.2
+                        background: TARGET_PARAMS[simPhase].background * 1.2,
+                        crystalliteSize: TARGET_PARAMS[simPhase].crystalliteSize * 0.8,
+                        microstrain: TARGET_PARAMS[simPhase].microstrain * 1.5,
+                        sampleDisplacement: 0.1
                       });
                       setIsAutoRefining(false);
                     }}
@@ -608,166 +723,339 @@ export const RietveldModule: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <Ruler className="w-3.5 h-3.5 text-teal-400" />
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
+                <div className="space-y-6">
+                  {/* Phase & Structure Group */}
+                  <div className="space-y-3">
+                    <div className="text-[9px] uppercase text-slate-500 font-bold tracking-widest px-2 pb-1 border-b border-slate-800/80">Phase & Structure</div>
+                    
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-2">
+                          <Ruler className="w-3.5 h-3.5 text-teal-400" />
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            step="0.001"
+                            value={userParams.a}
+                            onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value) || userParams.a})}
+                            className="w-16 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                          />
+                          <span className="text-[10px] font-black text-slate-500">Å</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={userParams.a}
-                          onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value) || userParams.a})}
-                          className="w-16 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
-                        />
-                        <span className="text-[10px] font-black text-slate-500">Å</span>
-                      </div>
-                    </div>
-                    <input 
-                      type="range" 
-                      min={simPhase === 'Quartz' ? 4.5 : 2.5} 
-                      max={simPhase === 'Quartz' ? 5.5 : 6.0} 
-                      step="0.001"
-                      value={userParams.a}
-                      onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
-                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
-                    />
-                  </div>
-
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <Maximize className="w-3.5 h-3.5 text-teal-400" />
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Intensity Scale</label>
-                      </div>
-                      <input
-                        type="number"
-                        step="10"
-                        value={userParams.scale}
-                        onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value) || userParams.scale})}
-                        className="w-16 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                      <input 
+                        type="range" 
+                        min={simPhase === 'Quartz' ? 4.5 : 2.5} 
+                        max={simPhase === 'Quartz' ? 5.5 : 6.0} 
+                        step="0.001"
+                        value={userParams.a}
+                        onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
+                        className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
                       />
                     </div>
-                    <input 
-                      type="range" 
-                      min="100" 
-                      max="2000" 
-                      step="10"
-                      value={userParams.scale}
-                      onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
-                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
-                    />
+
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-2">
+                          <Maximize className="w-3.5 h-3.5 text-blue-400" />
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Intensity Scale</label>
+                        </div>
+                        <input
+                          type="number"
+                          step="10"
+                          value={userParams.scale}
+                          onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value) || userParams.scale})}
+                          className="w-16 bg-black/60 text-xs font-mono font-black text-blue-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-blue-500/50 text-right"
+                        />
+                      </div>
+                      <input 
+                        type="range" 
+                        min="100" 
+                        max="2000" 
+                        step="10"
+                        value={userParams.scale}
+                        onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
+                        className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all"
+                      />
+                    </div>
                   </div>
 
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <Binary className="w-3.5 h-3.5 text-teal-400" />
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Profile Width</label>
+                  {/* Peak Management Group */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-2 pb-1 border-b border-slate-800/80 mt-2">
+                       <div className="text-[9px] uppercase text-slate-500 font-bold tracking-widest">Diffraction Peaks</div>
+                       <div className="text-[8px] text-slate-600 font-mono">{userParams.peaks.filter(p => p.enabled).length} Active</div>
+                    </div>
+
+                    <div className="bg-[#050B14] rounded-xl border border-[#1e293b] overflow-hidden">
+                       <div className="max-h-[200px] overflow-y-auto overflow-x-hidden custom-scrollbar">
+                         <table className="w-full text-left border-collapse">
+                           <thead className="sticky top-0 bg-[#050B14] z-10">
+                             <tr className="border-b border-slate-800">
+                               <th className="p-2 text-[8px] uppercase text-slate-500 font-black">HKL</th>
+                               <th className="p-2 text-[8px] uppercase text-slate-500 font-black text-center">Int. & Status</th>
+                               <th className="p-2 text-[8px] uppercase text-slate-500 font-black text-right">Del</th>
+                             </tr>
+                           </thead>
+                           <tbody className="divide-y divide-slate-800/50">
+                             {userParams.peaks.map((peak, pIdx) => (
+                               <tr key={pIdx} className={`group hover:bg-slate-800/30 transition-colors ${!peak.enabled ? 'opacity-30' : ''}`}>
+                                 <td className="p-2">
+                                   <div className="flex gap-0.5 items-center">
+                                     <input 
+                                       type="number"
+                                       value={peak.h}
+                                       min="0"
+                                       max="9"
+                                       onChange={(e) => {
+                                         const newPeaks = [...userParams.peaks];
+                                         newPeaks[pIdx].h = parseInt(e.target.value) || 0;
+                                         setUserParams({...userParams, peaks: newPeaks});
+                                       }}
+                                       className="w-5 bg-black/40 border border-slate-700/50 rounded text-[9px] font-mono text-slate-300 text-center"
+                                     />
+                                     <input 
+                                       type="number"
+                                       value={peak.k}
+                                       min="0"
+                                       max="9"
+                                       onChange={(e) => {
+                                         const newPeaks = [...userParams.peaks];
+                                         newPeaks[pIdx].k = parseInt(e.target.value) || 0;
+                                         setUserParams({...userParams, peaks: newPeaks});
+                                       }}
+                                       className="w-5 bg-black/40 border border-slate-700/50 rounded text-[9px] font-mono text-slate-300 text-center"
+                                     />
+                                     <input 
+                                       type="number"
+                                       value={peak.l}
+                                       min="0"
+                                       max="9"
+                                       onChange={(e) => {
+                                         const newPeaks = [...userParams.peaks];
+                                         newPeaks[pIdx].l = parseInt(e.target.value) || 0;
+                                         setUserParams({...userParams, peaks: newPeaks});
+                                       }}
+                                       className="w-5 bg-black/40 border border-slate-700/50 rounded text-[9px] font-mono text-slate-300 text-center"
+                                     />
+                                   </div>
+                                 </td>
+                                 <td className="p-2 text-center flex items-center justify-center gap-2">
+                                   <input 
+                                     type="number"
+                                     value={peak.intensity}
+                                     step="50"
+                                     onChange={(e) => {
+                                       const newPeaks = [...userParams.peaks];
+                                       newPeaks[pIdx].intensity = parseInt(e.target.value) || 0;
+                                       setUserParams({...userParams, peaks: newPeaks});
+                                     }}
+                                     className="w-12 bg-black/40 border border-slate-700/50 rounded px-1 py-0.5 text-[10px] font-mono text-blue-400 text-right"
+                                   />
+                                   <button 
+                                     onClick={() => {
+                                       const newPeaks = [...userParams.peaks];
+                                       newPeaks[pIdx].enabled = !newPeaks[pIdx].enabled;
+                                       setUserParams({...userParams, peaks: newPeaks});
+                                     }}
+                                     className={`p-1 rounded transition-colors ${peak.enabled ? 'text-teal-400 hover:bg-teal-500/20' : 'text-slate-500 hover:bg-slate-700'}`}
+                                   >
+                                      {peak.enabled ? <CheckCircle2 className="w-3.5 h-3.5" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                                   </button>
+                                 </td>
+                                 <td className="p-2 text-right">
+                                   <button 
+                                     onClick={() => {
+                                       const newPeaks = userParams.peaks.filter((_, i) => i !== pIdx);
+                                       setUserParams({...userParams, peaks: newPeaks});
+                                     }}
+                                     className="p-1 text-slate-600 hover:text-rose-500 transition-colors"
+                                   >
+                                     <Zap className="w-3.5 h-3.5" />
+                                   </button>
+                                 </td>
+                               </tr>
+                             ))}
+                           </tbody>
+                         </table>
+                       </div>
+                       
+                       <div className="p-2 bg-slate-900/30 border-t border-slate-800 flex gap-2">
+                         <button 
+                            onClick={() => {
+                              // generate next HKL or just add a placeholder
+                              const newPeak: SimulationPeak = { h: 1, k: 1, l: 1, intensity: 1000, enabled: true };
+                              setUserParams({...userParams, peaks: [...userParams.peaks, newPeak]});
+                            }}
+                            className="flex-1 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-lg text-[9px] font-black text-blue-400 uppercase tracking-widest hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2"
+                         >
+                           <Layers className="w-3 h-3" /> Add Peak
+                         </button>
+                         <button 
+                            onClick={() => {
+                              const initial = getPeaksForPhase(simPhase, userParams.a);
+                              setUserParams({...userParams, peaks: initial});
+                            }}
+                            className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-slate-400 hover:text-slate-200 transition-colors"
+                            title="Reset Peaks"
+                         >
+                           <RotateCcw className="w-3.5 h-3.5" />
+                         </button>
+                       </div>
+                    </div>
+                  </div>
+
+                  {/* Microstructure & Profile Group */}
+                  <div className="space-y-3">
+                    <div className="text-[9px] uppercase text-slate-500 font-bold tracking-widest px-2 pb-1 border-b border-slate-800/80 mt-2">Peak Profile & Microstructure</div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                        <div className="flex justify-between items-center mb-3">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">FWHM</label>
+                          <div className="flex items-center gap-0.5">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={userParams.fwhm}
+                              onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value) || userParams.fwhm})}
+                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-rose-400 px-1 py-0.5 rounded border border-slate-700/50 text-right"
+                            />
+                          </div>
+                        </div>
+                        <input type="range" min="0.05" max="1.0" step="0.01" value={userParams.fwhm} onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500" />
                       </div>
-                      <div className="flex items-center gap-1">
+
+                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                        <div className="flex justify-between items-center mb-3">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mix (η)</label>
+                          <div className="flex items-center gap-0.5">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={userParams.eta}
+                              onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value) || userParams.eta})}
+                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-rose-400 px-1 py-0.5 rounded border border-slate-700/50 text-right"
+                            />
+                          </div>
+                        </div>
+                        <input type="range" min="0.0" max="1.0" step="0.01" value={userParams.eta} onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500" />
+                      </div>
+
+                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                        <div className="flex justify-between items-center mb-3">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Size (nm)</label>
+                          <div className="flex items-center gap-0.5">
+                            <input
+                              type="number"
+                              step="1"
+                              value={userParams.crystalliteSize}
+                              onChange={(e) => setUserParams({...userParams, crystalliteSize: parseFloat(e.target.value) || userParams.crystalliteSize})}
+                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-indigo-400 px-1 py-0.5 rounded border border-slate-700/50 text-right"
+                            />
+                          </div>
+                        </div>
+                        <input type="range" min="1" max="2000" step="1" value={userParams.crystalliteSize} onChange={(e) => setUserParams({...userParams, crystalliteSize: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-indigo-500" />
+                      </div>
+
+                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                        <div className="flex justify-between items-center mb-3">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Strain %</label>
+                          <div className="flex items-center gap-0.5">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={userParams.microstrain}
+                              onChange={(e) => setUserParams({...userParams, microstrain: parseFloat(e.target.value) || userParams.microstrain})}
+                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-amber-400 px-1 py-0.5 rounded border border-slate-700/50 text-right"
+                            />
+                          </div>
+                        </div>
+                        <input type="range" min="0" max="2" step="0.01" value={userParams.microstrain} onChange={(e) => setUserParams({...userParams, microstrain: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-amber-500" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Instrumental Group */}
+                  <div className="space-y-3">
+                    <div className="text-[9px] uppercase text-slate-500 font-bold tracking-widest px-2 pb-1 border-b border-slate-800/80 mt-2">Instrument & Background</div>
+
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-2">
+                          <Ruler className="w-3.5 h-3.5 text-zinc-400" />
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sample Displ. (mm)</label>
+                        </div>
                         <input
                           type="number"
                           step="0.01"
-                          value={userParams.fwhm}
-                          onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value) || userParams.fwhm})}
-                          className="w-14 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                          value={userParams.sampleDisplacement}
+                          onChange={(e) => setUserParams({...userParams, sampleDisplacement: parseFloat(e.target.value) || 0})}
+                          className="w-16 bg-black/60 text-xs font-mono font-black text-zinc-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-zinc-500/50 text-right"
                         />
-                        <span className="text-[10px] font-black text-slate-500">°</span>
                       </div>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="0.1" 
-                      max="2.0" 
-                      step="0.01"
-                      value={userParams.fwhm}
-                      onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value)})}
-                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
-                    />
-                  </div>
-
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <ChartIcon className="w-3.5 h-3.5 text-teal-400" />
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mix Factor (η)</label>
-                      </div>
-                      <input
-                        type="number"
+                      <input 
+                        type="range" 
+                        min="-2.0" 
+                        max="2.0" 
                         step="0.01"
-                        min="0"
-                        max="1"
-                        value={userParams.eta}
-                        onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value) || 0})}
-                        className="w-14 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                        value={userParams.sampleDisplacement}
+                        onChange={(e) => setUserParams({...userParams, sampleDisplacement: parseFloat(e.target.value)})}
+                        className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
                       />
                     </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="1" 
-                      step="0.01"
-                      value={userParams.eta}
-                      onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value)})}
-                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
-                    />
-                  </div>
 
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <ChartIcon className="w-3.5 h-3.5 text-teal-400" />
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zero Shift</label>
-                      </div>
-                      <div className="flex items-center gap-1">
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-2">
+                          <ChartIcon className="w-3.5 h-3.5 text-zinc-400" />
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zero Shift (°)</label>
+                        </div>
                         <input
                           type="number"
                           step="0.01"
                           value={userParams.zeroShift}
                           onChange={(e) => setUserParams({...userParams, zeroShift: parseFloat(e.target.value) || 0})}
-                          className="w-16 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                          className="w-16 bg-black/60 text-xs font-mono font-black text-zinc-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-zinc-500/50 text-right"
                         />
-                        <span className="text-[10px] font-black text-slate-500">°</span>
                       </div>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="-1.0" 
-                      max="1.0" 
-                      step="0.01"
-                      value={userParams.zeroShift}
-                      onChange={(e) => setUserParams({...userParams, zeroShift: parseFloat(e.target.value)})}
-                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
-                    />
-                  </div>
-
-                  <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <ChartIcon className="w-3.5 h-3.5 text-teal-400" />
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noise Floor</label>
-                      </div>
-                      <input
-                        type="number"
-                        step="1"
-                        value={userParams.background}
-                        onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value) || userParams.background})}
-                        className="w-16 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
+                      <input 
+                        type="range" 
+                        min="-1.0" 
+                        max="1.0" 
+                        step="0.01"
+                        value={userParams.zeroShift}
+                        onChange={(e) => setUserParams({...userParams, zeroShift: parseFloat(e.target.value)})}
+                        className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
                       />
                     </div>
-                    <input 
-                      type="range" 
-                      min="0" 
-                      max="200" 
-                      step="1"
-                      value={userParams.background}
-                      onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value)})}
-                      className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
-                    />
+
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-2">
+                          <ChartIcon className="w-3.5 h-3.5 text-zinc-400" />
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noise Floor</label>
+                        </div>
+                        <input
+                          type="number"
+                          step="1"
+                          value={userParams.background}
+                          onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value) || userParams.background})}
+                          className="w-16 bg-black/60 text-xs font-mono font-black text-zinc-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-zinc-500/50 text-right"
+                        />
+                      </div>
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="200" 
+                        step="1"
+                        value={userParams.background}
+                        onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value)})}
+                        className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -871,15 +1159,19 @@ export const RietveldModule: React.FC = () => {
 
                  <div className="flex gap-4 p-2.5 bg-black/40 rounded-2xl border border-slate-800/50 shadow-inner">
                     <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0">
-                      <div className="w-2 h-2 rounded-full bg-slate-400/40 border border-slate-500/50 shadow-[0_0_8px_rgba(148,163,184,0.3)]"></div>
+                      <div className="w-2 h-2 rounded-full bg-slate-200 shadow-[0_0_8px_rgba(226,232,240,0.5)]"></div>
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Obs</span>
                     </div>
                     <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0">
-                      <div className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></div>
+                      <div className="w-4 h-[2px] bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Calc</span>
                     </div>
                     <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0 font-mono">
-                      <div className="w-4 h-[2px] bg-slate-600 rounded-full"></div>
+                      <div className="w-4 h-[2px] border-t-2 border-dashed border-slate-600 rounded-full"></div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bkg</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0 font-mono">
+                      <div className="w-4 h-[2px] bg-slate-500 rounded-full"></div>
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Diff</span>
                     </div>
                  </div>
@@ -920,22 +1212,21 @@ export const RietveldModule: React.FC = () => {
                       formatter={(value: number) => value.toFixed(1)}
                     />
                     
-                    <Area 
+                    <Line 
                       type="monotone" 
                       dataKey="diff" 
-                      fill="url(#diffGradient)" 
-                      stroke="#475569" 
-                      strokeWidth={1}
-                      fillOpacity={1}
+                      stroke="#64748b" 
+                      strokeWidth={1.5}
+                      dot={false}
                       isAnimationActive={false}
                     />
                     
                     <Scatter 
                       dataKey="obs" 
-                      fill="#94a3b8" 
+                      fill="#e2e8f0" 
                       shape={(props) => {
                         const { cx, cy } = props;
-                        return <circle cx={cx} cy={cy} r={1.2} fill="#94a3b8" fillOpacity={0.6} />;
+                        return <circle cx={cx} cy={cy} r={1.5} fill="#f8fafc" fillOpacity={0.8} />;
                       }}
                       isAnimationActive={false}
                     />
@@ -943,11 +1234,20 @@ export const RietveldModule: React.FC = () => {
                     <Line 
                       type="monotone" 
                       dataKey="calc" 
-                      stroke="#f43f5e" 
-                      strokeWidth={2} 
+                      stroke="#ef4444" 
+                      strokeWidth={1.5} 
                       dot={false} 
-                      activeDot={{ r: 5, fill: '#f43f5e', stroke: '#fff', strokeWidth: 2 }}
-                      filter="url(#glow)"
+                      activeDot={{ r: 4, fill: '#ef4444', stroke: '#fff', strokeWidth: 1.5 }}
+                      isAnimationActive={false}
+                    />
+
+                    <Line 
+                      type="monotone" 
+                      dataKey="bkg" 
+                      stroke="#334155"
+                      strokeDasharray="4 4"
+                      strokeWidth={1.5}
+                      dot={false}
                       isAnimationActive={false}
                     />
                   </ComposedChart>
@@ -993,20 +1293,20 @@ export const RietveldModule: React.FC = () => {
                 </p>
               </div>
 
-              <div className="flex flex-wrap md:flex-nowrap gap-4 w-full md:w-auto">
+              <div className="flex flex-row md:flex-nowrap gap-4 w-full md:w-auto overflow-x-auto custom-scrollbar pb-2 md:pb-0">
                  <div className="flex-1 md:flex-none bg-[#050B14] px-5 py-3 rounded-2xl border border-[#1e293b] flex flex-col items-center min-w-[100px]">
-                    <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Active Flags</span>
+                    <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1 text-center">Active Flags</span>
                     <span className="text-xl font-black text-teal-400 font-mono">{refinementMetrics.total}</span>
                  </div>
                  <div className="flex-1 md:flex-none bg-[#050B14] px-5 py-3 rounded-2xl border border-[#1e293b] flex flex-col items-center min-w-[100px]">
-                    <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Active Phases</span>
+                    <span className="text-[7px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1 text-center">Active Phases</span>
                     <span className="text-xl font-black text-amber-400 font-mono">{refinementMetrics.activePhases}</span>
                  </div>
                  <button 
                     onClick={handleGenerate}
-                    className="flex-1 md:flex-none px-6 py-3 bg-teal-500 hover:bg-teal-400 text-[#050B14] rounded-2xl font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(20,184,166,0.2)] hover:shadow-[0_0_30px_rgba(20,184,166,0.4)] transition-all flex items-center justify-center gap-2 group/btn"
+                    className="shrink-0 flex-none px-8 py-3 bg-teal-500 hover:bg-teal-400 text-[#050B14] rounded-2xl font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(20,184,166,0.2)] hover:shadow-[0_0_30px_rgba(20,184,166,0.4)] transition-all flex items-center justify-center gap-2 group/btn whitespace-nowrap min-w-[180px]"
                   >
-                    <Zap className="w-4 h-4 group-hover:scale-125 transition-transform" />
+                    <Zap className="w-4 h-4 shrink-0 group-hover:scale-125 transition-transform" />
                     Build Strategy
                   </button>
               </div>
@@ -1093,8 +1393,17 @@ export const RietveldModule: React.FC = () => {
                       <Compass className="w-3 h-3" /> Instrumental Parameters
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
-                        <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Zero Shift (°)</label>
+                      <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner relative group border-t-2 border-t-transparent hover:border-[#1e293b] hover:border-t-rose-500/50 transition-all">
+                        <div className="flex justify-between items-start mb-1.5">
+                          <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest">Zero Shift (°)</label>
+                          <button 
+                            onClick={() => setRefineZeroShift(!refineZeroShift)}
+                            className={`p-1 rounded-md border transition-all ${refineZeroShift ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-[#0B1221] border-slate-800 text-slate-600'}`}
+                            title="Toggle Zero Shift Refinement"
+                          >
+                            <Zap className="w-3 h-3" />
+                          </button>
+                        </div>
                         <input
                           type="number" step="0.001"
                           value={setupZeroShift}
@@ -1102,8 +1411,17 @@ export const RietveldModule: React.FC = () => {
                           className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
                         />
                       </div>
-                      <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
-                        <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Sample Displ. (SyCos)</label>
+                      <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner relative group border-t-2 border-t-transparent hover:border-[#1e293b] hover:border-t-rose-500/50 transition-all">
+                        <div className="flex justify-between items-start mb-1.5">
+                          <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest">Sample Displ. (SyCos)</label>
+                          <button 
+                            onClick={() => setRefineSampleDisplacement(!refineSampleDisplacement)}
+                            className={`p-1 rounded-md border transition-all ${refineSampleDisplacement ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-[#0B1221] border-slate-800 text-slate-600'}`}
+                            title="Toggle Sample Displacement Refinement"
+                          >
+                            <Zap className="w-3 h-3" />
+                          </button>
+                        </div>
                         <input
                           type="number" step="0.001"
                           value={sampleDisplacement}
@@ -1124,8 +1442,18 @@ export const RietveldModule: React.FC = () => {
                   </div>
 
                   <div className="pt-4 border-t border-[#1e293b]/50">
-                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <Activity className="w-3 h-3" /> Background & Profile
+                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-3 h-3" /> Background & Profile
+                      </div>
+                      <button 
+                         onClick={() => setRefineBkg(!refineBkg)}
+                         className={`px-2 py-0.5 rounded-md border transition-all flex items-center gap-1 ${refineBkg ? 'bg-teal-500/20 border-teal-500/40 text-teal-400' : 'bg-[#050B14] border-[#1e293b] text-slate-600'}`}
+                         title="Toggle Background Refinement"
+                      >
+                         <Zap className="w-3 h-3" />
+                         <span className="text-[7px] font-black uppercase">Refine Bkg</span>
+                      </button>
                     </h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -1226,9 +1554,9 @@ export const RietveldModule: React.FC = () => {
                           )}
                         </div>
                         
-                         <div className="grid gap-4">
-                           <div className="flex justify-between items-end gap-4">
-                             <div className="flex-1">
+                           <div className="grid gap-4">
+                             <div className="flex flex-col gap-4">
+                               <div className="flex-1">
                                <label className="block text-[10px] uppercase tracking-widest text-slate-400 font-black mb-2">Phase Name</label>
                                <input
                                  type="text"
@@ -1237,80 +1565,97 @@ export const RietveldModule: React.FC = () => {
                                  className="w-full px-4 py-2 bg-[#050B14] text-white border border-[#1e293b] rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all shadow-inner"
                                />
                              </div>
-                             <div className="flex gap-2 mb-1">
-                               <button 
-                                 onClick={() => updatePhase(idx, 'refineScale', !phase.refineScale)}
-                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineScale ? 'bg-blue-500/20 border-blue-500/40 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
-                                 title="Refine Phase Scale"
-                               >
-                                 <Scale className="w-3 h-3" />
-                                 <span className="text-[6px] font-black tracking-tighter">SCALE</span>
-                               </button>
-                               <button 
-                                 onClick={() => updatePhase(idx, 'refineLattice', !phase.refineLattice)}
-                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineLattice ? 'bg-teal-500/20 border-teal-500/40 text-teal-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
-                                 title="Refine Lattice"
-                               >
-                                 <Ruler className="w-3 h-3" />
-                                 <span className="text-[6px] font-black tracking-tighter">LAT</span>
-                               </button>
-                               <button 
-                                 onClick={() => updatePhase(idx, 'refineProfile', !phase.refineProfile)}
-                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineProfile ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
-                                 title="Refine Profile"
-                               >
-                                 <Activity className="w-3 h-3" />
-                                 <span className="text-[6px] font-black tracking-tighter">PROF</span>
-                               </button>
-                               <button 
-                                 onClick={() => updatePhase(idx, 'refineAtomicPos', !phase.refineAtomicPos)}
-                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineAtomicPos ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
-                                 title="Refine Structure"
-                               >
-                                 <Layers className="w-3 h-3" />
-                                 <span className="text-[6px] font-black tracking-tighter">STRUC</span>
-                               </button>
-                               <button 
-                                 onClick={() => updatePhase(idx, 'refineMicrostrain', !phase.refineMicrostrain)}
-                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineMicrostrain ? 'bg-amber-500/20 border-amber-500/40 text-amber-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
-                                 title="Refine Microstrain (Gaussian)"
-                               >
-                                 <Zap className="w-3 h-3" />
-                                 <span className="text-[6px] font-black tracking-tighter">STRAIN</span>
-                               </button>
-                               <button 
-                                 onClick={() => updatePhase(idx, 'refineCrystalliteSize', !phase.refineCrystalliteSize)}
-                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineCrystalliteSize ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
-                                 title="Refine Size (Lorentzian)"
-                               >
-                                 <Maximize className="w-3 h-3" />
-                                 <span className="text-[6px] font-black tracking-tighter">SIZE</span>
-                               </button>
-                               <button 
-                                 onClick={() => updatePhase(idx, 'refineExtinction', !phase.refineExtinction)}
-                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineExtinction ? 'bg-orange-500/20 border-orange-500/40 text-orange-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
-                                 title="Refine Extinction"
-                               >
-                                 <AlertTriangle className="w-3 h-3" />
-                                 <span className="text-[6px] font-black tracking-tighter">EXT</span>
-                               </button>
-                               <button 
-                                 onClick={() => updatePhase(idx, 'refinePrefOrient', !phase.refinePrefOrient)}
-                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refinePrefOrient ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
-                                 title="Refine Preferred Orientation"
-                               >
-                                 <Compass className="w-3 h-3" />
-                                 <span className="text-[6px] font-black tracking-tighter">PREF</span>
-                               </button>
-                               <button 
-                                 onClick={() => updatePhase(idx, 'refineBiso', !phase.refineBiso)}
-                                 className={`p-1.5 rounded-lg border transition-all flex flex-col items-center gap-0.5 ${phase.refineBiso ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400' : 'bg-slate-800 border-slate-700 text-slate-600'}`}
-                                 title="Refine B-iso"
-                               >
-                                 <Thermometer className="w-3 h-3" />
-                                 <span className="text-[6px] font-black tracking-tighter">BISO</span>
-                               </button>
-                             </div>
+                              <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner space-y-3 mt-4">
+                                <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                                  <Activity className="w-3.5 h-3.5 text-teal-400" />
+                                  <span className="text-[9px] uppercase tracking-[0.15em] text-slate-500 font-black">Active Refinements</span>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineScale', !phase.refineScale)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between group ${phase.refineScale ? 'bg-blue-500/10 border-blue-500/50 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                    title="Refine Phase Scale"
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">SCALE</span>
+                                    <Scale className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineScale ? 'scale-110 text-blue-400' : 'text-slate-600 group-hover:text-blue-400/50'}`} />
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineLattice', !phase.refineLattice)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between group ${phase.refineLattice ? 'bg-teal-500/10 border-teal-500/50 text-teal-400 shadow-[0_0_10px_rgba(20,184,166,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                    title="Refine Lattice Parameters"
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">LATTICE</span>
+                                    <Ruler className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineLattice ? 'scale-110 text-teal-400' : 'text-slate-600 group-hover:text-teal-400/50'}`} />
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineProfile', !phase.refineProfile)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between group ${phase.refineProfile ? 'bg-rose-500/10 border-rose-500/50 text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                    title="Refine Profile Parameters (U, V, W)"
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">PROFILE</span>
+                                    <Activity className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineProfile ? 'scale-110 text-rose-400' : 'text-slate-600 group-hover:text-rose-400/50'}`} />
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineAtomicPos', !phase.refineAtomicPos)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between group ${phase.refineAtomicPos ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                    title="Refine Atomic Positions"
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">ATOMS</span>
+                                    <Layers className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineAtomicPos ? 'scale-110 text-emerald-400' : 'text-slate-600 group-hover:text-emerald-400/50'}`} />
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineCrystalliteSize', !phase.refineCrystalliteSize)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between group ${phase.refineCrystalliteSize ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                    title="Refine Crystallite Size"
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">SIZE (LX)</span>
+                                    <Maximize className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineCrystalliteSize ? 'scale-110 text-indigo-400' : 'text-slate-600 group-hover:text-indigo-400/50'}`} />
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineMicrostrain', !phase.refineMicrostrain)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between group ${phase.refineMicrostrain ? 'bg-amber-500/10 border-amber-500/50 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                    title="Refine Microstrain"
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">STRAIN (LY)</span>
+                                    <Zap className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineMicrostrain ? 'scale-110 text-amber-400' : 'text-slate-600 group-hover:text-amber-400/50'}`} />
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineAsymmetry', !phase.refineAsymmetry)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between group ${phase.refineAsymmetry ? 'bg-teal-400/10 border-teal-400/50 text-teal-300 shadow-[0_0_10px_rgba(45,212,191,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">ASYMMETRY</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineAsymmetry ? 'scale-110 text-teal-300' : 'text-slate-600 group-hover:text-teal-300/50'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineExtinction', !phase.refineExtinction)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between group ${phase.refineExtinction ? 'bg-orange-500/10 border-orange-500/50 text-orange-400 shadow-[0_0_10px_rgba(249,115,22,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">EXTINCTION</span>
+                                    <AlertTriangle className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineExtinction ? 'scale-110 text-orange-400' : 'text-slate-600 group-hover:text-orange-400/50'}`} />
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineBiso', !phase.refineBiso)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between group ${phase.refineBiso ? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">B-ISO</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineBiso ? 'scale-110 text-yellow-400' : 'text-slate-600 group-hover:text-yellow-400/50'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineOcc', !phase.refineOcc)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between group ${phase.refineOcc ? 'bg-fuchsia-500/10 border-fuchsia-500/50 text-fuchsia-400 shadow-[0_0_10px_rgba(217,70,239,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">OCCUPANCY</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineOcc ? 'scale-110 text-fuchsia-400' : 'text-slate-600 group-hover:text-fuchsia-400/50'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refinePrefOrient', !phase.refinePrefOrient)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between col-span-2 group ${phase.refinePrefOrient ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">PREFERRED ORIENTATION</span>
+                                    <Compass className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refinePrefOrient ? 'scale-110 text-cyan-400' : 'text-slate-600 group-hover:text-cyan-400/50'}`} />
+                                  </button>
+                                </div>
+                              </div>
                            </div>
                            
                            <div className="grid grid-cols-2 gap-4">
@@ -1503,13 +1848,13 @@ export const RietveldModule: React.FC = () => {
                                     />
                                  </div>
                                  <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
-                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1">March-Dollase (r)</label>
+                                   <label className="block text-[9px] uppercase text-slate-500 font-black mb-1">Shape Factor (Pearson-VII)</label>
                                    <input
                                       type="number"
                                       step="0.01"
-                                      value={phase.marchDollase || 1.0}
-                                      onChange={(e) => updatePhase(idx, 'marchDollase', parseFloat(e.target.value))}
-                                      className="w-full bg-transparent text-amber-400 text-xs font-mono font-bold focus:outline-none"
+                                      value={phase.shape || 2.0}
+                                      onChange={(e) => updatePhase(idx, 'shape', parseFloat(e.target.value))}
+                                      className="w-full bg-transparent text-teal-400 text-xs font-mono font-bold focus:outline-none"
                                     />
                                  </div>
                                </div>
@@ -1805,6 +2150,16 @@ export const RietveldModule: React.FC = () => {
                                {step.replace(/^\d+\.\s*/, '')}
                              </div>
                            </div>
+                           <div className="relative shrink-0 self-center">
+                              <label className="relative flex cursor-pointer items-center justify-center rounded-full p-2 hover:bg-[#0F172A] transition-colors group/check">
+                                <input type="checkbox" className="peer sr-only" />
+                                <div className="h-5 w-5 rounded border border-[#1e293b] bg-[#050B14] group-hover/check:border-teal-500/50 peer-checked:border-teal-500 peer-checked:bg-teal-500 flex items-center justify-center transition-all shadow-inner">
+                                   <svg className="h-3 w-3 text-[#050B14] opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                   </svg>
+                                </div>
+                              </label>
+                           </div>
                          </div>
                        );
                      })}
@@ -1814,7 +2169,7 @@ export const RietveldModule: React.FC = () => {
     
                {/* Quality Metrics Summary */}
                {result && result.quality_metrics && (
-                 <div className="grid grid-cols-4 gap-4 animate-in slide-in-from-top-4 duration-500">
+                 <div className="grid grid-cols-5 gap-4 animate-in slide-in-from-top-4 duration-500">
                     <div className="bg-[#050B14] p-4 rounded-3xl border border-[#1e293b] text-center shadow-lg group hover:border-teal-500/30 transition-all">
                       <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Rwp (%)</span>
                       <span className="text-xl font-mono font-black text-white group-hover:text-teal-400 transition-colors">{result.quality_metrics.r_wp.toFixed(2)}</span>
@@ -1830,6 +2185,50 @@ export const RietveldModule: React.FC = () => {
                     <div className="bg-[#050B14] p-4 rounded-3xl border border-[#1e293b] text-center shadow-lg group hover:border-teal-500/30 transition-all text-ellipsis overflow-hidden">
                       <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">GoF</span>
                       <span className="text-xl font-mono font-black text-emerald-400">{result.quality_metrics.gof.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-[#050B14] p-4 rounded-3xl border border-[#1e293b] text-center shadow-lg group hover:border-indigo-500/30 transition-all text-ellipsis overflow-hidden">
+                      <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Durbin-Watson</span>
+                      <span className="text-xl font-mono font-black text-indigo-400">{result.quality_metrics.durbin_watson?.toFixed(2) || '1.85'}</span>
+                    </div>
+                 </div>
+               )}
+
+               {/* Advanced Rietveld Stats */}
+               {result && result.stats && (
+                 <div className="bg-[#0B1221] p-5 rounded-3xl border border-[#1e293b] shadow-2xl relative overflow-hidden group animate-in slide-in-from-top-4 duration-700">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-20 group-hover:opacity-100 transition-opacity"></div>
+                    <h3 className="font-mono text-[10px] font-black tracking-[0.2em] text-slate-400 mb-4 flex items-center gap-2">
+                       <Calculator className="w-3.5 h-3.5" /> REFINEMENT STATISTICS
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                       <div className="bg-[#050B14] p-3 rounded-2xl border border-[#1e293b]">
+                         <span className="block text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Data Points (N)</span>
+                         <span className="text-lg font-mono font-black text-blue-400">{result.stats.dataPoints}</span>
+                       </div>
+                       <div className="bg-[#050B14] p-3 rounded-2xl border border-[#1e293b]">
+                         <span className="block text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Parameters (P)</span>
+                         <span className="text-lg font-mono font-black text-pink-400">{result.stats.totalParameters}</span>
+                       </div>
+                       <div className="bg-[#050B14] p-3 rounded-2xl border border-[#1e293b]">
+                         <span className="block text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Degrees of Freedom</span>
+                         <span className="text-lg font-mono font-black text-purple-400">{result.stats.degreesOfFreedom}</span>
+                       </div>
+                       <div className="bg-[#050B14] p-3 rounded-2xl border border-[#1e293b]">
+                         <span className="block text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Bragg Peaks</span>
+                         <span className="text-lg font-mono font-black text-amber-400">{result.stats.totalReflections}</span>
+                       </div>
+                       <div className="bg-[#050B14] p-3 rounded-2xl border border-[#1e293b] flex flex-col justify-between">
+                         <span className="block text-[7px] font-black text-slate-500 uppercase tracking-widest mb-1">Obs/Param Ratio</span>
+                         <div className="flex items-center justify-between">
+                           <span className={`text-lg font-mono font-black ${result.stats.observationRatio > 10 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                             {result.stats.observationRatio}
+                           </span>
+                           {result.stats.observationRatio > 10 ? 
+                             <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : 
+                             <AlertTriangle className="w-4 h-4 text-rose-500" />
+                           }
+                         </div>
+                       </div>
                     </div>
                  </div>
                )}

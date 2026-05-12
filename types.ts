@@ -205,6 +205,12 @@ export interface RietveldSetupInput {
   zeroShift?: number;
   sampleDisplacement?: number; // Sample displacement (SyCos)
   polarization?: number; // Polarization factor (Lp)
+  refineZeroShift?: boolean;
+  refineBkg?: boolean;
+  refineSampleDisplacement?: boolean;
+  twoThetaMin?: number;
+  twoThetaMax?: number;
+  stepSize?: number;
 }
 
 export interface RietveldSetupResult {
@@ -255,6 +261,14 @@ export interface RietveldSetupResult {
     r_exp: number;
     gof: number;
     chi_squared: number;
+    durbin_watson?: number;
+  };
+  stats?: {
+    totalReflections: number;
+    totalParameters: number;
+    dataPoints: number;
+    degreesOfFreedom: number;
+    observationRatio: number; // dataPoints / totalParameters
   };
   refinement_strategy: string[];
 }
