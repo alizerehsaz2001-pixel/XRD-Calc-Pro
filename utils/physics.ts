@@ -918,7 +918,7 @@ export const calculateMagneticDiffraction = (wavelength: number, lattice: Lattic
   }));
 };
 
-export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: number }[]): DLPhaseResult => {
+export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: number }[], isMixMode: boolean = false): DLPhaseResult => {
   // Expanded Database of Common Phases
   const DB = [
     { 
@@ -1095,10 +1095,174 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       description: "A transition metal dichalcogenide used as a dry lubricant and 2D semiconductor.",
       crystalSystem: "Hexagonal", spaceGroup: "P63/mmc", density: 5.06,
       applications: ["Lubrication", "Transistors", "Chemical Catalysis"]
+    },
+    {
+      name: 'Zirconia', formula: 'ZrO2', cardId: 'COD-1000123',
+      peaks: [{t: 30.27, i: 100}, {t: 35.25, i: 25}, {t: 50.37, i: 60}, {t: 60.20, i: 30}],
+      description: "A white crystalline oxide of zirconium. It is one of the most studied ceramic materials.",
+      crystalSystem: "Tetragonal", spaceGroup: "P42/nmc", density: 5.68,
+      applications: ["Ceramics", "Dental", "Refractories"]
+    },
+    {
+      name: 'MAPbI3', formula: 'CH3NH3PbI3', cardId: 'COD-1000124',
+      peaks: [{t: 14.1, i: 100}, {t: 24.5, i: 45}, {t: 28.4, i: 55}, {t: 31.8, i: 30}, {t: 40.6, i: 20}],
+      description: "A primary material used in high-efficiency perovskite solar cells.",
+      crystalSystem: "Tetragonal", spaceGroup: "I4/mcm", density: 4.16,
+      applications: ["Photovoltaics", "Photodetectors"]
+    },
+    {
+      name: 'CsPbI3', formula: 'CsPbI3', cardId: 'COD-1000125',
+      peaks: [{t: 14.2, i: 100}, {t: 20.1, i: 45}, {t: 24.6, i: 35}, {t: 28.6, i: 90}, {t: 32.1, i: 25}, {t: 40.8, i: 55}],
+      description: "An all-inorganic perovskite material with high thermal stability for solar cells.",
+      crystalSystem: "Cubic", spaceGroup: "Pm-3m", density: 5.04,
+      applications: ["Solar Cells", "LEDs"]
+    },
+    {
+      name: 'Lithium Cobalt Oxide', formula: 'LiCoO2', cardId: 'COD-1000126',
+      peaks: [{t: 18.9, i: 100}, {t: 36.7, i: 45}, {t: 37.3, i: 50}, {t: 38.4, i: 35}, {t: 45.2, i: 40}, {t: 59.2, i: 25}],
+      description: "A chemical compound used as a positive electrode in lithium-ion batteries.",
+      crystalSystem: "Rhombohedral", spaceGroup: "R-3m", density: 5.06,
+      applications: ["Batteries", "Electronics"]
+    },
+    {
+      name: 'NMC-111', formula: 'LiNiMnCoO2', cardId: 'COD-1000127',
+      peaks: [{t: 18.7, i: 100}, {t: 36.6, i: 35}, {t: 37.2, i: 40}, {t: 38.3, i: 30}, {t: 44.4, i: 45}, {t: 58.5, i: 25}],
+      description: "A mixed metal oxide used as a cathode material in Li-ion batteries.",
+      crystalSystem: "Rhombohedral", spaceGroup: "R-3m", density: 4.8,
+      applications: ["EV Batteries", "Power Backup"]
+    },
+    {
+      name: 'Titanium Carbide', formula: 'TiC', cardId: 'COD-1000128',
+      peaks: [{t: 35.9, i: 100}, {t: 41.7, i: 85}, {t: 60.4, i: 60}, {t: 72.3, i: 45}],
+      description: "An extremely hard refractory ceramic material, similar to tungsten carbide.",
+      crystalSystem: "Cubic", spaceGroup: "Fm-3m", density: 4.93,
+      applications: ["Cutting Tools", "Coatings"]
+    },
+    {
+      name: 'Feldspar', formula: 'KAlSi3O8', cardId: 'COD-1000129',
+      peaks: [{t: 13.1, i: 30}, {t: 21.0, i: 25}, {t: 23.6, i: 100}, {t: 26.5, i: 80}, {t: 27.8, i: 45}, {t: 29.9, i: 15}],
+      description: "A common rock-forming tectosilicate mineral.",
+      crystalSystem: "Monoclinic", spaceGroup: "C2/m", density: 2.56,
+      applications: ["Glassmaking", "Ceramics"]
     }
   ];
 
-  const TOLERANCE = 0.5; // degrees
+  const TOLERANCE = 0.25; // Tightened from 0.5 to better distinguish similar phases
+
+  if (isMixMode) {
+    let remainingPoints = [...inputPoints];
+    const identifiedPhases: DLPhaseCandidate[] = [];
+    let availableDB = [...DB];
+    
+    // Find up to 6 phases
+    for (let iter = 0; iter < 6; iter++) {
+      if (remainingPoints.length === 0) break;
+      
+      let bestPhase: DLPhaseCandidate | null = null;
+      let bestPhaseIdx = -1;
+      let bestConf = 0;
+      
+      availableDB.forEach((phase, idx) => {
+        let matchScore = 0;
+        let matchedPeaksCount = 0;
+        const matchedDetails: any[] = [];
+        
+        for (const refPeak of phase.peaks) {
+          if (remainingPoints.length === 0) continue;
+          
+          const closest = remainingPoints.reduce((prev, curr) => {
+            return (Math.abs(curr.twoTheta - refPeak.t) < Math.abs(prev.twoTheta - refPeak.t) ? curr : prev);
+          });
+          
+          const diff = Math.abs(closest.twoTheta - refPeak.t);
+          
+          if (diff <= TOLERANCE) {
+            matchedPeaksCount++;
+            // Use quadratic distance penalty for higher precision
+            const positionWeight = 1 - Math.pow(diff / TOLERANCE, 2);
+            const intensityWeight = Math.log10(refPeak.i + 10) / 2;
+            matchScore += (10 * positionWeight * intensityWeight);
+            matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i });
+          }
+        }
+        
+        const coverage = matchedPeaksCount / phase.peaks.length;
+        
+        // MIX MODE REFINEMENT: In mixtures, we often only see the most intense peaks.
+        // We calculate base confidence on matched peaks, then adjust based on "essential" peaks.
+        let confidence = (matchScore / 20) * 100; // Heuristic: 20 is a good score for 2-3 high-intensity peaks
+        
+        // Penalty for missing the absolute primary peak (Intensity check)
+        const mainPeakMatched = phase.peaks.some(p => p.i >= 95 && matchedDetails.some(md => md.refT === p.t));
+        if (!mainPeakMatched) {
+          confidence *= 0.3; // Dramatic drop if the #1 peak isn't there
+        } else {
+          confidence *= 1.2; // Boost if primary peak is found
+        }
+
+        // Secondary peaks check (Intensity 30-95)
+        const secondaryPeaks = phase.peaks.filter(p => p.i >= 30 && p.i < 95);
+        if (secondaryPeaks.length > 0) {
+          const matchedSecondary = secondaryPeaks.filter(p => matchedDetails.some(md => md.refT === p.t)).length;
+          const secondaryCoverage = matchedSecondary / secondaryPeaks.length;
+          if (secondaryCoverage === 0) confidence *= 0.8;
+          else if (secondaryCoverage > 0.5) confidence *= 1.1;
+        }
+
+        // High precision match bonus (average deviation)
+        const precisionAvg = matchedDetails.length > 0 
+          ? matchedDetails.reduce((acc, md) => acc + (1 - Math.abs(md.refT - md.obsT)/TOLERANCE), 0) / matchedDetails.length
+          : 0;
+        if (precisionAvg > 0.9) confidence *= 1.15; // increased bonus for tighter match
+        else if (precisionAvg > 0.8) confidence *= 1.05;
+        else if (precisionAvg < 0.5) confidence *= 0.8; // penalty for loose match
+
+        let finalConfidence = confidence;
+        finalConfidence = Math.min(99.9, Math.max(0, finalConfidence));
+        
+        if (confidence > bestConf && finalConfidence > 15) { // Lowered threshold slightly for mix components
+          bestConf = confidence;
+          bestPhaseIdx = idx;
+          
+          let matchQuality = "Low";
+          if (finalConfidence > 85) matchQuality = "Excellent";
+          else if (finalConfidence > 65) matchQuality = "Good";
+          else if (finalConfidence > 40) matchQuality = "Possible";
+          
+          bestPhase = {
+            phase_name: phase.name, 
+            formula: phase.formula, 
+            card_id: phase.cardId, 
+            confidence_score: parseFloat(finalConfidence.toFixed(1)),
+            match_quality: matchQuality,
+            matched_peaks: matchedDetails,
+            description: phase.description,
+            crystalSystem: phase.crystalSystem,
+            spaceGroup: phase.spaceGroup,
+            density: phase.density,
+            applications: phase.applications,
+            materialType: "Mineral/Metal"
+          };
+        }
+      });
+      
+      if (bestPhase && bestPhaseIdx !== -1) {
+        identifiedPhases.push(bestPhase);
+        const phaseToStrip = availableDB[bestPhaseIdx];
+        
+        // Remove only the points that match this phase's peaks
+        remainingPoints = remainingPoints.filter(p => {
+          return !phaseToStrip.peaks.some(ref => Math.abs(ref.t - p.twoTheta) <= (TOLERANCE * 1.5));
+        });
+        
+        availableDB.splice(bestPhaseIdx, 1);
+      } else {
+        break;
+      }
+    }
+    
+    return { module: "DL-Phase-ID-Smart-Mixture", candidates: identifiedPhases.sort((a,b) => b.confidence_score - a.confidence_score) };
+  }
 
   const candidates = DB.map(phase => {
     let matchScore = 0;
@@ -1118,16 +1282,10 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
         matchedPeaksCount++;
         
         // Weight by intensity importance (major peaks matter more)
-        const positionWeight = 1 - (diff / TOLERANCE); // 1.0 if perfect match
-        const intensityWeight = Math.log10(refPeak.i + 10) / 2; // Log scale weight for intensity
-        
-        // Intensity Ratio Check:
-        // Ideally, ObsIntensity / RefIntensity should be somewhat constant (scale factor)
-        // But here we just check if strong ref peaks are also strong in obs
-        // We don't penalize too much for intensity mismatch due to texture/preferred orientation
+        const positionWeight = 1 - Math.pow(diff / TOLERANCE, 2); 
+        const intensityWeight = Math.log10(refPeak.i + 10) / 2;
         
         matchScore += (10 * positionWeight * intensityWeight);
-
         matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i });
       }
     }
@@ -1163,20 +1321,20 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       confidence *= (1 - (impurityRatio * 0.4));
     }
 
-    // Cap at 99.9
-    confidence = Math.min(99.9, Math.max(0, confidence));
+    let finalConfidence = Math.min(99.9, Math.max(0, confidence));
     
     // Determine Match Quality
     let matchQuality = "Low";
-    if (confidence > 85) matchQuality = "Excellent";
-    else if (confidence > 65) matchQuality = "Good";
-    else if (confidence > 40) matchQuality = "Possible";
+    if (finalConfidence > 85) matchQuality = "Excellent";
+    else if (finalConfidence > 65) matchQuality = "Good";
+    else if (finalConfidence > 40) matchQuality = "Possible";
 
     return { 
       phase_name: phase.name, 
       formula: phase.formula, 
       card_id: phase.cardId, 
-      confidence_score: parseFloat(confidence.toFixed(1)),
+      confidence_score: parseFloat(finalConfidence.toFixed(1)),
+      raw_score: confidence,
       match_quality: matchQuality,
       matched_peaks: matchedDetails,
       description: phase.description,
@@ -1186,7 +1344,7 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       applications: phase.applications,
       materialType: "Mineral/Metal" // Default fallback
     };
-  }).filter(c => c.confidence_score > 15).sort((a,b) => b.confidence_score - a.confidence_score);
+  }).filter(c => c.confidence_score > 15).sort((a,b) => (b as any).raw_score - (a as any).raw_score);
 
   return { module: "DL-Phase-ID-Smart", candidates };
 };

@@ -6,7 +6,8 @@ import {
 import { 
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
   Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, AlertTriangle, 
-  Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2
+  Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2,
+  Globe
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
@@ -652,8 +653,8 @@ export const RietveldModule: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Controls */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl group-hover:bg-teal-500/20 transition-all duration-700"></div>
+            <div className={`bg-slate-900 p-6 rounded-2xl shadow-xl border relative overflow-hidden group transition-all duration-500 ${isAutoRefining ? 'border-teal-500/50 shadow-[0_0_30px_rgba(20,184,166,0.15)]' : 'border-slate-800'}`}>
+              <div className={`absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 rounded-full blur-3xl transition-all duration-700 ${isAutoRefining ? 'bg-teal-500/30 animate-pulse' : 'bg-teal-500/10 group-hover:bg-teal-500/20'}`}></div>
               
               <div className="flex justify-between items-center mb-6 relative z-10">
                 <div className="flex items-center gap-4">
@@ -705,29 +706,32 @@ export const RietveldModule: React.FC = () => {
                 </div>
               </div>
 
-              <div className="space-y-5 relative z-10">
-                <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 group/model hover:border-teal-500/30 transition-colors">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Beaker className="w-3.5 h-3.5 text-teal-500" />
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Structural Model</label>
-                  </div>
-                  <select 
-                    value={simPhase}
-                    onChange={(e) => setSimPhase(e.target.value)}
-                    className="w-full px-3 py-3 bg-black/60 border border-slate-700 rounded-xl text-xs font-bold text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="Simple Cubic">Simple Cubic (P m-3m)</option>
-                    <option value="BCC">Body Centered (I m-3m)</option>
-                    <option value="FCC">Face Centered (F m-3m)</option>
-                    <option value="Quartz">Quartz (P 32 21)</option>
-                  </select>
-                </div>
-
+              <div className="space-y-6 relative z-10">
                 <div className="space-y-6">
                   {/* Phase & Structure Group */}
-                  <div className="space-y-3">
-                    <div className="text-[9px] uppercase text-slate-500 font-bold tracking-widest px-2 pb-1 border-b border-slate-800/80">Phase & Structure</div>
+                  <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                    <div className="flex items-center gap-2 px-1 pb-2 border-b border-slate-800/80">
+                      <Database className="w-4 h-4 text-teal-400" />
+                      <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest">Phase & Structure</div>
+                    </div>
                     
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:border-teal-500/30 transition-colors">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Beaker className="w-3.5 h-3.5 text-teal-500" />
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Structural Model</label>
+                      </div>
+                      <select 
+                        value={simPhase}
+                        onChange={(e) => setSimPhase(e.target.value)}
+                        className="w-full px-3 py-3 bg-black/60 border border-slate-700 rounded-xl text-xs font-bold text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 transition-all appearance-none cursor-pointer"
+                      >
+                        <option value="Simple Cubic">Simple Cubic (P m-3m)</option>
+                        <option value="BCC">Body Centered (I m-3m)</option>
+                        <option value="FCC">Face Centered (F m-3m)</option>
+                        <option value="Quartz">Quartz (P 32 21)</option>
+                      </select>
+                    </div>
+
                     <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
                       <div className="flex justify-between items-center mb-3">
                         <div className="flex items-center gap-2">
@@ -783,10 +787,13 @@ export const RietveldModule: React.FC = () => {
                   </div>
 
                   {/* Peak Management Group */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between px-2 pb-1 border-b border-slate-800/80 mt-2">
-                       <div className="text-[9px] uppercase text-slate-500 font-bold tracking-widest">Diffraction Peaks</div>
-                       <div className="text-[8px] text-slate-600 font-mono">{userParams.peaks.filter(p => p.enabled).length} Active</div>
+                  <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                    <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
+                       <div className="flex items-center gap-2">
+                         <Layers className="w-4 h-4 text-indigo-400" />
+                         <div className="text-[10px] uppercase text-indigo-400 font-black tracking-widest">Diffraction Peaks</div>
+                       </div>
+                       <div className="text-[9px] text-indigo-400 font-black bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{userParams.peaks.filter(p => p.enabled).length} Active</div>
                     </div>
 
                     <div className="bg-[#050B14] rounded-xl border border-[#1e293b] overflow-hidden">
@@ -908,8 +915,11 @@ export const RietveldModule: React.FC = () => {
                   </div>
 
                   {/* Microstructure & Profile Group */}
-                  <div className="space-y-3">
-                    <div className="text-[9px] uppercase text-slate-500 font-bold tracking-widest px-2 pb-1 border-b border-slate-800/80 mt-2">Peak Profile & Microstructure</div>
+                  <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                    <div className="flex items-center gap-2 px-1 pb-2 border-b border-slate-800/80">
+                      <Activity className="w-4 h-4 text-rose-400" />
+                      <div className="text-[10px] uppercase text-rose-400 font-black tracking-widest">Peak Profile & Microstructure</div>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
@@ -979,8 +989,11 @@ export const RietveldModule: React.FC = () => {
                   </div>
 
                   {/* Instrumental Group */}
-                  <div className="space-y-3">
-                    <div className="text-[9px] uppercase text-slate-500 font-bold tracking-widest px-2 pb-1 border-b border-slate-800/80 mt-2">Instrument & Background</div>
+                  <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                    <div className="flex items-center gap-2 px-1 pb-2 border-b border-slate-800/80">
+                      <Gauge className="w-4 h-4 text-amber-400" />
+                      <div className="text-[10px] uppercase text-amber-400 font-black tracking-widest">Instrument & Background</div>
+                    </div>
 
                     <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
                       <div className="flex justify-between items-center mb-3">
@@ -1316,44 +1329,51 @@ export const RietveldModule: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Configuration */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] shadow-[0_0_50px_rgba(20,184,166,0.05)] border border-[#1e293b] relative overflow-hidden">
-              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-teal-600 rounded-full opacity-10 blur-[60px]"></div>
+            <div className="bg-slate-900 p-6 rounded-2xl shadow-xl border border-slate-800 relative overflow-hidden group transition-all duration-500">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl group-hover:bg-teal-500/20 transition-all duration-700"></div>
               
-              <div className="flex items-center gap-3 mb-6 relative z-10">
-                <div className="p-2.5 bg-teal-500/20 rounded-xl border border-teal-500/30 shadow-inner">
-                  <Settings className="w-5 h-5 text-teal-400" />
+              <div className="flex justify-between items-center mb-6 relative z-10">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-teal-500/20 rounded-xl border border-teal-500/30 shadow-[0_0_15px_rgba(20,184,166,0.2)]">
+                    <Settings className="w-5 h-5 text-teal-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-white tracking-tight">Refinement Setup</h2>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Configuration Matrix</p>
+                    </div>
+                  </div>
                 </div>
-                <h2 className="text-xl font-bold text-white">Refinement Setup</h2>
               </div>
     
               <div className="space-y-6 relative z-10">
                 {/* Global Settings */}
-                {/* Global Parameters Section */}
-                <div className="bg-[#0B1221] p-5 rounded-2xl border border-[#1e293b] shadow-inner space-y-5">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                       Global Configuration
-                    </h3>
+                <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                  <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
+                    <div className="flex items-center gap-2">
+                       <Globe className="w-4 h-4 text-blue-400" />
+                       <div className="text-[10px] uppercase text-blue-400 font-black tracking-widest">Global Configuration</div>
+                    </div>
                     <button 
                       onClick={() => setExpertMode(!expertMode)}
-                      className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border transition-all ${expertMode ? 'bg-amber-500/20 border-amber-500/40 text-amber-500' : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300'}`}
+                      className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border transition-all ${expertMode ? 'bg-amber-500/20 border-amber-500/40 text-amber-500' : 'bg-slate-800/40 border-slate-700 text-slate-500 hover:text-slate-300'}`}
                     >
                       {expertMode ? 'Expert Mode: ON' : 'Expert Mode: OFF'}
                     </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Max Obs Intensity</label>
+                    <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-colors">
+                      <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Max Obs Intensity</label>
                       <input
                         type="number"
                         value={maxObsIntensity}
                         onChange={(e) => setMaxObsIntensity(parseFloat(e.target.value))}
-                        className="w-full px-4 py-2.5 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all shadow-inner"
+                        className="w-full px-3 py-2 bg-black/60 text-teal-400 border border-slate-700 rounded-lg text-xs font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 transition-all"
                       />
                     </div>
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Radiation Source</label>
+                    <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-colors">
+                      <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Radiation Source</label>
                       <select 
                          value={radSource}
                          onChange={(e) => {
@@ -1364,7 +1384,7 @@ export const RietveldModule: React.FC = () => {
                            else if (e.target.value === 'Mo_Ka1') setWavelength(0.70932);
                            else if (e.target.value === 'Cr_Ka1') setWavelength(2.2897);
                          }}
-                         className="w-full px-3 py-2.5 bg-[#050B14] text-amber-400 border border-[#1e293b] rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all"
+                         className="w-full px-3 py-2 bg-black/60 text-amber-400 border border-slate-700 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all appearance-none"
                       >
                         <option value="Cu_Ka1">Cu Kα1 (1.5406 Å)</option>
                         <option value="Cu_Ka_avg">Cu Kα Avg (1.5418 Å)</option>
@@ -1377,135 +1397,144 @@ export const RietveldModule: React.FC = () => {
                   </div>
 
                   {radSource === 'Custom' && (
-                    <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner animate-in slide-in-from-top-1">
-                      <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Custom Wavelength (Å)</label>
+                    <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 animate-in slide-in-from-top-1">
+                      <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Custom Wavelength (Å)</label>
                       <input
                         type="number" step="0.0001"
                         value={wavelength}
                         onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                        className="w-full bg-transparent text-amber-400 text-xs font-mono font-bold focus:outline-none"
+                        className="w-full px-3 py-2 bg-black/60 text-amber-400 border border-slate-700 text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all rounded-lg"
                       />
                     </div>
                   )}
+                </div>
 
-                  <div className="pt-4 border-t border-[#1e293b]/50">
-                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <Compass className="w-3 h-3" /> Instrumental Parameters
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner relative group border-t-2 border-t-transparent hover:border-[#1e293b] hover:border-t-rose-500/50 transition-all">
-                        <div className="flex justify-between items-start mb-1.5">
-                          <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest">Zero Shift (°)</label>
-                          <button 
-                            onClick={() => setRefineZeroShift(!refineZeroShift)}
-                            className={`p-1 rounded-md border transition-all ${refineZeroShift ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-[#0B1221] border-slate-800 text-slate-600'}`}
-                            title="Toggle Zero Shift Refinement"
-                          >
-                            <Zap className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <input
-                          type="number" step="0.001"
-                          value={setupZeroShift}
-                          onChange={(e) => setSetupZeroShift(parseFloat(e.target.value))}
-                          className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
-                        />
+                {/* Instrumental Parameters Group */}
+                <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                  <div className="flex items-center gap-2 px-1 pb-2 border-b border-slate-800/80">
+                    <Compass className="w-4 h-4 text-emerald-400" />
+                    <div className="text-[10px] uppercase text-emerald-400 font-black tracking-widest">Instrumental Parameters</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-all group">
+                      <div className="flex justify-between items-start mb-2">
+                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest">Zero Shift (°)</label>
+                        <button 
+                          onClick={() => setRefineZeroShift(!refineZeroShift)}
+                          className={`p-1 rounded-md border transition-all ${refineZeroShift ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-slate-900/50 border-slate-700 text-slate-500'}`}
+                          title="Toggle Zero Shift Refinement"
+                        >
+                          <Zap className="w-3 h-3" />
+                        </button>
                       </div>
-                      <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner relative group border-t-2 border-t-transparent hover:border-[#1e293b] hover:border-t-rose-500/50 transition-all">
-                        <div className="flex justify-between items-start mb-1.5">
-                          <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest">Sample Displ. (SyCos)</label>
-                          <button 
-                            onClick={() => setRefineSampleDisplacement(!refineSampleDisplacement)}
-                            className={`p-1 rounded-md border transition-all ${refineSampleDisplacement ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-[#0B1221] border-slate-800 text-slate-600'}`}
-                            title="Toggle Sample Displacement Refinement"
-                          >
-                            <Zap className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <input
-                          type="number" step="0.001"
-                          value={sampleDisplacement}
-                          onChange={(e) => setSampleDisplacement(parseFloat(e.target.value))}
-                          className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                    <div className="mt-3 bg-[#050B14] p-3 rounded-xl border border-[#1e293b] shadow-inner">
-                      <label className="block text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5">Polarization Factor (Lp)</label>
                       <input
                         type="number" step="0.001"
-                        value={polarization}
-                        onChange={(e) => setPolarization(parseFloat(e.target.value))}
-                        className="w-full bg-transparent text-amber-400 text-xs font-mono font-bold focus:outline-none"
+                        value={setupZeroShift}
+                        onChange={(e) => setSetupZeroShift(parseFloat(e.target.value))}
+                        className="w-full px-2 py-1.5 bg-black/60 text-rose-400 border border-slate-700 rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500/50 transition-all"
+                      />
+                    </div>
+                    
+                    <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-all group">
+                      <div className="flex justify-between items-start mb-2">
+                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest">Sample Displ. (SyCos)</label>
+                        <button 
+                          onClick={() => setRefineSampleDisplacement(!refineSampleDisplacement)}
+                          className={`p-1 rounded-md border transition-all ${refineSampleDisplacement ? 'bg-rose-500/20 border-rose-500/40 text-rose-400' : 'bg-slate-900/50 border-slate-700 text-slate-500'}`}
+                          title="Toggle Sample Displacement Refinement"
+                        >
+                          <Zap className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <input
+                        type="number" step="0.001"
+                        value={sampleDisplacement}
+                        onChange={(e) => setSampleDisplacement(parseFloat(e.target.value))}
+                        className="w-full px-2 py-1.5 bg-black/60 text-rose-400 border border-slate-700 rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500/50 transition-all"
                       />
                     </div>
                   </div>
+                  
+                  <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-all">
+                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Polarization Factor (Lp)</label>
+                    <input
+                      type="number" step="0.001"
+                      value={polarization}
+                      onChange={(e) => setPolarization(parseFloat(e.target.value))}
+                      className="w-full px-3 py-2 bg-black/60 text-amber-400 border border-slate-700 rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all"
+                    />
+                  </div>
+                </div>
 
-                  <div className="pt-4 border-t border-[#1e293b]/50">
-                    <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Activity className="w-3 h-3" /> Background & Profile
-                      </div>
-                      <button 
-                         onClick={() => setRefineBkg(!refineBkg)}
-                         className={`px-2 py-0.5 rounded-md border transition-all flex items-center gap-1 ${refineBkg ? 'bg-teal-500/20 border-teal-500/40 text-teal-400' : 'bg-[#050B14] border-[#1e293b] text-slate-600'}`}
-                         title="Toggle Background Refinement"
+                {/* Background & Profile Group */}
+                <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                  <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
+                    <div className="flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-purple-400" />
+                      <div className="text-[10px] uppercase text-purple-400 font-black tracking-widest">Background & Profile</div>
+                    </div>
+                    <button 
+                       onClick={() => setRefineBkg(!refineBkg)}
+                       className={`px-2 py-1 rounded-md border transition-all flex items-center gap-1.5 ${refineBkg ? 'bg-teal-500/20 border-teal-500/40 text-teal-400' : 'bg-slate-800/40 border-slate-700 text-slate-500 hover:text-slate-300'}`}
+                       title="Toggle Background Refinement"
+                    >
+                       <Zap className="w-3 h-3" />
+                       <span className="text-[8px] font-black uppercase">Refine Bkg</span>
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <select 
+                         value={bgModel}
+                         onChange={(e) => setBgModel(e.target.value as any)}
+                         className="w-full px-3 py-2 bg-black/60 text-teal-400 border border-slate-700 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 transition-all appearance-none"
                       >
-                         <Zap className="w-3 h-3" />
-                         <span className="text-[7px] font-black uppercase">Refine Bkg</span>
-                      </button>
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <select 
-                           value={bgModel}
-                           onChange={(e) => setBgModel(e.target.value as any)}
-                           className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-[10px] font-bold focus:outline-none"
-                        >
-                          <option value="Chebyshev">Chebyshev Polynomial</option>
-                          <option value="Shifted_Chebyshev">Shifted Chebyshev</option>
-                          <option value="Polynomial">Standard Polynomial</option>
-                          <option value="Linear_Interpolation">Linear Background</option>
-                        </select>
-                        {bgModel !== 'Linear_Interpolation' && (
-                          <div className="flex items-center gap-2 px-2 py-1.5 bg-[#050B14] rounded-lg border border-[#1e293b]">
-                            <span className="text-[8px] font-black text-slate-500 uppercase">Terms:</span>
-                            <input 
-                              type="number" min="1" max="24"
-                              value={bgTerms}
-                              onChange={(e) => setBgTerms(parseInt(e.target.value))}
-                              className="w-full bg-transparent text-teal-400 text-[10px] font-mono font-black focus:outline-none"
-                            />
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <select 
-                           value={profileShape}
-                           onChange={(e) => setProfileShape(e.target.value as any)}
-                           className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-lg text-[10px] font-bold focus:outline-none"
-                        >
-                          <option value="Thompson-Cox-Hastings">Thompson-Cox (TCHZ)</option>
-                          <option value="Pseudo-Voigt">Pseudo-Voigt (η)</option>
-                          <option value="Pearson-VII">Pearson-VII (m)</option>
-                        </select>
-                        <div className="mt-2 text-[8px] font-medium text-slate-600 px-1 leading-tight">
-                          Default: Full Axial Divergence Correction included
+                        <option value="Chebyshev">Chebyshev Polynomial</option>
+                        <option value="Shifted_Chebyshev">Shifted Chebyshev</option>
+                        <option value="Polynomial">Standard Polynomial</option>
+                        <option value="Linear_Interpolation">Linear Background</option>
+                      </select>
+                      {bgModel !== 'Linear_Interpolation' && (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/40 rounded-lg border border-slate-700/50 hover:border-slate-600/50 transition-all">
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Terms:</span>
+                          <input 
+                            type="number" min="1" max="24"
+                            value={bgTerms}
+                            onChange={(e) => setBgTerms(parseInt(e.target.value))}
+                            className="w-full bg-black/60 text-teal-400 border border-slate-700 rounded text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-teal-500/50 px-2 py-0.5"
+                          />
                         </div>
+                      )}
+                    </div>
+                    <div>
+                      <select 
+                         value={profileShape}
+                         onChange={(e) => setProfileShape(e.target.value as any)}
+                         className="w-full px-3 py-2 bg-black/60 text-teal-400 border border-slate-700 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 transition-all appearance-none"
+                      >
+                        <option value="Thompson-Cox-Hastings">Thompson-Cox (TCHZ)</option>
+                        <option value="Pseudo-Voigt">Pseudo-Voigt (η)</option>
+                        <option value="Pearson-VII">Pearson-VII (m)</option>
+                      </select>
+                      <div className="mt-2 text-[9px] font-medium text-slate-500 px-1 leading-tight">
+                        Default: Full Axial Divergence Correction included
                       </div>
                     </div>
                   </div>
                 </div>
     
                 {/* Phases */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                       <span className="w-4 h-[2px] bg-[#1e293b]"></span> Phases
-                     </h3>
-                     <button onClick={addPhase} className="text-[10px] uppercase tracking-widest text-teal-400 font-black hover:text-teal-300 flex items-center gap-1 bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 rounded-lg border border-teal-500/30 transition-all shadow-sm">
-                       + Add Phase
-                     </button>
+                <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
+                  <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
+                    <div className="flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-pink-400" />
+                      <div className="text-[10px] uppercase text-pink-400 font-black tracking-widest">Phases</div>
+                    </div>
+                    <button onClick={addPhase} className="text-[9px] uppercase tracking-widest text-teal-400 font-black hover:text-teal-300 flex items-center gap-1 bg-teal-500/10 hover:bg-teal-500/20 px-2 py-1 rounded-md border border-teal-500/30 transition-all shadow-sm">
+                      + Add Phase
+                    </button>
                   </div>
                   
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">

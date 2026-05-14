@@ -53,18 +53,212 @@ const MATERIAL_DB = [
     hazards: ['Respiratory irritant (dust)']
   },
   { 
-    name: 'Hydroxyapatite', 
+    name: 'Hydroxyapatite (Sintered)', 
     type: 'Bioceramic', 
-    pattern: '25.87, 40\n31.77, 100\n32.19, 95\n32.90, 60\n34.04, 45\n39.81, 25',
-    description: 'A naturally occurring mineral form of calcium apatite.',
+    pattern: '25.87, 45\n31.77, 100\n32.19, 98\n32.90, 65\n34.04, 50\n39.81, 30\n46.71, 40\n49.46, 35\n50.49, 30',
+    description: 'Highly crystalline synthetic hydroxyapatite sintered at 1000°C. Characterized by sharp, well-defined Bragg reflections.',
     formula: 'Ca10(PO4)6(OH)2',
     crystalSystem: 'Hexagonal',
     spaceGroup: 'P63/m',
     density: 3.16,
-    applications: ['Bone Grafts', 'Dental', 'Implants'],
+    applications: ['Standard Reference', 'Bio-coating', 'Thermal Spray Powder'],
     molecularWeight: 1004.6,
-    elasticModulus: 114,
-    opticalProperties: 'White/translucent powder'
+    elasticModulus: 120
+  },
+  { 
+    name: 'Hydroxyapatite (Nano)', 
+    type: 'Bioceramic', 
+    pattern: '25.9, 30\n31.8, 100\n32.2, 90\n32.9, 50\n34.0, 40\n39.8, 20',
+    description: 'Poorly crystalline nano-meter sized hydroxyapatite synthesized via low-temperature precipitation. Exhibits significant peak broadening.',
+    formula: 'Ca10(PO4)6(OH)2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 3.05,
+    applications: ['Bone Filling', 'Drug Delivery', 'Gene Transfection'],
+    molecularWeight: 1004.6,
+    elasticModulus: 80,
+    opticalProperties: 'White nano-powder'
+  },
+  { 
+    name: 'Carbonated Hydroxyapatite', 
+    type: 'Bioceramic', 
+    pattern: '25.75, 40\n31.65, 100\n32.08, 95\n32.75, 60\n33.85, 45\n39.65, 25',
+    description: 'Type-B carbonated hydroxyapatite where carbonate ions substitute for phosphate ions, similar to biological bone mineral.',
+    formula: 'Ca10(PO4)6-x(CO3)x(OH)2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 3.10,
+    applications: ['Biomimetic Scaffolds', 'Bioactive Coatings'],
+    molecularWeight: 1020.0
+  },
+  { 
+    name: 'Fluorapatite', 
+    type: 'Bioceramic/Mineral', 
+    pattern: '25.81, 40\n31.85, 100\n32.12, 95\n32.95, 60\n34.12, 45\n40.05, 25',
+    description: 'The end-member of the apatite series where fluoride replaces hydroxyl groups, increasing acid resistance.',
+    formula: 'Ca10(PO4)6F2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 3.20,
+    applications: ['Tooth Enamel Protection', 'Lasers', 'Phosphors'],
+    molecularWeight: 1008.6
+  },
+  { 
+    name: 'Strontium-Apatite', 
+    type: 'Bioceramic', 
+    pattern: '25.21, 35\n30.95, 100\n31.32, 90\n32.05, 55\n33.15, 40\n38.85, 20',
+    description: 'Strontium-substituted hydroxyapatite used for treating osteoporosis and enhancing bone formation.',
+    formula: '(Ca,Sr)10(PO4)6(OH)2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 3.45,
+    applications: ['Osteoporosis Treatment', 'Bone Cements'],
+    molecularWeight: 1200.0
+  },
+  { 
+    name: 'Chlorapatite', 
+    type: 'Mineral', 
+    pattern: '25.68, 30\n31.55, 100\n31.92, 85\n32.78, 55\n33.95, 50\n40.15, 20',
+    description: 'Rare apatite mineral where chloride replaces hydroxyl groups.',
+    formula: 'Ca10(PO4)6Cl2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 3.18,
+    applications: ['Geology Research'],
+    molecularWeight: 1041.5
+  },
+  { 
+    name: 'Hydroxyapatite (Dental Enamel)', 
+    type: 'Biological', 
+    pattern: '25.8, 40\n31.7, 100\n32.2, 95\n32.9, 60\n34.0, 50\n39.8, 30',
+    description: 'Human dental enamel, primarily composed of carbonated hydroxyapatite with specific orientation and crystallite size. Key to tooth structure.',
+    formula: 'Ca10(PO4,CO3)6(OH,F)2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 2.95,
+    applications: ['Dental Research', 'Remineralization Studies'],
+    molecularWeight: 1000.0,
+    elasticModulus: 85
+  },
+  { 
+    name: 'Magnesium-Doped HAp', 
+    type: 'Bioceramic', 
+    pattern: '25.95, 35\n31.85, 100\n32.30, 90\n33.05, 55\n34.15, 45\n39.95, 20',
+    description: 'Hydroxyapatite where a fraction of calcium is replaced by magnesium, reflecting the composition of early-stage mineralization in bone.',
+    formula: 'Ca10-xMgx(PO4)6(OH)2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 3.12,
+    applications: ['Bone Regeneration', 'Bioactive Materials'],
+    molecularWeight: 980.0
+  },
+  { 
+    name: 'Silicon-substituted HAp', 
+    type: 'Bioceramic', 
+    pattern: '25.82, 40\n31.68, 100\n32.05, 95\n32.85, 60\n33.95, 50\n39.75, 25',
+    description: 'Silicate ions substitute for phosphate groups to enhance the bioactivity and bone bonding rate of hydroxyapatite.',
+    formula: 'Ca10(PO4)6-x(SiO4)x(OH)2-x',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 3.15,
+    applications: ['Advanced Bone Grafts', 'Rapid Healing Implants'],
+    molecularWeight: 1010.5
+  },
+  { 
+    name: 'Amorphous Calcium Phosphate', 
+    type: 'Precursor', 
+    pattern: '30.0, 100 (broad)',
+    description: 'A non-crystalline precursor to hydroxyapatite. XRD pattern shows a broad "halo" rather than sharp peaks, characteristic of amorphous states.',
+    formula: 'CaxHy(PO4)z·nH2O',
+    crystalSystem: 'Amorphous',
+    spaceGroup: 'N/A',
+    density: 2.30,
+    applications: ['Remineralizing agents', 'Cements', 'Biological precursors'],
+    molecularWeight: 0
+  },
+  { 
+    name: 'Hydroxyapatite (Human Dentin)', 
+    type: 'Biological', 
+    pattern: '25.85, 35\n31.75, 100\n32.25, 92\n32.95, 58\n34.10, 48\n39.90, 25',
+    description: 'Human dentin, slightly more carbonated and less crystalline than enamel. Found under the tooth enamel.',
+    formula: 'Ca10(PO4,CO3)6(OH)2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 2.10,
+    applications: ['Dental Materials Testing', 'Biomedical Research'],
+    molecularWeight: 1000.0
+  },
+  { 
+    name: 'Lead-doped HAp', 
+    type: 'Environmental/Mineral', 
+    pattern: '25.2, 35\n31.1, 100\n31.5, 95\n32.2, 60\n33.4, 50\n39.2, 25',
+    description: 'Hydroxyapatite used for heavy metal remediation. Lead ions substitute for calcium, significantly shifting lattice parameters.',
+    formula: '(Ca,Pb)10(PO4)6(OH)2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 4.10,
+    applications: ['Soil Remediation', 'Waste Treatment'],
+    molecularWeight: 1500.0
+  },
+  { 
+    name: 'Cadmium-doped HAp', 
+    type: 'Environmental', 
+    pattern: '26.1, 35\n32.0, 100\n32.4, 90\n33.1, 55\n34.2, 45\n40.1, 20',
+    description: 'Apatite structure containing cadmium, often studied in the context of toxic metal uptake from the environment.',
+    formula: '(Ca,Cd)10(PO4)6(OH)2',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m',
+    density: 3.55,
+    applications: ['Toxin Removal', 'Environmental Sensors'],
+    molecularWeight: 1100.0
+  },
+  { 
+    name: 'Magnetite (Hyperthermia)', 
+    type: 'Magnetic Ceramic', 
+    pattern: '30.1, 40\n35.4, 100\n43.1, 20\n53.4, 15\n57.0, 30\n62.6, 40',
+    description: 'Superparamagnetic iron oxide nanoparticles (SPIONs) used for magnetic fluid hyperthermia.',
+    formula: 'Fe3O4',
+    crystalSystem: 'Cubic (Spinel)',
+    spaceGroup: 'Fd-3m',
+    density: 5.17,
+    applications: ['Magnetic Hyperthermia', 'MRI Contrast Agent', 'Targeted Drug Delivery'],
+    molecularWeight: 231.5
+  },
+  { 
+    name: 'Cobalt Ferrite', 
+    type: 'Magnetic Ceramic', 
+    pattern: '30.3, 35\n35.6, 100\n37.3, 15\n43.3, 25\n53.8, 12\n57.4, 28\n63.1, 38',
+    description: 'High magnetocrystalline anisotropy ferrite, used to increase the heating efficiency in hyperthermia.',
+    formula: 'CoFe2O4',
+    crystalSystem: 'Cubic (Spinel)',
+    spaceGroup: 'Fd-3m',
+    density: 5.29,
+    applications: ['Advanced Hyperthermia', 'Magnetic Recording', 'Separation'],
+    molecularWeight: 234.6
+  },
+  { 
+    name: 'Maghemite', 
+    type: 'Magnetic Ceramic', 
+    pattern: '30.2, 35\n35.7, 100\n43.2, 22\n53.5, 18\n57.2, 25\n62.8, 35',
+    description: 'The fully oxidized form of magnetite, often the active phase in clinical hyperthermia agents.',
+    formula: 'γ-Fe2O3',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'P4332',
+    density: 4.87,
+    applications: ['Biomedical Imaging', 'Hyperthermia Therapy'],
+    molecularWeight: 159.7
+  },
+  { 
+    name: 'Zinc-doped Ferrite', 
+    type: 'Magnetic Ceramic', 
+    pattern: '29.9, 45\n35.2, 100\n42.9, 25\n53.1, 15\n56.7, 28\n62.3, 42',
+    description: 'Zinc-substituted magnetite used to tune the Curie temperature for self-regulated hyperthermia.',
+    formula: 'Zn0.5Fe2.5O4',
+    crystalSystem: 'Cubic (Spinel)',
+    spaceGroup: 'Fd-3m',
+    density: 5.25,
+    applications: ['Self-Regulated Hyperthermia', 'Soft Magnetic Devices'],
+    molecularWeight: 238.2
   },
   { 
     name: 'Zinc Oxide (ZnO)', 
@@ -831,9 +1025,9 @@ const MATERIAL_DB = [
     density: 3.07,
     applications: ['Bone Grafts', 'Dental Fillers', 'Drug Delivery']
   },
-  {
-    name: 'Bioactive Glass (45S5)',
-    type: 'Biomaterial/Glass-Ceramic',
+  { 
+    name: 'Bioactive Glass (45S5)', 
+    type: 'Biomaterial/Glass-Ceramic', 
     pattern: '25.0, 30\n30.0, 40\n32.0, 100\n34.0, 60\n47.0, 20',
     description: 'A glass-ceramic material that bonds to both bone and soft tissue.',
     formula: 'Na2O-CaO-P2O5-SiO2',
@@ -841,6 +1035,28 @@ const MATERIAL_DB = [
     spaceGroup: 'N/A',
     density: 2.7,
     applications: ['Orthopedics', 'Dentistry', 'Wound Healing']
+  },
+  { 
+    name: 'Bioactive Glass (13-93)', 
+    type: 'Biomaterial/Glass', 
+    pattern: '25.5, 35\n30.5, 45\n32.5, 100\n34.5, 55\n47.5, 25',
+    description: 'A more silicate-rich bioactive glass compared to 45S5, often used for scaffolds and slow-resorption implants.',
+    formula: 'SiO2-CaO-Na2O-P2O5-K2O-MgO',
+    crystalSystem: 'Glass',
+    spaceGroup: 'N/A',
+    density: 2.65,
+    applications: ['Tissue Scaffolds', 'Drug Delivery']
+  },
+  { 
+    name: 'Bioactive Glass (S53P4)', 
+    type: 'Biomaterial/Glass', 
+    pattern: '24.8, 30\n29.8, 40\n31.8, 100\n33.8, 60\n46.8, 20',
+    description: 'A dedicated clinical grade bioglass with potent antibacterial properties.',
+    formula: 'SiO2-Na2O-CaO-P2O5',
+    crystalSystem: 'Glass',
+    spaceGroup: 'N/A',
+    density: 2.70,
+    applications: ['Bone Infection Treatment', 'Skull Repair']
   },
   {
     name: 'Brushite (DCPD)',
@@ -1469,9 +1685,9 @@ const MATERIAL_DB = [
     density: 2.56,
     applications: ['Glassmaking', 'Ceramics', 'Abrasives']
   },
-  {
-    name: 'Stainless Steel 316L',
-    type: 'Metal Alloy',
+  { 
+    name: 'Stainless Steel 316L', 
+    type: 'Metal Alloy', 
     pattern: '43.6, 100\n50.8, 45\n74.7, 25\n90.7, 20\n95.9, 10',
     description: 'Low-carbon FCC austenitic steel with excellent corrosion resistance containing Mo.',
     formula: 'Fe-Cr-Ni-Mo (316L)',
@@ -1480,9 +1696,9 @@ const MATERIAL_DB = [
     density: 8.0,
     applications: ['Medical Implants', 'Marine Hardware', 'Chemical Processing']
   },
-  {
-    name: 'Stainless Steel 304',
-    type: 'Metal Alloy',
+  { 
+    name: 'Stainless Steel 304', 
+    type: 'Metal Alloy', 
     pattern: '43.5, 100\n50.7, 45\n74.5, 25\n90.5, 20\n95.7, 10',
     description: 'The most common austenitic stainless steel, widely used in various industries.',
     formula: 'Fe-Cr-Ni (304)',
@@ -1490,6 +1706,28 @@ const MATERIAL_DB = [
     spaceGroup: 'Fm-3m',
     density: 7.93,
     applications: ['Food Processing', 'Kitchenware', 'Building Facades']
+  },
+  { 
+    name: 'Stainless Steel 310', 
+    type: 'Metal Alloy', 
+    pattern: '43.4, 100\n50.5, 40\n74.2, 20\n90.2, 15\n95.4, 8',
+    description: 'Heat-resistant austenitic stainless steel with high chromium and nickel content.',
+    formula: 'Fe-Cr-Ni (310)',
+    crystalSystem: 'Cubic (FCC)',
+    spaceGroup: 'Fm-3m',
+    density: 7.9,
+    applications: ['Kiln Linings', 'Furnace Parts', 'Heat Exchangers']
+  },
+  { 
+    name: 'Stainless Steel 430', 
+    type: 'Metal Alloy', 
+    pattern: '44.5, 100\n64.8, 15\n82.1, 20\n98.7, 10',
+    description: 'Ferritic stainless steel (BCC) with good corrosion resistance and formability.',
+    formula: 'Fe-Cr (430)',
+    crystalSystem: 'Cubic (BCC)',
+    spaceGroup: 'Im-3m',
+    density: 7.7,
+    applications: ['Automotive Trim', 'Appliance Panels']
   },
   {
     name: 'Ti-6Al-4V (Grade 5)',
@@ -1803,10 +2041,14 @@ export const DeepLearningModule: React.FC = () => {
   };
 
   const handleRunAI = () => {
-    runAnalysis(inputData);
+    const isActuallyMixMode = isMixMode || searchTerm.toLowerCase().includes('mix') || searchTerm.toLowerCase().includes('suite');
+    if (isActuallyMixMode && !isMixMode) {
+      setIsMixMode(true);
+    }
+    runAnalysis(inputData, isActuallyMixMode);
   };
 
-  const runAnalysis = (dataToAnalyze: string) => {
+  const runAnalysis = (dataToAnalyze: string, mixMode: boolean = false) => {
     if (!dataToAnalyze.trim()) return;
     
     setIsSimulating(true);
@@ -1829,7 +2071,8 @@ export const DeepLearningModule: React.FC = () => {
     setTimeout(() => setProgressStep(3), 2000);
     setTimeout(() => {
       const points = parseXYData(dataToAnalyze);
-      let computed = identifyPhasesDL(points);
+      let computed = identifyPhasesDL(points, mixMode);
+
       
       // Enhance result with known material data if matched
       if (matchedMaterial) {
@@ -1921,11 +2164,19 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
   };
 
   const loadExample = (type: string) => {
+    const isMixType = ['Mixture', 'Complex', 'Modern-Ceramic', 'Solar-Mix', 'Cathode-Mix', 'Geological-Suite', 'Catalyst-Mix', 'Precious-Metal-Mix', 'Halide-Mineral-Mix', 'Iron-Oxide-Mix'].includes(type);
+    setIsMixMode(isMixType);
+    setMixtureList([]);
+
     if (type === 'Mixture') {
       setInputData(`20.86, 40\n26.64, 100\n38.18, 50\n44.39, 25\n50.14, 15\n64.57, 20`);
       setSearchTerm("Mixture (SiO2 + Au)");
     } else if (type === 'Complex') {
-      setInputData(`25.28, 60\n26.64, 100\n27.44, 40\n38.12, 30\n44.30, 15`);
+      // Quartz: 26.64(100), 20.86(22), 50.14(14)
+      // Rutile: 27.44(100), 54.32(60)
+      // Anatase: 25.28(100), 48.05(35)
+      // Ag: 38.12(100), 44.30(40)
+      setInputData(`20.86, 15\n25.28, 60\n26.64, 100\n27.44, 40\n38.12, 30\n44.30, 15\n48.05, 18\n50.14, 10\n54.32, 22`);
       setSearchTerm("Complex Mixture (Quartz + Rutile + Anatase + Ag)");
     } else if (type === 'Modern-Ceramic') {
       setInputData(`28.17, 30\n31.47, 20\n35.9, 100\n41.7, 85\n50.12, 10\n60.4, 60\n72.3, 45`);
@@ -1939,9 +2190,40 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     } else if (type === 'Geological-Suite') {
       setInputData(`20.86, 35\n23.6, 60\n24.1, 40\n26.64, 100\n29.40, 100\n33.2, 80\n36.54, 12\n54.1, 85`);
       setSearchTerm("Geological Suite (Quartz + Calcite + Hematite + Feldspar)");
+    } else if (type === 'Catalyst-Mix') {
+      setInputData(`25.28, 60\n27.45, 80\n28.55, 100\n33.08, 20\n35.09, 15\n36.09, 35\n38.42, 15\n40.17, 50\n41.23, 20\n47.48, 45\n48.05, 25\n54.32, 45\n56.34, 30`);
+      setSearchTerm("Catalyst Mix (CeO2 + Rutile + Anatase + Ti)");
+    } else if (type === 'Precious-Metal-Mix') {
+      setInputData(`38.15, 100\n43.30, 90\n44.33, 60\n50.43, 40\n64.50, 25\n74.13, 20`);
+      setSearchTerm("Precious Metal Mix (Au + Ag + Cu)");
+    } else if (type === 'Halide-Mineral-Mix') {
+      setInputData(`27.37, 10\n28.30, 100\n31.69, 80\n40.50, 40\n45.43, 60\n47.00, 50\n50.15, 15\n55.75, 25\n56.45, 15\n66.35, 10`);
+      setSearchTerm("Halide Mineral Mix (Halite + Sylvite + Fluorite)");
+    } else if (type === 'Iron-Oxide-Mix') {
+      setInputData(`20.86, 15\n24.14, 20\n26.64, 80\n30.09, 25\n33.15, 90\n35.45, 100\n43.05, 15\n49.48, 30\n50.14, 10\n54.09, 35\n56.94, 25\n62.51, 35`);
+      setSearchTerm("Iron Oxide Mix (Magnetite + Hematite + Quartz)");
     } else {
       // Generic finder for all single phase examples
-      const searchKey = type === 'HAP' ? 'Hydroxyapatite' : 
+      const searchKey = type === 'HAP' || type === 'HAP-Sintered' ? 'Hydroxyapatite (Sintered)' : 
+                        type === 'HAP-Nano' ? 'Hydroxyapatite (Nano)' :
+                        type === 'Carbonated-HAP' ? 'Carbonated Hydroxyapatite' :
+                        type === 'Dental-HAP' ? 'Hydroxyapatite (Dental Enamel)' :
+                        type === 'Dentin-HAP' ? 'Hydroxyapatite (Human Dentin)' :
+                        type === 'Mg-HAP' ? 'Magnesium-Doped HAp' :
+                        type === 'Si-HAP' ? 'Silicon-substituted HAp' :
+                        type === 'Pb-HAP' ? 'Lead-doped HAp' :
+                        type === 'Cd-HAP' ? 'Cadmium-doped HAp' :
+                        type === 'Magnetite-Hyper' ? 'Magnetite (Hyperthermia)' :
+                        type === 'Cobalt-Ferrite' ? 'Cobalt Ferrite' :
+                        type === 'Maghemite' ? 'Maghemite' :
+                        type === 'Zn-Ferrite' ? 'Zinc-doped Ferrite' :
+                        type === 'ACP' ? 'Amorphous Calcium Phosphate' :
+                        type === 'Bio-Glass-1393' ? 'Bioactive Glass (13-93)' :
+                        type === 'Bio-Glass-S53P4' ? 'Bioactive Glass (S53P4)' :
+                        type === 'Bioactive Glass' ? 'Bioactive Glass (45S5)' :
+                        type === 'Fluorapatite' ? 'Fluorapatite' :
+                        type === 'Sr-HAP' ? 'Strontium-Apatite' :
+                        type === 'Chlorapatite' ? 'Chlorapatite' :
                         type === 'PbTiO3' ? 'Lead Titanate' :
                         type === 'LTA' ? 'Zeolite A' :
                         type === 'YAG' ? 'Yttrium Aluminum Garnet' :
@@ -2041,6 +2323,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'Feldspar' ? 'Feldspar (Orthoclase)' :
                         type === 'SS316L' ? 'Stainless Steel 316L' :
                         type === 'SS304' ? 'Stainless Steel 304' :
+                        type === 'SS310' ? 'Stainless Steel 310' :
+                        type === 'SS430' ? 'Stainless Steel 430' :
                         type === 'Ti64' ? 'Ti-6Al-4V (Grade 5)' :
                         type === 'Brass' ? 'Brass (C26000)' :
                         type === 'Inconel' ? 'Inconel 718' :
@@ -2581,10 +2865,24 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'CeO2', label: 'CeO2' },
                     { id: 'Corundum', label: 'Al2O3' },
                     { id: 'Calcite', label: 'Calcite' },
-                    { id: 'HAP', label: 'HAp' },
+                    { id: 'HAP-Sintered', label: 'HAp (Sintered)' },
+                    { id: 'HAP-Nano', label: 'HAp (Nano)' },
+                    { id: 'Carbonated-HAP', label: 'HAp (Carbonated)' },
+                    { id: 'Dental-HAP', label: 'HAp (Enamel)' },
+                    { id: 'Dentin-HAP', label: 'HAp (Dentin)' },
+                    { id: 'Mg-HAP', label: 'HAp (Mg-doped)' },
+                    { id: 'Si-HAP', label: 'HAp (Si-doped)' },
+                    { id: 'Pb-HAP', label: 'HAp (Pb-doped)' },
+                    { id: 'Cd-HAP', label: 'HAp (Cd-doped)' },
+                    { id: 'ACP', label: 'ACP (Amorphous)' },
+                    { id: 'Fluorapatite', label: 'Fluorapatite' },
+                    { id: 'Sr-HAP', label: 'Sr-HAp' },
+                    { id: 'Chlorapatite', label: 'Chlorapatite' },
                     { id: 'beta-Tricalcium Phosphate', label: 'beta-TCP' },
                     { id: 'alpha-Tricalcium Phosphate', label: 'alpha-TCP' },
-                    { id: 'Bioactive Glass', label: 'Bio-Glass' },
+                    { id: 'Bioactive Glass', label: 'Bioglass 45S5' },
+                    { id: 'Bio-Glass-1393', label: 'Bioglass 13-93' },
+                    { id: 'Bio-Glass-S53P4', label: 'Bioglass S53P4' },
                     { id: 'Brushite', label: 'Brushite' },
                     { id: 'Monetite', label: 'Monetite' },
                     { id: 'TTCP', label: 'TTCP' },
@@ -2648,11 +2946,14 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'SRO', label: 'SrRuO3' },
                     { id: 'GO', label: 'GO' },
                     { id: 'OCP', label: 'OCP Bio' },
+                    { id: 'Magnetite-Hyper', label: 'Magnetite (Hyper)' },
+                    { id: 'Cobalt-Ferrite', label: 'Co-Ferrite' },
+                    { id: 'Maghemite', label: 'Maghemite' },
+                    { id: 'Zn-Ferrite', label: 'Zn-Ferrite' },
                     { id: 'Cellulose', label: 'Cellulose' },
                     { id: 'Chitosan', label: 'Chitosan' },
                     { id: 'Silk', label: 'Silk Fibroin' },
                     { id: 'Whewellite', label: 'Whewellite' },
-                    { id: 'ACP', label: 'ACP' },
                     { id: 'PLA', label: 'PLA Bio' },
                     { id: 'PEEK', label: 'PEEK' },
                     { id: 'Collagen', label: 'Collagen' },
@@ -2675,12 +2976,18 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Solar-Mix', label: 'Solar Mix' },
                     { id: 'Cathode-Mix', label: 'Cathode Mix' },
                     { id: 'Geological-Suite', label: 'Geo-Suite' },
+                    { id: 'Catalyst-Mix', label: 'Catalyst Mix' },
+                    { id: 'Precious-Metal-Mix', label: 'Precious Metals' },
+                    { id: 'Halide-Mineral-Mix', label: 'Halide Minerals' },
+                    { id: 'Iron-Oxide-Mix', label: 'Iron Oxides' },
                     { id: 'Hematite', label: 'Hematite' },
                     { id: 'Feldspar', label: 'Feldspar' },
                     { id: 'PerovskiteCat', label: 'Perovskite Cat' },
-                    { id: 'SS316L', label: 'Stainless Steel 316L' },
-                    { id: 'Ti64', label: 'Ti-6Al-4V' },
+                    { id: 'SS316L', label: 'SS 316L' },
                     { id: 'SS304', label: 'SS 304' },
+                    { id: 'SS310', label: 'SS 310' },
+                    { id: 'SS430', label: 'SS 430' },
+                    { id: 'Ti64', label: 'Ti-6Al-4V' },
                     { id: 'Brass', label: 'Brass' },
                     { id: 'Inconel', label: 'Inconel 718' },
                     { id: 'SBA15', label: 'SBA-15 Silica' },
@@ -2690,7 +2997,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Magnetite', label: 'Magnetite' },
                     { id: 'PE', label: 'Polymer (PE)' },
                     { id: 'Cement', label: 'Clinker' },
-                    { id: 'Complex', label: 'Complex Mix' }
+                    { id: 'Complex', label: 'Complex Mixture (Quartz + Rutile + Anatase + Ag)' }
                   ].map(ex => (
                     <button 
                       key={ex.id}
@@ -2729,11 +3036,11 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
         </div>
 
         {/* Deep Learning Architecture Status */}
-        <div className="bg-[#050B14]/80 backdrop-blur-xl p-8 rounded-[2.5rem] text-white border border-[#1e293b] shadow-[0_0_80px_rgba(139,92,246,0.15)] relative overflow-hidden group/engine flex flex-col gap-6 ring-1 ring-white/5">
+        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group/engine flex flex-col gap-6 transition-all duration-500 border border-slate-800">
            {/* Advanced Animated Backgrounds */}
-           <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-violet-600/10 rounded-full blur-[80px] group-hover/engine:bg-violet-500/20 group-hover/engine:scale-110 transition-all duration-1000 pointer-events-none" />
-           <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-cyan-600/10 rounded-full blur-[60px] group-hover/engine:bg-cyan-500/20 group-hover/engine:scale-110 transition-all duration-1000 pointer-events-none" />
-           <div className="absolute inset-0 bg-[#000] opacity-30 pointer-events-none mix-blend-overlay" style={{backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '24px 24px'}} />
+           <div className="absolute top-[-20%] right-[-10%] w-96 h-96 bg-violet-500/10 rounded-full blur-[80px] group-hover/engine:bg-violet-500/20 group-hover/engine:scale-110 transition-all duration-1000 pointer-events-none" />
+           <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-cyan-500/10 rounded-full blur-[60px] group-hover/engine:bg-cyan-500/20 group-hover/engine:scale-110 transition-all duration-1000 pointer-events-none" />
+           <div className="absolute inset-0 bg-[#000] opacity-20 pointer-events-none mix-blend-overlay" style={{backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0)', backgroundSize: '24px 24px'}} />
            
            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-violet-500/50 to-transparent opacity-70" />
            
@@ -2756,7 +3063,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                <div className="flex items-center gap-5">
                  <div className="relative group/icon cursor-default">
                    <div className="absolute inset-0 bg-violet-500/30 blur-xl rounded-full group-hover/icon:bg-violet-400/40 transition-colors duration-500" />
-                   <div className="w-14 h-14 bg-[#070D18] rounded-2xl border border-violet-500/50 flex items-center justify-center relative shadow-[inset_0_2px_10px_rgba(255,255,255,0.05),tight_0_5px_20px_rgba(139,92,246,0.3)] group-hover/icon:border-violet-400 transition-colors duration-300">
+                   <div className="w-14 h-14 bg-slate-900 rounded-2xl border border-violet-500/50 flex items-center justify-center relative shadow-[inset_0_2px_10px_rgba(255,255,255,0.05),tight_0_5px_20px_rgba(139,92,246,0.3)] group-hover/icon:border-violet-400 transition-colors duration-300">
                      <Brain className="w-7 h-7 text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]" />
                    </div>
                    {isSimulating && (
@@ -2774,33 +3081,33 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                  </div>
                </div>
                <div className="hidden md:flex flex-col items-end">
-                 <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black mb-1.5">Compute Core</span>
-                 <div className="relative overflow-hidden group/status rounded border border-violet-500/20 bg-violet-500/10 transition-all duration-300 hover:border-violet-400/40">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/status:translate-x-full transition-transform duration-1000" />
-                    <span className="text-xs font-mono font-black text-violet-300 px-3 py-1.5 flex items-center gap-2 relative z-10">
+                 <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black mb-1.5 flex items-center gap-1"><Cpu className="w-3 h-3 text-violet-400/70" /> Compute Core</span>
+                 <div className="relative overflow-hidden group/status rounded-lg border border-violet-500/30 bg-violet-500/10 transition-all duration-300 hover:border-violet-400/50 hover:bg-violet-500/20">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/status:translate-x-full transition-transform duration-1000" />
+                    <span className="text-xs font-mono font-black text-violet-300 px-3 py-1.5 flex items-center gap-2 relative z-10 tracking-widest uppercase">
                       <div className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-violet-400 animate-pulse shadow-[0_0_8px_rgba(167,139,250,0.6)]' : 'bg-slate-500'}`} />
-                      {isSimulating ? 'PROCESSING' : 'STANDBY'}
+                      {isSimulating ? 'Processing' : 'Standby'}
                     </span>
                  </div>
                </div>
              </div>
              
              <div className="flex gap-2.5 mb-2 relative z-10 md:ml-[76px] flex-wrap">
-               <span className="px-3 py-1.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] border border-[#1e293b]/80 rounded-lg text-[9px] font-mono font-black text-cyan-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-cyan-500/30 transition-colors cursor-default flex items-center gap-1.5">
+               <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-cyan-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-cyan-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
                  <span className="w-1 h-1 rounded-full bg-cyan-400"></span> {engineConfig.activation}
                </span>
-               <span className="px-3 py-1.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] border border-[#1e293b]/80 rounded-lg text-[9px] font-mono font-black text-fuchsia-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-fuchsia-500/30 transition-colors cursor-default flex items-center gap-1.5">
-                 <span className="w-1 h-1 rounded-full bg-fuchsia-400"></span> {engineConfig.filters} FILTERS
+               <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-fuchsia-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-fuchsia-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+                 <span className="w-1 h-1 rounded-full bg-fuchsia-400"></span> {engineConfig.filters} Filters
                </span>
-               <span className="px-3 py-1.5 bg-gradient-to-br from-[#0B1221] to-[#070D18] border border-[#1e293b]/80 rounded-lg text-[9px] font-mono font-black text-emerald-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-emerald-500/30 transition-colors cursor-default flex items-center gap-1.5">
-                 <span className="w-1 h-1 rounded-full bg-emerald-400"></span> {engineConfig.kernelSize}x{engineConfig.kernelSize} KERNEL
+               <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-emerald-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-emerald-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+                 <span className="w-1 h-1 rounded-full bg-emerald-400"></span> {engineConfig.kernelSize}x{engineConfig.kernelSize} Kernel
                </span>
              </div>
            </div>
            
-           <div className="space-y-7 relative z-10 flex-1 ml-5 mt-6 border-t border-[#1e293b]/50 pt-8">
+           <div className="space-y-7 relative z-10 flex-1 ml-5 mt-6 border-t border-slate-800 pt-8">
              {/* Vertical connecting line */}
-             <div className="absolute left-[15px] top-[40px] bottom-6 w-[2px] bg-[#1e293b] z-0 shadow-[0_0_10px_rgba(30,41,59,0.5)]"></div>
+             <div className="absolute left-[15px] top-[40px] bottom-6 w-[2px] bg-slate-800/80 z-0"></div>
              {/* Dynamic pulse on the line if active */}
              {isSimulating && (
                <div className="absolute left-[15px] top-[40px] bottom-6 w-[2px] z-0 overflow-hidden">
@@ -2816,22 +3123,22 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                return (
                  <div key={`${step.label}-${idx}`} className={`relative z-10 flex flex-col gap-2 transition-all duration-300 ${isActive || isCompleted ? 'opacity-100' : 'opacity-40'}`}>
                    <div className="flex items-center gap-4">
-                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all duration-500 shrink-0 relative bg-[#070D18] z-20
-                       ${isActive ? 'border-violet-500 bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.4)] scale-110 rotate-3' : 
-                         isCompleted ? 'border-emerald-500/50 hover:bg-emerald-500/10 text-emerald-400' : 'border-[#1e293b] text-slate-600 shadow-inner'}
+                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all duration-500 shrink-0 relative z-20
+                       ${isActive ? 'border-violet-500/50 bg-violet-500/20 text-violet-300 shadow-[0_0_20px_rgba(139,92,246,0.3)] scale-110' : 
+                         isCompleted ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'bg-slate-900 border-slate-700 text-slate-500'}
                      `}>
-                       {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />}
+                       {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse text-violet-300' : ''}`} />}
                      </div>
                      <div className="flex-1 min-w-0">
-                       <span className={`text-sm font-black block truncate tracking-wide ${isActive ? 'text-violet-300 drop-shadow-md' : isCompleted ? 'text-slate-200' : 'text-slate-500'}`}>
+                       <span className={`text-[13px] font-black block truncate tracking-widest uppercase ${isActive ? 'text-violet-300 drop-shadow-md' : isCompleted ? 'text-slate-200' : 'text-slate-500'}`}>
                          {step.label}
                        </span>
                      </div>
                      
                      {/* Activation Metrics */}
                      {isActive && (
-                       <div className="flex items-center gap-2">
-                         <div className="text-[10px] font-mono text-emerald-400 flex flex-col items-end font-black drop-shadow-sm">
+                       <div className="flex items-center gap-3">
+                         <div className="text-[9px] font-mono bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-md text-emerald-400 flex flex-col items-end font-black drop-shadow-sm">
                            <span>OPT: {engineConfig.optimization.toUpperCase()}</span>
                            <span>{idx === 2 ? `CANDS: ~${(100 + Math.random() * 50).toFixed(0)}K` : `ACC: ${(95 + Math.random() * 4).toFixed(2)}%`}</span>
                          </div>
@@ -2841,9 +3148,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                    
                    {/* Layer Details & Visualizations */}
                    {(isActive || isCompleted) && (
-                     <div className="ml-12 mt-1 pl-4 border-l border-[#1e293b]">
+                     <div className="ml-12 mt-1 pl-4 border-l border-slate-800">
                          {idx === 0 && isActive && (
-                            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-1 mb-2 font-black uppercase tracking-widest bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner relative z-10 hover:border-violet-500/50 transition-colors">
+                            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-1.5 mb-2 font-black uppercase tracking-widest bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10 hover:border-violet-500/30 transition-colors">
                                <p className="animate-pulse flex items-center gap-2 text-violet-300"><span className="text-violet-500 font-bold">&gt;</span> Tensor shape: [1, 2048, 1]</p>
                                <p className="animate-pulse flex items-center gap-2 text-violet-300" style={{animationDelay: '0.2s'}}><span className="text-violet-500 font-bold">&gt;</span> Kern Size: {engineConfig.kernelSize}x{engineConfig.kernelSize}</p>
                                <p className="animate-pulse flex items-center gap-2 text-violet-300" style={{animationDelay: '0.4s'}}><span className="text-violet-500 font-bold">&gt;</span> Augmentation: Noise Injection</p>
@@ -2852,36 +3159,36 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                          
                          {idx === 1 && isActive && (
                            <div className="mb-2 relative z-10">
-                             <div className="text-[9px] text-slate-400 font-mono space-y-1.5 mb-2 bg-[#0B1221]/90 backdrop-blur-md p-3.5 rounded-xl border border-violet-500/30 shadow-[inset_0_0_15px_rgba(139,92,246,0.1)] font-black uppercase tracking-widest hover:border-violet-400/60 transition-colors">
-                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Conv1D_1: [{engineConfig.filters}, {engineConfig.kernelSize}]</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded">{Math.floor(Math.random() * 99)}ms</span></p>
-                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Activation: {engineConfig.activation}</span> <span className="text-emerald-400 drop-shadow-sm px-1.5 py-0.5 bg-emerald-500/10 rounded animate-pulse">STABLE</span></p>
-                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Fusion: {engineConfig.multiScale ? 'ENABLED' : 'DISABLED'}</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded">{Math.floor(Math.random() * 99)}ms</span></p>
+                             <div className="text-[9px] text-slate-400 font-mono space-y-2 mb-3 bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_15px_rgba(139,92,246,0.1)] font-black uppercase tracking-widest hover:border-violet-400/50 transition-colors">
+                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Conv1D_1: [{engineConfig.filters}, {engineConfig.kernelSize}]</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded border border-violet-500/20">{Math.floor(Math.random() * 99)}ms</span></p>
+                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Activation: {engineConfig.activation}</span> <span className="text-emerald-400 drop-shadow-sm px-1.5 py-0.5 bg-emerald-500/10 rounded border border-emerald-500/20 animate-[pulse_2s_ease-in-out_infinite]">STABLE</span></p>
+                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Fusion: {engineConfig.multiScale ? 'ENABLED' : 'DISABLED'}</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded border border-violet-500/20">{Math.floor(Math.random() * 99)}ms</span></p>
                              </div>
-                             <div className="grid grid-cols-8 gap-1.5 w-full bg-[#0B1221]/80 p-2 rounded-xl border border-[#1e293b]">
+                             <div className="grid grid-cols-8 gap-1.5 w-full bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
                                {Array.from({ length: 16 }).map((_, i) => (
                                  <div key={`pulse-${i}`} className="h-4 rounded-[4px] bg-gradient-to-t from-violet-600 to-fuchsia-400 shadow-[0_0_10px_rgba(139,92,246,0.6)] animate-[pulse_1s_ease-in-out_infinite] relative overflow-hidden" style={{ opacity: Math.random() * 0.7 + 0.3, animationDelay: `${i * 0.05}s` }}>
                                    <div className="absolute top-0 left-0 w-full h-[2px] bg-white/40" />
                                  </div>
                                ))}
                              </div>
-                             <p className="text-[9px] text-slate-500 font-mono mt-2 uppercase tracking-[0.2em] text-right font-black flex justify-end items-center gap-1.5"><Activity className="w-3 h-3 text-violet-400" /> Feature Map Activations</p>
+                             <p className="text-[9px] text-slate-500 font-mono mt-3 uppercase tracking-[0.2em] text-right font-black flex justify-end items-center gap-1.5"><Activity className="w-3 h-3 text-violet-400" /> Feature Map Activations</p>
                            </div>
                          )}
 
                          {idx === 2 && isActive && (
-                            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-2 mb-2 mt-2 bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner font-black uppercase tracking-widest relative z-10 hover:border-cyan-500/50 transition-colors">
+                            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-2.5 mb-2 mt-2 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-inner font-black uppercase tracking-widest relative z-10 hover:border-cyan-500/30 transition-colors">
                                <p className="animate-pulse text-cyan-400 flex items-center gap-2 drop-shadow-sm"><Database className="w-3.5 h-3.5 text-cyan-500" /> Loading Index HNSW-1M...</p>
                                <p className="text-violet-300 flex items-center gap-2"><Search className="w-3 h-3 text-violet-500" /> Performing Cosine Similarity</p>
-                               <div className="w-full bg-[#070D18] h-1.5 mt-2 rounded-full overflow-hidden border border-[#1e293b]">
-                                  <div className="bg-gradient-to-r from-cyan-600 to-cyan-400 h-full animate-[progress_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(34,211,238,0.6)]" style={{width: `${10 + Math.random() * 80}%`}}></div>
+                               <div className="w-full bg-slate-900 h-2 mt-3 rounded-full overflow-hidden border border-slate-800/80 p-0.5">
+                                  <div className="bg-gradient-to-r from-cyan-600 to-cyan-400 h-full rounded-full animate-[progress_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(34,211,238,0.6)]" style={{width: `${10 + Math.random() * 80}%`}}></div>
                                </div>
                             </motion.div>
                          )}
 
                          {idx === 3 && isActive && (
-                            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-1.5 mb-2 mt-2 bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] shadow-inner font-black uppercase tracking-widest relative z-10 hover:border-emerald-500/50 transition-colors">
-                               <p className="flex justify-between items-center"><span className="text-violet-300">Dense_1</span> <span className="bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded drop-shadow-sm">Softmax</span></p>
-                               <div className="text-emerald-400 animate-pulse my-2 drop-shadow-sm flex items-center gap-2"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" /> Computing Confidences...</div>
+                            <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-2 mb-2 mt-2 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-inner font-black uppercase tracking-widest relative z-10 hover:border-emerald-500/30 transition-colors">
+                               <p className="flex justify-between items-center"><span className="text-violet-300">Dense_1</span> <span className="bg-violet-500/10 border border-violet-500/20 text-violet-400 px-2 py-0.5 rounded drop-shadow-sm">Softmax</span></p>
+                               <div className="text-emerald-400 animate-pulse my-3 drop-shadow-sm flex items-center gap-2 bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]" /> Computing Confidences...</div>
                                <p className="flex justify-between items-center text-slate-500"><span>Loss</span> <span>Cat_Cross_Ent</span></p>
                             </motion.div>
                          )}
@@ -2892,22 +3199,22 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
              })}
            </div>
 
-           <div className="mt-4 pt-6 border-t border-white/5 relative z-10">
+           <div className="mt-4 pt-6 border-t border-slate-800/80 relative z-10">
               <div className="flex items-center justify-between mb-5">
                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/30 group-hover/engine:bg-indigo-500/20 transition-colors shadow-[inset_0_0_10px_rgba(99,102,241,0.2)]">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/30 group-hover/engine:bg-indigo-500/20 transition-colors shadow-[inset_0_0_10px_rgba(99,102,241,0.2)]">
                        <BookOpen className="w-4 h-4 text-indigo-400 group-hover/engine:rotate-3 transition-transform" />
                     </div>
                     <div>
-                       <h3 className="font-black text-[11px] text-white uppercase tracking-[0.2em] leading-none drop-shadow-sm">Neural Guide</h3>
-                       <p className="text-[9px] text-slate-500 font-mono uppercase tracking-[0.2em] mt-1.5 flex items-center gap-1">
-                         <span className="w-1 h-1 rounded-full bg-indigo-500"></span> Constituent Logic & Features
+                       <h3 className="font-black text-[12px] text-white uppercase tracking-[0.2em] leading-none drop-shadow-sm">Neural Guide</h3>
+                       <p className="text-[9px] text-slate-400 font-mono uppercase tracking-[0.2em] mt-1.5 flex items-center gap-1">
+                         <span className="w-1 h-1 rounded-full bg-indigo-500 shadow-[0_0_5px_rgba(99,102,241,0.8)]"></span> Constituent Logic & Features
                        </p>
                     </div>
                  </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="group/fact p-4 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-2xl border border-[#1e293b]/80 hover:border-indigo-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
+                  <div className="group/fact p-4 bg-slate-900/80 rounded-2xl border border-slate-700/80 hover:border-indigo-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
                      <div className="absolute top-0 right-0 p-2 opacity-10 group-hover/fact:opacity-20 transition-opacity">
                         <Cpu className="w-16 h-16 text-indigo-400 -rotate-12 translate-x-4 -translate-y-4" />
                      </div>
@@ -2917,8 +3224,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         </div>
                         <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Network Focus</span>
                      </div>
-                     <p className="text-[10px] text-slate-400 leading-relaxed font-medium relative z-10">
-                        The <span className="text-white">"{engineConfig.kernelSize}x{engineConfig.kernelSize} Kernel Shift"</span> defines peak receptive field. {engineConfig.multiScale ? <span className="text-indigo-300 font-bold">Multi-Scale Fusion correlates broad patterns across the 2θ domain.</span> : 'Increase Feature Maps for complex multi-phase disambiguation.'}
+                     <p className="text-[10px] text-slate-400 leading-relaxed font-bold relative z-10">
+                        The <span className="text-white">"{engineConfig.kernelSize}x{engineConfig.kernelSize} Kernel Shift"</span> defines peak receptive field. {engineConfig.multiScale ? <span className="text-indigo-300">Multi-Scale Fusion correlates broad patterns across the 2θ domain.</span> : 'Increase Feature Maps for complex multi-phase disambiguation.'}
                      </p>
                      <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-[#1e293b] pt-2 flex items-center justify-between">
                        <span>Optimization</span>
@@ -2926,20 +3233,20 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                      </div>
                   </div>
 
-                  <div className="group/fact p-4 bg-gradient-to-br from-[#0B1221] to-[#050B14] rounded-2xl border border-[#1e293b]/80 hover:border-cyan-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
+                  <div className="group/fact p-4 bg-slate-900/80 rounded-2xl border border-slate-700/80 hover:border-cyan-500/50 transition-all duration-300 shadow-inner relative overflow-hidden">
                      <div className="absolute top-0 right-0 p-2 opacity-10 group-hover/fact:opacity-20 transition-opacity">
                         <Microscope className="w-16 h-16 text-cyan-400 rotate-12 translate-x-4 -translate-y-4" />
                      </div>
                      <div className="flex items-center gap-2.5 mb-3 relative z-10">
-                        <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                        <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 shadow-[0_0_10px_rgba(34,211,238,0.2)]">
                           <Microscope className="w-3.5 h-3.5 text-cyan-400" />
                         </div>
                         <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Constituents</span>
                      </div>
-                     <p className="text-[10px] text-slate-400 leading-relaxed font-medium relative z-10">
-                        Model prioritizes <strong className="text-cyan-300">2θ Mapping</strong> for d-spacing and <strong className="text-cyan-300">Relative Int.</strong> ({engineConfig.filters} filters) to decouple overlapping signatures in experimental data.
+                     <p className="text-[10px] text-slate-400 leading-relaxed font-bold relative z-10">
+                        Model prioritizes <strong className="text-cyan-300 font-black tracking-wide">2θ Mapping</strong> for d-spacing and <strong className="text-cyan-300 font-black tracking-wide">Relative Int.</strong> ({engineConfig.filters} filters) to decouple overlapping signatures in experimental data.
                      </p>
-                     <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-[#1e293b] pt-2 flex items-center justify-between">
+                     <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-slate-700/80 pt-2 flex items-center justify-between">
                        <span>Accuracy</span>
                        <span className="text-cyan-400">{engineConfig.activation} ACT</span>
                      </div>
@@ -2953,9 +3260,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       <div className="lg:col-span-8 space-y-6">
         
         {/* Visualizer */}
-        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2.5rem] shadow-[0_0_80px_rgba(30,58,138,0.15)] border border-[#1e293b] h-[720px] flex flex-col relative overflow-hidden group/vis">
+        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl border border-slate-800 h-[720px] flex flex-col relative overflow-hidden group/vis">
           {/* Subtle grid background to look like a terminal/software UI */}
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen"></div>
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none mix-blend-screen"></div>
           <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent opacity-60" />
           
           <div className="flex flex-col gap-6 mb-6 relative z-10">
@@ -2963,14 +3270,14 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               <div className="flex items-center gap-4">
                 <div className="relative">
                   <div className="absolute inset-0 bg-cyan-500/20 blur-lg rounded-full" />
-                  <div className="w-12 h-12 rounded-2xl bg-[#070D18] border border-cyan-500/40 flex items-center justify-center relative shadow-[0_0_20px_rgba(34,211,238,0.25)]">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-cyan-500/40 flex items-center justify-center relative shadow-[0_0_20px_rgba(34,211,238,0.25)]">
                     <Activity className="w-6 h-6 text-cyan-400" />
                   </div>
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-white tracking-[0.15em] uppercase drop-shadow-lg">Phase Match Visualization</h3>
                   <div className="flex items-center gap-3">
-                    <p className="text-[10px] text-cyan-400/80 font-mono uppercase tracking-[0.2em] font-black">Convolutional Feature Overlay</p>
+                    <p className="text-[10px] text-cyan-400/80 font-mono uppercase tracking-[0.2em] font-black">Convolutional Overlay</p>
                     <div className="w-1 h-1 rounded-full bg-cyan-500/50" />
                     <p className="text-[9px] text-cyan-500/40 font-mono uppercase tracking-widest">Active_Stream_v4.2</p>
                   </div>
@@ -2979,12 +3286,12 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               
               {selectedCandidate && (
                 <div className="flex gap-4">
-                  <div className="hidden md:flex flex-col items-end justify-center px-4 py-2 bg-[#0B1221] border border-[#1e293b] rounded-2xl shadow-inner">
+                  <div className="hidden md:flex flex-col items-end justify-center px-4 py-2 bg-slate-800/40 border border-slate-700/80 rounded-2xl shadow-inner">
                     <p className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black mb-1">Engine Stability</p>
                     <div className="flex items-center gap-2">
                       <div className="flex gap-0.5">
                         {[1, 2, 3, 4, 5].map(i => (
-                          <div key={i} className={`w-1 h-3 rounded-full ${i <= 4 ? 'bg-cyan-500' : 'bg-slate-800'}`} />
+                          <div key={i} className={`w-1 h-3 rounded-full ${i <= 4 ? 'bg-cyan-500 shadow-[0_0_5px_rgba(34,211,238,0.6)]' : 'bg-slate-700'}`} />
                         ))}
                       </div>
                       <span className="text-[10px] font-mono font-black text-cyan-400">98.2%</span>
@@ -2994,7 +3301,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.15)]' : 
                       selectedCandidate.match_quality === 'Good' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.15)]' : 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.15)]'}
                   `}>
-                    <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]' : selectedCandidate.match_quality === 'Good' ? 'bg-blue-400' : 'bg-amber-400'}`} />
+                    <div className={`w-2.5 h-2.5 rounded-full animate-[pulse_2s_ease-in-out_infinite] ${selectedCandidate.match_quality === 'Excellent' ? 'bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)]' : selectedCandidate.match_quality === 'Good' ? 'bg-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.8)]' : 'bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)]'}`} />
                     {selectedCandidate.match_quality || "Match"} Precision
                   </span>
                 </div>
@@ -3015,11 +3322,15 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     </div>
                   </div>
                   <p className="text-xl font-black text-white font-mono drop-shadow-md truncate relative z-10">{selectedCandidate.phase_name}</p>
-                  <div className="flex items-center gap-2 mt-3 font-mono relative z-10">
-                    <span className="text-[10px] text-slate-500 uppercase">Profile:</span>
-                    <span className="text-[9px] text-cyan-400 flex gap-1.5 items-center bg-[#070D18] px-2 py-1 rounded border border-cyan-500/20">
-                      <span className="w-1 h-3 bg-cyan-500/50 rounded-full"></span>
-                      σ² = 0.5 (GAUSSIAN)
+                  
+                  <div className="flex flex-col gap-1 mt-2 font-mono relative z-10">
+                    {selectedCandidate.formula && (
+                       <span className="text-[10px] text-cyan-400 font-bold bg-[#070D18] px-2 py-0.5 rounded border border-cyan-500/20 self-start">
+                         {selectedCandidate.formula}
+                       </span>
+                    )}
+                    <span className="text-[9px] text-slate-400 mt-1 uppercase">
+                      {selectedCandidate.crystalSystem ? selectedCandidate.crystalSystem + ' / ' + (selectedCandidate.spaceGroup || '-') : 'Profile: σ² = 0.5 (GAUSSIAN)'}
                     </span>
                   </div>
                   <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500 to-transparent" />
@@ -3050,7 +3361,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     </p>
                     <Database className="w-3.5 h-3.5 text-indigo-400" />
                   </div>
-                  <p className="text-lg font-black text-white font-mono truncate relative z-10 drop-shadow-md">REF-{selectedCandidate.phase_name?.substring(0, 4)}-67X</p>
+                  <p className="text-lg font-black text-white font-mono truncate relative z-10 drop-shadow-md">{selectedCandidate.card_id || `REF-${selectedCandidate.phase_name?.substring(0, 4)}-67X`}</p>
                   <div className="mt-3 flex gap-1.5 overflow-hidden relative z-10">
                     {['X-RAY', 'CU-Kα', '0.154NM'].map(tag => (
                       <span key={tag} className="text-[8px] font-black font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30 uppercase">{tag}</span>
@@ -3062,7 +3373,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
             )}
           </div>
           
-          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-[#070D18] rounded-[2rem] border border-[#1e293b]/80 p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all hover:border-cyan-500/40">
+          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-slate-950 rounded-[2rem] border border-slate-800/80 p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all">
              
             {/* Animated Scanline Overlay */}
             <motion.div 
@@ -3073,7 +3384,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
             {/* Glowing orb behind graph */}
             {selectedCandidate && (
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-cyan-500/5 blur-[100px] rounded-full pointer-events-none z-0" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none z-0" />
             )}
 
             {/* HUD / Crosshair Overlay */}
@@ -3247,9 +3558,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
             
             {/* Correlation Confidence Bar */}
             {selectedCandidate && (
-              <div className="absolute bottom-0 left-0 right-0 h-10 bg-[#070D18]/90 border-t border-[#1e293b]/80 flex items-center px-6 gap-4 z-10 backdrop-blur-xl">
+              <div className="absolute bottom-0 left-0 right-0 h-10 bg-slate-900/90 border-t border-slate-800/80 flex items-center px-6 gap-4 z-10 backdrop-blur-xl">
                 <span className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Spectral Correlation</span>
-                <div className="flex-1 h-2 bg-[#0B1221] border border-[#1e293b] rounded-full overflow-hidden flex shadow-inner">
+                <div className="flex-1 h-2 bg-slate-950 border border-slate-800 rounded-full overflow-hidden flex shadow-inner">
                   <div 
                     className={`h-full transition-all duration-1000 ${
                       selectedCandidate.match_quality === 'Excellent' 
@@ -3266,7 +3577,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
             )}
           </div>
           {!inputData.trim() && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#050B14]/90 backdrop-blur-md rounded-2xl z-20 border border-[#1e293b] overflow-hidden">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-md rounded-2xl z-20 border border-slate-800 overflow-hidden">
                {/* Decorative background grid for empty state */}
                <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(34, 211, 238, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 211, 238, 0.2) 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
                
@@ -3325,6 +3636,25 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 <ShieldAlert className="w-4 h-4 animate-pulse opacity-80" />
                 Laboratory Verification Required
               </div>
+
+              {/* Mixture Candidates Selector */}
+              {result?.candidates && result.candidates.length > 1 && (
+                <div className="flex flex-wrap gap-2 mb-8 relative z-10 p-4 bg-slate-900/50 rounded-2xl border border-slate-700/50 shadow-inner">
+                  <div className="w-full mb-2 flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-indigo-400" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Identified Mixture Components</span>
+                  </div>
+                  {result.candidates.map((candidate, idx) => (
+                    <button
+                      key={candidate.phase_name + idx}
+                      onClick={() => setSelectedCandidate(candidate)}
+                      className={`px-4 py-2 rounded-xl border text-xs font-bold transition-all ${selectedCandidate.phase_name === candidate.phase_name ? 'bg-indigo-600 border-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white'}`}
+                    >
+                      {candidate.phase_name} <span className="opacity-60 ml-1 font-mono">{candidate.confidence_score.toFixed(0)}%</span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10 relative z-10">
                 <div className="flex flex-1 items-center gap-6">
@@ -3694,7 +4024,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
         {/* Predictions List */}
         <div className="grid grid-cols-1 gap-4">
            {result?.candidates.filter(c => c.confidence_score >= engineConfig.confidenceThreshold).length === 0 && result && (
-             <div className="bg-[#050B14] p-8 rounded-[1.5rem] border border-[#1e293b] text-center">
+             <div className="bg-slate-900 p-8 rounded-[1.5rem] border border-slate-800 text-center">
                <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">No phases meet the confidence threshold of {engineConfig.confidenceThreshold}%</p>
                <button onClick={() => setEngineConfig({...engineConfig, confidenceThreshold: 0})} className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors">Reset Threshold</button>
              </div>
@@ -3703,8 +4033,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
              <div 
                key={`${candidate.phase_name}-${idx}`} 
                onClick={() => setSelectedCandidate(candidate)}
-               className={`bg-[#050B14] p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-300 group overflow-hidden relative
-                 ${selectedCandidate?.phase_name === candidate.phase_name ? 'border-violet-500/50 shadow-[0_0_30px_rgba(139,92,246,0.15)] bg-[#0B1221]' : 'border-[#1e293b] hover:border-violet-500/30 hover:bg-[#080E1A]'}
+               className={`bg-slate-900 p-5 rounded-[1.5rem] border cursor-pointer transition-all duration-300 group overflow-hidden relative
+                 ${selectedCandidate?.phase_name === candidate.phase_name ? 'border-violet-500/50 shadow-[0_0_30px_rgba(139,92,246,0.15)] bg-slate-950' : 'border-slate-800 hover:border-violet-500/30 hover:bg-slate-800/50'}
                `}
              >
                {selectedCandidate?.phase_name === candidate.phase_name && (
@@ -3772,7 +4102,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
            ))}
            
            {!result && !isSimulating && (
-             <div className="h-48 flex flex-col items-center justify-center bg-[#050B14] rounded-[2rem] border border-dashed border-[#1e293b] relative overflow-hidden group">
+             <div className="h-48 flex flex-col items-center justify-center bg-slate-900 rounded-[2rem] border border-dashed border-slate-700 relative overflow-hidden group">
                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.05),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                <Brain className="w-12 h-12 mb-4 text-violet-500/50 group-hover:text-violet-400 hover:scale-110 transition-all duration-500 drop-shadow-md" />
                <p className="font-black text-xl text-slate-300 tracking-tight group-hover:text-white transition-colors">Awaiting Inference Protocol</p>
