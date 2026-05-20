@@ -116,6 +116,9 @@ export const RietveldModule: React.FC = () => {
   const [refineZeroShift, setRefineZeroShift] = useState(true);
   const [refineBkg, setRefineBkg] = useState(true);
   const [refineSampleDisplacement, setRefineSampleDisplacement] = useState(false);
+  const [refineSurfaceRoughness, setRefineSurfaceRoughness] = useState(false);
+  const [geometry, setGeometry] = useState<'Bragg-Brentano' | 'Debye-Scherrer'>('Bragg-Brentano');
+  const [divergenceSlit, setDivergenceSlit] = useState<'Fixed' | 'Variable'>('Fixed');
   const [expertMode, setExpertMode] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [result, setResult] = useState<RietveldSetupResult | null>(null);
@@ -125,6 +128,7 @@ export const RietveldModule: React.FC = () => {
     if (refineBkg && bgModel !== 'Linear_Interpolation') globalActive += bgTerms;
     if (refineZeroShift) globalActive += 1; 
     if (refineSampleDisplacement) globalActive += 1;
+    if (refineSurfaceRoughness) globalActive += 1;
     
     let phaseParams = 0;
     let activePhases = 0;
@@ -148,6 +152,8 @@ export const RietveldModule: React.FC = () => {
       if (p.refineAsymmetry) pCount += 2;
       if (p.refinePrefOrient) pCount++;
       if (p.refineExtinction) pCount++;
+      if (p.refineAnisotropicStrain) pCount += 6;
+      if (p.refineSphericalHarmonics) pCount += 8;
       
       if (pCount > 0) {
         phaseParams += pCount;
@@ -553,6 +559,9 @@ export const RietveldModule: React.FC = () => {
       refineZeroShift,
       refineBkg,
       refineSampleDisplacement,
+      geometry,
+      divergenceSlit,
+      refineSurfaceRoughness,
       twoThetaMin: SIMULATION_RANGE.start,
       twoThetaMax: SIMULATION_RANGE.end,
       stepSize: SIMULATION_RANGE.step,
@@ -580,6 +589,8 @@ export const RietveldModule: React.FC = () => {
       p.refineOcc = true;
       p.refineAsymmetry = true;
       p.refineExtinction = true;
+      p.refineAnisotropicStrain = true;
+      p.refineSphericalHarmonics = true;
     } else if (type === 'lattice') {
       p.refineLattice = true;
       p.refineScale = true;
@@ -589,12 +600,14 @@ export const RietveldModule: React.FC = () => {
       p.refineProfile = true;
       p.refineMicrostrain = true;
       p.refineCrystalliteSize = true;
+      p.refineAnisotropicStrain = true;
       p.refineAsymmetry = true;
       p.refineLattice = false;
     } else if (type === 'structure') {
       p.refineAtomicPos = true;
       p.refineBiso = true;
       p.refineOcc = true;
+      p.refineSphericalHarmonics = true;
     } else {
       p.refineLattice = false;
       p.refineProfile = false;
@@ -602,6 +615,8 @@ export const RietveldModule: React.FC = () => {
       p.refineScale = false;
       p.refineBiso = false;
       p.refinePrefOrient = false;
+      p.refineAnisotropicStrain = false;
+      p.refineSphericalHarmonics = false;
       p.refineMicrostrain = false;
       p.refineCrystalliteSize = false;
       p.refineAsymmetry = false;
@@ -802,12 +817,50 @@ export const RietveldModule: React.FC = () => {
                            <thead className="sticky top-0 bg-[#050B14] z-10">
                              <tr className="border-b border-slate-800">
                                <th className="p-2 text-[8px] uppercase text-slate-500 font-black">HKL</th>
+                               <th className="p-2 text-[8px] uppercase text-slate-500 font-black text-center">Pos 2θ(°)</th>
+                               <th className="p-2 text-[8px] uppercase text-slate-500 font-black text-center">FWHM(°)</th>
                                <th className="p-2 text-[8px] uppercase text-slate-500 font-black text-center">Int. & Status</th>
                                <th className="p-2 text-[8px] uppercase text-slate-500 font-black text-right">Del</th>
                              </tr>
                            </thead>
                            <tbody className="divide-y divide-slate-800/50">
-                             {userParams.peaks.map((peak, pIdx) => (
+                             {userParams.peaks.map((peak, pIdx) => {
+                                let display2Theta = 0;
+                                let rawTheta = 0;
+                                if (simPhase === 'Quartz') {
+                                  const origPeak = QUARTZ_PEAKS[pIdx];
+                                  if (origPeak) {
+                                    const shift = (userParams.a - TARGET_PARAMS['Quartz'].a) * 2; 
+                                    display2Theta = origPeak.t - shift;
+                                    rawTheta = display2Theta / 2;
+                                  }
+                                } else {
+                                  if (peak.h !== 0 || peak.k !== 0 || peak.l !== 0) {
+                                    const d = userParams.a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
+                                    const sinTheta = 1.5406 / (2 * d);
+                                    if (sinTheta <= 1 && sinTheta > 0) {
+                                      rawTheta = Math.asin(sinTheta) * (180 / Math.PI);
+                                      display2Theta = 2 * rawTheta;
+                                    }
+                                  }
+                                }
+                                
+                                if (display2Theta > 0) {
+                                  const thetaRad = rawTheta * (Math.PI / 180);
+                                  const displacementShift = -userParams.sampleDisplacement * Math.cos(thetaRad);
+                                  display2Theta += userParams.zeroShift + displacementShift;
+                                }
+
+                                let displayFWHM = 0;
+                                if (display2Theta > 0) {
+                                   const thetaRad = (display2Theta/2) * (Math.PI / 180);
+                                   const bSizeRad = (0.9 * 1.5406) / ((userParams.crystalliteSize * 10) * Math.cos(thetaRad));
+                                   const bSizeDeg = bSizeRad * (180 / Math.PI);
+                                   const bStrainRad = 4 * userParams.microstrain * Math.tan(thetaRad);
+                                   const bStrainDeg = bStrainRad * (180 / Math.PI);
+                                   displayFWHM = userParams.fwhm + bSizeDeg + bStrainDeg;
+                                }
+                                return (
                                <tr key={pIdx} className={`group hover:bg-slate-800/30 transition-colors ${!peak.enabled ? 'opacity-30' : ''}`}>
                                  <td className="p-2">
                                    <div className="flex gap-0.5 items-center">
@@ -849,7 +902,10 @@ export const RietveldModule: React.FC = () => {
                                      />
                                    </div>
                                  </td>
-                                 <td className="p-2 text-center flex items-center justify-center gap-2">
+                                 <td className="p-2 text-center text-[10px] font-mono text-slate-400 font-bold">
+                                    {display2Theta > 0 ? display2Theta.toFixed(2) : '-'}
+                                  </td>
+                                  <td className="p-2 text-center flex items-center justify-center gap-2">
                                    <input 
                                      type="number"
                                      value={peak.intensity}
@@ -884,7 +940,7 @@ export const RietveldModule: React.FC = () => {
                                    </button>
                                  </td>
                                </tr>
-                             ))}
+                             )})}
                            </tbody>
                          </table>
                        </div>
@@ -1456,14 +1512,56 @@ export const RietveldModule: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-all">
-                    <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Polarization Factor (Lp)</label>
-                    <input
-                      type="number" step="0.001"
-                      value={polarization}
-                      onChange={(e) => setPolarization(parseFloat(e.target.value))}
-                      className="w-full px-3 py-2 bg-black/60 text-amber-400 border border-slate-700 rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all"
-                    />
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-all">
+                      <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Instrument Geometry</label>
+                      <select 
+                         value={geometry}
+                         onChange={(e) => setGeometry(e.target.value as any)}
+                         className="w-full px-3 py-2 bg-black/60 text-emerald-400 border border-slate-700 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all appearance-none"
+                      >
+                        <option value="Bragg-Brentano">Bragg-Brentano</option>
+                        <option value="Debye-Scherrer">Debye-Scherrer</option>
+                      </select>
+                    </div>
+                    <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-all">
+                      <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Divergence Slit</label>
+                      <select 
+                         value={divergenceSlit}
+                         onChange={(e) => setDivergenceSlit(e.target.value as any)}
+                         className="w-full px-3 py-2 bg-black/60 text-emerald-400 border border-slate-700 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 transition-all appearance-none"
+                      >
+                        <option value="Fixed">Fixed Slit</option>
+                        <option value="Variable">Variable Slit</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-all">
+                      <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Polarization Factor (Lp)</label>
+                      <input
+                        type="number" step="0.001"
+                        value={polarization}
+                        onChange={(e) => setPolarization(parseFloat(e.target.value))}
+                        className="w-full px-3 py-2 bg-black/60 text-amber-400 border border-slate-700 rounded-lg text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all"
+                      />
+                    </div>
+                    <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600/50 transition-all group">
+                      <div className="flex justify-between items-start mb-2">
+                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest">Surface Roughness</label>
+                        <button 
+                          onClick={() => setRefineSurfaceRoughness(!refineSurfaceRoughness)}
+                          className={`p-1 rounded-md border transition-all ${refineSurfaceRoughness ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 'bg-slate-900/50 border-slate-700 text-slate-500'}`}
+                          title="Toggle Surface Roughness Refinement"
+                        >
+                          <Zap className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="text-[10px] text-slate-500 leading-tight">
+                        Apply Suaya/Pitschke correction for surface microabsorption.
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1680,8 +1778,22 @@ export const RietveldModule: React.FC = () => {
                                     onClick={() => updatePhase(idx, 'refinePrefOrient', !phase.refinePrefOrient)}
                                     className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between col-span-2 group ${phase.refinePrefOrient ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
                                   >
-                                    <span className="text-[9px] font-bold tracking-wider truncate">PREFERRED ORIENTATION</span>
+                                    <span className="text-[9px] font-bold tracking-wider truncate">PREF ORIENT (M-D)</span>
                                     <Compass className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refinePrefOrient ? 'scale-110 text-cyan-400' : 'text-slate-600 group-hover:text-cyan-400/50'}`} />
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineAnisotropicStrain', !phase.refineAnisotropicStrain)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between col-span-2 group ${phase.refineAnisotropicStrain ? 'bg-pink-500/10 border-pink-500/50 text-pink-400 shadow-[0_0_10px_rgba(236,72,153,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">ANISO STRAIN (STEPHENS)</span>
+                                    <Zap className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineAnisotropicStrain ? 'scale-110 text-pink-400' : 'text-slate-600 group-hover:text-pink-400/50'}`} />
+                                  </button>
+                                  <button 
+                                    onClick={() => updatePhase(idx, 'refineSphericalHarmonics', !phase.refineSphericalHarmonics)}
+                                    className={`px-2 py-2 rounded-lg border transition-all flex items-center justify-between col-span-2 group ${phase.refineSphericalHarmonics ? 'bg-violet-500/10 border-violet-500/50 text-violet-400 shadow-[0_0_10px_rgba(139,92,246,0.15)]' : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}`}
+                                  >
+                                    <span className="text-[9px] font-bold tracking-wider truncate">SPHERICAL HARMONICS</span>
+                                    <Layers className={`w-3.5 h-3.5 shrink-0 transition-transform ${phase.refineSphericalHarmonics ? 'scale-110 text-violet-400' : 'text-slate-600 group-hover:text-violet-400/50'}`} />
                                   </button>
                                 </div>
                               </div>

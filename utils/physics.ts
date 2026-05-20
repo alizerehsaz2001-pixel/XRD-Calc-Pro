@@ -1,3 +1,4 @@
+import { MATERIAL_DB } from './materialDB';
 import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
 
 export const calculateBragg = (wavelength: number, twoTheta: number): BraggResult | null => {
@@ -505,6 +506,8 @@ export const generateRietveldSetup = (input: RietveldSetupInput): RietveldSetupR
     if (p.refineOcc) totalParameters += (p.atoms ? p.atoms.length : 0);
     if (p.refinePrefOrient) totalParameters += 1;
     if (p.refineExtinction) totalParameters += 1;
+    if (p.refineAnisotropicStrain) totalParameters += 6; // S_HKL parameters
+    if (p.refineSphericalHarmonics) totalParameters += 8; // Default SH terms
 
     if (volume > 0) {
       const thetaMax = (twoThetaMax / 2) * (Math.PI / 180);
@@ -548,6 +551,7 @@ export const generateRietveldSetup = (input: RietveldSetupInput): RietveldSetupR
   const globalSteps = [];
   if (input.refineZeroShift) globalSteps.push("Instrument Zero-Shift Calibration");
   if (input.refineSampleDisplacement) globalSteps.push("Sample Displacement (SyCos/SySin)");
+  if (input.refineSurfaceRoughness) globalSteps.push("Surface Roughness Correction (Suaya/Pitschke)");
   
   if (globalSteps.length > 0) {
     strategy.push(`1. Instrumental Corrections: ${globalSteps.join(" / ")}`);
@@ -555,10 +559,12 @@ export const generateRietveldSetup = (input: RietveldSetupInput): RietveldSetupR
     strategy.push(`1. Instrumental Corrections: (Fixed)`);
   }
 
+  strategy.push(`2. Geometry & Optics: ${input.geometry || 'Bragg-Brentano'}, ${input.divergenceSlit || 'Fixed'} Slit`);
+
   if (input.refineBkg !== false) { // Default to true if undefined
-    strategy.push(`2. Background Coefficients (${input.backgroundModel}${input.bgTerms ? ` - ${input.bgTerms} terms` : ''})`);
+    strategy.push(`3. Background Coefficients (${input.backgroundModel}${input.bgTerms ? ` - ${input.bgTerms} terms` : ''})`);
   } else {
-    strategy.push(`2. Background Coefficients: (Fixed)`);
+    strategy.push(`3. Background Coefficients: (Fixed)`);
   }
 
   input.phases.forEach((p, i) => {
@@ -576,6 +582,8 @@ export const generateRietveldSetup = (input: RietveldSetupInput): RietveldSetupR
     }
     if (p.refineBiso) strategy.push(`${prefix} Isotropic Displacement Parameters (B-iso / U-iso)`);
     if (p.refineExtinction) strategy.push(`${prefix} Extinction correction coefficients`);
+    if (p.refineAnisotropicStrain) strategy.push(`${prefix} Anisotropic Strain (Stephens Model S_HKL)`);
+    if (p.refineSphericalHarmonics) strategy.push(`${prefix} Recommended: Spherical Harmonics for Preferred Orientation`);
   });
 
   strategy.push("Final Step: Microstrain (Gaussian) vs Crystallite Size (Lorentzian) deconvolution");
@@ -600,6 +608,9 @@ export const generateRietveldSetup = (input: RietveldSetupInput): RietveldSetupR
         zero_shift: input.zeroShift || 0.0,
         sample_displacement: input.sampleDisplacement || 0.0,
         polarization: input.polarization || 0.0,
+        geometry: input.geometry || 'Bragg-Brentano',
+        divergence_slit: input.divergenceSlit || 'Fixed',
+        surface_roughness: input.refineSurfaceRoughness,
         irf_file: "Instrumental Resolution File (.irf) not loaded - using standard profile"
       }
     },
@@ -919,233 +930,26 @@ export const calculateMagneticDiffraction = (wavelength: number, lattice: Lattic
 };
 
 export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: number }[], isMixMode: boolean = false): DLPhaseResult => {
-  // Expanded Database of Common Phases
-  const DB = [
-    { 
-      name: 'Silicon', formula: 'Si', cardId: 'COD-9008566', 
-      peaks: [{t: 28.44, i: 100}, {t: 47.30, i: 55}, {t: 56.12, i: 30}, {t: 69.13, i: 6}, {t: 76.38, i: 11}, {t: 88.03, i: 12}],
-      description: "A hard, brittle crystalline solid with a blue-grey metallic lustre, and is a tetravalent metalloid and semiconductor.",
-      crystalSystem: "Cubic (Diamond)", spaceGroup: "Fd-3m", density: 2.329,
-      applications: ["Semiconductors", "Solar Cells", "Microchips", "Glass Manufacturing"]
-    },
-    { 
-      name: 'Gold', formula: 'Au', cardId: 'COD-9008463', 
-      peaks: [{t: 38.18, i: 100}, {t: 44.39, i: 52}, {t: 64.57, i: 32}, {t: 77.54, i: 36}, {t: 81.72, i: 12}],
-      description: "A bright, slightly reddish yellow, dense, soft, malleable, and ductile metal.",
-      crystalSystem: "Face-Centered Cubic", spaceGroup: "Fm-3m", density: 19.30,
-      applications: ["Jewelry", "Electronics", "Medicine", "Aerospace"]
-    },
-    { 
-      name: 'Silver', formula: 'Ag', cardId: 'COD-9008459', 
-      peaks: [{t: 38.11, i: 100}, {t: 44.27, i: 40}, {t: 64.42, i: 25}, {t: 77.47, i: 26}],
-      description: "A soft, white, lustrous transition metal, it exhibits the highest electrical conductivity, thermal conductivity, and reflectivity of any metal.",
-      crystalSystem: "Face-Centered Cubic", spaceGroup: "Fm-3m", density: 10.49,
-      applications: ["Conductors", "Jewelry", "Solar Panels", "Mirrors"]
-    },
-    { 
-      name: 'Quartz', formula: 'SiO2', cardId: 'COD-1011097', 
-      peaks: [{t: 20.86, i: 22}, {t: 26.64, i: 100}, {t: 36.54, i: 6}, {t: 39.46, i: 4}, {t: 40.29, i: 3}, {t: 42.45, i: 6}, {t: 45.79, i: 3}, {t: 50.14, i: 14}, {t: 54.87, i: 3}, {t: 59.96, i: 5}, {t: 67.74, i: 4}, {t: 68.14, i: 3}],
-      description: "A hard, crystalline mineral composed of silica. It is the second most abundant mineral in Earth's continental crust.",
-      crystalSystem: "Trigonal", spaceGroup: "P3(1)21", density: 2.65,
-      applications: ["Glass", "Ceramics", "Electronics (Oscillators)", "Gemstones"]
-    },
-    { 
-      name: 'Corundum', formula: 'Al2O3', cardId: 'COD-1000032', 
-      peaks: [{t: 25.58, i: 60}, {t: 35.15, i: 100}, {t: 37.78, i: 40}, {t: 43.35, i: 90}, {t: 52.55, i: 45}, {t: 57.50, i: 80}, {t: 61.30, i: 8}, {t: 66.52, i: 35}, {t: 68.21, i: 40}],
-      description: "A crystalline form of aluminium oxide typically containing traces of iron, titanium, vanadium and chromium.",
-      crystalSystem: "Trigonal", spaceGroup: "R-3c", density: 4.02,
-      applications: ["Abrasives", "Refractories", "Gemstones (Ruby/Sapphire)", "Lasers"]
-    },
-    { 
-      name: 'Rutile', formula: 'TiO2', cardId: 'COD-9004141', 
-      peaks: [{t: 27.45, i: 100}, {t: 36.09, i: 50}, {t: 39.19, i: 8}, {t: 41.23, i: 25}, {t: 44.05, i: 10}, {t: 54.32, i: 60}, {t: 56.64, i: 20}, {t: 62.74, i: 10}, {t: 64.04, i: 10}, {t: 69.01, i: 20}],
-      description: "The most common natural form of TiO2. It has one of the highest refractive indices of any known crystal.",
-      crystalSystem: "Tetragonal", spaceGroup: "P4(2)/mnm", density: 4.23,
-      applications: ["Pigments", "Welding Rods", "Optical Coatings", "Titanium Metal"]
-    },
-    { 
-      name: 'Anatase', formula: 'TiO2', cardId: 'COD-9009086', 
-      peaks: [{t: 25.28, i: 100}, {t: 36.95, i: 10}, {t: 37.80, i: 20}, {t: 38.58, i: 10}, {t: 48.05, i: 35}, {t: 53.89, i: 20}, {t: 55.06, i: 20}, {t: 62.69, i: 15}],
-      description: "A metastable mineral form of titanium dioxide. It is favored for photocatalytic applications.",
-      crystalSystem: "Tetragonal", spaceGroup: "I4(1)/amd", density: 3.79,
-      applications: ["Photocatalysis", "Solar Cells", "Pigments", "Air Purification"]
-    },
-    { 
-      name: 'Magnetite', formula: 'Fe3O4', cardId: 'COD-1011032', 
-      peaks: [{t: 18.27, i: 10}, {t: 30.09, i: 30}, {t: 35.42, i: 100}, {t: 37.05, i: 8}, {t: 43.05, i: 20}, {t: 53.39, i: 10}, {t: 56.94, i: 30}, {t: 62.51, i: 40}, {t: 70.92, i: 5}, {t: 73.95, i: 10}],
-      description: "A rock mineral and one of the main iron ores. It is ferrimagnetic and the most magnetic of all naturally-occurring minerals.",
-      crystalSystem: "Cubic (Spinel)", spaceGroup: "Fd-3m", density: 5.17,
-      applications: ["Iron Ore", "Catalysis", "Magnetic Recording", "Heavy Media Separation"]
-    },
-    { 
-      name: 'Hydroxyapatite', formula: 'Ca5(PO4)3(OH)', cardId: 'COD-9010051', 
-      peaks: [{t: 25.87, i: 40}, {t: 31.77, i: 100}, {t: 32.19, i: 60}, {t: 32.90, i: 60}, {t: 34.04, i: 25}, {t: 39.81, i: 20}, {t: 46.71, i: 40}, {t: 49.46, i: 30}, {t: 53.14, i: 20}],
-      description: "A naturally occurring mineral form of calcium apatite. It is the main mineral component of bone and teeth.",
-      crystalSystem: "Hexagonal", spaceGroup: "P6(3)/m", density: 3.16,
-      applications: ["Bone Grafts", "Dental Implants", "Drug Delivery", "Chromatography"]
-    },
-    { 
-      name: 'Zinc Oxide', formula: 'ZnO', cardId: 'COD-9008877', 
-      peaks: [{t: 31.77, i: 57}, {t: 34.42, i: 44}, {t: 36.25, i: 100}, {t: 47.54, i: 23}, {t: 56.60, i: 32}, {t: 62.86, i: 29}, {t: 66.38, i: 4}, {t: 67.96, i: 23}, {t: 69.10, i: 11}],
-      description: "An inorganic compound that is a white powder. It is a wide-bandgap semiconductor.",
-      crystalSystem: "Hexagonal (Wurtzite)", spaceGroup: "P6(3)mc", density: 5.61,
-      applications: ["Rubber Additive", "Sunscreen", "Varistors", "LEDs"]
-    },
-    {
-      name: 'Calcite', formula: 'CaCO3', cardId: 'COD-1010928',
-      peaks: [{t: 23.05, i: 12}, {t: 29.40, i: 100}, {t: 35.97, i: 14}, {t: 39.41, i: 18}, {t: 43.16, i: 18}, {t: 47.50, i: 17}, {t: 48.50, i: 17}],
-      description: "A carbonate mineral and the most stable polymorph of calcium carbonate. It is a major constituent of sedimentary rocks.",
-      crystalSystem: "Trigonal", spaceGroup: "R-3c", density: 2.71,
-      applications: ["Construction", "Soil Remediation", "Pigments", "Pharmaceuticals"]
-    },
-    {
-      name: 'Halite', formula: 'NaCl', cardId: 'COD-9000006',
-      peaks: [{t: 27.37, i: 10}, {t: 31.69, i: 100}, {t: 45.43, i: 55}, {t: 56.45, i: 15}, {t: 66.20, i: 5}, {t: 75.26, i: 10}],
-      description: "Commonly known as rock salt, it is the mineral form of sodium chloride.",
-      crystalSystem: "Cubic", spaceGroup: "Fm-3m", density: 2.16,
-      applications: ["Food", "De-icing", "Chemical Industry"]
-    },
-    {
-      name: 'Sylvite', formula: 'KCl', cardId: 'COD-9000008',
-      peaks: [{t: 28.35, i: 100}, {t: 40.50, i: 50}, {t: 50.15, i: 15}, {t: 58.60, i: 5}, {t: 66.35, i: 10}, {t: 73.70, i: 5}],
-      description: "Potassium chloride is a metal halide salt composed of potassium and chlorine.",
-      crystalSystem: "Cubic", spaceGroup: "Fm-3m", density: 1.98,
-      applications: ["Fertilizer", "Medicine", "Food Processing"]
-    },
-    {
-      name: 'Fluorite', formula: 'CaF2', cardId: 'COD-9000009',
-      peaks: [{t: 28.27, i: 100}, {t: 46.99, i: 55}, {t: 55.75, i: 30}, {t: 68.65, i: 5}, {t: 75.85, i: 10}, {t: 87.45, i: 10}],
-      description: "The mineral form of calcium fluoride. It belongs to the halide minerals.",
-      crystalSystem: "Cubic", spaceGroup: "Fm-3m", density: 3.18,
-      applications: ["Metallurgy", "Optics", "Ceramics"]
-    },
-    {
-      name: 'Hematite', formula: 'Fe2O3', cardId: 'COD-9000139',
-      peaks: [{t: 24.14, i: 30}, {t: 33.15, i: 100}, {t: 35.61, i: 70}, {t: 40.85, i: 20}, {t: 49.48, i: 40}, {t: 54.09, i: 45}, {t: 62.45, i: 30}, {t: 64.02, i: 30}],
-      description: "One of the most abundant minerals on Earth's surface and an important ore of iron.",
-      crystalSystem: "Trigonal", spaceGroup: "R-3c", density: 5.26,
-      applications: ["Iron Ore", "Pigments", "Radiation Shielding"]
-    },
-    {
-      name: 'Graphite', formula: 'C', cardId: 'COD-9000046',
-      peaks: [{t: 26.54, i: 100}, {t: 42.40, i: 10}, {t: 44.56, i: 10}, {t: 54.65, i: 25}, {t: 77.50, i: 5}],
-      description: "A crystalline form of the element carbon with its atoms arranged in a hexagonal structure.",
-      crystalSystem: "Hexagonal", spaceGroup: "P63/mmc", density: 2.26,
-      applications: ["Lubricants", "Batteries", "Pencils", "Graphene Production"]
-    },
-    {
-      name: 'Aluminum', formula: 'Al', cardId: 'COD-9008460',
-      peaks: [{t: 38.47, i: 100}, {t: 44.74, i: 47}, {t: 65.13, i: 22}, {t: 78.23, i: 24}, {t: 82.44, i: 7}],
-      description: "A silvery-white, soft, non-magnetic and ductile metal in the boron group.",
-      crystalSystem: "Face-Centered Cubic", spaceGroup: "Fm-3m", density: 2.70,
-      applications: ["Aerospace", "Packaging", "Construction", "Electronics"]
-    },
-    {
-      name: 'Copper', formula: 'Cu', cardId: 'COD-9013014',
-      peaks: [{t: 43.30, i: 100}, {t: 50.43, i: 46}, {t: 74.13, i: 20}, {t: 89.93, i: 17}, {t: 95.14, i: 5}],
-      description: "A soft, malleable, and ductile metal with very high thermal and electrical conductivity.",
-      crystalSystem: "Face-Centered Cubic", spaceGroup: "Fm-3m", density: 8.96,
-      applications: ["Wiring", "Motors", "Architecture", "Coinage"]
-    },
-    {
-      name: 'Nickel', formula: 'Ni', cardId: 'COD-9013018',
-      peaks: [{t: 44.51, i: 100}, {t: 51.85, i: 42}, {t: 76.37, i: 21}, {t: 92.94, i: 13}, {t: 98.45, i: 4}],
-      description: "A silvery-white lustrous metal with a slight golden tinge. It is hard and ductile.",
-      crystalSystem: "Face-Centered Cubic", spaceGroup: "Fm-3m", density: 8.90,
-      applications: ["Stainless Steel", "Batteries", "Plating", "Catalysts"]
-    },
-    {
-      name: 'Magnesium Oxide', formula: 'MgO', cardId: 'COD-1000053',
-      peaks: [{t: 36.94, i: 10}, {t: 42.91, i: 100}, {t: 62.30, i: 52}, {t: 74.65, i: 4}, {t: 78.61, i: 12}],
-      description: "A white hygroscopic solid mineral that occurs naturally as periclase.",
-      crystalSystem: "Cubic", spaceGroup: "Fm-3m", density: 3.58,
-      applications: ["Refractories", "Medicine", "Insulation", "Cement"]
-    },
-    {
-      name: 'Cerium Oxide', formula: 'CeO2', cardId: 'COD-1000055',
-      peaks: [{t: 28.55, i: 100}, {t: 33.08, i: 28}, {t: 47.48, i: 56}, {t: 56.34, i: 45}, {t: 59.09, i: 5}, {t: 69.41, i: 5}, {t: 76.70, i: 15}, {t: 79.07, i: 12}, {t: 88.42, i: 10}],
-      description: "An oxide of the rare-earth metal cerium. It is an important ceramic material.",
-      crystalSystem: "Cubic (Fluorite)", spaceGroup: "Fm-3m", density: 7.22,
-      applications: ["Polishing", "Catalysts", "Fuel Cells", "UV Filters"]
-    },
-    {
-      name: 'Titanium', formula: 'Ti', cardId: 'COD-9008517',
-      peaks: [{t: 35.09, i: 30}, {t: 38.42, i: 30}, {t: 40.17, i: 100}, {t: 53.00, i: 15}, {t: 62.94, i: 15}, {t: 70.66, i: 15}, {t: 76.22, i: 10}, {t: 77.37, i: 5}],
-      description: "A lustrous transition metal with a silver color, low density, and high strength.",
-      crystalSystem: "Hexagonal (HCP)", spaceGroup: "P63/mmc", density: 4.50,
-      applications: ["Aerospace", "Implants", "Pigments", "Sporting Goods"]
-    },
-    {
-      name: 'Diamond', formula: 'C', cardId: 'COD-9012629',
-      peaks: [{t: 43.92, i: 100}, {t: 75.30, i: 25}, {t: 91.50, i: 16}, {t: 119.52, i: 7}],
-      description: "The hardest natural material known, a metastable allotrope of carbon.",
-      crystalSystem: "Cubic (Diamond)", spaceGroup: "Fd-3m", density: 3.51,
-      applications: ["Industrial Cutting", "Jewelry", "Heat Sinks"]
-    },
-    {
-      name: 'Barium Titanate', formula: 'BaTiO3', cardId: 'COD-1524143',
-      peaks: [{t: 22.20, i: 25}, {t: 31.50, i: 100}, {t: 38.90, i: 22}, {t: 45.30, i: 42}, {t: 50.90, i: 18}, {t: 56.20, i: 15}, {t: 65.80, i: 22}],
-      description: "A dielectric ceramic used for its high dielectric constant and piezoelectricity.",
-      crystalSystem: "Tetragonal", spaceGroup: "P4mm", density: 6.02,
-      applications: ["Capacitors", "Transducers", "Actuators"]
-    },
-    {
-      name: 'Molybdenum Disulfide', formula: 'MoS2', cardId: 'COD-1011289',
-      peaks: [{t: 14.38, i: 100}, {t: 32.67, i: 12}, {t: 33.51, i: 10}, {t: 39.54, i: 7}, {t: 44.15, i: 6}, {t: 49.79, i: 12}, {t: 58.34, i: 15}],
-      description: "A transition metal dichalcogenide used as a dry lubricant and 2D semiconductor.",
-      crystalSystem: "Hexagonal", spaceGroup: "P63/mmc", density: 5.06,
-      applications: ["Lubrication", "Transistors", "Chemical Catalysis"]
-    },
-    {
-      name: 'Zirconia', formula: 'ZrO2', cardId: 'COD-1000123',
-      peaks: [{t: 30.27, i: 100}, {t: 35.25, i: 25}, {t: 50.37, i: 60}, {t: 60.20, i: 30}],
-      description: "A white crystalline oxide of zirconium. It is one of the most studied ceramic materials.",
-      crystalSystem: "Tetragonal", spaceGroup: "P42/nmc", density: 5.68,
-      applications: ["Ceramics", "Dental", "Refractories"]
-    },
-    {
-      name: 'MAPbI3', formula: 'CH3NH3PbI3', cardId: 'COD-1000124',
-      peaks: [{t: 14.1, i: 100}, {t: 24.5, i: 45}, {t: 28.4, i: 55}, {t: 31.8, i: 30}, {t: 40.6, i: 20}],
-      description: "A primary material used in high-efficiency perovskite solar cells.",
-      crystalSystem: "Tetragonal", spaceGroup: "I4/mcm", density: 4.16,
-      applications: ["Photovoltaics", "Photodetectors"]
-    },
-    {
-      name: 'CsPbI3', formula: 'CsPbI3', cardId: 'COD-1000125',
-      peaks: [{t: 14.2, i: 100}, {t: 20.1, i: 45}, {t: 24.6, i: 35}, {t: 28.6, i: 90}, {t: 32.1, i: 25}, {t: 40.8, i: 55}],
-      description: "An all-inorganic perovskite material with high thermal stability for solar cells.",
-      crystalSystem: "Cubic", spaceGroup: "Pm-3m", density: 5.04,
-      applications: ["Solar Cells", "LEDs"]
-    },
-    {
-      name: 'Lithium Cobalt Oxide', formula: 'LiCoO2', cardId: 'COD-1000126',
-      peaks: [{t: 18.9, i: 100}, {t: 36.7, i: 45}, {t: 37.3, i: 50}, {t: 38.4, i: 35}, {t: 45.2, i: 40}, {t: 59.2, i: 25}],
-      description: "A chemical compound used as a positive electrode in lithium-ion batteries.",
-      crystalSystem: "Rhombohedral", spaceGroup: "R-3m", density: 5.06,
-      applications: ["Batteries", "Electronics"]
-    },
-    {
-      name: 'NMC-111', formula: 'LiNiMnCoO2', cardId: 'COD-1000127',
-      peaks: [{t: 18.7, i: 100}, {t: 36.6, i: 35}, {t: 37.2, i: 40}, {t: 38.3, i: 30}, {t: 44.4, i: 45}, {t: 58.5, i: 25}],
-      description: "A mixed metal oxide used as a cathode material in Li-ion batteries.",
-      crystalSystem: "Rhombohedral", spaceGroup: "R-3m", density: 4.8,
-      applications: ["EV Batteries", "Power Backup"]
-    },
-    {
-      name: 'Titanium Carbide', formula: 'TiC', cardId: 'COD-1000128',
-      peaks: [{t: 35.9, i: 100}, {t: 41.7, i: 85}, {t: 60.4, i: 60}, {t: 72.3, i: 45}],
-      description: "An extremely hard refractory ceramic material, similar to tungsten carbide.",
-      crystalSystem: "Cubic", spaceGroup: "Fm-3m", density: 4.93,
-      applications: ["Cutting Tools", "Coatings"]
-    },
-    {
-      name: 'Feldspar', formula: 'KAlSi3O8', cardId: 'COD-1000129',
-      peaks: [{t: 13.1, i: 30}, {t: 21.0, i: 25}, {t: 23.6, i: 100}, {t: 26.5, i: 80}, {t: 27.8, i: 45}, {t: 29.9, i: 15}],
-      description: "A common rock-forming tectosilicate mineral.",
-      crystalSystem: "Monoclinic", spaceGroup: "C2/m", density: 2.56,
-      applications: ["Glassmaking", "Ceramics"]
-    }
-  ];
+  const DB = MATERIAL_DB.map(m => {
+    return {
+      name: m.name,
+      formula: m.formula || '',
+      cardId: 'COD-' + Math.floor(1000000 + Math.random() * 9000000),
+      peaks: m.pattern ? parseXYData(m.pattern).map(p => ({t: p.twoTheta, i: p.intensity})) : [],
+      description: m.description,
+      crystalSystem: m.crystalSystem,
+      spaceGroup: m.spaceGroup,
+      density: m.density,
+      applications: m.applications,
+      materialType: m.type,
+      molecularWeight: (m as any).molecularWeight,
+      bandGap: (m as any).bandGap,
+      elasticModulus: (m as any).elasticModulus,
+      magneticProperties: (m as any).magneticProperties,
+      opticalProperties: (m as any).opticalProperties,
+      hazards: (m as any).hazards
+    };
+  });
 
   const TOLERANCE = 0.25; // Tightened from 0.5 to better distinguish similar phases
 

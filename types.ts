@@ -191,6 +191,8 @@ export interface RietveldPhaseInput {
   refineCrystalliteSize?: boolean;
   refineExtinction?: boolean;
   refineScale?: boolean;
+  refineAnisotropicStrain?: boolean;
+  refineSphericalHarmonics?: boolean;
   // Atoms
   atoms?: RietveldAtom[];
 }
@@ -211,6 +213,9 @@ export interface RietveldSetupInput {
   twoThetaMin?: number;
   twoThetaMax?: number;
   stepSize?: number;
+  geometry?: 'Bragg-Brentano' | 'Debye-Scherrer';
+  divergenceSlit?: 'Fixed' | 'Variable';
+  refineSurfaceRoughness?: boolean;
 }
 
 export interface RietveldSetupResult {
