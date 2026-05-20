@@ -125,6 +125,9 @@ export interface IntegralBreadthResult {
   integralBreadthDeg: number;
   shapeFactorPhi: number;
   calcSizeNm: number;
+  betaObsDeg?: number;
+  betaInstDeg?: number;
+  betaSampleDeg?: number;
 }
 
 export interface IBAdvancedInput {
@@ -142,6 +145,17 @@ export interface IBAdvancedResult {
     rSquared: number;
   };
   points: { x: number; y: number; twoTheta: number; betaSample: number }[];
+  stressMPa?: number;
+  energyDensityKjM3?: number;
+  pointsExtended?: {
+    twoTheta: number;
+    betaObsDeg: number;
+    betaInstDeg: number;
+    betaSampleDeg: number;
+    x: number;
+    y: number;
+    singlePeakSizeNm: number;
+  }[];
 }
 
 export interface WAInputPoint {

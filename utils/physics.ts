@@ -402,17 +402,51 @@ export const parseIntegralBreadthInput = (input: string): IntegralBreadthInput[]
   return results;
 };
 
-export const calculateIntegralBreadth = (wavelength: number, K: number, peak: IntegralBreadthInput): IntegralBreadthResult | null => {
+export const calculateIntegralBreadth = (
+  wavelength: number, 
+  K: number, 
+  peak: IntegralBreadthInput,
+  instrumentalMode: 'constant' | 'caglioti' = 'constant',
+  instBetaIB: number = 0.0,
+  cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
+  decouplingMethod: 'linear' | 'squared' = 'linear'
+): IntegralBreadthResult | null => {
   if (wavelength <= 0 || peak.iMax <= 0) return null;
   const { twoTheta, fwhm, area, iMax } = peak;
-  const betaIbRad = (area / iMax) * (Math.PI / 180);
-  if (betaIbRad <= 0) return null;
+  const betaObsRad = (area / iMax) * (Math.PI / 180);
+  if (betaObsRad <= 0) return null;
   const thetaRad = (twoTheta / 2) * (Math.PI / 180);
   const cosTheta = Math.cos(thetaRad);
   if (Math.abs(cosTheta) < 1e-10) return null;
+
+  // Determine instrumental broadening
+  let peakInstBetaDeg = instBetaIB;
+  if (instrumentalMode === 'caglioti') {
+    const tanTheta = Math.tan(thetaRad);
+    const valDegSq = cagliotiParams.U * tanTheta * tanTheta + cagliotiParams.V * tanTheta + cagliotiParams.W;
+    peakInstBetaDeg = Math.sqrt(Math.max(1e-6, valDegSq));
+  }
+  const betaInstRad = peakInstBetaDeg * (Math.PI / 180);
+
+  let betaSampleRad = 0;
+  if (decouplingMethod === 'squared') {
+    betaSampleRad = Math.sqrt(Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad));
+  } else {
+    // defaults to linear / Lorentzian
+    betaSampleRad = Math.max(0, betaObsRad - betaInstRad);
+  }
+
+  // Handle case where sample broadening is very small or zero to prevent infinite crystallite size
+  const finalBetaRad = betaSampleRad > 0 ? betaSampleRad : betaObsRad;
+
   return {
-    twoTheta, integralBreadthDeg: area/iMax, shapeFactorPhi: fwhm / (area/iMax),
-    calcSizeNm: (K * wavelength) / (betaIbRad * cosTheta) / 10
+    twoTheta, 
+    integralBreadthDeg: area / iMax, 
+    shapeFactorPhi: fwhm / (area / iMax),
+    calcSizeNm: (K * wavelength) / (finalBetaRad * cosTheta) / 10,
+    betaObsDeg: betaObsRad * (180 / Math.PI),
+    betaInstDeg: peakInstBetaDeg,
+    betaSampleDeg: betaSampleRad * (180 / Math.PI)
   };
 };
 
@@ -434,31 +468,69 @@ export const calculateIBAdvanced = (
   wavelength: number,
   K: number,
   instBetaIB: number, // in degrees
-  peaks: IBAdvancedInput[]
+  peaks: IBAdvancedInput[],
+  instrumentalMode: 'constant' | 'caglioti' = 'constant',
+  cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
+  decouplingMethod: 'linear' | 'squared' = 'linear',
+  youngsModulusGPa?: number
 ): IBAdvancedResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
   
   const points: { x: number; y: number; twoTheta: number; betaSample: number }[] = [];
-  const betaInstRad = instBetaIB * (Math.PI / 180);
+  const pointsExtended: {
+    twoTheta: number;
+    betaObsDeg: number;
+    betaInstDeg: number;
+    betaSampleDeg: number;
+    x: number;
+    y: number;
+    singlePeakSizeNm: number;
+  }[] = [];
 
   for (const peak of peaks) {
     const { twoTheta, area, iMax } = peak;
-    if (iMax === 0) continue;
+    if (iMax <= 0) continue;
 
     const betaObsRad = (area / iMax) * (Math.PI / 180);
     const thetaRad = (twoTheta / 2) * (Math.PI / 180);
+    const cosTheta = Math.cos(thetaRad);
 
-    // Linear subtraction correction for Integral Breadth (Lorentzian assumption)
-    // Beta_sample = Beta_obs - Beta_inst
-    const betaSampleRad = Math.max(0, betaObsRad - betaInstRad);
+    // Determine instrumental broadening
+    let peakInstBetaDeg = instBetaIB;
+    if (instrumentalMode === 'caglioti') {
+      const tanTheta = Math.tan(thetaRad);
+      const valDegSq = cagliotiParams.U * tanTheta * tanTheta + cagliotiParams.V * tanTheta + cagliotiParams.W;
+      peakInstBetaDeg = Math.sqrt(Math.max(1e-6, valDegSq));
+    }
+    const betaInstRad = peakInstBetaDeg * (Math.PI / 180);
+
+    let betaSampleRad = 0;
+    if (decouplingMethod === 'squared') {
+      betaSampleRad = Math.sqrt(Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad));
+    } else {
+      betaSampleRad = Math.max(0, betaObsRad - betaInstRad);
+    }
 
     if (betaSampleRad <= 0) continue;
 
     // Standard W-H with IB: Y = beta * cos(theta), X = 4 * sin(theta)
-    const y = betaSampleRad * Math.cos(thetaRad);
+    const y = betaSampleRad * cosTheta;
     const x = 4 * Math.sin(thetaRad);
 
     points.push({ x, y, twoTheta, betaSample: betaSampleRad * (180/Math.PI) });
+
+    // Single peak size estimate
+    const singlePeakSizeNm = cosTheta > 1e-10 ? (K * wavelength) / (betaSampleRad * cosTheta) / 10 : 0;
+
+    pointsExtended.push({
+      twoTheta,
+      betaObsDeg: betaObsRad * (180 / Math.PI),
+      betaInstDeg: peakInstBetaDeg,
+      betaSampleDeg: betaSampleRad * (180 / Math.PI),
+      x,
+      y,
+      singlePeakSizeNm
+    });
   }
 
   if (points.length < 2) return null;
@@ -469,7 +541,9 @@ export const calculateIBAdvanced = (
     sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumX2 += p.x * p.x;
   }
   const n = points.length;
-  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+  const denominator = n * sumX2 - sumX * sumX;
+  if (Math.abs(denominator) < 1e-12) return null;
+  const slope = (n * sumXY - sumX * sumY) / denominator;
   const intercept = (sumY - slope * sumX) / n;
   const meanY = sumY / n;
   let ssTot = 0, ssRes = 0;
@@ -479,11 +553,24 @@ export const calculateIBAdvanced = (
     ssRes += Math.pow(p.y - yPred, 2);
   }
 
+  // Isotropic stress and elastic energy density calculations
+  const absoluteStrain = slope;
+  let stressMPa: number | undefined = undefined;
+  let energyDensityKjM3: number | undefined = undefined;
+
+  if (youngsModulusGPa && youngsModulusGPa > 0) {
+    stressMPa = absoluteStrain * youngsModulusGPa * 1000;
+    energyDensityKjM3 = 0.5 * youngsModulusGPa * absoluteStrain * absoluteStrain * 1000;
+  }
+
   return {
     strainPercent: slope * 100, // Slope is Strain
     sizeInterceptNm: intercept > 0 ? (K * wavelength) / intercept / 10 : 0, // Intercept is K*lambda / D
     regression: { slope, intercept, rSquared: ssTot === 0 ? 0 : 1 - (ssRes / ssTot) },
-    points
+    points,
+    stressMPa,
+    energyDensityKjM3,
+    pointsExtended
   };
 };
 

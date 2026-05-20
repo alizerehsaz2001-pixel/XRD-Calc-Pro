@@ -46,6 +46,12 @@ const IB_PRESETS = [
   }
 ];
 
+const CAGLIOTI_PRESETS = [
+  { name: 'Standard Lab XRD', u: 0.005, v: -0.002, w: 0.015, desc: 'Bragg-Brentano focus, standard divergent slit' },
+  { name: 'High-Res Synchrotron', u: 0.0002, v: -0.0001, w: 0.001, desc: 'Extremely parallel mono-chromated beam' },
+  { name: 'Neutron Diffractometer', u: 0.05, v: -0.03, w: 0.02, desc: 'Thermal powder diffractometer line' }
+];
+
 export const IntegralBreadthModule: React.FC = () => {
   const { precision } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.5406);
@@ -53,6 +59,13 @@ export const IntegralBreadthModule: React.FC = () => {
   const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
   const kMenuRef = React.useRef<HTMLDivElement>(null);
+
+  const [instrumentalMode, setInstrumentalMode] = useState<'constant' | 'caglioti'>('constant');
+  const [instBetaIB, setInstBetaIB] = useState<number>(0.05);
+  const [cagliotiU, setCagliotiU] = useState<number>(0.005);
+  const [cagliotiV, setCagliotiV] = useState<number>(-0.002);
+  const [cagliotiW, setCagliotiW] = useState<number>(0.015);
+  const [decouplingMethod, setDecouplingMethod] = useState<'linear' | 'squared'>('linear');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -130,7 +143,15 @@ export const IntegralBreadthModule: React.FC = () => {
   const handleCalculate = () => {
     const peaks = parseIntegralBreadthInput(inputData);
     const computed = peaks
-      .map(p => calculateIntegralBreadth(wavelength, constantK, p))
+      .map(p => calculateIntegralBreadth(
+        wavelength, 
+        constantK, 
+        p,
+        instrumentalMode,
+        instBetaIB,
+        { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+        decouplingMethod
+      ))
       .filter((r): r is IntegralBreadthResult => r !== null);
     
     setResults(computed);
@@ -146,7 +167,7 @@ export const IntegralBreadthModule: React.FC = () => {
   useEffect(() => {
     handleCalculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wavelength, constantK, inputData]);
+  }, [wavelength, constantK, inputData, instrumentalMode, instBetaIB, cagliotiU, cagliotiV, cagliotiW, decouplingMethod]);
 
   const getProfileType = (phi: number) => {
     if (phi < 0.7) return { type: 'Lorentzian', color: 'text-blue-600', bg: 'bg-blue-50' };
@@ -322,6 +343,154 @@ export const IntegralBreadthModule: React.FC = () => {
             </div>
             </div>
 
+            {/* Instrumental Broadening Card */}
+            <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-purple-500/30 transition-colors shadow-inner relative group/instrument">
+              <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-[0.2em] flex justify-between items-center">
+                <span>Instrumental Broadening</span>
+                <span className="text-[8px] text-purple-400 font-mono">RESOLUTION COUPLING</span>
+              </label>
+
+              {/* Toggle Mode */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {(['constant', 'caglioti'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setInstrumentalMode(mode)}
+                    className={`py-1.5 px-2 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all
+                      ${instrumentalMode === mode 
+                        ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 font-black' 
+                        : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'
+                      }
+                    `}
+                  >
+                    {mode === 'constant' ? 'Constant β_inst' : 'Caglioti Curve'}
+                  </button>
+                ))}
+              </div>
+
+              {instrumentalMode === 'constant' ? (
+                <div className="space-y-2">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                    Constant β_IB (deg)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.005"
+                    min="0"
+                    value={instBetaIB}
+                    onChange={(e) => setInstBetaIB(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full px-4 py-2.5 bg-[#0A101C] text-purple-300 border border-white/10 focus:border-purple-500/50 rounded-lg focus:ring-1 focus:ring-purple-500/20 outline-none font-mono text-sm transition-all"
+                  />
+                  <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider leading-relaxed mt-1">
+                    Uniform background contribution subtracted at all theta positions.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Presets */}
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                      Diffractometer Presets
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const pr = CAGLIOTI_PRESETS[parseInt(e.target.value)];
+                        if (pr) {
+                          setCagliotiU(pr.u);
+                          setCagliotiV(pr.v);
+                          setCagliotiW(pr.w);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#0A101C] text-purple-400 border border-white/10 rounded-lg text-xs outline-none focus:border-purple-500/50 transition-all font-mono"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>-- Select Instrument Preset --</option>
+                      {CAGLIOTI_PRESETS.map((preset, index) => (
+                        <option key={preset.name} value={index}>
+                          {preset.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* U, V, W inputs */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[8px] font-bold text-slate-500 text-center mb-1 font-mono">U</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={cagliotiU}
+                        onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
+                        className="w-full px-2 py-2 bg-[#0A101C] text-purple-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-purple-500/50 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] font-bold text-slate-500 text-center mb-1 font-mono">V</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={cagliotiV}
+                        onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
+                        className="w-full px-2 py-2 bg-[#0A101C] text-purple-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-purple-500/50 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] font-bold text-slate-500 text-center mb-1 font-mono">W</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={cagliotiW}
+                        onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
+                        className="w-full px-2 py-2 bg-[#0A101C] text-purple-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-purple-500/50 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="bg-[#0A101C] p-2.5 rounded-lg border border-white/5 text-[8px] font-mono text-slate-400 space-y-1">
+                    <p className="font-bold text-purple-500 uppercase mb-1">Caglioti Angle Correction:</p>
+                    <p className="italic">β²_inst = U·tan²θ + V·tanθ + W</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Profile Decoupling Method Card */}
+            <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-colors shadow-inner relative group/decouple">
+              <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-[0.2em] flex justify-between items-center">
+                <span>Lattice Decoupling Profile</span>
+                <span className="text-[8px] text-cyan-400 font-mono">MATHEMATICAL MODEL</span>
+              </label>
+
+              <div className="grid grid-cols-2 gap-2">
+                {(['linear', 'squared'] as const).map(method => (
+                  <button
+                    key={method}
+                    onClick={() => setDecouplingMethod(method)}
+                    className={`py-1.5 px-2 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all
+                      ${decouplingMethod === method 
+                        ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 font-black' 
+                        : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'
+                      }
+                    `}
+                  >
+                    {method === 'linear' ? 'Linear (Lorentzian)' : 'Squared (Gaussian)'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-3 bg-[#0A101C] p-2.5 rounded-lg border border-white/5 text-[8px] font-mono text-slate-400">
+                {decouplingMethod === 'linear' ? (
+                  <p className="leading-relaxed">
+                    <span className="text-cyan-500 font-black uppercase">Lorentzian Fit:</span> Pure Cauchy peak assumption. Linear subtraction of instrument: <span className="text-cyan-400">β_sample = β_obs - β_inst</span>.
+                  </p>
+                ) : (
+                  <p className="leading-relaxed">
+                    <span className="text-cyan-500 font-black uppercase">Gaussian Fit:</span> Standard normal deviation assumption. Quadratic subtraction: <span className="text-cyan-400">β²_sample = β²_obs - β²_inst</span>.
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 relative overflow-hidden group/data hover:border-emerald-500/30 transition-colors">
               <div className="flex justify-between items-end mb-3">
                 <label className="block text-[10px] font-black text-emerald-400/80 uppercase tracking-[0.2em] flex items-center gap-2">
@@ -481,11 +650,13 @@ export const IntegralBreadthModule: React.FC = () => {
               <table className="w-full text-sm text-left text-slate-300">
                 <thead className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] bg-[#070D18] sticky top-0 backdrop-blur-md z-10">
                   <tr>
-                    <th scope="col" className="px-6 py-4 border-b border-white/5">2θ (DEG)</th>
-                    <th scope="col" className="px-6 py-4 border-b border-white/5 text-cyan-400">β_IB (DEG)</th>
-                    <th scope="col" className="px-6 py-4 border-b border-white/5 text-purple-400">Shape Factor (φ)</th>
-                    <th scope="col" className="px-6 py-4 border-b border-white/5">Profile Type</th>
-                    <th scope="col" className="px-6 py-4 border-b border-white/5 text-right text-emerald-400">Size (NM)</th>
+                    <th scope="col" className="px-5 py-4 border-b border-white/5">2θ (DEG)</th>
+                    <th scope="col" className="px-5 py-4 border-b border-white/5 text-purple-400">Shape Factor (φ)</th>
+                    <th scope="col" className="px-5 py-4 border-b border-white/5 font-mono text-xs">Profile Type</th>
+                    <th scope="col" className="px-5 py-4 border-b border-white/5 text-cyan-400">β_obs (DEG)</th>
+                    <th scope="col" className="px-5 py-4 border-b border-white/5 text-purple-500">β_inst (DEG)</th>
+                    <th scope="col" className="px-5 py-4 border-b border-white/5 text-amber-500">β_sample (DEG)</th>
+                    <th scope="col" className="px-5 py-4 border-b border-white/5 text-right text-emerald-400">Size (NM)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 bg-transparent">
@@ -493,25 +664,31 @@ export const IntegralBreadthModule: React.FC = () => {
                     const profile = getProfileType(res.shapeFactorPhi);
                     return (
                       <tr key={`${res.twoTheta}-${index}`} className="hover:bg-cyan-500/5 transition-colors group/row">
-                        <td className="px-6 py-4 font-mono font-bold text-slate-300 group-hover/row:text-white transition-colors">
+                        <td className="px-5 py-4 font-mono font-bold text-slate-300 group-hover/row:text-white transition-colors">
                           {res.twoTheta.toFixed(precision)}
                         </td>
-                        <td className="px-6 py-4 font-mono text-cyan-400/80 font-bold group-hover/row:text-cyan-300 transition-colors">
-                          {res.integralBreadthDeg.toFixed(precision)}
-                        </td>
-                        <td className="px-6 py-4 font-mono text-purple-400/80 group-hover/row:text-purple-300 transition-colors">
+                        <td className="px-5 py-4 font-mono text-purple-400/80 group-hover/row:text-purple-300 transition-colors">
                           {res.shapeFactorPhi.toFixed(precision)}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-5 py-4">
                           <span className={`inline-flex items-center px-2 py-1 rounded border text-[8px] font-black uppercase tracking-[0.2em] ${
-                            profile.type === 'Gaussian' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                            profile.type === 'Lorentzian' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            profile.type === 'Gaussian' ? 'bg-[#064e3b]/40 text-emerald-400 border-emerald-500/20' :
+                            profile.type === 'Lorentzian' ? 'bg-[#1e3a8a]/40 text-blue-300 border-blue-500/20' :
                             'bg-purple-500/10 text-purple-400 border-purple-500/20'
                           }`}>
                             {profile.type}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-mono text-right font-black text-emerald-400 text-lg drop-shadow-[0_0_10px_rgba(52,211,153,0.2)]">
+                        <td className="px-5 py-4 font-mono text-cyan-400/80 font-bold group-hover/row:text-cyan-300 transition-colors">
+                          {res.betaObsDeg?.toFixed(precision) || (res.integralBreadthDeg).toFixed(precision)}
+                        </td>
+                        <td className="px-5 py-4 font-mono text-purple-500/80 group-hover/row:text-purple-400 transition-colors">
+                          {res.betaInstDeg !== undefined ? res.betaInstDeg.toFixed(precision) : '0.000'}
+                        </td>
+                        <td className="px-5 py-4 font-mono text-amber-500/80 font-semibold group-hover/row:text-amber-400 transition-colors">
+                          {res.betaSampleDeg !== undefined ? res.betaSampleDeg.toFixed(precision) : (res.integralBreadthDeg).toFixed(precision)}
+                        </td>
+                        <td className="px-5 py-4 font-mono text-right font-black text-emerald-400 text-lg drop-shadow-[0_0_10px_rgba(52,211,153,0.2)]">
                           {res.calcSizeNm.toFixed(precision)}
                         </td>
                       </tr>
