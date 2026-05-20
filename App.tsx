@@ -33,6 +33,7 @@ import { SettingsContext } from './components/SettingsContext';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check } from 'lucide-react';
+import { playSynthTone } from './utils/sound';
 
 type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'learn' | 'profile' | 'settings';
 
@@ -44,15 +45,50 @@ const App: React.FC = () => {
   const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [activeModule, setActiveModule] = useState<Module>('bragg');
   const [isExplained, setIsExplained] = useState<boolean>(false);
-  const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave'>('light');
-  const [precision, setPrecision] = useState<number>(4);
-  const [animationsEnabled, setAnimationsEnabled] = useState<boolean>(true);
-  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
+
+  // Load persistent configurations from localStorage with robust safety fallbacks
+  const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave'>(() => {
+    return (localStorage.getItem('xrd_theme') as any) || 'light';
+  });
+  const [precision, setPrecision] = useState<number>(() => {
+    const val = localStorage.getItem('xrd_precision');
+    return val ? parseInt(val, 10) : 4;
+  });
+  const [animationsEnabled, setAnimationsEnabled] = useState<boolean>(() => {
+    const val = localStorage.getItem('xrd_animations');
+    return val !== 'false';
+  });
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
+    const val = localStorage.getItem('xrd_sound');
+    return val === 'true';
+  });
+  
+  // Calibration, Geometry offsets and Defaults
+  const [zeroShift, setZeroShift] = useState<number>(() => {
+    const val = localStorage.getItem('xrd_zero_shift');
+    return val ? parseFloat(val) : 0.0;
+  });
+  const [sampleDisplacement, setSampleDisplacement] = useState<number>(() => {
+    const val = localStorage.getItem('xrd_sample_displacement');
+    return val ? parseFloat(val) : 0.0;
+  });
+  const [goniometerRadius, setGoniometerRadius] = useState<number>(() => {
+    const val = localStorage.getItem('xrd_goniometer_radius');
+    return val ? parseFloat(val) : 180.0;
+  });
+  const [defaultWavelength, setDefaultWavelength] = useState<number>(() => {
+    const val = localStorage.getItem('xrd_default_wavelength');
+    return val ? parseFloat(val) : 1.5406;
+  });
+
   const mainContentRef = useRef<HTMLDivElement>(null);
   
-  // Bragg State
+  // Bragg State initialized with default wavelength from settings
   const [sampleId, setSampleId] = useState<string>('');
-  const [wavelength, setWavelength] = useState<number>(1.5406);
+  const [wavelength, setWavelength] = useState<number>(() => {
+    const val = localStorage.getItem('xrd_default_wavelength');
+    return val ? parseFloat(val) : 1.5406;
+  });
   const [rawPeaks, setRawPeaks] = useState<string>('28.44, 47.30, 56.12, 69.13, 76.38'); 
   const [rawHKL, setRawHKL] = useState<string>('111, 220, 311, 400, 331');
   const [materialName, setMaterialName] = useState<string | null>(null);
@@ -65,6 +101,44 @@ const App: React.FC = () => {
       return [];
     }
   });
+
+  // Keep state variables synchronized cleanly in localStorage
+  useEffect(() => {
+    localStorage.setItem('xrd_theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_precision', precision.toString());
+  }, [precision]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_animations', animationsEnabled.toString());
+  }, [animationsEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_sound', soundEnabled.toString());
+  }, [soundEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_zero_shift', zeroShift.toString());
+  }, [zeroShift]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_sample_displacement', sampleDisplacement.toString());
+  }, [sampleDisplacement]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_goniometer_radius', goniometerRadius.toString());
+  }, [goniometerRadius]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_default_wavelength', defaultWavelength.toString());
+  }, [defaultWavelength]);
+
+  // Handle updates to default wavelength from settings
+  useEffect(() => {
+    setWavelength(defaultWavelength);
+  }, [defaultWavelength]);
 
   // Reset explanation state when module changes (except for profile/learn/settings)
   useEffect(() => {
@@ -93,8 +167,17 @@ const App: React.FC = () => {
 
     const computed = peaks
       .map((theta, idx) => {
-        const res = calculateBragg(wavelength, theta);
+        // Apply Zero-Shift and Sample-Displacement errors based on the goniometer geometry settings
+        // Equation: 2theta_calibrated = 2theta_obs - zero_shift - (2 * s * cos(theta_rad) / R) * (180 / PI)
+        const thetaRad = (theta / 2) * (Math.PI / 180);
+        const displacementTerm = goniometerRadius > 0 
+          ? (2 * sampleDisplacement * Math.cos(thetaRad) / goniometerRadius) * (180 / Math.PI)
+          : 0;
+        const calibratedTwoTheta = theta - zeroShift - displacementTerm;
+
+        const res = calculateBragg(wavelength, calibratedTwoTheta);
         if (res) {
+          // Keep calibrated values clearly marked
           return { ...res, hkl: hklList[idx] || '' } as BraggResult;
         }
         return null;
@@ -102,6 +185,12 @@ const App: React.FC = () => {
       .filter((res): res is BraggResult => res !== null);
     
     setResults(computed);
+
+    if (computed.length > 0) {
+      playSynthTone('success');
+    } else {
+      playSynthTone('error');
+    }
 
     // Save to history
     if (saveToHistory && computed.length > 0) {
@@ -122,6 +211,7 @@ const App: React.FC = () => {
       });
     }
   };
+
 
   const restoreHistory = (item: BraggHistoryItem) => {
     if (item.sampleId) setSampleId(item.sampleId);
@@ -199,7 +289,14 @@ const App: React.FC = () => {
   const isRTL = i18n.language === 'he' || i18n.language === 'fa';
 
   return (
-    <SettingsContext.Provider value={{ precision }}>
+    <SettingsContext.Provider value={{
+      precision,
+      zeroShift,
+      sampleDisplacement,
+      goniometerRadius,
+      soundEnabled,
+      animationsEnabled
+    }}>
       <div className={`${theme === 'light' ? '' : theme} h-full`} dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
         
@@ -227,7 +324,10 @@ const App: React.FC = () => {
                   {modules.filter(m => m.group === group).map((m) => (
                     <button
                       key={m.id}
-                      onClick={() => setActiveModule(m.id)}
+                      onClick={() => {
+                        setActiveModule(m.id);
+                        playSynthTone('switch');
+                      }}
                       className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative flex items-center gap-3 ${
                         activeModule === m.id
                           ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
@@ -322,7 +422,10 @@ const App: React.FC = () => {
               </select>
               <select
                 value={activeModule}
-                onChange={(e) => setActiveModule(e.target.value as Module)}
+                onChange={(e) => {
+                  setActiveModule(e.target.value as Module);
+                  playSynthTone('switch');
+                }}
                 className={`block w-32 rounded-lg border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-2 pr-2 text-xs outline-none`}
               >
                 {modules.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -415,6 +518,14 @@ const App: React.FC = () => {
                       setAnimationsEnabled={setAnimationsEnabled}
                       soundEnabled={soundEnabled}
                       setSoundEnabled={setSoundEnabled}
+                      zeroShift={zeroShift}
+                      setZeroShift={setZeroShift}
+                      sampleDisplacement={sampleDisplacement}
+                      setSampleDisplacement={setSampleDisplacement}
+                      goniometerRadius={goniometerRadius}
+                      setGoniometerRadius={setGoniometerRadius}
+                      defaultWavelength={defaultWavelength}
+                      setDefaultWavelength={setDefaultWavelength}
                     />
                   )}
                 </ErrorBoundary>

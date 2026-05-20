@@ -531,7 +531,39 @@ export const SelectionRulesModule: React.FC = () => {
           </div>
         </div>
 
-        {/* Physical Context Card */}
+                {/* Lattice Centering Quick Reference */}
+        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-emerald-500/10 rounded-full blur-[60px] group-hover:bg-emerald-500/20 transition-all duration-700"></div>
+          
+          <div className="flex items-center gap-4 mb-6 relative z-10">
+            <div className="p-2.5 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
+              <Component className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold">Lattice Guide</h3>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Centering Types</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 relative z-10">
+             {[
+               { id: 'P', label: 'Primitive', desc: 'Points at Corners' },
+               { id: 'I', label: 'Body-Centered', desc: 'Corners + Center' },
+               { id: 'F', label: 'Face-Centered', desc: 'Corners + Faces' },
+               { id: 'C', label: 'Base-Centered', desc: 'Corners + Pair' }
+             ].map((type) => (
+               <div key={type.id} className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] flex flex-col items-center text-center hover:bg-[#070D18] transition-all shadow-inner">
+                  <span className="text-sm font-black text-emerald-400 mb-1">{type.id}</span>
+                  <span className="text-[9px] font-bold text-slate-300 uppercase leading-none mb-1">{type.label}</span>
+                  <span className="text-[8px] text-slate-500 leading-tight">{type.desc}</span>
+               </div>
+             ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
+{/* Physical Context Card */}
         <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-blue-500/10 rounded-full blur-[60px] group-hover:bg-blue-500/20 transition-all duration-700"></div>
           
@@ -563,8 +595,8 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
               <div className="bg-[#050B14] p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-[#1e293b] shadow-inner">
                 <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
-                  <span className="truncate drop-shadow-sm">{systemDetails[system as keyof typeof systemDetails].formula}</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse shrink-0" />
+                  <span className="whitespace-normal break-words drop-shadow-sm">{systemDetails[system as keyof typeof systemDetails].formula}</span>
                 </div>
               </div>
             </div>
@@ -704,38 +736,9 @@ export const SelectionRulesModule: React.FC = () => {
             </div>
           </div>
         </div>
-        {/* Lattice Centering Quick Reference */}
-        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-emerald-500/10 rounded-full blur-[60px] group-hover:bg-emerald-500/20 transition-all duration-700"></div>
-          
-          <div className="flex items-center gap-4 mb-6 relative z-10">
-            <div className="p-2.5 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
-              <Component className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold">Lattice Guide</h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Centering Types</p>
-            </div>
-          </div>
+                </div>
 
-          <div className="grid grid-cols-2 gap-3 relative z-10">
-             {[
-               { id: 'P', label: 'Primitive', desc: 'Points at Corners' },
-               { id: 'I', label: 'Body-Centered', desc: 'Corners + Center' },
-               { id: 'F', label: 'Face-Centered', desc: 'Corners + Faces' },
-               { id: 'C', label: 'Base-Centered', desc: 'Corners + Pair' }
-             ].map((type) => (
-               <div key={type.id} className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] flex flex-col items-center text-center hover:bg-[#070D18] transition-all shadow-inner">
-                  <span className="text-sm font-black text-emerald-400 mb-1">{type.id}</span>
-                  <span className="text-[9px] font-bold text-slate-300 uppercase leading-none mb-1">{type.label}</span>
-                  <span className="text-[8px] text-slate-500 leading-tight">{type.desc}</span>
-               </div>
-             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Results Section */}
+        {/* Results Section */}
       <div className="lg:col-span-8 space-y-6">
         <div className="bg-[#050B14]/80 backdrop-blur-md rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.05)] border border-[#1e293b] overflow-hidden flex flex-col min-h-[600px] relative">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
@@ -775,10 +778,21 @@ export const SelectionRulesModule: React.FC = () => {
 
           <div className="flex-1 overflow-auto">
             {results.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500 p-12 text-center">
-                <Filter className="w-12 h-12 mb-4 opacity-20" />
-                <p className="font-medium text-slate-400">No indices provided</p>
-                <p className="text-xs mt-1">Enter HKL values or use the generator to start</p>
+              <div className="flex flex-col items-center justify-center h-full min-h-[300px] text-slate-400 p-12 text-center border-t border-[#1e293b]/50">
+                <div className="relative group/empty mb-6">
+                  <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-xl group-hover/empty:bg-emerald-500/20 transition-all duration-700" />
+                  <div className="w-20 h-20 rounded-2xl bg-[#0B1221] border border-[#1e293b] flex items-center justify-center relative z-10 shadow-inner group-hover/empty:border-emerald-500/30 transition-colors">
+                    <Hexagon className="w-10 h-10 text-slate-600 group-hover/empty:text-emerald-500/50 transition-colors" />
+                  </div>
+                </div>
+                <h4 className="text-lg font-black text-white mb-2 tracking-wide">Awaiting Lattice Vectors</h4>
+                <p className="text-sm font-medium text-slate-500 max-w-sm leading-relaxed">
+                  Enter custom HKL indices in the configuration panel or use the Index Synthesis engine to generate a theoretical reflection dataset.
+                </p>
+                <div className="mt-8 flex gap-2 items-center">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500/50 animate-pulse" />
+                  <span className="text-[10px] font-mono text-emerald-400/70 uppercase tracking-widest">Engine Ready</span>
+                </div>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -820,7 +834,7 @@ export const SelectionRulesModule: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-8 py-5">
-                            <p className="text-slate-400 font-medium text-xs leading-relaxed max-w-xs group-hover:text-slate-300 transition-colors">
+                            <p className="text-slate-400 font-medium text-xs leading-relaxed max-w-full group-hover:text-slate-300 transition-colors">
                               {res.reason}
                             </p>
                           </td>

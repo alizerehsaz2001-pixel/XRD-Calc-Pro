@@ -259,6 +259,9 @@ export interface RietveldSetupResult {
       sample_displacement?: number;
       polarization?: number;
       irf_file?: string;
+      geometry?: string;
+      divergence_slit?: string;
+      surface_roughness?: boolean;
     };
   };
   quality_metrics?: {
