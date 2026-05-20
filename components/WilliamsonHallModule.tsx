@@ -55,10 +55,31 @@ const WH_PRESETS = [
   }
 ];
 
+const CAGLIOTI_PRESETS = [
+  { name: 'Standard Lab XRD', u: 0.005, v: -0.002, w: 0.015, desc: 'Bragg-Brentano focus, standard divergent slit' },
+  { name: 'High-Res Synchrotron', u: 0.0002, v: -0.0001, w: 0.001, desc: 'Extremely parallel mono-chromated beam' },
+  { name: 'Neutron Diffractometer', u: 0.05, v: -0.03, w: 0.02, desc: 'Thermal neutron powder instrument line' }
+];
+
+const MODULUS_PRESETS = [
+  { name: 'Silicon (Si)', value: 130, desc: 'Cubic semiconductor crystal, [100] direction dynamic average' },
+  { name: 'Alumina (Al2O3)', value: 380, desc: 'Corundum sintered refractory ceramic' },
+  { name: 'Copper (Cu)', value: 120, desc: 'High-ductility fcc coin metal' },
+  { name: 'Iron / Ferritic Steel (Fe)', value: 200, desc: 'Mechanical baseline structural alloy' },
+  { name: 'Quartz (SiO2)', value: 70, desc: 'Trigonal silica polymorph crystal' },
+  { name: 'PMMA Polymeric Glass', value: 3.2, desc: 'Amorphous thermo-plastic polymer network' }
+];
+
 export const WilliamsonHallModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
   const [instFwhm, setInstFwhm] = useState<number>(0.1);
+  const [instrumentalMode, setInstrumentalMode] = useState<'constant' | 'caglioti'>('constant');
+  const [cagliotiU, setCagliotiU] = useState<number>(0.005);
+  const [cagliotiV, setCagliotiV] = useState<number>(-0.002);
+  const [cagliotiW, setCagliotiW] = useState<number>(0.015);
+  const [youngsModulusGPa, setYoungsModulusGPa] = useState<number>(130);
+  const [isModulusEnabled, setIsModulusEnabled] = useState<boolean>(false);
   const [inputData, setInputData] = useState<string>("28.44, 0.25\n47.30, 0.28\n56.12, 0.32\n69.13, 0.38\n76.38, 0.42");
   const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian'>('Gaussian');
   const [result, setResult] = useState<WHResult | null>(null);
@@ -72,6 +93,12 @@ export const WilliamsonHallModule: React.FC = () => {
     setWavelength(1.5406);
     setConstantK(0.9);
     setInstFwhm(0.1);
+    setInstrumentalMode('constant');
+    setCagliotiU(0.005);
+    setCagliotiV(-0.002);
+    setCagliotiW(0.015);
+    setYoungsModulusGPa(130);
+    setIsModulusEnabled(false);
     setInputData("28.44, 0.25\n47.30, 0.28\n56.12, 0.32\n69.13, 0.38\n76.38, 0.42");
     setSelectedKType('Standard Average');
   };
@@ -92,7 +119,16 @@ export const WilliamsonHallModule: React.FC = () => {
 
   const handleCalculate = () => {
     const peaks = parseScherrerInput(inputData);
-    const computed = calculateWilliamsonHall(wavelength, constantK, instFwhm, peaks, broadeningModel);
+    const computed = calculateWilliamsonHall(
+      wavelength, 
+      constantK, 
+      instFwhm, 
+      peaks, 
+      broadeningModel,
+      instrumentalMode,
+      { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+      isModulusEnabled ? youngsModulusGPa : undefined
+    );
     setResult(computed);
   };
 
@@ -112,7 +148,7 @@ export const WilliamsonHallModule: React.FC = () => {
   useEffect(() => {
     handleCalculate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wavelength, constantK, instFwhm, inputData, broadeningModel]);
+  }, [wavelength, constantK, instFwhm, inputData, broadeningModel, instrumentalMode, cagliotiU, cagliotiV, cagliotiW, youngsModulusGPa, isModulusEnabled]);
 
   // Prepare chart data
   const chartData = result ? result.points.map(p => ({
@@ -279,17 +315,113 @@ export const WilliamsonHallModule: React.FC = () => {
             </div>
 
             <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 hover:border-amber-500/30 transition-colors">
-              <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em] flex justify-between items-center">
+              <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-[0.2em] flex justify-between items-center">
                 <span>Instrumental Broadening</span>
-                <span className="text-[8px] text-slate-600 font-mono">DEG</span>
+                <span className="text-[8px] text-amber-500 font-mono">MODEL DECOUPLING</span>
               </label>
-              <input
-                type="number"
-                step="0.01"
-                value={instFwhm}
-                onChange={(e) => setInstFwhm(parseFloat(e.target.value))}
-                className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
-              />
+
+              {/* Toggle Mode */}
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {(['constant', 'caglioti'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setInstrumentalMode(mode)}
+                    className={`py-1.5 px-2 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all
+                      ${instrumentalMode === mode 
+                        ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-black' 
+                        : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'
+                      }
+                    `}
+                  >
+                    {mode === 'constant' ? 'Constant FWHM' : 'Caglioti Curve'}
+                  </button>
+                ))}
+              </div>
+
+              {instrumentalMode === 'constant' ? (
+                <div className="space-y-2">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                    Constant FWHM (deg)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.005"
+                    min="0"
+                    value={instFwhm}
+                    onChange={(e) => setInstFwhm(Math.max(0, parseFloat(e.target.value) || 0))}
+                    className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
+                  />
+                  <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider leading-relaxed mt-1">
+                    Flat instrumental contribution across all 2θ angles.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Presets */}
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                      Instrument Presets
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const pr = CAGLIOTI_PRESETS[parseInt(e.target.value)];
+                        if (pr) {
+                          setCagliotiU(pr.u);
+                          setCagliotiV(pr.v);
+                          setCagliotiW(pr.w);
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-[#0A101C] text-amber-400 border border-white/10 rounded-lg text-xs outline-none focus:border-amber-500/50 transition-all font-mono"
+                      defaultValue=""
+                    >
+                      <option value="" disabled>-- Select Instrument Preset --</option>
+                      {CAGLIOTI_PRESETS.map((preset, index) => (
+                        <option key={preset.name} value={index}>
+                          {preset.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* U, V, W inputs */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[8px] font-bold text-slate-500 text-center mb-1 font-mono">U</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={cagliotiU}
+                        onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
+                        className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-amber-500/50 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] font-bold text-slate-500 text-center mb-1 font-mono">V</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={cagliotiV}
+                        onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
+                        className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-amber-500/50 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[8px] font-bold text-slate-500 text-center mb-1 font-mono">W</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={cagliotiW}
+                        onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
+                        className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-amber-500/50 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="bg-[#0A101C] p-2.5 rounded-lg border border-white/5 text-[8px] font-mono text-slate-400 space-y-1">
+                    <p className="font-bold text-amber-500 uppercase mb-1">Caglioti Equation Mode:</p>
+                    <p className="italic">FWHM² = U·tan²θ + V·tanθ + W</p>
+                  </div>
+                </div>
+              )}
               
               <div className="mt-4 pt-4 border-t border-white/5">
                 <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-[0.2em]">
@@ -312,6 +444,77 @@ export const WilliamsonHallModule: React.FC = () => {
                    {broadeningModel === 'Gaussian' ? 'Quadratic (β²): Used when instrument/strain profiles are Gaussian.' : 'Linear (β): Used when broadening is dominantly Cauchy/Lorentzian.'}
                 </p>
               </div>
+            </div>
+
+            {/* Young's Modulus & Stress Card */}
+            <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 hover:border-purple-500/30 transition-colors">
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                  <Atom className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Elastic Stress Coupling</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsModulusEnabled(!isModulusEnabled)}
+                  className={`px-2 py-1 text-[8px] font-black uppercase tracking-widest rounded border transition-colors
+                    ${isModulusEnabled 
+                      ? 'bg-purple-500/20 border-purple-500/50 text-purple-300' 
+                      : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-400'
+                    }
+                  `}
+                >
+                  {isModulusEnabled ? 'Enabled' : 'Disabled'}
+                </button>
+              </div>
+
+              {isModulusEnabled ? (
+                <div className="space-y-3 animate-in fade-in duration-300">
+                  <div>
+                    <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                      Material System Presets
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val)) setYoungsModulusGPa(val);
+                      }}
+                      className="w-full px-3 py-2 bg-[#0A101C] text-purple-400 border border-white/10 rounded-lg text-xs outline-none focus:border-purple-500/50 transition-all font-mono"
+                      defaultValue={youngsModulusGPa.toString()}
+                    >
+                      {MODULUS_PRESETS.map((p) => (
+                        <option key={p.name} value={p.value}>
+                          {p.name} ({p.value} GPa)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                        Young's Modulus (E)
+                      </label>
+                      <span className="text-xs font-mono font-black text-purple-300">{youngsModulusGPa} GPa</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="600"
+                      step="1"
+                      value={youngsModulusGPa}
+                      onChange={(e) => setYoungsModulusGPa(parseInt(e.target.value) || 130)}
+                      className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    />
+                    <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider mt-1">
+                      Translates mechanical microstrain into physical internal lattice stresses (MPa) & stress energy density (kJ/m³).
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[9px] font-mono text-slate-600 leading-relaxed">
+                  Enable dynamic Young's modulus coupling to resolve structural lattice stresses and volumetric deformation energy.
+                </p>
+              )}
             </div>
 
             <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 relative overflow-hidden group/data hover:border-emerald-500/30 transition-colors">
@@ -439,53 +642,95 @@ export const WilliamsonHallModule: React.FC = () => {
       {/* Results */}
       <div className="lg:col-span-8 space-y-6">
         {/* Results Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] border border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.05)] relative overflow-hidden group hover:border-cyan-500/40 transition-all">
-             <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-               <TrendingUp className="w-16 h-16 text-cyan-500" />
-             </div>
-             <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Microstrain (ε)</p>
-             <div className="flex flex-col mt-2">
-               <p className="text-3xl font-black text-white flex items-baseline gap-2 font-mono drop-shadow-[0_0_15px_rgba(34,211,238,0.4)] relative z-10">
-                 {result ? (result.strainPercent / 100 * 10000).toFixed(2) : '-'} <span className="text-sm font-black text-cyan-500 tracking-widest uppercase">× 10⁻⁴</span>
-               </p>
-               {result && <p className="text-[10px] text-slate-400 font-mono mt-1">({result.strainPercent.toFixed(4)}%)</p>}
-             </div>
-             <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded text-[9px] text-cyan-400 font-black uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/20 relative z-10">
-               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
-               Derived from Slope
-             </div>
+        <div className={`grid grid-cols-1 md:grid-cols-3 ${isModulusEnabled ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-4`}>
+           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.05)] relative overflow-hidden group hover:border-cyan-500/40 transition-all flex flex-col justify-between">
+              <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                <TrendingUp className="w-16 h-16 text-cyan-500" />
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Microstrain (ε)</p>
+                <div className="flex flex-col mt-2">
+                  <p className="text-2xl font-black text-white flex items-baseline gap-1 font-mono drop-shadow-[0_0_15px_rgba(34,211,238,0.4)] relative z-10">
+                    {result ? (result.strainPercent / 100 * 10000).toFixed(2) : '-'} <span className="text-xs font-black text-cyan-500 tracking-widest uppercase">× 10⁻⁴</span>
+                  </p>
+                  {result && <p className="text-[9px] text-slate-400 font-mono mt-0.5">({result.strainPercent.toFixed(4)}%)</p>}
+                </div>
+              </div>
+              <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[8px] text-cyan-400 font-black uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/20 relative z-10 self-start">
+                <span className="w-1 h-1 rounded-full bg-cyan-500"></span>
+                Strain Gradient
+              </div>
            </div>
            
-           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.05)] relative overflow-hidden group hover:border-emerald-500/40 transition-all">
-             <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-               <Ruler className="w-16 h-16 text-emerald-500" />
-             </div>
-             <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Crystallite Size</p>
-             <p className="text-3xl font-black text-white mt-2 flex items-baseline gap-2 font-mono drop-shadow-[0_0_15px_rgba(16,185,129,0.4)] relative z-10">
-               {result ? (result.sizeInterceptNm > 0 ? result.sizeInterceptNm.toFixed(2) : '∞') : '-'} <span className="text-sm font-black text-emerald-500 tracking-widest uppercase">NM</span>
-             </p>
-             <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded text-[9px] text-emerald-400 font-black uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 relative z-10">
-               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-               Derived from Intercept
-             </div>
+           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.05)] relative overflow-hidden group hover:border-emerald-500/40 transition-all flex flex-col justify-between">
+              <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Ruler className="w-16 h-16 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Crystallite Size</p>
+                <p className="text-2xl font-black text-white mt-2 flex items-baseline gap-1 font-mono drop-shadow-[0_0_15px_rgba(16,185,129,0.4)] relative z-10">
+                  {result ? (result.sizeInterceptNm > 0 ? result.sizeInterceptNm.toFixed(2) : '∞') : '-'} <span className="text-xs font-black text-emerald-500 tracking-widest uppercase">NM</span>
+                </p>
+              </div>
+              <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[8px] text-emerald-400 font-black uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 relative z-10 self-start">
+                <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
+                decoupled size
+              </div>
            </div>
 
-           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] border border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.05)] relative overflow-hidden group hover:border-purple-500/40 transition-all">
-             <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-               <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-             </div>
-             <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Fit Quality (R²)</p>
-             <div className="flex items-end gap-2 mt-2 font-mono relative z-10">
-               <p className={`text-3xl font-black drop-shadow-[0_0_15px_rgba(168,85,247,0.4)] ${result && result.regression.rSquared > 0.9 ? 'text-white' : 'text-white'}`}>
-                 {result ? result.regression.rSquared.toFixed(4) : '-'}
-               </p>
-             </div>
-             <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded text-[9px] text-purple-400 font-black uppercase tracking-widest bg-purple-500/10 border border-purple-500/20 relative z-10">
-               <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${result && result.regression.rSquared > 0.9 ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-               Linear Regression Fit
-             </div>
+           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.05)] relative overflow-hidden group hover:border-purple-500/40 transition-all flex flex-col justify-between">
+              <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Fit Quality (R²)</p>
+                <div className="flex items-end gap-1 mt-2 font-mono relative z-10">
+                  <p className="text-2xl font-black text-white drop-shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+                    {result ? result.regression.rSquared.toFixed(4) : '-'}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[8px] text-purple-400 font-black uppercase tracking-widest bg-purple-500/10 border border-purple-500/20 relative z-10 self-start">
+                <span className={`w-1 h-1 rounded-full animate-pulse ${result && result.regression.rSquared > 0.9 ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                Regression
+              </div>
            </div>
+
+           {isModulusEnabled && (
+             <>
+               <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.05)] relative overflow-hidden group hover:border-rose-500/40 transition-all flex flex-col justify-between animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Atom className="w-16 h-16 text-rose-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Lattice Stress</p>
+                    <p className="text-2xl font-black text-white mt-2 flex items-baseline gap-1 font-mono drop-shadow-[0_0_15px_rgba(244,63,94,0.4)] relative z-10">
+                      {result?.stressMPa !== undefined ? result.stressMPa.toFixed(1) : '-'} <span className="text-xs font-black text-rose-400 tracking-widest uppercase">MPA</span>
+                    </p>
+                  </div>
+                  <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[8px] text-rose-400 font-black uppercase tracking-widest bg-rose-500/10 border border-rose-500/20 relative z-10 self-start">
+                    <span className="w-1 h-1 rounded-full bg-rose-500"></span>
+                    Internal Stress (σ)
+                  </div>
+               </div>
+
+               <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.05)] relative overflow-hidden group hover:border-blue-500/40 transition-all flex flex-col justify-between animate-in fade-in slide-in-from-right-8 duration-300">
+                  <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Binary className="w-16 h-16 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Strain Energy</p>
+                    <p className="text-2xl font-black text-white mt-2 flex items-baseline gap-1 font-mono drop-shadow-[0_0_15px_rgba(59,130,246,0.4)] relative z-10">
+                      {result?.energyDensityKjM3 !== undefined ? result.energyDensityKjM3.toFixed(2) : '-'} <span className="text-xs font-black text-blue-400 tracking-widest uppercase">KJ/M³</span>
+                    </p>
+                  </div>
+                  <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[8px] text-blue-400 font-black uppercase tracking-widest bg-blue-500/10 border border-blue-500/20 relative z-10 self-start">
+                    <span className="w-1 h-1 rounded-full bg-blue-500"></span>
+                    Volumetric Energy (u)
+                  </div>
+               </div>
+             </>
+           )}
         </div>
 
         {/* Warnings */}
@@ -588,6 +833,53 @@ export const WilliamsonHallModule: React.FC = () => {
           )}
         </div>
 
+        {/* Peak-by-Peak Analysis Table */}
+        {result && result.pointsExtended && result.pointsExtended.length > 0 && (
+          <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] border border-white/10 relative overflow-hidden group hover:border-[#22d3ee]/30 transition-all font-mono">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-slate-800 rounded-lg text-[#22d3ee]">
+                <Binary className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-black text-white uppercase tracking-wider">Extended Peak-by-Peak Analysis</h3>
+                <p className="text-[9px] text-slate-500 uppercase mt-0.5 font-bold">deconstructed physical parameters per Bragg contribution</p>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto rounded-xl border border-white/5 scrollbar-thin">
+              <table className="w-full text-[10px] text-left border-collapse bg-black/20">
+                <thead>
+                  <tr className="border-b border-white/5 text-slate-500 text-[8px] uppercase tracking-wider bg-black/40 font-black">
+                    <th className="py-2.5 px-3">2θ (°)</th>
+                    <th className="py-2.5 px-2">FWHM_obs (°)</th>
+                    <th className="py-2.5 px-2">FWHM_inst (°)</th>
+                    <th className="py-2.5 px-2">β_sample (°)</th>
+                    <th className="py-2.5 px-2">X (4sinθ)</th>
+                    <th className="py-2.5 px-2">Y (βcosθ rad)</th>
+                    <th className="py-2.5 px-3 text-right">Size Estimate (nm)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {result.pointsExtended.map((p, idx) => (
+                    <tr key={idx} className="hover:bg-cyan-500/5 transition-colors">
+                      <td className="py-2 px-3 text-cyan-400 font-bold">{p.twoTheta.toFixed(3)}°</td>
+                      <td className="py-2 px-2 text-slate-400">{p.fwhmObs.toFixed(3)}°</td>
+                      <td className="py-2 px-2 text-amber-500 font-bold">{p.fwhmInst.toFixed(3)}°</td>
+                      <td className="py-2 px-2 text-emerald-400">{p.betaCorrectedDeg.toFixed(3)}°</td>
+                      <td className="py-2 px-2 text-slate-400">{p.x.toFixed(4)}</td>
+                      <td className="py-2 px-2 text-slate-400">{p.y.toFixed(5)}</td>
+                      <td className="py-2 px-3 text-right font-black text-emerald-400">{p.singlePeakSizeNm > 0 ? `${p.singlePeakSizeNm.toFixed(2)} nm` : '∞'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[8px] text-slate-500 mt-2.5 leading-relaxed italic uppercase font-bold tracking-widest text-center">
+              * The Size Estimate column shows the uncoupled grain size per peak (assuming zero strain). W-H decouples strain from size to find a true average size.
+            </p>
+          </div>
+        )}
+
         {/* JSON Output Section */}
         {result && (
           <div className="bg-[#0A101C] rounded-xl p-4 border border-white/5 overflow-hidden relative group/json shadow-inner">
@@ -602,12 +894,16 @@ export const WilliamsonHallModule: React.FC = () => {
                  parameters: {
                     wavelength_angstrom: wavelength,
                     shape_factor_K: constantK,
-                    instrumental_broadening: instFwhm
+                    instrumental_broadening_mode: instrumentalMode,
+                    instrumental_broadening: instrumentalMode === 'constant' ? instFwhm : { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+                    youngs_modulus_gpa: isModulusEnabled ? youngsModulusGPa : undefined
                  },
                  results: {
                    strain_percent: result.strainPercent,
                    size_nm: result.sizeInterceptNm,
-                   fit_r_squared: result.regression.rSquared
+                   fit_r_squared: result.regression.rSquared,
+                   stress_mpa: result.stressMPa,
+                   energy_density_kj_m3: result.energyDensityKjM3
                  }
                }, null, 2)}
              </pre>

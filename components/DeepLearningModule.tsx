@@ -358,7 +358,12 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
   };
 
   const loadExample = (type: string) => {
-    const isMixType = ['Mixture', 'Complex', 'Modern-Ceramic', 'Solar-Mix', 'Cathode-Mix', 'Geological-Suite', 'Catalyst-Mix', 'Precious-Metal-Mix', 'Halide-Mineral-Mix', 'Iron-Oxide-Mix'].includes(type);
+    const isMixType = [
+      'Mixture', 'Complex', 'Modern-Ceramic', 'Solar-Mix', 'Cathode-Mix', 
+      'Geological-Suite', 'Catalyst-Mix', 'Precious-Metal-Mix', 'Halide-Mineral-Mix', 
+      'Iron-Oxide-Mix', 'Biocoat-Composite-Suite', 'SOFC-Electrode-Suite', 
+      'Aerospace-Armor-Suite', 'Pharma-Drug-Suite', 'Nuclear-Fuel-Suite'
+    ].includes(type);
     setIsMixMode(isMixType);
     setMixtureList([]);
 
@@ -396,6 +401,21 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     } else if (type === 'Iron-Oxide-Mix') {
       setInputData(`20.86, 15\n24.14, 20\n26.64, 80\n30.09, 25\n33.15, 90\n35.45, 100\n43.05, 15\n49.48, 30\n50.14, 10\n54.09, 35\n56.94, 25\n62.51, 35`);
       setSearchTerm("Iron Oxide Mix (Magnetite + Hematite + Quartz)");
+    } else if (type === 'Biocoat-Composite-Suite') {
+      setInputData(`25.87, 25\n30.27, 60\n31.77, 100\n32.19, 90\n35.25, 12\n46.71, 15\n49.46, 15\n50.37, 35\n60.20, 20`);
+      setSearchTerm("Biomedical Implant Composite (HAp + ZrO2)");
+    } else if (type === 'SOFC-Electrode-Suite') {
+      setInputData(`22.4, 15\n30.1, 80\n31.8, 100\n34.8, 18\n39.3, 10\n45.8, 30\n50.2, 45\n57.2, 20\n59.7, 25\n62.8, 10\n67.1, 22`);
+      setSearchTerm("SOFC Electrode Composite (YSZ + SRO)");
+    } else if (type === 'Aerospace-Armor-Suite') {
+      setInputData(`25.58, 20\n35.15, 80\n35.9, 100\n37.78, 15\n41.7, 50\n43.36, 45\n52.55, 18\n57.50, 40\n60.4, 30\n61.30, 5\n66.52, 10\n68.21, 15\n72.3, 20`);
+      setSearchTerm("Aerospace Armor Composite (TiC + Al2O3)");
+    } else if (type === 'Pharma-Drug-Suite') {
+      setInputData(`6.1, 40\n12.1, 20\n12.2, 25\n15.5, 30\n16.6, 100\n17.7, 20\n18.2, 90\n18.9, 30\n20.2, 35\n20.4, 18\n22.3, 45\n23.5, 22\n24.4, 40\n32.8, 10`);
+      setSearchTerm("Analgesic Co-Formulation (Ibuprofen + Paracetamol)");
+    } else if (type === 'Nuclear-Fuel-Suite') {
+      setInputData(`27.6, 90\n28.2, 100\n31.9, 35\n32.7, 40\n45.8, 50\n47.0, 45\n54.4, 40\n55.8, 35\n57.0, 30\n58.5, 25`);
+      setSearchTerm("Mixed Nuclear Fuel (UO2 + ThO2)");
     } else {
       // Generic finder for all single phase examples
       const searchKey = type === 'HAP' || type === 'HAP-Sintered' ? 'Hydroxyapatite (Sintered)' : 
@@ -1191,6 +1211,11 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Magnetite', label: 'Magnetite' },
                     { id: 'PE', label: 'Polymer (PE)' },
                     { id: 'Cement', label: 'Clinker' },
+                    { id: 'Biocoat-Composite-Suite', label: 'Implant Suite (HAp + ZrO2)' },
+                    { id: 'SOFC-Electrode-Suite', label: 'SOFC Suite (YSZ + SRO)' },
+                    { id: 'Aerospace-Armor-Suite', label: 'Aerospace Suite (TiC + Al2O3)' },
+                    { id: 'Pharma-Drug-Suite', label: 'Pharma Suite (Ibu + Para)' },
+                    { id: 'Nuclear-Fuel-Suite', label: 'Nuclear Suite (UO2 + ThO2)' },
                     { id: 'Complex', label: 'Complex Mixture (Quartz + Rutile + Anatase + Ag)' }
                   ].map(ex => (
                     <button 

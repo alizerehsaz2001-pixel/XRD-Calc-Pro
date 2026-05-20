@@ -290,15 +290,37 @@ export const calculateWilliamsonHall = (
   K: number, 
   instFwhm: number, 
   peaks: ScherrerInput[],
-  broadeningModel: 'Gaussian' | 'Lorentzian' = 'Gaussian'
+  broadeningModel: 'Gaussian' | 'Lorentzian' = 'Gaussian',
+  instrumentalMode: 'constant' | 'caglioti' = 'constant',
+  cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
+  youngsModulusGPa?: number
 ): WHResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
   const points: WHPoint[] = [];
+  const pointsExtended: {
+    twoTheta: number;
+    fwhmObs: number;
+    fwhmInst: number;
+    betaCorrectedDeg: number;
+    betaCorrectedRad: number;
+    x: number;
+    y: number;
+    singlePeakSizeNm: number;
+  }[] = [];
+  
   for (const peak of peaks) {
     const { twoTheta, fwhmObs } = peak;
     const thetaRad = (twoTheta / 2) * (Math.PI / 180);
     const betaObsRad = fwhmObs * (Math.PI / 180);
-    const betaInstRad = instFwhm * (Math.PI / 180);
+    
+    // Determine instrumental broadening
+    let peakInstFwhmDeg = instFwhm;
+    if (instrumentalMode === 'caglioti') {
+      const tanTheta = Math.tan(thetaRad);
+      const valDegSq = cagliotiParams.U * tanTheta * tanTheta + cagliotiParams.V * tanTheta + cagliotiParams.W;
+      peakInstFwhmDeg = Math.sqrt(Math.max(1e-6, valDegSq));
+    }
+    const betaInstRad = peakInstFwhmDeg * (Math.PI / 180);
     
     let betaSampleRad = 0;
     if (broadeningModel === 'Gaussian') {
@@ -310,8 +332,27 @@ export const calculateWilliamsonHall = (
     }
     
     if (betaSampleRad <= 0) continue;
-    points.push({ x: 4 * Math.sin(thetaRad), y: betaSampleRad * Math.cos(thetaRad), twoTheta });
+    
+    const x = 4 * Math.sin(thetaRad);
+    const y = betaSampleRad * Math.cos(thetaRad);
+    points.push({ x, y, twoTheta });
+    
+    // Individual single peak size estimate
+    const cosTheta = Math.cos(thetaRad);
+    const singlePeakSizeNm = cosTheta > 1e-10 ? (K * wavelength) / (betaSampleRad * cosTheta) / 10 : 0;
+    
+    pointsExtended.push({
+      twoTheta,
+      fwhmObs,
+      fwhmInst: peakInstFwhmDeg,
+      betaCorrectedDeg: betaSampleRad * (180 / Math.PI),
+      betaCorrectedRad: betaSampleRad,
+      x,
+      y,
+      singlePeakSizeNm
+    });
   }
+  
   if (points.length < 2) return null;
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
   for (const p of points) {
@@ -327,11 +368,25 @@ export const calculateWilliamsonHall = (
     ssTot += Math.pow(p.y - meanY, 2);
     ssRes += Math.pow(p.y - yPred, 2);
   }
+  
+  // Isotropic UDM Stress and Energy calculations from strain
+  const absoluteStrain = slope;
+  let stressMPa: number | undefined = undefined;
+  let energyDensityKjM3: number | undefined = undefined;
+  
+  if (youngsModulusGPa && youngsModulusGPa > 0) {
+    stressMPa = absoluteStrain * youngsModulusGPa * 1000;
+    energyDensityKjM3 = 0.5 * youngsModulusGPa * absoluteStrain * absoluteStrain * 1000;
+  }
+  
   return {
     strainPercent: slope * 100,
     sizeInterceptNm: intercept > 0 ? (K * wavelength) / intercept / 10 : 0,
     regression: { slope, intercept, rSquared: ssTot === 0 ? 0 : 1 - (ssRes / ssTot) },
-    points
+    points,
+    stressMPa,
+    energyDensityKjM3,
+    pointsExtended
   };
 };
 
@@ -929,7 +984,289 @@ export const calculateMagneticDiffraction = (wavelength: number, lattice: Lattic
   }));
 };
 
-export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: number }[], isMixMode: boolean = false): DLPhaseResult => {
+export const enhancePhaseCandidateProperties = (candidate: DLPhaseCandidate): DLPhaseCandidate => {
+  const name = candidate.phase_name.toLowerCase();
+  const formula = candidate.formula;
+  const type = candidate.materialType ? candidate.materialType.toLowerCase() : '';
+
+  // 1. Density default if missing
+  if (!candidate.density) {
+    if (type.includes('metal') || type.includes('alloy')) candidate.density = 7.8;
+    else if (type.includes('ceramic') || type.includes('mineral')) candidate.density = 3.5;
+    else if (type.includes('semiconductor')) candidate.density = 3.0;
+    else if (type.includes('polymer') || type.includes('organic')) candidate.density = 1.2;
+    else candidate.density = 2.5;
+  }
+
+  // 2. Molecular weight default if missing
+  if (!candidate.molecularWeight) {
+    if (formula === 'Si') candidate.molecularWeight = 28.085;
+    else if (formula === 'ZrO2') candidate.molecularWeight = 123.22;
+    else if (formula === 'TiO2') candidate.molecularWeight = 79.87;
+    else if (formula === 'ZnO') candidate.molecularWeight = 81.38;
+    else if (formula === 'Al2O3') candidate.molecularWeight = 101.96;
+    else if (formula === 'Fe3O4') candidate.molecularWeight = 231.53;
+    else if (formula === 'NaCl') candidate.molecularWeight = 58.44;
+    else if (formula === 'Au') candidate.molecularWeight = 196.97;
+    else if (formula === 'Ag') candidate.molecularWeight = 107.87;
+    else if (formula === 'Cu') candidate.molecularWeight = 63.55;
+    else if (formula === 'Pt') candidate.molecularWeight = 195.08;
+    else {
+      // Rough estimation based on formula length/complexity
+      candidate.molecularWeight = 50 + (formula.length * 15);
+    }
+  }
+
+  // 3. Elastic Modulus default if missing
+  if (!candidate.elasticModulus) {
+    if (type.includes('metal') || type.includes('alloy')) candidate.elasticModulus = 120;
+    else if (type.includes('ceramic') || type.includes('mineral')) candidate.elasticModulus = 250;
+    else if (type.includes('semiconductor')) candidate.elasticModulus = 110;
+    else if (type.includes('polymer') || type.includes('organic')) candidate.elasticModulus = 3.8;
+    else candidate.elasticModulus = 60;
+  }
+
+  // 4. Band Gap default if missing
+  if (candidate.bandGap === undefined) {
+    if (type.includes('semiconductor')) {
+      if (name.includes('silicon')) candidate.bandGap = 1.11;
+      else if (name.includes('gaas') || name.includes('gallium arsenide')) candidate.bandGap = 1.42;
+      else if (name.includes('gan') || name.includes('gallium nitride')) candidate.bandGap = 3.4;
+      else if (name.includes('zno')) candidate.bandGap = 3.3;
+      else if (name.includes('cdte')) candidate.bandGap = 1.5;
+      else candidate.bandGap = 1.5;
+    } else if (type.includes('ceramic') || type.includes('mineral') || type.includes('glass') || type.includes('bioceramic')) {
+      if (name.includes('titania') || name.includes('rutile') || name.includes('anatase') || name.includes('tio2')) candidate.bandGap = 3.0;
+      else if (name.includes('zirconia') || name.includes('zro2')) candidate.bandGap = 5.0;
+      else if (name.includes('quartz') || name.includes('sio2')) candidate.bandGap = 9.0;
+      else if (name.includes('alumina') || name.includes('corundum') || name.includes('al2o3')) candidate.bandGap = 8.8;
+      else candidate.bandGap = 4.5;
+    } else if (type.includes('metal') || type.includes('alloy') || type.includes('superconductor')) {
+      candidate.bandGap = 0.0; // Metals
+    } else {
+      candidate.bandGap = 3.5; // Default isolators/polymers
+    }
+  }
+
+  // 5. Thermal Conductivity (W/m·K)
+  if (!candidate.thermalConductivity) {
+    if (name.includes('diamond')) candidate.thermalConductivity = 2200;
+    else if (name.includes('copper') || formula === 'Cu') candidate.thermalConductivity = 401;
+    else if (name.includes('silver') || formula === 'Ag') candidate.thermalConductivity = 429;
+    else if (name.includes('gold') || formula === 'Au') candidate.thermalConductivity = 318;
+    else if (name.includes('aluminum') || formula === 'Al') candidate.thermalConductivity = 237;
+    else if (name.includes('silicon') || formula === 'Si') candidate.thermalConductivity = 150;
+    else if (name.includes('tungsten') || formula === 'W') candidate.thermalConductivity = 174;
+    else if (name.includes('iron') || formula === 'Fe') candidate.thermalConductivity = 80;
+    else if (name.includes('nickel') || formula === 'Ni') candidate.thermalConductivity = 90;
+    else if (type.includes('metal') || type.includes('alloy')) candidate.thermalConductivity = 50;
+    else if (type.includes('semiconductor')) candidate.thermalConductivity = 40;
+    else if (type.includes('ceramic') || type.includes('mineral') || type.includes('bioceramic')) {
+      if (name.includes('alumina') || name.includes('al2o3')) candidate.thermalConductivity = 30;
+      else if (name.includes('quartz') || name.includes('sio2')) candidate.thermalConductivity = 1.3;
+      else if (name.includes('zirconia') || name.includes('zro2')) candidate.thermalConductivity = 2.2;
+      else candidate.thermalConductivity = 1.5;
+    } else if (type.includes('polymer') || type.includes('organic')) {
+      candidate.thermalConductivity = 0.2;
+    } else {
+      candidate.thermalConductivity = 10;
+    }
+  }
+
+  // 6. Melting Point (°C)
+  if (!candidate.meltingPoint) {
+    if (name.includes('diamond') || name.includes('carbon') || formula === 'C') candidate.meltingPoint = 4000;
+    else if (name.includes('tungsten') || formula === 'W') candidate.meltingPoint = 3422;
+    else if (name.includes('zirconia') || formula === 'ZrO2') candidate.meltingPoint = 2715;
+    else if (name.includes('alumina') || formula === 'Al2O3') candidate.meltingPoint = 2072;
+    else if (name.includes('quartz') || formula === 'SiO2') candidate.meltingPoint = 1670;
+    else if (name.includes('iron') || formula === 'Fe') candidate.meltingPoint = 1538;
+    else if (name.includes('silicon') || formula === 'Si') candidate.meltingPoint = 1414;
+    else if (name.includes('copper') || formula === 'Cu') candidate.meltingPoint = 1085;
+    else if (name.includes('gold') || formula === 'Au') candidate.meltingPoint = 1064;
+    else if (name.includes('silver') || formula === 'Ag') candidate.meltingPoint = 961.8;
+    else if (name.includes('halite') || formula === 'NaCl') candidate.meltingPoint = 801;
+    else if (name.includes('aluminum') || formula === 'Al') candidate.meltingPoint = 660.3;
+    else if (type.includes('polymer') || type.includes('organic')) {
+      candidate.meltingPoint = 180 + (formula.length * 3);
+    } else {
+      candidate.meltingPoint = 1200;
+    }
+  }
+
+  // 7. Vickers Hardness (GPa)
+  if (!candidate.vickersHardness) {
+    if (name.includes('diamond')) candidate.vickersHardness = 100;
+    else if (name.includes('boron carbide')) candidate.vickersHardness = 30;
+    else if (name.includes('silicon carbide')) candidate.vickersHardness = 25;
+    else if (name.includes('tungsten carbide')) candidate.vickersHardness = 22;
+    else if (name.includes('corundum') || name.includes('alumina') || formula === 'Al2O3') candidate.vickersHardness = 20;
+    else if (name.includes('zirconia') || formula === 'ZrO2') candidate.vickersHardness = 12.5;
+    else if (name.includes('silicon') || formula === 'Si') candidate.vickersHardness = 11.5;
+    else if (name.includes('quartz') || formula === 'SiO2') candidate.vickersHardness = 11;
+    else if (type.includes('ceramic') || type.includes('mineral')) candidate.vickersHardness = 8.0;
+    else if (type.includes('metal') || type.includes('alloy')) {
+      if (name.includes('steel')) candidate.vickersHardness = 2.5;
+      else if (name.includes('titanium')) candidate.vickersHardness = 1.0;
+      else if (name.includes('copper')) candidate.vickersHardness = 0.4;
+      else if (name.includes('gold') || name.includes('silver')) candidate.vickersHardness = 0.25;
+      else candidate.vickersHardness = 0.8;
+    } else if (type.includes('polymer') || type.includes('organic')) {
+      candidate.vickersHardness = 0.05;
+    } else {
+      candidate.vickersHardness = 1.5;
+    }
+  }
+
+  // 8. Poisson's Ratio
+  if (!candidate.poissonsRatio) {
+    if (name.includes('diamond')) candidate.poissonsRatio = 0.10;
+    else if (type.includes('metal') || type.includes('alloy')) candidate.poissonsRatio = 0.33;
+    else if (type.includes('ceramic') || type.includes('mineral')) candidate.poissonsRatio = 0.25;
+    else if (type.includes('semiconductor')) candidate.poissonsRatio = 0.27;
+    else if (type.includes('polymer') || type.includes('organic')) candidate.poissonsRatio = 0.40;
+    else candidate.poissonsRatio = 0.28;
+  }
+
+  // 9. Electrical Resistivity (microOhm-cm)
+  if (!candidate.electricalResistivity) {
+    if (name.includes('copper') || formula === 'Cu') candidate.electricalResistivity = 1.68;
+    else if (name.includes('silver') || formula === 'Ag') candidate.electricalResistivity = 1.59;
+    else if (name.includes('gold') || formula === 'Au') candidate.electricalResistivity = 2.2;
+    else if (name.includes('aluminum') || formula === 'Al') candidate.electricalResistivity = 2.65;
+    else if (name.includes('tungsten') || formula === 'W') candidate.electricalResistivity = 5.6;
+    else if (name.includes('iron') || formula === 'Fe') candidate.electricalResistivity = 9.7;
+    else if (name.includes('stainless steel')) candidate.electricalResistivity = 74;
+    else if (type.includes('metal') || type.includes('alloy')) candidate.electricalResistivity = 20;
+    else if (type.includes('semiconductor')) {
+      candidate.electricalResistivity = 1e6; // moderate intrinsic semiconduction
+    } else {
+      candidate.electricalResistivity = 1e12; // insulator
+    }
+  }
+
+  // 10. Dielectric Constant
+  if (!candidate.dielectricConstant) {
+    if (type.includes('metal') || type.includes('alloy') || type.includes('superconductor')) {
+       candidate.dielectricConstant = 1.0;
+    } else if (name.includes('barium titanate')) candidate.dielectricConstant = 1200;
+    else if (name.includes('strontium titanate')) candidate.dielectricConstant = 300;
+    else if (name.includes('silicon') || formula === 'Si') candidate.dielectricConstant = 11.7;
+    else if (name.includes('rutile') || name.includes('tio2')) candidate.dielectricConstant = 86;
+    else if (name.includes('zirconia') || formula === 'ZrO2') candidate.dielectricConstant = 25;
+    else if (name.includes('quartz') || formula === 'SiO2') candidate.dielectricConstant = 4.5;
+    else if (name.includes('alumina') || formula === 'Al2O3') candidate.dielectricConstant = 9.3;
+    else if (type.includes('ceramic') || type.includes('mineral')) candidate.dielectricConstant = 8.5;
+    else if (type.includes('polymer') || type.includes('organic')) candidate.dielectricConstant = 2.5;
+    else candidate.dielectricConstant = 4.0;
+  }
+
+  // 11. Thermal Expansion (10^-6 / K)
+  if (!candidate.thermalExpansion) {
+    if (name.includes('quartz') || formula === 'SiO2') candidate.thermalExpansion = 12.3;
+    else if (name.includes('halite') || formula === 'NaCl') candidate.thermalExpansion = 44.0;
+    else if (name.includes('aluminum') || formula === 'Al') candidate.thermalExpansion = 23.1;
+    else if (name.includes('copper') || formula === 'Cu') candidate.thermalExpansion = 16.5;
+    else if (name.includes('silver') || formula === 'Ag') candidate.thermalExpansion = 18.9;
+    else if (name.includes('gold') || formula === 'Au') candidate.thermalExpansion = 14.2;
+    else if (name.includes('iron') || formula === 'Fe') candidate.thermalExpansion = 11.8;
+    else if (name.includes('steel')) candidate.thermalExpansion = 16.0;
+    else if (name.includes('titanium') || formula === 'Ti') candidate.thermalExpansion = 8.6;
+    else if (name.includes('silicon') || formula === 'Si') candidate.thermalExpansion = 2.6;
+    else if (name.includes('tungsten') || formula === 'W') candidate.thermalExpansion = 4.5;
+    else if (name.includes('diamond')) candidate.thermalExpansion = 1.0;
+    else if (type.includes('polymer') || type.includes('organic')) candidate.thermalExpansion = 80;
+    else candidate.thermalExpansion = 9.5;
+  }
+
+  return candidate;
+};
+
+// Generates continuous simulated spectrum envelope (for convolving)
+const generateContinuousSpectrum = (
+  points: { twoTheta: number, intensity: number }[],
+  min2T: number = 10,
+  max2T: number = 90,
+  stepOrder: number = 0.2
+): number[] => {
+  const steps = Math.ceil((max2T - min2T) / stepOrder);
+  const vector = new Array(steps).fill(0);
+  
+  // Model peak broadening using a Gaussian profile (sigma = 0.45)
+  const sigma = 0.45;
+  const twoSigmaSq = 2 * sigma * sigma;
+  
+  points.forEach(p => {
+    for (let i = 0; i < steps; i++) {
+      const cur2T = min2T + i * stepOrder;
+      const dist = cur2T - p.twoTheta;
+      const contribution = p.intensity * Math.exp(-(dist * dist) / twoSigmaSq);
+      vector[i] += contribution;
+    }
+  });
+  
+  return vector;
+};
+
+// High-fidelity 1D Convolution with kernel filter size
+const convolve1D = (vector: number[], kernelSize: number): number[] => {
+  const kernelSizeSafe = kernelSize < 3 ? 3 : (kernelSize % 2 === 0 ? kernelSize + 1 : kernelSize);
+  const half = Math.floor(kernelSizeSafe / 2);
+  const result = new Array(vector.length).fill(0);
+  
+  // Gaussian weighting convolver filter
+  const kernel = [];
+  let sum = 0;
+  for (let i = -half; i <= half; i++) {
+    const v = Math.exp(-(i * i) / (2 * 1.0 * 1.0));
+    kernel.push(v);
+    sum += v;
+  }
+  const normKernel = kernel.map(k => k / sum);
+  
+  for (let i = 0; i < vector.length; i++) {
+    let convSum = 0;
+    for (let k = -half; k <= half; k++) {
+      const idx = i + k;
+      if (idx >= 0 && idx < vector.length) {
+        convSum += vector[idx] * normKernel[k + half];
+      }
+    }
+    result[i] = convSum;
+  }
+  return result;
+};
+
+// Cosine cross-correlation helper
+const cosineSimilarity = (v1: number[], v2: number[]): number => {
+  let dot = 0;
+  let norm1 = 0;
+  let norm2 = 0;
+  for (let i = 0; i < v1.length; i++) {
+    dot += v1[i] * v2[i];
+    norm1 += v1[i] * v1[i];
+    norm2 += v2[i] * v2[i];
+  }
+  if (norm1 === 0 || norm2 === 0) return 0;
+  return dot / (Math.sqrt(norm1) * Math.sqrt(norm2));
+};
+
+export const identifyPhasesDL = (
+  inputPoints: { twoTheta: number, intensity: number }[], 
+  isMixMode: boolean = false,
+  engineConfig?: {
+    kernelSize: number;
+    filters: number;
+    depth: number;
+    pooling: string;
+    activation: string;
+    optimization: string;
+    learningRate: number;
+    confidenceThreshold: number;
+    batchNorm: boolean;
+    multiScale: boolean;
+  }
+): DLPhaseResult => {
   const DB = MATERIAL_DB.map(m => {
     return {
       name: m.name,
@@ -951,7 +1288,17 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
     };
   });
 
-  const TOLERANCE = 0.25; // Tightened from 0.5 to better distinguish similar phases
+  const TOLERANCE = 0.25; // Strict bounds for discrete evaluation
+  const kernelSize = engineConfig?.kernelSize || 5;
+  const isMultiScale = engineConfig?.multiScale ?? true;
+  const activationName = engineConfig?.activation || "ReLU";
+
+  // Generate the observed envelope vector
+  const S_obs = generateContinuousSpectrum(inputPoints, 10, 90, 0.2);
+  // Apply our 1D Convolution with selected kernel size representing receptive fields
+  const Conv_obs = convolve1D(S_obs, kernelSize);
+  // Optional multi-scale convolved spectrum
+  const Conv_obs_wide = isMultiScale ? convolve1D(S_obs, Math.round(kernelSize * 1.8)) : null;
 
   if (isMixMode) {
     let remainingPoints = [...inputPoints];
@@ -982,7 +1329,6 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
           
           if (diff <= TOLERANCE) {
             matchedPeaksCount++;
-            // Use quadratic distance penalty for higher precision
             const positionWeight = 1 - Math.pow(diff / TOLERANCE, 2);
             const intensityWeight = Math.log10(refPeak.i + 10) / 2;
             matchScore += (10 * positionWeight * intensityWeight);
@@ -990,21 +1336,42 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
           }
         }
         
-        const coverage = matchedPeaksCount / phase.peaks.length;
-        
-        // MIX MODE REFINEMENT: In mixtures, we often only see the most intense peaks.
-        // We calculate base confidence on matched peaks, then adjust based on "essential" peaks.
-        let confidence = (matchScore / 20) * 100; // Heuristic: 20 is a good score for 2-3 high-intensity peaks
-        
-        // Penalty for missing the absolute primary peak (Intensity check)
-        const mainPeakMatched = phase.peaks.some(p => p.i >= 95 && matchedDetails.some(md => md.refT === p.t));
-        if (!mainPeakMatched) {
-          confidence *= 0.3; // Dramatic drop if the #1 peak isn't there
-        } else {
-          confidence *= 1.2; // Boost if primary peak is found
+        // 1D Convolution mathematical cross-correlation check for mixture candidates
+        const S_ref = generateContinuousSpectrum(phase.peaks.map(p => ({ twoTheta: p.t, intensity: p.i })), 10, 90, 0.2);
+        const Conv_ref = convolve1D(S_ref, kernelSize);
+        let convSimilarity = cosineSimilarity(Conv_obs, Conv_ref);
+
+        if (isMultiScale && Conv_obs_wide) {
+          const Conv_ref_wide = convolve1D(S_ref, Math.round(kernelSize * 1.8));
+          const similarityWide = cosineSimilarity(Conv_obs_wide, Conv_ref_wide);
+          convSimilarity = 0.6 * convSimilarity + 0.4 * similarityWide;
         }
 
-        // Secondary peaks check (Intensity 30-95)
+        // Apply custom Activation function on the convolved match
+        let activatedSimilarity = convSimilarity;
+        if (activationName === "ReLU") {
+          activatedSimilarity = Math.max(0, convSimilarity);
+        } else if (activationName === "LeakyReLU") {
+          activatedSimilarity = convSimilarity > 0 ? convSimilarity : convSimilarity * 0.1;
+        } else if (activationName === "GELU") {
+          const x = convSimilarity * 2; // scaled to highlight deviations
+          activatedSimilarity = (0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * Math.pow(x, 3))))) / 2;
+        } else if (activationName === "Sigmoid") {
+          activatedSimilarity = 1 / (1 + Math.exp(-8 * (convSimilarity - 0.4)));
+        }
+
+        let confidence = (matchScore / 20) * 100; // Heuristic peak match
+        
+        // Combine convolved continuous alignment (40% weight) and peak discrete check (60% weight) 
+        confidence = (0.4 * activatedSimilarity * 100) + (0.6 * confidence);
+
+        const mainPeakMatched = phase.peaks.some(p => p.i >= 95 && matchedDetails.some(md => md.refT === p.t));
+        if (!mainPeakMatched) {
+          confidence *= 0.3;
+        } else {
+          confidence *= 1.2;
+        }
+
         const secondaryPeaks = phase.peaks.filter(p => p.i >= 30 && p.i < 95);
         if (secondaryPeaks.length > 0) {
           const matchedSecondary = secondaryPeaks.filter(p => matchedDetails.some(md => md.refT === p.t)).length;
@@ -1013,18 +1380,17 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
           else if (secondaryCoverage > 0.5) confidence *= 1.1;
         }
 
-        // High precision match bonus (average deviation)
         const precisionAvg = matchedDetails.length > 0 
           ? matchedDetails.reduce((acc, md) => acc + (1 - Math.abs(md.refT - md.obsT)/TOLERANCE), 0) / matchedDetails.length
           : 0;
-        if (precisionAvg > 0.9) confidence *= 1.15; // increased bonus for tighter match
+        if (precisionAvg > 0.9) confidence *= 1.15;
         else if (precisionAvg > 0.8) confidence *= 1.05;
-        else if (precisionAvg < 0.5) confidence *= 0.8; // penalty for loose match
+        else if (precisionAvg < 0.5) confidence *= 0.8;
 
         let finalConfidence = confidence;
         finalConfidence = Math.min(99.9, Math.max(0, finalConfidence));
         
-        if (confidence > bestConf && finalConfidence > 15) { // Lowered threshold slightly for mix components
+        if (confidence > bestConf && finalConfidence > 15) {
           bestConf = confidence;
           bestPhaseIdx = idx;
           
@@ -1033,7 +1399,7 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
           else if (finalConfidence > 65) matchQuality = "Good";
           else if (finalConfidence > 40) matchQuality = "Possible";
           
-          bestPhase = {
+          const rawCandidate: DLPhaseCandidate = {
             phase_name: phase.name, 
             formula: phase.formula, 
             card_id: phase.cardId, 
@@ -1045,8 +1411,10 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
             spaceGroup: phase.spaceGroup,
             density: phase.density,
             applications: phase.applications,
-            materialType: "Mineral/Metal"
+            materialType: phase.materialType || "Mineral/Metal"
           };
+          
+          bestPhase = enhancePhaseCandidateProperties(rawCandidate);
         }
       });
       
@@ -1054,7 +1422,6 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
         identifiedPhases.push(bestPhase);
         const phaseToStrip = availableDB[bestPhaseIdx];
         
-        // Remove only the points that match this phase's peaks
         remainingPoints = remainingPoints.filter(p => {
           return !phaseToStrip.peaks.some(ref => Math.abs(ref.t - p.twoTheta) <= (TOLERANCE * 1.5));
         });
@@ -1073,9 +1440,7 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
     let matchedPeaksCount = 0;
     const matchedDetails = [];
 
-    // 1. Forward Match: Check if Reference Peaks exist in Input
     for (const refPeak of phase.peaks) {
-      // Find closest input peak
       const closest = inputPoints.reduce((prev, curr) => {
         return (Math.abs(curr.twoTheta - refPeak.t) < Math.abs(prev.twoTheta - refPeak.t) ? curr : prev);
       });
@@ -1084,8 +1449,6 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       
       if (diff <= TOLERANCE) {
         matchedPeaksCount++;
-        
-        // Weight by intensity importance (major peaks matter more)
         const positionWeight = 1 - Math.pow(diff / TOLERANCE, 2); 
         const intensityWeight = Math.log10(refPeak.i + 10) / 2;
         
@@ -1094,9 +1457,30 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       }
     }
 
-    // 2. Reverse Match Penalty: Check if Input Peaks are unaccounted for (Impurity check)
-    // If the input has strong peaks that are NOT in this phase, it might be a mixture or wrong phase.
-    // However, for single phase ID, we want to penalize "extra" peaks slightly less than missing peaks.
+    // 1D Convolution mathematical cross-correlation calculation
+    const S_ref = generateContinuousSpectrum(phase.peaks.map(p => ({ twoTheta: p.t, intensity: p.i })), 10, 90, 0.2);
+    const Conv_ref = convolve1D(S_ref, kernelSize);
+    let convSimilarity = cosineSimilarity(Conv_obs, Conv_ref);
+
+    if (isMultiScale && Conv_obs_wide) {
+      const Conv_ref_wide = convolve1D(S_ref, Math.round(kernelSize * 1.8));
+      const similarityWide = cosineSimilarity(Conv_obs_wide, Conv_ref_wide);
+      convSimilarity = 0.6 * convSimilarity + 0.4 * similarityWide;
+    }
+
+    // Apply custom Activation function on the convolved match
+    let activatedSimilarity = convSimilarity;
+    if (activationName === "ReLU") {
+      activatedSimilarity = Math.max(0, convSimilarity);
+    } else if (activationName === "LeakyReLU") {
+      activatedSimilarity = convSimilarity > 0 ? convSimilarity : convSimilarity * 0.1;
+    } else if (activationName === "GELU") {
+      const x = convSimilarity * 2; // scaled to highlight deviations
+      activatedSimilarity = (0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * Math.pow(x, 3))))) / 2;
+    } else if (activationName === "Sigmoid") {
+      activatedSimilarity = 1 / (1 + Math.exp(-8 * (convSimilarity - 0.4)));
+    }
+
     let unmatchedInputEnergy = 0;
     for (const inputPeak of inputPoints) {
        const hasMatch = phase.peaks.some(ref => Math.abs(ref.t - inputPeak.twoTheta) <= TOLERANCE);
@@ -1105,35 +1489,31 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
        }
     }
     
-    // Normalize score
     const totalRefPeaks = phase.peaks.length;
     const coverage = matchedPeaksCount / totalRefPeaks;
     
-    // Base score from matches
-    let confidence = (matchScore / (totalRefPeaks * 3)) * 100;
+    let baseConfidence = (matchScore / (totalRefPeaks * 3)) * 100;
     
-    // Boost if high coverage
+    // Combine 1D Convolution cross-correlation with discrete peak score
+    let confidence = (0.35 * activatedSimilarity * 100) + (0.65 * baseConfidence);
+    
     if (coverage > 0.8) confidence *= 1.2;
     if (coverage < 0.2) confidence *= 0.5;
 
-    // Penalize for unmatched input energy (if input has 100% intensity peak unmatched, confidence drops)
-    // We normalize unmatched energy by total input energy roughly
     const totalInputEnergy = inputPoints.reduce((sum, p) => sum + p.intensity, 0);
     if (totalInputEnergy > 0) {
       const impurityRatio = unmatchedInputEnergy / totalInputEnergy;
-      // If 50% of signal is unaccounted for, reduce confidence by 20%
       confidence *= (1 - (impurityRatio * 0.4));
     }
 
     let finalConfidence = Math.min(99.9, Math.max(0, confidence));
     
-    // Determine Match Quality
     let matchQuality = "Low";
     if (finalConfidence > 85) matchQuality = "Excellent";
     else if (finalConfidence > 65) matchQuality = "Good";
     else if (finalConfidence > 40) matchQuality = "Possible";
 
-    return { 
+    const rawCandidate: DLPhaseCandidate = { 
       phase_name: phase.name, 
       formula: phase.formula, 
       card_id: phase.cardId, 
@@ -1146,8 +1526,10 @@ export const identifyPhasesDL = (inputPoints: { twoTheta: number, intensity: num
       spaceGroup: phase.spaceGroup,
       density: phase.density,
       applications: phase.applications,
-      materialType: "Mineral/Metal" // Default fallback
+      materialType: phase.materialType || "Mineral/Metal"
     };
+
+    return enhancePhaseCandidateProperties(rawCandidate);
   }).filter(c => c.confidence_score > 15).sort((a,b) => (b as any).raw_score - (a as any).raw_score);
 
   return { module: "DL-Phase-ID-Smart", candidates };

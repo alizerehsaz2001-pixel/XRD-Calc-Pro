@@ -99,6 +99,18 @@ export interface WHResult {
     rSquared: number;
   };
   points: WHPoint[];
+  stressMPa?: number;
+  energyDensityKjM3?: number;
+  pointsExtended?: {
+    twoTheta: number;
+    fwhmObs: number;
+    fwhmInst: number;
+    betaCorrectedDeg: number;
+    betaCorrectedRad: number;
+    x: number;
+    y: number;
+    singlePeakSizeNm: number;
+  }[];
 }
 
 export interface IntegralBreadthInput {
@@ -326,6 +338,7 @@ export interface MagneticResult extends NeutronResult {
 export interface DLPhaseCandidate {
   phase_name: string;
   confidence_score: number; // 0-100
+  raw_score?: number;
   match_quality?: string;
   card_id: string;
   formula: string;
@@ -343,6 +356,14 @@ export interface DLPhaseCandidate {
   bandGap?: number; // eV
   elasticModulus?: number; // GPa
   opticalProperties?: string;
+  // Advanced Physical property details
+  thermalConductivity?: number; // W/m·K
+  meltingPoint?: number; // °C
+  vickersHardness?: number; // GPa
+  poissonsRatio?: number;
+  electricalResistivity?: number; // microOhm·cm
+  dielectricConstant?: number;
+  thermalExpansion?: number; // 10^-6/K
 }
 
 export interface DLPhaseResult {
