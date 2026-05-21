@@ -26,14 +26,16 @@ import { ModuleIntro } from './components/ModuleIntro';
 import { LandingPage } from './components/LandingPage';
 import { RegistrationPage } from './components/RegistrationPage';
 import { SideSeekBar } from './components/SideSeekBar';
+import LanguageSelector from './components/LanguageSelector';
 import { BraggHistory } from './components/BraggHistory';
 import { BraggVisualization } from './components/BraggVisualization';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext } from './components/SettingsContext';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown } from 'lucide-react';
 import { playSynthTone } from './utils/sound';
+import { generatePdfReport } from './utils/pdfGenerator';
 
 type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'learn' | 'profile' | 'settings';
 
@@ -251,6 +253,17 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    localStorage.setItem('xrd_bragg_current', JSON.stringify({
+      sampleId,
+      wavelength,
+      rawPeaks,
+      rawHKL,
+      results,
+      materialName
+    }));
+  }, [sampleId, wavelength, rawPeaks, rawHKL, results, materialName]);
+
+  useEffect(() => {
     handleCalculate(false);
   }, []);
 
@@ -286,7 +299,7 @@ const App: React.FC = () => {
     { id: 'settings', label: t('Settings'), group: t('Intelligence') },
   ];
 
-  const isRTL = i18n.language === 'he' || i18n.language === 'fa';
+  const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';
 
   return (
     <SettingsContext.Provider value={{
@@ -346,7 +359,23 @@ const App: React.FC = () => {
             ))}
           </div>
           
-          <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+          <div className="p-4 border-t border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm space-y-3">
+            <button
+              id="export-pdf-report-btn"
+              onClick={() => {
+                playSynthTone('success');
+                generatePdfReport();
+              }}
+              className={`w-full py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border ${
+                theme === 'cyberpunk'
+                  ? 'bg-cyber-pink hover:bg-cyber-pink/85 border-cyber-accent text-white shadow-[0_0_15px_rgba(255,0,255,0.3)]'
+                  : 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 border-emerald-500 dark:border-emerald-400 text-white shadow-md'
+              }`}
+              title="Compile and download consolidated XRD Lab Report (PDF)"
+            >
+              <FileDown className="w-4 h-4 animate-bounce" />
+              {t('Export PDF Report', 'Export PDF Report')}
+            </button>
             <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
               <div className="mb-1 font-bold uppercase tracking-widest">v2.5.0 • {t('Lab Active')}</div>
               <div className="opacity-60">{t('Designed by')} Ali Zerehsaz</div>
@@ -365,50 +394,7 @@ const App: React.FC = () => {
               <span className={`font-bold text-lg ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'}`}>XRD-Calc Pro</span>
             </div>
             <div className="flex items-center gap-2">
-              <select
-                value={i18n.language}
-                onChange={(e) => i18n.changeLanguage(e.target.value)}
-                className={`block w-20 rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-1 pr-1 text-[10px] outline-none`}
-              >
-                <option value="en">English (EN)</option>
-                <option value="de">Deutsch (DE)</option>
-                <option value="fr">Français (FR)</option>
-                <option value="es">Español (ES)</option>
-                <option value="it">Italiano (IT)</option>
-                <option value="nl">Nederlands (NL)</option>
-                <option value="pt">Português (PT)</option>
-                <option value="pl">Polski (PL)</option>
-                <option value="hu">Magyar (HU)</option>
-                <option value="ru">Русский (RU)</option>
-                <option value="uk">Українська (UK)</option>
-                <option value="tr">Türkçe (TR)</option>
-                <option value="ja">日本語 (JA)</option>
-                <option value="zh">简体中文 (ZH)</option>
-                <option value="ko">한국어 (KO)</option>
-                <option value="hi">हिन्दी (HI)</option>
-                <option value="bn">বাংলা (BN)</option>
-                <option value="ar">العربية (AR)</option>
-                <option value="fa">فارسی (FA)</option>
-                <option value="he">עברית (HE)</option>
-                <option value="vi">Tiếng Việt (VI)</option>
-                <option value="id">Bahasa Indonesia (ID)</option>
-                <option value="ms">Bahasa Melayu (MS)</option>
-                <option value="th">ไทย (TH)</option>
-                <option value="sv">Svenska (SV)</option>
-                <option value="da">Dansk (DA)</option>
-                <option value="no">Norsk (NO)</option>
-                <option value="fi">Suomi (FI)</option>
-                <option value="cs">Čeština (CS)</option>
-                <option value="sk">Slovenčina (SK)</option>
-                <option value="ro">Română (RO)</option>
-                <option value="bg">Български (BG)</option>
-                <option value="el">Ελληνικά (EL)</option>
-                <option value="hr">Hrvatski (HR)</option>
-                <option value="sr">Српски (SR)</option>
-                <option value="sl">Slovenščina (SL)</option>
-                <option value="ca">Català (CA)</option>
-                <option value="tl">Tagalog (TL)</option>
-              </select>
+              <LanguageSelector compact={true} />
               <select
                 value={theme}
                 onChange={(e) => setTheme(e.target.value as any)}

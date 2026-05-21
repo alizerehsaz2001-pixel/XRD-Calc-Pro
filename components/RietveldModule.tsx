@@ -7,7 +7,7 @@ import {
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
   Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, AlertTriangle, 
   Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2,
-  Globe
+  Globe, ChevronDown
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
@@ -187,6 +187,16 @@ export const RietveldModule: React.FC = () => {
     };
     setUserParams(initialUser);
   }, [simPhase]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_rietveld_current', JSON.stringify({
+      simPhase,
+      userParams,
+      targetParams,
+      rFactor,
+      iterCount
+    }));
+  }, [simPhase, userParams, targetParams, rFactor, iterCount]);
 
   const generatePatternData = useMemo(() => {
     const data: any[] = [];
@@ -671,18 +681,19 @@ export const RietveldModule: React.FC = () => {
             <div className={`bg-slate-900 p-6 rounded-2xl shadow-xl border relative overflow-hidden group transition-all duration-500 ${isAutoRefining ? 'border-teal-500/50 shadow-[0_0_30px_rgba(20,184,166,0.15)]' : 'border-slate-800'}`}>
               <div className={`absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 rounded-full blur-3xl transition-all duration-700 ${isAutoRefining ? 'bg-teal-500/30 animate-pulse' : 'bg-teal-500/10 group-hover:bg-teal-500/20'}`}></div>
               
-              <div className="flex justify-between items-center mb-6 relative z-10">
+              <div className="flex justify-between items-center mb-6 relative z-10 border-b border-slate-800/80 pb-4">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-teal-500/20 rounded-xl border border-teal-500/30 shadow-[0_0_15px_rgba(20,184,166,0.2)]">
-                    <Settings className="w-5 h-5 text-teal-400" />
+                  <div className="p-3.5 bg-gradient-to-br from-teal-500/20 to-teal-900/40 rounded-xl border border-teal-500/30 shadow-[0_0_20px_rgba(20,184,166,0.15)] flex items-center justify-center relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
+                    <Settings className="w-5 h-5 text-teal-400 relative z-10" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-white tracking-tight">Refinement Core</h2>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Parameter Matrix</p>
+                    <h2 className="text-xl font-black text-white tracking-wide">Physics Engine</h2>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Interactive Simulation Matrix</p>
                       {isAutoRefining && (
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-teal-500/10 border border-teal-500/20 rounded-full">
-                           <RefreshCw className="w-2.5 h-2.5 text-teal-400 animate-spin" />
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-teal-500/10 border border-teal-500/20 rounded-md">
+                           <RefreshCw className="w-2 h-2 text-teal-400 animate-spin" />
                            <span className="text-[8px] font-black text-teal-400 uppercase tracking-widest">Optimizing</span>
                         </div>
                       )}
@@ -706,17 +717,18 @@ export const RietveldModule: React.FC = () => {
                       });
                       setIsAutoRefining(false);
                     }}
-                    className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all border border-slate-800 hover:border-slate-700 active:scale-95"
+                    className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all border border-transparent hover:border-slate-700 active:scale-95"
                     title="Cold Reset"
                    >
                      <RotateCcw className="w-4 h-4" />
                    </button>
                    <button 
                     onClick={() => setIsAutoRefining(!isAutoRefining)}
-                    className={`p-2.5 rounded-xl transition-all border active:scale-95 flex items-center gap-2 ${isAutoRefining ? 'text-rose-400 bg-rose-500/10 border-rose-500/30' : 'text-teal-400 bg-teal-500/10 border-teal-500/30 hover:bg-teal-500/20'}`}
+                    className={`px-4 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${isAutoRefining ? 'text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20' : 'text-teal-400 bg-teal-500/10 border-teal-500/30 hover:bg-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]'}`}
                     title="Live Engine"
                    >
                      <PlayCircle className={`w-4 h-4 ${isAutoRefining ? 'animate-pulse' : ''}`} />
+                     {isAutoRefining ? 'Halt Engine' : 'Live Tuning'}
                    </button>
                 </div>
               </div>
@@ -725,26 +737,37 @@ export const RietveldModule: React.FC = () => {
                 <div className="space-y-6">
                   {/* Phase & Structure Group */}
                   <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
-                    <div className="flex items-center gap-2 px-1 pb-2 border-b border-slate-800/80">
-                      <Database className="w-4 h-4 text-teal-400" />
-                      <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest">Phase & Structure</div>
+                    <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
+                      <div className="flex items-center gap-2">
+                        <Database className="w-4 h-4 text-teal-400" />
+                        <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest">Phase & Structure</div>
+                      </div>
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] text-slate-500 uppercase tracking-widest bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">Atomic Properties</span>
                     </div>
                     
                     <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:border-teal-500/30 transition-colors">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Beaker className="w-3.5 h-3.5 text-teal-500" />
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Structural Model</label>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Beaker className="w-3.5 h-3.5 text-teal-500" />
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Structural Model</label>
+                        </div>
+                        <span className="text-[8px] text-teal-500/50 uppercase tracking-widest font-black">Crystallography Target</span>
                       </div>
-                      <select 
-                        value={simPhase}
-                        onChange={(e) => setSimPhase(e.target.value)}
-                        className="w-full px-3 py-3 bg-black/60 border border-slate-700 rounded-xl text-xs font-bold text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 transition-all appearance-none cursor-pointer"
-                      >
-                        <option value="Simple Cubic">Simple Cubic (P m-3m)</option>
-                        <option value="BCC">Body Centered (I m-3m)</option>
-                        <option value="FCC">Face Centered (F m-3m)</option>
-                        <option value="Quartz">Quartz (P 32 21)</option>
-                      </select>
+                      <div className="relative">
+                        <select 
+                          value={simPhase}
+                          onChange={(e) => setSimPhase(e.target.value)}
+                          className="w-full pl-3 pr-8 py-3 bg-[rgba(0,0,0,0.3)] border border-slate-700/80 rounded-xl text-xs font-bold text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="Simple Cubic">Simple Cubic (P m-3m)</option>
+                          <option value="BCC">Body Centered (I m-3m)</option>
+                          <option value="FCC">Face Centered (F m-3m)</option>
+                          <option value="Quartz">Quartz (P 32 21)</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                           <ChevronDown className="w-4 h-4 text-slate-500" />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
@@ -972,90 +995,111 @@ export const RietveldModule: React.FC = () => {
 
                   {/* Microstructure & Profile Group */}
                   <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
-                    <div className="flex items-center gap-2 px-1 pb-2 border-b border-slate-800/80">
-                      <Activity className="w-4 h-4 text-rose-400" />
-                      <div className="text-[10px] uppercase text-rose-400 font-black tracking-widest">Peak Profile & Microstructure</div>
+                    <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-rose-400" />
+                        <div className="text-[10px] uppercase text-rose-400 font-black tracking-widest">Peak Profile & Microstructure</div>
+                      </div>
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] text-slate-500 uppercase tracking-widest bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">Broadening Physics</span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/fwhm">
                         <div className="flex justify-between items-center mb-3">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">FWHM</label>
+                          <div className="flex flex-col">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Base FWHM</label>
+                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/fwhm:text-rose-400/80 transition-colors">Instrumental Eq.</span>
+                          </div>
                           <div className="flex items-center gap-0.5">
                             <input
                               type="number"
                               step="0.01"
                               value={userParams.fwhm}
                               onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value) || userParams.fwhm})}
-                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-rose-400 px-1 py-0.5 rounded border border-slate-700/50 text-right"
+                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-rose-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-rose-500/50 outline-none"
                             />
                           </div>
                         </div>
-                        <input type="range" min="0.05" max="1.0" step="0.01" value={userParams.fwhm} onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500" />
+                        <input type="range" min="0.05" max="1.0" step="0.01" value={userParams.fwhm} onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400 transition-all" />
                       </div>
 
-                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/mix">
                         <div className="flex justify-between items-center mb-3">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mix (η)</label>
+                          <div className="flex flex-col">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mix (η)</label>
+                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/mix:text-rose-400/80 transition-colors">Lorentzian Frac</span>
+                          </div>
                           <div className="flex items-center gap-0.5">
                             <input
                               type="number"
                               step="0.01"
                               value={userParams.eta}
                               onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value) || userParams.eta})}
-                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-rose-400 px-1 py-0.5 rounded border border-slate-700/50 text-right"
+                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-rose-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-rose-500/50 outline-none"
                             />
                           </div>
                         </div>
-                        <input type="range" min="0.0" max="1.0" step="0.01" value={userParams.eta} onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500" />
+                        <input type="range" min="0.0" max="1.0" step="0.01" value={userParams.eta} onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400 transition-all" />
                       </div>
 
-                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/size">
                         <div className="flex justify-between items-center mb-3">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Size (nm)</label>
+                          <div className="flex flex-col">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Size (nm)</label>
+                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/size:text-indigo-400/80 transition-colors">Scherrer Broadening</span>
+                          </div>
                           <div className="flex items-center gap-0.5">
                             <input
                               type="number"
                               step="1"
                               value={userParams.crystalliteSize}
                               onChange={(e) => setUserParams({...userParams, crystalliteSize: parseFloat(e.target.value) || userParams.crystalliteSize})}
-                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-indigo-400 px-1 py-0.5 rounded border border-slate-700/50 text-right"
+                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-indigo-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-indigo-500/50 outline-none"
                             />
                           </div>
                         </div>
-                        <input type="range" min="1" max="2000" step="1" value={userParams.crystalliteSize} onChange={(e) => setUserParams({...userParams, crystalliteSize: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-indigo-500" />
+                        <input type="range" min="1" max="2000" step="1" value={userParams.crystalliteSize} onChange={(e) => setUserParams({...userParams, crystalliteSize: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all" />
                       </div>
 
-                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/strain">
                         <div className="flex justify-between items-center mb-3">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Strain %</label>
+                          <div className="flex flex-col">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Strain %</label>
+                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/strain:text-amber-400/80 transition-colors">Stokes-Wilson Gauss</span>
+                          </div>
                           <div className="flex items-center gap-0.5">
                             <input
                               type="number"
                               step="0.01"
                               value={userParams.microstrain}
                               onChange={(e) => setUserParams({...userParams, microstrain: parseFloat(e.target.value) || userParams.microstrain})}
-                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-amber-400 px-1 py-0.5 rounded border border-slate-700/50 text-right"
+                              className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-amber-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-amber-500/50 outline-none"
                             />
                           </div>
                         </div>
-                        <input type="range" min="0" max="2" step="0.01" value={userParams.microstrain} onChange={(e) => setUserParams({...userParams, microstrain: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-amber-500" />
+                        <input type="range" min="0" max="2" step="0.01" value={userParams.microstrain} onChange={(e) => setUserParams({...userParams, microstrain: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400 transition-all" />
                       </div>
                     </div>
                   </div>
 
                   {/* Instrumental Group */}
                   <div className="space-y-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50 shadow-inner">
-                    <div className="flex items-center gap-2 px-1 pb-2 border-b border-slate-800/80">
-                      <Gauge className="w-4 h-4 text-amber-400" />
-                      <div className="text-[10px] uppercase text-amber-400 font-black tracking-widest">Instrument & Background</div>
+                    <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
+                      <div className="flex items-center gap-2">
+                        <Gauge className="w-4 h-4 text-amber-400" />
+                        <div className="text-[10px] uppercase text-amber-400 font-black tracking-widest">Instrument & Background</div>
+                      </div>
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] text-slate-500 uppercase tracking-widest bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">Systematic Errors</span>
                     </div>
 
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/sdispl">
                       <div className="flex justify-between items-center mb-3">
                         <div className="flex items-center gap-2">
                           <Ruler className="w-3.5 h-3.5 text-zinc-400" />
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sample Displ. (mm)</label>
+                          <div className="flex flex-col">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sample Displ. (mm)</label>
+                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/sdispl:text-zinc-400/80 transition-colors">cos(θ) Peak Shift Error</span>
+                          </div>
                         </div>
                         <input
                           type="number"
@@ -1076,11 +1120,14 @@ export const RietveldModule: React.FC = () => {
                       />
                     </div>
 
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/zshift">
                       <div className="flex justify-between items-center mb-3">
                         <div className="flex items-center gap-2">
                           <ChartIcon className="w-3.5 h-3.5 text-zinc-400" />
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zero Shift (°)</label>
+                          <div className="flex flex-col">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zero Shift (°)</label>
+                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/zshift:text-zinc-400/80 transition-colors">Constant 2θ Offset</span>
+                          </div>
                         </div>
                         <input
                           type="number"
@@ -1101,11 +1148,14 @@ export const RietveldModule: React.FC = () => {
                       />
                     </div>
 
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
+                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/bkg">
                       <div className="flex justify-between items-center mb-3">
                         <div className="flex items-center gap-2">
                           <ChartIcon className="w-3.5 h-3.5 text-zinc-400" />
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noise Floor</label>
+                          <div className="flex flex-col">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Noise Floor</label>
+                            <span className="text-[7px] text-slate-500 font-bold uppercase tracking-widest group-hover/bkg:text-zinc-400/80 transition-colors">Incoherent Scattering</span>
+                          </div>
                         </div>
                         <input
                           type="number"
@@ -1128,77 +1178,87 @@ export const RietveldModule: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="pt-5 border-t border-slate-800/50 mt-2">
-                  <div className="bg-black/60 p-5 rounded-2xl border border-slate-700/50 shadow-inner relative overflow-hidden group/fit">
-                    <div className="absolute inset-0 bg-teal-500/5 opacity-0 group-hover/fit:opacity-100 transition-opacity" />
-                    <div className="flex items-center justify-between relative z-10">
+                <div className="pt-2">
+                  <div className="bg-[#050B14] p-5 rounded-2xl border border-slate-700/80 shadow-[0_5px_15px_rgba(0,0,0,0.5)] relative overflow-hidden group/fit">
+                    <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-transparent opacity-0 group-hover/fit:opacity-100 transition-opacity duration-700" />
+                    <div className="absolute top-0 right-0 p-4 opacity-10 blur-sm mix-blend-screen overflow-hidden">
+                       <LineChart className="w-20 h-20 text-teal-400 rotate-12 scale-150" />
+                    </div>
+                    <div className="flex items-center justify-between relative z-10 border-b border-slate-800 pb-3 mb-3">
                       <div>
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] block mb-1">Goodness of Fit</span>
-                        <span className="text-[9px] font-mono text-teal-500/60 font-bold">Rwp_index_matrix</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Diagnostic Metric</span>
+                        <span className="text-[9px] font-mono text-slate-500 uppercase font-black">Rwp_index_matrix</span>
                       </div>
-                      <div className="text-right">
-                        <span className={`text-3xl font-black font-mono transition-colors tracking-tighter ${rFactor < 15 ? 'text-emerald-400' : rFactor < 30 ? 'text-amber-400 text-shadow-[0_0_10px_rgba(251,191,36,0.3)]' : 'text-rose-500 text-shadow-[0_0_10px_rgba(244,63,94,0.3)]'}`}>
-                          {rFactor.toFixed(2)}%
+                      <div className="text-right flex flex-col items-end">
+                        <span className={`text-4xl font-black font-mono tracking-tighter ${rFactor < 15 ? 'text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)]' : rFactor < 30 ? 'text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.4)]' : 'text-rose-500 drop-shadow-[0_0_15px_rgba(244,63,94,0.4)]'}`}>
+                          {rFactor.toFixed(2)}<span className="text-xl">%</span>
+                        </span>
+                        <span className={`text-[8px] font-black uppercase tracking-widest mt-1 ${rFactor < 15 ? 'text-emerald-500/80' : rFactor < 30 ? 'text-amber-500/80' : 'text-rose-500/80'}`}>
+                          {rFactor < 15 ? 'High Quality Fit' : rFactor < 30 ? 'Moderate Variations' : 'Significant Mismatch'}
                         </span>
                       </div>
                     </div>
-                  </div>
                   
-                  {rHistory.length > 2 && (
-                    <div className="mt-4 p-4 bg-black/40 rounded-2xl border border-slate-800/50 animate-in fade-in zoom-in duration-500">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Convergence Trend</span>
+                  {rHistory.length > 2 ? (
+                    <div className="mt-2 h-16 w-full animate-in fade-in zoom-in duration-500">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Convergence Trend</span>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[9px] font-bold text-teal-400/70 uppercase">Iter</span>
-                          <span className="text-[10px] font-mono font-black text-teal-400">{iterCount}</span>
+                          <span className="text-[8px] font-bold text-teal-400/50 uppercase">Iter</span>
+                          <span className="text-[9px] font-mono font-black text-teal-400">{iterCount}</span>
                         </div>
                       </div>
-                      <div className="h-20 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={rHistory}>
-                            <defs>
-                              <linearGradient id="rGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <Area 
-                              type="monotone" 
-                              dataKey="r" 
-                              stroke="#14b8a6" 
-                              fill="url(#rGradient)" 
-                              strokeWidth={2}
-                              isAnimationActive={false}
-                            />
-                            <YAxis hide domain={['dataMin', 'dataMax']} />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={rHistory}>
+                          <defs>
+                            <linearGradient id="rGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#14b8a6" stopOpacity={0.4}/>
+                              <stop offset="95%" stopColor="#14b8a6" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <Area 
+                            type="monotone" 
+                            dataKey="r" 
+                            stroke="#14b8a6" 
+                            fill="url(#rGradient)" 
+                            strokeWidth={2}
+                            isAnimationActive={false}
+                          />
+                          <YAxis hide domain={['dataMin', 'dataMax']} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <div className="mt-2 h-16 w-full flex items-center justify-center bg-slate-800/20 rounded-xl border border-slate-700/50 border-dashed">
+                       <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest opacity-50">Trend Data Unavialable</span>
                     </div>
                   )}
+                  </div>
 
                   {isAutoRefining && (
-                    <div className="mt-4 flex items-center gap-3 bg-teal-500/10 p-4 rounded-xl border border-teal-500/20 backdrop-blur-sm animate-pulse">
-                      <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-ping shadow-[0_0_8px_rgba(20,184,166,0.8)] shrink-0" />
-                      <p className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">
-                         Status: Engine running... Minimizing {rFactor > 20 ? 'Structural Mismatch' : 'Residual Noise'}
+                    <div className="mt-4 flex items-center gap-3 bg-teal-500/10 p-3 rounded-xl border border-teal-500/30 backdrop-blur-md shadow-[0_0_20px_rgba(20,184,166,0.1)] relative overflow-hidden">
+                      <div className="absolute inset-0 bg-teal-400/10 w-full animate-[pulse_2s_ease-in-out_infinite]" />
+                      <div className="w-2 h-2 rounded-full bg-teal-400 animate-ping shadow-[0_0_8px_rgba(45,212,191,0.8)] shrink-0 relative z-10" />
+                      <p className="text-[9px] text-teal-300 font-black uppercase tracking-widest relative z-10">
+                         Engine running... Minimizing {rFactor > 20 ? 'Structural Mismatch' : 'Residual Noise'}
                       </p>
                     </div>
                   )}
 
                   {!isAutoRefining && rHistory.length > 0 && rFactor < 15 && (
-                    <div className="mt-4 flex items-center gap-3 bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20 backdrop-blur-sm">
-                      <Zap className="w-4 h-4 text-emerald-400" />
-                      <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
-                         Refinement Converged: Global Minimum Reached
+                    <div className="mt-4 flex items-center gap-3 bg-emerald-500/10 p-3 rounded-xl border border-emerald-500/30 backdrop-blur-md relative overflow-hidden">
+                      <div className="absolute top-0 right-0 h-full w-20 bg-gradient-to-l from-emerald-500/20 to-transparent" />
+                      <Zap className="w-3.5 h-3.5 text-emerald-400 shrink-0 relative z-10" />
+                      <p className="text-[9px] text-emerald-400/90 font-black uppercase tracking-widest relative z-10">
+                         Refinement Target Converged
                       </p>
                     </div>
                   )}
                   
                   {!isAutoRefining && rHistory.length === 0 && (
-                    <div className="mt-4 flex items-center gap-3 bg-teal-500/5 p-4 rounded-xl border border-teal-500/10 backdrop-blur-sm">
-                      <div className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse shadow-[0_0_8px_rgba(20,184,166,0.8)] shrink-0" />
-                      <p className="text-[10px] text-teal-400/80 leading-relaxed font-bold uppercase tracking-wider">
+                    <div className="mt-4 flex items-center gap-3 bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 backdrop-blur-sm">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
+                      <p className="text-[9px] text-slate-400 leading-relaxed font-bold uppercase tracking-wider">
                         Optimization Strategy: Target Residual Reduction below 15%
                       </p>
                     </div>
@@ -1214,45 +1274,49 @@ export const RietveldModule: React.FC = () => {
               
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 relative z-10">
                  <div>
-                   <h3 className="text-xl font-black text-white flex items-center gap-3">
-                     <div className="p-2 bg-teal-500/20 rounded-lg border border-teal-500/30">
+                   <h3 className="text-xl font-black text-white flex items-center gap-3 tracking-wide">
+                     <div className="p-2.5 bg-teal-500/10 rounded-xl border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]">
                         <BarChart2 className="w-5 h-5 text-teal-400" />
                      </div>
                      Diffraction Pattern Analysis
                    </h3>
-                   <div className="flex items-center gap-2 mt-1.5 px-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Real-time Spectral Synthesis</span>
+                   <div className="flex items-center gap-2 mt-2 px-1">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Real-time Spectral Synthesis</span>
                    </div>
                  </div>
 
-                 <div className="flex gap-4 p-2.5 bg-black/40 rounded-2xl border border-slate-800/50 shadow-inner">
-                    <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0">
-                      <div className="w-2 h-2 rounded-full bg-slate-200 shadow-[0_0_8px_rgba(226,232,240,0.5)]"></div>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Obs</span>
+                 <div className="flex gap-3 p-2 bg-[#050B14] rounded-2xl border border-slate-800/80 shadow-inner backdrop-blur-md">
+                    <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/40 rounded-lg hover:bg-slate-800/60 transition-colors cursor-default">
+                      <div className="w-2 h-2 rounded-full bg-slate-200 shadow-[0_0_8px_rgba(226,232,240,0.8)]"></div>
+                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Obs</span>
                     </div>
-                    <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0">
-                      <div className="w-4 h-[2px] bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Calc</span>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 rounded-lg border border-red-500/10 hover:bg-red-500/20 transition-colors cursor-default">
+                      <div className="w-4 h-[2px] bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+                      <span className="text-[9px] font-black text-red-300 uppercase tracking-widest">Calc</span>
                     </div>
-                    <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0 font-mono">
-                      <div className="w-4 h-[2px] border-t-2 border-dashed border-slate-600 rounded-full"></div>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/20 rounded-lg hover:bg-slate-800/40 transition-colors cursor-default">
+                      <div className="w-4 h-[2px] border-t-2 border-dashed border-slate-500 rounded-full"></div>
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bkg</span>
                     </div>
-                    <div className="flex items-center gap-2 px-2 border-r border-slate-800 last:border-0 font-mono">
-                      <div className="w-4 h-[2px] bg-slate-500 rounded-full"></div>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Diff</span>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-slate-700/20 rounded-lg border border-slate-600/20 hover:bg-slate-700/40 transition-colors cursor-default">
+                      <div className="w-4 h-[2px] bg-slate-400 rounded-full"></div>
+                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Diff</span>
                     </div>
                  </div>
               </div>
 
               <div className="flex-1 w-full min-h-0 relative z-10">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={generatePatternData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                  <ComposedChart data={generatePatternData} margin={{ top: 20, right: 20, left: -10, bottom: 20 }}>
                     <defs>
                       <linearGradient id="diffGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#475569" stopOpacity={0.2}/>
+                        <stop offset="5%" stopColor="#475569" stopOpacity={0.6}/>
                         <stop offset="95%" stopColor="#475569" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="calcGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                       </linearGradient>
                       <filter id="glow">
                         <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
@@ -1261,59 +1325,81 @@ export const RietveldModule: React.FC = () => {
                           <feMergeNode in="SourceGraphic"/>
                         </feMerge>
                       </filter>
+                      <filter id="obsGlow">
+                        <feGaussianBlur stdDeviation="1.5" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} opacity={0.5} />
                     <XAxis 
                       dataKey="twoTheta" 
                       type="number" 
                       domain={[SIMULATION_RANGE.start, SIMULATION_RANGE.end]} 
-                      label={{ value: 'Angular Position [2θ°]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontWeight: 900, textAnchor: 'middle', letterSpacing: '0.1em' }}
-                      tick={{ fill: '#475569', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
-                      axisLine={{ stroke: '#334155', strokeWidth: 1 }}
-                      tickLine={{ stroke: '#334155' }}
+                      label={{ value: 'Angular Position [2θ°]', position: 'bottom', offset: 0, fill: '#94a3b8', fontSize: 11, fontWeight: 900, textAnchor: 'middle', letterSpacing: '0.15em' }}
+                      tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
+                      axisLine={{ stroke: '#334155', strokeWidth: 1.5 }}
+                      tickLine={{ stroke: '#334155', strokeWidth: 1.5 }}
                     />
                     <YAxis hide domain={['auto', 'auto']} />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
+                      contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.85)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: '16px', padding: '16px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(12px)' }}
                       itemStyle={{ fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}
-                      labelStyle={{ color: '#64748b', fontSize: '10px', marginBottom: '8px', fontWeight: 'bold', fontFamily: 'monospace' }}
-                      cursor={{ stroke: '#334155', strokeWidth: 1 }}
-                      formatter={(value: number) => value.toFixed(1)}
+                      labelStyle={{ color: '#94a3b8', fontSize: '12px', marginBottom: '12px', fontWeight: '900', fontFamily: 'monospace', borderBottom: '1px solid rgba(51, 65, 85, 0.5)', paddingBottom: '8px' }}
+                      cursor={{ stroke: '#475569', strokeWidth: 1.5, strokeDasharray: '4 4' }}
+                      formatter={(value: number, name: string) => [
+                        value.toFixed(1) + (name === 'diff' ? ' (offset)' : ''),
+                        (name || '').toUpperCase()
+                      ]}
                     />
                     
-                    <Line 
+                    {/* Difference Curve (Area for better visual anchoring) */}
+                    <Area 
                       type="monotone" 
                       dataKey="diff" 
+                      name="diff"
                       stroke="#64748b" 
                       strokeWidth={1.5}
+                      fill="url(#diffGradient)"
                       dot={false}
                       isAnimationActive={false}
+                      activeDot={{ r: 3, fill: '#64748b', stroke: '#0f172a', strokeWidth: 1 }}
                     />
                     
+                    {/* Original Observed Data points */}
                     <Scatter 
                       dataKey="obs" 
+                      name="obs"
                       fill="#e2e8f0" 
-                      shape={(props) => {
+                      shape={(props: any) => {
                         const { cx, cy } = props;
-                        return <circle cx={cx} cy={cy} r={1.5} fill="#f8fafc" fillOpacity={0.8} />;
+                        return (
+                          <g filter="url(#obsGlow)">
+                            <circle cx={cx} cy={cy} r={1.5} fill="#f1f5f9" fillOpacity={0.8} />
+                          </g>
+                        );
                       }}
                       isAnimationActive={false}
                     />
                     
-                    <Line 
+                    {/* Calculated Profile over Obs data */}
+                    <Area 
                       type="monotone" 
                       dataKey="calc" 
+                      name="calc"
                       stroke="#ef4444" 
-                      strokeWidth={1.5} 
+                      strokeWidth={2}
+                      fill="url(#calcGradient)"
                       dot={false} 
-                      activeDot={{ r: 4, fill: '#ef4444', stroke: '#fff', strokeWidth: 1.5 }}
+                      activeDot={{ r: 5, fill: '#ef4444', stroke: '#0f172a', strokeWidth: 2, className: 'drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]' }}
                       isAnimationActive={false}
                     />
 
+                    {/* Background */}
                     <Line 
                       type="monotone" 
                       dataKey="bkg" 
-                      stroke="#334155"
+                      name="bkg"
+                      stroke="#94a3b8"
                       strokeDasharray="4 4"
                       strokeWidth={1.5}
                       dot={false}
@@ -1324,13 +1410,21 @@ export const RietveldModule: React.FC = () => {
               </div>
 
               {/* Status Overlay */}
-              <div className="absolute bottom-6 left-8 flex items-center gap-4 bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-slate-700/50 z-20">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-                  <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Active Data Feed</span>
+              <div className="absolute bottom-6 left-6 flex items-center gap-4 bg-[#0B1221]/80 backdrop-blur-md px-5 py-2.5 rounded-full border border-slate-700/50 z-20 shadow-[0_5px_20px_rgba(0,0,0,0.5)]">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative flex items-center justify-center">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute animate-ping opacity-75" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] relative z-10" />
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]">Active Data Feed</span>
                 </div>
-                <div className="h-3 w-[1px] bg-slate-700" />
-                <span className="text-[9px] font-mono text-slate-500 uppercase">Resolution: {SIMULATION_RANGE.step}°/step</span>
+                <div className="h-4 w-[1px] bg-slate-700/80" />
+                <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">Resolution: <span className="text-white">{SIMULATION_RANGE.step}°/step</span></span>
+                <div className="h-4 w-[1px] bg-slate-700/80" />
+                <div className="flex items-center gap-2">
+                   <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                   <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider font-bold">Rendering Engine</span>
+                </div>
               </div>
             </div>
           </div>

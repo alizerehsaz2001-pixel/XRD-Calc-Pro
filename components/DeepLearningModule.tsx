@@ -627,12 +627,16 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
   const chartData = generateChartData();
   const isDiscrete = parsedPoints.length <= 50;
 
-  // We keep refData as scatter for continuous case
+  // We keep refData as scatter
   const refData = selectedCandidate?.matched_peaks?.map(mp => ({
     twoTheta: mp.refT,
     refIntensity: mp.refI,
-    intensity: null
   })) || [];
+
+  const rawInputData = isDiscrete ? parsedPoints.map(p => ({
+    twoTheta: p.twoTheta,
+    rawIntensity: p.intensity
+  })) : [];
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -641,7 +645,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
           <div className="flex justify-between items-center mb-3 pb-2 border-b border-cyan-500/20">
              <div className="flex items-center gap-2">
                 <Scan className="w-4 h-4 text-cyan-400" />
-                <span className="font-bold text-cyan-400 font-mono tracking-widest uppercase">Target 2θ</span>
+                <span className="font-bold text-cyan-400 font-mono tracking-widest uppercase">Target <span className="bg-cyan-500/20 text-cyan-300 px-1 py-0.5 rounded">2θ</span></span>
              </div>
              <p className="font-black text-white font-mono">{label?.toFixed ? label.toFixed(2) : label}°</p>
           </div>
@@ -988,7 +992,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       <Upload className="w-6 h-6 text-slate-400 group-hover:text-violet-500" />
                     </div>
                     <p className="text-sm font-bold text-slate-600">Drag & drop raw data</p>
-                    <p className="text-xs font-semibold text-slate-400 mt-1">or paste below (2θ, Intensity format)</p>
+                    <p className="text-xs font-semibold text-slate-400 mt-2">or paste below (2θ, Intensity format)</p>
                   </div>
                 )}
                 <textarea
@@ -1005,7 +1009,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               <div className="flex items-center justify-between mt-3 px-1">
                 <div className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider font-black">
                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
-                   Format: <span className="text-slate-500 bg-slate-100 px-1 py-0.5 rounded ml-0.5">2θ</span> , <span className="text-slate-500 bg-slate-100 px-1 py-0.5 rounded">Intensity</span>
+                   Format: <span className="text-cyan-500 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded ml-0.5">2θ (deg)</span> , <span className="text-purple-500 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded">Intensity (a.u.)</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <button 
@@ -1444,7 +1448,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Network Focus</span>
                      </div>
                      <p className="text-[10px] text-slate-400 leading-relaxed font-bold relative z-10">
-                        The <span className="text-white">"{engineConfig.kernelSize}x{engineConfig.kernelSize} Kernel Shift"</span> defines peak receptive field. {engineConfig.multiScale ? <span className="text-indigo-300">Multi-Scale Fusion correlates broad patterns across the 2θ domain.</span> : 'Increase Feature Maps for complex multi-phase disambiguation.'}
+                        The <span className="text-white">"{engineConfig.kernelSize}x{engineConfig.kernelSize} Kernel Shift"</span> defines peak receptive field. {engineConfig.multiScale ? <span className="text-indigo-300">Multi-Scale Fusion correlates broad patterns across the 2θ (deg) domain.</span> : 'Increase Feature Maps for complex multi-phase disambiguation.'}
                      </p>
                      <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-[#1e293b] pt-2 flex items-center justify-between">
                        <span>Optimization</span>
@@ -1463,7 +1467,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Constituents</span>
                      </div>
                      <p className="text-[10px] text-slate-400 leading-relaxed font-bold relative z-10">
-                        Model prioritizes <strong className="text-cyan-300 font-black tracking-wide">2θ Mapping</strong> for d-spacing and <strong className="text-cyan-300 font-black tracking-wide">Relative Int.</strong> ({engineConfig.filters} filters) to decouple overlapping signatures in experimental data.
+                        Model prioritizes <strong className="text-cyan-300 font-black tracking-wide bg-cyan-500/10 px-1 py-0.5 rounded border border-cyan-500/20">2θ (deg) Mapping</strong> for d-spacing and <strong className="text-purple-300 font-black tracking-wide bg-purple-500/10 px-1 py-0.5 rounded border border-purple-500/20">Relative Intensity (a.u.)</strong> ({engineConfig.filters} filters) to decouple overlapping signatures.
                      </p>
                      <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-slate-700/80 pt-2 flex items-center justify-between">
                        <span>Accuracy</span>
@@ -1678,13 +1682,13 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     domain={['dataMin - 1', 'dataMax + 1']} 
                     unit="°" 
                     allowDataOverflow 
-                    name="2θ"
+                    name="2θ (deg)"
                     stroke="#475569"
                     tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace', fontWeight: 'bold' }}
                     tickFormatter={(value) => value.toFixed(1)}
                     dy={10}
                   />
-                  <YAxis hide domain={[0, 'dataMax']} />
+                  <YAxis hide domain={[0, 'dataMax']} name="Intensity (a.u.)" />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(34,211,238,0.05)', stroke: '#22d3ee', strokeWidth: 1.5, strokeDasharray: '4 4' }} />
                   <Legend verticalAlign="top" align="right" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', color: '#94a3b8', fontFamily: 'monospace', top: '-15px', right: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }} />
                   
@@ -1699,30 +1703,38 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   )}
 
                   {/* Input Data */}
-                  {isDiscrete ? (
-                     <Area 
-                       type="stepAfter" 
-                       dataKey="intensity" 
-                       stroke="#3b82f6" 
-                       fill="url(#colorInput)" 
-                       strokeWidth={2}
-                       name="Input Points" 
-                       activeDot={{ r: 4, fill: '#3b82f6', stroke: '#0B1221', strokeWidth: 2 }}
-                     />
-                  ) : (
-                     <Area 
-                       type="monotone" 
-                       dataKey="intensity" 
-                       stroke="#22d3ee" 
-                       fill="url(#colorUv)" 
-                       strokeWidth={2.5}
-                       name="Input Pattern" 
-                       activeDot={{ r: 6, fill: '#22d3ee', stroke: '#050b14', strokeWidth: 2, className: 'drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]' }}
-                     />
+                  <Area 
+                    type="monotone" 
+                    dataKey="intensity" 
+                    stroke="#22d3ee" 
+                    fill="url(#colorUv)" 
+                    strokeWidth={isDiscrete ? 2 : 2.5}
+                    name={isDiscrete ? "Simulated Input Pattern" : "Input Pattern"} 
+                    activeDot={{ r: 6, fill: '#22d3ee', stroke: '#050b14', strokeWidth: 2, className: 'drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]' }}
+                  />
+                  
+                  {/* Discrete Raw Stick Data (if provided as sticks) */}
+                  {isDiscrete && (
+                    <Scatter 
+                      data={rawInputData} 
+                      dataKey="rawIntensity" 
+                      name="Raw Input Sticks" 
+                      fill="#3b82f6"
+                      shape={(props: any) => {
+                        const { cx, cy, yAxis } = props;
+                        const bottomY = yAxis && typeof yAxis.scale === 'function' ? yAxis.scale(0) : cy + 500;
+                        return (
+                          <g className="transition-all duration-300">
+                            <line x1={cx} y1={bottomY} x2={cx} y2={cy} stroke="#60a5fa" strokeWidth={2} strokeOpacity={0.8} />
+                            <circle cx={cx} cy={cy} r={3} fill="#3b82f6" className="drop-shadow-[0_0_5px_rgba(59,130,246,0.8)]" />
+                          </g>
+                        );
+                      }}
+                    />
                   )}
                   
                   {/* Reference Data (Gaussian Simulation Overlay) */}
-                  {isDiscrete && selectedCandidate && (
+                  {selectedCandidate && (
                      <Area 
                        type="monotone" 
                        dataKey="refIntensity" 
@@ -1740,11 +1752,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                      <Area 
                        type="monotone" 
                        dataKey="residual" 
-                       stroke="#f59e0b" 
+                       stroke="none" 
                        fill="url(#colorResid)"
-                       fillOpacity={0.5}
-                       strokeWidth={1.5}
-                       strokeDasharray="2 2"
+                       fillOpacity={0.7}
                        name="Error Limit" 
                      />
                   )}
@@ -1754,7 +1764,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     <Scatter 
                       data={refData} 
                       dataKey="refIntensity" 
-                      name={`${selectedCandidate.phase_name} (Database DB)`} 
+                      name={`${selectedCandidate.phase_name} (Reference DB)`} 
                       fill="#f43f5e"
                       shape={(props: any) => {
                         const { cx, cy, yAxis } = props;
@@ -1780,15 +1790,17 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               <div className="absolute bottom-0 left-0 right-0 h-10 bg-slate-900/90 border-t border-slate-800/80 flex items-center px-6 gap-4 z-10 backdrop-blur-xl">
                 <span className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Spectral Correlation</span>
                 <div className="flex-1 h-2 bg-slate-950 border border-slate-800 rounded-full overflow-hidden flex shadow-inner">
-                  <div 
-                    className={`h-full transition-all duration-1000 ${
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${selectedCandidate.confidence_score}%` }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    className={`h-full ${
                       selectedCandidate.match_quality === 'Excellent' 
                         ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]' 
                         : selectedCandidate.match_quality === 'Good' 
                           ? 'bg-gradient-to-r from-blue-500 to-cyan-400 shadow-[0_0_15px_rgba(59,130,246,0.6)]' 
                           : 'bg-gradient-to-r from-amber-500 to-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.6)]'
                     }`} 
-                    style={{ width: `${selectedCandidate.confidence_score}%` }} 
                   />
                 </div>
                 <span className="text-xs font-mono font-black text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">{selectedCandidate.confidence_score?.toFixed ? selectedCandidate.confidence_score.toFixed(1) : selectedCandidate.confidence_score}%</span>
@@ -2310,7 +2322,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   {[
                      { label: "Lattice Alignment", desc: "Spacing delta < 0.01Å", active: true },
-                     { label: "Relative Intensity", desc: "Profile variance < 5%", active: true },
+                     { label: "Rel. Intensity (a.u.)", desc: "Profile variance < 5%", active: true },
                      { label: "Phase Composition", desc: "Purity bounds verified", active: true },
                   ].map((item, i) => (
                     <label key={`audit-${i}`} className="flex items-start gap-4 bg-[#050B14] p-5 rounded-2xl border border-[#1e293b] hover:border-emerald-500/30 transition-all cursor-pointer group hover:bg-[#080E1A] shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)]">

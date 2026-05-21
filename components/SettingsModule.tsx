@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
+import LanguageSelector from './LanguageSelector';
 
 interface SettingsModuleProps {
   theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave';
@@ -53,10 +54,25 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const [operator, setOperator] = useState(() => {
     try {
       const saved = localStorage.getItem('xrd_user_registration');
-      return saved ? JSON.parse(saved) : { 
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          name: parsed.name || parsed.fullName || 'Ali Zerehsaz',
+          email: parsed.email || 'director@xrd-calc.lab',
+          organization: parsed.organization || parsed.institution || 'Neuro-Analytical Laboratory',
+          clearanceLevel: parsed.clearanceLevel || 'Level 4: Laboratory Director',
+          certifications: parsed.certifications || ['Radiation Safety (RSC-4)', 'High-Volt Diffraction System'],
+          terminalId: parsed.terminalId || 'TRD-982-OMEGA',
+          registeredAt: parsed.registeredAt || new Date().toISOString()
+        };
+      }
+      return { 
         name: 'Ali Zerehsaz', 
         email: 'director@xrd-calc.lab', 
         organization: 'Neuro-Analytical Laboratory',
+        clearanceLevel: 'Level 4: Laboratory Director',
+        certifications: ['Radiation Safety (RSC-4)', 'High-Volt Diffraction System'],
+        terminalId: 'TRD-982-OMEGA',
         registeredAt: new Date().toISOString() 
       };
     } catch {
@@ -64,6 +80,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         name: 'Ali Zerehsaz', 
         email: 'director@xrd-calc.lab', 
         organization: 'Neuro-Analytical Laboratory',
+        clearanceLevel: 'Level 4: Laboratory Director',
+        certifications: ['Radiation Safety (RSC-4)', 'High-Volt Diffraction System'],
+        terminalId: 'TRD-982-OMEGA',
         registeredAt: new Date().toISOString() 
       };
     }
@@ -72,6 +91,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const [idName, setIdName] = useState(operator.name);
   const [idEmail, setIdEmail] = useState(operator.email);
   const [idOrg, setIdOrg] = useState(operator.organization);
+  const [clearanceLevel, setClearanceLevel] = useState(operator.clearanceLevel);
+  const [certifications, setCertifications] = useState<string[]>(operator.certifications);
+  const [terminalId, setTerminalId] = useState(operator.terminalId);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleSaveProfile = (e: React.FormEvent) => {
@@ -79,8 +101,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     const updated = {
       ...operator,
       name: idName,
+      fullName: idName,
       email: idEmail,
-      organization: idOrg
+      organization: idOrg,
+      institution: idOrg,
+      clearanceLevel,
+      certifications,
+      terminalId,
     };
     setOperator(updated);
     localStorage.setItem('xrd_user_registration', JSON.stringify(updated));
@@ -188,56 +215,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                     <Globe className="w-3.5 h-3.5" /> Language Locale
                   </label>
-                  <div className="relative">
-                    <select 
-                      value={i18n.language}
-                      onChange={(e) => {
-                        i18n.changeLanguage(e.target.value);
-                        playSynthTone('switch');
-                      }}
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/10 rounded-[1.2rem] text-sm font-black uppercase italic tracking-tighter outline-none focus:border-indigo-500 transition-all cursor-pointer appearance-none shadow-sm"
-                    >
-                      <option value="en">English (US)</option>
-                      <option value="de">Deutsch (DE)</option>
-                      <option value="fr">Français (FR)</option>
-                      <option value="es">Español (ES)</option>
-                      <option value="it">Italiano (IT)</option>
-                      <option value="nl">Nederlands (NL)</option>
-                      <option value="pt">Português (PT)</option>
-                      <option value="pl">Polski (PL)</option>
-                      <option value="hu">Magyar (HU)</option>
-                      <option value="ru">Русский (RU)</option>
-                      <option value="uk">Українська (UK)</option>
-                      <option value="tr">Türkçe (TR)</option>
-                      <option value="ja">日本語 (JA)</option>
-                      <option value="zh">简体中文 (ZH)</option>
-                      <option value="ko">한국어 (KO)</option>
-                      <option value="hi">हिन्दी (HI)</option>
-                      <option value="bn">বাংলা (BN)</option>
-                      <option value="ar">العربية (AR)</option>
-                      <option value="fa">فارسی (FA)</option>
-                      <option value="he">עברית (HE)</option>
-                      <option value="vi">Tiếng Việt (VI)</option>
-                      <option value="id">Bahasa Indonesia (ID)</option>
-                      <option value="ms">Bahasa Melayu (MS)</option>
-                      <option value="th">ไทย (TH)</option>
-                      <option value="sv">Svenska (SV)</option>
-                      <option value="da">Dansk (DA)</option>
-                      <option value="no">Norsk (NO)</option>
-                      <option value="fi">Suomi (FI)</option>
-                      <option value="cs">Čeština (CS)</option>
-                      <option value="sk">Slovenčina (SK)</option>
-                      <option value="ro">Română (RO)</option>
-                      <option value="bg">Български (BG)</option>
-                      <option value="el">Ελληνικά (EL)</option>
-                      <option value="hr">Hrvatski (HR)</option>
-                      <option value="sr">Српски (SR)</option>
-                      <option value="sl">Slovenščina (SL)</option>
-                      <option value="ca">Català (CA)</option>
-                    </select>
-                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                      <Languages className="w-5 h-5" />
-                    </div>
+                  <div>
+                    <LanguageSelector onLanguageChange={() => playSynthTone('switch')} />
                   </div>
                 </div>
 
@@ -321,14 +300,18 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                  <Wrench className="w-6 h-6" />
                </div>
                <div>
-                 <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Instrument Calibration</h3>
-                 <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Define mechanical alignment corrections and default radiation parameters</p>
+                 <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Mechanical Alignment & Radiation Parameters</h3>
+                 <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Specify precise goniometer geometries, mechanical offsets, and x-ray source parameters</p>
                </div>
              </div>
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                
                <div className="space-y-6">
+                  <div className="border-b border-slate-100 dark:border-white/5 pb-2 mb-4">
+                    <h5 className="text-[11px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Mechanical Alignment Corrections</h5>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mt-1">Specimen offsets and physical circle goniometer alignments</p>
+                  </div>
                  {/* Zero Shift Correction */}
                  <div className="space-y-2">
                    <div className="flex justify-between">
@@ -418,6 +401,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                </div>
 
                <div className="space-y-6">
+                  <div className="border-b border-slate-100 dark:border-white/5 pb-2.5 mb-4">
+                    <h5 className="text-[11px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Default Radiation Parameters</h5>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mt-1">X-ray source material and specific emission wavelengths</p>
+                  </div>
                  {/* Default Radiation Wavelength Selector */}
                  <div className="space-y-3">
                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
@@ -463,89 +450,304 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           </section>
 
           {/* Section 3: Operator Identity & Profile Synchronization */}
-          <section className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl relative">
+          <section className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 blur-[120px] rounded-full -mr-40 -mt-40 pointer-events-none" />
+             
              <div className="flex items-center gap-4 mb-8">
                <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 border border-indigo-500/20">
                  <User className="w-6 h-6" />
                </div>
                <div>
-                 <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Operator Identity & Lab Clearance</h3>
-                 <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Integrate user profiles, certificates, and metadata properties</p>
+                  <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Operator Identity & Lab Clearance</h3>
+                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Integrate user profiles, active certificates, and metadata properties</p>
                </div>
              </div>
 
-             <form onSubmit={handleSaveProfile} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Operator Name */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      Operator / Researcher Name
-                    </label>
-                    <input 
-                      type="text"
-                      required
-                      value={idName}
-                      onChange={(e) => setIdName(e.target.value)}
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all shadow-inner"
-                      placeholder="e.g. Dr. Jane Smith"
-                    />
-                  </div>
+             <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+               {/* Advanced Form */}
+               <form onSubmit={handleSaveProfile} className="xl:col-span-7 space-y-6">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                   
+                   {/* Operator Name */}
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                       Operator / Researcher Name
+                     </label>
+                     <input 
+                       type="text"
+                       required
+                       value={idName || ''}
+                       onChange={(e) => setIdName(e.target.value)}
+                       className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all font-mono"
+                       placeholder="e.g. Dr. Eleanor Vance"
+                     />
+                   </div>
 
-                  {/* Registered Email */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      Security Terminal Registered Email
-                    </label>
-                    <input 
-                      type="email"
-                      required
-                      value={idEmail}
-                      onChange={(e) => setIdEmail(e.target.value)}
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all shadow-inner"
-                      placeholder="e.g. chemist@university.edu"
-                    />
-                  </div>
+                   {/* Registered Email */}
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                       Registered Lab Email
+                     </label>
+                     <input 
+                       type="email"
+                       required
+                       value={idEmail || ''}
+                       onChange={(e) => setIdEmail(e.target.value)}
+                       className="w-full p-3.5 bg-slate-55 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all font-mono"
+                       placeholder="e.g. chemist@university.edu"
+                     />
+                   </div>
 
-                  {/* Organization/Institute */}
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      Laboratory / Center / Institution affiliation
-                    </label>
-                    <input 
-                      type="text"
-                      required
-                      value={idOrg}
-                      onChange={(e) => setIdOrg(e.target.value)}
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all shadow-inner"
-                      placeholder="e.g. Neuro-Analytical Physics Center"
-                    />
-                  </div>
-                </div>
+                   {/* Organization/Institute */}
+                   <div className="space-y-1.5 md:col-span-2">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                       Affiliation / Institution / Lab Center
+                     </label>
+                     <input 
+                       type="text"
+                       required
+                       value={idOrg || ''}
+                       onChange={(e) => setIdOrg(e.target.value)}
+                       className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all font-mono"
+                       placeholder="e.g. Neuro-Analytical Physics Center"
+                     />
+                   </div>
 
-                <div className="flex items-center justify-between pt-4">
-                  <div className="flex items-center gap-2">
-                    <AnimatePresence>
-                      {saveSuccess && (
-                        <motion.div 
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-widest rounded-full"
-                        >
-                          <Check className="w-3.5 h-3.5" /> {t('Saved successfully', 'Saved successfully')}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                  
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-lg shadow-indigo-600/20 transition-all cursor-pointer"
-                  >
-                    <Save className="w-4 h-4" /> Save Identification Records
-                  </button>
-                </div>
-             </form>
+                   {/* Lab Clearance Level */}
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                       Terminal Clearance Level
+                     </label>
+                     <select
+                       value={clearanceLevel}
+                       onChange={(e) => {
+                         setClearanceLevel(e.target.value);
+                         playSynthTone('tick');
+                       }}
+                       className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all select-none"
+                     >
+                       <option value="Level 4: Laboratory Director">Level 4: Laboratory Director (L4-DIR)</option>
+                       <option value="Level 3: Lead Crystallographer">Level 3: Lead Crystallographer (L3-CRYST)</option>
+                       <option value="Level 2: Research Associate">Level 2: Research Associate (L2-ASSOC)</option>
+                       <option value="Level 1: Undergrad Assistant">Level 1: Undergrad Assistant (L1-ASST)</option>
+                     </select>
+                   </div>
+
+                   {/* Terminal ID */}
+                   <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                       Station node ID
+                     </label>
+                     <div className="flex gap-2">
+                       <input 
+                         type="text"
+                         required
+                         value={terminalId}
+                         onChange={(e) => setTerminalId(e.target.value)}
+                         className="flex-1 p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all"
+                       />
+                       <button
+                         type="button"
+                         onClick={() => {
+                           const num = Math.floor(100 + Math.random() * 900);
+                           const suffix = ['ALPHA', 'BETA', 'GAMMA', 'OMEGA', 'SIGMA', 'X-RAY'][Math.floor(Math.random() * 6)];
+                           setTerminalId(`TRD-${num}-${suffix}`);
+                           playSynthTone('success');
+                         }}
+                         className="px-3.5 bg-indigo-50/50 dark:bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-200 dark:border-indigo-500/20 text-[10px] font-black uppercase tracking-wider transition-all"
+                       >
+                         Gen
+                       </button>
+                     </div>
+                   </div>
+
+                   {/* Certifications Selection */}
+                   <div className="space-y-3 md:col-span-2 pt-2">
+                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">
+                       Authorized Safety & Lab Certifications
+                     </label>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                       {[
+                         'Radiation Safety (RSC-4)',
+                         'High-Volt Diffraction System',
+                         'Diffraction Grid Calibration',
+                         'Class 4 Laser Operation',
+                         'Chemical Hazard Handling',
+                         'Neutron Beam Authorization'
+                       ].map((cert) => {
+                         const active = certifications.includes(cert);
+                         return (
+                           <button
+                             key={cert}
+                             type="button"
+                             onClick={() => {
+                               if (certifications.includes(cert)) {
+                                 setCertifications(certifications.filter(c => c !== cert));
+                               } else {
+                                 setCertifications([...certifications, cert]);
+                               }
+                               playSynthTone('tick');
+                             }}
+                             className={`p-3 text-left rounded-xl border text-xs font-bold transition-all flex items-center justify-between ${
+                               active 
+                                 ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                 : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/10'
+                             }`}
+                           >
+                             <span>{cert}</span>
+                             <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
+                               active ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-slate-300 dark:border-white/20'
+                             }`}>
+                               {active && <Check className="w-2.5 h-2.5 stroke-[4]" />}
+                             </div>
+                           </button>
+                         );
+                       })}
+                     </div>
+                   </div>
+                 </div>
+
+                 <div className="flex items-center justify-between pt-4">
+                   <div className="flex items-center gap-2">
+                     <AnimatePresence>
+                       {saveSuccess && (
+                         <motion.div 
+                           initial={{ opacity: 0, scale: 0.8 }}
+                           animate={{ opacity: 1, scale: 1 }}
+                           exit={{ opacity: 0, scale: 0.8 }}
+                           className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black uppercase tracking-widest rounded-full"
+                         >
+                           <Check className="w-3.5 h-3.5" /> {t('Saved successfully', 'Saved successfully')}
+                         </motion.div>
+                       )}
+                     </AnimatePresence>
+                   </div>
+                   
+                   <button
+                     type="submit"
+                     className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-lg shadow-indigo-600/20 transition-all cursor-pointer"
+                   >
+                     <Save className="w-4 h-4" /> Save Identification Records
+                   </button>
+                 </div>
+               </form>
+
+               {/* Live holographic ID Badge Panel */}
+               <div className="xl:col-span-12 lg:xl:col-span-5 flex flex-col items-center pt-2 w-full">
+                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-3 block">Live Clearance Certificate ID</span>
+                 
+                 {/* Cyber Badge */}
+                 <div className="bg-slate-950 text-white border-2 border-indigo-500/30 rounded-[2.5rem] p-6 w-full max-w-[340px] shadow-[0_0_50px_rgba(79,70,229,0.12)] relative overflow-hidden flex flex-col font-mono">
+                   
+                   {/* Badge top clip slot */}
+                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-slate-900 border-b border-x border-indigo-500/30 rounded-b-xl flex items-center justify-center">
+                     <div className="w-8 h-1.5 bg-black rounded-full" />
+                   </div>
+
+                   {/* Background laser sweeping animation line */}
+                   <div className="absolute inset-x-0 h-[1.5px] bg-indigo-500/50 shadow-[0_0_10px_#4f46e5] animate-pulse pointer-events-none top-1/3" />
+
+                   {/* Holographic glowing orbs */}
+                   <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-blue-500/5 blur-[50px] rounded-full pointer-events-none" />
+                   <div className="absolute -top-16 -right-16 w-36 h-36 bg-indigo-500/5 blur-[50px] rounded-full pointer-events-none" />
+
+                   {/* Smart Gold Contact Chip */}
+                   <div className="flex justify-between items-start mt-2 mb-4">
+                     <div className="flex flex-col">
+                       <span className="text-[8px] font-bold text-slate-50 tracking-wider">NEURO-ANALYTICAL LABS</span>
+                       <span className="text-[6.5px] text-indigo-400/80 font-black">CORE DIFFRACTION UNIT</span>
+                     </div>
+                     <div className="w-8 h-6 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 rounded-sm border border-amber-600/30 relative p-1 overflow-hidden shrink-0">
+                       <div className="grid grid-cols-3 gap-0.5 w-full h-full opacity-60">
+                         <div className="border border-amber-700/40 rounded-sm" />
+                         <div className="border border-amber-700/40 rounded-sm" />
+                         <div className="border border-amber-700/40 rounded-sm" />
+                         <div className="border border-amber-700/40 rounded-sm" />
+                         <div className="border border-amber-700/40 rounded-sm" />
+                         <div className="border border-amber-700/40 rounded-sm" />
+                       </div>
+                     </div>
+                   </div>
+
+                   {/* Avatar and details */}
+                   <div className="flex gap-4 items-center mb-5">
+                     <div className="w-16 h-16 rounded-xl bg-slate-900 border border-indigo-500/20 relative flex items-center justify-center overflow-hidden shrink-0">
+                       <User className="w-8 h-8 text-indigo-400 opacity-60" />
+                       <div className="absolute inset-x-0 h-0.5 bg-cyan-400/70 shadow-[0_0_8px_#22d3ee] animate-bounce pointer-events-none top-0" />
+                     </div>
+                     <div className="min-w-0 flex-1">
+                       <div className="text-[11px] font-black text-slate-100 truncate uppercase tracking-tighter">
+                         {idName || "Unregistered Operator"}
+                       </div>
+                       <div className="text-[7.5px] text-slate-400 truncate mt-0.5">
+                         {idEmail || "no-contact@xrd.id"}
+                       </div>
+                       <div className="mt-1.5 flex items-center gap-1">
+                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                         <span className="text-[7.5px] text-emerald-400/90 font-black tracking-widest uppercase">
+                           Clearance Active
+                         </span>
+                       </div>
+                     </div>
+                   </div>
+
+                   {/* Metadata lines */}
+                   <div className="space-y-2 text-[8px] text-slate-300 border-t border-b border-indigo-500/10 py-3 uppercase tracking-wider">
+                     <div className="flex justify-between">
+                       <span className="text-slate-500">Node ID</span>
+                       <span className="text-yellow-400 font-bold">{terminalId}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="text-slate-500">Institution</span>
+                       <span className="text-slate-300 truncate max-w-[170px]" title={idOrg}>{idOrg || "N/A"}</span>
+                     </div>
+                     <div className="flex justify-between">
+                       <span className="text-slate-500">Authority</span>
+                       <span className="text-indigo-400 font-bold">{clearanceLevel}</span>
+                     </div>
+                   </div>
+
+                   {/* Verified badges */}
+                   <div className="mt-3.5 space-y-1.5">
+                     <span className="text-[7px] text-slate-500 block uppercase tracking-widest font-black">Verified Credentials:</span>
+                     <div className="flex flex-wrap gap-1 leading-none max-h-[50px] overflow-y-auto pr-1">
+                       {certifications.length > 0 ? (
+                         certifications.map((c) => (
+                           <span key={c} className="text-[6px] px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 uppercase shrink-0">
+                             {c.replace(/\s*\(.*\)/g, '')}
+                           </span>
+                         ))
+                       ) : (
+                         <span className="text-[6.5px] italic text-slate-500 font-bold">No active safety clearance</span>
+                       )}
+                     </div>
+                   </div>
+
+                   {/* Barcode representation */}
+                   <div className="mt-5 pt-3.5 border-t border-indigo-500/10 flex items-center justify-between gap-4">
+                     <div className="flex items-center gap-0.5 h-6 bg-transparent">
+                       <div className="w-0.5 h-full bg-slate-400" />
+                       <div className="w-0.5 h-full bg-slate-400" />
+                       <div className="w-1.5 h-full bg-slate-400" />
+                       <div className="w-0.5 h-full bg-transparent" />
+                       <div className="w-1 h-full bg-slate-400" />
+                       <div className="w-0.5 h-full bg-slate-400" />
+                       <div className="w-0.5 h-full bg-transparent" />
+                       <div className="w-2 h-full bg-slate-400" />
+                       <div className="w-0.5 h-full bg-slate-400" />
+                       <div className="w-1 h-full bg-slate-400" />
+                       <div className="w-0.5 h-full bg-transparent" />
+                       <div className="w-0.5 h-full bg-slate-400" />
+                       <div className="w-1.5 h-full bg-slate-400" />
+                     </div>
+                     <span className="text-[6px] text-slate-500 text-right leading-tight select-none">
+                       SUITE V2.5<br />
+                       SYS SYNC LATER
+                     </span>
+                   </div>
+                 </div>
+               </div>
+             </div>
           </section>
         </div>
 

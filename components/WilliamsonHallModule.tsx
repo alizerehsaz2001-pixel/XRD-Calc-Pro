@@ -70,6 +70,16 @@ const MODULUS_PRESETS = [
   { name: 'PMMA Polymeric Glass', value: 3.2, desc: 'Amorphous thermo-plastic polymer network' }
 ];
 
+const EMISSION_LINES: Record<string, { name: string; avg: number; a1: number; a2: number; beta: number; energy: number; description: string }> = {
+  Cu: { name: 'Copper (Cu)', avg: 1.54184, a1: 1.54056, a2: 1.54439, beta: 1.39225, energy: 8.048, description: 'Standard laboratory anode for general structural XRD' },
+  Mo: { name: 'Molybdenum (Mo)', avg: 0.71073, a1: 0.70930, a2: 0.71359, beta: 0.63229, energy: 17.479, description: 'Ideal for deeply penetrating metallic alloys & high-pressure cells' },
+  Co: { name: 'Cobalt (Co)', avg: 1.79026, a1: 1.78897, a2: 1.79285, beta: 1.62079, energy: 6.930, description: 'Prevents Fe-fluorescence; perfect for iron-rich materials & mineralogy' },
+  Cr: { name: 'Chromium (Cr)', avg: 2.29100, a1: 2.28970, a2: 2.29361, beta: 2.08487, energy: 5.415, description: 'Long wavelength; high resolution for macromolecular & thin-film strain' },
+  Fe: { name: 'Iron (Fe)', avg: 1.93735, a1: 1.93604, a2: 1.93998, beta: 1.75661, energy: 6.404, description: 'Used for specialized soft magnetic and biological oxide patterns' },
+  Ag: { name: 'Silver (Ag)', avg: 0.56088, a1: 0.55941, a2: 0.56381, beta: 0.49707, energy: 22.163, description: 'High energy; reduces absorption and probes deeper crystalline bulk' },
+  W:  { name: 'Tungsten (W)', avg: 0.21062, a1: 0.20901, a2: 0.21385, beta: 0.18437, energy: 59.318, description: 'Continuous spectrum source or extreme energetic K-edge profiling' }
+};
+
 export const WilliamsonHallModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
@@ -85,6 +95,80 @@ export const WilliamsonHallModule: React.FC = () => {
   const [result, setResult] = useState<WHResult | null>(null);
   const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
+
+  // Advanced Wavelength Estimator States
+  const [isWaveEstimatorOpen, setIsWaveEstimatorOpen] = useState(false);
+  const [waveSourceType, setWaveSourceType] = useState<'lab' | 'synchrotron'>('lab');
+  const [selectedAnode, setSelectedAnode] = useState<string>('Cu');
+  const [selectedLine, setSelectedLine] = useState<'avg' | 'a1' | 'a2' | 'beta'>('a1');
+  const [synchrotronEnergy, setSynchrotronEnergy] = useState<number>(15.0);
+
+  // Dynamic estimated wavelength calculation
+  const calculatedWavelength = React.useMemo(() => {
+    if (waveSourceType === 'lab') {
+      const info = EMISSION_LINES[selectedAnode];
+      if (info) {
+        if (selectedLine === 'avg') return info.avg;
+        if (selectedLine === 'a1') return info.a1;
+        if (selectedLine === 'a2') return info.a2;
+        if (selectedLine === 'beta') return info.beta;
+      }
+      return 1.54056;
+    } else {
+      // synch energy formula: lambda = 12.39842 / E
+      const E = Math.max(0.1, synchrotronEnergy);
+      return parseFloat((12.39842 / E).toFixed(6));
+    }
+  }, [waveSourceType, selectedAnode, selectedLine, synchrotronEnergy]);
+
+  // Advanced Shape Factor (K) Estimator States
+  const [isKEstimatorOpen, setIsKEstimatorOpen] = useState(false);
+  const [estHabit, setEstHabit] = useState<'cubic' | 'cylindrical' | 'spheroid'>('cubic');
+  const [cubicHKL, setCubicHKL] = useState<'100' | '110' | '111' | 'octahedral' | 'tetrahedral'>('100');
+  const [cylinderAspect, setCylinderAspect] = useState<number>(2.0);
+  const [cylinderOrientation, setCylinderOrientation] = useState<'axial' | 'radial'>('axial');
+  const [spheroidEccentricity, setSpheroidEccentricity] = useState<number>(0.5);
+  const [breadthDef, setBreadthDef] = useState<'fwhm' | 'ib'>('fwhm');
+
+  // Dynamically calculate K based on morphology parameters
+  const calculatedK = React.useMemo(() => {
+    if (estHabit === 'cubic') {
+      if (breadthDef === 'fwhm') {
+        switch (cubicHKL) {
+          case '100': return 0.943;
+          case '110': return 0.812;
+          case '111': return 0.844;
+          case 'octahedral': return 0.940;
+          case 'tetrahedral': return 0.730;
+          default: return 0.900;
+        }
+      } else { // Integral Breadth
+        switch (cubicHKL) {
+          case '100': return 1.000;
+          case '110': return 1.061;
+          case '111': return 1.155;
+          case 'octahedral': return 1.060;
+          case 'tetrahedral': return 1.390;
+          default: return 1.000;
+        }
+      }
+    } else if (estHabit === 'cylindrical') {
+      const R = Math.max(0.01, cylinderAspect);
+      if (cylinderOrientation === 'axial') {
+        const val = 0.9 + 0.1 * Math.log(R);
+        return parseFloat(Math.min(1.3, Math.max(0.85, val)).toFixed(3));
+      } else {
+        const val = 0.9 / (1 + 0.05 * Math.log(R));
+        return parseFloat(Math.min(1.1, Math.max(0.75, val)).toFixed(3));
+      }
+    } else if (estHabit === 'spheroid') {
+      const e = Math.min(0.99, Math.max(0.01, spheroidEccentricity));
+      const sphereBase = breadthDef === 'fwhm' ? 0.94 : 1.077;
+      const val = sphereBase + 0.15 * e;
+      return parseFloat(Math.min(1.25, Math.max(0.75, val)).toFixed(3));
+    }
+    return 0.900;
+  }, [estHabit, cubicHKL, cylinderAspect, cylinderOrientation, spheroidEccentricity, breadthDef]);
 
   // Ref for clicking outside
   const kMenuRef = useRef<HTMLDivElement>(null);
@@ -207,9 +291,16 @@ export const WilliamsonHallModule: React.FC = () => {
           <div className="space-y-6 relative z-10">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-colors relative overflow-hidden group/wave">
-                <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">
-                  Wavelength (Å)
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                    Wavelength (Å)
+                  </label>
+                  {wavelength > 0 && (
+                    <span className="text-[9px] font-mono text-cyan-400 font-bold">
+                      ~{(12.39842 / wavelength).toFixed(2)} keV
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <input
                     type="number"
@@ -236,6 +327,144 @@ export const WilliamsonHallModule: React.FC = () => {
                     </button>
                   ))}
                 </div>
+
+                {/* Advanced Source & Energy Estimator */}
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsWaveEstimatorOpen(!isWaveEstimatorOpen)}
+                    className="w-full py-2 px-3 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-[10px] font-black uppercase tracking-wider border border-cyan-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Binary className="w-3.5 h-3.5" />
+                    {isWaveEstimatorOpen ? 'Hide Estimator' : '🔬 Source & Energy (keV) Estimator'}
+                  </button>
+                </div>
+
+                {isWaveEstimatorOpen && (
+                  <div className="overflow-hidden mt-3 space-y-3 pt-3 border-t border-white/5 text-[10px]">
+                    {/* Source Type Toggle */}
+                    <div className="space-y-1">
+                      <span className="text-slate-500 uppercase font-black text-[9px] tracking-wider block">Source Tech</span>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setWaveSourceType('lab')}
+                          className={`py-1 px-2 rounded font-black uppercase tracking-wider border text-[8px] transition-all ${waveSourceType === 'lab' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300' : 'bg-black/20 border-white/5 text-slate-500'}`}
+                        >
+                          Lab X-Ray Tube
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setWaveSourceType('synchrotron')}
+                          className={`py-1 px-2 rounded font-black uppercase tracking-wider border text-[8px] transition-all ${waveSourceType === 'synchrotron' ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300' : 'bg-black/20 border-white/5 text-slate-500'}`}
+                        >
+                          Synchrotron / Tunable
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Lab Options */}
+                    {waveSourceType === 'lab' ? (
+                      <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-3">
+                        {/* Target Anode selection */}
+                        <div>
+                          <span className="text-slate-500 uppercase font-bold text-[8px] tracking-wider block mb-1">Anode Material</span>
+                          <div className="grid grid-cols-4 gap-1">
+                            {Object.keys(EMISSION_LINES).map(anode => (
+                              <button
+                                key={anode}
+                                type="button"
+                                onClick={() => setSelectedAnode(anode)}
+                                className={`py-1 rounded border font-mono text-[8px] transition-all ${selectedAnode === anode ? 'bg-cyan-500/30 border-cyan-500/40 text-cyan-400 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                              >
+                                {anode}
+                              </button>
+                            ))}
+                          </div>
+                          {EMISSION_LINES[selectedAnode] && (
+                            <p className="text-[8px] text-slate-500 font-sans mt-1.5 block leading-normal">
+                              <strong>{EMISSION_LINES[selectedAnode].name}</strong>: {EMISSION_LINES[selectedAnode].description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Spectral lines selection */}
+                        <div>
+                          <span className="text-slate-500 uppercase font-bold text-[8px] tracking-wider block mb-1">Spectral Line / Doublet Selection</span>
+                          <div className="grid grid-cols-2 gap-1 mb-1">
+                            {(['a1', 'avg'] as const).map(line => (
+                              <button
+                                key={line}
+                                type="button"
+                                onClick={() => setSelectedLine(line)}
+                                className={`py-1 rounded border text-[8px] font-black uppercase transition-all ${selectedLine === line ? 'bg-cyan-500/30 border-cyan-500/40 text-cyan-400 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                              >
+                                {line === 'a1' ? 'Kα1 Line' : 'Weighted Kα Avg'}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            {(['a2', 'beta'] as const).map(line => (
+                              <button
+                                key={line}
+                                type="button"
+                                onClick={() => setSelectedLine(line)}
+                                className={`py-1 rounded border text-[8px] font-black uppercase transition-all ${selectedLine === line ? 'bg-cyan-500/30 border-cyan-500/40 text-cyan-400 font-bold' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                              >
+                                {line === 'a2' ? 'Kα2 Line' : 'Kβ1 Line'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Synchrotron / Tunable Options */
+                      <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-3">
+                        <div>
+                          <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 mb-1">
+                            <span className="uppercase font-semibold">Incident Photon Energy (keV)</span>
+                            <span className="font-mono text-cyan-400">{synchrotronEnergy.toFixed(2)} keV</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="1.0"
+                            max="100.0"
+                            step="0.1"
+                            value={synchrotronEnergy}
+                            onChange={(e) => setSynchrotronEnergy(parseFloat(e.target.value))}
+                            className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-500"
+                          />
+                          <div className="mt-2 text-[8px] text-slate-500 font-sans flex justify-between font-mono">
+                            <span>1.0 keV</span>
+                            <span>50.0 keV</span>
+                            <span>100.0 keV</span>
+                          </div>
+                        </div>
+                        <p className="text-[8px] text-slate-500 italic mt-1 font-mono leading-normal">
+                          Computed wavelength uses the relativistic wave equation: λ(Å) = hc / E ≈ 12.39842 / E_keV.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Result and Apply */}
+                    <div className="bg-cyan-500/10 p-2 text-cyan-300 rounded-lg border border-cyan-500/20 flex items-center justify-between gap-2 font-mono">
+                      <div>
+                        <span className="block text-[7px] text-slate-500 uppercase font-black">Computed λ</span>
+                        <span className="text-xs font-black text-cyan-400 tracking-wider">λ = {calculatedWavelength.toFixed(5)} Å</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWavelength(calculatedWavelength);
+                          setIsWaveEstimatorOpen(false);
+                        }}
+                        className="py-1 px-2.5 bg-cyan-500 hover:bg-cyan-400 text-white font-black uppercase text-[8px] rounded transition-transform active:scale-95 cursor-pointer"
+                      >
+                        Apply λ
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 hover:border-rose-500/30 transition-colors relative">
@@ -310,6 +539,183 @@ export const WilliamsonHallModule: React.FC = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Dynamic Crystal Shape and hkl Estimator */}
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsKEstimatorOpen(!isKEstimatorOpen)}
+                      className="w-full py-2 px-3 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-[10px] font-black uppercase tracking-wider border border-rose-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Atom className="w-3.5 h-3.5" />
+                      {isKEstimatorOpen ? 'Hide Estimator' : '🔬 Crystal Shape & hkl Estimator'}
+                    </button>
+                  </div>
+
+                  {isKEstimatorOpen && (
+                    <div className="overflow-hidden mt-3 space-y-3 pt-3 border-t border-white/5 text-[10px]">
+                      {/* Width Definition */}
+                      <div className="space-y-1">
+                        <span className="text-slate-500 uppercase font-black text-[9px] tracking-wider block">Width Definition</span>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setBreadthDef('fwhm')}
+                            className={`py-1 px-2 rounded font-black uppercase tracking-wider border text-[8px] transition-all ${breadthDef === 'fwhm' ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' : 'bg-black/20 border-white/5 text-slate-500'}`}
+                          >
+                            FWHM-based
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBreadthDef('ib')}
+                            className={`py-1 px-2 rounded font-black uppercase tracking-wider border text-[8px] transition-all ${breadthDef === 'ib' ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' : 'bg-black/20 border-white/5 text-slate-500'}`}
+                          >
+                            Integral Breadth
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Presets by Habit */}
+                      <div className="space-y-1">
+                        <span className="text-slate-500 uppercase font-black text-[9px] tracking-wider block">Crystallite Shape Habit</span>
+                        <div className="grid grid-cols-3 gap-1">
+                          {(['cubic', 'cylindrical', 'spheroid'] as const).map(hab => (
+                            <button
+                              key={hab}
+                              type="button"
+                              onClick={() => setEstHabit(hab)}
+                              className={`py-1 px-1 rounded border text-[8px] font-black uppercase tracking-tight transition-all truncate ${estHabit === hab ? 'bg-rose-500/20 border-rose-500/50 text-rose-300' : 'bg-black/20 border-white/10 text-slate-500'}`}
+                            >
+                              {hab}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Cubic detail options */}
+                      {estHabit === 'cubic' && (
+                        <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-2">
+                          <div>
+                            <span className="text-slate-500 uppercase font-bold text-[8px] tracking-wider block mb-1">Cubic Plane Index (hkl)</span>
+                            <div className="grid grid-cols-3 gap-1 mb-2">
+                              {(['100', '110', '111'] as const).map(hkl => (
+                                <button
+                                  key={hkl}
+                                  type="button"
+                                  onClick={() => setCubicHKL(hkl)}
+                                  className={`py-1 rounded border font-mono text-[8px] transition-all ${cubicHKL === hkl ? 'bg-rose-500/30 border-rose-500/40 text-rose-400' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                                >
+                                  [{hkl}]
+                                </button>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-2 gap-1">
+                              {(['octahedral', 'tetrahedral'] as const).map(shape => (
+                                <button
+                                  key={shape}
+                                  type="button"
+                                  onClick={() => setCubicHKL(shape)}
+                                  className={`py-1 rounded border font-mono text-[8px] capitalize transition-all ${cubicHKL === shape ? 'bg-rose-500/30 border-rose-500/40 text-rose-400' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                                >
+                                  {shape}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[8px] text-slate-500 italic mt-1 font-mono">
+                            Factors computed via projection integrals over standard polyhedral geometry relative to the diffracting planes.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Cylindrical Habit options */}
+                      {estHabit === 'cylindrical' && (
+                        <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-2">
+                          <div>
+                            <span className="text-slate-500 uppercase font-bold text-[8px] tracking-wider block mb-1">Plane Orientation</span>
+                            <div className="grid grid-cols-2 gap-1.5 mb-2">
+                              <button
+                                type="button"
+                                onClick={() => setCylinderOrientation('axial')}
+                                className={`py-1 rounded border text-[8px] font-black uppercase transition-all ${cylinderOrientation === 'axial' ? 'bg-rose-500/30 border-rose-500/40 text-rose-400' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                              >
+                                Longitudinal (Axial L)
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCylinderOrientation('radial')}
+                                className={`py-1 rounded border text-[8px] font-black uppercase transition-all ${cylinderOrientation === 'radial' ? 'bg-rose-500/30 border-rose-500/40 text-rose-400' : 'bg-[#0A101C] border-none text-slate-500'}`}
+                              >
+                                Transverse (Radial D)
+                              </button>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 mb-1">
+                              <span className="uppercase font-semibold">Aspect Ratio (Length / Diam)</span>
+                              <span className="font-mono text-rose-400">{cylinderAspect.toFixed(1)}</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0.1"
+                              max="15"
+                              step="0.1"
+                              value={cylinderAspect}
+                              onChange={(e) => setCylinderAspect(parseFloat(e.target.value))}
+                              className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-rose-500"
+                            />
+                          </div>
+                          <p className="text-[8px] text-slate-500 italic font-mono">
+                            Useful for anisotropic structures such as flat disks/platelets or long nanowires.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Spheroid option */}
+                      {estHabit === 'spheroid' && (
+                        <div className="bg-black/40 p-2.5 rounded-lg border border-white/5 space-y-2">
+                          <div>
+                            <div className="flex justify-between items-center text-[8px] font-bold text-slate-400 mb-1">
+                              <span className="uppercase font-semibold">Eccentricity (e-deviation)</span>
+                              <span className="font-mono text-rose-400">{spheroidEccentricity.toFixed(2)}</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="0.99"
+                              step="0.01"
+                              value={spheroidEccentricity}
+                              onChange={(e) => setSpheroidEccentricity(parseFloat(e.target.value))}
+                              className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-rose-500"
+                            />
+                          </div>
+                          <p className="text-[8px] text-slate-500 italic font-mono">
+                            Prolate/oblate ellipsoid elongation scales effective peak width parameters. At e = 0, symmetric sphere value is utilized.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Display computations and Apply button */}
+                      <div className="bg-rose-500/10 p-2 text-rose-300 rounded-lg border border-rose-500/20 flex items-center justify-between gap-2 font-mono">
+                        <div>
+                          <span className="block text-[7px] text-slate-500 uppercase font-black">Calculated Shape Factor</span>
+                          <span className="text-xs font-black text-rose-400 tracking-wider">K = {calculatedK.toFixed(3)}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConstantK(calculatedK);
+                            setSelectedKType(`Estimated (${calculatedK.toFixed(3)})`);
+                            setIsKEstimatorOpen(false);
+                          }}
+                          className="py-1 px-2.5 bg-rose-500 hover:bg-rose-400 text-white font-black uppercase text-[8px] rounded transition-transform active:scale-95 cursor-pointer"
+                        >
+                          Apply K
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

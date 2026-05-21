@@ -117,6 +117,18 @@ export const FWHMModule: React.FC = () => {
 
   const analysis = analyzeProfile();
 
+  useEffect(() => {
+    localStorage.setItem('xrd_fwhm_current', JSON.stringify({
+      type,
+      center,
+      fwhm,
+      eta,
+      amplitude,
+      stats,
+      analysis
+    }));
+  }, [type, center, fwhm, eta, amplitude, stats, analysis]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Configuration Sidebar */}

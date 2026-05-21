@@ -124,6 +124,15 @@ export const WarrenAverbachModule: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isThinking, setIsThinking] = useState<boolean>(false);
 
+  const [isDEstimatorOpen, setIsDEstimatorOpen] = useState(false);
+  const [calcMode, setCalcMode] = useState<'bragg' | 'bragghkl'>('bragg');
+  const [calcLambda, setCalcLambda] = useState(1.5406);
+  const [calc2Theta1, setCalc2Theta1] = useState(38.18); // Gold 111 example
+  const [calc2Theta2, setCalc2Theta2] = useState(81.72);
+  const [calcLatticeA, setCalcLatticeA] = useState(4.078);
+  const [calcHKL1, setCalcHKL1] = useState('1 1 1');
+  const [calcHKL2, setCalcHKL2] = useState('2 2 2');
+
   const loadTestData = (type: 'high-strain' | 'large-size') => {
     if (type === 'high-strain') {
       setInputData(`# L[nm], A(d1), A(d2)\n1, 0.96, 0.75\n2, 0.92, 0.60\n3, 0.88, 0.45\n4, 0.84, 0.35\n5, 0.80, 0.25\n6, 0.77, 0.18\n8, 0.71, 0.08\n10, 0.65, 0.03\n15, 0.50, 0.01\n20, 0.35, 0.00`);
@@ -363,6 +372,172 @@ export const WarrenAverbachModule: React.FC = () => {
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-600 uppercase">Å</span>
                 </div>
               </div>
+            </div>
+
+            {/* Advanced d-Spacing Estimator */}
+            <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-rose-500/30 transition-all shadow-inner">
+              <button
+                onClick={() => setIsDEstimatorOpen(!isDEstimatorOpen)}
+                className="w-full text-[10px] font-black text-slate-500 hover:text-rose-400 uppercase tracking-[0.2em] flex items-center justify-between transition-colors"
+                title="Calculate d-spacing from peak angles or Miller indices"
+              >
+                <div className="flex items-center gap-2">
+                  <Atom className="w-3.5 h-3.5" />
+                  d-Spacing Calculator
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isDEstimatorOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {isDEstimatorOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-4 mt-4 border-t border-white/5 space-y-4">
+                      {/* Calculator Modes */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setCalcMode('bragg')}
+                          className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${
+                            calcMode === 'bragg' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50' : 'bg-[#0A101C] text-slate-500 border border-white/10'
+                          }`}
+                        >
+                          From 2θ (Bragg Law)
+                        </button>
+                        <button
+                          onClick={() => setCalcMode('bragghkl')}
+                          className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${
+                            calcMode === 'bragghkl' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/50' : 'bg-[#0A101C] text-slate-500 border border-white/10'
+                          }`}
+                        >
+                          From (hkl) + Lattice
+                        </button>
+                      </div>
+
+                      {calcMode === 'bragg' ? (
+                        <div className="space-y-4 bg-black/20 p-4 rounded-lg border border-white/5">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Wavelength (λ) Å</label>
+                              <input
+                                type="number" step="0.0001"
+                                value={calcLambda}
+                                onChange={(e) => setCalcLambda(parseFloat(e.target.value))}
+                                className="w-full px-3 py-2 bg-[#0A101C] text-rose-300 border border-white/10 rounded-lg text-xs font-mono outline-none"
+                              />
+                            </div>
+                            <div>
+                               <div className="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1.5 flex gap-2">Presets</div>
+                               <div className="grid grid-cols-2 gap-1.5">
+                                  <button onClick={() => setCalcLambda(1.5406)} className="text-[8px] py-2 bg-white/5 hover:bg-white/10 rounded font-mono text-slate-300 border border-white/5 uppercase">Cu Kα</button>
+                                  <button onClick={() => setCalcLambda(1.7890)} className="text-[8px] py-2 bg-white/5 hover:bg-white/10 rounded font-mono text-slate-300 border border-white/5 uppercase">Co Kα</button>
+                               </div>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block text-center">Peak 1 (2θ)</label>
+                              <input
+                                type="number" step="0.01"
+                                value={calc2Theta1}
+                                onChange={(e) => setCalc2Theta1(parseFloat(e.target.value))}
+                                className="w-full px-3 py-2 bg-[#0A101C] text-rose-300 border border-white/10 rounded-lg text-xs font-mono outline-none text-center"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block text-center">Peak 2 (2θ)</label>
+                              <input
+                                type="number" step="0.01"
+                                value={calc2Theta2}
+                                onChange={(e) => setCalc2Theta2(parseFloat(e.target.value))}
+                                className="w-full px-3 py-2 bg-[#0A101C] text-rose-300 border border-white/10 rounded-lg text-xs font-mono outline-none text-center"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="pt-2">
+                            <button
+                              onClick={() => {
+                                const d_1 = calcLambda / (2 * Math.sin((calc2Theta1 / 2) * (Math.PI / 180)));
+                                const d_2 = calcLambda / (2 * Math.sin((calc2Theta2 / 2) * (Math.PI / 180)));
+                                setD1(parseFloat(d_1.toFixed(4)));
+                                setD2(parseFloat(d_2.toFixed(4)));
+                                setSelectedMaterial('Custom');
+                              }}
+                              className="w-full py-2 bg-rose-500 hover:bg-rose-400 text-white font-black text-[9px] tracking-widest uppercase rounded flex items-center justify-center gap-2 transition-colors"
+                            >
+                              <Sparkles className="w-3 h-3" /> Compute & Apply Spacings
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4 bg-black/20 p-4 rounded-lg border border-white/5">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">Lattice (a) Å</label>
+                              <input
+                                type="number" step="0.0001"
+                                value={calcLatticeA}
+                                onChange={(e) => setCalcLatticeA(parseFloat(e.target.value))}
+                                className="w-full px-3 py-2 bg-[#0A101C] text-rose-300 border border-white/10 rounded-lg text-xs font-mono outline-none"
+                              />
+                            </div>
+                            <div className="flex flex-col justify-end">
+                               <p className="text-[8px] text-slate-500 italic pb-1">Cubic crystal systems only.</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                             <div>
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block text-center">Peak 1 (h k l)</label>
+                                <input
+                                  type="text" placeholder="e.g. 1 1 1"
+                                  value={calcHKL1}
+                                  onChange={(e) => setCalcHKL1(e.target.value)}
+                                  className="w-full px-3 py-2 bg-[#0A101C] text-rose-300 border border-white/10 rounded-lg text-xs font-mono outline-none text-center"
+                                />
+                             </div>
+                             <div>
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block text-center">Peak 2 (h k l)</label>
+                                <input
+                                  type="text" placeholder="e.g. 2 2 2"
+                                  value={calcHKL2}
+                                  onChange={(e) => setCalcHKL2(e.target.value)}
+                                  className="w-full px-3 py-2 bg-[#0A101C] text-rose-300 border border-white/10 rounded-lg text-xs font-mono outline-none text-center"
+                                />
+                             </div>
+                          </div>
+
+                          <div className="pt-2">
+                            <button
+                              onClick={() => {
+                                const parseHKL = (str: string) => str.split(/\s+/).map(Number).filter(n => !isNaN(n));
+                                const hkl1 = parseHKL(calcHKL1);
+                                const hkl2 = parseHKL(calcHKL2);
+                                if(hkl1.length === 3 && hkl2.length === 3) {
+                                  const d_1 = calcLatticeA / Math.sqrt(hkl1[0]**2 + hkl1[1]**2 + hkl1[2]**2);
+                                  const d_2 = calcLatticeA / Math.sqrt(hkl2[0]**2 + hkl2[1]**2 + hkl2[2]**2);
+                                  setD1(parseFloat(d_1.toFixed(4)));
+                                  setD2(parseFloat(d_2.toFixed(4)));
+                                  setSelectedMaterial('Custom');
+                                } else {
+                                  alert("Please enter h k l values correctly space delimited.");
+                                }
+                              }}
+                              className="w-full py-2 bg-rose-500 hover:bg-rose-400 text-white font-black text-[9px] tracking-widest uppercase rounded flex items-center justify-center gap-2 transition-colors"
+                            >
+                              <Sparkles className="w-3 h-3" /> Compute & Apply Spacings
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="bg-[#070D18] p-5 rounded-xl border border-white/5 hover:border-rose-500/30 transition-all shadow-inner relative overflow-hidden">
