@@ -171,9 +171,11 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
       {/* Configuration */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(244,114,182,0.05)] border border-pink-500/20 relative overflow-hidden group transition-all hover:border-pink-500/40">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-pink-600/10 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-pink-500/20 transition-all duration-700"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-600/10 rounded-full blur-3xl translate-y-16 -translate-x-16 group-hover:bg-purple-500/20 transition-all duration-700"></div>
+        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(244,114,182,0.05)] border border-pink-500/20 relative group transition-all hover:border-pink-500/40">
+          <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none z-0">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-pink-600/10 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:bg-pink-500/20 transition-all duration-700"></div>
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-600/10 rounded-full blur-3xl translate-y-16 -translate-x-16 group-hover:bg-purple-500/20 transition-all duration-700"></div>
+          </div>
 
           <div className="flex justify-between items-start mb-8 relative z-10">
             <div className="flex items-center gap-3">
@@ -329,7 +331,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                 Material Presets
               </h3>
               
-              <div className="relative mb-6" ref={matMenuRef}>
+              <div className={`relative mb-6 ${isMaterialMenuOpen ? 'z-50' : 'z-10'}`} ref={matMenuRef}>
                 <button
                   onClick={() => setIsMaterialMenuOpen(!isMaterialMenuOpen)}
                   className="w-full px-4 py-2.5 bg-[#0A101C] border border-white/10 hover:border-emerald-500/40 rounded-lg outline-none transition-all flex items-center justify-between shadow-inner"
@@ -346,7 +348,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 p-1"
+                      className="absolute top-full left-0 right-0 mt-2 bg-slate-950/95 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-50 p-1.5 backdrop-blur-3xl ring-1 ring-white/10"
                     >
                       <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
                         {MATERIAL_PRESETS.map((m) => (

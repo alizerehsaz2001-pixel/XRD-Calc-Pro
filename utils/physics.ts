@@ -585,7 +585,7 @@ export const parseWAInput = (input: string): WAInputPoint[] => {
   return points;
 };
 
-export const calculateWarrenAverbach = (d1: number, d2: number, points: WAInputPoint[]): WAResult => {
+export const calculateWarrenAverbach = (d1: number, d2: number, points: WAInputPoint[], shapeFactor: number = 1.0, strainModel: string = 'Gaussian'): WAResult => {
   const sizeDist = []; const strainDist = [];
   const x1 = 1 / (d1 * d1); const x2 = 1 / (d2 * d2); const dx = x2 - x1;
   if (Math.abs(dx) < 1e-9) return { sizeDistribution: [], strainDistribution: [] };
@@ -593,9 +593,16 @@ export const calculateWarrenAverbach = (d1: number, d2: number, points: WAInputP
     if (p.A1 <= 0 || p.A2 <= 0) continue;
     const slope = (Math.log(p.A2) - Math.log(p.A1)) / dx;
     const intercept = Math.log(p.A1) - slope * x1;
-    sizeDist.push({ L_nm: p.L_nm, A_size: Math.exp(intercept) });
+    const A_size = Math.exp(intercept);
+    
+    // Applying shape factor conceptually affects the apparent size scaling
+    sizeDist.push({ L_nm: p.L_nm, A_size: A_size * shapeFactor });
+    
     if (p.L_nm > 0) {
-      const msStrain = slope / (-2 * Math.PI * Math.PI * p.L_nm * p.L_nm);
+      let msStrain = slope / (-2 * Math.PI * Math.PI * p.L_nm * p.L_nm);
+      if (strainModel === 'Lorentzian') {
+        msStrain = msStrain * 0.785; // Example adjustment factor for Lorentzian
+      }
       strainDist.push({ L_nm: p.L_nm, rms_strain: msStrain > 0 ? Math.sqrt(msStrain) : 0 });
     } else strainDist.push({ L_nm: 0, rms_strain: 0 });
   }
