@@ -239,8 +239,13 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
               <FlaskConical className="w-6 h-6 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-black italic tracking-tighter leading-none">XRD-Calc<span className="text-violet-400">Pro</span></span>
-              <span className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-500 mt-0.5">{t('Computational Suite')}</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black italic tracking-tighter leading-none text-white">XRD-Calc<span className="text-violet-500 drop-shadow-[0_0_10px_rgba(139,92,246,0.8)]">Pro</span></span>
+              </div>
+              <span className="text-[9px] font-mono font-black uppercase tracking-[0.4em] text-slate-400 mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+                Advanced {t('Computational Suite')}
+              </span>
             </div>
           </div>
 
@@ -718,11 +723,19 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
       <footer className="bg-black py-32 px-6 border-t border-white/5 relative z-10">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-20">
           <div className="lg:col-span-2">
-             <div className="flex items-center gap-3 mb-10">
-                <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center">
+             <div className="flex items-center gap-3 mb-10 group">
+                <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.3)] group-hover:rotate-12 transition-transform">
                   <FlaskConical className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-2xl font-black italic tracking-tighter text-white uppercase">XRD-Calc<span className="text-violet-400">Pro</span></span>
+                <div className="flex flex-col">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black italic tracking-tighter leading-none text-white">XRD-Calc<span className="text-violet-500 drop-shadow-[0_0_10px_rgba(139,92,246,0.8)]">Pro</span></span>
+                  </div>
+                  <span className="text-[9px] font-mono font-black uppercase tracking-[0.4em] text-slate-400 mt-1 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
+                    Advanced {t('Computational Suite')}
+                  </span>
+                </div>
              </div>
              <p className="text-slate-500 text-base font-medium leading-relaxed mb-12 max-w-sm">
                The global leader in AI-driven crystallographic computation. Trusted by researchers to push the boundaries of materials science.

@@ -191,7 +191,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Main Settings Panel */}
+          {/* Main Settings Panel */}
         <div className="lg:col-span-2 space-y-8">
           
           {/* Section 1: Appearance & Precision */}
@@ -208,7 +208,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+              {/* Left Column: Language and Precision */}
               <div className="space-y-8">
                 {/* Language Select */}
                 <div className="space-y-3">
@@ -240,13 +241,13 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                         }}
                         className={`group p-4 rounded-xl border-2 transition-all relative overflow-hidden ${
                           precision === pOption.val
-                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg'
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:border-indigo-500/50'
+                            ? 'bg-indigo-600 border-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]'
+                            : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-500/50 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20'
                         }`}
                       >
                         <div className="relative z-10 text-left">
-                          <div className={`text-[9px] font-black uppercase tracking-widest ${precision === pOption.val ? 'text-indigo-200' : 'text-slate-400'}`}>{pOption.label}</div>
-                          <div className="text-xs font-black font-mono italic">{pOption.sub}</div>
+                          <div className={`text-[10px] font-black uppercase tracking-widest ${precision === pOption.val ? 'text-white' : 'text-slate-500 group-hover:text-indigo-500'}`}>{pOption.label}</div>
+                          <div className={`text-xs font-black font-mono italic mt-1 ${precision === pOption.val ? 'text-indigo-200' : 'text-slate-400'}`}>{pOption.sub}</div>
                         </div>
                       </button>
                     ))}
@@ -254,12 +255,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 </div>
               </div>
 
-              {/* Theme Configuration */}
+              {/* Right Column: Theme Configuration */}
               <div className="space-y-3">
                 <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
                   <Palette className="w-3.5 h-3.5" /> Workspace Display Theme
                 </label>
-                <div className="grid grid-cols-1 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
                   {themeOptions.map((tOption) => (
                     <button
                       key={tOption.id}
@@ -267,25 +268,30 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                         setTheme(tOption.id as any);
                         playSynthTone('switch');
                       }}
-                      className={`group flex items-center justify-between p-3 px-4 rounded-2xl border-2 transition-all ${
+                      className={`group flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
                         theme === tOption.id
-                          ? 'border-indigo-600 bg-indigo-500/5 dark:bg-indigo-500/10 shadow-inner'
-                          : 'border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-950 hover:border-indigo-500/50'
+                          ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 shadow-[0_4px_15px_rgba(79,70,229,0.15)]'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:border-indigo-500/50 hover:bg-white dark:hover:bg-slate-800'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-7 rounded-md ${tOption.color} ${tOption.border} border flex items-center justify-center overflow-hidden shadow-sm`}>
-                          <div className={`text-[8px] font-black italic ${tOption.text}`}>A</div>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-10 rounded-lg ${tOption.color} ${tOption.border} border-2 flex items-center justify-center overflow-hidden shadow-sm transition-transform group-hover:scale-105`}>
+                          <span className={`text-[10px] font-black italic ${tOption.text} px-2.5 py-1 rounded bg-black/10 dark:bg-white/10 backdrop-blur-sm`}>A</span>
                         </div>
                         <div className="text-left">
-                          <div className={`text-[11px] font-black uppercase tracking-widest ${theme === tOption.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                          <div className={`text-[12px] font-black uppercase tracking-widest ${theme === tOption.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>
                             {tOption.label}
+                          </div>
+                          <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                            {tOption.id === 'light' ? 'High Visibility' : tOption.id === 'dark' ? 'Low Fatigue' : tOption.id === 'terminal' ? 'High Contrast' : 'Immersive'}
                           </div>
                         </div>
                       </div>
-                      <div className={`w-4 h-4 rounded-full border-2 transition-all ${
-                        theme === tOption.id ? 'border-indigo-600 bg-indigo-600 scale-110' : 'border-slate-300 dark:border-white/20'
-                      }`} />
+                      <div className={`w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center ${
+                        theme === tOption.id ? 'border-indigo-600 bg-indigo-600 scale-110 shadow-[0_0_10px_rgba(79,70,229,0.5)]' : 'border-slate-300 dark:border-slate-600'
+                      }`}>
+                        {theme === tOption.id && <div className="w-2 h-2 bg-white rounded-full" />}
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -405,7 +411,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     <h5 className="text-[11px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Default Radiation Parameters</h5>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider leading-none mt-1">X-ray source material and specific emission wavelengths</p>
                   </div>
-                 {/* Default Radiation Wavelength Selector */}
+                  {/* Default Radiation Wavelength Selector */}
                  <div className="space-y-3">
                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
                      <Microscope className="w-3.5 h-3.5" /> Lab Source Default (λ)
@@ -418,14 +424,14 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                            setDefaultWavelength(preset.val);
                            playSynthTone('success');
                          }}
-                         className={`p-3 text-xs w-full text-left rounded-xl border font-bold transition-all flex justify-between items-center ${
+                         className={`p-3 text-xs w-full text-left rounded-xl border-2 font-bold transition-all flex justify-between items-center group ${
                            Math.abs(defaultWavelength - preset.val) < 0.0001
-                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                             : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/5 hover:border-indigo-500/30'
+                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)]'
+                             : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-500/50 hover:bg-white dark:hover:bg-slate-800'
                          }`}
                        >
-                         <span>{preset.label}</span>
-                         <span className="font-mono text-[10px] opacity-80">{preset.val.toFixed(5)} Å</span>
+                         <span className={Math.abs(defaultWavelength - preset.val) < 0.0001 ? 'text-white' : 'group-hover:text-indigo-500'}>{preset.label}</span>
+                         <span className={`font-mono text-[10px] ${Math.abs(defaultWavelength - preset.val) < 0.0001 ? 'opacity-90' : 'text-slate-400 group-hover:text-indigo-400'}`}>{preset.val.toFixed(5)} Å</span>
                        </button>
                      ))}
                    </div>
@@ -439,9 +445,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                          step="0.00001"
                          value={defaultWavelength}
                          onChange={(e) => setDefaultWavelength(parseFloat(e.target.value) || 0)}
-                         className="flex-1 p-2 px-3 text-xs font-mono font-bold bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg outline-none focus:border-indigo-500"
+                         className="flex-1 p-2 px-3 text-xs font-mono font-bold bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-indigo-500 focus:bg-white dark:focus:bg-slate-800 transition-all text-slate-800 dark:text-white"
                        />
-                       <span className="bg-slate-100 dark:bg-slate-950 px-3 flex items-center justify-center rounded-lg border border-slate-200 dark:border-white/5 font-mono text-xs font-bold text-slate-500">Å</span>
+                       <span className="bg-slate-100 dark:bg-slate-800 px-4 flex items-center justify-center rounded-xl border-2 border-slate-200 dark:border-slate-700 font-mono text-xs font-black text-slate-500 dark:text-slate-400">Å</span>
                      </div>
                    </div>
                  </div>
@@ -478,7 +484,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                        required
                        value={idName || ''}
                        onChange={(e) => setIdName(e.target.value)}
-                       className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all font-mono"
+                       className="w-full p-3.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 transition-all font-mono"
                        placeholder="e.g. Dr. Eleanor Vance"
                      />
                    </div>
@@ -493,7 +499,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                        required
                        value={idEmail || ''}
                        onChange={(e) => setIdEmail(e.target.value)}
-                       className="w-full p-3.5 bg-slate-55 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all font-mono"
+                       className="w-full p-3.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 transition-all font-mono"
                        placeholder="e.g. chemist@university.edu"
                      />
                    </div>
@@ -508,7 +514,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                        required
                        value={idOrg || ''}
                        onChange={(e) => setIdOrg(e.target.value)}
-                       className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all font-mono"
+                       className="w-full p-3.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 transition-all font-mono"
                        placeholder="e.g. Neuro-Analytical Physics Center"
                      />
                    </div>
@@ -524,7 +530,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                          setClearanceLevel(e.target.value);
                          playSynthTone('tick');
                        }}
-                       className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all select-none"
+                       className="w-full p-3.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 transition-all select-none"
                      >
                        <option value="Level 4: Laboratory Director">Level 4: Laboratory Director (L4-DIR)</option>
                        <option value="Level 3: Lead Crystallographer">Level 3: Lead Crystallographer (L3-CRYST)</option>
@@ -544,7 +550,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                          required
                          value={terminalId}
                          onChange={(e) => setTerminalId(e.target.value)}
-                         className="flex-1 p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all"
+                         className="flex-1 p-3.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 focus:bg-white dark:focus:bg-slate-800 transition-all"
                        />
                        <button
                          type="button"
@@ -554,7 +560,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                            setTerminalId(`TRD-${num}-${suffix}`);
                            playSynthTone('success');
                          }}
-                         className="px-3.5 bg-indigo-50/50 dark:bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-200 dark:border-indigo-500/20 text-[10px] font-black uppercase tracking-wider transition-all"
+                         className="px-4 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl border-2 border-indigo-200 dark:border-indigo-500/30 text-[10px] font-black uppercase tracking-wider transition-all"
                        >
                          Gen
                        </button>
@@ -588,10 +594,10 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                                }
                                playSynthTone('tick');
                              }}
-                             className={`p-3 text-left rounded-xl border text-xs font-bold transition-all flex items-center justify-between ${
+                             className={`p-3 text-left rounded-xl border-2 text-xs font-bold transition-all flex items-center justify-between ${
                                active 
-                                 ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-500 text-indigo-600 dark:text-indigo-400'
-                                 : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/10'
+                                 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                                 : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-800'
                              }`}
                            >
                              <span>{cert}</span>
@@ -605,8 +611,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                        })}
                      </div>
                    </div>
-                 </div>
-
+                          </div>
                  <div className="flex items-center justify-between pt-4">
                    <div className="flex items-center gap-2">
                      <AnimatePresence>
@@ -625,12 +630,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                    
                    <button
                      type="submit"
-                     className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-lg shadow-indigo-600/20 transition-all cursor-pointer"
+                     className="flex items-center gap-2 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-[0_4px_15px_rgba(79,70,229,0.3)] transition-all cursor-pointer"
                    >
                      <Save className="w-4 h-4" /> Save Identification Records
                    </button>
-                 </div>
-               </form>
+                 '</div>\n                </form>'
 
                {/* Live holographic ID Badge Panel */}
                <div className="xl:col-span-12 lg:xl:col-span-5 flex flex-col items-center pt-2 w-full">

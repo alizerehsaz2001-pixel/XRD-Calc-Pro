@@ -94,9 +94,298 @@ export const RietveldModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'simulation' | 'setup'>('simulation');
 
   // --- Simulation State ---
-  const [simPhase, setSimPhase] = useState<string>('Simple Cubic');
-  const [userParams, setUserParams] = useState<SimulationParams>(TARGET_PARAMS['Simple Cubic']);
-  const [targetParams, setTargetParams] = useState<SimulationParams>(TARGET_PARAMS['Simple Cubic']);
+  interface SimStructure {
+    id: string;
+    name: string;
+    phaseType: string;
+    enabled: boolean;
+    a: number;
+    targetA: number;
+    scale: number;
+    targetScale: number;
+    fwhm: number;
+    targetFwhm: number;
+    eta: number;
+    targetEta: number;
+    crystalliteSize: number;
+    targetCrystalliteSize: number;
+    microstrain: number;
+    targetMicrostrain: number;
+    peaks: SimulationPeak[];
+  }
+
+  const [simPhases, setSimPhases] = useState<SimStructure[]>(() => {
+    try {
+      const saved = localStorage.getItem('xrd_rietveld_current_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.simPhases && Array.isArray(parsed.simPhases)) {
+          return parsed.simPhases;
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return [
+      {
+        id: 'phase_1',
+        name: 'Silicon (Cubic Matrix)',
+        phaseType: 'Simple Cubic',
+        enabled: true,
+        a: 4.20,
+        targetA: 4.0,
+        scale: 850,
+        targetScale: 1000,
+        fwhm: 0.28,
+        targetFwhm: 0.2,
+        eta: 0.65,
+        targetEta: 0.5,
+        crystalliteSize: 75,
+        targetCrystalliteSize: 100,
+        microstrain: 0.08,
+        targetMicrostrain: 0.05,
+        peaks: getPeaksForPhase('Simple Cubic', 4.0)
+      },
+      {
+        id: 'phase_2',
+        name: 'Alpha-Quartz (Trigonal Phase)',
+        phaseType: 'Quartz',
+        enabled: true,
+        a: 5.06,
+        targetA: 4.913,
+        scale: 650,
+        targetScale: 800,
+        fwhm: 0.16,
+        targetFwhm: 0.10,
+        eta: 0.8,
+        targetEta: 0.7,
+        crystalliteSize: 150,
+        targetCrystalliteSize: 200,
+        microstrain: 0.02,
+        targetMicrostrain: 0.01,
+        peaks: getPeaksForPhase('Quartz', 4.913)
+      },
+      {
+        id: 'phase_3',
+        name: 'Copper (FCC Phase)',
+        phaseType: 'FCC',
+        enabled: false,
+        a: 4.72,
+        targetA: 4.5,
+        scale: 1200,
+        targetScale: 1500,
+        fwhm: 0.35,
+        targetFwhm: 0.25,
+        eta: 0.55,
+        targetEta: 0.4,
+        crystalliteSize: 95,
+        targetCrystalliteSize: 120,
+        microstrain: 0.04,
+        targetMicrostrain: 0.02,
+        peaks: getPeaksForPhase('FCC', 4.5)
+      }
+    ];
+  });
+
+  const [selectedSimPhaseIdx, setSelectedSimPhaseIdx] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('xrd_rietveld_current_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed.selectedSimPhaseIdx === 'number') {
+          return parsed.selectedSimPhaseIdx;
+        }
+      }
+    } catch (e) {}
+    return 0;
+  });
+
+  const currentPhaseObj = useMemo(() => {
+    return simPhases[selectedSimPhaseIdx] || simPhases[0] || {
+      id: 'default',
+      name: 'Default',
+      phaseType: 'Simple Cubic',
+      enabled: true,
+      a: 4.0, targetA: 4.0, scale: 1000, targetScale: 1000, fwhm: 0.2, targetFwhm: 0.2,
+      eta: 0.5, targetEta: 0.5, crystalliteSize: 100, targetCrystalliteSize: 100,
+      microstrain: 0.05, targetMicrostrain: 0.05, peaks: []
+    };
+  }, [simPhases, selectedSimPhaseIdx]);
+
+  const simPhase = currentPhaseObj.phaseType;
+
+  // Reactively build userParams and targetParams simulated state objects that backwards-compatibility layers expect
+  const userParams = useMemo(() => {
+    return {
+      a: currentPhaseObj.a,
+      scale: currentPhaseObj.scale,
+      fwhm: currentPhaseObj.fwhm,
+      eta: currentPhaseObj.eta,
+      crystalliteSize: currentPhaseObj.crystalliteSize,
+      microstrain: currentPhaseObj.microstrain,
+      peaks: currentPhaseObj.peaks,
+      zeroShift: 0.0,
+      sampleDisplacement: 0.0,
+      background: 50,
+      noise: 20
+    };
+  }, [currentPhaseObj]);
+
+  const targetParams = useMemo(() => {
+    return {
+      a: currentPhaseObj.targetA,
+      scale: currentPhaseObj.targetScale,
+      fwhm: currentPhaseObj.targetFwhm,
+      eta: currentPhaseObj.targetEta,
+      crystalliteSize: currentPhaseObj.targetCrystalliteSize,
+      microstrain: currentPhaseObj.targetMicrostrain,
+      peaks: currentPhaseObj.peaks,
+      zeroShift: 0.0,
+      sampleDisplacement: 0.0,
+      background: 50,
+      noise: 20
+    };
+  }, [currentPhaseObj]);
+
+  // Unified Setters syncing to the unified SimPhases array
+  const setUserParams = (updater: any) => {
+    setSimPhases(prev => {
+      const next = [...prev];
+      const current = next[selectedSimPhaseIdx];
+      if (!current) return prev;
+
+      let res: any;
+      if (typeof updater === 'function') {
+        const currentParamObj = {
+          a: current.a,
+          scale: current.scale,
+          fwhm: current.fwhm,
+          eta: current.eta,
+          crystalliteSize: current.crystalliteSize,
+          microstrain: current.microstrain,
+          peaks: current.peaks,
+          zeroShift: 0.0,
+          sampleDisplacement: 0.0,
+          background: 50,
+          noise: 20
+        };
+        res = updater(currentParamObj);
+      } else {
+        res = updater;
+      }
+
+      next[selectedSimPhaseIdx] = {
+        ...current,
+        a: res.a !== undefined ? res.a : current.a,
+        scale: res.scale !== undefined ? res.scale : current.scale,
+        fwhm: res.fwhm !== undefined ? res.fwhm : current.fwhm,
+        eta: res.eta !== undefined ? res.eta : current.eta,
+        crystalliteSize: res.crystalliteSize !== undefined ? res.crystalliteSize : current.crystalliteSize,
+        microstrain: res.microstrain !== undefined ? res.microstrain : current.microstrain,
+        peaks: res.peaks !== undefined ? res.peaks : current.peaks
+      };
+      return next;
+    });
+  };
+
+  const setTargetParams = (updater: any) => {
+    setSimPhases(prev => {
+      const next = [...prev];
+      const current = next[selectedSimPhaseIdx];
+      if (!current) return prev;
+
+      let res: any;
+      if (typeof updater === 'function') {
+        const currentParamObj = {
+          a: current.targetA,
+          scale: current.targetScale,
+          fwhm: current.targetFwhm,
+          eta: current.targetEta,
+          crystalliteSize: current.targetCrystalliteSize,
+          microstrain: current.targetMicrostrain,
+          peaks: current.peaks,
+          zeroShift: 0.0,
+          sampleDisplacement: 0.0,
+          background: 50,
+          noise: 20
+        };
+        res = updater(currentParamObj);
+      } else {
+        res = updater;
+      }
+
+      next[selectedSimPhaseIdx] = {
+        ...current,
+        targetA: res.a !== undefined ? res.a : current.targetA,
+        targetScale: res.scale !== undefined ? res.scale : current.targetScale,
+        targetFwhm: res.fwhm !== undefined ? res.fwhm : current.targetFwhm,
+        targetEta: res.eta !== undefined ? res.eta : current.targetEta,
+        targetCrystalliteSize: res.crystalliteSize !== undefined ? res.crystalliteSize : current.targetCrystalliteSize,
+        targetMicrostrain: res.microstrain !== undefined ? res.microstrain : current.targetMicrostrain,
+        peaks: res.peaks !== undefined ? res.peaks : current.peaks
+      };
+      return next;
+    });
+  };
+
+  const setSimPhase = (newPhaseType: string) => {
+    setSimPhases(prev => {
+      const next = [...prev];
+      const current = next[selectedSimPhaseIdx];
+      if (!current) return prev;
+
+      next[selectedSimPhaseIdx] = {
+        ...current,
+        phaseType: newPhaseType,
+        a: TARGET_PARAMS[newPhaseType].a * 1.05,
+        targetA: TARGET_PARAMS[newPhaseType].a,
+        scale: TARGET_PARAMS[newPhaseType].scale * 0.8,
+        targetScale: TARGET_PARAMS[newPhaseType].scale,
+        fwhm: TARGET_PARAMS[newPhaseType].fwhm * 1.5,
+        targetFwhm: TARGET_PARAMS[newPhaseType].fwhm,
+        eta: TARGET_PARAMS[newPhaseType].eta,
+        targetEta: TARGET_PARAMS[newPhaseType].eta,
+        crystalliteSize: TARGET_PARAMS[newPhaseType].crystalliteSize * 0.8,
+        targetCrystalliteSize: TARGET_PARAMS[newPhaseType].crystalliteSize,
+        microstrain: TARGET_PARAMS[newPhaseType].microstrain * 1.5,
+        targetMicrostrain: TARGET_PARAMS[newPhaseType].microstrain,
+        peaks: getPeaksForPhase(newPhaseType, TARGET_PARAMS[newPhaseType].a)
+      };
+      return next;
+    });
+  };
+
+  const handleAddNewSimStructure = (type: 'Simple Cubic' | 'BCC' | 'FCC' | 'Quartz') => {
+    const defaultParams = TARGET_PARAMS[type];
+    const newPhase: SimStructure = {
+      id: `phase_${Date.now()}`,
+      name: `${type} Phase #${simPhases.length + 1}`,
+      phaseType: type,
+      enabled: true,
+      a: defaultParams.a * 1.05,
+      targetA: defaultParams.a,
+      scale: defaultParams.scale * 0.8,
+      targetScale: defaultParams.scale,
+      fwhm: defaultParams.fwhm * 1.5,
+      targetFwhm: defaultParams.fwhm,
+      eta: defaultParams.eta,
+      targetEta: defaultParams.eta,
+      crystalliteSize: defaultParams.crystalliteSize * 0.8,
+      targetCrystalliteSize: defaultParams.crystalliteSize,
+      microstrain: defaultParams.microstrain * 1.5,
+      targetMicrostrain: defaultParams.microstrain,
+      peaks: getPeaksForPhase(type, defaultParams.a)
+    };
+    setSimPhases(prev => [...prev, newPhase]);
+    setSelectedSimPhaseIdx(simPhases.length);
+  };
+
+  const handleRemoveSimStructure = (idx: number) => {
+    if (simPhases.length <= 1) return;
+    setSimPhases(prev => prev.filter((_, i) => i !== idx));
+    setSelectedSimPhaseIdx(0);
+  };
+
   const [isAutoRefining, setIsAutoRefining] = useState(false);
   const [rFactor, setRFactor] = useState<number>(0);
 
@@ -122,6 +411,8 @@ export const RietveldModule: React.FC = () => {
   const [expertMode, setExpertMode] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [result, setResult] = useState<RietveldSetupResult | null>(null);
+  const [strategyStatus, setStrategyStatus] = useState<'idle' | 'running' | 'success' | 'failed'>('idle');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const refinementMetrics = useMemo(() => {
     let globalActive = 0;
@@ -171,32 +462,13 @@ export const RietveldModule: React.FC = () => {
   // --- Simulation Logic ---
 
   useEffect(() => {
-    // Reset user params when phase changes
-    const initialTarget = { ...TARGET_PARAMS[simPhase] };
-    initialTarget.peaks = getPeaksForPhase(simPhase, initialTarget.a);
-    setTargetParams(initialTarget);
-    
-    // Start user params slightly off
-    const initialUser: SimulationParams = {
-      ...initialTarget,
-      a: initialTarget.a * 1.05,
-      scale: initialTarget.scale * 0.8,
-      fwhm: initialTarget.fwhm * 1.5,
-      background: initialTarget.background * 1.2,
-      peaks: initialTarget.peaks.map(p => ({ ...p }))
-    };
-    setUserParams(initialUser);
-  }, [simPhase]);
-
-  useEffect(() => {
-    localStorage.setItem('xrd_rietveld_current', JSON.stringify({
-      simPhase,
-      userParams,
-      targetParams,
+    localStorage.setItem('xrd_rietveld_current_v2', JSON.stringify({
+      simPhases,
+      selectedSimPhaseIdx,
       rFactor,
       iterCount
     }));
-  }, [simPhase, userParams, targetParams, rFactor, iterCount]);
+  }, [simPhases, selectedSimPhaseIdx, rFactor, iterCount]);
 
   const generatePatternData = useMemo(() => {
     const data: any[] = [];
@@ -213,50 +485,169 @@ export const RietveldModule: React.FC = () => {
       });
     }
 
-    const calculateIntensity = (params: SimulationParams, isObserved: boolean) => {
+    const calculateIntensity = (useTargets: boolean) => {
       const intensities = new Array(data.length).fill(0);
       
-      // Realistic Background (amorphous hump + 1/theta decay)
-      for (let i = 0; i < data.length; i++) {
+      // Base background shared globally (simulating incoherent core scatter)
+      const globalBkg = 60;
+      for (let i = 0; i < intensities.length; i++) {
         const twoT = SIMULATION_RANGE.start + i * SIMULATION_RANGE.step;
-        // Base flat + 1/2theta decay + hump around 25 deg
-        const bgVal = params.background * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
+        const bgVal = globalBkg * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
         intensities[i] += bgVal;
       }
 
-      // Helper to stamp a peak onto the intensities array
-      const addPeak = (pos2Theta: number, fwhm: number, amplitude: number) => {
+      // Sum all enabled structures' contributions
+      simPhases.forEach((p) => {
+        if (!p.enabled) return;
+
+        const a = useTargets ? p.targetA : p.a;
+        const scale = useTargets ? p.targetScale : p.scale;
+        const fwhm = useTargets ? p.targetFwhm : p.fwhm;
+        const eta = useTargets ? p.targetEta : p.eta;
+        const crystalliteSize = useTargets ? p.targetCrystalliteSize : p.crystalliteSize;
+        const microstrain = useTargets ? p.targetMicrostrain : p.microstrain;
+        const peaks = p.peaks;
+
+        const addPeak = (pos2Theta: number, peakFwhm: number, amplitude: number) => {
+          const profile = simulatePeak(
+            'Pseudo-Voigt', pos2Theta, peakFwhm, eta, 
+            amplitude, 
+            [pos2Theta - (peakFwhm * 10), pos2Theta + (peakFwhm * 10)], 100
+          );
+          
+          profile.points.forEach(pt => {
+            const idx = Math.round((pt.x - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
+            if (idx >= 0 && idx < data.length) {
+              intensities[idx] += pt.y;
+            }
+          });
+        };
+
+        const wavelength = 1.5406;
+
+        peaks.filter(peak => peak.enabled).forEach((peak, peakIdx) => {
+          let twoThetaBase = 0;
+          let d = 0;
+
+          if (p.phaseType === 'Quartz') {
+            const origPeak = QUARTZ_PEAKS[peakIdx];
+            if (!origPeak) return;
+            const shift = (a - TARGET_PARAMS['Quartz'].a) * 2; 
+            twoThetaBase = origPeak.t - shift;
+            const theta1 = (origPeak.t / 2) * (Math.PI / 180);
+            d = 1.5406 / (2 * Math.sin(theta1));
+          } else {
+            d = a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
+            const sinTheta = wavelength / (2 * d);
+            if (sinTheta >= 1) return;
+            const theta = Math.asin(sinTheta);
+            twoThetaBase = 2 * theta * (180 / Math.PI);
+          }
+
+          const theta = (twoThetaBase / 2) * (Math.PI / 180);
+          
+          const zeroShift = 0.0;
+          const sampleDisplacement = 0.0;
+          const displacementShift = -sampleDisplacement * Math.cos(theta);
+          const twoTheta = twoThetaBase + zeroShift + displacementShift;
+
+          if (twoTheta >= SIMULATION_RANGE.start && twoTheta <= SIMULATION_RANGE.end) {
+            let intensity = peak.intensity; 
+            
+            if (p.phaseType !== 'Quartz') {
+              const lp = (1 + Math.cos(2*theta)**2) / (Math.sin(theta)**2 * Math.cos(theta));
+              intensity *= lp / 10;
+              
+              let mult = 0;
+              const {h, k, l} = peak;
+              if (h===k && k===l) mult = 8;
+              else if (h===k || k===l || h===l) mult = 24;
+              else mult = 48;
+              if (h===0 || k===0 || l===0) mult /= 2;
+              intensity *= (mult / 10);
+            }
+
+            const bSizeRad = (0.9 * wavelength) / ((crystalliteSize * 10) * Math.cos(theta));
+            const bSizeDeg = bSizeRad * (180 / Math.PI);
+            const bStrainRad = 4 * microstrain * Math.tan(theta);
+            const bStrainDeg = bStrainRad * (180 / Math.PI);
+            
+            const totalFwhm = fwhm + bSizeDeg + bStrainDeg;
+            const baseAmplitude = intensity * (scale / 1000);
+
+            // Ka1
+            addPeak(twoTheta, totalFwhm, baseAmplitude);
+
+            // Ka2
+            const wavelength2 = 1.5444; 
+            const sinTheta2 = wavelength2 / (2 * d);
+            if (sinTheta2 < 1) {
+              const theta2 = Math.asin(sinTheta2);
+              const displacementShift2 = -sampleDisplacement * Math.cos(theta2);
+              const twoTheta2 = 2 * theta2 * (180 / Math.PI) + zeroShift + displacementShift2;
+              addPeak(twoTheta2, totalFwhm, baseAmplitude * 0.5);
+            }
+          }
+        });
+      });
+
+      // Apply realistic Poisson-like noise to observed data
+      if (useTargets) {
+        for (let i = 0; i < intensities.length; i++) {
+          const val = intensities[i];
+          const noiseFactor = 15 * 0.15;
+          intensities[i] += Math.sqrt(Math.max(1, val)) * (Math.random() - 0.5) * noiseFactor;
+        }
+      }
+
+      return intensities;
+    };
+
+    const obsIntensities = calculateIntensity(true);
+    const calcIntensities = calculateIntensity(false);
+
+    // Calculate individual current structures' calculated profiles to project separately
+    const individualPhaseCalcIntensities = simPhases.map((p) => {
+      const phaseIntensities = new Array(data.length).fill(0);
+      if (!p.enabled) return phaseIntensities;
+
+      const scale = p.scale;
+      const fwhm = p.fwhm;
+      const eta = p.eta;
+      const crystalliteSize = p.crystalliteSize;
+      const microstrain = p.microstrain;
+      const peaks = p.peaks;
+
+      const addPeak = (pos2Theta: number, peakFwhm: number, amplitude: number) => {
         const profile = simulatePeak(
-          'Pseudo-Voigt', pos2Theta, fwhm, params.eta, 
+          'Pseudo-Voigt', pos2Theta, peakFwhm, eta, 
           amplitude, 
-          [pos2Theta - (fwhm * 10), pos2Theta + (fwhm * 10)], 100 // extend profile tail calculation
+          [pos2Theta - (peakFwhm * 10), pos2Theta + (peakFwhm * 10)], 100
         );
         
-        profile.points.forEach(p => {
-          const idx = Math.round((p.x - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
+        profile.points.forEach(pt => {
+          const idx = Math.round((pt.x - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
           if (idx >= 0 && idx < data.length) {
-            intensities[idx] += p.y;
+            phaseIntensities[idx] += pt.y;
           }
         });
       };
 
       const wavelength = 1.5406;
 
-      params.peaks.filter(peak => peak.enabled).forEach((peak, peakIdx) => {
+      peaks.filter(peak => peak.enabled).forEach((peak, peakIdx) => {
         let twoThetaBase = 0;
         let d = 0;
 
-        if (simPhase === 'Quartz') {
-          // Special handling for Quartz since it's not a simple cubic system here
+        if (p.phaseType === 'Quartz') {
           const origPeak = QUARTZ_PEAKS[peakIdx];
           if (!origPeak) return;
-          const shift = (params.a - TARGET_PARAMS['Quartz'].a) * 2; 
+          const shift = (p.a - TARGET_PARAMS['Quartz'].a) * 2; 
           twoThetaBase = origPeak.t - shift;
-          // approximate d for Ka2
           const theta1 = (origPeak.t / 2) * (Math.PI / 180);
           d = 1.5406 / (2 * Math.sin(theta1));
         } else {
-          d = params.a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
+          d = p.a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
           const sinTheta = wavelength / (2 * d);
           if (sinTheta >= 1) return;
           const theta = Math.asin(sinTheta);
@@ -265,20 +656,18 @@ export const RietveldModule: React.FC = () => {
 
         const theta = (twoThetaBase / 2) * (Math.PI / 180);
         
-        // Sample Displacement shift effective (in degrees)
-        const displacementShift = -params.sampleDisplacement * Math.cos(theta);
-        const twoTheta = twoThetaBase + params.zeroShift + displacementShift;
+        const zeroShift = 0.0;
+        const sampleDisplacement = 0.0;
+        const displacementShift = -sampleDisplacement * Math.cos(theta);
+        const twoTheta = twoThetaBase + zeroShift + displacementShift;
 
         if (twoTheta >= SIMULATION_RANGE.start && twoTheta <= SIMULATION_RANGE.end) {
-          // Approximate intensity (multiplicity * LP factor * structure factor)
           let intensity = peak.intensity; 
           
-          if (simPhase !== 'Quartz') {
-            // LP Factor approx
+          if (p.phaseType !== 'Quartz') {
             const lp = (1 + Math.cos(2*theta)**2) / (Math.sin(theta)**2 * Math.cos(theta));
             intensity *= lp / 10;
             
-            // Multiplicity (simplified)
             let mult = 0;
             const {h, k, l} = peak;
             if (h===k && k===l) mult = 8;
@@ -288,57 +677,31 @@ export const RietveldModule: React.FC = () => {
             intensity *= (mult / 10);
           }
 
-          // Broadening models
-          const bSizeRad = (0.9 * wavelength) / ((params.crystalliteSize * 10) * Math.cos(theta));
+          const bSizeRad = (0.9 * wavelength) / ((crystalliteSize * 10) * Math.cos(theta));
           const bSizeDeg = bSizeRad * (180 / Math.PI);
-          const bStrainRad = 4 * params.microstrain * Math.tan(theta);
+          const bStrainRad = 4 * microstrain * Math.tan(theta);
           const bStrainDeg = bStrainRad * (180 / Math.PI);
           
-          const totalFwhm = params.fwhm + bSizeDeg + bStrainDeg;
-          const baseAmplitude = intensity * (params.scale / 1000);
+          const totalFwhm = fwhm + bSizeDeg + bStrainDeg;
+          const baseAmplitude = intensity * (scale / 1000);
 
-          // Ka1
           addPeak(twoTheta, totalFwhm, baseAmplitude);
-
-          // Ka2
-          const wavelength2 = 1.5444; // Cu Ka2
-          const sinTheta2 = wavelength2 / (2 * d);
-          if (sinTheta2 < 1) {
-            const theta2 = Math.asin(sinTheta2);
-            const displacementShift2 = -params.sampleDisplacement * Math.cos(theta2);
-            const twoTheta2 = 2 * theta2 * (180 / Math.PI) + params.zeroShift + displacementShift2;
-            addPeak(twoTheta2, totalFwhm, baseAmplitude * 0.5);
-          }
         }
       });
 
-      // Apply realistic Poisson-like noise to observed data
-      if (isObserved) {
-        for (let i = 0; i < intensities.length; i++) {
-          const val = intensities[i];
-          // Noise proportional to sqrt(intensity), scaled by user noise param
-          const noiseFactor = params.noise * 0.15;
-          intensities[i] += Math.sqrt(Math.max(1, val)) * (Math.random() - 0.5) * noiseFactor;
-        }
-      }
-
-      return intensities;
-    };
-
-    const obsIntensities = calculateIntensity(targetParams, true);
-    const calcIntensities = calculateIntensity(userParams, false);
+      return phaseIntensities;
+    });
 
     let sumResSq = 0;
     let sumObsSq = 0;
     let maxObs = 0;
 
     for (let i = 0; i < data.length; i++) {
-        if (obsIntensities[i] > maxObs) {
-            maxObs = obsIntensities[i];
-        }
+      if (obsIntensities[i] > maxObs) {
+        maxObs = obsIntensities[i];
+      }
     }
     
-    // Offset diff curve to sit below the actual data like standard Rietveld plots
     const diffOffset = -maxObs * 0.15; 
 
     for (let i = 0; i < data.length; i++) {
@@ -347,21 +710,24 @@ export const RietveldModule: React.FC = () => {
       data[i].diff = (obsIntensities[i] - calcIntensities[i]) + diffOffset;
       
       const twoT = data[i].twoTheta;
-      const trueBkg = userParams.background * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
+      const trueBkg = 60 * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
       data[i].bkg = trueBkg;
 
-      // Un-offset diff for correct calculation of R-factors
       const trueDiff = obsIntensities[i] - calcIntensities[i];
       sumResSq += Math.pow(trueDiff, 2);
       sumObsSq += Math.pow(data[i].obs, 2);
+
+      // Save individual phase curves to show as colored shaded components
+      simPhases.forEach((p, idx) => {
+        data[i][`calc_phase_${idx}`] = individualPhaseCalcIntensities[idx][i];
+      });
     }
 
-    // Calculate R-factor (R-wp like)
     const R = Math.sqrt(sumResSq / sumObsSq) * 100;
     setRFactor(R);
 
     return data;
-  }, [userParams, targetParams, simPhase]);
+  }, [simPhases]);
 
   // Track R-factor history
   useEffect(() => {
@@ -372,65 +738,68 @@ export const RietveldModule: React.FC = () => {
         return next;
       });
       setIterCount(c => c + 1);
-    } else if (iterCount > 0 && rFactor < 1) {
-       // converged basically
-    } else {
-      // If manually changed and not refining, maybe clear or keep?
-      // Let's clear history when starting a new refinement
     }
   }, [rFactor, isAutoRefining]);
 
-  // Reset tracking when phase changes
+  // Reset tracking when phase selection or configuration list changes
   useEffect(() => {
     setRHistory([]);
     setIterCount(0);
-  }, [simPhase]);
+  }, [simPhases.map(p => `${p.id}-${p.enabled}`).join(',')]);
 
-  // Auto-Refine Loop
+  // Simultaneous multi-phase gradient refinement loop
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isAutoRefining) {
       interval = setInterval(() => {
-        setUserParams(prev => {
+        setSimPhases(prev => {
+          let allConverged = true;
           const step = 0.05;
-          const diffA = targetParams.a - prev.a;
-          const diffScale = targetParams.scale - prev.scale;
-          const diffFwhm = targetParams.fwhm - prev.fwhm;
-          const diffEta = targetParams.eta - prev.eta;
-          const diffZeroShift = targetParams.zeroShift - prev.zeroShift;
-          const diffBkg = targetParams.background - prev.background;
-          const diffSize = targetParams.crystalliteSize - prev.crystalliteSize;
-          const diffStrain = targetParams.microstrain - prev.microstrain;
-          const diffDisplacement = targetParams.sampleDisplacement - prev.sampleDisplacement;
 
-          // Check convergence
-          if (
-            Math.abs(diffA) < 0.001 && Math.abs(diffScale) < 1 && 
-            Math.abs(diffFwhm) < 0.001 && Math.abs(diffEta) < 0.01 && 
-            Math.abs(diffZeroShift) < 0.01 && Math.abs(diffSize) < 1 &&
-            Math.abs(diffStrain) < 0.01 && Math.abs(diffDisplacement) < 0.01
-          ) {
+          const next = prev.map(p => {
+            if (!p.enabled) return p;
+
+            const diffA = p.targetA - p.a;
+            const diffScale = p.targetScale - p.scale;
+            const diffFwhm = p.targetFwhm - p.fwhm;
+            const diffEta = p.targetEta - p.eta;
+            const diffSize = p.targetCrystalliteSize - p.crystalliteSize;
+            const diffStrain = p.targetMicrostrain - p.microstrain;
+
+            const phaseConverged = 
+              Math.abs(diffA) < 0.001 &&
+              Math.abs(diffScale) < 1 &&
+              Math.abs(diffFwhm) < 0.001 &&
+              Math.abs(diffEta) < 0.01 &&
+              Math.abs(diffSize) < 1 &&
+              Math.abs(diffStrain) < 0.01;
+
+            if (!phaseConverged) {
+              allConverged = false;
+            }
+
+            return {
+              ...p,
+              a: p.a + diffA * step,
+              scale: p.scale + diffScale * step,
+              fwhm: p.fwhm + diffFwhm * step,
+              eta: p.eta + diffEta * step,
+              crystalliteSize: p.crystalliteSize + diffSize * step,
+              microstrain: p.microstrain + diffStrain * step
+            };
+          });
+
+          if (allConverged) {
             setIsAutoRefining(false);
             return prev;
           }
 
-          return {
-            ...prev,
-            a: prev.a + diffA * step,
-            scale: prev.scale + diffScale * step,
-            fwhm: prev.fwhm + diffFwhm * step,
-            eta: prev.eta + diffEta * step,
-            zeroShift: prev.zeroShift + diffZeroShift * step,
-            background: prev.background + diffBkg * step,
-            crystalliteSize: prev.crystalliteSize + diffSize * step,
-            microstrain: prev.microstrain + diffStrain * step,
-            sampleDisplacement: prev.sampleDisplacement + diffDisplacement * step
-          };
+          return next;
         });
       }, 50);
     }
     return () => clearInterval(interval);
-  }, [isAutoRefining, targetParams]);
+  }, [isAutoRefining]);
 
 
   // --- Setup Generator Logic ---
@@ -551,38 +920,63 @@ export const RietveldModule: React.FC = () => {
   };
 
   const handleGenerate = () => {
-    const issues = validateSetup();
-    if (issues.length > 0) {
-      setShowValidation(true);
-      return;
-    }
-    const output = generateRietveldSetup({
-      phases,
-      maxObsIntensity,
-      backgroundModel: bgModel,
-      bgTerms,
-      profileShape,
-      wavelength,
-      zeroShift: setupZeroShift,
-      sampleDisplacement,
-      polarization,
-      refineZeroShift,
-      refineBkg,
-      refineSampleDisplacement,
-      geometry,
-      divergenceSlit,
-      refineSurfaceRoughness,
-      twoThetaMin: SIMULATION_RANGE.start,
-      twoThetaMax: SIMULATION_RANGE.end,
-      stepSize: SIMULATION_RANGE.step,
-    });
-    setResult(output);
+    setIsGenerating(true);
+    setStrategyStatus('running');
     setShowValidation(false);
-    // Scroll to result
+
     setTimeout(() => {
-      const el = document.getElementById('rietveld-result');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+      const issues = validateSetup();
+      if (issues.length > 0) {
+        setShowValidation(true);
+        setStrategyStatus('failed');
+        setIsGenerating(false);
+        return;
+      }
+
+      try {
+        const output = generateRietveldSetup({
+          phases,
+          maxObsIntensity,
+          backgroundModel: bgModel,
+          bgTerms,
+          profileShape,
+          wavelength,
+          zeroShift: setupZeroShift,
+          sampleDisplacement,
+          polarization,
+          refineZeroShift,
+          refineBkg,
+          refineSampleDisplacement,
+          geometry,
+          divergenceSlit,
+          refineSurfaceRoughness,
+          twoThetaMin: SIMULATION_RANGE.start,
+          twoThetaMax: SIMULATION_RANGE.end,
+          stepSize: SIMULATION_RANGE.step,
+        });
+        setResult(output);
+        setStrategyStatus('success');
+        setShowValidation(false);
+        setIsGenerating(false);
+
+        // Smooth scroll to results zone
+        setTimeout(() => {
+          const el = document.getElementById('rietveld-result');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 120);
+
+        // Reset state back to idle after 4 seconds
+        setTimeout(() => {
+          setStrategyStatus(prev => prev === 'success' ? 'idle' : prev);
+        }, 4000);
+      } catch (err) {
+        console.error(err);
+        setStrategyStatus('failed');
+        setIsGenerating(false);
+      }
+    }, 600);
   };
 
   const applyRefinementPreset = (phaseIdx: number, type: 'full' | 'lattice' | 'profile' | 'structure' | 'none') => {
@@ -735,29 +1129,143 @@ export const RietveldModule: React.FC = () => {
 
               <div className="space-y-6 relative z-10">
                 <div className="space-y-6">
-                  {/* Phase & Structure Group */}
+                  {/* Multi-Phase Crystallographic Inventory Group */}
                   <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md ring-1 ring-white/5 ring-inset">
                     <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
                       <div className="flex items-center gap-2">
                         <Database className="w-4 h-4 text-teal-400" />
-                        <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest">Phase & Structure</div>
+                        <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest">Multi-Phase Inventory</div>
                       </div>
-                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] text-slate-500 uppercase tracking-widest bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">Atomic Properties</span>
+                      <span className="text-[8px] text-slate-500 uppercase tracking-widest bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 font-bold">
+                        {simPhases.filter(p => p.enabled).length}/{simPhases.length} Active
+                      </span>
                     </div>
-                    
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:border-teal-500/30 transition-colors">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Beaker className="w-3.5 h-3.5 text-teal-500" />
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Structural Model</label>
+
+                    <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                      {simPhases.map((phase, idx) => (
+                        <div 
+                          key={phase.id}
+                          onClick={() => setSelectedSimPhaseIdx(idx)}
+                          className={`p-3 rounded-xl border transition-all cursor-pointer relative group ${
+                            idx === selectedSimPhaseIdx 
+                              ? 'bg-teal-500/10 border-teal-500/40 shadow-[0_0_15px_rgba(20,184,166,0.1)]' 
+                              : 'bg-slate-800/20 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <input 
+                                type="checkbox"
+                                checked={phase.enabled}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  setSimPhases(prev => {
+                                    const next = [...prev];
+                                    next[idx] = { ...next[idx], enabled: e.target.checked };
+                                    return next;
+                                  });
+                                }}
+                                className="w-3.5 h-3.5 rounded bg-black/40 border-slate-700 text-teal-500 focus:ring-teal-500/20 cursor-pointer"
+                              />
+                              <span className={`text-xs font-bold truncate ${phase.enabled ? 'text-slate-200' : 'text-slate-500 line-through'}`}>
+                                {phase.name}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-slate-900 text-teal-400 border border-slate-800">
+                                {phase.phaseType}
+                              </span>
+                              {simPhases.length > 1 && (
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveSimStructure(idx);
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 transition-all rounded ml-1"
+                                  title="Delete Phase"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-800/40 text-[9px] font-mono text-slate-400">
+                            <div>
+                              Lattice <span className="text-teal-400 font-bold">{phase.a.toFixed(3)}Å</span>
+                              <span className="text-slate-600 ml-1">(target {phase.targetA.toFixed(3)}Å)</span>
+                            </div>
+                            <div>
+                              Scale <span className="text-blue-400 font-bold">{(phase.scale / 10).toFixed(0)}%</span>
+                            </div>
+                          </div>
+
+                          {idx === selectedSimPhaseIdx && (
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-l-xl" />
+                          )}
                         </div>
-                        <span className="text-[8px] text-teal-500/50 uppercase tracking-widest font-black">Crystallography Target</span>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/60">
+                      <button
+                        onClick={() => handleAddNewSimStructure('Simple Cubic')}
+                        className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors border border-slate-700/50 flex items-center justify-center gap-1.5"
+                      >
+                        + Simple Cubic
+                      </button>
+                      <button
+                        onClick={() => handleAddNewSimStructure('Quartz')}
+                        className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors border border-slate-700/50 flex items-center justify-center gap-1.5"
+                      >
+                        + Quartz
+                      </button>
+                      <button
+                        onClick={() => handleAddNewSimStructure('FCC')}
+                        className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors border border-slate-700/50 flex items-center justify-center gap-1.5"
+                      >
+                        + Face Centered
+                      </button>
+                      <button
+                        onClick={() => handleAddNewSimStructure('BCC')}
+                        className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors border border-slate-700/50 flex items-center justify-center gap-1.5"
+                      >
+                        + Body Centered
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Active Selected Phase Properties */}
+                  <div className="space-y-4 bg-teal-950/10 p-5 rounded-2xl border border-teal-500/10 shadow-inner backdrop-blur-md ring-1 ring-teal-500/5 ring-inset">
+                    <div className="flex items-center justify-between pb-2 border-b border-teal-500/10">
+                      <div className="flex items-center gap-2">
+                        <Beaker className="w-4 h-4 text-teal-400" />
+                        <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest">Selected Phase Model</div>
+                      </div>
+                      <span className="text-[8px] text-teal-500 font-black uppercase tracking-widest bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20 max-w-[124px] truncate">
+                        {currentPhaseObj.name}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Space Group Symmetry</label>
+                        <span className="text-[9px] font-mono text-teal-400 font-black">
+                          {currentPhaseObj.phaseType === 'Simple Cubic' ? 'P m-3m (#221)' :
+                           currentPhaseObj.phaseType === 'BCC' ? 'I m-3m (#229)' :
+                           currentPhaseObj.phaseType === 'FCC' ? 'F m-3m (#225)' :
+                           'P 32 21 (#154)'}
+                        </span>
                       </div>
                       <div className="relative">
                         <select 
                           value={simPhase}
                           onChange={(e) => setSimPhase(e.target.value)}
-                          className="w-full pl-3 pr-8 py-3 bg-[rgba(0,0,0,0.3)] border border-slate-700/80 rounded-xl text-xs font-bold text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 transition-all appearance-none cursor-pointer"
+                          className="w-full pl-3 pr-8 py-2 bg-black/40 border border-slate-700/80 rounded-lg text-xs font-bold text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 appearance-none cursor-pointer"
                         >
                           <option value="Simple Cubic">Simple Cubic (P m-3m)</option>
                           <option value="BCC">Body Centered (I m-3m)</option>
@@ -770,57 +1278,38 @@ export const RietveldModule: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-                      <div className="flex justify-between items-center mb-3">
-                        <div className="flex items-center gap-2">
-                          <Ruler className="w-3.5 h-3.5 text-teal-400" />
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 group/lattice">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
+                          <span className="text-[10px] font-mono font-black text-teal-400">{userParams.a.toFixed(3)} Å</span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            step="0.001"
-                            value={userParams.a}
-                            onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value) || userParams.a})}
-                            className="w-16 bg-black/60 text-xs font-mono font-black text-teal-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-teal-500/50 text-right"
-                          />
-                          <span className="text-[10px] font-black text-slate-500">Å</span>
-                        </div>
-                      </div>
-                      <input 
-                        type="range" 
-                        min={simPhase === 'Quartz' ? 4.5 : 2.5} 
-                        max={simPhase === 'Quartz' ? 5.5 : 6.0} 
-                        step="0.001"
-                        value={userParams.a}
-                        onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
-                        className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500 hover:accent-teal-400 transition-all"
-                      />
-                    </div>
-
-                    <div className="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all">
-                      <div className="flex justify-between items-center mb-3">
-                        <div className="flex items-center gap-2">
-                          <Maximize className="w-3.5 h-3.5 text-blue-400" />
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Intensity Scale</label>
-                        </div>
-                        <input
-                          type="number"
-                          step="10"
-                          value={userParams.scale}
-                          onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value) || userParams.scale})}
-                          className="w-16 bg-black/60 text-xs font-mono font-black text-blue-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-blue-500/50 text-right"
+                        <input 
+                          type="range" 
+                          min={simPhase === 'Quartz' ? 4.5 : 2.5} 
+                          max={simPhase === 'Quartz' ? 5.5 : 6.0} 
+                          step="0.001"
+                          value={userParams.a}
+                          onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
+                          className="w-full h-1 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500"
                         />
                       </div>
-                      <input 
-                        type="range" 
-                        min="100" 
-                        max="2000" 
-                        step="10"
-                        value={userParams.scale}
-                        onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
-                        className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all"
-                      />
+
+                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 group/scale">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Scale Factor</label>
+                          <span className="text-[10px] font-mono font-black text-blue-400">{userParams.scale}</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="100" 
+                          max="2000" 
+                          step="10"
+                          value={userParams.scale}
+                          onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
+                          className="w-full h-1 bg-slate-900 rounded-full appearance-none cursor-pointer accent-blue-500"
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -1406,6 +1895,32 @@ export const RietveldModule: React.FC = () => {
                       dot={false}
                       isAnimationActive={false}
                     />
+
+                    {/* Individual Phase Profiles Shading under the curve */}
+                    {simPhases.map((p, idx) => {
+                      if (!p.enabled) return null;
+                      const c = [
+                        { stroke: '#10b981', fill: 'rgba(16, 185, 129, 0.12)' }, // Emerald
+                        { stroke: '#06b6d4', fill: 'rgba(6, 182, 212, 0.12)' },  // Cyan
+                        { stroke: '#f59e0b', fill: 'rgba(245, 158, 11, 0.12)' },  // Amber
+                        { stroke: '#8b5cf6', fill: 'rgba(139, 92, 246, 0.12)' },  // Purple
+                        { stroke: '#ec4899', fill: 'rgba(236, 72, 153, 0.12)' }   // Pink
+                      ][idx % 5];
+                      return (
+                        <Area 
+                          key={`phase_area_${p.id}`}
+                          type="monotone" 
+                          dataKey={`calc_phase_${idx}`} 
+                          name={`${p.name}`}
+                          stroke={c.stroke} 
+                          strokeWidth={1.2}
+                          strokeDasharray="2 2"
+                          fill={c.fill}
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                      );
+                    })}
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -1468,13 +1983,79 @@ export const RietveldModule: React.FC = () => {
                  </div>
                  <button 
                     onClick={handleGenerate}
-                    className="shrink-0 flex-none px-8 py-3.5 bg-white text-black hover:bg-teal-400 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg hover:shadow-[0_0_30px_rgba(20,184,166,0.4)] transition-all flex items-center justify-center gap-2 group/btn whitespace-nowrap min-w-[180px]"
+                    disabled={isGenerating}
+                    className={`shrink-0 flex-none px-8 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-2 group/btn whitespace-nowrap min-w-[180px] ${
+                      isGenerating 
+                        ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50' 
+                        : strategyStatus === 'success'
+                        ? 'bg-emerald-500 text-white hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                        : strategyStatus === 'failed'
+                        ? 'bg-rose-600 text-white hover:bg-rose-500 hover:shadow-[0_0_30px_rgba(239,68,68,0.4)] shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+                        : 'bg-white text-black hover:bg-teal-400 hover:shadow-[0_0_30px_rgba(20,184,166,0.4)]'
+                    }`}
                   >
-                    <Zap className="w-4 h-4 shrink-0 group-hover:scale-125 transition-transform text-black" />
-                    Build Strategy
+                    {isGenerating ? (
+                      <RefreshCw className="w-4 h-4 shrink-0 animate-spin text-slate-500" />
+                    ) : strategyStatus === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-white animate-bounce" />
+                    ) : strategyStatus === 'failed' ? (
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-white animate-pulse" />
+                    ) : (
+                      <Zap className="w-4 h-4 shrink-0 group-hover:scale-125 transition-transform text-black" />
+                    )}
+                    <span>
+                      {isGenerating ? 'Computing...' :
+                       strategyStatus === 'success' ? 'Compiled!' :
+                       strategyStatus === 'failed' ? 'Error!' :
+                       'Build Strategy'}
+                    </span>
                   </button>
               </div>
             </div>
+
+            {/* Strategy Status Banner */}
+            {strategyStatus !== 'idle' && (
+              <div className={`mt-6 p-4 rounded-2xl border backdrop-blur-md animate-in slide-in-from-top-4 duration-300 flex items-center justify-between gap-4 relative z-10 ${
+                strategyStatus === 'running' ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 shadow-[0_0_30px_rgba(99,102,241,0.05)]' :
+                strategyStatus === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.05)]' :
+                'bg-rose-500/10 border-rose-500/30 text-rose-300 shadow-[0_0_30px_rgba(239,68,68,0.05)]'
+              }`}>
+                <div className="flex items-center gap-3">
+                  {strategyStatus === 'running' && (
+                    <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin shrink-0" />
+                  )}
+                  {strategyStatus === 'success' && (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 animate-bounce shrink-0" />
+                  )}
+                  {strategyStatus === 'failed' && (
+                    <AlertTriangle className="w-5 h-5 text-rose-400 animate-pulse shrink-0" />
+                  )}
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-widest font-mono">
+                      {strategyStatus === 'running' && 'Analyzing Crystal Symmetry & Matrices...'}
+                      {strategyStatus === 'success' && 'Strategy Built Successfully!'}
+                      {strategyStatus === 'failed' && 'Strategy Build Failed'}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      {strategyStatus === 'running' && 'Solving system model and formulating multi-step refinement protocol...'}
+                      {strategyStatus === 'success' && 'Formulated sequential execution steps. Scroll down to review the Refinement Execution Plan.'}
+                      {strategyStatus === 'failed' && 'Please fix the validation parameters in the Configuration Matrix below.'}
+                    </p>
+                  </div>
+                </div>
+                {strategyStatus === 'success' && (
+                  <button 
+                    onClick={() => {
+                      const el = document.getElementById('rietveld-result');
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border border-emerald-500/20 shrink-0 cursor-pointer"
+                  >
+                    View Plan ↓
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -2336,16 +2917,39 @@ export const RietveldModule: React.FC = () => {
     
                 <button
                   onClick={handleGenerate}
-                  className="w-full py-4 mt-4 bg-teal-600 hover:bg-teal-500 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(13,148,136,0.3)] hover:shadow-[0_0_30px_rgba(20,184,166,0.5)] transition-all active:scale-[0.98] border border-teal-500/50"
+                  disabled={isGenerating}
+                  className={`w-full py-4 mt-4 font-black text-xs uppercase tracking-widest rounded-xl transition-all active:scale-[0.98] border flex items-center justify-center gap-2 ${
+                    isGenerating 
+                      ? 'bg-slate-800 text-slate-500 cursor-not-allowed border-slate-700/50' 
+                      : strategyStatus === 'success'
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] border-emerald-500/50'
+                      : strategyStatus === 'failed'
+                      ? 'bg-rose-700 hover:bg-rose-600 text-white shadow-[0_0_20px_rgba(239,68,68,0.3)] hover:shadow-[0_0_30px_rgba(239,68,68,0.5)] border-rose-500/50'
+                      : 'bg-teal-600 hover:bg-teal-500 text-white shadow-[0_0_20px_rgba(13,148,136,0.3)] hover:shadow-[0_0_30px_rgba(20,184,166,0.5)] border-teal-500/50'
+                  }`}
                 >
-                  Generate Control Parameters
+                  {isGenerating ? (
+                    <RefreshCw className="w-4 h-4 animate-spin text-slate-500" />
+                  ) : strategyStatus === 'success' ? (
+                    <CheckCircle2 className="w-4 h-4 text-white animate-bounce" />
+                  ) : strategyStatus === 'failed' ? (
+                    <AlertTriangle className="w-4 h-4 text-white animate-pulse" />
+                  ) : (
+                    <Zap className="w-4 h-4 text-white" />
+                  )}
+                  <span>
+                    {isGenerating ? 'Computing Parameter Solutions...' :
+                     strategyStatus === 'success' ? 'Compiled Strategy Success!' :
+                     strategyStatus === 'failed' ? 'Failed to Generate' :
+                     'Generate Control Parameters'}
+                  </span>
                 </button>
               </div>
             </div>
           </div>
     
           {/* Results Output */}
-          <div className="lg:col-span-7">
+          <div id="rietveld-result" className="lg:col-span-7 scroll-mt-6">
             <div className="flex flex-col gap-6 h-full">
                
                {/* Strategy Card */}

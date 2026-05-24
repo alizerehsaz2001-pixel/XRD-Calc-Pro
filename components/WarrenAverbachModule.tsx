@@ -220,11 +220,6 @@ export const WarrenAverbachModule: React.FC = () => {
     }, 600);
   };
 
-  useEffect(() => {
-    handleCalculate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [d1, d2, inputData, shapeFactor, strainModel]);
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Input Configuration */}

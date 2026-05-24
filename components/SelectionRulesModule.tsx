@@ -726,24 +726,36 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
             </div>
          {/* Symmetry Intelligence Card */}
-        <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-xl overflow-hidden relative group">
-          <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-indigo-500/10 rounded-full blur-[60px] group-hover:bg-indigo-500/20 transition-all duration-700"></div>
+        <div className="bg-[#050B14]/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-[#1e293b] shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden relative group/symmetry hover:border-indigo-500/40 transition-all duration-700">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none group-hover/symmetry:bg-indigo-500/15 transition-all duration-1000 -translate-y-20 translate-x-10" />
           
-          <div className="flex items-center justify-between mb-6 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
-                <ShieldQuestion className="w-5 h-5 text-indigo-400" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6 relative z-10 border-b border-[#1e293b] pb-6">
+            <div className="flex items-center gap-6">
+              <div className="relative group/sym-icon cursor-default">
+                  <div className="absolute inset-0 bg-indigo-600/20 blur-xl rounded-full group-hover/sym-icon:bg-indigo-500/30 transition-all duration-700 pointer-events-none" />
+                  <div className="w-16 h-16 bg-[#070D18] rounded-3xl border border-indigo-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/sym-icon:border-indigo-400 transition-colors duration-500 overflow-hidden">
+                    <ShieldQuestion className="w-7 h-7 text-indigo-400 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)] group-hover/sym-icon:rotate-12 transition-transform duration-500" />
+                  </div>
               </div>
               <div>
-                <h3 className="text-lg font-bold">Symmetry Profile</h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[10px] font-mono text-indigo-400 bg-indigo-400/10 px-2 py-0.5 rounded border border-indigo-400/20 uppercase tracking-widest">{currentSymmetry.group}</span>
+                <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-1">
+                  Symmetry Profile
+                </h3>
+                <div className="flex items-center gap-3">
+                  <p className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">Group Identifier</p>
+                  <span className="text-[10px] font-mono font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-lg border border-indigo-500/30 uppercase tracking-[0.2em] shadow-[0_0_10px_rgba(99,102,241,0.2)]">{currentSymmetry.group}</span>
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-2xl font-black text-indigo-400 leading-none block">{currentSymmetry.operations}</span>
-              <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Ops</span>
+            <div className="px-5 py-3 bg-[#050B14] rounded-2xl border border-[#1e293b] flex items-center gap-4 relative group/ops hover:border-indigo-500/30 transition-colors shadow-inner">
+               <div className="text-right">
+                 <span className="text-4xl font-black font-mono text-indigo-400 leading-none drop-shadow-md">{currentSymmetry.operations}</span>
+               </div>
+               <div className="w-px h-8 bg-[#1e293b]" />
+               <div className="text-left">
+                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Structural</span>
+                 <span className="text-[10px] font-black text-white uppercase tracking-widest block">Operations</span>
+               </div>
             </div>
           </div>
 

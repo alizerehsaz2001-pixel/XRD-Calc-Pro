@@ -320,10 +320,13 @@ const App: React.FC = () => {
                λ
              </div>
              <div>
-               <span className={`font-extrabold text-xl tracking-tight ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} block leading-none`}>
-                 XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
+               <span className={`font-black text-2xl italic tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} block leading-none`}>
+                 XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink drop-shadow-[0_0_10px_rgba(255,0,255,0.8)]' : 'text-indigo-600 dark:text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]'}>Pro</span>
                </span>
-               <span className={`text-[10px] ${theme === 'cyberpunk' ? 'text-cyber-blue' : 'text-slate-500'} font-mono uppercase tracking-widest mt-1 block`}>{t('Scientific Suite')}</span>
+               <span className={`text-[9px] ${theme === 'cyberpunk' ? 'text-cyber-blue' : 'text-slate-500'} font-black font-mono uppercase tracking-[0.3em] mt-1.5 flex items-center gap-1.5`}>
+                 <span className={`w-1 h-1 rounded-full ${theme === 'cyberpunk' ? 'bg-cyber-blue' : 'bg-indigo-500'} animate-pulse`} />
+                 Advanced {t('Computational Suite')}
+               </span>
              </div>
           </div>
 
@@ -391,7 +394,9 @@ const App: React.FC = () => {
               <div className={`w-8 h-8 ${theme === 'cyberpunk' ? 'bg-cyber-pink' : 'bg-indigo-600'} rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm`}>
                 λ
               </div>
-              <span className={`font-bold text-lg ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'}`}>XRD-Calc Pro</span>
+              <span className={`font-black text-xl italic tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} leading-none`}>
+                 XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <LanguageSelector compact={true} />
@@ -441,6 +446,12 @@ const App: React.FC = () => {
                           rawHKL={rawHKL}
                           setRawHKL={setRawHKL}
                           onCalculate={() => handleCalculate(true)}
+                          zeroShift={zeroShift}
+                          setZeroShift={setZeroShift}
+                          sampleDisplacement={sampleDisplacement}
+                          setSampleDisplacement={setSampleDisplacement}
+                          goniometerRadius={goniometerRadius}
+                          setGoniometerRadius={setGoniometerRadius}
                         />
                         <BraggHistory 
                           history={braggHistory} 

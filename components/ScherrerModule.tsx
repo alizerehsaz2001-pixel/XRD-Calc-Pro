@@ -154,12 +154,20 @@ export const ScherrerModule: React.FC = () => {
           <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all duration-700"></div>
           
           <div className="flex items-center gap-4 mb-8 relative z-10">
-            <div className="p-3 bg-amber-500/20 rounded-xl border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-              <Settings className="h-5 w-5 text-amber-400" />
+            <div className="relative group/title-icon cursor-default">
+              <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full group-hover/title-icon:bg-amber-400/30 transition-all duration-700 pointer-events-none" />
+              <div className="w-14 h-14 bg-[#0a0500] rounded-2xl border border-amber-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/title-icon:border-amber-400 transition-colors duration-500 overflow-hidden">
+                <Settings className="w-6 h-6 text-amber-400 drop-shadow-[0_0_12px_rgba(245,158,11,0.6)] group-hover/title-icon:rotate-90 transition-transform duration-700" />
+              </div>
             </div>
             <div>
-              <h2 className="text-xl font-black text-white tracking-tight uppercase">System Config</h2>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Scherrer Engine</p>
+              <h2 className="text-2xl font-black text-white uppercase tracking-wider mb-1">
+                System Config
+              </h2>
+              <p className="flex items-center gap-2 text-[10px] font-mono text-amber-500/60 uppercase tracking-[0.3em]">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-[pulse_2s_ease-in-out_infinite]" />
+                Scherrer Engine Configuration
+              </p>
             </div>
           </div>
 
@@ -520,13 +528,24 @@ export const ScherrerModule: React.FC = () => {
         <div className="bg-slate-900 p-8 rounded-3xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group">
           <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-all duration-700"></div>
           
-          <div className="flex items-center gap-4 mb-8 relative z-10">
-            <div className="p-3 bg-amber-500/20 rounded-xl border border-amber-500/30">
-              <BookOpen className="w-5 h-5 text-amber-400" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6 relative z-10 border-b border-slate-800 pb-6">
+            <div className="flex items-center gap-6">
+              <div className="relative group/q-icon cursor-default">
+                  <div className="absolute inset-0 bg-emerald-600/20 blur-xl rounded-full group-hover/q-icon:bg-emerald-500/30 transition-all duration-700 pointer-events-none" />
+                  <div className="w-16 h-16 bg-[#000a05] rounded-3xl border border-emerald-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/q-icon:border-emerald-400 transition-colors duration-500 overflow-hidden">
+                    <BookOpen className="w-7 h-7 text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.6)] group-hover/q-icon:scale-110 transition-transform duration-500" />
+                  </div>
+              </div>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-1">
+                  Theory Context
+                </h3>
+                <p className="text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">Scherrer Foundation Logic</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-black uppercase tracking-tight">Theory Context</h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Scherrer Foundation</p>
+            <div className="px-5 py-2.5 bg-gradient-to-r from-emerald-500/10 to-teal-500/5 rounded-xl border border-emerald-500/30 text-[10px] font-black text-emerald-300 uppercase tracking-[0.25em] shadow-inner font-mono flex items-center gap-3">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite] shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
+              Engine Online
             </div>
           </div>
 

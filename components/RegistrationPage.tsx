@@ -84,9 +84,15 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
             <FlaskConical className="absolute -bottom-2 -right-2 w-8 h-8 text-indigo-400 bg-slate-950 rounded-full p-1.5 border border-indigo-500/30" />
           </motion.div>
           
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-4 uppercase italic tracking-tighter leading-none">
-            XRD-Calc<span className="text-indigo-400">Pro</span>
-          </h1>
+          <div className="flex flex-col mb-4">
+            <h1 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-none flex justify-center items-baseline gap-1">
+              XRD-Calc<span className="text-indigo-500 drop-shadow-[0_0_15px_rgba(99,102,241,0.8)]">Pro</span>
+            </h1>
+            <span className="text-[10px] font-mono font-black uppercase tracking-[0.4em] text-slate-400 mt-3 flex justify-center items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+              Advanced {t('Computational Suite')}
+            </span>
+          </div>
           <p className="text-lg text-slate-400 font-medium tracking-tight">
             {t('Register description')}
           </p>
