@@ -31,6 +31,7 @@ export const NeutronModule: React.FC = () => {
   const [comparisonMode, setComparisonMode] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
   
   const [crystalSystem, setCrystalSystem] = useState<CrystalSystem>('Cubic');
   const [activeRightTab, setActiveRightTab] = useState<'pattern' | 'projection' | 'contrast'>('pattern');
@@ -135,8 +136,9 @@ export const NeutronModule: React.FC = () => {
       }
       setShowImport(false);
       setImportJson("");
+      setImportError(null);
     } catch (e) {
-      alert("Invalid JSON format");
+      setImportError("Invalid JSON structure. Please check commas, quotes, and braces.");
     }
   };
 
@@ -216,6 +218,13 @@ export const NeutronModule: React.FC = () => {
     };
   });
 
+  // Physical parameters of the Neutron Unit Cell
+  const cellVolume = calculateCellVolume ? calculateCellVolume(lattice) : (lattice.a * lattice.b * lattice.c);
+  const totalB = atoms.reduce((acc, atom) => acc + atom.b, 0);
+  const sumBSq = atoms.reduce((acc, atom) => acc + atom.b * atom.b, 0);
+  const cellSLD = cellVolume > 0 ? (10 * totalB) / cellVolume : 0;
+  const coherentCrossSection = sumBSq * 4 * Math.PI * 0.01; // barns
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
       <div className="lg:col-span-5 space-y-6">
@@ -278,20 +287,33 @@ export const NeutronModule: React.FC = () => {
               <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-slate-900 p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-800 relative"
+                className="bg-slate-900 p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-800 relative text-left"
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl" />
                 <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Import Crystal Structure</h3>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6">Paste Structure JSON</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Paste Structure JSON</p>
+                
+                {importError && (
+                  <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-mono font-medium leading-relaxed">
+                    ⚠ {importError}
+                  </div>
+                )}
+
                 <textarea
                   value={importJson}
-                  onChange={(e) => setImportJson(e.target.value)}
+                  onChange={(e) => {
+                    setImportJson(e.target.value);
+                    if (importError) setImportError(null);
+                  }}
                   placeholder='{"lattice": {"a": 4.2}, "atoms": [...]}'
-                  className="w-full h-48 p-4 bg-black/40 border border-slate-800 rounded-2xl font-mono text-xs mb-8 focus:ring-2 focus:ring-blue-500 outline-none text-slate-300 resize-none"
+                  className="w-full h-48 p-4 bg-black/40 border border-slate-800 rounded-2xl font-mono text-xs mb-6 focus:ring-2 focus:ring-blue-500 outline-none text-slate-300 resize-none"
                 />
                 <div className="flex justify-end gap-4">
                   <button 
-                    onClick={() => setShowImport(false)}
+                    onClick={() => {
+                      setShowImport(false);
+                      setImportError(null);
+                    }}
                     className="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
                   >
                     Cancel
@@ -518,18 +540,43 @@ export const NeutronModule: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-blue-500/5 p-6 rounded-3xl border border-blue-500/10 relative overflow-hidden group">
-           <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
-           <div className="flex gap-5 relative z-10">
-             <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 shrink-0 self-start">
-               <Info className="w-5 h-5 text-blue-400" />
+        <div className="bg-[#0B1528] p-6 rounded-3xl border border-blue-500/10 relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
+           
+           <div className="flex items-center gap-3 mb-5 relative z-10 text-left">
+             <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/30">
+               <Database className="w-4 h-4 text-blue-400" />
              </div>
-             <div className="space-y-2">
-               <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">Neutron Theory Capsule</h4>
-               <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                 Neutrons scatter from atomic nuclei via strong interaction. The scattering length <code className="bg-blue-900/40 text-blue-300 px-1.5 py-0.5 rounded-md font-mono text-[10px] font-black">b</code> fluctuates randomly across the periodic table and can even be <span className="text-rose-400 font-bold">negative</span> (e.g., Li, Mn, Ti, H) which leads to unique contrast vs X-rays scattering from electron densities.
-               </p>
+             <div>
+               <h4 className="text-xs font-black text-white uppercase tracking-widest leading-none">Nuclear Physical Signatures</h4>
+               <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 block">Computed Unit Cell Properties</span>
              </div>
+           </div>
+
+           <div className="grid grid-cols-2 gap-4 relative z-10 text-left">
+             <div className="bg-[#070D18]/70 p-3 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Cell Volume</span>
+                <span className="text-xs font-mono font-black text-blue-400 block mt-1">{cellVolume.toFixed(2)} <span className="text-[9px] text-slate-600 font-sans font-bold">Å³</span></span>
+             </div>
+             
+             <div className="bg-[#070D18]/70 p-3 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Net b length</span>
+                <span className={`text-xs font-mono font-black block mt-1 ${totalB < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{totalB.toFixed(2)} <span className="text-[9px] text-slate-600 font-sans font-bold">fm</span></span>
+             </div>
+
+             <div className="bg-[#070D18]/70 p-3 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">SLD (Nuclear)</span>
+                <span className="text-xs font-mono font-black text-amber-400 block mt-1">{cellSLD.toFixed(3)} <span className="text-[8px] text-slate-600 font-sans font-bold">10⁻⁶Å⁻²</span></span>
+             </div>
+
+             <div className="bg-[#070D18]/70 p-3 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Est. Coherent σ</span>
+                <span className="text-xs font-mono font-black text-purple-400 block mt-1">{coherentCrossSection.toFixed(2)} <span className="text-[9px] text-slate-600 font-sans font-bold">barn</span></span>
+             </div>
+           </div>
+
+           <div className="mt-4 p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 text-[10px] text-slate-400 leading-normal relative z-10 text-left select-none">
+             <strong>Neutron scattering</strong> relies on nuclear interactions. Unlike X-rays, scattering lengths fluctuate non-linearly with Z, enabling superior detection of light elements (e.g., ¹H vs ²D isotopic swaps).
            </div>
         </div>
       </div>

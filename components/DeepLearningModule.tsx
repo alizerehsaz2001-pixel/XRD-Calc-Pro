@@ -17,7 +17,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Box,  Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus, Eye, Scan, BookOpen, Microscope, Cpu  } from 'lucide-react';
+import { Box, Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus, Eye, Scan, BookOpen, Microscope, Cpu, RefreshCw, SlidersHorizontal, Sparkles, Timer, Thermometer } from 'lucide-react';
 
 import { MATERIAL_DB } from '../utils/materialDB';
 
@@ -51,6 +51,13 @@ export const DeepLearningModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [checkedAudits, setCheckedAudits] = useState<boolean[]>([true, true, true, false, false]);
   const [selectedAuditLog, setSelectedAuditLog] = useState<number | null>(null);
+
+  // Quantum Morphological Synthesizer interactive states
+  const [synthMorphology, setSynthMorphology] = useState<'spherical' | 'nanowire' | 'nanosheet' | 'cuboidal' | 'octahedral'>('spherical');
+  const [synthSize, setSynthSize] = useState<number>(10.0); // Size in nm (2.0 to 50.0)
+  const [synthTemp, setSynthTemp] = useState<number>(450); // Temp in °C (100 to 1200)
+  const [synthDoping, setSynthDoping] = useState<number>(3.0); // Doping concentration % (0.0 to 15.0)
+  const [synthTime, setSynthTime] = useState<number>(4.0); // Calcination time in hours (1.0 to 24.0)
 
   const auditItems = [
     { 
@@ -2316,7 +2323,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               </div>
 
               {/* Quantum Morphological Synthesizer */}
-              <div className="mt-14 pt-12 border-t border-[#1e293b] relative overflow-hidden group/quantum">
+              <div id="quantum-morphological-synthesizer" className="mt-14 pt-12 border-t border-[#1e293b] relative overflow-hidden group/quantum">
                 <div className="absolute top-0 left-1/3 right-1/3 h-px bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
                 
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6 relative z-10">
@@ -2331,139 +2338,510 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       <h4 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-1">
                         Quantum Morphological Synthesizer
                       </h4>
-                      <p className="text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">Real-time subatomic structural modeling</p>
+                      <p className="text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">Real-time subatomic structural modeling & crystal tuning</p>
                     </div>
                   </div>
                   <div className="px-5 py-2.5 bg-gradient-to-r from-cyan-500/10 to-blue-500/5 rounded-xl border border-cyan-500/30 text-[10px] font-black text-cyan-300 uppercase tracking-[0.25em] shadow-inner font-mono flex items-center gap-3">
                     <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
-                    Phase Coherence: Stable
+                    Interactive Autoclave Simulation: Active
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 relative z-10 mt-6">
-                  {/* Visual Synthesizer Core */}
-                  <div className="md:col-span-12 lg:col-span-7 h-[450px] bg-[#050B14]/80 p-8 rounded-[2.5rem] border border-[#1e293b] relative overflow-hidden flex items-center justify-center shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] perspective-1000 group/core hover:border-cyan-500/40 transition-colors duration-700">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.05),transparent_70%)] pointer-events-none group-hover/core:bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.08),transparent_70%)] transition-colors duration-1000" />
-                    
-                    <div className="relative w-80 h-80 transform-style-3d">
-                       {/* 3D Core Rings */}
-                       {[...Array(6)].map((_, i) => (
-                         <motion.div
-                           key={`q-ring-${i}`}
-                           className="absolute inset-0 border border-cyan-500/30 rounded-full"
-                           animate={{ 
-                             rotateX: [0, 360],
-                             rotateY: [0, 360],
-                             rotateZ: [0, 360]
-                           }}
-                           transition={{ 
-                             duration: 20 + i * 5,
-                             repeat: Infinity,
-                             ease: "linear",
-                             delay: i * 0.5
-                           }}
-                           style={{
-                             boxShadow: `inset 0 0 25px rgba(34,211,238,${0.1 + i*0.05})`
-                           }}
-                         />
-                       ))}
-                       
-                       {/* Central Nucleus Node */}
-                       <div className="absolute inset-0 m-auto w-20 h-20 rounded-full bg-cyan-500/20 blur-xl animate-pulse" />
-                       <div className="absolute inset-0 m-auto w-10 h-10 rounded-full border-2 border-cyan-300 bg-white shadow-[0_0_40px_rgba(34,211,238,1)] flex items-center justify-center">
-                         <div className="w-2.5 h-2.5 bg-cyan-900 rounded-full animate-ping" />
-                       </div>
-                       
-                       {/* Orbital Particles */}
-                       {[...Array(12)].map((_, i) => (
-                         <motion.div
-                           key={`particle-${i}`}
-                           className="absolute top-1/2 left-1/2 w-4 h-4 -mt-2 -ml-2 rounded-full bg-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.9)]"
-                           animate={{
-                             rotate: [0, 360],
-                             x: [Math.sin(i) * 120, Math.cos(i) * 150, Math.sin(i) * 120],
-                             y: [Math.cos(i) * 120, Math.sin(i) * 150, Math.cos(i) * 120],
-                           }}
-                           transition={{
-                             rotate: { duration: 10 + i, repeat: Infinity, ease: 'linear' },
-                             x: { duration: 12 + i, repeat: Infinity, ease: 'easeInOut', repeatType: 'reverse' },
-                             y: { duration: 14 + i, repeat: Infinity, ease: 'easeInOut', repeatType: 'reverse' }
-                           }}
-                         >
-                           <div className="absolute inset-0 m-auto w-1 h-1 bg-white rounded-full" />
-                         </motion.div>
-                       ))}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10 mt-6">
+                  {/* Left Column: Synthesis Autoclave Controls */}
+                  <div className="lg:col-span-4 flex flex-col gap-6 p-6 sm:p-8 bg-[#050B14]/80 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.01)]">
+                    <div className="flex items-center gap-2 pb-4 border-b border-slate-800/80">
+                      <SlidersHorizontal className="w-4 h-4 text-cyan-400" />
+                      <span className="text-[11px] font-black text-slate-300 uppercase tracking-widest">Synthesis Parameters</span>
                     </div>
 
-                    <div className="absolute bottom-6 left-8 font-mono text-[10px] text-cyan-500/50 uppercase tracking-widest">
-                       Tensor Field: <span className="text-cyan-300">Active</span><br/>
-                       Lattice Vectors: <span className="text-cyan-300">Synchronized</span>
+                    {/* Morphology Selection */}
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Select Target Morphology</span>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        {[
+                          { key: 'spherical', label: 'Quantum Dot', icon: '●' },
+                          { key: 'nanowire', label: 'Nanowire', icon: '▮' },
+                          { key: 'nanosheet', label: '2D Sheet', icon: '▰' },
+                          { key: 'cuboidal', label: 'Nanocube', icon: '■' },
+                          { key: 'octahedral', label: 'Octahedral', icon: '✦' },
+                        ].map((m) => (
+                          <button
+                            key={m.key}
+                            onClick={() => setSynthMorphology(m.key as any)}
+                            className={`px-3 py-2.5 rounded-xl border text-[11px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                              synthMorphology === m.key 
+                                ? 'bg-cyan-500/10 border-cyan-500/50 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.15)]' 
+                                : 'bg-[#0B1221] border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                            }`}
+                          >
+                            <span className="text-sm font-mono text-cyan-400/80">{m.icon}</span>
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Process Control Sliders */}
+                    <div className="space-y-5 pt-2">
+                      {/* Slider 1: Dimension Size */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5ClassName mb-1">
+                            📏 Crystallite Size (d)
+                          </span>
+                          <span className="text-xs font-mono font-black text-cyan-300">{synthSize.toFixed(1)} <span className="text-[9px] text-slate-500">nm</span></span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="2.0" 
+                          max="50.0" 
+                          step="0.5"
+                          value={synthSize} 
+                          onChange={(e) => setSynthSize(parseFloat(e.target.value))}
+                          className="w-full accent-cyan-400 bg-slate-950 rounded-full h-1.5 cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[8px] font-mono text-slate-600">
+                          <span>2.0 nm (Confinement)</span>
+                          <span>50.0 nm (Bulk limit)</span>
+                        </div>
+                      </div>
+
+                      {/* Slider 2: Temp */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5ClassName mb-1">
+                            🔥 Calcination Temp (T)
+                          </span>
+                          <span className="text-xs font-mono font-black text-amber-400">{synthTemp} <span className="text-[9px] text-slate-500">°C</span></span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="100" 
+                          max="1200" 
+                          step="25"
+                          value={synthTemp} 
+                          onChange={(e) => setSynthTemp(parseInt(e.target.value))}
+                          className="w-full accent-amber-400 bg-slate-950 rounded-full h-1.5 cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[8px] font-mono text-slate-600">
+                          <span>100 °C (Amorphous)</span>
+                          <span>1200 °C (Growth)</span>
+                        </div>
+                      </div>
+
+                      {/* Slider 3: Doping */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5ClassName mb-1">
+                            🧪 Dopant Conc. (x)
+                          </span>
+                          <span className="text-xs font-mono font-black text-indigo-400">{synthDoping.toFixed(1)} <span className="text-[9px] text-slate-500">%</span></span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0.0" 
+                          max="15.0" 
+                          step="0.1"
+                          value={synthDoping} 
+                          onChange={(e) => setSynthDoping(parseFloat(e.target.value))}
+                          className="w-full accent-indigo-400 bg-slate-950 rounded-full h-1.5 cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[8px] font-mono text-slate-600">
+                          <span>0.0% (Intrinsic)</span>
+                          <span>15.0% (Highly strained)</span>
+                        </div>
+                      </div>
+
+                      {/* Slider 4: Duration */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5ClassName mb-1">
+                            ⏳ Reaction Duration (t)
+                          </span>
+                          <span className="text-xs font-mono font-black text-emerald-400">{synthTime.toFixed(1)} <span className="text-[9px] text-slate-500">hrs</span></span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="1.0" 
+                          max="24.0" 
+                          step="0.5"
+                          value={synthTime} 
+                          onChange={(e) => setSynthTime(parseFloat(e.target.value))}
+                          className="w-full accent-emerald-400 bg-slate-950 rounded-full h-1.5 cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[8px] font-mono text-slate-600">
+                          <span>1.0 hr</span>
+                          <span>24.0 hrs (Thermodynamic limit)</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* Readout Panels */}
-                  <div className="md:col-span-12 lg:col-span-5 flex flex-col gap-6">
-                     <div className="flex-1 bg-[#050B14]/80 p-8 rounded-[2.5rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)] flex flex-col items-start justify-center group/panel hover:border-cyan-500/40 hover:shadow-[0_10px_30px_rgba(34,211,238,0.1)] transition-all duration-500 overflow-hidden relative">
-                       <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-[40px] pointer-events-none group-hover/panel:bg-cyan-500/10 transition-all duration-700 -translate-y-10 translate-x-10" />
-                       
-                       <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-3 flex items-center gap-2 relative z-10">
-                         <Activity className="w-4 h-4" />
-                         Entanglement Entropy
-                       </span>
-                       <div className="flex items-end gap-3 mb-4 relative z-10">
-                          <span className="text-5xl font-black font-mono text-white tracking-tighter drop-shadow-md">{getEntanglementEntropy(selectedCandidate)}</span>
-                          <span className="text-sm font-black font-mono text-cyan-400/50 pb-1.5">S_vn</span>
-                       </div>
-                       <p className="text-sm text-slate-400 font-medium leading-relaxed relative z-10">
-                         High structural complexity detected. The molecular topology demonstrates significant informational density, characteristic of advanced composite matrices.
-                       </p>
-                     </div>
-                     
-                     <div className="flex-1 bg-[#050B14]/80 p-8 rounded-[2.5rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)] flex flex-col relative overflow-hidden group/panel2 hover:border-blue-500/40 hover:shadow-[0_10px_30px_rgba(59,130,246,0.1)] transition-all duration-500">
-                       <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-[40px] pointer-events-none group-hover/panel2:bg-blue-500/10 transition-all duration-700 -translate-y-10 translate-x-10" />
-                       
-                       <div className="absolute right-0 bottom-4 left-0 h-24 opacity-30 group-hover/panel2:opacity-60 transition-opacity">
-                         <motion.svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-                           <motion.path 
-                             d="M 0 50 Q 25 20 50 50 T 100 50" 
-                             fill="none" 
-                             stroke="#3b82f6" 
-                             strokeWidth="3"
-                             animate={{ pathLength: [0, 1, 0], pathOffset: [0, 0, 2] }}
-                             transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-                           />
-                           <motion.path 
-                             d="M 0 50 Q 25 80 50 50 T 100 50" 
-                             fill="none" 
-                             stroke="#60a5fa" 
-                             strokeWidth="2"
-                             animate={{ pathLength: [0, 1, 0], pathOffset: [0, 0, 1.5] }}
-                             transition={{ repeat: Infinity, duration: 5, ease: "linear" }}
-                           />
-                           <motion.path 
-                             d="M 0 50 Q 25 35 50 50 T 100 50" 
-                             fill="none" 
-                             stroke="#93c5fd" 
-                             strokeWidth="1"
-                             animate={{ pathLength: [0, 1, 0], pathOffset: [0, 0, 1] }}
-                             transition={{ repeat: Infinity, duration: 3.5, ease: "linear" }}
-                           />
-                         </motion.svg>
-                       </div>
-                       
-                       <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2 relative z-10">
-                         <Zap className="w-4 h-4" />
-                         Phonon Dispersion
-                       </span>
-                       <div className="flex items-end gap-3 mb-4 relative z-10">
-                          <span className="text-5xl font-black font-mono text-white tracking-tighter drop-shadow-md">{getPhononFrequency(selectedCandidate)}</span>
-                          <span className="text-sm font-black font-mono text-blue-400/50 pb-1.5">THz</span>
-                       </div>
-                       <p className="text-sm text-slate-400 font-medium leading-relaxed relative z-10 max-w-[85%]">
-                         Acoustic and optical phonon resonance indicates high thermal conductivity potential within the lattice framework.
-                       </p>
-                     </div>
+
+                  {/* Middle Column: Excitonic Lattice Preview & Morph Generator */}
+                  <div className="lg:col-span-4 h-[450px] bg-[#050B14]/90 p-8 rounded-[2rem] border border-[#1e293b] relative overflow-hidden flex flex-col items-center justify-between shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group/core hover:border-cyan-500/30 transition-colors duration-500">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.04),transparent_75%)] pointer-events-none" />
+                    
+                    {/* SVG Lattice Preview based on selected morphology */}
+                    <div className="relative w-full h-64 flex items-center justify-center">
+                      {synthMorphology === 'spherical' && (
+                        <div className="relative w-48 h-48 flex items-center justify-center">
+                          {/* Outer circular envelope */}
+                          <motion.div 
+                            className="absolute rounded-full border border-cyan-500/20"
+                            style={{ 
+                              width: `${Math.max(48, Math.min(180, synthSize * 3.5 + 40))}px`, 
+                              height: `${Math.max(48, Math.min(180, synthSize * 3.5 + 40))}px`
+                            }}
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                          >
+                            <div className="absolute top-0 left-1/2 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,1)]" />
+                          </motion.div>
+                          
+                          {/* Inner quantum core */}
+                          <motion.div 
+                            className="rounded-full bg-gradient-to-br from-indigo-500/30 via-cyan-500/40 to-transparent flex items-center justify-center border border-cyan-400/40 backdrop-blur-sm relative"
+                            style={{ 
+                              width: `${Math.max(30, Math.min(140, synthSize * 2.8 + 25))}px`, 
+                              height: `${Math.max(30, Math.min(140, synthSize * 2.8 + 25))}px`,
+                              boxShadow: `0 0 ${Math.max(10, synthSize * 1.5)}px rgba(6, 182, 212, ${0.1 + synthDoping/30})`
+                            }}
+                            animate={{ scale: [0.98, 1.02, 0.98] }}
+                            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                          >
+                            {/* Atom Cluster Grid */}
+                            <div className="grid grid-cols-3 gap-2 p-3">
+                              {[...Array(9)].map((_, idx) => (
+                                <div key={idx} className={`w-1.5 h-1.5 rounded-full ${idx % 3 === 0 && synthDoping > 4 ? 'bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,1)]' : 'bg-cyan-300'} animate-pulse`} style={{ animationDelay: `${idx * 0.2}s` }} />
+                              ))}
+                            </div>
+                          </motion.div>
+                        </div>
+                      )}
+
+                      {synthMorphology === 'nanowire' && (
+                        <div className="relative w-48 h-56 flex items-center justify-center">
+                          <motion.div 
+                            className="bg-gradient-to-r from-indigo-600/40 via-cyan-500/40 to-indigo-600/30 border-x border-cyan-400/50 rounded-2xl flex flex-col justify-around py-8"
+                            style={{ 
+                              width: `${Math.max(20, Math.min(80, synthSize * 1.5 + 15))}px`, 
+                              height: '180px',
+                              boxShadow: `0 0 25px rgba(6, 182, 212, ${0.1 + synthDoping/40})`
+                            }}
+                            animate={{ y: [-2, 2, -2] }}
+                            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                          >
+                            {/* Linear lattices */}
+                            {[...Array(5)].map((_, i) => (
+                              <div key={i} className="flex justify-around items-center px-1">
+                                <div className={`w-1.5 h-1.5 rounded-full ${i % 2 === 0 && synthDoping > 3 ? 'bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,1)]' : 'bg-cyan-300'}`} />
+                                {synthSize > 15 && <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />}
+                                <div className="w-1.5 h-1.5 rounded-full bg-cyan-300" />
+                              </div>
+                            ))}
+                          </motion.div>
+                        </div>
+                      )}
+
+                      {synthMorphology === 'nanosheet' && (
+                        <div className="relative w-56 h-48 flex items-center justify-center perspective-1000">
+                          <motion.div 
+                            className="bg-gradient-to-br from-indigo-500/30 to-cyan-500/20 border border-cyan-400/40 backdrop-blur-sm shadow-2xl relative"
+                            style={{ 
+                              width: '180px',
+                              height: `${Math.max(30, Math.min(100, synthSize * 1.8 + 20))}px`,
+                              transform: 'rotateX(55deg) rotateY(10deg) rotateZ(-15deg)',
+                              boxShadow: `0 15px 35px rgba(6, 182, 212, ${0.15 + synthDoping/35})`
+                            }}
+                            animate={{ rotateZ: [-15, -12, -15], rotateY: [10, 15, 10] }}
+                            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                          >
+                            {/* Matrix points */}
+                            <div className="absolute inset-0 grid grid-cols-5 grid-rows-3 gap-2 p-3">
+                              {[...Array(15)].map((_, i) => (
+                                <div key={i} className={`w-1.5 h-1.5 rounded-full ${i % 5 === 2 && synthDoping > 5 ? 'bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,1)]' : 'bg-cyan-300'}`} />
+                              ))}
+                            </div>
+                          </motion.div>
+                        </div>
+                      )}
+
+                      {synthMorphology === 'cuboidal' && (
+                        <div className="relative w-52 h-52 flex items-center justify-center perspective-1000">
+                          <motion.div 
+                            className="relative"
+                            style={{ 
+                              width: `${Math.max(40, Math.min(120, synthSize * 2.2 + 20))}px`,
+                              height: `${Math.max(40, Math.min(120, synthSize * 2.2 + 20))}px`,
+                              transformStyle: 'preserve-3d',
+                              transform: 'rotateX(-25deg) rotateY(35deg)'
+                            }}
+                            animate={{ rotateY: [35, 395] }}
+                            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                          >
+                            {/* Cube Faces */}
+                            {/* Front */}
+                            <div className="absolute inset-0 bg-cyan-500/20 border border-cyan-400/60 backdrop-blur-xs transform-translate-z-10 flex items-center justify-center" style={{ transform: `translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)` }}>
+                              <div className="w-2 h-2 rounded-full bg-cyan-300 animate-ping" />
+                            </div>
+                            {/* Back */}
+                            <div className="absolute inset-0 bg-indigo-500/10 border border-slate-700 transform-translate-z-negative-10" style={{ transform: `translateZ(-${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px) rotateY(180deg)` }} />
+                            {/* Top */}
+                            <div className="absolute inset-0 bg-cyan-600/15 border border-cyan-500/50" style={{ transform: `rotateX(90deg) translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)` }} />
+                            {/* Bottom */}
+                            <div className="absolute inset-0 bg-slate-900/40 border border-slate-800" style={{ transform: `rotateX(-90deg) translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)` }} />
+                            {/* Left */}
+                            <div className="absolute inset-0 bg-indigo-600/20 border border-indigo-400/40" style={{ transform: `rotateY(-90deg) translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)` }} />
+                            {/* Right */}
+                            <div className="absolute inset-0 bg-cyan-500/25 border border-cyan-400/40" style={{ transform: `rotateY(90deg) translateZ(${Math.max(20, Math.min(60, synthSize * 1.1 + 10))}px)` }} />
+                          </motion.div>
+                        </div>
+                      )}
+
+                      {synthMorphology === 'octahedral' && (
+                        <div className="relative w-48 h-48 flex items-center justify-center">
+                          <motion.svg 
+                            viewBox="0 0 100 100" 
+                            className="w-40 h-40 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]"
+                            animate={{ rotateY: [0, 360] }}
+                            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                          >
+                            <polygon 
+                              points="50,10 80,50 50,90 20,50" 
+                              fill="url(#octaRadial)" 
+                              stroke="#22d3ee" 
+                              strokeWidth="1.5"
+                              strokeOpacity="0.8"
+                            />
+                            <line x1="50" y1="10" x2="50" y2="90" stroke="#0891b2" strokeWidth="1" strokeDasharray="3,3" />
+                            <line x1="20" y1="50" x2="80" y2="50" stroke="#0891b2" strokeWidth="1" strokeDasharray="3,3" />
+                            <defs>
+                              <radialGradient id="octaRadial" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stopColor="#818cf8" stopOpacity="0.4" />
+                                <stop offset="100%" stopColor="#0891b2" stopOpacity="0.1" />
+                              </radialGradient>
+                            </defs>
+                            {/* Floating node points */}
+                            <circle cx="50" cy="10" r="3" fill="#ffffff" />
+                            <circle cx="80" cy="50" r="3" fill="#ffffff" />
+                            <circle cx="50" cy="90" r="3" fill="#ffffff" />
+                            <circle cx="20" cy="50" r="3" fill="#ffffff" />
+                            {synthDoping > 4 && <circle cx="50" cy="50" r="4.5" fill="#f43f5e" className="animate-pulse" />}
+                          </motion.svg>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Synthesis stats log */}
+                    <div className="w-full text-center relative z-10">
+                      <span className="text-[10px] font-mono text-cyan-400 font-bold tracking-widest block uppercase">
+                        Current Lattice Volume: <span className="text-white">{(selectedCandidate ? (selectedCandidate.density ? (18000 / selectedCandidate.density * Math.pow(1 + (synthDoping * 0.0012), 3)).toFixed(1) : 420.5) : 380).toLocaleString()} Å³</span>
+                      </span>
+                      <span className="text-[9px] font-mono text-slate-500 uppercase block mt-1 tracking-wider">
+                        Thermal Kinetic Energy: <span className="text-amber-500 font-black">{(1.38e-23 * (synthTemp + 273.15) * 1e21).toFixed(3)} zJ</span>
+                      </span>
+                    </div>
+
+                    <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between font-mono text-[9px] text-cyan-500/40 uppercase tracking-widest border-t border-slate-800/60 pt-3">
+                       <span>Exciton Limit: <span className={synthSize < 12 ? "text-cyan-300 font-black" : "text-slate-500"}>{synthSize < 12 ? "Active (Confinement)" : "Inactive"}</span></span>
+                       <span>Strain Type: <span className={synthDoping > 5 ? "text-rose-400" : "text-cyan-300"}>{synthDoping > 5 ? "Critical" : "Coherent"}</span></span>
+                    </div>
                   </div>
+
+                  {/* Right Column: Computed Quantum Property Spectrum */}
+                  <div className="lg:col-span-4 flex flex-col gap-6">
+                    {/* Computed Band Gap Card */}
+                    <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout hover:border-cyan-500/30 transition-all duration-300 flex flex-col justify-center">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-xl pointer-events-none group-hover/readout:bg-cyan-500/10 transition-all duration-500 -translate-y-6 translate-x-6" />
+                      
+                      <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <Zap className="w-3.5 h-3.5" />
+                        Confinement Band Gap
+                      </span>
+                      <div className="flex items-end gap-2.5 mb-2">
+                         {(() => {
+                           const bulkEg = selectedCandidate?.bandGap;
+                           const showNumerical = bulkEg !== undefined && typeof bulkEg === 'number' && bulkEg > 0;
+                           if (showNumerical) {
+                             const confinementShift = (15.55 / Math.pow(synthSize, 2));
+                             const totalEg = bulkEg + confinementShift;
+                             return (
+                               <>
+                                 <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
+                                   {totalEg.toFixed(3)}
+                                 </span>
+                                 <span className="text-[10px] font-black font-mono text-cyan-400/60 pb-1.5">eV</span>
+                                 <span className="text-[9px] font-mono text-emerald-400/80 pb-1.5 ml-auto">
+                                   (+{confinementShift.toFixed(3)} eV shift)
+                                 </span>
+                               </>
+                             );
+                           } else {
+                             return (
+                               <>
+                                 <span className="text-2xl font-black font-mono text-indigo-300 tracking-tighter uppercase">
+                                   Plasmons
+                                 </span>
+                                 <span className="text-[10px] font-mono text-slate-500 pb-1 ml-auto">
+                                   Discretized SPR Metallic States
+                                 </span>
+                               </>
+                             );
+                           }
+                         })()}
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                        {selectedCandidate?.bandGap && selectedCandidate.bandGap > 0 
+                          ? `Effective band gap expands from bulk ${selectedCandidate.bandGap} eV due to quantum boundary potential restriction.`
+                          : `Metallic phase. Quantum dots manifest localized surface plasmon resonance (LSPR) transitions.`
+                        }
+                      </p>
+                    </div>
+
+                    {/* Specific Surface Area BET Card */}
+                    <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout2 hover:border-emerald-500/30 transition-all duration-300 flex flex-col justify-center">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none group-hover/readout2:bg-emerald-500/10 transition-all duration-500 -translate-y-6 translate-x-6" />
+                      
+                      <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <Activity className="w-3.5 h-3.5" />
+                        Specific Surface Area (BET)
+                      </span>
+                      <div className="flex items-end gap-2.5 mb-2">
+                         {(() => {
+                           const density = selectedCandidate?.density || 4.5;
+                           const ssa = 6000 / (density * synthSize);
+                           return (
+                             <>
+                               <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
+                                 {ssa.toFixed(1)}
+                               </span>
+                               <span className="text-[10px] font-black font-mono text-emerald-400/60 pb-1.5">m²/g</span>
+                               <span className="text-[9px] font-mono text-slate-500 pb-1.5 ml-auto">
+                                 ρ = {density.toFixed(2)} g/cm³
+                               </span>
+                             </>
+                           );
+                         })()}
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                        High superficial atomic fraction optimizes molecular catalytic binding sites & interfacial chemisorption rates.
+                      </p>
+                    </div>
+
+                    {/* Lattice Strain & Defects Card */}
+                    <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout3 hover:border-violet-500/30 transition-all duration-300 flex flex-col justify-center">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 rounded-full blur-xl pointer-events-none group-hover/readout3:bg-violet-500/10 transition-all duration-500 -translate-y-6 translate-x-6" />
+                      
+                      <span className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <Database className="w-3.5 h-3.5" />
+                        Lattice Strain & Dislocation Density
+                      </span>
+                      <div className="flex items-end gap-2.5 mb-2">
+                         {(() => {
+                           const strain = (synthDoping * 0.0012) + (0.04 / synthSize);
+                           const strainPct = (strain * 100).toFixed(3);
+                           const disloc = 1 / Math.pow(synthSize * 1e-9, 2) / 1e15;
+                           return (
+                             <>
+                               <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
+                                 {strainPct}%
+                               </span>
+                               <span className="text-[10px] font-black font-mono text-violet-400/60 pb-1.5">Strain</span>
+                               <span className="text-[9px] font-mono text-violet-400 pb-1.5 ml-auto" title="Dislocation lines per unit area">
+                                 δ = {disloc.toFixed(2)} × 10¹⁵ lines/m²
+                               </span>
+                             </>
+                           );
+                         })()}
+                      </div>
+                      <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                        Induced crystal lattice parameters undergo coherent elastic warping to accommodate solid-solution dopant incorporation.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Simulated Characterization Interface Action */}
+                <div className="mt-8 p-6 bg-[#040912]/80 border border-slate-800 rounded-3xl relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.03),transparent_60%)] pointer-events-none" />
+                  
+                  <div className="space-y-1.5 text-center sm:text-left">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] block">Kinetics Analysis</span>
+                    <span className="text-sm font-bold text-white block">
+                      Crystallization Yield Fraction (XC): <span className="text-emerald-400 font-mono font-black">{(() => {
+                        const rate = Math.exp(-3200 / (273 + synthTemp));
+                        const cryst = (1 - Math.exp(-rate * Math.pow(synthTime, 1.5))) * 100;
+                        return cryst.toFixed(1);
+                      })()}%</span>
+                    </span>
+                    <p className="text-[11px] text-slate-400 max-w-xl">
+                      Thermodynamic calculations predict nucleostatic grain formation parameters governed by Avrami crystallization exponent models.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const density = selectedCandidate?.density || 4.5;
+                      const size = synthSize;
+                      const ssa = 6000 / (density * size);
+                      const bulkEg = selectedCandidate?.bandGap || 0;
+                      const shift = bulkEg > 0 ? (15.55 / Math.pow(size, 2)) : 0;
+                      const s_vn = (getEntanglementEntropy(selectedCandidate) * (1 + 8 / size) * (1 - synthDoping / 200)).toFixed(3);
+                      
+                      const structureFileContent = `###################################################################
+# Quantum Morphological Synthesis & Characterization Audit Report
+# Target Matrix: ${selectedCandidate?.phase_name || "N/A"} (${selectedCandidate?.formula || "N/A"})
+# Generation Software: Quantum Morphological Synthesizer Engine
+###################################################################
+
+[EXPERIMENT SETUP]
+Synthesis Method: Hydrothermal Supercritical Autoclave
+Calcination Temperature: ${synthTemp} °C
+Calcination Duration: ${synthTime.toFixed(1)} hours
+Target Morphology: ${synthMorphology.toUpperCase()}
+Nominal Crystallite Size (d): ${size.toFixed(1)} nm
+Dopant Concentration (x): ${synthDoping.toFixed(1)} mole %
+
+[QUANTUM CRYSTALLOGRAPHIC CALCULATIONS]
+Structure Space Group: ${selectedCandidate?.spaceGroup || "Unknown"}
+Effective Matrix Density: ${density.toFixed(3)} g/cm³
+Calculated Specific Surface Area (BET): ${ssa.toFixed(2)} m²/g
+Theoretical Dislocation Density (delta): ${(1 / Math.pow(size * 1e-9, 2) / 1e15).toFixed(4)} x 10^15 lines/m²
+Mean Lattice Boundary Strain (epsilon): ${((synthDoping * 0.0012) + (0.04 / size) * 100).toFixed(3)} %
+Estimated Unit Cell Spacing contraction: ${(1 - ((synthDoping * 0.0012) + (0.04 / size))).toFixed(5)} fractional shift
+
+[ELECTRONIC AND TOPOLOGICAL readout]
+Bulk Core Bandgap: ${bulkEg} eV
+Quantum-Confined Energy shift: +${shift.toFixed(4)} eV
+Synthesized Bandgap: ${(bulkEg + shift).toFixed(4)} eV
+Modified Entanglement Entropy S_vn: ${s_vn}
+
+[SIMULATED SYNCHROTRON XRD PATTERN SPECTRUM]
+Peak Shifts:
+${selectedCandidate?.matched_peaks?.map((p, idx) => {
+  const strainVal = (synthDoping * 0.0012) + (0.04 / size);
+  const shiftedPeak = p.refT * (1 + strainVal * 0.05); // slightly shifts angles due to contraction
+  return `Peak #${idx+1} | Bulk 2-Theta: ${p.refT.toFixed(3)}° | Shifted 2-Theta: ${shiftedPeak.toFixed(3)}° | Int: ${p.refI.toFixed(1)}`;
+}).join('\n') || "No reference index paths defined."}
+
+###################################################################
+# Status code: COMPLETED [COHERENT CRYSTALLOGRAPHIC FRAMEWORK]
+###################################################################`;
+
+                      const blob = new Blob([structureFileContent], { type: 'text/plain' });
+                      const a = document.createElement('a');
+                      a.href = URL.createObjectURL(blob);
+                      a.download = `Synthesis_Characterization_${selectedCandidate?.phase_name || "Material"}.txt`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                    }}
+                    className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs uppercase tracking-widest px-6 py-4.5 rounded-2xl border border-cyan-400/40 shadow-[0_0_20px_rgba(34,211,238,0.25)] hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3.5 select-none"
+                  >
+                    <Sparkles className="w-4 h-4 animate-spin-slow" />
+                    Simulate & Export Characterization
+                  </button>
                 </div>
               </div>
 

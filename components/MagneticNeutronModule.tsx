@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MagneticAtom, MagneticResult, LatticeParameters } from '../types';
-import { calculateMagneticDiffraction, NEUTRON_SCATTERING_LENGTHS, MAGNETIC_FORM_FACTORS, NEUTRON_WAVELENGTHS } from '../utils/physics';
+import { calculateMagneticDiffraction, NEUTRON_SCATTERING_LENGTHS, MAGNETIC_FORM_FACTORS, NEUTRON_WAVELENGTHS, calculateCellVolume } from '../utils/physics';
 import {
   ComposedChart,
   Bar,
@@ -12,7 +12,7 @@ import {
   Legend
 } from 'recharts';
 
-import { Upload, Atom, Zap, Info, Layers, Download, Move } from 'lucide-react';
+import { Upload, Atom, Zap, Info, Layers, Download, Move, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const MagneticNeutronModule: React.FC = () => {
@@ -22,6 +22,7 @@ export const MagneticNeutronModule: React.FC = () => {
   });
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState("");
+  const [importError, setImportError] = useState<string | null>(null);
   
   const [atoms, setAtoms] = useState<MagneticAtom[]>([
     { id: '1', element: 'Mn', label: 'Mn (Up)', b: -3.73, x: 0, y: 0, z: 0, B_iso: 0.5, mx: 0, my: 0, mz: 4, ion: 'Mn2+' },
@@ -101,8 +102,9 @@ export const MagneticNeutronModule: React.FC = () => {
       }
       setShowImport(false);
       setImportJson("");
+      setImportError(null);
     } catch (e) {
-      alert("Invalid JSON format");
+      setImportError("Invalid JSON structure. Please check commas, quotes, and braces.");
     }
   };
 
@@ -135,6 +137,57 @@ export const MagneticNeutronModule: React.FC = () => {
       ]);
     }
   };
+
+  // Magnetic computed values
+  const cellVolume = calculateCellVolume ? calculateCellVolume(lattice) : (lattice.a * lattice.b * lattice.c);
+  const totalB = atoms.reduce((acc, atom) => acc + (atom.b || 0), 0);
+  const cellSLD = cellVolume > 0 ? (10 * totalB) / cellVolume : 0;
+
+  // Net magnetic moment vector and its magnitude
+  const netMx = atoms.reduce((acc, a) => acc + (a.mx || 0), 0);
+  const netMy = atoms.reduce((acc, a) => acc + (a.my || 0), 0);
+  const netMz = atoms.reduce((acc, a) => acc + (a.mz || 0), 0);
+  const netMomentMagnitude = Math.sqrt(netMx*netMx + netMy*netMy + netMz*netMz);
+
+  // Total absolute moment in cell
+  const sumAbsMoment = atoms.reduce((acc, a) => {
+    const magnitude = Math.sqrt((a.mx||0)**2 + (a.my||0)**2 + (a.mz||0)**2);
+    return acc + magnitude;
+  }, 0);
+
+  // Determine magnetic order classification
+  let orderType = 'Paramagnetic (PM)';
+  let isNonCollinear = false;
+  if (sumAbsMoment > 0.05) {
+    const nonZeroMoments = atoms
+      .map(a => [a.mx || 0, a.my || 0, a.mz || 0])
+      .filter(v => Math.sqrt(v[0]**2 + v[1]**2 + v[2]**2) > 0.05);
+
+    if (nonZeroMoments.length >= 2) {
+      const v0 = nonZeroMoments[0];
+      const m0 = Math.sqrt(v0[0]**2 + v0[1]**2 + v0[2]**2);
+      const n0 = m0 > 0 ? [v0[0]/m0, v0[1]/m0, v0[2]/m0] : [0, 0, 0];
+      for (let i = 1; i < nonZeroMoments.length; i++) {
+        const vi = nonZeroMoments[i];
+        const mi = Math.sqrt(vi[0]**2 + vi[1]**2 + vi[2]**2);
+        const ni = mi > 0 ? [vi[0]/mi, vi[1]/mi, vi[2]/mi] : [0, 0, 0];
+        // Check angle/alignment
+        const dot = n0[0]*ni[0] + n0[1]*ni[1] + n0[2]*ni[2];
+        if (Math.abs(Math.abs(dot) - 1) > 0.05) {
+          isNonCollinear = true;
+          break;
+        }
+      }
+    }
+
+    if (netMomentMagnitude < 0.05) {
+      orderType = isNonCollinear ? 'Spiral Helimagnetic' : 'Antiferromagnetic (AFM)';
+    } else if (Math.abs(netMomentMagnitude - sumAbsMoment) < 0.05) {
+      orderType = 'Ferromagnetic (FM)';
+    } else {
+      orderType = 'Ferrimagnetic (FiM) / Canted';
+    }
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
@@ -194,20 +247,33 @@ export const MagneticNeutronModule: React.FC = () => {
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.9, opacity: 0 }}
-                  className="bg-slate-900 p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-800 relative"
+                  className="bg-slate-900 p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-slate-800 relative text-left"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
                   <h3 className="text-xl font-black text-white uppercase tracking-tight mb-2">Import Magnetic Structure</h3>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6">Paste Structure JSON with Moments</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Paste Structure JSON with Moments</p>
+                  
+                  {importError && (
+                    <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs font-mono font-medium leading-relaxed">
+                      ⚠ {importError}
+                    </div>
+                  )}
+
                   <textarea
                     value={importJson}
-                    onChange={(e) => setImportJson(e.target.value)}
+                    onChange={(e) => {
+                      setImportJson(e.target.value);
+                      if (importError) setImportError(null);
+                    }}
                     placeholder='{"lattice": {"a": 4.0}, "atoms": [{"element": "Mn", "mx": 0, "mz": 4, ...}]}'
-                    className="w-full h-48 p-4 bg-black/40 border border-slate-800 rounded-2xl font-mono text-xs mb-8 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-300 resize-none"
+                    className="w-full h-48 p-4 bg-black/40 border border-slate-800 rounded-2xl font-mono text-xs mb-6 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-300 resize-none"
                   />
                   <div className="flex justify-end gap-4">
                     <button 
-                      onClick={() => setShowImport(false)}
+                      onClick={() => {
+                        setShowImport(false);
+                        setImportError(null);
+                      }}
                       className="px-6 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
                     >
                       Cancel
@@ -369,15 +435,62 @@ export const MagneticNeutronModule: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-indigo-500/5 p-6 rounded-3xl border border-indigo-500/10 flex items-start gap-5">
-           <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shrink-0">
-             <Zap className="w-5 h-5 text-indigo-400" />
+        <div className="bg-[#0B1228] p-6 rounded-3xl border border-indigo-500/15 relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none" />
+           
+           <div className="flex items-center gap-3 mb-5 relative z-10 text-left">
+             <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/30">
+               <Database className="w-4 h-4 text-indigo-400" />
+             </div>
+             <div>
+               <h4 className="text-xs font-black text-white uppercase tracking-widest leading-none">Magnetic Physical Signatures</h4>
+               <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 block">Computed Unit Cell Properties</span>
+             </div>
            </div>
-           <div>
-             <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Magnetic Interaction Case</h4>
-             <p className="text-xs text-slate-400 leading-relaxed font-medium">
-               Magnetic scattering only occurs if the component of the magnetic moment is <span className="text-indigo-400 font-bold">perpendicular</span> to the scattering vector Q. This allows neutrons to "see" spin orientations.
-             </p>
+
+           <div className="grid grid-cols-2 gap-4 relative z-10 text-left">
+             <div className="bg-[#070C18]/80 p-3 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Cell Volume</span>
+                <span className="text-xs font-mono font-black text-indigo-400 block mt-1">{cellVolume.toFixed(2)} <span className="text-[9px] text-slate-600 font-sans font-bold">Å³</span></span>
+             </div>
+             
+             <div className="bg-[#070C18]/80 p-3 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Magnetic Phase</span>
+                <span className="text-xs font-bold text-amber-400 block mt-1 truncate" title={orderType}>{orderType}</span>
+             </div>
+
+             <div className="bg-[#070C18]/80 p-3 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Nuclear SLD</span>
+                <span className="text-xs font-mono font-black text-cyan-400 block mt-1">{cellSLD.toFixed(3)} <span className="text-[8px] text-slate-600 font-sans font-bold">10⁻⁶Å⁻²</span></span>
+             </div>
+
+             <div className="bg-[#070C18]/80 p-3 rounded-2xl border border-white/5">
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Net Moment |M|</span>
+                <span className="text-xs font-mono font-black text-rose-400 block mt-1">{netMomentMagnitude.toFixed(2)} <span className="text-[9px] text-slate-600 font-sans font-bold">μB</span></span>
+             </div>
+           </div>
+
+           {/* Vector orientation breakdown */}
+           <div className="mt-4 p-3 bg-black/40 border border-white/5 rounded-2xl relative z-10 text-left">
+             <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block mb-1.5">Net Spin vector components</span>
+             <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-mono">
+               <div className="bg-slate-900/40 p-1.5 rounded-lg border border-white/5">
+                 <span className="block text-[8px] text-slate-500 font-sans uppercase">Mx</span>
+                 <span className="text-slate-300 font-black">{netMx.toFixed(2)} μB</span>
+               </div>
+               <div className="bg-slate-900/40 p-1.5 rounded-lg border border-white/5">
+                 <span className="block text-[8px] text-slate-500 font-sans uppercase">My</span>
+                 <span className="text-slate-300 font-black">{netMy.toFixed(2)} μB</span>
+               </div>
+               <div className="bg-slate-900/40 p-1.5 rounded-lg border border-white/5">
+                 <span className="block text-[8px] text-slate-500 font-sans uppercase">Mz</span>
+                 <span className="text-slate-300 font-black">{netMz.toFixed(2)} μB</span>
+               </div>
+             </div>
+           </div>
+
+           <div className="mt-4 p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/10 text-[10px] text-slate-400 leading-normal relative z-10 text-left select-none">
+             <strong>Interaction Parameter:</strong> Magnetic scattering occurs selectively if the magnetic moment runs <strong>perpendicular</strong> to the scattering vector Q. This enables neutron spectrometers to resolve complex collinear AFM structures and spiral spin arrays.
            </div>
         </div>
       </div>
