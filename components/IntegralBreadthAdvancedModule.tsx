@@ -10,9 +10,10 @@ import {
   Tooltip,
   ResponsiveContainer,
   Scatter,
-  Legend
+  Legend,
+  Area
 } from 'recharts';
-import { RefreshCw, Trash2, Settings2, Info, FileText, ArrowUpRight, TrendingUp, ChevronDown, Zap, Download, Database } from 'lucide-react';
+import { RefreshCw, Trash2, Settings2, Info, FileText, ArrowUpRight, TrendingUp, ChevronDown, Zap, Download, Database, Activity, Layers, CheckCircle, FlaskConical, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const MATERIAL_PRESETS = [
@@ -126,20 +127,40 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
     setInputData("");
   };
 
+  const [isSimulationRunning, setIsSimulationRunning] = useState(false);
+  const [simulationStep, setSimulationStep] = useState(0);
+
   const handleCalculate = () => {
-    const peaks = parseIBAdvancedInput(inputData);
-    const computed = calculateIBAdvanced(
-      wavelength,
-      constantK,
-      instBetaIB,
-      peaks,
-      instrumentalMode,
-      { U: cagliotiU, V: cagliotiV, W: cagliotiW },
-      decouplingMethod,
-      youngsModulusGPa > 0 ? youngsModulusGPa : undefined
-    );
-    setResult(computed);
+    if (isSimulationRunning) return;
+    
+    setIsSimulationRunning(true);
+    setSimulationStep(1);
+    
+    setTimeout(() => setSimulationStep(2), 600);
+    setTimeout(() => setSimulationStep(3), 1400);
+    setTimeout(() => setSimulationStep(4), 2200);
+    setTimeout(() => setSimulationStep(5), 3000);
+    
+    setTimeout(() => {
+      setIsSimulationRunning(false);
+      const peaks = parseIBAdvancedInput(inputData);
+      const computed = calculateIBAdvanced(
+        wavelength,
+        constantK,
+        instBetaIB,
+        peaks,
+        instrumentalMode,
+        { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+        decouplingMethod,
+        youngsModulusGPa > 0 ? youngsModulusGPa : undefined
+      );
+      setResult(computed);
+    }, 3800);
   };
+
+  useEffect(() => {
+    setResult(null); // Clear result when inputs change to enforce re-analyzing
+  }, [wavelength, constantK, instBetaIB, inputData, instrumentalMode, cagliotiU, cagliotiV, cagliotiW, decouplingMethod, youngsModulusGPa]);
 
   const handleDownloadCSV = () => {
     if (!result) return;
@@ -154,23 +175,26 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  useEffect(() => {
-    handleCalculate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wavelength, constantK, instBetaIB, inputData, instrumentalMode, cagliotiU, cagliotiV, cagliotiW, decouplingMethod, youngsModulusGPa]);
-
   // Prepare chart data
   const chartData = result ? result.points.map(p => {
     const fitY = result.regression.slope * p.x + result.regression.intercept;
+    const stdDev = Math.sqrt(
+      result.points.reduce((sum, pt) => {
+        const yPred = result.regression.slope * pt.x + result.regression.intercept;
+        return sum + Math.pow(pt.y - yPred, 2);
+      }, 0) / Math.max(1, result.points.length - 2)
+    );
+    const confidenceBound = stdDev * 2.1; // 95% CI roughly
     return {
       x: p.x,
       y: p.y,
       fit: fitY,
+      fitRange: [Math.max(0, fitY - confidenceBound), fitY + confidenceBound],
       deviation: p.y - fitY,
       twoTheta: p.twoTheta,
       betaSample: p.betaSample
     };
-  }) : [];
+  }).sort((a,b) => a.x - b.x) : [];
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -582,19 +606,54 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={handleCalculate}
-              disabled={parseIBAdvancedInput(inputData).length < 2}
-              className={`w-full py-4 font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-3 group relative overflow-hidden ${
-                parseIBAdvancedInput(inputData).length >= 2
-                   ? 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-400 hover:to-purple-400 text-white shadow-[0_0_20px_rgba(244,114,182,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]' 
-                   : 'bg-[#070D18] text-slate-600 cursor-not-allowed border border-white/5 shadow-inner'
-              }`}
-            >
-              {parseIBAdvancedInput(inputData).length >= 2 && <div className="absolute inset-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />}
-              <TrendingUp className={`w-5 h-5 ${parseIBAdvancedInput(inputData).length >= 2 ? 'group-hover:scale-110 transition-transform' : ''}`} />
-              Analyze Data
-            </button>
+            {!isSimulationRunning ? (
+              <button
+                onClick={handleCalculate}
+                disabled={parseIBAdvancedInput(inputData).length < 2}
+                className={`w-full py-4 font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-3 group relative overflow-hidden ${
+                  parseIBAdvancedInput(inputData).length >= 2
+                     ? 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-400 hover:to-purple-400 text-white shadow-[0_0_20px_rgba(244,114,182,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.4)]' 
+                     : 'bg-[#070D18] text-slate-600 cursor-not-allowed border border-white/5 shadow-inner'
+                }`}
+              >
+                {parseIBAdvancedInput(inputData).length >= 2 && <div className="absolute inset-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                <TrendingUp className={`w-5 h-5 ${parseIBAdvancedInput(inputData).length >= 2 ? 'group-hover:scale-110 transition-transform' : ''}`} />
+                Analyze Data
+              </button>
+            ) : (
+              <div className="bg-[#070D18] p-5 rounded-2xl border border-pink-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(244,114,182,0.05)]">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-2xl rounded-full" />
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 text-pink-400 animate-spin" /> Advanced Analysis Running
+                </h4>
+                <div className="space-y-3 relative z-10 w-full flex flex-col">
+                  {[
+                    { step: 1, label: 'Parsing Reflectivity Integrals', icon: Database },
+                    { step: 2, label: instrumentalMode === 'constant' ? 'Applying Constant β_inst' : 'Computing Caglioti IRF', icon: FlaskConical },
+                    { step: 3, label: decouplingMethod === 'linear' ? 'Lorentzian Deconvolution' : 'Gaussian Deconvolution', icon: Activity },
+                    { step: 4, label: 'Computing W-H Regression Matrix', icon: Layers },
+                    { step: 5, label: 'Extracting Elastic Tensors', icon: CheckCircle }
+                  ].map((s) => {
+                     const Icon = s.icon;
+                     const isActive = simulationStep === s.step;
+                     const isDone = simulationStep > s.step;
+                     return (
+                       <div key={s.step} className={`flex items-center gap-3 w-full transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : isDone ? 'opacity-50' : 'opacity-20'}`}>
+                         <div className={`p-1.5 rounded-lg border flex-shrink-0 ${isActive ? 'bg-pink-500/20 border-pink-500/50 text-pink-400' : isDone ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-slate-800 border-white/5 text-slate-500'}`}>
+                           <Icon className={`w-3.5 h-3.5 ${isActive ? 'animate-pulse' : ''}`} />
+                         </div>
+                         <div className="flex-1 flex flex-col">
+                           <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-pink-300' : isDone ? 'text-emerald-300/80' : 'text-slate-500'}`}>
+                             {s.label}
+                           </span>
+                           {isActive && <div className="h-0.5 bg-gradient-to-r from-pink-500 to-transparent w-full mt-1.5 animate-pulse rounded-full" />}
+                         </div>
+                       </div>
+                     );
+                  })}
+                </div>
+              </div>
+            )}
 
             {result && (
               <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 flex flex-col gap-3 shadow-inner">
@@ -718,7 +777,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
         </div>
 
         {/* Chart */}
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/10 h-[500px] flex flex-col relative overflow-hidden group hover:border-pink-500/30 transition-all">
+        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/10 h-[700px] flex flex-col relative overflow-hidden group hover:border-pink-500/30 transition-all">
           <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-pink-500/10 transition-all duration-700" />
           
           <div className="flex justify-between items-center mb-6 relative z-10 px-2">
@@ -781,6 +840,14 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.1)' }} />
                   <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', color: '#94a3b8', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                  <Area
+                    type="monotone"
+                    dataKey="fitRange"
+                    stroke="none"
+                    fill="#fb7185"
+                    fillOpacity={0.1}
+                    name="95% Confidence Band"
+                  />
                   <Scatter 
                     name="Observed Data" 
                     dataKey="y" 

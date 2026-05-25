@@ -52,48 +52,71 @@ export const isPermissionError = (error: any): boolean => {
 export const generateScientificImage = async (prompt: string, size: '1K' | '2K' | '4K', styleLabel?: string): Promise<string | null> => {
   // Create a new instance to ensure the most up-to-date API key is used (if selected via UI)
   const dynamicAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
-  const model = 'imagen-3.0-generate-001'; 
+  const styleContext = styleLabel ? ` in the style of a ${styleLabel}` : '';
+  const fullPrompt = `Generate a high-quality scientific illustration or diagram suitable for crystallography analysis${styleContext}. Prompt: ${prompt}`;
 
+  // Method 1: Try using standard Imagen 3.0 model with generateImages (the correct API for Imagen)
   try {
-    const styleContext = styleLabel ? ` in the style of a ${styleLabel}` : '';
-    const response = await dynamicAi.models.generateContent({
-      model,
-      contents: {
-        parts: [
-          {
-            text: `Generate a high-quality scientific illustration or diagram suitable for crystallography analysis${styleContext}. Prompt: ${prompt}`
-          },
-        ],
-      },
+    const response = await dynamicAi.models.generateImages({
+      model: 'imagen-3.0-generate-002',
+      prompt: fullPrompt,
       config: {
-        imageConfig: {
-          aspectRatio: "1:1",
-          imageSize: size
-        }
+        numberOfImages: 1,
+        outputMimeType: 'image/jpeg',
+        aspectRatio: '1:1',
       },
     });
 
-    if (response.candidates?.[0]?.content?.parts) {
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-        }
-      }
+    if (response?.generatedImages?.[0]?.image?.imageBytes) {
+      return `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
     }
     return null;
   } catch (error: any) {
-    if (!isQuotaError(error) && !isPermissionError(error)) {
-      console.error("Image Generation Error:", error);
+    if (isQuotaError(error) || isPermissionError(error)) {
+      if (isQuotaError(error)) throw new Error("Quota exceeded (429).");
+      if (isPermissionError(error)) throw new Error("Permission denied (403). API key might not have image generation access.");
+      throw error;
     }
-    if (isQuotaError(error)) throw new Error("Quota exceeded (429).");
-    if (isPermissionError(error)) throw new Error("Permission denied (403). API key might not have image generation access.");
-    throw error;
+
+    // Method 2: Fallback to the multimodal image generation model using generateContent
+    try {
+      const response = await dynamicAi.models.generateContent({
+        model: 'gemini-3.1-flash-image-preview',
+        contents: {
+          parts: [
+            {
+              text: fullPrompt
+            },
+          ],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: "1:1",
+            imageSize: size
+          }
+        },
+      });
+
+      if (response.candidates?.[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          }
+        }
+      }
+      return null;
+    } catch (fallbackError: any) {
+      console.error("All image generation methods failed. Main error was:", error, "Fallback error was:", fallbackError);
+      if (isQuotaError(fallbackError)) throw new Error("Quota exceeded (429).");
+      if (isPermissionError(fallbackError)) throw new Error("Permission denied (403). API key might not have image generation access.");
+      throw fallbackError;
+    }
   }
 };
 
 export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> => {
   try {
-    const model = 'gemini-2.0-flash';
+    const model = 'gemini-3.5-flash';
     const response = await ai.models.generateContent({
       model,
       contents: `Search for and provide a comprehensive list of the most current and accurate standard characteristic X-ray wavelengths (K-alpha weighted averages for Cu, Mo, Co, Fe, Cr, Ag) and common neutron wavelengths (standard thermal and cold source averages). 
@@ -135,7 +158,7 @@ export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> 
 
 export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
   try {
-    const model = 'gemini-2.0-flash';
+    const model = 'gemini-3.5-flash';
     
     const response = await ai.models.generateContent({
       model,
@@ -222,7 +245,7 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
 
 export const explainResults = async (resultsSummary: string): Promise<string> => {
    try {
-    const model = 'gemini-2.0-flash';
+    const model = 'gemini-3.5-flash';
     const response = await ai.models.generateContent({
       model,
       contents: `As a crystallography expert, briefly interpret these diffraction results: ${resultsSummary}. Focus on d-spacing trends and potential crystal quality indicators. Keep it under 50 words.`,
@@ -244,7 +267,7 @@ export const explainResults = async (resultsSummary: string): Promise<string> =>
 
 export const analyzeDiffractionImage = async (imageBase64: string, userContext: string): Promise<string> => {
   try {
-    const model = 'gemini-2.0-flash';
+    const model = 'gemini-3.5-flash';
     
     const matches = imageBase64.match(/^data:(.+);base64,(.+)$/);
     if (!matches || matches.length < 3) {
@@ -296,20 +319,43 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
   }
 };
 
-export const enhanceScientificPrompt = async (prompt: string, style: string): Promise<string> => {
+export const enhanceScientificPrompt = async (
+  prompt: string, 
+  style: string, 
+  config?: {
+    lighting?: string;
+    perspective?: string;
+    colorScheme?: string;
+    addAnnotations?: boolean;
+    addGridLines?: boolean;
+    addForceVectors?: boolean;
+  }
+): Promise<string> => {
   try {
-    const model = 'gemini-2.0-flash';
+    const model = 'gemini-3.5-flash';
+    let systemDetails = '';
+    if (config) {
+      if (config.lighting) systemDetails += `- Use ${config.lighting} lighting specifically.\n`;
+      if (config.perspective) systemDetails += `- Use a ${config.perspective} perspective/camera angle.\n`;
+      if (config.colorScheme) systemDetails += `- Employ a ${config.colorScheme} color scheme/palette.\n`;
+      if (config.addGridLines) systemDetails += `- Include fine technical grid overlay lines and spatial calibration marks.\n`;
+      if (config.addAnnotations) systemDetails += `- Include clean, minimal scientific text annotations with leader lines, labeling d-spacing and crystallographic axes.\n`;
+      if (config.addForceVectors) systemDetails += `- Add clean vector force arrows (indicating atomic displacements, stress fields, or wave vectors).\n`;
+    }
+    
     const response = await ai.models.generateContent({
       model,
-      contents: `You are an expert scientific illustrator. Transform the following user description into a detailed, high-quality prompt for an image generation AI. 
+      contents: `You are an expert scientific illustrator working for academic journals. Transform the following user description into a detailed, high-quality, professional image generation prompt.
 
-The goal is to create a ${style} image.
+Visual Style: ${style}
+User Concept: "${prompt}"
+${systemDetails}
 
-User Description: "${prompt}"
+Ensure the resulting prompt describes a polished, crisp, ultra-high-resolution, professionally rendered schematic with no clutter or blurry artifacts. Focus on rich rendering details, clear material textures (like glass, metal bond spheres, electron density gas, or textured SEM structures), and strict physical fidelity.
 
-Your output should be a single paragraph that describes colors, lighting, perspective, scientific accuracy, and artistic quality. Do not include any introductory text, just the prompt.`,
+Output ONLY the enhanced prompt as a single paragraph. Do not include any introductory or concluding text, notes, markdown blocks, or quotes.`,
     });
-    return response.text || prompt;
+    return response.text?.trim() || prompt;
   } catch (error) {
     console.error("Prompt enhancement error:", error);
     return prompt;
@@ -318,7 +364,7 @@ Your output should be a single paragraph that describes colors, lighting, perspe
 
 export const createSupportChat = (isSmart: boolean = false): Chat => {
   return ai.chats.create({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.5-flash',
     config: {
       systemInstruction: "You are 'Crystal', the AI support assistant for the Bragg-Engine crystallography app. You are helpful, scientifically accurate, and concise. You help users (especially Raf) understand diffraction concepts (Bragg's law, Scherrer equation, Rietveld refinement) and navigate the app. Use the Google Search tool to provide accurate, up-to-date scientific information.",
       tools: [{ googleSearch: {} }]

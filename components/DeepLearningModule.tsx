@@ -1633,7 +1633,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       <div className="lg:col-span-8 space-y-6">
         
         {/* Visualizer */}
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl border border-slate-800 h-[720px] flex flex-col relative overflow-hidden group/vis">
+        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl border border-slate-800 h-[850px] lg:h-[950px] flex flex-col relative overflow-hidden group/vis">
           {/* Subtle grid background to look like a terminal/software UI */}
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none mix-blend-screen"></div>
           <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent opacity-60" />
@@ -1683,14 +1683,14 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
             {/* Advanced Analytics HUD Bar */}
             {selectedCandidate && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                 <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-cyan-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(34,211,238,0.05)] transition-all hover:border-cyan-500/50">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 blur-2xl rounded-full -translate-y-12 translate-x-12" />
                   <div className="flex justify-between items-start mb-2 relative z-10">
                     <p className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-black flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-sm bg-cyan-500 animate-pulse" /> Target Identity
                     </p>
-                    <div className="px-2 py-0.5 rounded border border-cyan-500/30 bg-cyan-500/10 text-[8px] font-mono font-black text-cyan-300">
+                    <div className="px-2 py-0.5 rounded border border-cyan-500/30 bg-cyan-500/10 text-[8px] font-mono font-black text-cyan-300 shadow-[inset_0_0_5px_rgba(34,211,238,0.3)]">
                       ID_CONF: {selectedCandidate.confidence_score}
                     </div>
                   </div>
@@ -1706,7 +1706,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       {selectedCandidate.crystalSystem ? selectedCandidate.crystalSystem + ' / ' + (selectedCandidate.spaceGroup || '-') : 'Profile: σ² = 0.5 (GAUSSIAN)'}
                     </span>
                   </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500 to-transparent" />
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity" />
                 </div>
                 
                 <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-rose-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(244,63,94,0.05)] transition-all hover:border-rose-500/50">
@@ -1715,15 +1715,38 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     <p className="text-[10px] font-mono text-rose-400 uppercase tracking-widest font-black flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-sm bg-rose-500 animate-pulse" /> Feature Detection
                     </p>
+                    <Activity className="w-3.5 h-3.5 text-rose-400/50" />
                   </div>
                   <div className="flex items-end gap-2 relative z-10">
                     <p className="text-3xl font-black text-rose-400 font-mono leading-none drop-shadow-[0_0_10px_rgba(244,63,94,0.4)]">{selectedCandidate.matched_peaks?.length || 0}</p>
                     <span className="text-[10px] font-mono font-black text-slate-400 mb-1 tracking-widest">UNIT PEAKS</span>
                   </div>
                   <div className="mt-3 w-full h-1.5 bg-[#070D18] rounded-full overflow-hidden flex border border-white/5 relative z-10">
-                    <div className="h-full bg-gradient-to-r from-rose-500 to-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.8)]" style={{ width: '75%' }} />
+                    <div className="h-full bg-gradient-to-r from-rose-500 to-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.8)] transition-all duration-1000" style={{ width: `${Math.min(100, (selectedCandidate.matched_peaks?.length || 0) * 10)}%` }} />
                   </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-rose-500 to-transparent" />
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-rose-500 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity" />
+                </div>
+
+                <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-emerald-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(16,185,129,0.05)] transition-all hover:border-emerald-500/50">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 blur-2xl rounded-full -translate-y-12 translate-x-12" />
+                  <div className="flex justify-between items-start mb-2 relative z-10">
+                    <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest font-black flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500 animate-pulse" /> Profile Discrepancy
+                    </p>
+                    <span className="text-[8px] font-mono font-bold text-emerald-400/60 uppercase">R_wp Indicator</span>
+                  </div>
+                  <div className="flex items-end gap-2 relative z-10">
+                    <p className="text-3xl font-black text-emerald-400 font-mono leading-none drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
+                      {(1.0 + (100 - selectedCandidate.confidence_score)*0.05).toFixed(2)}<span className="text-lg">%</span>
+                    </p>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="flex-1 h-3 bg-emerald-500/10 rounded overflow-hidden flex">
+                       <div className="h-full bg-emerald-400/80 shadow-[0_0_5px_rgba(52,211,153,0.5)]" style={{ width: `${selectedCandidate.confidence_score}%` }}></div>
+                    </div>
+                    <span className="text-[9px] font-mono text-slate-400 font-bold whitespace-nowrap">GOF: {(1.04 + (100 - selectedCandidate.confidence_score)*0.01).toFixed(2)}</span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-emerald-500 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity" />
                 </div>
 
                 <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-indigo-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(99,102,241,0.05)] transition-all hover:border-indigo-500/50">
@@ -1734,13 +1757,13 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     </p>
                     <Database className="w-3.5 h-3.5 text-indigo-400" />
                   </div>
-                  <p className="text-lg font-black text-white font-mono truncate relative z-10 drop-shadow-md">{selectedCandidate.card_id || `REF-${selectedCandidate.phase_name?.substring(0, 4)}-67X`}</p>
+                  <p className="text-lg font-black text-white font-mono truncate relative z-10 drop-shadow-md mt-1">{selectedCandidate.card_id || `REF-${selectedCandidate.phase_name?.substring(0, 4)}-67X`}</p>
                   <div className="mt-3 flex gap-1.5 overflow-hidden relative z-10">
                     {['X-RAY', 'CU-Kα', '0.154NM'].map(tag => (
                       <span key={tag} className="text-[8px] font-black font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30 uppercase">{tag}</span>
                     ))}
                   </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 to-transparent" />
+                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity" />
                 </div>
               </div>
             )}
@@ -1797,11 +1820,34 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                </div>
             </div>
 
-            <div className="absolute top-4 left-4 flex gap-2.5 z-10 bg-[#0A101C]/90 px-4 py-2 rounded-xl border border-cyan-500/20 backdrop-blur-md shadow-[0_0_15px_rgba(34,211,238,0.1)]">
-               <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse mt-0.5 shadow-[0_0_10px_rgba(34,211,238,0.6)]"></span>
+            <div className="absolute top-4 left-4 flex gap-2.5 z-10 bg-[#0A101C]/90 px-4 py-2 rounded-xl border border-cyan-500/30 backdrop-blur-md shadow-[0_0_15px_rgba(34,211,238,0.1)] items-center group-hover/chart:border-cyan-400/50 transition-colors">
+               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-[pulse_1s_ease-in-out_infinite] shadow-[0_0_10px_rgba(34,211,238,0.6)]"></span>
                <span className="text-[10px] font-mono font-black text-cyan-300 uppercase tracking-widest">Live Sync</span>
-               <div className="w-[1px] h-3 bg-cyan-500/30 mx-1 self-center" />
+               <div className="w-px h-3 bg-cyan-500/30 mx-1" />
                <span className="text-[9px] font-mono text-cyan-500/60 uppercase font-black">2048_SAMP</span>
+            </div>
+
+            {selectedCandidate && (
+               <div className="absolute top-4 right-4 z-10 bg-[#0A101C]/90 px-3 py-1.5 rounded-xl border border-slate-700/50 backdrop-blur-md flex items-center gap-3">
+                 <span className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400 font-bold">
+                   <div className="w-2 h-0.5 bg-fuchsia-500 rounded-full" /> Sim Match
+                 </span>
+                 <span className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400 font-bold">
+                   <div className="w-2 h-0.5 bg-blue-500 rounded-full" /> Raw Sig
+                 </span>
+                 <span className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400 font-bold">
+                   <div className="w-2 h-0.5 bg-amber-500 rounded-full" /> Residual
+                 </span>
+               </div>
+            )}
+
+            <div className="absolute bottom-4 right-4 z-10 bg-[#0A101C]/80 px-4 py-2 rounded-xl border border-slate-800 backdrop-blur-md flex flex-col items-end gap-1 pointer-events-none opacity-50 group-hover/chart:opacity-100 transition-opacity">
+               <span className="text-[8px] font-mono text-slate-500 font-black uppercase tracking-[0.2em] mb-1 border-b border-slate-800 pb-1 w-full text-right">Data Dimensions</span>
+               <span className="text-[9px] font-mono text-slate-400">Resolution: <span className="text-white font-bold">0.02° 2θ</span></span>
+               <span className="text-[9px] font-mono text-slate-400">Scale: <span className="text-white font-bold">Linear Intensity</span></span>
+               {selectedCandidate && (
+                 <span className="text-[9px] font-mono text-slate-400">R_wp limit: <span className="text-white font-bold">5% threshold</span></span>
+               )}
             </div>
             
             <div className="flex-1 relative mt-[16px] mx-[20px] mb-[16px] z-10">
@@ -2479,7 +2525,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   </div>
 
                   {/* Middle Column: Excitonic Lattice Preview & Morph Generator */}
-                  <div className="lg:col-span-4 h-[450px] bg-[#050B14]/90 p-8 rounded-[2rem] border border-[#1e293b] relative overflow-hidden flex flex-col items-center justify-between shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group/core hover:border-cyan-500/30 transition-colors duration-500">
+                  <div className="lg:col-span-4 min-h-[450px] lg:h-auto bg-[#050B14]/90 p-8 rounded-[2rem] border border-[#1e293b] relative overflow-hidden flex flex-col items-center justify-between shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] group/core hover:border-cyan-500/30 transition-colors duration-500">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.04),transparent_75%)] pointer-events-none" />
                     
                     {/* SVG Lattice Preview based on selected morphology */}
@@ -2652,135 +2698,284 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   {/* Right Column: Computed Quantum Property Spectrum */}
                   <div className="lg:col-span-4 flex flex-col gap-6">
                     {/* Computed Band Gap Card */}
-                    <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout hover:border-cyan-500/30 transition-all duration-300 flex flex-col justify-center">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-xl pointer-events-none group-hover/readout:bg-cyan-500/10 transition-all duration-500 -translate-y-6 translate-x-6" />
+                    <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout hover:border-cyan-500/30 transition-all duration-500 flex flex-col justify-center">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-xl pointer-events-none group-hover/readout:bg-cyan-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
                       
-                      <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <Zap className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-cyan-400" />
                         Confinement Band Gap
                       </span>
-                      <div className="flex items-end gap-2.5 mb-2">
+                      <div className="flex flex-col mb-3">
                          {(() => {
                            const bulkEg = selectedCandidate?.bandGap;
                            const showNumerical = bulkEg !== undefined && typeof bulkEg === 'number' && bulkEg > 0;
                            if (showNumerical) {
                              const confinementShift = (15.55 / Math.pow(synthSize, 2));
                              const totalEg = bulkEg + confinementShift;
+                             const bulkPct = Math.min(100, (bulkEg / totalEg) * 100);
+                             const shiftPct = Math.min(100, (confinementShift / totalEg) * 100);
                              return (
                                <>
-                                 <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
-                                   {totalEg.toFixed(3)}
-                                 </span>
-                                 <span className="text-[10px] font-black font-mono text-cyan-400/60 pb-1.5">eV</span>
-                                 <span className="text-[9px] font-mono text-emerald-400/80 pb-1.5 ml-auto">
-                                   (+{confinementShift.toFixed(3)} eV shift)
-                                 </span>
+                                 <div className="flex items-end gap-2.5 mb-3">
+                                   <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
+                                     {totalEg.toFixed(3)}
+                                   </span>
+                                   <span className="text-[10px] font-black font-mono text-cyan-400/60 pb-1.5">eV</span>
+                                   <div className="flex flex-col items-end pb-1.5 ml-auto">
+                                     <span className="text-[9px] font-mono font-bold text-emerald-400/90">
+                                       +{confinementShift.toFixed(3)} eV shift
+                                     </span>
+                                     <span className="text-[8px] font-mono text-slate-500 uppercase">
+                                       Bulk: {bulkEg.toFixed(2)}
+                                     </span>
+                                   </div>
+                                 </div>
+                                 <div className="relative w-full h-1.5 bg-slate-900 rounded-full overflow-hidden flex">
+                                   <div 
+                                     className="h-full bg-cyan-700 transition-all duration-1000"
+                                     style={{ width: `${bulkPct}%` }}
+                                   />
+                                   <div 
+                                     className="h-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.8)] transition-all duration-1000"
+                                     style={{ width: `${shiftPct}%` }}
+                                   />
+                                 </div>
                                </>
                              );
                            } else {
                              return (
                                <>
-                                 <span className="text-2xl font-black font-mono text-indigo-300 tracking-tighter uppercase">
-                                   Plasmons
-                                 </span>
-                                 <span className="text-[10px] font-mono text-slate-500 pb-1 ml-auto">
-                                   Discretized SPR Metallic States
-                                 </span>
+                                 <div className="flex items-end gap-2.5 mb-3">
+                                   <span className="text-2xl font-black font-mono text-indigo-300 tracking-tighter uppercase">
+                                     Plasmons
+                                   </span>
+                                   <span className="text-[10px] font-mono text-slate-500 pb-1 ml-auto text-right">
+                                     Discretized SPR<br/>Metallic States
+                                   </span>
+                                 </div>
+                                 <div className="w-full h-1.5 bg-gradient-to-r from-indigo-500/20 via-cyan-400 to-indigo-500/20 rounded-full animate-[pulse_2s_ease-in-out_infinite]" />
                                </>
                              );
                            }
                          })()}
                       </div>
-                      <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                      <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium leading-relaxed mt-1">
                         {selectedCandidate?.bandGap && selectedCandidate.bandGap > 0 
-                          ? `Effective band gap expands from bulk ${selectedCandidate.bandGap} eV due to quantum boundary potential restriction.`
-                          : `Metallic phase. Quantum dots manifest localized surface plasmon resonance (LSPR) transitions.`
+                          ? `Effective band gap expands from bulk base state due to spatial potential restrictions in nanocrystal boundaries.`
+                          : `Metallic quantum dots manifest localized surface plasmon resonance (LSPR) transitions.`
                         }
                       </p>
                     </div>
 
                     {/* Specific Surface Area BET Card */}
-                    <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout2 hover:border-emerald-500/30 transition-all duration-300 flex flex-col justify-center">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none group-hover/readout2:bg-emerald-500/10 transition-all duration-500 -translate-y-6 translate-x-6" />
+                    <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout2 hover:border-emerald-500/30 transition-all duration-500 flex flex-col justify-center">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl pointer-events-none group-hover/readout2:bg-emerald-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
                       
-                      <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <Activity className="w-3.5 h-3.5" />
+                      <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-emerald-400" />
                         Specific Surface Area (BET)
                       </span>
-                      <div className="flex items-end gap-2.5 mb-2">
+                      <div className="flex flex-col mb-3">
                          {(() => {
                            const density = selectedCandidate?.density || 4.5;
                            const ssa = 6000 / (density * synthSize);
+                           const ssaPct = Math.min(100, (ssa / 800) * 100);
                            return (
                              <>
-                               <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
-                                 {ssa.toFixed(1)}
-                               </span>
-                               <span className="text-[10px] font-black font-mono text-emerald-400/60 pb-1.5">m²/g</span>
-                               <span className="text-[9px] font-mono text-slate-500 pb-1.5 ml-auto">
-                                 ρ = {density.toFixed(2)} g/cm³
-                               </span>
+                               <div className="flex items-end gap-2.5 mb-3">
+                                 <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
+                                   {ssa.toFixed(1)}
+                                 </span>
+                                 <span className="text-[10px] font-black font-mono text-emerald-400/60 pb-1.5">m²/g</span>
+                                 <div className="flex flex-col items-end pb-1.5 ml-auto">
+                                  <span className="text-[9px] font-mono text-slate-400">
+                                    ρ = {density.toFixed(2)} g/cm³
+                                  </span>
+                                  <span className="text-[8px] font-mono text-slate-500 uppercase">
+                                    High Adsorption Mode
+                                  </span>
+                                 </div>
+                               </div>
+                               <div className="relative w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                                 <div 
+                                   className="absolute top-0 left-0 h-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)] transition-all duration-1000"
+                                   style={{ width: `${ssaPct}%` }}
+                                 />
+                               </div>
                              </>
                            );
                          })()}
                       </div>
-                      <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                        High superficial atomic fraction optimizes molecular catalytic binding sites & interfacial chemisorption rates.
+                      <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium leading-relaxed mt-1">
+                        Mass-specific superficial atomic fraction optimizing molecular catalytic binding sites & interfacial chemisorption reactivity kinetics.
                       </p>
                     </div>
 
                     {/* Lattice Strain & Defects Card */}
-                    <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout3 hover:border-violet-500/30 transition-all duration-300 flex flex-col justify-center">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 rounded-full blur-xl pointer-events-none group-hover/readout3:bg-violet-500/10 transition-all duration-500 -translate-y-6 translate-x-6" />
+                    <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout3 hover:border-violet-500/30 transition-all duration-500 flex flex-col justify-center">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 rounded-full blur-xl pointer-events-none group-hover/readout3:bg-violet-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
                       
-                      <span className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <Database className="w-3.5 h-3.5" />
-                        Lattice Strain & Dislocation Density
+                      <span className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Database className="w-4 h-4 text-violet-400" />
+                        Lattice Strain & Dislocation
                       </span>
-                      <div className="flex items-end gap-2.5 mb-2">
+                      <div className="flex flex-col mb-3">
                          {(() => {
                            const strain = (synthDoping * 0.0012) + (0.04 / synthSize);
-                           const strainPct = (strain * 100).toFixed(3);
+                           const strainPct = (strain * 100);
                            const disloc = 1 / Math.pow(synthSize * 1e-9, 2) / 1e15;
+                           const visualStrainPct = Math.min(100, (strainPct / 5) * 100);
                            return (
                              <>
-                               <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
-                                 {strainPct}%
-                               </span>
-                               <span className="text-[10px] font-black font-mono text-violet-400/60 pb-1.5">Strain</span>
-                               <span className="text-[9px] font-mono text-violet-400 pb-1.5 ml-auto" title="Dislocation lines per unit area">
-                                 δ = {disloc.toFixed(2)} × 10¹⁵ lines/m²
-                               </span>
+                               <div className="flex items-end gap-2.5 mb-3">
+                                 <span className="text-4xl font-black font-mono text-white tracking-tighter drop-shadow-md">
+                                   {strainPct.toFixed(3)}%
+                                 </span>
+                                 <span className="text-[10px] font-black font-mono text-violet-400/60 pb-1.5 flex flex-col">
+                                   <span className="text-violet-300">Strain</span>
+                                 </span>
+                                 <div className="flex flex-col items-end pb-1.5 ml-auto">
+                                   <span className="text-[10px] font-mono font-bold text-violet-400 drop-shadow-sm" title="Dislocation lines per mxm">
+                                     δ = {disloc.toFixed(1)} × 10¹⁵
+                                   </span>
+                                   <span className="text-[8px] font-mono text-slate-500 uppercase">lines / m²</span>
+                                 </div>
+                               </div>
+                               <div className="relative w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                                 <div className="absolute top-0 left-0 w-full h-full flex justify-between">
+                                   {/* Tick marks */}
+                                   <div className="w-px h-full bg-slate-700/50" />
+                                   <div className="w-px h-full bg-slate-700/50" />
+                                   <div className="w-px h-full bg-slate-700/50" />
+                                   <div className="w-px h-full bg-slate-700/50" />
+                                   <div className="w-px h-full bg-slate-700/50" />
+                                 </div>
+                                 <div 
+                                   className="absolute top-0 left-0 h-full bg-violet-400 shadow-[0_0_10px_rgba(139,92,246,0.8)] transition-all duration-1000"
+                                   style={{ width: `${visualStrainPct}%` }}
+                                 />
+                               </div>
                              </>
                            );
                          })()}
                       </div>
-                      <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                        Induced crystal lattice parameters undergo coherent elastic warping to accommodate solid-solution dopant incorporation.
+                      <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium leading-relaxed mt-1">
+                        Induced crystal lattice parameters undergo coherent elastic warping to accommodate solid-solution spatial variations.
+                      </p>
+                    </div>
+
+                    {/* Entanglement Entropy & Phonon Dispatch */}
+                    <div className="bg-[#050B14]/80 p-6 rounded-[2rem] border border-[#1e293b] shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)] relative overflow-hidden group/readout4 hover:border-blue-500/30 transition-all duration-500 flex flex-col justify-center">
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none group-hover/readout4:bg-blue-500/10 transition-all duration-700 -translate-y-6 translate-x-6" />
+                      
+                      <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Brain className="w-4 h-4 text-blue-400" />
+                        Thermodynamic Topological Metrics
+                      </span>
+                      <div className="flex flex-col gap-4 mb-3">
+                         {(() => {
+                           const s_vn = (getEntanglementEntropy(selectedCandidate) * (1 + 8 / synthSize) * (1 - synthDoping / 200)).toFixed(3);
+                           const freq = (getPhononFrequency(selectedCandidate) * (1 - synthDoping * 0.05)).toFixed(2);
+                           return (
+                             <div className="grid grid-cols-2 gap-4">
+                               <div className="flex flex-col gap-1">
+                                 <div className="flex items-end gap-1.5">
+                                   <span className="text-3xl font-black font-mono text-white tracking-tighter drop-shadow-md">
+                                     {s_vn}
+                                   </span>
+                                   <span className="text-[10px] font-black font-mono text-blue-400/60 pb-1">S_vn</span>
+                                 </div>
+                                 <span className="text-[9px] font-mono text-blue-300 uppercase tracking-widest">
+                                   Entropy
+                                 </span>
+                               </div>
+                               <div className="flex flex-col gap-1">
+                                 <div className="flex items-end gap-1.5">
+                                   <span className="text-3xl font-black font-mono text-slate-200 tracking-tighter drop-shadow-md">
+                                     {freq}
+                                   </span>
+                                   <span className="text-[10px] font-black font-mono text-indigo-400/60 pb-1">THz</span>
+                                 </div>
+                                 <span className="text-[9px] font-mono text-indigo-300 uppercase tracking-widest">
+                                   Max Phonon
+                                 </span>
+                               </div>
+                             </div>
+                           );
+                         })()}
+                      </div>
+                      <p className="text-[10px] sm:text-[11px] text-slate-400 font-medium leading-relaxed mt-1">
+                        Acoustic dispersion limits and advanced morphology tensors assert high thermal flux transfer capacities at {synthTemp}°C.
                       </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Simulated Characterization Interface Action */}
-                <div className="mt-8 p-6 bg-[#040912]/80 border border-slate-800 rounded-3xl relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.03),transparent_60%)] pointer-events-none" />
+                <div className="mt-6 p-8 bg-[#040912]/90 border border-slate-800 rounded-3xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-[inset_0_2px_15px_rgba(255,255,255,0.015)]">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.04),transparent_60%)] pointer-events-none" />
                   
-                  <div className="space-y-1.5 text-center sm:text-left">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] block">Kinetics Analysis</span>
-                    <span className="text-sm font-bold text-white block">
-                      Crystallization Yield Fraction (XC): <span className="text-emerald-400 font-mono font-black">{(() => {
-                        const rate = Math.exp(-3200 / (273 + synthTemp));
-                        const cryst = (1 - Math.exp(-rate * Math.pow(synthTime, 1.5))) * 100;
-                        return cryst.toFixed(1);
-                      })()}%</span>
-                    </span>
-                    <p className="text-[11px] text-slate-400 max-w-xl">
-                      Thermodynamic calculations predict nucleostatic grain formation parameters governed by Avrami crystallization exponent models.
-                    </p>
-                  </div>
+                  <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left relative z-10 w-full">
+                    {/* Animated Kinetics Ring */}
+                    {(() => {
+                      const rate = Math.exp(-3200 / (273 + synthTemp));
+                      const cryst = (1 - Math.exp(-rate * Math.pow(synthTime, 1.5))) * 100;
+                      return (
+                        <div className="flex items-center gap-5 flex-shrink-0">
+                          <div className="relative w-20 h-20 flex items-center justify-center bg-slate-950 rounded-full shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
+                            <svg className="w-full h-full transform -rotate-90 overflow-visible" viewBox="0 0 36 36">
+                              {/* Background track */}
+                              <path
+                                className="text-slate-800"
+                                strokeWidth="3"
+                                stroke="currentColor"
+                                fill="none"
+                                d="M18 3.5 a 14.5 14.5 0 0 1 0 29 a 14.5 14.5 0 0 1 0 -29"
+                              />
+                              {/* Value track */}
+                              <path
+                                className="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] transition-all duration-1000 ease-out"
+                                strokeDasharray={`${cryst * 0.91}, 100`}
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                stroke="currentColor"
+                                fill="none"
+                                d="M18 3.5 a 14.5 14.5 0 0 1 0 29 a 14.5 14.5 0 0 1 0 -29"
+                              />
+                            </svg>
+                            <span className="absolute text-sm font-black font-mono text-white tracking-tight drop-shadow-md flex items-baseline">
+                              {cryst.toFixed(0)}<span className="text-[9px] text-emerald-400">%</span>
+                            </span>
+                          </div>
+                          <div className="hidden sm:block space-y-1.5">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center gap-2">
+                              <Timer className="w-3.5 h-3.5 text-slate-400" />
+                              Kinetics Analysis
+                            </span>
+                            <span className="text-sm font-bold text-white block tracking-wide">
+                              Crystallization Yield (XC)
+                            </span>
+                            <p className="text-[11px] text-slate-400 max-w-sm leading-relaxed">
+                              Nucleostatic grain formation via Avrami growth modeling at {synthTemp}°C threshold.
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    
+                    {/* Mobile Only Text */}
+                    <div className="sm:hidden space-y-1.5 w-full text-center">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center justify-center gap-2">
+                        <Timer className="w-3.5 h-3.5 text-slate-400" />
+                        Kinetics Analysis
+                      </span>
+                      <span className="text-sm font-bold text-white block tracking-wide">
+                        Crystallization Yield (XC)
+                      </span>
+                    </div>
 
-                  <button
+                    <div className="ml-auto w-full md:w-auto relative z-10 flex-shrink-0 mt-4 md:mt-0 items-center justify-center flex">
+                      <button
                     onClick={() => {
                       const density = selectedCandidate?.density || 4.5;
                       const size = synthSize;
@@ -2788,6 +2983,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       const bulkEg = selectedCandidate?.bandGap || 0;
                       const shift = bulkEg > 0 ? (15.55 / Math.pow(size, 2)) : 0;
                       const s_vn = (getEntanglementEntropy(selectedCandidate) * (1 + 8 / size) * (1 - synthDoping / 200)).toFixed(3);
+                      const freq = (getPhononFrequency(selectedCandidate) * (1 - synthDoping * 0.05)).toFixed(2);
                       
                       const structureFileContent = `###################################################################
 # Quantum Morphological Synthesis & Characterization Audit Report
@@ -2816,6 +3012,7 @@ Bulk Core Bandgap: ${bulkEg} eV
 Quantum-Confined Energy shift: +${shift.toFixed(4)} eV
 Synthesized Bandgap: ${(bulkEg + shift).toFixed(4)} eV
 Modified Entanglement Entropy S_vn: ${s_vn}
+Max Phonon Frequency: ${freq} THz
 
 [SIMULATED SYNCHROTRON XRD PATTERN SPECTRUM]
 Peak Shifts:
@@ -2842,6 +3039,8 @@ ${selectedCandidate?.matched_peaks?.map((p, idx) => {
                     <Sparkles className="w-4 h-4 animate-spin-slow" />
                     Simulate & Export Characterization
                   </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 

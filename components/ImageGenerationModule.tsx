@@ -17,7 +17,15 @@ import {
   Microscope,
   Palette,
   Layout,
-  ExternalLink
+  ExternalLink,
+  Sun,
+  Grid,
+  SlidersHorizontal,
+  Eye,
+  Compass,
+  HelpCircle,
+  Check,
+  BookOpen
 } from 'lucide-react';
 import { generateScientificImage, isQuotaError, isPermissionError, enhanceScientificPrompt } from '../services/geminiService';
 import { motion, AnimatePresence } from 'motion/react';
@@ -41,13 +49,107 @@ const SCIENTIFIC_STYLES = [
   { id: 'molecular', label: 'Molecular Orbitals', icon: Sparkles, description: 'Probability clouds and bonding orientations' },
 ];
 
-const SUGGESTED_CONCEPTS = [
-  "Unit cell of a face-centered cubic crystal",
-  "Bragg's Law geometry with incident X-rays",
-  "Polycrystalline thin film cross-section",
-  "Interplanar spacing in a hexagonal system",
-  "Atomic force microscopy topography",
+const LIGHTING_OPTIONS = [
+  { id: 'Daylight Studio Accent', label: 'Daylight Accent' },
+  { id: 'Ring Light Shadowless illumination', label: 'Shadowless Ring' },
+  { id: 'Darkfield High contrast back-glow', label: 'Darkfield Gloss' },
+  { id: 'Volumetric Transmission Light rays', label: 'Translucent Ray' },
+  { id: 'X-Ray Spectral fluorescence glow', label: 'X-Ray Spectral' },
 ];
+
+const PERSPECTIVE_OPTIONS = [
+  { id: '3-Quarter Isometric Perspective angle', label: '3D Isometric' },
+  { id: 'Orthographic Top-Down crystal plane face', label: 'Orthographic Flat' },
+  { id: 'Cross-section split structural layer diagram', label: 'Cross-Section' },
+  { id: 'Extreme macro zoom scientific magnifying lens', label: 'Atomic Macro' },
+  { id: 'High angle schematic wide-view core view', label: 'Wide Schematic' },
+];
+
+const COLOR_SCHEME_OPTIONS = [
+  { id: 'Teal-Indigo academic journal style', label: 'Teal & Indigo' },
+  { id: 'Monochrome high-resolution electron micrograph textured', label: 'SEM Monochrome' },
+  { id: 'Thermal spectral heat mapping potential energy scale', label: 'Thermal Gradient' },
+  { id: 'Classic textbook color palette clean off-white canvas', label: 'Classic Textbook' },
+  { id: 'Neon cybernetic blueprint tech matrix highlight', label: 'Cyber Blueprints' },
+];
+
+const CATEGORIZED_CONCEPTS = {
+  lattices: [
+    { label: "Perovskite ABO3 unit cell showcasing corner-sharing TiO6 octahedra with clear metallic bonds", desc: "Perovskite Unit Cell" },
+    { label: "Face-Centered Cubic (FCC) copper unit cell highlighting interstitial spaces", desc: "FCC Unit Cell" },
+    { label: "Hexagonal Close-Packed (HCP) unit cell showing planar layer stacking", desc: "HCP Stacking" },
+    { label: "Misfit grain boundary dislocation loop crystal plane misalignment schematic", desc: "Grain Boundary" },
+  ],
+  experimental: [
+    { label: "Symmetric Bragg-Brentano XRD diffractometer configuration visual pathway", desc: "diffractometer setup" },
+    { label: "Incident x-ray beam reflecting on atomic lattice planes confirming Bragg's Law", desc: "Bragg geometry" },
+    { label: "Atomic force microscopy (AFM) cantilever scanning over molecular surface", desc: "AFM Scan Line" },
+    { label: "Transmission electron microscope (TEM) column showing focal ray pathways", desc: "TEM Ray Trace" },
+  ],
+  micrographs: [
+    { label: "HRTEM view showing high-resolution atomic columns in silicon crystal structure", desc: "Atomic HRTEM" },
+    { label: "Scanning Electron Micrograph (SEM) of vertically self-assembled TiO2 hollow nanotubes", desc: "TiO2 Nanotubes" },
+    { label: "Selected Area Electron Diffraction (SAED) concentric ring spot diffraction pattern", desc: "SAED Rings" },
+    { label: "Topographical height profiling image showcasing layered graphite micro-flakes", desc: "Graphite Flakes" },
+  ]
+};
+
+const RenderingConsole: React.FC<{ styleName: string, size: string }> = ({ styleName, size }) => {
+  const [logs, setLogs] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const messages = [
+      "Constructing latent space matrices...",
+      "Validating academic journal style alignment...",
+      `Applying structural prompt constraints [${styleName}]...`,
+      "Integrating optical reflection characteristics...",
+      `Scaling canvas resolution target to ${size}...`,
+      "Iterating latent diffusion steps (Euler Ancestral dco)...",
+      "Correcting grain boundary aberration artifacts...",
+      "Synthesizing high-fidelity annotations & labels...",
+      "Polishing texture luminance and finalized contrast..."
+    ];
+    
+    let currentIdx = 0;
+    setLogs([messages[0]]);
+    
+    const interval = setInterval(() => {
+      currentIdx++;
+      if (currentIdx < messages.length) {
+        setLogs(prev => [...prev, messages[currentIdx]]);
+      } else {
+        clearInterval(interval);
+      }
+    }, 1100);
+    
+    return () => clearInterval(interval);
+  }, [styleName, size]);
+
+  return (
+    <div className="space-y-4 bg-slate-950 p-6 rounded-2xl border border-fuchsia-500/20 shadow-[inset_0_0_30px_rgba(217,70,239,0.05)] w-full max-w-sm text-left my-4 font-sans">
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-fuchsia-500 animate-spin" />
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-350">GPU Synchrotron Core Live</span>
+      </div>
+
+      <div className="space-y-2 font-mono text-[9px] text-fuchsia-350 max-h-[140px] overflow-y-auto">
+        {logs.map((log, i) => (
+          <div key={i} className="flex gap-2 items-start">
+            <span className="text-fuchsia-500 select-none">&gt;</span>
+            <span className={i === logs.length - 1 ? 'text-fuchsia-300 font-extrabold animate-pulse' : 'text-slate-500 font-medium'}>
+              {log}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="pt-3 border-t border-slate-900 flex justify-between items-center text-[8px] font-bold text-slate-550 uppercase tracking-widest">
+         <span>Diffusion: ACTIVE</span>
+         <span className="animate-pulse text-fuchsia-500 font-mono font-black">RENDERING</span>
+      </div>
+    </div>
+  );
+};
 
 export const ImageGenerationModule: React.FC = () => {
   const { t } = useTranslation();
@@ -60,6 +162,15 @@ export const ImageGenerationModule: React.FC = () => {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Advanced Crystallography Vector States
+  const [lighting, setLighting] = useState<string>('Daylight Studio Accent');
+  const [perspective, setPerspective] = useState<string>('3-Quarter Isometric Perspective angle');
+  const [colorScheme, setColorScheme] = useState<string>('Teal-Indigo academic journal style');
+  const [addAnnotations, setAddAnnotations] = useState<boolean>(false);
+  const [addGridLines, setAddGridLines] = useState<boolean>(false);
+  const [addForceVectors, setAddForceVectors] = useState<boolean>(false);
+  const [activeConceptTab, setActiveConceptTab] = useState<'lattices' | 'experimental' | 'micrographs'>('lattices');
 
   // Load history from local storage on mount
   useEffect(() => {
@@ -84,7 +195,14 @@ export const ImageGenerationModule: React.FC = () => {
     setError(null);
     try {
       const styleLabel = SCIENTIFIC_STYLES.find(s => s.id === selectedStyle)?.label || 'Scientific';
-      const enhanced = await enhanceScientificPrompt(prompt, styleLabel);
+      const enhanced = await enhanceScientificPrompt(prompt, styleLabel, {
+        lighting,
+        perspective,
+        colorScheme,
+        addAnnotations,
+        addGridLines,
+        addForceVectors
+      });
       setPrompt(enhanced);
     } catch (e) {
       setError("Failed to enhance prompt. Using original.");
@@ -206,16 +324,34 @@ export const ImageGenerationModule: React.FC = () => {
                 placeholder="e.g. A realistic 3D representation of the perovskite crystal structure with labeled octahedra..."
                 className="w-full h-32 px-4 py-3 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 outline-none transition-all text-sm leading-relaxed"
               />
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {SUGGESTED_CONCEPTS.map(concept => (
-                  <button
-                    key={concept}
-                    onClick={() => setPrompt(concept)}
-                    className="text-[9px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 px-2 py-1 rounded-md transition-colors border border-transparent hover:border-fuchsia-200"
-                  >
-                    {concept}
-                  </button>
-                ))}
+              <div className="mt-3">
+                <div className="flex gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-3">
+                  {(['lattices', 'experimental', 'micrographs'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={(e) => { e.preventDefault(); setActiveConceptTab(tab); }}
+                      className={`text-[9px] font-black uppercase tracking-wider pb-1 px-1 transition-all border-b-2 ${
+                        activeConceptTab === tab 
+                          ? 'border-fuchsia-500 text-fuchsia-600 dark:text-fuchsia-400' 
+                          : 'border-transparent text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {tab === 'lattices' ? 'Crystals' : tab === 'experimental' ? 'Setups' : 'Scans'}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {CATEGORIZED_CONCEPTS[activeConceptTab].map((item, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setPrompt(item.label)}
+                      title={item.label}
+                      className="text-left text-[9.5px] font-bold bg-slate-50 dark:bg-slate-950 text-slate-550 dark:text-slate-400 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 p-2 rounded-xl transition-all border border-slate-150 dark:border-slate-850 hover:border-fuchsia-200 dark:hover:border-fuchsia-800 line-clamp-2 h-[42px] leading-snug flex items-center"
+                    >
+                      {item.desc}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -229,7 +365,7 @@ export const ImageGenerationModule: React.FC = () => {
                   <button
                     key={style.id}
                     onClick={() => setSelectedStyle(style.id)}
-                    className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                    className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left ${
                       selectedStyle === style.id
                         ? 'bg-fuchsia-50 border-fuchsia-200 dark:bg-fuchsia-900/20 dark:border-fuchsia-800'
                         : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-fuchsia-200 dark:hover:border-fuchsia-800'
@@ -238,16 +374,108 @@ export const ImageGenerationModule: React.FC = () => {
                     <div className={`p-2 rounded-lg ${
                       selectedStyle === style.id ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                     }`}>
-                      <style.icon size={18} />
+                      <style.icon size={16} />
                     </div>
                     <div>
-                      <p className={`text-sm font-bold ${selectedStyle === style.id ? 'text-fuchsia-900 dark:text-fuchsia-100' : 'text-slate-700 dark:text-slate-200'}`}>
+                      <p className={`text-xs font-bold ${selectedStyle === style.id ? 'text-fuchsia-900 dark:text-fuchsia-100' : 'text-slate-700 dark:text-slate-200'}`}>
                         {style.label}
                       </p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">{style.description}</p>
+                      <p className="text-[9.5px] text-slate-500 dark:text-slate-400 line-clamp-1">{style.description}</p>
                     </div>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Advanced Design Vector parameters */}
+            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-fuchsia-500" />
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Advanced Core Tuning</span>
+              </div>
+              
+              <div className="space-y-3 pl-1">
+                {/* Lighting dropdown */}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                    <Sun size={10} /> Lighting Matrix
+                  </label>
+                  <select
+                    value={lighting}
+                    onChange={(e) => setLighting(e.target.value)}
+                    className="w-full text-xs bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 p-2 rounded-xl border border-slate-200 dark:border-slate-800 outline-none focus:border-fuchsia-500"
+                  >
+                    {LIGHTING_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Perspective dropdown */}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                    <Compass size={10} /> Camera Axis
+                  </label>
+                  <select
+                    value={perspective}
+                    onChange={(e) => setPerspective(e.target.value)}
+                    className="w-full text-xs bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 p-2 rounded-xl border border-slate-200 dark:border-slate-800 outline-none focus:border-fuchsia-500"
+                  >
+                    {PERSPECTIVE_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Color Schemes */}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                    <Palette size={10} /> Palette Blueprint
+                  </label>
+                  <select
+                    value={colorScheme}
+                    onChange={(e) => setColorScheme(e.target.value)}
+                    className="w-full text-xs bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 p-2 rounded-xl border border-slate-200 dark:border-slate-800 outline-none focus:border-fuchsia-500"
+                  >
+                    {COLOR_SCHEME_OPTIONS.map((o) => (
+                      <option key={o.id} value={o.id}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Toggle Swatches */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    onClick={() => setAddAnnotations(!addAnnotations)}
+                    className={`py-2 px-2 rounded-xl text-[9.5px] font-bold uppercase transition-all border text-center flex items-center justify-center gap-1 ${
+                      addAnnotations 
+                        ? 'bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-600 dark:text-fuchsia-400' 
+                        : 'bg-black/10 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-355'
+                    }`}
+                  >
+                    {addAnnotations && <Check size={10} />} Labels Overlay
+                  </button>
+                  <button
+                    onClick={() => setAddGridLines(!addGridLines)}
+                    className={`py-2 px-2 rounded-xl text-[9.5px] font-bold uppercase transition-all border text-center flex items-center justify-center gap-1 ${
+                      addGridLines 
+                        ? 'bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-600 dark:text-fuchsia-400' 
+                        : 'bg-black/10 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-355'
+                    }`}
+                  >
+                    {addGridLines && <Check size={10} />} Grid Nodes
+                  </button>
+                  <button
+                    onClick={() => setAddForceVectors(!addForceVectors)}
+                    className={`col-span-2 py-2 px-2 rounded-xl text-[9.5px] font-bold uppercase transition-all border text-center flex items-center justify-center gap-1 ${
+                      addForceVectors 
+                        ? 'bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-600 dark:text-fuchsia-400' 
+                        : 'bg-black/10 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-355'
+                    }`}
+                  >
+                    {addForceVectors && <Check size={10} />} Crystallographic Force Vectors
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -390,23 +618,29 @@ export const ImageGenerationModule: React.FC = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 1.1 }}
                   key="loading"
-                  className="text-center z-10 p-8"
+                  className="text-center z-10 p-8 flex flex-col items-center justify-center"
                 >
-                  <div className="relative mb-6">
-                    <div className="w-16 h-16 border-2 border-fuchsia-100 dark:border-fuchsia-900 rounded-full mx-auto"></div>
-                    <div className="absolute inset-0 w-16 h-16 border-t-2 border-fuchsia-600 rounded-full mx-auto animate-spin"></div>
+                  <div className="relative mb-4">
+                    <div className="w-16 h-16 border-2 border-fuchsia-100 dark:border-fuchsia-900/30 rounded-full mx-auto"></div>
+                    <div className="absolute inset-0 w-16 h-16 border-t-2 border-fuchsia-500 rounded-full mx-auto animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Layers size={24} className="text-fuchsia-600 animate-pulse" />
+                      <Layers size={22} className="text-fuchsia-500 animate-pulse" />
                     </div>
                   </div>
-                  <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-1">Synthesizing Pixels</h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Neural rendering in progress ({size})</p>
-                  <div className="mt-6 w-48 h-1 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto overflow-hidden">
+                  <h4 className="text-md font-bold text-slate-800 dark:text-slate-100 mb-0.5 tracking-tight">Synthesizing Pixels</h4>
+                  <p className="text-[11px] text-slate-505 dark:text-slate-400">Neural rendering in progress ({size})</p>
+                  
+                  <RenderingConsole 
+                    styleName={SCIENTIFIC_STYLES.find(s => s.id === selectedStyle)?.label || 'Scientific'} 
+                    size={size} 
+                  />
+
+                  <div className="mt-2 w-48 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                     <motion.div 
-                      className="h-full bg-fuchsia-600"
+                      className="h-full bg-fuchsia-500"
                       initial={{ width: "0%" }}
                       animate={{ width: "100%" }}
-                      transition={{ duration: 15, ease: "linear" }}
+                      transition={{ duration: 10, ease: "linear" }}
                     />
                   </div>
                 </motion.div>
@@ -465,7 +699,7 @@ export const ImageGenerationModule: React.FC = () => {
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Generation Engine</p>
-              <p className="text-xs text-slate-300">imagen-3.0-generate-001 (Optimized for Science)</p>
+              <p className="text-xs text-slate-300">Imagen-3 (High-Fidelity Scientific Core)</p>
             </div>
           </div>
           <p className="text-[10px] max-w-[200px] text-right text-slate-500 italic">

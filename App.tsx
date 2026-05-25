@@ -104,6 +104,9 @@ const App: React.FC = () => {
     }
   });
 
+  const [isSimulationRunning, setIsSimulationRunning] = useState(false);
+  const [simulationStep, setSimulationStep] = useState(0);
+
   // Keep state variables synchronized cleanly in localStorage
   useEffect(() => {
     localStorage.setItem('xrd_theme', theme);
@@ -161,57 +164,70 @@ const App: React.FC = () => {
   }, [theme]);
 
   const handleCalculate = (saveToHistory = true) => {
-    const peaks = parsePeakString(rawPeaks);
-    const hklList = rawHKL
-      .split(',')
-      .map(s => s.trim())
-      .filter(s => s !== '');
-
-    const computed = peaks
-      .map((theta, idx) => {
-        // Apply Zero-Shift and Sample-Displacement errors based on the goniometer geometry settings
-        // Equation: 2theta_calibrated = 2theta_obs - zero_shift - (2 * s * cos(theta_rad) / R) * (180 / PI)
-        const thetaRad = (theta / 2) * (Math.PI / 180);
-        const displacementTerm = goniometerRadius > 0 
-          ? (2 * sampleDisplacement * Math.cos(thetaRad) / goniometerRadius) * (180 / Math.PI)
-          : 0;
-        const calibratedTwoTheta = theta - zeroShift - displacementTerm;
-
-        const res = calculateBragg(wavelength, calibratedTwoTheta);
-        if (res) {
-          // Keep calibrated values clearly marked
-          return { ...res, hkl: hklList[idx] || '' } as BraggResult;
-        }
-        return null;
-      })
-      .filter((res): res is BraggResult => res !== null);
+    if (isSimulationRunning) return;
     
-    setResults(computed);
+    setIsSimulationRunning(true);
+    setSimulationStep(1);
+    
+    setTimeout(() => setSimulationStep(2), 600);
+    setTimeout(() => setSimulationStep(3), 1400);
+    setTimeout(() => setSimulationStep(4), 2200);
+    setTimeout(() => setSimulationStep(5), 3000);
+    
+    setTimeout(() => {
+      setIsSimulationRunning(false);
+      const peaks = parsePeakString(rawPeaks);
+      const hklList = rawHKL
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s !== '');
 
-    if (computed.length > 0) {
-      playSynthTone('success');
-    } else {
-      playSynthTone('error');
-    }
+      const computed = peaks
+        .map((theta, idx) => {
+          // Apply Zero-Shift and Sample-Displacement errors based on the goniometer geometry settings
+          // Equation: 2theta_calibrated = 2theta_obs - zero_shift - (2 * s * cos(theta_rad) / R) * (180 / PI)
+          const thetaRad = (theta / 2) * (Math.PI / 180);
+          const displacementTerm = goniometerRadius > 0 
+            ? (2 * sampleDisplacement * Math.cos(thetaRad) / goniometerRadius) * (180 / Math.PI)
+            : 0;
+          const calibratedTwoTheta = theta - zeroShift - displacementTerm;
 
-    // Save to history
-    if (saveToHistory && computed.length > 0) {
-      const newItem: BraggHistoryItem = {
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: new Date().toISOString(),
-        sampleId: sampleId.trim() || undefined,
-        wavelength,
-        rawPeaks,
-        rawHKL,
-        results: computed
-      };
+          const res = calculateBragg(wavelength, calibratedTwoTheta);
+          if (res) {
+            // Keep calibrated values clearly marked
+            return { ...res, hkl: hklList[idx] || '' } as BraggResult;
+          }
+          return null;
+        })
+        .filter((res): res is BraggResult => res !== null);
       
-      setBraggHistory(prev => {
-        const updated = [newItem, ...prev].slice(0, 10); // Keep last 10
-        localStorage.setItem('xrd_bragg_history', JSON.stringify(updated));
-        return updated;
-      });
-    }
+      setResults(computed);
+
+      if (computed.length > 0) {
+        playSynthTone('success');
+      } else {
+        playSynthTone('error');
+      }
+
+      // Save to history
+      if (saveToHistory && computed.length > 0) {
+        const newItem: BraggHistoryItem = {
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          timestamp: new Date().toISOString(),
+          sampleId: sampleId.trim() || undefined,
+          wavelength,
+          rawPeaks,
+          rawHKL,
+          results: computed
+        };
+        
+        setBraggHistory(prev => {
+          const updated = [newItem, ...prev].slice(0, 10); // Keep last 10
+          localStorage.setItem('xrd_bragg_history', JSON.stringify(updated));
+          return updated;
+        });
+      }
+    }, 3800);
   };
 
 
@@ -452,6 +468,8 @@ const App: React.FC = () => {
                           setSampleDisplacement={setSampleDisplacement}
                           goniometerRadius={goniometerRadius}
                           setGoniometerRadius={setGoniometerRadius}
+                          isSimulationRunning={isSimulationRunning}
+                          simulationStep={simulationStep}
                         />
                         <BraggHistory 
                           history={braggHistory} 

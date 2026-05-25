@@ -15,7 +15,10 @@ import {
   Binary, 
   Layers,
   Sparkles,
-  RefreshCw as SyncIcon
+  RefreshCw as SyncIcon,
+  Database,
+  Atom,
+  Check
 } from 'lucide-react';
 
 interface BraggInputProps {
@@ -36,6 +39,8 @@ interface BraggInputProps {
   setSampleDisplacement?: (val: number) => void;
   goniometerRadius?: number;
   setGoniometerRadius?: (val: number) => void;
+  isSimulationRunning?: boolean;
+  simulationStep?: number;
 }
 
 export const BraggInput: React.FC<BraggInputProps> = ({
@@ -53,7 +58,9 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   sampleDisplacement = 0.0,
   setSampleDisplacement,
   goniometerRadius = 240.0,
-  setGoniometerRadius
+  setGoniometerRadius,
+  isSimulationRunning = false,
+  simulationStep = 0
 }) => {
   const { t } = useTranslation();
   const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>(
@@ -427,13 +434,48 @@ export const BraggInput: React.FC<BraggInputProps> = ({
           </div>
         )}
 
-        <button
-          onClick={onCalculate}
-          className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/35 transition-all active:scale-[0.98] border border-indigo-500/50 flex items-center justify-center gap-2 group cursor-pointer"
-        >
-          <Sparkles className="w-4 h-4 text-indigo-200 group-hover:rotate-12 transition-transform" />
-          {t('Calculate')}
-        </button>
+        {!isSimulationRunning ? (
+          <button
+            onClick={onCalculate}
+            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/35 transition-all active:scale-[0.98] border border-indigo-500/50 flex items-center justify-center gap-2 group cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4 text-indigo-200 group-hover:rotate-12 transition-transform" />
+            {t('Calculate')}
+          </button>
+        ) : (
+          <div className="bg-slate-900 p-5 rounded-2xl border border-indigo-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(99,102,241,0.05)]">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-2xl rounded-full" />
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full border-2 border-indigo-500/30 border-t-indigo-400 animate-spin" /> Calculating Parameters
+            </h4>
+            <div className="space-y-3 relative z-10 w-full flex flex-col">
+              {[
+                { step: 1, label: 'Evaluating Raw Data Input', icon: Database },
+                { step: 2, label: 'Validating System Parameters', icon: Settings },
+                { step: 3, label: 'Calculating Geometric Form', icon: Atom },
+                { step: 4, label: 'Modeling Optical Strain', icon: Sparkles },
+                { step: 5, label: 'Formulating Results', icon: Check }
+              ].map((s) => {
+                 const Icon = s.icon;
+                 const isActive = simulationStep === s.step;
+                 const isDone = simulationStep > s.step;
+                 return (
+                   <div key={s.step} className={`flex items-center gap-3 w-full transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : isDone ? 'opacity-50' : 'opacity-20'}`}>
+                     <div className={`p-1.5 rounded-lg border flex-shrink-0 ${isActive ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400' : isDone ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-slate-800 border-white/5 text-slate-500'}`}>
+                       <Icon className={`w-3.5 h-3.5 ${isActive ? 'animate-pulse' : ''}`} />
+                     </div>
+                     <div className="flex-1 flex flex-col">
+                       <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-indigo-300' : isDone ? 'text-emerald-300/80' : 'text-slate-500'}`}>
+                         {s.label}
+                       </span>
+                       {isActive && <div className="h-0.5 bg-gradient-to-r from-indigo-500 to-transparent w-full mt-1.5 animate-pulse rounded-full" />}
+                     </div>
+                   </div>
+                 );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

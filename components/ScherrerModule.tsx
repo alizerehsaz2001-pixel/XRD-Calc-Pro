@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ScherrerInput, ScherrerResult } from '../types';
 import { parseScherrerInput, calculateScherrer, XRAY_WAVELENGTHS } from '../utils/physics';
-import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download, BarChart2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from './SettingsContext';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -71,8 +72,30 @@ export const ScherrerModule: React.FC = () => {
   const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt'>('Gaussian');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
   
-  const [results, setResults] = useState<ScherrerResult[]>([]);
-  const [avgSize, setAvgSize] = useState<number>(0);
+  const [results, setResults] = useState<ScherrerResult[]>(() => {
+    try {
+      const saved = localStorage.getItem('xrd_scherrer_current');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.results)) return parsed.results;
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [avgSize, setAvgSize] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('xrd_scherrer_current');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.avgSize === 'number') return parsed.avgSize;
+      }
+    } catch (e) {}
+    return 0;
+  });
+  const isFirstRender = useRef(true);
+  
+  const [isSimulationRunning, setIsSimulationRunning] = useState(false);
+  const [simulationStep, setSimulationStep] = useState(0);
   
   // Ref for clicking outside
   const kMenuRef = React.useRef<HTMLDivElement>(null);
@@ -106,45 +129,112 @@ export const ScherrerModule: React.FC = () => {
   };
 
   const handleCalculate = () => {
-    const peaks = parseScherrerInput(inputData);
-    const computed = peaks
-      .map(p => {
-        const thetaRad = (p.twoTheta / 2) * Math.PI / 180;
-        const currentInstFwhm = useCaglioti 
-          ? Math.sqrt(Math.max(0.000001, caglioti.u * Math.pow(Math.tan(thetaRad), 2) + caglioti.v * Math.tan(thetaRad) + caglioti.w))
-          : instFwhm;
-        return calculateScherrer(wavelength, constantK, currentInstFwhm, p, broadeningModel);
-      })
-      .filter((r): r is ScherrerResult => r !== null); 
+    if (isSimulationRunning) return;
     
-    setResults(computed);
+    setIsSimulationRunning(true);
+    setSimulationStep(1);
     
-    // Improved Averaging: Weighted average if intensities are present
-    const validResults = computed.filter(r => !r.error && r.sizeNm > 0);
-    if (validResults.length > 0) {
-      const hasIntensities = validResults.some(r => r.intensity !== undefined && r.intensity > 0);
-      if (hasIntensities) {
-        let totalWeight = 0;
-        let weightedSum = 0;
-        validResults.forEach(r => {
-          const weight = r.intensity || 0;
-          weightedSum += r.sizeNm * weight;
-          totalWeight += weight;
-        });
-        setAvgSize(totalWeight > 0 ? weightedSum / totalWeight : 0);
-      } else {
-        const sum = validResults.reduce((acc, curr) => acc + curr.sizeNm, 0);
-        setAvgSize(sum / validResults.length);
+    setTimeout(() => setSimulationStep(2), 600);
+    setTimeout(() => setSimulationStep(3), 1400);
+    setTimeout(() => setSimulationStep(4), 2200);
+    setTimeout(() => setSimulationStep(5), 3000);
+    
+    setTimeout(() => {
+      setIsSimulationRunning(false);
+      const peaks = parseScherrerInput(inputData);
+      const computed = peaks
+        .map(p => {
+          const thetaRad = (p.twoTheta / 2) * Math.PI / 180;
+          const currentInstFwhm = useCaglioti 
+            ? Math.sqrt(Math.max(0.000001, caglioti.u * Math.pow(Math.tan(thetaRad), 2) + caglioti.v * Math.tan(thetaRad) + caglioti.w))
+            : instFwhm;
+          return calculateScherrer(wavelength, constantK, currentInstFwhm, p, broadeningModel);
+        })
+        .filter((r): r is ScherrerResult => r !== null); 
+      
+      setResults(computed);
+      
+      // Improved Averaging: Weighted average if intensities are present
+      const validResults = computed.filter(r => !r.error && r.sizeNm > 0);
+      let calculatedAvg = 0;
+      if (validResults.length > 0) {
+        const hasIntensities = validResults.some(r => r.intensity !== undefined && r.intensity > 0);
+        if (hasIntensities) {
+          let totalWeight = 0;
+          let weightedSum = 0;
+          validResults.forEach(r => {
+            const weight = r.intensity || 0;
+            weightedSum += r.sizeNm * weight;
+            totalWeight += weight;
+          });
+          calculatedAvg = totalWeight > 0 ? weightedSum / totalWeight : 0;
+        } else {
+          const sum = validResults.reduce((acc, curr) => acc + curr.sizeNm, 0);
+          calculatedAvg = sum / validResults.length;
+        }
       }
-    } else {
-      setAvgSize(0);
-    }
+      setAvgSize(calculatedAvg);
+
+      localStorage.setItem('xrd_scherrer_current', JSON.stringify({
+        wavelength,
+        constantK,
+        instFwhm,
+        useCaglioti,
+        caglioti,
+        broadeningModel,
+        results: computed,
+        avgSize: calculatedAvg
+      }));
+    }, 3800);
   };
 
   useEffect(() => {
-    handleCalculate();
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setResults([]); // reset results upon changes
+    localStorage.removeItem('xrd_scherrer_current');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wavelength, constantK, instFwhm, inputData, useCaglioti, caglioti, broadeningModel]);
+
+  const histogramData = useMemo(() => {
+    const validResults = results.filter(r => !r.error && r.sizeNm > 0);
+    if (validResults.length === 0) return [];
+    
+    const sizes = validResults.map(r => r.sizeNm);
+    const min = Math.min(...sizes);
+    const max = Math.max(...sizes);
+    
+    const numBins = Math.max(5, Math.min(15, Math.ceil(Math.sqrt(validResults.length))));
+    let binWidth = (max - min) / numBins;
+    if (binWidth === 0) binWidth = 1; 
+
+    // Extend range slightly to ensure all values fit inside neatly
+    const rangeStart = Math.max(0, min - binWidth * 0.1);
+
+    const bins = Array.from({ length: numBins }, (_, i) => ({
+      rangeStart: rangeStart + i * binWidth,
+      rangeEnd: rangeStart + (i + 1) * binWidth,
+      center: rangeStart + (i + 0.5) * binWidth,
+      count: 0
+    }));
+
+    validResults.forEach(r => {
+      let binIndex = Math.floor((r.sizeNm - rangeStart) / binWidth);
+      if (binIndex >= numBins) binIndex = numBins - 1;
+      if (binIndex < 0) binIndex = 0;
+      if (bins[binIndex]) {
+        bins[binIndex].count += 1;
+      }
+    });
+
+    return bins.map(b => ({
+      name: `${b.rangeStart.toFixed(1)}-${b.rangeEnd.toFixed(1)} nm`,
+      center: parseFloat(b.center.toFixed(1)),
+      count: b.count,
+    }));
+  }, [results]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
@@ -513,14 +603,49 @@ export const ScherrerModule: React.FC = () => {
               />
             </div>
 
-            <button
-              onClick={handleCalculate}
-              className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-[0_15px_30px_rgba(245,158,11,0.2)] transition-all active:scale-[0.97] flex items-center justify-center gap-3 group relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-white/20 to-amber-400/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-              <FlaskConical className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-              <span className="uppercase tracking-[0.2em] text-sm">Execute Analysis</span>
-            </button>
+            {!isSimulationRunning ? (
+              <button
+                onClick={handleCalculate}
+                className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-2xl shadow-[0_15px_30px_rgba(245,158,11,0.2)] transition-all active:scale-[0.97] flex items-center justify-center gap-3 group relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-white/20 to-amber-400/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                <FlaskConical className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                <span className="uppercase tracking-[0.2em] text-sm">Execute Analysis</span>
+              </button>
+            ) : (
+              <div className="bg-[#070D18] p-5 rounded-2xl border border-amber-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(245,158,11,0.05)]">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-2xl rounded-full" />
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-amber-500/30 border-t-amber-400 animate-spin" /> Scherrer Analysis Running
+                </h4>
+                <div className="space-y-3 relative z-10 w-full flex flex-col">
+                  {[
+                    { step: 1, label: 'Evaluating Raw Data Input', icon: Database },
+                    { step: 2, label: 'Validating System Parameters', icon: Settings },
+                    { step: 3, label: 'Calculating Geometric Form', icon: Atom },
+                    { step: 4, label: 'Modeling Optical Strain', icon: Zap },
+                    { step: 5, label: 'Formulating Results', icon: Check }
+                  ].map((s) => {
+                     const Icon = s.icon;
+                     const isActive = simulationStep === s.step;
+                     const isDone = simulationStep > s.step;
+                     return (
+                       <div key={s.step} className={`flex items-center gap-3 w-full transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : isDone ? 'opacity-50' : 'opacity-20'}`}>
+                         <div className={`p-1.5 rounded-lg border flex-shrink-0 ${isActive ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : isDone ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-slate-800 border-white/5 text-slate-500'}`}>
+                           <Icon className={`w-3.5 h-3.5 ${isActive ? 'animate-pulse' : ''}`} />
+                         </div>
+                         <div className="flex-1 flex flex-col">
+                           <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-amber-300' : isDone ? 'text-emerald-300/80' : 'text-slate-500'}`}>
+                             {s.label}
+                           </span>
+                           {isActive && <div className="h-0.5 bg-gradient-to-r from-amber-500 to-transparent w-full mt-1.5 animate-pulse rounded-full" />}
+                         </div>
+                       </div>
+                     );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -671,6 +796,69 @@ export const ScherrerModule: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Size Distribution Histogram */}
+          {results.length > 0 && histogramData.length > 0 && (
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+                  <BarChart2 className="h-5 w-5 text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider mb-0.5">Size Distribution</h3>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Grain Size Frequency Histogram</p>
+                </div>
+              </div>
+              <div className="h-64 w-full relative z-10">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={histogramData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis 
+                      dataKey="center" 
+                      tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      tickLine={{ stroke: '#334155' }}
+                      axisLine={{ stroke: '#334155' }}
+                      label={{ value: 'Crystallite Size [nm]', position: 'insideBottom', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                    />
+                    <YAxis 
+                      allowDecimals={false}
+                      tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      tickLine={{ stroke: '#334155' }}
+                      axisLine={{ stroke: '#334155' }}
+                      label={{ value: 'Frequency Count', angle: -90, position: 'insideLeft', offset: 15, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-slate-900/95 border border-slate-700/50 p-3 rounded-xl shadow-xl backdrop-blur-md">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Range: <span className="text-indigo-400 font-mono">{data.name}</span></p>
+                              <p className="text-xs font-bold text-white uppercase flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                                {payload[0].value} Peaks Found
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      radius={[4, 4, 0, 0]}
+                    >
+                      {histogramData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill="rgba(99, 102, 241, 0.8)" stroke="rgba(99, 102, 241, 1)" strokeWidth={1} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           {/* Detailed Table */}
           <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col flex-1 min-h-[400px]">

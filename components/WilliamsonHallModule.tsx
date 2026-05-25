@@ -10,9 +10,10 @@ import {
   Tooltip,
   ResponsiveContainer,
   Scatter,
-  Legend
+  Legend,
+  Area
 } from 'recharts';
-import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, Atom, Binary, ShieldQuestion, Download, RefreshCw, Trash2 } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, Atom, Binary, ShieldQuestion, Download, RefreshCw, Trash2, Loader2, Database, FlaskConical, Activity, Layers, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const K_FACTORS = [
@@ -92,7 +93,14 @@ export const WilliamsonHallModule: React.FC = () => {
   const [isModulusEnabled, setIsModulusEnabled] = useState<boolean>(false);
   const [inputData, setInputData] = useState<string>("28.44, 0.25\n47.30, 0.28\n56.12, 0.32\n69.13, 0.38\n76.38, 0.42");
   const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian'>('Gaussian');
-  const [result, setResult] = useState<WHResult | null>(null);
+  const [result, setResult] = useState<WHResult | null>(() => {
+    try {
+      const saved = localStorage.getItem('xrd_wh_current');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return null;
+  });
+  const isFirstRender = useRef(true);
   const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
 
@@ -201,19 +209,36 @@ export const WilliamsonHallModule: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const [isSimulationRunning, setIsSimulationRunning] = useState(false);
+  const [simulationStep, setSimulationStep] = useState(0);
+
   const handleCalculate = () => {
-    const peaks = parseScherrerInput(inputData);
-    const computed = calculateWilliamsonHall(
-      wavelength, 
-      constantK, 
-      instFwhm, 
-      peaks, 
-      broadeningModel,
-      instrumentalMode,
-      { U: cagliotiU, V: cagliotiV, W: cagliotiW },
-      isModulusEnabled ? youngsModulusGPa : undefined
-    );
-    setResult(computed);
+    if (isSimulationRunning) return;
+    
+    setIsSimulationRunning(true);
+    setSimulationStep(1);
+    
+    setTimeout(() => setSimulationStep(2), 600);
+    setTimeout(() => setSimulationStep(3), 1400);
+    setTimeout(() => setSimulationStep(4), 2200);
+    setTimeout(() => setSimulationStep(5), 3000);
+    
+    setTimeout(() => {
+      setIsSimulationRunning(false);
+      const peaks = parseScherrerInput(inputData);
+      const computed = calculateWilliamsonHall(
+        wavelength, 
+        constantK, 
+        instFwhm, 
+        peaks, 
+        broadeningModel,
+        instrumentalMode,
+        { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+        isModulusEnabled ? youngsModulusGPa : undefined
+      );
+      setResult(computed);
+      localStorage.setItem('xrd_wh_current', JSON.stringify(computed));
+    }, 3800);
   };
 
   const handleDownloadCSV = () => {
@@ -230,17 +255,34 @@ export const WilliamsonHallModule: React.FC = () => {
   };
 
   useEffect(() => {
-    handleCalculate();
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setResult(null); // Clear result when inputs change to enforce re-analyzing
+    localStorage.removeItem('xrd_wh_current');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wavelength, constantK, instFwhm, inputData, broadeningModel, instrumentalMode, cagliotiU, cagliotiV, cagliotiW, youngsModulusGPa, isModulusEnabled]);
 
   // Prepare chart data
-  const chartData = result ? result.points.map(p => ({
-    x: p.x,
-    y: p.y,
-    fit: result.regression.slope * p.x + result.regression.intercept,
-    twoTheta: p.twoTheta
-  })) : [];
+  const chartData = result ? result.points.map(p => {
+    const fitY = result.regression.slope * p.x + result.regression.intercept;
+    const stdDev = Math.sqrt(
+      result.points.reduce((sum, pt) => {
+        const yPred = result.regression.slope * pt.x + result.regression.intercept;
+        return sum + Math.pow(pt.y - yPred, 2);
+      }, 0) / Math.max(1, result.points.length - 2)
+    );
+    const confidenceBound = stdDev * 2.1; // 95% CI roughly
+    return {
+      x: p.x,
+      y: p.y,
+      fit: fitY,
+      fitRange: [Math.max(0, fitY - confidenceBound), fitY + confidenceBound],
+      deviation: p.y - fitY,
+      twoTheta: p.twoTheta
+    };
+  }).sort((a,b) => a.x - b.x) : [];
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -983,14 +1025,49 @@ export const WilliamsonHallModule: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={handleCalculate}
-              className="w-full py-4 bg-gradient-to-r from-cyan-500 to-rose-500 hover:from-cyan-400 hover:to-rose-400 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(244,63,94,0.4)] flex items-center justify-center gap-3 group relative overflow-hidden"
-            >
-              <div className="absolute inset-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <TrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              Generate W-H Plot
-            </button>
+            {!isSimulationRunning ? (
+              <button
+                onClick={handleCalculate}
+                className="w-full py-4 bg-gradient-to-r from-cyan-500 to-rose-500 hover:from-cyan-400 hover:to-rose-400 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(244,63,94,0.4)] flex items-center justify-center gap-3 group relative overflow-hidden"
+              >
+                <div className="absolute inset-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <TrendingUp className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                Generate W-H Plot
+              </button>
+            ) : (
+              <div className="bg-[#070D18] p-5 rounded-2xl border border-cyan-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(34,211,238,0.05)]">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-2xl rounded-full" />
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" /> Williamson-Hall Analysis Running
+                </h4>
+                <div className="space-y-3 relative z-10 w-full flex flex-col">
+                  {[
+                    { step: 1, label: 'Parsing Profile Angles', icon: Database },
+                    { step: 2, label: instrumentalMode === 'constant' ? 'Applying Constant β_inst' : 'Computing Caglioti IRF', icon: FlaskConical },
+                    { step: 3, label: !isModulusEnabled ? 'Isotropic UDM Deconvolution' : 'Anisotropic USDM Computation', icon: Activity },
+                    { step: 4, label: 'Computing W-H Regression', icon: Layers },
+                    { step: 5, label: 'Extracting Size/Strain', icon: CheckCircle }
+                  ].map((s) => {
+                     const Icon = s.icon;
+                     const isActive = simulationStep === s.step;
+                     const isDone = simulationStep > s.step;
+                     return (
+                       <div key={s.step} className={`flex items-center gap-3 w-full transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : isDone ? 'opacity-50' : 'opacity-20'}`}>
+                         <div className={`p-1.5 rounded-lg border flex-shrink-0 ${isActive ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400' : isDone ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-slate-800 border-white/5 text-slate-500'}`}>
+                           <Icon className={`w-3.5 h-3.5 ${isActive ? 'animate-pulse' : ''}`} />
+                         </div>
+                         <div className="flex-1 flex flex-col">
+                           <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-cyan-300' : isDone ? 'text-emerald-300/80' : 'text-slate-500'}`}>
+                             {s.label}
+                           </span>
+                           {isActive && <div className="h-0.5 bg-gradient-to-r from-cyan-500 to-transparent w-full mt-1.5 animate-pulse rounded-full" />}
+                         </div>
+                       </div>
+                     );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1222,6 +1299,14 @@ export const WilliamsonHallModule: React.FC = () => {
                   />
                   <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.1)' }} />
                   <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', color: '#94a3b8', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                  <Area
+                    type="monotone"
+                    dataKey="fitRange"
+                    stroke="none"
+                    fill="#22d3ee"
+                    fillOpacity={0.1}
+                    name="95% Confidence Band"
+                  />
                   <Scatter name="Observed Data" dataKey="y" fill="#22d3ee" shape="circle" r={5} style={{ filter: 'url(#neonGlow)' }} />
                   <Line 
                     type="monotone" 

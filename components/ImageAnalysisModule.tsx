@@ -5,9 +5,69 @@ import {
   Camera, Upload, Search, FileText, Zap, 
   RotateCcw, Info, CheckCircle2, AlertCircle, 
   Cpu, Activity, Layers, Share2, Download,
-  Sparkles, MousePointer2, Scan, Filter, History
+  Sparkles, MousePointer2, Scan, Filter, History,
+  Grid, CircleDot, SlidersHorizontal, Copy, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+// CV Diagnostic Logs component
+const CVLoader: React.FC = () => {
+  const [logs, setLogs] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const messages = [
+      "Initializing high-resolution digitized feed...",
+      "Normalizing pixel luminance and contrast scales...",
+      "Isolating concentric diffraction ring boundaries...",
+      "Applying high-pass filtering to suppress pixel noise...",
+      "Calculating peak centroid coordinates in reciprocal space...",
+      "Mapping spot intensity profiles via radial integration...",
+      "Correlating candidate d-spacing vectors with base database...",
+      "Synthesizing crystallographic composition report..."
+    ];
+    
+    let currentIdx = 0;
+    setLogs([messages[0]]);
+    
+    const interval = setInterval(() => {
+      currentIdx++;
+      if (currentIdx < messages.length) {
+        setLogs(prev => [...prev, messages[currentIdx]]);
+      } else {
+        clearInterval(interval);
+      }
+    }, 700);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="space-y-4 bg-slate-950 p-6 rounded-2xl border border-sky-500/20 shadow-[inset_0_0_30px_rgba(14,165,233,0.05)] relative overflow-hidden my-4">
+      <div className="absolute top-0 left-0 h-1 bg-gradient-to-r from-sky-500 via-sky-450 to-transparent w-full animate-[shimmer_1.5s_infinite]" />
+      
+      <div className="flex items-center gap-3">
+        <Cpu className="w-4 h-4 text-sky-400 animate-spin" />
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Vision Core Diagnostics Live</span>
+      </div>
+
+      <div className="space-y-2 font-mono text-[9px] text-sky-300 max-h-[140px] overflow-y-auto">
+        {logs.map((log, i) => (
+          <div key={i} className="flex gap-2 items-start">
+            <span className="text-sky-500 select-none">&gt;</span>
+            <span className={i === logs.length - 1 ? 'text-sky-300 font-extrabold animate-pulse' : 'text-slate-500 font-medium'}>
+              {log}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <div className="pt-3 border-t border-slate-900 flex justify-between items-center text-[8px] font-bold text-slate-600 uppercase tracking-widest">
+         <span>Status: CALIBRATING MATRIX</span>
+         <span className="animate-pulse text-sky-500 font-mono font-black">SCAN ACTIVE</span>
+      </div>
+    </div>
+  );
+};
 
 const ANALYSIS_PRESETS = [
   { id: 'phase', label: 'Phase Identification', icon: Search, prompt: 'Identify all likely crystalline phases in this pattern. Check for TiO2 polymorphic mixtures, impurity peaks, and calculate matching confidence.' },
@@ -27,6 +87,17 @@ export const ImageAnalysisModule: React.FC = () => {
   const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
   const [history, setHistory] = useState<{context: string, result: string, date: string}[]>([]);
   
+  // Computer Vision Controls & Overlays
+  const [cvFilter, setCvFilter] = useState<'none' | 'binarize' | 'grayscale' | 'negative' | 'contrast'>('none');
+  const [contrast, setContrast] = useState(100);
+  const [brightness, setBrightness] = useState(100);
+  const [showGrid, setShowGrid] = useState(false);
+  const [showRings, setShowRings] = useState(false);
+  const [ringRadius, setRingRadius] = useState(100);
+  const [ringSpacing, setRingSpacing] = useState(30);
+  const [ringCount, setRingCount] = useState(3);
+  const [copied, setCopied] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -97,6 +168,40 @@ export const ImageAnalysisModule: React.FC = () => {
     setActiveAnalysisId(null);
   };
 
+  const getImgStyle = () => {
+    let baseFilter = `brightness(${brightness}%) contrast(${contrast}%)`;
+    if (cvFilter === 'binarize') {
+      baseFilter += ' grayscale(100%) contrast(300%) brightness(120%)';
+    } else if (cvFilter === 'grayscale') {
+      baseFilter += ' grayscale(100%) contrast(140%)';
+    } else if (cvFilter === 'negative') {
+      baseFilter += ' invert(100%)';
+    } else if (cvFilter === 'contrast') {
+      baseFilter += ' contrast(200%) saturate(150%)';
+    }
+    return { filter: baseFilter };
+  };
+
+  const handleDownload = () => {
+    if (!result) return;
+    const blob = new Blob([result], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `XRD_AI_Pattern_Analysis_${new Date().toISOString().slice(0,10)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleShare = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       {/* Input Side - The Laboratory Bench */}
@@ -138,10 +243,69 @@ export const ImageAnalysisModule: React.FC = () => {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="relative w-full h-full flex items-center justify-center p-4"
+                    className="relative w-full h-full flex items-center justify-center p-4 min-h-[260px]"
                   >
-                    <img src={image} alt="Target" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl z-10" />
+                    <img 
+                      src={image} 
+                      alt="Target" 
+                      className="max-w-full max-h-full object-contain rounded-xl shadow-2xl z-10 transition-all duration-200" 
+                      style={getImgStyle()}
+                    />
                     
+                    {/* Calibration Grid Overlay */}
+                    {showGrid && (
+                      <div className="absolute inset-4 z-20 pointer-events-none opacity-35 rounded-lg overflow-hidden border border-sky-500/10">
+                        <div className="w-full h-full" style={{
+                          backgroundImage: `
+                            linear-gradient(to right, rgba(14, 165, 233, 0.15) 1px, transparent 1px),
+                            linear-gradient(to bottom, rgba(14, 165, 233, 0.15) 1px, transparent 1px)
+                          `,
+                          backgroundSize: '20px 20px'
+                        }} />
+                      </div>
+                    )}
+
+                    {/* Calibration Concentric Bragg Rings */}
+                    {showRings && (
+                      <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
+                        <svg className="w-full h-full overflow-visible min-h-[240px]">
+                          {Array.from({ length: ringCount }).map((_, i) => {
+                            const radius = ringRadius + i * ringSpacing;
+                            return (
+                              <g key={i}>
+                                <circle
+                                  cx="50%"
+                                  cy="50%"
+                                  r={radius}
+                                  fill="none"
+                                  className="stroke-sky-400/50 stroke-1.5 animate-[pulse_2.5s_ease-in-out_infinite]"
+                                  style={{ animationDelay: `${i * 0.25}s` }}
+                                />
+                                <circle
+                                  cx="50%"
+                                  cy="50%"
+                                  r={radius - 1}
+                                  fill="none"
+                                  className="stroke-sky-500/10 stroke-[0.5] stroke-dasharray-[2_4]"
+                                />
+                                <text
+                                  x={`calc(50% + ${radius}px)`}
+                                  y="51%"
+                                  className="fill-sky-400 font-mono text-[8px] font-bold select-none opacity-80"
+                                >
+                                  r{i + 1}
+                                </text>
+                              </g>
+                            );
+                          })}
+                          <circle cx="50%" cy="50%" r="3.5" className="fill-emerald-400 animate-ping" />
+                          <circle cx="50%" cy="50%" r="1.5" className="fill-emerald-400" />
+                          <line x1="10%" y1="50%" x2="90%" y2="50%" className="stroke-sky-500/15 stroke-[0.5] stroke-dasharray-[4_6]" />
+                          <line x1="50%" y1="10%" x2="50%" y2="90%" className="stroke-sky-500/15 stroke-[0.5] stroke-dasharray-[4_6]" />
+                        </svg>
+                      </div>
+                    )}
+
                     {/* Advanced Scanning Animation */}
                     {scanActive && (
                       <>
@@ -192,6 +356,145 @@ export const ImageAnalysisModule: React.FC = () => {
                 </button>
               )}
             </div>
+
+            {/* Calibration & Computer Vision Preprocessor */}
+            {image && (
+              <div className="bg-black/30 p-5 rounded-2xl border border-slate-800/60 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                     <SlidersHorizontal className="w-3.5 h-3.5 text-sky-400" />
+                     <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Vision Lab calibration</span>
+                  </div>
+                  <span className="text-[8px] font-mono font-bold text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/10">CV Suite</span>
+                </div>
+                
+                {/* CV Filter Presets */}
+                <div className="grid grid-cols-5 gap-1 pt-1">
+                  {[
+                    { id: 'none', label: 'Raw' },
+                    { id: 'grayscale', label: 'Gray' },
+                    { id: 'binarize', label: 'Binarize' },
+                    { id: 'negative', label: 'Invert' },
+                    { id: 'contrast', label: 'Boost' },
+                  ].map(m => (
+                    <button
+                      key={m.id}
+                      onClick={(e) => { e.stopPropagation(); setCvFilter(m.id as any); }}
+                      className={`py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all border ${
+                        cvFilter === m.id 
+                          ? 'bg-sky-500/20 border-sky-400/60 text-sky-300 shadow-inner' 
+                          : 'bg-black/40 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-750'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Slides details */}
+                <div className="space-y-3 pt-1">
+                  <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                     <span>Contrast Boost</span>
+                     <span className="font-mono text-sky-400">{contrast}%</span>
+                  </div>
+                  <input 
+                     type="range" 
+                     min="50" 
+                     max="200" 
+                     value={contrast} 
+                     onChange={(e) => setContrast(parseInt(e.target.value))}
+                     className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                  />
+
+                  <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                     <span>Exposure gain</span>
+                     <span className="font-mono text-sky-400">{brightness}%</span>
+                  </div>
+                  <input 
+                     type="range" 
+                     min="50" 
+                     max="150" 
+                     value={brightness} 
+                     onChange={(e) => setBrightness(parseInt(e.target.value))}
+                     className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                  />
+                </div>
+
+                {/* Interactive Overlays */}
+                <div className="grid grid-cols-2 gap-3 pt-1.5">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowGrid(!showGrid); }}
+                    className={`p-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border flex items-center justify-center gap-2 ${
+                      showGrid 
+                        ? 'bg-sky-500/15 border-sky-500/30 text-sky-300' 
+                        : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                     <Grid className="w-3.5 h-3.5" />
+                     Grid map
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowRings(!showRings); }}
+                    className={`p-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all border flex items-center justify-center gap-2 ${
+                      showRings 
+                        ? 'bg-sky-500/15 border-sky-500/30 text-sky-300' 
+                        : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                     <CircleDot className="w-3.5 h-3.5" />
+                     Bragg Rings
+                  </button>
+                </div>
+
+                {/* Toggled concentric controls */}
+                {showRings && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-3 pt-3 border-t border-slate-800/40 overflow-hidden"
+                  >
+                    <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                       <span>Concentric Radius</span>
+                       <span className="font-mono text-sky-400">{ringRadius}px</span>
+                    </div>
+                    <input 
+                       type="range" 
+                       min="20" 
+                       max="190" 
+                       value={ringRadius} 
+                       onChange={(e) => setRingRadius(parseInt(e.target.value))}
+                       className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                    />
+
+                    <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                       <span>Interval Spacing</span>
+                       <span className="font-mono text-sky-400">{ringSpacing}px</span>
+                    </div>
+                    <input 
+                       type="range" 
+                       min="10" 
+                       max="80" 
+                       value={ringSpacing} 
+                       onChange={(e) => setRingSpacing(parseInt(e.target.value))}
+                       className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                    />
+
+                    <div className="flex justify-between text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                       <span>Ring Count</span>
+                       <span className="font-mono text-sky-400">{ringCount}</span>
+                    </div>
+                    <input 
+                       type="range" 
+                       min="1" 
+                       max="5" 
+                       value={ringCount} 
+                       onChange={(e) => setRingCount(parseInt(e.target.value))}
+                       className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                    />
+                  </motion.div>
+                )}
+              </div>
+            )}
 
             {/* Analysis Presets */}
             <div className="space-y-3">
@@ -321,10 +624,23 @@ export const ImageAnalysisModule: React.FC = () => {
              
              {result && (
                <div className="flex items-center gap-2">
-                  <button className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all border border-slate-700 hover:border-slate-600 active:scale-90">
+                  {copied && (
+                    <span className="text-[9px] text-emerald-400 font-extrabold uppercase tracking-widest animate-pulse mr-2 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
+                      Copied!
+                    </span>
+                  )}
+                  <button 
+                    onClick={handleShare}
+                    title="Copy Report"
+                    className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all border border-slate-700 hover:border-slate-600 active:scale-90 cursor-pointer"
+                  >
                     <Share2 className="w-4 h-4" />
                   </button>
-                  <button className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all border border-slate-700 hover:border-slate-600 active:scale-90">
+                  <button 
+                    onClick={handleDownload}
+                    title="Export Report"
+                    className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl transition-all border border-slate-700 hover:border-slate-600 active:scale-90 cursor-pointer"
+                  >
                     <Download className="w-4 h-4" />
                   </button>
                </div>
@@ -355,15 +671,17 @@ export const ImageAnalysisModule: React.FC = () => {
                   key="loading"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="space-y-8"
+                  className="space-y-6"
                 >
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={`skeleton-${i}`} className="space-y-3">
-                      <div className="h-3 w-1/4 bg-slate-800/50 rounded-full animate-pulse" />
-                      <div className="h-4 w-full bg-slate-800/30 rounded-lg animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
-                      <div className="h-4 w-[90%] bg-slate-800/30 rounded-lg animate-pulse" style={{ animationDelay: `${i * 0.15}s` }} />
-                    </div>
-                  ))}
+                  <CVLoader />
+                  <div className="space-y-4 pt-2">
+                    {[1, 2].map(i => (
+                      <div key={`skeleton-${i}`} className="space-y-3">
+                        <div className="h-3 w-1/4 bg-slate-800/50 rounded-full animate-pulse" />
+                        <div className="h-4 w-full bg-slate-800/30 rounded-lg animate-pulse" style={{ animationDelay: `${i * 0.15}s` }} />
+                      </div>
+                    ))}
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div 

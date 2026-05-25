@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FlaskConical, 
   Zap, 
@@ -15,7 +15,10 @@ import {
   Layers,
   Sparkles,
   ClipboardCheck,
-  Eye
+  Eye,
+  Download,
+  Upload,
+  FileJson
 } from 'lucide-react';
 
 interface MaterialPreset {
@@ -421,6 +424,7 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
   const [formError, setFormError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load custom presets on mount
   useEffect(() => {
@@ -438,6 +442,46 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
   const saveCustomPresets = (updated: MaterialPreset[]) => {
     setCustomPresets(updated);
     localStorage.setItem('xrd_custom_presets', JSON.stringify(updated));
+  };
+
+  const handleExportJSON = () => {
+    const dataStr = JSON.stringify(customPresets, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'xrd_custom_presets.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const json = JSON.parse(e.target?.result as string);
+        if (Array.isArray(json)) {
+          // Additional validation can be done here.
+          // Merge with existing avoiding duplicates by name
+          const newPresetsMap = new Map();
+          [...customPresets, ...json].forEach(p => newPresetsMap.set(p.name, p));
+          const updated = Array.from(newPresetsMap.values());
+          saveCustomPresets(updated);
+          setSuccessMsg('Successfully imported custom suites!');
+          setTimeout(() => setSuccessMsg(null), 3000);
+          setActiveTab('Custom');
+        } else {
+          setFormError('Invalid JSON format. Expected an array of presets.');
+        }
+      } catch (err) {
+        setFormError('Error parsing JSON file.');
+      }
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   // Convert categories into TabGroups
@@ -597,6 +641,43 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
     setTimeout(() => setCopiedIndex(null), 1500);
   };
 
+  const handleExportConfigText = (preset: MaterialPreset, computedD: number[], e: React.MouseEvent) => {
+    e.stopPropagation();
+    let text = `====================================================
+TEST DATA SUITE CONFIGURATION: ${preset.name}
+====================================================
+Formula: ${preset.formula}
+Category: ${preset.category}
+Wavelength: ${preset.wavelength} Å
+Description: ${preset.description}
+
+[CRYSTALLOGRAPHIC DATA]
+Crystal System: ${preset.crystalSystem || 'N/A'}
+Space Group: ${preset.spaceGroup || 'N/A'}
+Lattice Parameters: ${preset.latticeParams || 'N/A'}
+
+[DIFFRACTION PEAKS]
+====================================================
+ 2θ (°)     |  d-spacing (Å) |  Miller (hkl)
+----------------------------------------------------`;
+    
+    preset.peaks.forEach((peak, i) => {
+      const d = computedD[i] > 0 ? computedD[i].toFixed(4) : 'N/A';
+      const hkl = preset.hkls[i] || '?';
+      text += `\n ${peak.toFixed(3).padEnd(10)} |  ${d.padEnd(13)} |  ${hkl}`;
+    });
+    
+    text += '\n====================================================\n';
+    
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Suite_${preset.name.replace(/\s+/g, '_')}_Config.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="bg-[#0A101C]/95 rounded-[2rem] p-6 shadow-2xl border border-white/10 relative overflow-hidden transition-all text-left">
       <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -613,21 +694,50 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
           </div>
         </div>
         
-        <button
-          onClick={() => {
-            setIsAdding(!isAdding);
-            setFormError(null);
-            setSuccessMsg(null);
-          }}
-          className={`px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 border ${
-            isAdding 
-              ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 hover:bg-rose-500/30' 
-              : 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/30'
-          }`}
-        >
-          {isAdding ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-          {isAdding ? 'Close Builder' : 'Build Custom Suite'}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <input 
+            type="file" 
+            accept=".json" 
+            ref={fileInputRef} 
+            onChange={handleImportJSON} 
+            style={{ display: 'none' }} 
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 bg-slate-800/50 border border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+            title="Import custom suites from JSON"
+          >
+            <Upload className="w-3 h-3" />
+            Import
+          </button>
+          
+          {customPresets.length > 0 && (
+            <button
+              onClick={handleExportJSON}
+              className="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 bg-slate-800/50 border border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+              title="Export custom suites to JSON"
+            >
+              <Download className="w-3 h-3" />
+              Export
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              setIsAdding(!isAdding);
+              setFormError(null);
+              setSuccessMsg(null);
+            }}
+            className={`px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 border ${
+              isAdding 
+                ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 hover:bg-rose-500/30' 
+                : 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/30'
+            }`}
+          >
+            {isAdding ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+            {isAdding ? 'Close Builder' : 'Build Custom Suite'}
+          </button>
+        </div>
       </div>
 
       {/* Add Custom Preset Form Block */}
@@ -992,6 +1102,7 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
                         type="button"
                         onClick={(e) => handleCopyPeaksText(material, idx, e)}
                         className="py-2 px-3 bg-slate-900 border border-white/5 text-slate-300 hover:text-white font-sans font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
+                        title="Copy peaks list to clipboard"
                       >
                         {copiedIndex === idx ? (
                           <>
@@ -1002,6 +1113,15 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
                             <Copy className="w-3.5 h-3.5 text-slate-500" /> List Peaks
                           </>
                         )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleExportConfigText(material, computedD, e)}
+                        className="py-2 px-3 bg-slate-900 border border-white/5 text-slate-300 hover:text-white font-sans font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
+                        title="Export suite data to text file"
+                      >
+                        <FileJson className="w-3.5 h-3.5 text-slate-500" /> Export Data
                       </button>
                     </div>
                   </div>

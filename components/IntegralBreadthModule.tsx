@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IntegralBreadthInput, IntegralBreadthResult } from '../types';
 import { parseIntegralBreadthInput, calculateIntegralBreadth, XRAY_WAVELENGTHS } from '../utils/physics';
-import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion, ChevronDown, Check } from 'lucide-react';
+import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion, ChevronDown, Check, Database, Zap } from 'lucide-react';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from './SettingsContext';
@@ -59,6 +59,9 @@ export const IntegralBreadthModule: React.FC = () => {
   const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
   const kMenuRef = React.useRef<HTMLDivElement>(null);
+
+  const [isSimulationRunning, setIsSimulationRunning] = useState(false);
+  const [simulationStep, setSimulationStep] = useState(0);
 
   const [instrumentalMode, setInstrumentalMode] = useState<'constant' | 'caglioti'>('constant');
   const [instBetaIB, setInstBetaIB] = useState<number>(0.05);
@@ -141,31 +144,44 @@ export const IntegralBreadthModule: React.FC = () => {
   };
 
   const handleCalculate = () => {
-    const peaks = parseIntegralBreadthInput(inputData);
-    const computed = peaks
-      .map(p => calculateIntegralBreadth(
-        wavelength, 
-        constantK, 
-        p,
-        instrumentalMode,
-        instBetaIB,
-        { U: cagliotiU, V: cagliotiV, W: cagliotiW },
-        decouplingMethod
-      ))
-      .filter((r): r is IntegralBreadthResult => r !== null);
+    if (isSimulationRunning) return;
     
-    setResults(computed);
+    setIsSimulationRunning(true);
+    setSimulationStep(1);
+    
+    setTimeout(() => setSimulationStep(2), 600);
+    setTimeout(() => setSimulationStep(3), 1400);
+    setTimeout(() => setSimulationStep(4), 2200);
+    setTimeout(() => setSimulationStep(5), 3000);
+    
+    setTimeout(() => {
+      setIsSimulationRunning(false);
+      const peaks = parseIntegralBreadthInput(inputData);
+      const computed = peaks
+        .map(p => calculateIntegralBreadth(
+          wavelength, 
+          constantK, 
+          p,
+          instrumentalMode,
+          instBetaIB,
+          { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+          decouplingMethod
+        ))
+        .filter((r): r is IntegralBreadthResult => r !== null);
+      
+      setResults(computed);
 
-    if (computed.length > 0) {
-      const sum = computed.reduce((acc, curr) => acc + curr.calcSizeNm, 0);
-      setAvgSize(sum / computed.length);
-    } else {
-      setAvgSize(0);
-    }
+      if (computed.length > 0) {
+        const sum = computed.reduce((acc, curr) => acc + curr.calcSizeNm, 0);
+        setAvgSize(sum / computed.length);
+      } else {
+        setAvgSize(0);
+      }
+    }, 3800);
   };
 
   useEffect(() => {
-    handleCalculate();
+    setResults([]); // reset results
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wavelength, constantK, inputData, instrumentalMode, instBetaIB, cagliotiU, cagliotiV, cagliotiW, decouplingMethod]);
 
@@ -538,14 +554,49 @@ export const IntegralBreadthModule: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={handleCalculate}
-              className="w-full py-4 bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] flex items-center justify-center gap-3 group relative overflow-hidden"
-            >
-              <div className="absolute inset-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Activity className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              Execute Config
-            </button>
+            {!isSimulationRunning ? (
+              <button
+                onClick={handleCalculate}
+                className="w-full py-4 bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 text-white font-black uppercase tracking-widest rounded-xl transition-all shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(34,211,238,0.4)] flex items-center justify-center gap-3 group relative overflow-hidden"
+              >
+                <div className="absolute inset-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Activity className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                Execute Config
+              </button>
+            ) : (
+              <div className="bg-[#070D18] p-5 rounded-2xl border border-purple-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(168,85,247,0.05)]">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 blur-2xl rounded-full" />
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full border-2 border-purple-500/30 border-t-purple-400 animate-spin" /> IB Config Running
+                </h4>
+                <div className="space-y-3 relative z-10 w-full flex flex-col">
+                  {[
+                    { step: 1, label: 'Evaluating Raw Data Input', icon: Database },
+                    { step: 2, label: 'Validating System Parameters', icon: Zap },
+                    { step: 3, label: 'Calculating Geometric Form', icon: Atom },
+                    { step: 4, label: 'Modeling Optical Strain', icon: Activity },
+                    { step: 5, label: 'Formulating Results', icon: Check }
+                  ].map((s) => {
+                     const Icon = s.icon;
+                     const isActive = simulationStep === s.step;
+                     const isDone = simulationStep > s.step;
+                     return (
+                       <div key={s.step} className={`flex items-center gap-3 w-full transition-all duration-300 ${isActive ? 'opacity-100 scale-100' : isDone ? 'opacity-50' : 'opacity-20'}`}>
+                         <div className={`p-1.5 rounded-lg border flex-shrink-0 ${isActive ? 'bg-purple-500/20 border-purple-500/50 text-purple-400' : isDone ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-slate-800 border-white/5 text-slate-500'}`}>
+                           <Icon className={`w-3.5 h-3.5 ${isActive ? 'animate-pulse' : ''}`} />
+                         </div>
+                         <div className="flex-1 flex flex-col">
+                           <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-purple-300' : isDone ? 'text-emerald-300/80' : 'text-slate-500'}`}>
+                             {s.label}
+                           </span>
+                           {isActive && <div className="h-0.5 bg-gradient-to-r from-purple-500 to-transparent w-full mt-1.5 animate-pulse rounded-full" />}
+                         </div>
+                       </div>
+                     );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

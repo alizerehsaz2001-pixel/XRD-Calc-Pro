@@ -4,7 +4,8 @@ import {
   Languages, Hash, Palette, Sparkles, Volume2, Settings, 
   Activity, Cpu, Shield, Zap, Info, Database, Globe,
   Beaker, Monitor, Sliders, Server, Lock, User, Edit3, 
-  Save, Check, AlertCircle, Wrench, Microscope, Compass
+  Save, Check, AlertCircle, Wrench, Microscope, Compass,
+  Key, ExternalLink, RefreshCw, CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
@@ -95,6 +96,69 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const [certifications, setCertifications] = useState<string[]>(operator.certifications);
   const [terminalId, setTerminalId] = useState(operator.terminalId);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // New API Access dashboard states
+  const [customApiKey, setCustomApiKey] = useState(() => localStorage.getItem('xrd_custom_gemini_key') || '');
+  const [authStatus, setAuthStatus] = useState<'unchecked' | 'checking' | 'active' | 'invalid' | 'missing'>('unchecked');
+  const [authFeedback, setAuthFeedback] = useState('');
+  const [activeTier, setActiveTier] = useState<'free' | 'paid'>('free');
+  const [hasSystemKey, setHasSystemKey] = useState(false);
+
+  useEffect(() => {
+    const checkSystemKey = async () => {
+      try {
+        const res = await fetch('/api/gemini/config');
+        const data = await res.json();
+        setHasSystemKey(!!data?.hasEnvKey);
+      } catch (err) {
+        console.error("Error reading system key configuration:", err);
+      }
+    };
+    checkSystemKey();
+  }, []);
+
+  const handleVerifyAndSaveKey = async (keyInput: string) => {
+    setAuthStatus('checking');
+    setAuthFeedback('Contacting Google AI Studio verification gateway...');
+    try {
+      const res = await fetch('/api/gemini/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ customKey: keyInput })
+      });
+      const data = await res.json();
+      
+      if (data.success && data.status === 'ACTIVE') {
+        setAuthStatus('active');
+        setAuthFeedback(data.message || 'Verification successful!');
+        // Save to local storage
+        if (keyInput) {
+          localStorage.setItem('xrd_custom_gemini_key', keyInput);
+        } else {
+          localStorage.removeItem('xrd_custom_gemini_key');
+        }
+        playSynthTone('success');
+      } else {
+        setAuthStatus(data.status === 'MISSING' ? 'missing' : 'invalid');
+        setAuthFeedback(data.error || 'Identity verification failed. Please align your settings.');
+        playSynthTone('switch');
+      }
+    } catch (err: any) {
+      setAuthStatus('invalid');
+      setAuthFeedback('Network or gateway execution timeout: ' + err.message);
+      playSynthTone('switch');
+    }
+  };
+
+  const handleClearCustomKey = () => {
+    setCustomApiKey('');
+    localStorage.removeItem('xrd_custom_gemini_key');
+    setAuthStatus('unchecked');
+    setAuthFeedback('Custom key removed. Reverted to default system parameters.');
+    playSynthTone('tick');
+  };
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -752,6 +816,257 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                  </div>
                </div>
              </div>
+          </section>
+
+          {/* Section 4: Cognitive API Access & AI Provisioning Gateway */}
+          <section id="api-access-panel" className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-80 h-80 bg-fuchsia-500/5 blur-[120px] rounded-full -ml-40 -mt-40 pointer-events-none" />
+            
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 pb-6 border-b border-slate-100 dark:border-white/5">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-fuchsia-500/10 rounded-2xl text-fuchsia-500 border border-fuchsia-500/20">
+                  <Key className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-400">Cognitive API Access Gateway</h3>
+                  <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Configure credentials and view active operational rates</p>
+                </div>
+              </div>
+              
+              <a 
+                href="https://aistudio.google.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all cursor-pointer shadow-md w-fit"
+              >
+                Get Google API Key <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+              
+              {/* Credentials & Live Verifier Control block */}
+              <div className="xl:col-span-7 space-y-6">
+                
+                {/* Visual Status Indicator Panel */}
+                <div className={`p-5 rounded-2xl border transition-all ${
+                  authStatus === 'active' 
+                    ? 'bg-emerald-500/5 border-emerald-500/30' 
+                    : authStatus === 'invalid'
+                    ? 'bg-rose-500/5 border-rose-500/30'
+                    : authStatus === 'checking'
+                    ? 'bg-indigo-500/5 border-indigo-500/30'
+                    : authStatus === 'missing'
+                    ? 'bg-amber-500/5 border-amber-500/30'
+                    : 'bg-slate-50 dark:bg-slate-950 border-slate-205 dark:border-white/5'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      {authStatus === 'active' && (
+                        <div className="w-9 h-9 bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 rounded-xl flex items-center justify-center">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                      )}
+                      {authStatus === 'invalid' && (
+                        <div className="w-9 h-9 bg-rose-500/10 text-rose-500 border border-rose-500/25 rounded-xl flex items-center justify-center">
+                          <AlertCircle className="w-5 h-5 animate-bounce" />
+                        </div>
+                      )}
+                      {authStatus === 'checking' && (
+                        <div className="w-9 h-9 bg-indigo-500/10 text-indigo-500 border border-indigo-500/25 rounded-xl flex items-center justify-center animate-spin">
+                          <RefreshCw className="w-5 h-5" />
+                        </div>
+                      )}
+                      {authStatus === 'missing' && (
+                        <div className="w-9 h-9 bg-amber-500/10 text-amber-500 border border-amber-500/25 rounded-xl flex items-center justify-center">
+                          <AlertCircle className="w-5 h-5" />
+                        </div>
+                      )}
+                      {authStatus === 'unchecked' && (
+                        <div className="w-9 h-9 bg-slate-500/10 text-slate-500 border border-slate-300 dark:border-white/10 rounded-xl flex items-center justify-center">
+                          <Info className="w-5 h-5" />
+                        </div>
+                      )}
+                      {authStatus === 'active' && (
+                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 animate-ping" />
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">AUTHENTICATION STATUS</span>
+                        {hasSystemKey && !customApiKey && (
+                          <span className="px-1.5 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[8px] font-black uppercase tracking-wider rounded border border-indigo-500/20 font-mono">System Default Key</span>
+                        )}
+                        {customApiKey && (
+                          <span className="px-1.5 py-0.5 bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 text-[8px] font-black uppercase tracking-wider rounded border border-fuchsia-500/20 font-mono">Custom Override</span>
+                        )}
+                      </div>
+                      
+                      <div className="text-[12px] font-black uppercase tracking-tight mt-1 text-slate-800 dark:text-white leading-none">
+                        {authStatus === 'active' && 'Verified Hub Active'}
+                        {authStatus === 'invalid' && 'Handshake Failure'}
+                        {authStatus === 'checking' && 'Exchanging Quantum Handshake...'}
+                        {authStatus === 'missing' && 'Key Missing / Incomplete'}
+                        {authStatus === 'unchecked' && 'Unchecked State / Initialized'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-[10px] font-semibold text-slate-500 mt-2.5 leading-relaxed font-mono">
+                    {authStatus === 'unchecked' && "System ready to verify connection. Input your personal Google AI Studio key below or check the system's default status."}
+                    {authStatus === 'active' && (authFeedback || "Verification completed. The Quantum AI science advisor engine is verified as active.")}
+                    {authStatus === 'invalid' && (authFeedback || "Handshake rejected. Provide a valid 'AIZA...' credential with correctly loaded billing settings.")}
+                    {authStatus === 'missing' && "No key configured. Direct mathematics remain active, but conversational AI modules require a valid credentials token."}
+                    {authStatus === 'checking' && "Verifying system permissions dynamically with official model servers..."}
+                  </p>
+                </div>
+
+                {/* API Key Input Form Override */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">
+                      Custom Gemini API Key Override
+                    </label>
+                    {customApiKey && (
+                      <button 
+                        type="button"
+                        onClick={handleClearCustomKey}
+                        className="text-[9px] font-black uppercase tracking-wider text-rose-500 hover:underline leading-none align-middle font-sans cursor-pointer"
+                      >
+                        Reset To Default Key
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <input 
+                      type="password"
+                      value={customApiKey}
+                      onChange={(e) => setCustomApiKey(e.target.value)}
+                      placeholder={hasSystemKey ? "••••••••••••••••••••••••••••••••••••••••" : "Paste custom Gemini AI key... (e.g. AIzaSy...)"}
+                      className="flex-1 p-3.5 bg-slate-50 dark:bg-slate-900 border-2 border-slate-205 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-fuchsia-500 focus:bg-white dark:focus:bg-slate-850 transition-all font-mono tracking-widest"
+                    />
+                    
+                    <button
+                      type="button"
+                      disabled={authStatus === 'checking'}
+                      onClick={() => handleVerifyAndSaveKey(customApiKey)}
+                      className="px-6 py-3.5 bg-fuchsia-600 hover:bg-fuchsia-500 disabled:opacity-50 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                    >
+                      {authStatus === 'checking' ? 'Validating...' : 'Verify & Save'}
+                    </button>
+                  </div>
+
+                  <p className="text-[9.5px] text-slate-400 dark:text-slate-500 leading-normal">
+                    💡 <strong>Privacy First:</strong> Custom API keys reside securely inside your browser's local sandbox memory. They are forwarded exclusively to Google model endpoints over secure proxy requests and never stored on third-party servers.
+                  </p>
+                </div>
+              </div>
+
+              {/* Interactive visual limit comparisons */}
+              <div className="xl:col-span-5 space-y-5 border-t xl:border-t-0 xl:border-l border-slate-100 dark:border-white/5 pt-6 xl:pt-0 xl:pl-6">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-wider flex items-center gap-1.5 font-sans">
+                    <Sliders className="w-3.5 h-3.5 text-indigo-500" /> Interactive Capacity Monitor
+                  </h4>
+                  <p className="text-[9.5px] font-semibold text-slate-400 uppercase tracking-widest font-mono">Compare limits and upgrade parameters below</p>
+                </div>
+
+                {/* Tier Selection Switches */}
+                <div className="grid grid-cols-2 p-1 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl font-sans">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setActiveTier('free');
+                      playSynthTone('tick');
+                    }}
+                    className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                      activeTier === 'free' 
+                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-md' 
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    Free Access Pool
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setActiveTier('paid');
+                      playSynthTone('tick');
+                    }}
+                    className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
+                      activeTier === 'paid' 
+                        ? 'bg-fuchsia-600 text-white shadow-md' 
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
+                    }`}
+                  >
+                    Paid Pay-As-You-Go
+                  </button>
+                </div>
+
+                {/* Limits Explanation block */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-white/5 space-y-4 font-mono font-bold">
+                  
+                  {/* Metric 1: Requests Rate limit */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-end text-[9px]">
+                      <span className="text-slate-500 uppercase">Requests Limit Per Minute</span>
+                      <span className={activeTier === 'paid' ? 'text-fuchsia-500' : 'text-amber-500'}>
+                        {activeTier === 'paid' ? '360 RPM' : '15 RPM'}
+                      </span>
+                    </div>
+                    {/* Visual Meter */}
+                    <div className="h-2 bg-slate-200 dark:bg-slate-900 rounded-full overflow-hidden">
+                      <div 
+                        style={{ width: activeTier === 'paid' ? '100%' : '10%' }}
+                        className={`h-full transition-all duration-700 rounded-full ${activeTier === 'paid' ? 'bg-fuchsia-500' : 'bg-amber-450 bg-amber-500'}`} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Metric 2: Requests Per Day */}
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-end text-[9px]">
+                      <span className="text-slate-500 uppercase">Requests Limit Per Day</span>
+                      <span className={activeTier === 'paid' ? 'text-fuchsia-500' : 'text-amber-500'}>
+                        {activeTier === 'paid' ? '360,000 RPD' : '1,500 RPD'}
+                      </span>
+                    </div>
+                    {/* Visual Meter */}
+                    <div className="h-2 bg-slate-200 dark:bg-slate-900 rounded-full overflow-hidden">
+                      <div 
+                        style={{ width: activeTier === 'paid' ? '100%' : '8%' }}
+                        className={`h-full transition-all duration-700 rounded-full ${activeTier === 'paid' ? 'bg-fuchsia-400' : 'bg-amber-400'}`} 
+                      />
+                    </div>
+                  </div>
+
+                  {/* Operational Latency & Priority Metas */}
+                  <div className="grid grid-cols-2 gap-3 text-[9px] uppercase pt-2 border-t border-slate-200 dark:border-white/10 font-sans leading-relaxed">
+                    <div>
+                      <span className="block text-slate-400 font-mono text-[8px] tracking-tight font-black">Handshake Priority:</span>
+                      <span className={`font-black tracking-wider ${activeTier === 'paid' ? 'text-fuchsia-600 dark:text-fuchsia-400' : 'text-slate-600 dark:text-slate-300'}`}>
+                        {activeTier === 'paid' ? 'High / Expedited' : 'Standard Queue'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-slate-400 font-mono text-[8px] tracking-tight font-black">Standard Latency:</span>
+                      <span className={`font-black tracking-wider ${activeTier === 'paid' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                        {activeTier === 'paid' ? '~0.3 Seconds' : '~1.5 Seconds'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-[9.5px] italic font-sans leading-relaxed text-slate-500 font-semibold uppercase tracking-tight">
+                    {activeTier === 'free' 
+                      ? "The Free Pool is excellent for initial educational laboratory runs and basic tests. However, standard queues might trigger transient quota errors during peak analytical hours."
+                      : "The Paid tier unlocks professional high-speed pipelines. This ensures zero latency throttling during extensive structural simulations and crystallographic refinements."
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
           </section>
         </div>
 
