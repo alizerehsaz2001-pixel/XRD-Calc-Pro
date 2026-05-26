@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Activity, Zap, Box, Layers, Scan, CheckCircle } from 'lucide-react';
 import { simulatePeak } from '../utils/physics';
 import { FWHMResult } from '../types';
 import {
@@ -78,38 +78,76 @@ export const FWHMModule: React.FC = () => {
 
   const analyzeProfile = () => {
     if (!stats) return null;
-    const messages: { type: 'info' | 'warning' | 'error', text: string }[] = [];
+    const messages: { type: 'info' | 'warning' | 'error' | 'success', text: string }[] = [];
     let status: 'ok' | 'warning' | 'error' = 'ok';
 
     // Shape Factor Analysis
     if (type === 'Gaussian' && Math.abs(stats.shapeFactor - 0.939) > 0.01) {
        messages.push({ type: 'warning', text: `Shape factor ${stats.shapeFactor.toFixed(3)} deviates from ideal Gaussian (0.939).` });
        status = 'warning';
+    } else if (type === 'Gaussian') {
+       messages.push({ type: 'success', text: `Gaussian profile shape factor correlates exactly to theoretical ideal (0.939).` });
     }
+
     if (type === 'Lorentzian' && Math.abs(stats.shapeFactor - 0.637) > 0.01) {
        messages.push({ type: 'warning', text: `Shape factor ${stats.shapeFactor.toFixed(3)} deviates from ideal Lorentzian (0.637).` });
        status = 'warning';
+    } else if (type === 'Lorentzian') {
+       messages.push({ type: 'success', text: `Lorentzian profile shape factor correlates exactly to theoretical ideal (0.637).` });
     }
 
     // FWHM Analysis
     if (fwhm < 0.02) {
-      messages.push({ type: 'warning', text: "FWHM < 0.02° is typically below instrumental resolution for standard lab XRD." });
+      messages.push({ type: 'warning', text: "Critical: FWHM < 0.02° is typically below instrumental resolution for standard lab diffractometers." });
       status = 'warning';
     } else if (fwhm > 3) {
-      messages.push({ type: 'info', text: "Broad peak (>3°). Indicates amorphous phase or crystallites < 2nm." });
+      messages.push({ type: 'info', text: "Extremely broad peak (>3°). Strongly suggests amorphous phase contribution or crystallites < 2 nm." });
     }
 
     // Mixing Factor Analysis
     if (type === 'Pseudo-Voigt') {
         if (eta < 0.2) messages.push({ type: 'info', text: "Dominantly Gaussian character (Strain/Instrument dominated)." });
         else if (eta > 0.8) messages.push({ type: 'info', text: "Dominantly Lorentzian character (Size dominated)." });
+        else messages.push({ type: 'success', text: `Hybrid shape factor: ${stats.shapeFactor.toFixed(3)} (η = ${eta.toFixed(2)})` });
     }
     
     if (type === 'Pearson VII') {
         const m = Math.max(1, eta * 10);
         if (m < 1.5) messages.push({ type: 'info', text: `m ≈ ${m.toFixed(1)}: Dominantly Lorentzian (Size dominated).` });
         else if (m > 5) messages.push({ type: 'info', text: `m ≈ ${m.toFixed(1)}: Approaching Gaussian (Strain/Inst. dominated).` });
-        else messages.push({ type: 'info', text: `m ≈ ${m.toFixed(1)}: Intermediate Voigt-like characteristics.` });
+        else messages.push({ type: 'success', text: `m ≈ ${m.toFixed(1)}: Intermediate Voigt-like characteristics.` });
+    }
+
+    // Mathematical approximations (Scherrer & Stokes-Wilson)
+    const thetaRad = (center / 2) * (Math.PI / 180);
+    const betaRad = stats.integralBreadth * (Math.PI / 180);
+    
+    let sizeBroadening = betaRad;
+    let strainBroadening = betaRad;
+
+    if (type === 'Pseudo-Voigt') {
+        sizeBroadening = betaRad * eta; // Lorentzian part -> size
+        strainBroadening = betaRad * (1 - eta); // Gaussian part -> strain
+    } else if (type === 'Gaussian') {
+        sizeBroadening = 0; // Pure strain
+    } else if (type === 'Lorentzian') {
+        strainBroadening = 0; // Pure size
+    }
+
+    if (sizeBroadening > 0.0001) {
+       const L = (0.89 * 0.15406) / (sizeBroadening * Math.cos(thetaRad));
+       if (L > 200) {
+           messages.push({ type: 'info', text: `Scherrer Coherence Length: ~${L.toFixed(0)} nm (Warning: limits).` });
+       } else if (L < 2) {
+           messages.push({ type: 'info', text: `Scherrer Coherence Length: ~${L.toFixed(1)} nm (Highly localized).` });
+       } else {
+           messages.push({ type: 'success', text: `Scherrer Coherence Length (Volume-Weighted): ~${L.toFixed(1)} nm.` });
+       }
+    }
+
+    if (strainBroadening > 0.0001) {
+       const e = strainBroadening / (4 * Math.tan(thetaRad));
+       messages.push({ type: 'success', text: `Approximate Microstrain (ε): ${(e * 100).toFixed(3)}% root-mean-square.` });
     }
 
     return { status, messages };
@@ -136,7 +174,7 @@ export const FWHMModule: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Line Profile Simulator
@@ -155,8 +193,8 @@ export const FWHMModule: React.FC = () => {
             <div className="space-y-4">
               <label className="block text-xs font-black text-slate-500 uppercase tracking-[0.2em] flex items-center justify-between">
                 <span>Profile Kernel</span>
-                <span className="text-[9px] bg-orange-100 text-orange-600 px-2.5 py-1 rounded-full border border-orange-200 shadow-sm leading-none flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                <span className="text-[9px] bg-indigo-50 leading-[0] text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-200 dark:border-indigo-500/30 shadow-sm flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
                   {type === 'Pseudo-Voigt' || type === 'Pearson VII' ? 'Hybrid Mode' : 'Single Kernel'}
                 </span>
               </label>
@@ -171,63 +209,63 @@ export const FWHMModule: React.FC = () => {
                       else if (t === 'Pearson VII') setEta(0.2); // Default m=2 (scaled via eta)
                       else setEta(0.5);
                     }}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 relative overflow-hidden group outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-1 ${
+                    className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 relative overflow-hidden group outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-1 dark:focus:ring-offset-slate-900 ${
                       type === t 
-                        ? 'bg-gradient-to-br from-orange-50 to-rose-50 border-orange-400 shadow-md ring-1 ring-orange-400/20' 
-                        : 'bg-white border-slate-200 hover:border-orange-300 hover:bg-orange-50/10 hover:shadow-sm'
+                        ? 'bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-300 dark:border-indigo-500/50 shadow-md ring-1 ring-indigo-400/20' 
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:bg-indigo-50/10 dark:hover:bg-indigo-500/5 hover:shadow-sm'
                     }`}
                   >
-                    {type === t && <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-rose-500" />}
-                    <span className={`text-[11px] font-black uppercase tracking-wider mb-1 transition-colors text-center ${type === t ? 'text-orange-600' : 'text-slate-600 group-hover:text-slate-900'}`}>
+                    {type === t && <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-fuchsia-500" />}
+                    <span className={`text-[11px] font-black uppercase tracking-wider mb-1 transition-colors text-center ${type === t ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'}`}>
                       {t === 'Pseudo-Voigt' ? 'P-Voigt' : t === 'Pearson VII' ? 'Pearson VII' : t}
                     </span>
-                    <span className={`text-[9px] font-mono tracking-tight text-center ${type === t ? 'text-orange-500/80' : 'text-slate-400'}`}>
+                    <span className={`text-[9px] font-mono tracking-tight text-center ${type === t ? 'text-indigo-500/80 dark:text-indigo-400/80' : 'text-slate-400 dark:text-slate-500'}`}>
                       {t === 'Gaussian' ? 'η = 0' : t === 'Lorentzian' ? 'η = 1' : t === 'Pearson VII' ? 'm > 1' : '0 < η < 1'}
                     </span>
                     
                     {/* Tiny visual representation */}
                     <div className="mt-2 h-4 w-12 flex items-end justify-center gap-[2px] opacity-60">
-                       {t === 'Gaussian' && [2, 4, 8, 12, 16, 12, 8, 4, 2].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
-                       {t === 'Lorentzian' && [3, 4, 5, 8, 16, 8, 5, 4, 3].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
-                       {t === 'Pseudo-Voigt' && [2.5, 4, 6.5, 10, 16, 10, 6.5, 4, 2.5].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
-                       {t === 'Pearson VII' && [2.2, 4, 7, 11, 16, 11, 7, 4, 2.2].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'orange' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'orange' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                       {t === 'Gaussian' && [2, 4, 8, 12, 16, 12, 8, 4, 2].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'indigo' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'indigo' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                       {t === 'Lorentzian' && [3, 4, 5, 8, 16, 8, 5, 4, 3].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'indigo' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'indigo' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                       {t === 'Pseudo-Voigt' && [2.5, 4, 6.5, 10, 16, 10, 6.5, 4, 2.5].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'indigo' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'indigo' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
+                       {t === 'Pearson VII' && [2.2, 4, 7, 11, 16, 11, 7, 4, 2.2].map((h, i) => <div key={i} className={`w-[3px] bg-${type === t ? 'indigo' : 'slate'}-400 rounded-t-sm group-hover:bg-${type === t ? 'indigo' : 'slate'}-500 transition-colors`} style={{ height: `${h}px` }} />)}
                     </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-200/60 space-y-6 shadow-inner ring-1 ring-white/50">
+            <div className="bg-slate-50 border-slate-200 dark:bg-slate-950/40 p-5 rounded-2xl border dark:border-slate-800/60 space-y-6 shadow-inner ring-1 ring-white/50 dark:ring-transparent">
               <div className="group">
                 <div className="flex justify-between items-end mb-3">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">Peak Center (2θ)</label>
-                  <div className="bg-white px-2.5 py-1 rounded-md shadow-sm border border-slate-200 relative overflow-hidden">
-                    <span className="text-xs font-mono text-orange-600 font-bold relative z-10">{center.toFixed(2)}°</span>
-                    <div className="absolute inset-0 bg-orange-500/5" />
+                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">Peak Center (2θ)</label>
+                  <div className="bg-white dark:bg-slate-900 px-2.5 py-1 rounded-md shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+                    <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold relative z-10">{center.toFixed(2)}°</span>
+                    <div className="absolute inset-0 bg-indigo-500/5 dark:bg-indigo-500/10" />
                   </div>
                 </div>
                 <input
                   type="range" min="10" max="150" step="0.1"
                   value={center} onChange={(e) => setCenter(parseFloat(e.target.value))}
-                  className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-600 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
               </div>
 
               <div className="group">
                 <div className="flex justify-between items-center mb-3">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">
+                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">
                     FWHM {useCaglioti ? '(Caglioti Calculated)' : '(Δ2θ)'}
                   </label>
                   <div className="flex gap-2">
                     <button 
                       onClick={() => setUseCaglioti(!useCaglioti)}
-                      className={`text-[9px] px-2 py-1 rounded border font-bold uppercase tracking-wider transition-colors ${useCaglioti ? 'bg-orange-100 border-orange-300 text-orange-600' : 'bg-slate-100 border-slate-200 text-slate-500 hover:bg-slate-200'}`}
+                      className={`text-[9px] px-2 py-1 rounded border font-bold uppercase tracking-wider transition-colors ${useCaglioti ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
                     >
                       Instrumental
                     </button>
-                    <div className="bg-white px-2.5 py-1 rounded-md shadow-sm border border-slate-200 relative overflow-hidden flex items-center">
-                      <span className={`text-xs font-mono font-bold relative z-10 ${useCaglioti ? 'text-slate-500' : 'text-orange-600'}`}>{fwhm.toFixed(3)}°</span>
-                      <div className={`absolute inset-0 ${useCaglioti ? 'bg-slate-100' : 'bg-orange-500/5'}`} />
+                    <div className="bg-white dark:bg-slate-900 px-2.5 py-1 rounded-md shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden flex items-center">
+                      <span className={`text-xs font-mono font-bold relative z-10 ${useCaglioti ? 'text-slate-500 dark:text-slate-400' : 'text-indigo-600 dark:text-indigo-400'}`}>{fwhm.toFixed(3)}°</span>
+                      <div className={`absolute inset-0 ${useCaglioti ? 'bg-slate-100 dark:bg-slate-800' : 'bg-indigo-500/5 dark:bg-indigo-500/10'}`} />
                     </div>
                   </div>
                 </div>
@@ -236,10 +274,10 @@ export const FWHMModule: React.FC = () => {
                   <input
                     type="range" min="0.01" max="5" step="0.01"
                     value={fwhmManual} onChange={(e) => setFwhmManual(parseFloat(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500 hover:accent-orange-600 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                    className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-600 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   />
                 ) : (
-                  <div className="bg-orange-50/50 p-3 rounded-lg border border-orange-200/50 mt-2 space-y-3">
+                  <div className="bg-indigo-50/50 dark:bg-indigo-950/30 p-3 rounded-lg border border-indigo-100 dark:border-indigo-500/20 mt-2 space-y-3">
                     <div className="flex justify-between items-center">
                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Diffractometer</span>
                        <select 
@@ -251,7 +289,7 @@ export const FWHMModule: React.FC = () => {
                              setCagliotiParams(CAGLIOTI_PRESETS[val]);
                            }
                          }}
-                         className="text-[10px] bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-orange-400 text-slate-700"
+                         className="text-[10px] bg-white border border-slate-300 rounded px-2 py-1 outline-none focus:border-indigo-400 text-slate-700"
                        >
                          {Object.keys(CAGLIOTI_PRESETS).map(k => <option key={k} value={k}>{k}</option>)}
                          <option value="Custom">Custom</option>
@@ -270,7 +308,7 @@ export const FWHMModule: React.FC = () => {
                                setCagliotiPreset('Custom');
                                setCagliotiParams({...cagliotiParams, [param]: parseFloat(e.target.value) || 0});
                              }}
-                             className="w-full bg-white border border-slate-200 rounded text-[10px] p-1 font-mono text-slate-700 focus:outline-none focus:border-orange-400"
+                             className="w-full bg-white border border-slate-200 rounded text-[10px] p-1 font-mono text-slate-700 focus:outline-none focus:border-indigo-400"
                            />
                          </div>
                        ))}
@@ -285,13 +323,13 @@ export const FWHMModule: React.FC = () => {
                     {type === 'Pearson VII' ? 'Shape Parameter (m)' : 'Mixing Factor (η)'}
                   </label>
                   <div className="bg-white px-2 py-1 xl:px-2.5 rounded-md shadow-sm border border-slate-200 flex items-center gap-1.5 xl:gap-2 relative overflow-hidden">
-                    <span className="text-xs font-mono text-orange-600 font-bold relative z-10">
+                    <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold relative z-10">
                       {type === 'Pearson VII' ? Math.max(1, eta * 10).toFixed(1) : `${(eta * 100).toFixed(0)}%`}
                     </span>
                     <span className="text-[9px] font-black text-slate-400 uppercase relative z-10">
                       {type === 'Pearson VII' ? '' : 'Lorentzian'}
                     </span>
-                    <div className="absolute inset-0 bg-orange-500/5" />
+                    <div className="absolute inset-0 bg-indigo-500/5 dark:bg-indigo-500/10" />
                   </div>
                 </div>
                 <input
@@ -300,19 +338,19 @@ export const FWHMModule: React.FC = () => {
                   onChange={(e) => setEta(parseFloat(e.target.value))}
                   disabled={type === 'Gaussian' || type === 'Lorentzian'}
                   className={`w-full h-1.5 rounded-lg appearance-none cursor-pointer transition-all focus:outline-none ${
-                    type === 'Gaussian' || type === 'Lorentzian' ? 'bg-slate-200 accent-slate-400 cursor-not-allowed' : 'bg-slate-200 accent-orange-500 hover:accent-orange-600 focus:ring-2 focus:ring-orange-500/20'
+                    type === 'Gaussian' || type === 'Lorentzian' ? 'bg-slate-200 dark:bg-slate-800 accent-slate-400 cursor-not-allowed' : 'bg-slate-200 dark:bg-slate-800 accent-indigo-500 hover:accent-indigo-600 focus:ring-2 focus:ring-indigo-500/20'
                   }`}
                 />
                 <div className="flex justify-between text-[9px] text-slate-400 mt-3 font-black uppercase tracking-widest">
                   {type === 'Pearson VII' ? (
                     <>
-                      <span className={`transition-colors ${eta < 0.5 ? 'text-orange-500' : ''}`}>m=1 (Lorentzian)</span>
-                      <span className={`transition-colors ${eta > 0.5 ? 'text-orange-500' : ''}`}>m=10 (Gaussian)</span>
+                      <span className={`transition-colors ${eta < 0.5 ? 'text-indigo-500 dark:text-indigo-400' : ''}`}>m=1 (Lorentzian)</span>
+                      <span className={`transition-colors ${eta > 0.5 ? 'text-indigo-500 dark:text-indigo-400' : ''}`}>m=10 (Gaussian)</span>
                     </>
                   ) : (
                     <>
-                      <span className={`transition-colors ${type === 'Pseudo-Voigt' && eta < 0.5 ? 'text-orange-500' : ''}`}>Gaussian (0)</span>
-                      <span className={`transition-colors ${type === 'Pseudo-Voigt' &&  eta > 0.5 ? 'text-orange-500' : ''}`}>Lorentzian (1)</span>
+                      <span className={`transition-colors ${type === 'Pseudo-Voigt' && eta < 0.5 ? 'text-indigo-500 dark:text-indigo-400' : ''}`}>Gaussian (0)</span>
+                      <span className={`transition-colors ${type === 'Pseudo-Voigt' &&  eta > 0.5 ? 'text-indigo-500 dark:text-indigo-400' : ''}`}>Lorentzian (1)</span>
                     </>
                   )}
                 </div>
@@ -322,7 +360,7 @@ export const FWHMModule: React.FC = () => {
             <div className="pt-6 border-t border-slate-100">
                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Strict JSON Results</h3>
                <div className="bg-slate-900 p-4 rounded-lg overflow-x-auto">
-                 <pre className="text-[10px] font-mono text-orange-400">
+                 <pre className="text-[10px] font-mono text-fuchsia-400">
                    {JSON.stringify({
                      module: "FWHM-Basics",
                      profile_type: type,
@@ -361,12 +399,18 @@ export const FWHMModule: React.FC = () => {
                 </div>
                 
                 {analysis.messages.length > 0 ? (
-                  <ul className="space-y-1">
+                  <ul className="space-y-1.5 mt-2">
                     {analysis.messages.map((msg, idx) => (
-                      <li key={`${msg.text}-${idx}`} className={`text-xs flex gap-2 ${
-                        msg.type === 'warning' ? 'text-amber-700' : 'text-slate-600'
+                      <li key={`${msg.text}-${idx}`} className={`text-[11px] leading-tight flex items-start gap-1.5 ${
+                        msg.type === 'warning' ? 'text-amber-700 font-medium' : 
+                        msg.type === 'success' ? 'text-emerald-700 font-bold' :
+                        'text-slate-600'
                       }`}>
-                        <span>•</span>
+                        <span className="mt-0.5">
+                           {msg.type === 'success' ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : 
+                            msg.type === 'warning' ? <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg> : 
+                            <span className="text-slate-400">•</span>}
+                        </span>
                         <span>{msg.text}</span>
                       </li>
                     ))}
@@ -383,233 +427,316 @@ export const FWHMModule: React.FC = () => {
       {/* Visualizer and Stats */}
       <div className="lg:col-span-8 space-y-6">
         <div 
-          className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-[500px] flex flex-col relative overflow-hidden cursor-none"
+          className="bg-white dark:bg-slate-950 p-1 lg:p-1.5 rounded-[2rem] shadow-2xl shadow-indigo-500/10 border border-slate-200 dark:border-slate-800/80 h-[550px] lg:h-[700px] flex flex-col relative overflow-hidden cursor-none group/visualizer"
           ref={chartContainerRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setMousePos(null)}
         >
-           <h3 className="text-lg font-bold text-slate-800 mb-6">Peak Profile Visualizer</h3>
-           <div className="flex-1 w-full min-h-0 min-w-0">
-             <ResponsiveContainer width="100%" height="100%">
-               <ComposedChart 
-                 data={chartData} 
-                 margin={{ top: 20, right: 60, left: 20, bottom: 30 }}
-               >
-                 <defs>
-                   <linearGradient id="colorY" x1="0" y1="0" x2="0" y2="1">
-                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                     <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                   </linearGradient>
-                   <pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                     <rect width="2" height="4" transform="translate(0,0)" fill="#94a3b8" opacity="0.3"></rect>
-                   </pattern>
-                 </defs>
-                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                 <XAxis 
-                   dataKey="x" 
-                   type="number" 
-                   domain={['auto', 'auto']} 
-                   tick={{fontSize: 10}}
-                   label={{ value: 'Angle 2θ', position: 'bottom', offset: 15, fontSize: 12, fontWeight: 'bold' }}
-                 />
-                 <YAxis hide domain={[0, amplitude * 1.2]} />
-                 <Tooltip 
-                   content={({ active, payload, label }) => {
-                     if (active && payload && payload.length) {
-                       const dataPoint = payload[0].payload;
-                       // Calculate Scherrer size for this specific point if it were the peak center
-                       // Just for dynamic feedback
-                       const thetaRad = (dataPoint.x / 2) * Math.PI / 180;
-                       const localSize = 0.15406 * 0.9 / ((fwhm * Math.PI / 180) * Math.cos(thetaRad));
-                       
-                       return (
-                         <div className="bg-slate-800 text-white p-3 rounded-lg shadow-lg text-xs border border-slate-700 min-w-[150px]">
-                           <p className="font-bold mb-2 border-b border-slate-600 pb-1">2θ: {dataPoint.x.toFixed(3)}°</p>
-                           <div className="space-y-1">
-                             <div className="flex justify-between gap-4">
-                               <span className="text-slate-400">Intensity:</span>
-                               <span className="font-mono font-bold text-blue-300">{dataPoint.y.toFixed(1)}</span>
-                             </div>
-                             <div className="flex justify-between gap-4">
-                               <span className="text-slate-400">Current FWHM:</span>
-                               <span className="font-mono text-orange-300">{fwhm.toFixed(3)}°</span>
-                             </div>
-                             <div className="flex justify-between gap-4">
-                               <span className="text-slate-400">Est. Size:</span>
-                               <span className="font-mono text-emerald-300">{localSize.toFixed(1)} nm</span>
-                             </div>
-                           </div>
-                         </div>
-                       );
-                     }
-                     return null;
-                   }}
-                   cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
-                 />
-                 
-                 {/* Background Area */}
-                 {chartData.length > 0 && (
-                   <ReferenceArea 
-                     x1={chartData[0].x} 
-                     x2={chartData[chartData.length - 1].x} 
-                     y1={0} 
-                     y2={amplitude * 0.05} 
-                     fill="url(#hatch)" 
-                     stroke="none"
-                   >
-                      <Label value="Background" position="insideBottomRight" offset={10} fill="#64748b" fontSize={11} fontWeight="bold" />
-                   </ReferenceArea>
-                 )}
-
-                 {/* Integral Breadth Rectangle */}
-                 {stats && (
-                   <ReferenceArea 
-                     x1={center - stats.integralBreadth / 2} 
-                     x2={center + stats.integralBreadth / 2} 
-                     y1={0} 
-                     y2={amplitude} 
-                     fill="rgba(200, 200, 200, 0.15)"
-                     stroke="#64748b"
-                     strokeDasharray="3 3"
-                   >
-                     <Label value="Integral breadth" position="insideBottom" offset={10} fill="#64748b" fontSize={11} fontWeight="bold" />
-                   </ReferenceArea>
-                 )}
-
-                 {/* Peak Position Line */}
-                 <ReferenceLine x={center} stroke="#6366f1" strokeDasharray="3 3" opacity={0.6}>
-                    <Label value="Center" position="top" fill="#6366f1" fontSize={11} fontWeight="bold" offset={10} />
-                 </ReferenceLine>
-                 <ReferenceDot x={center} y={amplitude} r={5} fill="#6366f1" stroke="white" strokeWidth={2} />
-
-                 {/* Imax Line */}
-                 <ReferenceLine y={amplitude} stroke="#94a3b8" strokeDasharray="3 3">
-                    <Label value="Imax" position="insideLeft" fill="#64748b" fontSize={11} fontWeight="bold" offset={10} />
-                 </ReferenceLine>
-
-                 {/* Half Max Line */}
-                 <ReferenceLine y={amplitude / 2} stroke="#94a3b8" strokeDasharray="3 3">
-                    <Label value="Imax / 2" position="insideLeft" fill="#64748b" fontSize={11} fontWeight="bold" offset={10} />
-                 </ReferenceLine>
-
-                 {/* FWHM Arrow Segment */}
-                 <ReferenceLine 
-                   segment={[
-                     { x: center - fwhm / 2, y: amplitude / 2 }, 
-                     { x: center + fwhm / 2, y: amplitude / 2 }
-                   ]} 
-                   stroke="#f97316" 
-                   strokeWidth={3}
-                 >
-                   <Label value={`FWHM ≈ ${fwhm.toFixed(3)}°`} position="top" fill="#ea580c" fontSize={12} fontWeight="900" offset={8} />
-                 </ReferenceLine>
-                 <ReferenceDot x={center - fwhm / 2} y={amplitude / 2} r={5} fill="#f97316" stroke="white" strokeWidth={2} />
-                 <ReferenceDot x={center + fwhm / 2} y={amplitude / 2} r={5} fill="#f97316" stroke="white" strokeWidth={2} />
-
-                 {/* Main Peak Area */}
-                 <Area 
-                    type="monotone" 
-                    dataKey="y" 
-                    stroke="#3b82f6" 
-                    strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#colorY)" 
-                    isAnimationActive={false}
-                    activeDot={false}
-                 />
-               </ComposedChart>
-             </ResponsiveContainer>
+           {/* Inner container with glossy background */}
+           <div className="bg-slate-50 dark:bg-slate-900/50 w-full h-full rounded-[1.75rem] border border-white/50 dark:border-white/5 relative overflow-hidden flex flex-col p-5 lg:p-6 group/inner">
              
-             {/* Custom Annotations Overlay (for things hard to do in Recharts) */}
-             <div className="absolute bottom-36 right-12 text-xs font-bold text-slate-500 flex items-center gap-1 pointer-events-none">
-                <span>Peak area I</span>
-                <span className="text-[9px] align-sub">int</span>
-                <svg className="w-4 h-4 rotate-180 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
+             {/* Background Grid Pattern */}
+             <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.06)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+             <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none" />
+             
+             {/* Dynamic lighting effects */}
+             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-32 bg-indigo-500/15 dark:bg-indigo-500/20 blur-[100px] pointer-events-none" />
+             <div className="absolute bottom-0 left-0 w-full h-[60%] bg-gradient-to-t from-slate-50 dark:from-slate-950 to-transparent pointer-events-none z-0" />
+
+             {/* Animated Scanline overlay */}
+             <div className="absolute inset-0 overflow-hidden rounded-[1.75rem] pointer-events-none z-20">
+               <div className="w-full h-40 bg-gradient-to-b from-transparent via-indigo-500/10 dark:via-indigo-400/10 to-transparent -translate-y-full group-hover/inner:translate-y-[800px] transition-transform duration-[3000ms] ease-linear" />
              </div>
 
-             {/* Crosshair Cursor Overlay */}
-             {mousePos && (
-               <svg 
-                 className="absolute inset-0 pointer-events-none z-50" 
-                 width="100%" 
-                 height="100%"
-               >
-                 {/* Horizontal Line */}
-                 <line 
-                   x1="0" 
-                   y1={mousePos.y} 
-                   x2="100%" 
-                   y2={mousePos.y} 
-                   stroke="#3b82f6" 
-                   strokeWidth="1" 
-                   strokeDasharray="4 4"
-                   opacity="0.5"
-                 />
-                 {/* Vertical Line */}
-                 <line 
-                   x1={mousePos.x} 
-                   y1="0" 
-                   x2={mousePos.x} 
-                   y2="100%" 
-                   stroke="#3b82f6" 
-                   strokeWidth="1" 
-                   strokeDasharray="4 4"
-                   opacity="0.5"
-                 />
-                 {/* Central Dot */}
-                 <circle 
-                   cx={mousePos.x} 
-                   cy={mousePos.y} 
-                   r="4" 
-                   fill="#3b82f6" 
-                   stroke="white"
-                   strokeWidth="2"
-                 />
-                 {/* Crosshair Lines (Short solid ones near the dot for precision) */}
-                 <line x1={mousePos.x - 15} y1={mousePos.y} x2={mousePos.x + 15} y2={mousePos.y} stroke="#3b82f6" strokeWidth="1.5" />
-                 <line x1={mousePos.x} y1={mousePos.y - 15} x2={mousePos.x} y2={mousePos.y + 15} stroke="#3b82f6" strokeWidth="1.5" />
-               </svg>
-             )}
+             {/* Header Layer */}
+             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+               <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
+                 <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 shadow-inner">
+                   <Activity className="w-4 h-4 text-indigo-500" />
+                 </div>
+                 High-Resolution Peak Visualizer
+               </h3>
+
+               {/* Floating Stats Pill */}
+               <div className="flex items-center gap-4 px-4 py-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-full shadow-[0_0_15px_rgba(99,102,241,0.1)] border border-slate-200/50 dark:border-slate-700/50">
+                 <div className="flex items-center gap-1.5">
+                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.5)]"></span>
+                   <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">Live Scan</span>
+                 </div>
+                 <div className="w-px h-3 bg-slate-300 dark:bg-slate-700" />
+                 <div className="flex items-center gap-2">
+                   <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Res:</span>
+                   <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{chartData.length}</span>
+                 </div>
+               </div>
+             </div>
+
+             <div className="flex-1 w-full min-h-0 min-w-0 relative z-10">
+               <ResponsiveContainer width="100%" height="100%">
+                 <ComposedChart 
+                   data={chartData} 
+                   margin={{ top: 20, right: 60, left: 20, bottom: 30 }}
+                 >
+                   <defs>
+                     <linearGradient id="colorY" x1="0" y1="0" x2="0" y2="1">
+                       <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.6}/>
+                       <stop offset="50%" stopColor="#6366f1" stopOpacity={0.2}/>
+                       <stop offset="100%" stopColor="#6366f1" stopOpacity={0}/>
+                     </linearGradient>
+                     <linearGradient id="colorYHover" x1="0" y1="0" x2="0" y2="1">
+                       <stop offset="0%" stopColor="#d946ef" stopOpacity={0.7}/>
+                       <stop offset="50%" stopColor="#a855f7" stopOpacity={0.3}/>
+                       <stop offset="100%" stopColor="#a855f7" stopOpacity={0}/>
+                     </linearGradient>
+                     <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                       <rect width="2" height="6" transform="translate(0,0)" fill="#64748b" opacity="0.15"></rect>
+                     </pattern>
+                   </defs>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.4} />
+                   
+                   <XAxis 
+                     dataKey="x" 
+                     type="number" 
+                     domain={['auto', 'auto']} 
+                     tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}}
+                     label={{ value: 'Diffraction Angle 2θ (°)', position: 'bottom', offset: 15, fill: '#475569', fontSize: 11, fontWeight: 800, textAnchor: 'middle', letterSpacing: '0.05em' }}
+                     tickFormatter={(val) => val.toFixed(1)}
+                     axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+                     tickLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+                   />
+                   <YAxis hide domain={[0, amplitude * 1.25]} />
+                   
+                   <Tooltip 
+                     content={({ active, payload, label }) => {
+                       if (active && payload && payload.length) {
+                         const dataPoint = payload[0].payload;
+                         const thetaRad = (dataPoint.x / 2) * Math.PI / 180;
+                         const localSize = 0.15406 * 0.9 / ((fwhm * Math.PI / 180) * Math.cos(thetaRad));
+                         
+                         return (
+                           <div className="bg-slate-900/95 backdrop-blur-xl text-white p-4 rounded-2xl shadow-2xl shadow-indigo-500/40 text-xs border border-indigo-500/20 min-w-[220px] transform scale-105 transition-transform duration-75 relative overflow-hidden">
+                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-fuchsia-500 to-indigo-500" />
+                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-fuchsia-500/10 rounded-full blur-xl pointer-events-none" />
+                             <div className="flex items-center gap-2 font-black mb-3 border-b border-slate-700/50 pb-2 uppercase tracking-widest text-[10px] relative z-10">
+                               <Zap className="w-3.5 h-3.5 text-fuchsia-400" />
+                               <span>2θ Scan: {dataPoint.x.toFixed(4)}°</span>
+                             </div>
+                             <div className="space-y-3 relative z-10">
+                               <div className="flex justify-between gap-4 items-center">
+                                 <span className="text-slate-400 font-medium tracking-wide">Intensity</span>
+                                 <span className="font-mono font-bold text-white drop-shadow-[0_0_8px_rgba(232,121,249,0.8)] px-1">{dataPoint.y.toFixed(1)}</span>
+                               </div>
+                               <div className="flex justify-between gap-4 items-center">
+                                 <span className="text-slate-400 font-medium tracking-wide">Scale FWHM</span>
+                                 <span className="font-mono text-cyan-300 font-bold drop-shadow-[0_0_5px_rgba(103,232,249,0.5)] px-1">{fwhm.toFixed(4)}°</span>
+                               </div>
+                               <div className="flex justify-between gap-4 items-center">
+                                 <span className="text-slate-400 font-medium tracking-wide">Est. Domain Size</span>
+                                 <span className="font-mono text-emerald-400 font-bold drop-shadow-[0_0_5px_rgba(52,211,153,0.5)] px-1">{localSize.toFixed(1)} nm</span>
+                               </div>
+                             </div>
+                           </div>
+                         );
+                       }
+                       return null;
+                     }}
+                     cursor={false}
+                   />
+                   
+                   {/* Background Area */}
+                   {chartData.length > 0 && (
+                     <ReferenceArea 
+                       x1={chartData[0].x} 
+                       x2={chartData[chartData.length - 1].x} 
+                       y1={0} 
+                       y2={amplitude * 0.05} 
+                       fill="url(#hatch)" 
+                       stroke="none"
+                     >
+                        <Label value="Background Noise Level" position="insideBottomRight" offset={15} fill="#64748b" fontSize={9} fontWeight="900" letterSpacing="0.1em" />
+                     </ReferenceArea>
+                   )}
+
+                   {/* Integral Breadth Rectangle */}
+                   {stats && (
+                     <ReferenceArea 
+                       x1={center - stats.integralBreadth / 2} 
+                       x2={center + stats.integralBreadth / 2} 
+                       y1={0} 
+                       y2={amplitude} 
+                       fill="rgba(56, 189, 248, 0.05)"
+                       stroke="#0ea5e9"
+                       strokeDasharray="4 4"
+                       strokeWidth={1.5}
+                     >
+                       <Label value="Integral Breadth (β)" position="insideBottom" offset={20} fill="#0ea5e9" fontSize={10} fontWeight="900" letterSpacing="0.05em" />
+                     </ReferenceArea>
+                   )}
+
+                   {/* Peak Position Line */}
+                   <ReferenceLine x={center} stroke="#8b5cf6" strokeDasharray="3 3" opacity={0.8} strokeWidth={2}>
+                      <Label value="Centroid" position="top" fill="#8b5cf6" fontSize={11} fontWeight="black" offset={15} letterSpacing="0.05em" className="drop-shadow-sm" />
+                   </ReferenceLine>
+                   <ReferenceDot x={center} y={amplitude} r={5} fill="#8b5cf6" stroke="#fff" strokeWidth={2} className="drop-shadow-md" />
+
+                   {/* Imax Line */}
+                   <ReferenceLine y={amplitude} stroke="#cbd5e1" strokeWidth={1.5} strokeDasharray="2 4">
+                      <Label value="I(max)" position="insideLeft" fill="#64748b" fontSize={10} fontWeight="black" offset={15} />
+                   </ReferenceLine>
+
+                   {/* Half Max Line */}
+                   <ReferenceLine y={amplitude / 2} stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="2 4">
+                      <Label value="I(max)/2" position="insideLeft" fill="#64748b" fontSize={10} fontWeight="black" offset={15} />
+                   </ReferenceLine>
+
+                   {/* FWHM Arrow Segment */}
+                   <ReferenceLine 
+                     segment={[
+                       { x: center - fwhm / 2, y: amplitude / 2 }, 
+                       { x: center + fwhm / 2, y: amplitude / 2 }
+                     ]} 
+                     stroke="#0ea5e9" 
+                     strokeWidth={3}
+                     className="drop-shadow-sm"
+                   >
+                     <Label value={`FWHM: ${fwhm.toFixed(4)}°`} position="top" fill="#0ea5e9" fontSize={12} fontWeight="900" offset={8} />
+                   </ReferenceLine>
+                   <ReferenceDot x={center - fwhm / 2} y={amplitude / 2} r={6} fill="#0ea5e9" stroke="white" strokeWidth={2.5} className="drop-shadow-sm" />
+                   <ReferenceDot x={center + fwhm / 2} y={amplitude / 2} r={6} fill="#0ea5e9" stroke="white" strokeWidth={2.5} className="drop-shadow-sm" />
+
+                   {/* Main Peak Area */}
+                   <Area 
+                      type="monotone" 
+                      dataKey="y" 
+                      stroke={mousePos ? "#d946ef" : "#8b5cf6"} 
+                      strokeWidth={4}
+                      fillOpacity={1} 
+                      fill={mousePos ? "url(#colorYHover)" : "url(#colorY)"} 
+                      isAnimationActive={false}
+                      activeDot={false}
+                      className="transition-all duration-300"
+                   />
+                 </ComposedChart>
+               </ResponsiveContainer>
+               
+               {/* Custom Annotations Overlay */}
+               <div className="absolute bottom-28 right-12 text-[10px] font-black text-slate-400 flex items-center gap-2 pointer-events-none tracking-[0.2em] uppercase bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-700/50 transition-opacity">
+                  <span>Integrated Area ∫I(θ)dθ</span>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+               </div>
+
+             </div>
            </div>
+           
+           {/* Advanced Crosshair Cursor Overlay */}
+           {mousePos && (
+             <svg 
+               className="absolute inset-0 pointer-events-none z-50 mix-blend-difference opacity-90 transition-opacity duration-150" 
+               width="100%" 
+               height="100%"
+             >
+               {/* Horizontal Line */}
+               <line 
+                 x1="0" 
+                 y1={mousePos.y} 
+                 x2="100%" 
+                 y2={mousePos.y} 
+                 stroke="#f472b6" 
+                 strokeWidth="1" 
+                 strokeDasharray="4 4"
+               />
+               {/* Vertical Line */}
+               <line 
+                 x1={mousePos.x} 
+                 y1="0" 
+                 x2={mousePos.x} 
+                 y2="100%" 
+                 stroke="#f472b6" 
+                 strokeWidth="1" 
+                 strokeDasharray="4 4"
+               />
+               {/* Target Ring */}
+               <circle 
+                 cx={mousePos.x} 
+                 cy={mousePos.y} 
+                 r="10" 
+                 fill="none" 
+                 stroke="#f472b6"
+                 strokeWidth="1.5"
+                 opacity="0.8"
+               />
+               <circle 
+                 cx={mousePos.x} 
+                 cy={mousePos.y} 
+                 r="2.5" 
+                 fill="#f472b6" 
+               />
+               {/* Precision Reticle Marks */}
+               <line x1={mousePos.x - 18} y1={mousePos.y} x2={mousePos.x - 6} y2={mousePos.y} stroke="#f472b6" strokeWidth="1.5" />
+               <line x1={mousePos.x + 6} y1={mousePos.y} x2={mousePos.x + 18} y2={mousePos.y} stroke="#f472b6" strokeWidth="1.5" />
+               <line x1={mousePos.x} y1={mousePos.y - 18} x2={mousePos.x} y2={mousePos.y - 6} stroke="#f472b6" strokeWidth="1.5" />
+               <line x1={mousePos.x} y1={mousePos.y + 6} x2={mousePos.x} y2={mousePos.y + 18} stroke="#f472b6" strokeWidth="1.5" />
+             </svg>
+           )}
         </div>
 
         {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-           <div className="bg-orange-50 p-5 rounded-xl border border-orange-100">
-              <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest block mb-2">Integral Breadth (β)</span>
-              <span className="text-2xl font-bold text-slate-800 font-mono">{stats?.integralBreadth.toFixed(4)}°</span>
-              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Line width of a rectangle with same area and height as the peak.</p>
-           </div>
-           <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Shape Factor (φ)</span>
-              <span className="text-2xl font-bold text-slate-800 font-mono">{stats?.shapeFactor.toFixed(3)}</span>
-              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">FWHM / β ratio. Pure Gaussian ≈ 0.94, Pure Lorentzian ≈ 0.64.</p>
-           </div>
-           <div className="bg-white p-5 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Lorentzian % (Size)</span>
-              <div className="flex items-end gap-2">
-                 <span className="text-2xl font-bold text-slate-800 font-mono">
-                   {type === 'Pseudo-Voigt' ? (eta * 100).toFixed(0) : type === 'Lorentzian' ? '100' : '0'}%
-                 </span>
-                 <div className="h-4 w-1 bg-purple-500/20 rounded-full mb-1 overflow-hidden">
-                    <div className="bg-purple-500 w-full" style={{ height: `${type === 'Pseudo-Voigt' ? eta * 100 : type === 'Lorentzian' ? 100 : 0}%` }} />
-                 </div>
+           <div className="bg-indigo-50/50 dark:bg-indigo-900/20 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-colors" />
+              <div className="relative z-10">
+                <span className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Box className="w-3 h-3" /> Integral Breadth (β)</span>
+                <span className="text-2xl font-black text-slate-800 dark:text-slate-100 font-mono tracking-tight">{stats?.integralBreadth.toFixed(4)}°</span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed font-medium">Line width of a rectangle with equivalent integrated area & maximum height.</p>
               </div>
-              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Contribution attributed to finite crystallite size effects.</p>
            </div>
-           <div className="bg-white p-5 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Gaussian % (Strain)</span>
-              <div className="flex items-end gap-2">
-                 <span className="text-2xl font-bold text-slate-800 font-mono">
-                   {type === 'Pseudo-Voigt' ? ((1 - eta) * 100).toFixed(0) : type === 'Gaussian' ? '100' : '0'}%
-                 </span>
-                 <div className="h-4 w-1 bg-blue-500/20 rounded-full mb-1 overflow-hidden">
-                    <div className="bg-blue-500 w-full" style={{ height: `${type === 'Pseudo-Voigt' ? (1 - eta) * 100 : type === 'Gaussian' ? 100 : 0}%` }} />
-                 </div>
+           <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 w-16 h-16 bg-slate-500/10 rounded-full blur-xl group-hover:bg-slate-500/20 transition-colors" />
+              <div className="relative z-10">
+                <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> Shape Factor (φ)</span>
+                <span className="text-2xl font-black text-slate-800 dark:text-slate-100 font-mono tracking-tight">{stats?.shapeFactor.toFixed(3)}</span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed font-medium">FWHM / β ratio. Pure Gaussian ≈ 0.94, Pure Lorentzian ≈ 0.64.</p>
               </div>
-              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Contribution from microstrain and instrument resolution.</p>
+           </div>
+           <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 w-16 h-16 bg-fuchsia-500/10 rounded-full blur-xl group-hover:bg-fuchsia-500/20 transition-colors" />
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Activity className="w-3 h-3 text-fuchsia-500" /> Lorentzian %</span>
+                  <div className="flex items-end gap-3 mb-2">
+                     <span className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white font-mono tracking-tighter">
+                       {type === 'Pseudo-Voigt' ? (eta * 100).toFixed(0) : type === 'Lorentzian' ? '100' : '0'}%
+                     </span>
+                  </div>
+                </div>
+                <div>
+                  <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-2 border border-slate-200 dark:border-slate-700">
+                     <div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500" style={{ width: `${type === 'Pseudo-Voigt' ? eta * 100 : type === 'Lorentzian' ? 100 : 0}%` }} />
+                  </div>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">Finite size & defects limit.</p>
+                </div>
+              </div>
+           </div>
+           <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 w-16 h-16 bg-cyan-500/10 rounded-full blur-xl group-hover:bg-cyan-500/20 transition-colors" />
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div>
+                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Scan className="w-3 h-3 text-cyan-500" /> Gaussian %</span>
+                  <div className="flex items-end gap-3 mb-2">
+                     <span className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white font-mono tracking-tighter">
+                       {type === 'Pseudo-Voigt' ? ((1 - eta) * 100).toFixed(0) : type === 'Gaussian' ? '100' : '0'}%
+                     </span>
+                  </div>
+                </div>
+                <div>
+                  <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-2 border border-slate-200 dark:border-slate-700">
+                     <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500" style={{ width: `${type === 'Pseudo-Voigt' ? (1 - eta) * 100 : type === 'Gaussian' ? 100 : 0}%` }} />
+                  </div>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">Instrumental & strain.</p>
+                </div>
+              </div>
            </div>
         </div>
 

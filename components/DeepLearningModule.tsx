@@ -17,7 +17,7 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
-import { Box, Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus, Eye, Scan, BookOpen, Microscope, Cpu, RefreshCw, SlidersHorizontal, Sparkles, Timer, Thermometer } from 'lucide-react';
+import { Box, Brain, Activity, CheckCircle, Search, Database, Layers, Zap, ChevronDown, FlaskConical, Loader2, Upload, FileText, Trash2, Settings, Info, Calculator, Plus, X, ShieldAlert, Focus, Eye, Scan, BookOpen, Microscope, Cpu, RefreshCw, SlidersHorizontal, Sparkles, Timer, Thermometer, Droplets, Wind, Focus as Ruler, TestTube as Vial } from 'lucide-react';
 
 import { MATERIAL_DB } from '../utils/materialDB';
 
@@ -58,6 +58,8 @@ export const DeepLearningModule: React.FC = () => {
   const [synthTemp, setSynthTemp] = useState<number>(450); // Temp in °C (100 to 1200)
   const [synthDoping, setSynthDoping] = useState<number>(3.0); // Doping concentration % (0.0 to 15.0)
   const [synthTime, setSynthTime] = useState<number>(4.0); // Calcination time in hours (1.0 to 24.0)
+  const [synthPH, setSynthPH] = useState<number>(7.0); // Synthesis Environment pH (1.0 to 14.0)
+  const [synthAtmosphere, setSynthAtmosphere] = useState<'argon' | 'nitrogen' | 'oxygen' | 'air'>('air');
 
   const auditItems = [
     { 
@@ -488,7 +490,11 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       'Mixture', 'Complex', 'Modern-Ceramic', 'Solar-Mix', 'Cathode-Mix', 
       'Geological-Suite', 'Catalyst-Mix', 'Precious-Metal-Mix', 'Halide-Mineral-Mix', 
       'Iron-Oxide-Mix', 'Biocoat-Composite-Suite', 'SOFC-Electrode-Suite', 
-      'Aerospace-Armor-Suite', 'Pharma-Drug-Suite', 'Nuclear-Fuel-Suite'
+      'Aerospace-Armor-Suite', 'Pharma-Drug-Suite', 'Nuclear-Fuel-Suite',
+      'Battery-Anode-Suite', 'Superconductor-Suite', 'Zeolite-Catalyst-Suite', 'Cantor-Alloy-Suite',
+      'Carbon-Steel-Suite', 'Superalloy-Carbide-Suite', 'Multiferroic-Ceramic-Suite',
+      'Photocatalyst-TiO2-WO3-Suite', 'Nanocomposite-2D-Energy-Suite',
+      'Carbon-Allotropes-Hybrid-Suite', 'Carbon-Carbide-Refractory-Suite', 'Biomineral-Carbonate-Suite'
     ].includes(type);
     setIsMixMode(isMixType);
     setMixtureList([]);
@@ -542,6 +548,42 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     } else if (type === 'Nuclear-Fuel-Suite') {
       setInputData(`27.6, 90\n28.2, 100\n31.9, 35\n32.7, 40\n45.8, 50\n47.0, 45\n54.4, 40\n55.8, 35\n57.0, 30\n58.5, 25`);
       setSearchTerm("Mixed Nuclear Fuel (UO2 + ThO2)");
+    } else if (type === 'Battery-Anode-Suite') {
+      setInputData(`26.54, 80\n28.44, 100\n42.39, 5\n44.59, 12\n47.30, 48\n54.67, 10\n56.12, 25`);
+      setSearchTerm("Battery Anode (Silicon + Graphite)");
+    } else if (type === 'Superconductor-Suite') {
+      setInputData(`22.8, 25\n32.5, 100\n32.8, 90\n35.5, 45\n38.5, 15\n38.7, 50\n40.3, 10\n46.7, 30\n48.7, 15\n53.5, 8\n58.1, 25\n58.3, 10\n61.5, 12\n66.2, 10\n68.1, 10`);
+      setSearchTerm("Superconductor Composite (YBCO + CuO)");
+    } else if (type === 'Zeolite-Catalyst-Suite') {
+      setInputData(`7.2, 80\n7.9, 100\n8.8, 60\n10.2, 40\n12.5, 50\n16.1, 15\n21.7, 25\n23.1, 85\n23.3, 75\n23.9, 65\n24.0, 35\n24.4, 45\n27.1, 20\n29.9, 30\n34.2, 15`);
+      setSearchTerm("Zeolite Catalyst Suite (ZSM-5 + Zeolite A)");
+    } else if (type === 'Cantor-Alloy-Suite') {
+      setInputData(`44.39, 60\n44.51, 100\n44.67, 80\n51.85, 45\n64.58, 15\n65.02, 18\n76.38, 25\n81.72, 20\n82.33, 22\n92.95, 15\n98.05, 8\n98.45, 8\n98.94, 10`);
+      setSearchTerm("Cantor High-Entropy Alloy Suite (Fe + Cr + Ni)");
+    } else if (type === 'Carbon-Steel-Suite') {
+      setInputData(`37.7, 15\n39.8, 20\n40.6, 25\n42.9, 18\n43.6, 60\n43.7, 24\n44.5, 22\n44.67, 100\n44.9, 25\n50.8, 25\n65.02, 15\n74.7, 15\n82.33, 20\n90.7, 12`);
+      setSearchTerm("Carbon Steel Microstructure Suite (Ferrite + Austenite + Cementite)");
+    } else if (type === 'Superalloy-Carbide-Suite') {
+      setInputData(`31.51, 80\n35.64, 75\n43.8, 100\n48.30, 65\n51.0, 45\n64.06, 25\n73.11, 30\n75.1, 20\n75.48, 18\n77.16, 15\n91.2, 12`);
+      setSearchTerm("Superalloy-Carbide Composite Suite (Inconel + WC)");
+    } else if (type === 'Multiferroic-Ceramic-Suite') {
+      setInputData(`22.20, 15\n30.1, 30\n31.50, 100\n35.4, 80\n37.1, 10\n38.90, 18\n43.1, 24\n45.30, 32\n50.90, 12\n53.4, 18\n56.20, 10\n57.0, 35\n62.6, 45\n65.80, 15`);
+      setSearchTerm("Multiferroic Magnetoelectric Ceramic Suite (BaTiO3 + CoFe2O4)");
+    } else if (type === 'Photocatalyst-TiO2-WO3-Suite') {
+      setInputData(`23.1, 60\n23.6, 55\n24.4, 55\n25.28, 100\n26.6, 15\n27.44, 80\n28.9, 10\n33.3, 20\n34.1, 25\n36.08, 40\n37.80, 15\n39.18, 5\n41.22, 15\n44.05, 8\n48.05, 25\n53.89, 15\n54.31, 45\n55.06, 12\n56.62, 12\n62.69, 10`);
+      setSearchTerm("Photocatalytic TiO2-WO3 Semiconductor Composite Suite");
+    } else if (type === 'Nanocomposite-2D-Energy-Suite') {
+      setInputData(`9.2, 80\n10.5, 100\n14.38, 70\n18.4, 12\n22.0, 10\n26.6, 8\n27.6, 12\n32.67, 10\n33.51, 8\n34.2, 5\n38.9, 10\n39.54, 6\n42.1, 8\n42.6, 5\n44.15, 6\n49.79, 10\n58.34, 12\n60.5, 8`);
+      setSearchTerm("2D Energy Nanocomposite Suite (MXene + MoS2 + GO)");
+    } else if (type === 'Carbon-Allotropes-Hybrid-Suite') {
+      setInputData(`10.5, 35\n22.0, 5\n26.54, 80\n42.39, 4\n43.92, 100\n44.59, 12\n54.67, 8\n75.30, 25\n91.50, 16`);
+      setSearchTerm("Carbon Allotropes (Diamond + Graphite + GO)");
+    } else if (type === 'Carbon-Carbide-Refractory-Suite') {
+      setInputData(`23.5, 15\n26.54, 60\n33.6, 15\n34.9, 60\n35.6, 100\n37.8, 80\n41.4, 20\n44.59, 10\n44.8, 20\n53.4, 25\n60.0, 40\n71.8, 30`);
+      setSearchTerm("Carbon-Carbide Refractory (Graphite + SiC + B4C)");
+    } else if (type === 'Biomineral-Carbonate-Suite') {
+      setInputData(`23.06, 12\n25.87, 35\n26.2, 85\n29.40, 95\n31.77, 100\n32.19, 90\n32.90, 60\n33.1, 40\n34.04, 45\n35.96, 12\n36.1, 18\n37.8, 25\n38.4, 25\n39.40, 18\n43.16, 18\n45.8, 30\n46.71, 35\n47.50, 22\n48.4, 20\n48.50, 22\n49.46, 30`);
+      setSearchTerm("Biomineral Carbonate (HAp + Calcite + Aragonite)");
     } else {
       // Generic finder for all single phase examples
       const searchKey = type === 'HAP' || type === 'HAP-Sintered' ? 'Hydroxyapatite (Sintered)' : 
@@ -1370,6 +1412,18 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Aerospace-Armor-Suite', label: 'Aerospace Suite (TiC + Al2O3)' },
                     { id: 'Pharma-Drug-Suite', label: 'Pharma Suite (Ibu + Para)' },
                     { id: 'Nuclear-Fuel-Suite', label: 'Nuclear Suite (UO2 + ThO2)' },
+                    { id: 'Battery-Anode-Suite', label: 'Battery Suite (Si + C)' },
+                    { id: 'Superconductor-Suite', label: 'Superconductor Suite (YBCO + CuO)' },
+                    { id: 'Zeolite-Catalyst-Suite', label: 'Zeolite Catalyst (ZSM-5 + LTA)' },
+                    { id: 'Cantor-Alloy-Suite', label: 'Cantor Alloy Suite (Fe + Cr + Ni)' },
+                    { id: 'Carbon-Steel-Suite', label: 'Carbon Steel (Ferrite + Austenite + Fe3C)' },
+                    { id: 'Superalloy-Carbide-Suite', label: 'Superalloy Composite (Inconel + WC)' },
+                    { id: 'Multiferroic-Ceramic-Suite', label: 'Multiferroic Ceramic (BaTiO3 + CoFe2O4)' },
+                    { id: 'Photocatalyst-TiO2-WO3-Suite', label: 'Photocatalytic (TiO2 + WO3)' },
+                    { id: 'Nanocomposite-2D-Energy-Suite', label: '2D Energy Composite (MXene + MoS2 + GO)' },
+                    { id: 'Carbon-Allotropes-Hybrid-Suite', label: 'Allotropes (Diamond + Graphite + GO)' },
+                    { id: 'Carbon-Carbide-Refractory-Suite', label: 'Refractory Carbide (Graphite + SiC + B4C)' },
+                    { id: 'Biomineral-Carbonate-Suite', label: 'Biomineral Carbonate (HAp + CaCO3)' },
                     { id: 'Complex', label: 'Complex Mixture (Quartz + Rutile + Anatase + Ag)' }
                   ].map(ex => (
                     <button 
@@ -2433,8 +2487,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       {/* Slider 1: Dimension Size */}
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5ClassName mb-1">
-                            📏 Crystallite Size (d)
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                            <Ruler className="w-3 h-3 text-cyan-500" /> Crystallite Size (d)
                           </span>
                           <span className="text-xs font-mono font-black text-cyan-300">{synthSize.toFixed(1)} <span className="text-[9px] text-slate-500">nm</span></span>
                         </div>
@@ -2456,8 +2510,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       {/* Slider 2: Temp */}
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5ClassName mb-1">
-                            🔥 Calcination Temp (T)
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                            <Thermometer className="w-3 h-3 text-amber-500" /> Calcination Temp (T)
                           </span>
                           <span className="text-xs font-mono font-black text-amber-400">{synthTemp} <span className="text-[9px] text-slate-500">°C</span></span>
                         </div>
@@ -2479,8 +2533,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       {/* Slider 3: Doping */}
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5ClassName mb-1">
-                            🧪 Dopant Conc. (x)
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                            <Vial className="w-3 h-3 text-indigo-500" /> Dopant Conc. (x)
                           </span>
                           <span className="text-xs font-mono font-black text-indigo-400">{synthDoping.toFixed(1)} <span className="text-[9px] text-slate-500">%</span></span>
                         </div>
@@ -2502,8 +2556,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       {/* Slider 4: Duration */}
                       <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5ClassName mb-1">
-                            ⏳ Reaction Duration (t)
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                            <Timer className="w-3 h-3 text-emerald-500" /> Reaction Duration (t)
                           </span>
                           <span className="text-xs font-mono font-black text-emerald-400">{synthTime.toFixed(1)} <span className="text-[9px] text-slate-500">hrs</span></span>
                         </div>
@@ -2519,6 +2573,49 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         <div className="flex justify-between text-[8px] font-mono text-slate-600">
                           <span>1.0 hr</span>
                           <span>24.0 hrs (Thermodynamic limit)</span>
+                        </div>
+                      </div>
+
+                      {/* Slider 5: pH */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                            <Droplets className="w-3 h-3 text-pink-500" /> Environment pH
+                          </span>
+                          <span className="text-xs font-mono font-black text-pink-400">{synthPH.toFixed(1)}</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="1.0" 
+                          max="14.0" 
+                          step="0.1"
+                          value={synthPH} 
+                          onChange={(e) => setSynthPH(parseFloat(e.target.value))}
+                          className="w-full accent-pink-400 bg-slate-950 rounded-full h-1.5 cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[8px] font-mono text-slate-600">
+                          <span>Acidic</span>
+                          <span>Basic</span>
+                        </div>
+                      </div>
+
+                      {/* Atmosphere Selector */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                           <Wind className="w-3 h-3 text-blue-400" /> Synthesis Atmosphere
+                        </label>
+                        <div className="relative group/select">
+                          <select 
+                            value={synthAtmosphere}
+                            onChange={(e) => setSynthAtmosphere(e.target.value as any)}
+                            className="w-full px-4 py-3 bg-[#0B1221] border border-slate-800 rounded-xl text-xs font-bold text-slate-300 focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
+                          >
+                            <option value="air" className="bg-[#0B1221]">Air (Oxidizing)</option>
+                            <option value="argon" className="bg-[#0B1221]">Argon (Inert)</option>
+                            <option value="nitrogen" className="bg-[#0B1221]">Nitrogen (Inert)</option>
+                            <option value="oxygen" className="bg-[#0B1221]">Oxygen (Highly Oxidizing)</option>
+                          </select>
+                          <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-cyan-400 transition-colors" />
                         </div>
                       </div>
                     </div>
@@ -2681,16 +2778,20 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
                     {/* Synthesis stats log */}
                     <div className="w-full text-center relative z-10">
-                      <span className="text-[10px] font-mono text-cyan-400 font-bold tracking-widest block uppercase">
+                      <span className="text-[10px] font-mono text-cyan-400 font-bold tracking-widest block uppercase mb-1">
                         Current Lattice Volume: <span className="text-white">{(selectedCandidate ? (selectedCandidate.density ? (18000 / selectedCandidate.density * Math.pow(1 + (synthDoping * 0.0012), 3)).toFixed(1) : 420.5) : 380).toLocaleString()} Å³</span>
                       </span>
-                      <span className="text-[9px] font-mono text-slate-500 uppercase block mt-1 tracking-wider">
-                        Thermal Kinetic Energy: <span className="text-amber-500 font-black">{(1.38e-23 * (synthTemp + 273.15) * 1e21).toFixed(3)} zJ</span>
+                      <span className="text-[9px] font-mono text-amber-500 uppercase block tracking-wider mb-1">
+                        Thermal Kinetic Energy: <span className="font-black">{(1.38e-23 * (synthTemp + 273.15) * 1e21).toFixed(3)} zJ</span>
+                      </span>
+                      <span className="text-[9px] font-mono text-slate-400 uppercase block tracking-wider">
+                        Ion Solubility (pH {synthPH.toFixed(1)}): <span className={synthPH < 6 ? "text-pink-400 font-black" : synthPH > 8 ? "text-cyan-300 font-black" : "text-emerald-400 font-black"}>{synthPH < 6 ? "High (Cationic)" : synthPH > 8 ? "High (Anionic)" : "Minimal (ZPC area)"}</span>
                       </span>
                     </div>
 
-                    <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between font-mono text-[9px] text-cyan-500/40 uppercase tracking-widest border-t border-slate-800/60 pt-3">
+                    <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between font-mono text-[8px] sm:text-[9px] text-cyan-500/40 uppercase tracking-widest border-t border-slate-800/60 pt-3">
                        <span>Exciton Limit: <span className={synthSize < 12 ? "text-cyan-300 font-black" : "text-slate-500"}>{synthSize < 12 ? "Active (Confinement)" : "Inactive"}</span></span>
+                       <span className="hidden sm:inline">Atmosphere: <span className="text-slate-300">{synthAtmosphere}</span></span>
                        <span>Strain Type: <span className={synthDoping > 5 ? "text-rose-400" : "text-cyan-300"}>{synthDoping > 5 ? "Critical" : "Coherent"}</span></span>
                     </div>
                   </div>
@@ -2918,8 +3019,11 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left relative z-10 w-full">
                     {/* Animated Kinetics Ring */}
                     {(() => {
-                      const rate = Math.exp(-3200 / (273 + synthTemp));
-                      const cryst = (1 - Math.exp(-rate * Math.pow(synthTime, 1.5))) * 100;
+                      const atmoFactor = synthAtmosphere === 'oxygen' ? 1.2 : synthAtmosphere === 'argon' ? 0.8 : synthAtmosphere === 'nitrogen' ? 0.85 : 1.0;
+                      const phFactor = synthPH < 6 ? 1 + (6 - synthPH) * 0.1 : synthPH > 8 ? 1 + (synthPH - 8) * 0.15 : 0.9;
+                      const baseRate = Math.exp(-3200 / (273 + synthTemp));
+                      const effectiveRate = baseRate * atmoFactor * phFactor;
+                      const cryst = Math.min(99.9, (1 - Math.exp(-effectiveRate * Math.pow(synthTime, 1.5))) * 100);
                       return (
                         <div className="flex items-center gap-5 flex-shrink-0">
                           <div className="relative w-20 h-20 flex items-center justify-center bg-slate-950 rounded-full shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
@@ -2955,8 +3059,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                             <span className="text-sm font-bold text-white block tracking-wide">
                               Crystallization Yield (XC)
                             </span>
-                            <p className="text-[11px] text-slate-400 max-w-sm leading-relaxed">
-                              Nucleostatic grain formation via Avrami growth modeling at {synthTemp}°C threshold.
+                            <p className="text-[11px] text-slate-400 max-w-xs leading-relaxed">
+                              Nucleostatic grain formation via Avrami growth modeling at {synthTemp}°C threshold, governed by pH {synthPH} and {synthAtmosphere} solubility limits.
                             </p>
                           </div>
                         </div>
@@ -2993,6 +3097,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
 [EXPERIMENT SETUP]
 Synthesis Method: Hydrothermal Supercritical Autoclave
+Environment pH: ${synthPH.toFixed(1)}
+Atmosphere: ${synthAtmosphere.toUpperCase()}
 Calcination Temperature: ${synthTemp} °C
 Calcination Duration: ${synthTime.toFixed(1)} hours
 Target Morphology: ${synthMorphology.toUpperCase()}

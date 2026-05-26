@@ -31,9 +31,10 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
     for (let x = minTheta; x <= maxTheta; x += 0.1) {
       let intensity = 5; // Background noise floor
       results.forEach(r => {
-        // Gaussian peak simulation
+        // Gaussian peak simulation using actual intensity if available (defaulting to 100)
+        const intensityFactor = r.intensity !== undefined ? r.intensity : 100;
         const sigma = 0.4;
-        const peakInt = 95 * Math.exp(-Math.pow(x - r.twoTheta, 2) / (2 * Math.pow(sigma, 2)));
+        const peakInt = (intensityFactor * 0.95) * Math.exp(-Math.pow(x - r.twoTheta, 2) / (2 * Math.pow(sigma, 2)));
         intensity += peakInt;
       });
       // Add random noise
@@ -48,7 +49,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
     // Add peak markers for tooltips
     const peakData = results.map(r => ({
       twoTheta: r.twoTheta,
-      intensity: 100,
+      intensity: r.intensity !== undefined ? r.intensity : 100,
       isPeak: true,
       hkl: r.hkl,
       dSpacing: r.dSpacing,
@@ -83,6 +84,11 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                     <span className="text-xs font-black text-indigo-400 font-mono tracking-widest">({d.hkl})</span>
                   </div>
                 )}
+
+                <div className="bg-white/5 p-2 rounded-lg border border-white/5 flex items-center justify-between">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Intensity</span>
+                  <span className="text-xs font-black text-amber-400 font-mono">{d.intensity.toFixed(1)}%</span>
+                </div>
 
                 <div className="grid grid-cols-2 gap-3">
                    <div className="bg-white/5 p-2 rounded-lg border border-white/5">

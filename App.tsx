@@ -176,26 +176,53 @@ const App: React.FC = () => {
     
     setTimeout(() => {
       setIsSimulationRunning(false);
-      const peaks = parsePeakString(rawPeaks);
+      
+      // Parse peaks supporting both "twoTheta" and optional ":intensity" format (e.g., "28.44:100, 47.30:80")
+      const parsedPeaks = rawPeaks
+        .split(/[,;\s]+/)
+        .map(pString => pString.trim())
+        .filter(s => s !== '')
+        .map(pString => {
+          const parts = pString.split(':');
+          const thetaVal = parseFloat(parts[0]);
+          let intensityVal: number | undefined = undefined;
+          if (parts.length > 1) {
+            const parsedInt = parseFloat(parts[1]);
+            if (!isNaN(parsedInt)) {
+              intensityVal = parsedInt;
+            }
+          }
+          return { twoTheta: thetaVal, intensity: intensityVal };
+        })
+        .filter(p => !isNaN(p.twoTheta) && p.twoTheta > 0 && p.twoTheta < 180)
+        .sort((a, b) => a.twoTheta - b.twoTheta);
+
       const hklList = rawHKL
         .split(',')
         .map(s => s.trim())
         .filter(s => s !== '');
 
-      const computed = peaks
-        .map((theta, idx) => {
+      const computed = parsedPeaks
+        .map((peakObj, idx) => {
           // Apply Zero-Shift and Sample-Displacement errors based on the goniometer geometry settings
           // Equation: 2theta_calibrated = 2theta_obs - zero_shift - (2 * s * cos(theta_rad) / R) * (180 / PI)
-          const thetaRad = (theta / 2) * (Math.PI / 180);
+          const thetaRad = (peakObj.twoTheta / 2) * (Math.PI / 180);
           const displacementTerm = goniometerRadius > 0 
             ? (2 * sampleDisplacement * Math.cos(thetaRad) / goniometerRadius) * (180 / Math.PI)
             : 0;
-          const calibratedTwoTheta = theta - zeroShift - displacementTerm;
+          const calibratedTwoTheta = peakObj.twoTheta - zeroShift - displacementTerm;
 
           const res = calculateBragg(wavelength, calibratedTwoTheta);
           if (res) {
-            // Keep calibrated values clearly marked
-            return { ...res, hkl: hklList[idx] || '' } as BraggResult;
+            // Assign a natural decreasing simulated default intensity (e.g. 100, 85, 70...) if none is provided
+            const assignedIntensity = peakObj.intensity !== undefined 
+              ? peakObj.intensity 
+              : Math.max(10, 100 - (idx * 15));
+            return { 
+              ...res, 
+              hkl: hklList[idx] || '', 
+              intensity: assignedIntensity 
+            } as BraggResult;
           }
           return null;
         })
