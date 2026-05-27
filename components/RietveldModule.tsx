@@ -815,8 +815,32 @@ export const RietveldModule: React.FC = () => {
       if (sys === 'Cubic') {
         updatedPhase.b = a;
         updatedPhase.c = a;
-      } else if (sys === 'Tetragonal' || sys === 'Hexagonal') {
+        updatedPhase.alpha = 90;
+        updatedPhase.beta = 90;
+        updatedPhase.gamma = 90;
+      } else if (sys === 'Tetragonal') {
         updatedPhase.b = a;
+        updatedPhase.alpha = 90;
+        updatedPhase.beta = 90;
+        updatedPhase.gamma = 90;
+      } else if (sys === 'Hexagonal' || (sys as string) === 'Trigonal') {
+        updatedPhase.b = a;
+        updatedPhase.alpha = 90;
+        updatedPhase.beta = 90;
+        updatedPhase.gamma = 120;
+      } else if (sys === 'Orthorhombic') {
+        updatedPhase.alpha = 90;
+        updatedPhase.beta = 90;
+        updatedPhase.gamma = 90;
+      } else if (sys === 'Monoclinic') {
+        updatedPhase.alpha = 90;
+        updatedPhase.gamma = 90;
+      }
+    } else if (field === 'b') {
+      const sys = updatedPhase.crystalSystem;
+      if (sys === 'Cubic' || sys === 'Tetragonal' || sys === 'Hexagonal' || (sys as string) === 'Trigonal') {
+        // Enforce a = b constraint
+        updatedPhase.a = value;
       }
     }
     
@@ -881,29 +905,19 @@ export const RietveldModule: React.FC = () => {
     setPhases([...phases, { ...JSON.parse(JSON.stringify(phaseToCopy)), name: `${phaseToCopy.name} (Copy)` }]);
   };
 
-  const applyPreset = (index: number, presetType: 'Si' | 'LaB6' | 'Al2O3') => {
+  const applyPreset = (index: number, presetType: string) => {
     const presets: Record<string, Partial<RietveldPhaseInput>> = {
-      Si: { 
-        name: 'Silicon (Standard)', crystalSystem: 'Cubic', spaceGroup: 'Fd-3m', a: 5.4309, 
-        zValue: 8, molarMass: 28.085,
-        atoms: [{ element: 'Si', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.45 }]
-      },
-      LaB6: { 
-        name: 'LaB6 (Standard)', crystalSystem: 'Cubic', spaceGroup: 'Pm-3m', a: 4.156, 
-        zValue: 1, molarMass: 203.77,
-        atoms: [
-          { element: 'La', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.5 },
-          { element: 'B', x: 0.5, y: 0, z: 0, occupancy: 1, bIso: 0.6 }
-        ]
-      },
-      Al2O3: { 
-        name: 'Alumina (Alpha)', crystalSystem: 'Hexagonal', spaceGroup: 'R-3c', a: 4.758, c: 12.991,
-        zValue: 6, molarMass: 101.96,
-        atoms: [
-          { element: 'Al', x: 0, y: 0, z: 0.352, occupancy: 1, bIso: 0.3 },
-          { element: 'O', x: 0.306, y: 0, z: 0.25, occupancy: 1, bIso: 0.4 }
-        ]
-      }
+      Si: { name: 'Silicon (Standard)', crystalSystem: 'Cubic', spaceGroup: 'Fd-3m', a: 5.4309, b: 5.4309, c: 5.4309, alpha: 90, beta: 90, gamma: 90, zValue: 8, molarMass: 28.085, atoms: [{ element: 'Si', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.45 }] },
+      LaB6: { name: 'LaB6 (Standard)', crystalSystem: 'Cubic', spaceGroup: 'Pm-3m', a: 4.156, b: 4.156, c: 4.156, alpha: 90, beta: 90, gamma: 90, zValue: 1, molarMass: 203.77, atoms: [{ element: 'La', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.5 }, { element: 'B', x: 0.5, y: 0, z: 0, occupancy: 1, bIso: 0.6 }] },
+      Al2O3: { name: 'Alumina (Alpha)', crystalSystem: 'Hexagonal', spaceGroup: 'R-3c', a: 4.758, b: 4.758, c: 12.991, alpha: 90, beta: 90, gamma: 120, zValue: 6, molarMass: 101.96, atoms: [{ element: 'Al', x: 0, y: 0, z: 0.352, occupancy: 1, bIso: 0.3 }, { element: 'O', x: 0.306, y: 0, z: 0.25, occupancy: 1, bIso: 0.4 }] },
+      TiO2_Rutile: { name: 'Rutile (TiO2)', crystalSystem: 'Tetragonal', spaceGroup: 'P42/mnm', a: 4.593, b: 4.593, c: 2.959, alpha: 90, beta: 90, gamma: 90, zValue: 2, molarMass: 79.87, atoms: [{ element: 'Ti', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.5 }, { element: 'O', x: 0.305, y: 0.305, z: 0, occupancy: 1, bIso: 0.6 }] },
+      TiO2_Anatase: { name: 'Anatase (TiO2)', crystalSystem: 'Tetragonal', spaceGroup: 'I41/amd', a: 3.784, b: 3.784, c: 9.514, alpha: 90, beta: 90, gamma: 90, zValue: 4, molarMass: 79.87, atoms: [{ element: 'Ti', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.5 }, { element: 'O', x: 0, y: 0, z: 0.208, occupancy: 1, bIso: 0.6 }] },
+      SiO2_Quartz: { name: 'Quartz (Alpha)', crystalSystem: 'Hexagonal', spaceGroup: 'P3221', a: 4.913, b: 4.913, c: 5.405, alpha: 90, beta: 90, gamma: 120, zValue: 3, molarMass: 60.08, atoms: [{ element: 'Si', x: 0.47, y: 0, z: 0.667, occupancy: 1, bIso: 0.5 }, { element: 'O', x: 0.414, y: 0.268, z: 0.785, occupancy: 1, bIso: 0.7 }] },
+      CaCO3_Calcite: { name: 'Calcite', crystalSystem: 'Hexagonal', spaceGroup: 'R-3c', a: 4.990, b: 4.990, c: 17.061, alpha: 90, beta: 90, gamma: 120, zValue: 6, molarMass: 100.09, atoms: [{ element: 'Ca', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.5 }, { element: 'C', x: 0, y: 0, z: 0.25, occupancy: 1, bIso: 0.5 }, { element: 'O', x: 0.259, y: 0, z: 0.25, occupancy: 1, bIso: 0.7 }] },
+      NaCl: { name: 'Halite (NaCl)', crystalSystem: 'Cubic', spaceGroup: 'Fm-3m', a: 5.640, b: 5.640, c: 5.640, alpha: 90, beta: 90, gamma: 90, zValue: 4, molarMass: 58.44, atoms: [{ element: 'Na', x: 0, y: 0, z: 0, occupancy: 1, bIso: 1.0 }, { element: 'Cl', x: 0.5, y: 0.5, z: 0.5, occupancy: 1, bIso: 0.8 }] },
+      Fe_Alpha: { name: 'Iron (Alpha)', crystalSystem: 'Cubic', spaceGroup: 'Im-3m', a: 2.866, b: 2.866, c: 2.866, alpha: 90, beta: 90, gamma: 90, zValue: 2, molarMass: 55.845, atoms: [{ element: 'Fe', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.4 }] },
+      Cu: { name: 'Copper', crystalSystem: 'Cubic', spaceGroup: 'Fm-3m', a: 3.615, b: 3.615, c: 3.615, alpha: 90, beta: 90, gamma: 90, zValue: 4, molarMass: 63.546, atoms: [{ element: 'Cu', x: 0, y: 0, z: 0, occupancy: 1, bIso: 0.5 }] },
+      Graphite: { name: 'Graphite', crystalSystem: 'Hexagonal', spaceGroup: 'P63/mmc', a: 2.461, b: 2.461, c: 6.708, alpha: 90, beta: 90, gamma: 120, zValue: 4, molarMass: 12.01, atoms: [{ element: 'C', x: 0, y: 0, z: 0.25, occupancy: 1, bIso: 1.5 }, { element: 'C', x: 0.333, y: 0.667, z: 0.25, occupancy: 1, bIso: 1.5 }] },
     };
     
     if (presets[presetType]) {
@@ -2315,6 +2329,28 @@ export const RietveldModule: React.FC = () => {
                     {phases.map((phase, idx) => (
                       <div key={`phase-ref-${idx}-${phase.name}`} className="bg-black/40 p-5 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md ring-1 ring-white/5 ring-inset shadow-inner relative group/phase transition-colors hover:border-teal-500/30">
                         <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover/phase:opacity-100 transition-opacity">
+                          <div className="relative group/material">
+                             <button className="text-slate-500 hover:text-indigo-400 bg-black/60 p-1.5 rounded-lg border border-white/5 hover:border-indigo-500/50 transition-all shadow-sm flex items-center gap-1">
+                               <Database className="w-3.5 h-3.5" />
+                               <span className="text-[7px] font-black uppercase">Material</span>
+                             </button>
+                             <div className="absolute right-0 top-full mt-2 w-56 bg-[#0F172A] border border-slate-800 rounded-xl shadow-2xl z-50 py-1 hidden group-hover/material:block animate-in fade-in slide-in-from-top-1 max-h-64 overflow-y-auto custom-scrollbar">
+                               <div className="px-3 py-1.5 border-b border-slate-800 mb-1 sticky top-0 bg-[#0F172A]">
+                                 <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Material Database</span>
+                               </div>
+                               <button onClick={() => applyPreset(idx, 'Si')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">Silicon (Standard)</button>
+                               <button onClick={() => applyPreset(idx, 'LaB6')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">LaB6 (Standard)</button>
+                               <button onClick={() => applyPreset(idx, 'Al2O3')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">Alumina (Alpha)</button>
+                               <button onClick={() => applyPreset(idx, 'TiO2_Rutile')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">Rutile (TiO2)</button>
+                               <button onClick={() => applyPreset(idx, 'TiO2_Anatase')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">Anatase (TiO2)</button>
+                               <button onClick={() => applyPreset(idx, 'SiO2_Quartz')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">Quartz (SiO2)</button>
+                               <button onClick={() => applyPreset(idx, 'CaCO3_Calcite')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">Calcite (CaCO3)</button>
+                               <button onClick={() => applyPreset(idx, 'NaCl')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">Halite (NaCl)</button>
+                               <button onClick={() => applyPreset(idx, 'Fe_Alpha')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">Iron (Alpha)</button>
+                               <button onClick={() => applyPreset(idx, 'Cu')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">Copper</button>
+                               <button onClick={() => applyPreset(idx, 'Graphite')} className="w-full text-left px-3 py-2 text-[9px] font-bold text-slate-300 hover:bg-slate-800 hover:text-indigo-400">Graphite</button>
+                             </div>
+                          </div>
                           <div className="relative group/presets">
                              <button className="text-slate-500 hover:text-amber-400 bg-black/60 p-1.5 rounded-lg border border-white/5 hover:border-amber-500/50 transition-all shadow-sm flex items-center gap-1">
                                <PlayCircle className="w-3.5 h-3.5" />

@@ -494,7 +494,13 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       'Battery-Anode-Suite', 'Superconductor-Suite', 'Zeolite-Catalyst-Suite', 'Cantor-Alloy-Suite',
       'Carbon-Steel-Suite', 'Superalloy-Carbide-Suite', 'Multiferroic-Ceramic-Suite',
       'Photocatalyst-TiO2-WO3-Suite', 'Nanocomposite-2D-Energy-Suite',
-      'Carbon-Allotropes-Hybrid-Suite', 'Carbon-Carbide-Refractory-Suite', 'Biomineral-Carbonate-Suite'
+      'Carbon-Allotropes-Hybrid-Suite', 'Carbon-Carbide-Refractory-Suite', 'Biomineral-Carbonate-Suite',
+      'Drug-Carrier-Suite', 'Dental-Implant-Composite', 'HEA-Brass-Suite', 'Cement-Clinker-Suite',
+      'Clay-Mineral-Suite', 'Battery-Cathode-Suite', 'Archaeological-Pigment-Suite', 'Zeolite-Adsorbent-Suite',
+      'Lunar-Regolith-Simulant', 'Pharmaceutical-Polymorph-Mixture', 'Bone-Scaffold-Bioactive', 'Meteorite-Chondrite-Suite',
+      'Solid-State-Electrolyte-Suite', 'Earth-Mantle-Assemblage', 'Semiconductor-Hetero-Suite', 'Nuclear-Waste-Pyrochlore',
+      'Superconducting-Tape-HTS', 'Mars-Soil-Curiosity', 'Corrosion-Rust-Scale', 'Asbestos-Mineralogy',
+      'Volcanic-Ash-Tephra', 'Fly-Ash-Geopolymer', 'Solar-Cell-Perovskite-Degradation', 'Kidney-Stone-Urolithiasis'
     ].includes(type);
     setIsMixMode(isMixType);
     setMixtureList([]);
@@ -584,6 +590,78 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     } else if (type === 'Biomineral-Carbonate-Suite') {
       setInputData(`23.06, 12\n25.87, 35\n26.2, 85\n29.40, 95\n31.77, 100\n32.19, 90\n32.90, 60\n33.1, 40\n34.04, 45\n35.96, 12\n36.1, 18\n37.8, 25\n38.4, 25\n39.40, 18\n43.16, 18\n45.8, 30\n46.71, 35\n47.50, 22\n48.4, 20\n48.50, 22\n49.46, 30`);
       setSearchTerm("Biomineral Carbonate (HAp + Calcite + Aragonite)");
+    } else if (type === 'Drug-Carrier-Suite') {
+      setInputData(`0.9, 80\n1.6, 25\n1.8, 20\n2.1, 100\n3.6, 12\n4.2, 8`);
+      setSearchTerm("Mesoporous Drug Carrier Suite (SBA-15 + MCM-41)");
+    } else if (type === 'Dental-Implant-Composite') {
+      setInputData(`25.87, 30\n30.27, 85\n31.77, 100\n32.19, 95\n35.15, 60\n43.36, 55\n50.37, 50\n57.50, 48\n60.20, 25`);
+      setSearchTerm("Dental Ceramic Composite (ZrO2 + Al2O3 + HAp)");
+    } else if (type === 'HEA-Brass-Suite') {
+      setInputData(`42.6, 60\n44.51, 80\n44.67, 100\n49.6, 25\n51.85, 30\n65.02, 12\n72.8, 15\n76.38, 15\n82.33, 15\n88.1, 10\n92.95, 5`);
+      setSearchTerm("High-Entropy Brass Alloy (Brass + Fe + Ni)");
+    } else if (type === 'Cement-Clinker-Suite') {
+      setInputData(`26.64, 15\n29.4, 100\n32.2, 70\n32.6, 75\n34.4, 35\n41.2, 25\n51.7, 20`);
+      setSearchTerm("Portland Cement Clinker (Alite + Calcite)");
+    } else if (type === 'Clay-Mineral-Suite') {
+      setInputData(`8.8, 60\n12.3, 70\n19.8, 30\n20.8, 15\n24.9, 50\n26.64, 100\n35.3, 20`);
+      setSearchTerm("Clay Mineral Suite (Kaolinite + Illite + Quartz)");
+    } else if (type === 'Battery-Cathode-Suite') {
+      setInputData(`18.6, 100\n36.6, 40\n44.4, 60\n64.8, 30`);
+      setSearchTerm("NMC Battery Cathode (LiNiMnCoO2 + LiCoO2)");
+    } else if (type === 'Archaeological-Pigment-Suite') {
+      setInputData(`14.8, 50\n15.2, 30\n22.8, 100\n24.1, 75\n30.7, 35\n31.4, 30\n32.2, 40`);
+      setSearchTerm("Ancient Egyptian Pigment (Egyptian Blue + Malachite)");
+    } else if (type === 'Zeolite-Adsorbent-Suite') {
+      setInputData(`6.2, 100\n7.9, 70\n8.8, 55\n10.15, 20\n15.7, 28\n20.4, 22\n23.1, 50`);
+      setSearchTerm("Zeolite Adsorbent Suite (ZSM-5 + Alpha-Beta + Faujasite)");
+    } else if (type === 'Lunar-Regolith-Simulant') {
+      setInputData(`22.1, 35\n27.8, 100\n31.2, 85\n32.9, 60\n35.6, 75\n42.1, 40\n48.4, 30`);
+      setSearchTerm("Lunar Regolith Simulant LHS-1 (Anorthite + Ilmenite + Pyroxene)");
+    } else if (type === 'Pharmaceutical-Polymorph-Mixture') {
+      setInputData(`10.2, 90\n15.6, 100\n18.1, 60\n22.3, 80\n24.5, 45\n27.1, 35`);
+      setSearchTerm("Pharmaceutical Active Blend (Aspirin + Ibuprofen + Paracetamol)");
+    } else if (type === 'Bone-Scaffold-Bioactive') {
+      setInputData(`25.87, 80\n31.0, 100\n31.77, 95\n32.19, 90\n34.3, 45\n39.8, 30\n46.7, 35`);
+      setSearchTerm("Tissue Engineering Bio-Scaffold (HAp + beta-TCP)");
+    } else if (type === 'Meteorite-Chondrite-Suite') {
+      setInputData(`22.9, 45\n32.2, 90\n35.6, 100\n44.67, 85\n52.1, 30\n61.4, 25`);
+      setSearchTerm("Meteorite Chondrite Mineralogy (Olivine + Kamacite + Troilite)");
+    } else if (type === 'Solid-State-Electrolyte-Suite') {
+      setInputData(`21.4, 65\n28.1, 90\n30.8, 100\n34.2, 45\n43.1, 50\n51.9, 30`);
+      setSearchTerm("Lithium Garnet Solid-State Electrolyte Interface (LLZO + ZrO2 + Li2CO3)");
+    } else if (type === 'Earth-Mantle-Assemblage') {
+      setInputData(`29.8, 85\n31.9, 100\n33.3, 70\n35.1, 60\n45.2, 50\n52.2, 40`);
+      setSearchTerm("Lower Mantle Mineralogy (Bridgmanite + Ferropericlase + Stishovite)");
+    } else if (type === 'Semiconductor-Hetero-Suite') {
+      setInputData(`27.3, 100\n31.6, 95\n36.1, 90\n43.9, 80\n56.4, 75\n69.1, 70`);
+      setSearchTerm("High-Frequency III-V Optoelectronics (GaAs + GaN + AlN)");
+    } else if (type === 'Nuclear-Waste-Pyrochlore') {
+      setInputData(`28.2, 100\n31.4, 55\n35.6, 80\n42.1, 45\n49.5, 52\n57.5, 38`);
+      setSearchTerm("Actinide Host Ceramic Nuclear Form (Pyrochlore + Zirconia + Rutile)");
+    } else if (type === 'Superconducting-Tape-HTS') {
+      setInputData(`28.1, 40\n32.8, 100\n38.5, 80\n46.7, 75\n58.2, 55\n68.3, 35`);
+      setSearchTerm("Superconducting Tape HTS Coating (YBCO + CeO2 + SrTiO3)");
+    } else if (type === 'Mars-Soil-Curiosity') {
+      setInputData(`13.9, 30\n22.0, 45\n27.8, 100\n35.6, 90\n42.1, 35\n57.1, 25\n62.7, 15`);
+      setSearchTerm("Mars Soil Mineralogy XRD (Plagioclase + Olivine + Magnetite)");
+    } else if (type === 'Corrosion-Rust-Scale') {
+      setInputData(`21.2, 40\n24.1, 65\n33.2, 100\n35.6, 95\n41.5, 30\n54.1, 55\n62.5, 45`);
+      setSearchTerm("Steel Pipe Internal Corrosion Rust Scale (Hematite + Goethite + Magnetite)");
+    } else if (type === 'Asbestos-Mineralogy') {
+      setInputData(`12.1, 100\n24.3, 85\n28.6, 60\n31.5, 45\n36.4, 70\n42.4, 30`);
+      setSearchTerm("Insulation Hazard Screening (Chrysotile + Amosite + Crocidolite)");
+    } else if (type === 'Volcanic-Ash-Tephra') {
+      setInputData(`22.1, 40\n27.8, 100\n29.4, 45\n35.6, 60\n42.1, 20`);
+      setSearchTerm("Volcanic Ash Tephra Suite (Plagioclase + Augite + Quartz + Magnetite)");
+    } else if (type === 'Fly-Ash-Geopolymer') {
+      setInputData(`16.2, 35\n26.64, 100\n33.2, 50\n35.6, 70\n40.8, 30`);
+      setSearchTerm("Fly Ash Concrete Geopolymer (Quartz + Mullite + Hematite + Magnetite)");
+    } else if (type === 'Solar-Cell-Perovskite-Degradation') {
+      setInputData(`12.7, 100\n14.1, 45\n28.4, 60\n31.8, 30\n38.2, 15\n43.1, 25`);
+      setSearchTerm("Perovskite Degradation Products (MAPbI3 + PbI2 + MAI)");
+    } else if (type === 'Kidney-Stone-Urolithiasis') {
+      setInputData(`14.9, 100\n23.8, 85\n30.1, 45\n32.2, 60\n36.4, 30\n40.1, 20`);
+      setSearchTerm("Pathological Calculus Kidney Stone (Whewellite + Weddellite + Struvite)");
     } else {
       // Generic finder for all single phase examples
       const searchKey = type === 'HAP' || type === 'HAP-Sintered' ? 'Hydroxyapatite (Sintered)' : 
@@ -1254,10 +1332,11 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               <div className="mt-5 space-y-2.5">
                 <div className="flex items-center justify-between">
                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <FlaskConical className="w-3 h-3 text-slate-400" /> Test Data Suites
+                      <Database className="w-3 h-3 text-slate-400" /> Standard Test Data Database
                    </span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="h-[240px] overflow-y-auto pr-2 custom-scrollbar bg-slate-50 border border-slate-200 rounded-xl p-2 relative">
+                  <div className="flex flex-wrap gap-1.5">
                   {[
                     { id: 'Silicon', label: 'Si' },
                     { id: 'Mixture', label: 'Mixture' },
@@ -1407,33 +1486,58 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Magnetite', label: 'Magnetite' },
                     { id: 'PE', label: 'Polymer (PE)' },
                     { id: 'Cement', label: 'Clinker' },
-                    { id: 'Biocoat-Composite-Suite', label: 'Implant Suite (HAp + ZrO2)' },
-                    { id: 'SOFC-Electrode-Suite', label: 'SOFC Suite (YSZ + SRO)' },
-                    { id: 'Aerospace-Armor-Suite', label: 'Aerospace Suite (TiC + Al2O3)' },
-                    { id: 'Pharma-Drug-Suite', label: 'Pharma Suite (Ibu + Para)' },
-                    { id: 'Nuclear-Fuel-Suite', label: 'Nuclear Suite (UO2 + ThO2)' },
-                    { id: 'Battery-Anode-Suite', label: 'Battery Suite (Si + C)' },
-                    { id: 'Superconductor-Suite', label: 'Superconductor Suite (YBCO + CuO)' },
-                    { id: 'Zeolite-Catalyst-Suite', label: 'Zeolite Catalyst (ZSM-5 + LTA)' },
-                    { id: 'Cantor-Alloy-Suite', label: 'Cantor Alloy Suite (Fe + Cr + Ni)' },
-                    { id: 'Carbon-Steel-Suite', label: 'Carbon Steel (Ferrite + Austenite + Fe3C)' },
-                    { id: 'Superalloy-Carbide-Suite', label: 'Superalloy Composite (Inconel + WC)' },
-                    { id: 'Multiferroic-Ceramic-Suite', label: 'Multiferroic Ceramic (BaTiO3 + CoFe2O4)' },
+                    { id: 'Biocoat-Composite-Suite', label: 'Suite (HAp + ZrO2)' },
+                    { id: 'SOFC-Electrode-Suite', label: 'SOFC (YSZ + SRO)' },
+                    { id: 'Aerospace-Armor-Suite', label: 'Aerospace (TiC + Al2O3)' },
+                    { id: 'Pharma-Drug-Suite', label: 'Pharma (Ibu + Para)' },
+                    { id: 'Nuclear-Fuel-Suite', label: 'Nuclear (UO2 + ThO2)' },
+                    { id: 'Battery-Anode-Suite', label: 'Battery (Si + C)' },
+                    { id: 'Superconductor-Suite', label: 'Superconductor (YBCO + CuO)' },
+                    { id: 'Zeolite-Catalyst-Suite', label: 'Zeolite (ZSM-5 + LTA)' },
+                    { id: 'Cantor-Alloy-Suite', label: 'Cantor Alloy (Fe + Cr + Ni)' },
+                    { id: 'Carbon-Steel-Suite', label: 'Steel (Ferrite + Austenite + Fe3C)' },
+                    { id: 'Superalloy-Carbide-Suite', label: 'Superalloy (Inconel + WC)' },
+                    { id: 'Multiferroic-Ceramic-Suite', label: 'Multiferroic (BaTiO3 + CoFe2O4)' },
                     { id: 'Photocatalyst-TiO2-WO3-Suite', label: 'Photocatalytic (TiO2 + WO3)' },
-                    { id: 'Nanocomposite-2D-Energy-Suite', label: '2D Energy Composite (MXene + MoS2 + GO)' },
-                    { id: 'Carbon-Allotropes-Hybrid-Suite', label: 'Allotropes (Diamond + Graphite + GO)' },
-                    { id: 'Carbon-Carbide-Refractory-Suite', label: 'Refractory Carbide (Graphite + SiC + B4C)' },
-                    { id: 'Biomineral-Carbonate-Suite', label: 'Biomineral Carbonate (HAp + CaCO3)' },
-                    { id: 'Complex', label: 'Complex Mixture (Quartz + Rutile + Anatase + Ag)' }
+                    { id: 'Nanocomposite-2D-Energy-Suite', label: '2D Composite (MXene + MoS2 + GO)' },
+                    { id: 'Carbon-Allotropes-Hybrid-Suite', label: 'Carbon Allotropes (Diamond + Graphite + GO)' },
+                    { id: 'Carbon-Carbide-Refractory-Suite', label: 'Refractory (Graphite + SiC + B4C)' },
+                    { id: 'Biomineral-Carbonate-Suite', label: 'Biomineral (HAp + CaCO3)' },
+                    { id: 'Complex', label: 'Complex (Quartz + Rutile + Anatase + Ag)' },
+                    { id: 'Drug-Carrier-Suite', label: '🔍 Test: Drug Carrier (SBA-15 + MCM-41)' },
+                    { id: 'Dental-Implant-Composite', label: '🔍 Test: Dental Ceramic (ZrO2 + Al2O3 + HAp)' },
+                    { id: 'HEA-Brass-Suite', label: '🔍 Test: HEA Brass (Cu-Zn + Fe + Ni)' },
+                    { id: 'Cement-Clinker-Suite', label: '🔍 Test: Cement Clinker (Alite + Calcite)' },
+                    { id: 'Clay-Mineral-Suite', label: '🔍 Test: Clay Minerals (Kaolinite + Illite + Quartz)' },
+                    { id: 'Battery-Cathode-Suite', label: '🔍 Test: NMC Cathode (LiNiMnCoO2 + LiCoO2)' },
+                    { id: 'Archaeological-Pigment-Suite', label: '🔍 Test: Ancient Pigment (Egyptian Blue + Malachite)' },
+                    { id: 'Zeolite-Adsorbent-Suite', label: '🔍 Test: Zeolitic Adsorbents (ZSM-5 + Beta + Faujasite)' },
+                    { id: 'Lunar-Regolith-Simulant', label: '🚀 Test: Lunar Regolith (Anorthite + Ilmenite + Pyroxene)' },
+                    { id: 'Pharmaceutical-Polymorph-Mixture', label: '💊 Test: Pharma Polymorphs (Aspirin + Ibuprofen + Paracetamol)' },
+                    { id: 'Bone-Scaffold-Bioactive', label: '🦴 Test: Bone Scaffold (HAp + beta-TCP)' },
+                    { id: 'Meteorite-Chondrite-Suite', label: '☄️ Test: Meteorite Minerals (Olivine + Kamacite + Troilite)' },
+                    { id: 'Solid-State-Electrolyte-Suite', label: '🔋 Test: Solid State Electrolyte (LLZO + ZrO2 + Li2CO3)' },
+                    { id: 'Earth-Mantle-Assemblage', label: '🌋 Test: Lower Mantle Minerals (Bridgmanite + Ferropericlase + Stishovite)' },
+                    { id: 'Semiconductor-Hetero-Suite', label: '⚡ Test: III-V Semiconductor GaAs-GaN-AlN Heterostructure' },
+                    { id: 'Nuclear-Waste-Pyrochlore', label: '☢️ Test: Ceramic Nuclear Waste Pyrochlore Refractory' },
+                    { id: 'Superconducting-Tape-HTS', label: '🧲 Test: HTS Superconducting Tape (YBCO + CeO2 + SrTiO3)' },
+                    { id: 'Mars-Soil-Curiosity', label: '🪐 Test: Mars Regolith Curiosity (Plagioclase + Olivine + Magnetite)' },
+                    { id: 'Corrosion-Rust-Scale', label: '🛠️ Test: Corrosion Rust Scale (Hematite + Goethite + Magnetite)' },
+                    { id: 'Asbestos-Mineralogy', label: '⚠️ Test: Asbestos Mineral Hazard (Chrysotile + Amosite + Crocidolite)' },
+                    { id: 'Volcanic-Ash-Tephra', label: '🌋 Test: Volcanic Ash Tephra (Plagioclase + Augite + Quartz)' },
+                    { id: 'Fly-Ash-Geopolymer', label: '🏗️ Test: Geopolymer Fly Ash (Mullite + Hematite + Magnetite)' },
+                    { id: 'Solar-Cell-Perovskite-Degradation', label: '☀️ Test: Perovskite Degradation (MAPbI3 + PbI2 + MAI)' },
+                    { id: 'Kidney-Stone-Urolithiasis', label: '🔬 Test: Kidney Stone Calculus (Whewellite + Weddellite + Struvite)' }
                   ].map(ex => (
                     <button 
                       key={ex.id}
                       onClick={() => loadExample(ex.id as any)} 
-                      className="text-xs font-bold bg-white hover:bg-violet-50 text-slate-700 hover:text-violet-700 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-violet-300 transition-all shadow-sm active:scale-95"
+                      className="text-[10px] font-bold bg-white text-slate-600 hover:text-violet-700 px-2 py-1 rounded border border-slate-200 hover:border-violet-300 transition-all shadow-sm active:scale-95"
                     >
                       {ex.label}
                     </button>
                   ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1578,9 +1682,17 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                      <div className="ml-12 mt-1 pl-4 border-l border-slate-800">
                          {idx === 0 && isActive && (
                             <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-1.5 mb-2 font-black uppercase tracking-widest bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10 hover:border-violet-500/30 transition-colors">
-                               <p className="animate-pulse flex items-center gap-2 text-violet-300"><span className="text-violet-500 font-bold">&gt;</span> Tensor shape: [1, 2048, 1]</p>
-                               <p className="animate-pulse flex items-center gap-2 text-violet-300" style={{animationDelay: '0.2s'}}><span className="text-violet-500 font-bold">&gt;</span> Kern Size: {engineConfig.kernelSize}x{engineConfig.kernelSize}</p>
-                               <p className="animate-pulse flex items-center gap-2 text-violet-300" style={{animationDelay: '0.4s'}}><span className="text-violet-500 font-bold">&gt;</span> Augmentation: Noise Injection</p>
+                               <p className="space-y-1.5 relative z-10">
+                                 <span className="flex items-center gap-2 text-violet-300"><span className="text-violet-500 font-bold">&gt;</span> Tensor shape: [1, 2048, 1]</span>
+                                 <span className="flex items-center gap-2 text-violet-300" style={{animationDelay: '0.2s'}}><span className="text-violet-500 font-bold">&gt;</span> Kern Size: {engineConfig.kernelSize}x{engineConfig.kernelSize}</span>
+                                 <span className="flex items-center gap-2 text-violet-300" style={{animationDelay: '0.4s'}}><span className="text-violet-500 font-bold">&gt;</span> Standardizing I/I0 & 2θ</span>
+                               </p>
+                               <div className="w-full h-8 mt-3 relative flex items-end gap-[2px] opacity-60 overflow-hidden">
+                                  {Array.from({ length: 40 }).map((_, i) => (
+                                    <div key={`bar-${i}`} className="flex-1 bg-violet-500 rounded-t-sm animate-[pulse_1s_ease-in-out_infinite]" style={{ height: `${20 + Math.random() * 80}%`, animationDelay: `${i * 0.05}s` }} />
+                                  ))}
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-violet-500/20 to-transparent -translate-x-full animate-[scan_2s_linear_infinite]" />
+                               </div>
                             </motion.div>
                          )}
                          
@@ -1591,12 +1703,23 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                                 <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Activation: {engineConfig.activation}</span> <span className="text-emerald-400 drop-shadow-sm px-1.5 py-0.5 bg-emerald-500/10 rounded border border-emerald-500/20 animate-[pulse_2s_ease-in-out_infinite]">STABLE</span></p>
                                 <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Fusion: {engineConfig.multiScale ? 'ENABLED' : 'DISABLED'}</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded border border-violet-500/20">{Math.floor(Math.random() * 99)}ms</span></p>
                              </div>
-                             <div className="grid grid-cols-8 gap-1.5 w-full bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
-                               {Array.from({ length: 16 }).map((_, i) => (
-                                 <div key={`pulse-${i}`} className="h-4 rounded-[4px] bg-gradient-to-t from-violet-600 to-fuchsia-400 shadow-[0_0_10px_rgba(139,92,246,0.6)] animate-[pulse_1s_ease-in-out_infinite] relative overflow-hidden" style={{ opacity: Math.random() * 0.7 + 0.3, animationDelay: `${i * 0.05}s` }}>
-                                   <div className="absolute top-0 left-0 w-full h-[2px] bg-white/40" />
+                             <div className="flex flex-col gap-2 w-full bg-slate-900/60 p-3 rounded-xl border border-slate-800 relative overflow-hidden group">
+                               <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                               {Array.from({ length: 3 }).map((_, iIdx) => (
+                                 <div key={`filter-map-${iIdx}`} className="flex items-center gap-2">
+                                    <span className="text-[7px] text-slate-500 font-mono tracking-widest uppercase w-8 font-bold">F{iIdx+1}</span>
+                                    <div className="flex-1 flex gap-[2px] h-3.5 rounded bg-slate-950 overflow-hidden relative">
+                                       <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.3),transparent)] -translate-x-full animate-[scan_2s_linear_infinite]" style={{animationDelay: `${iIdx * 0.4}s`}} />
+                                       {Array.from({ length: 32 }).map((_, i) => (
+                                         <div key={`val-${i}`} className="flex-1 rounded-[1px] relative z-10" style={{ backgroundColor: i % (iIdx+2) === 0 ? '#a855f7' : i % 3 === 0 ? '#7c3aed' : '#1e293b', opacity: Math.random() * 0.6 + 0.4 }} />
+                                       ))}
+                                    </div>
                                  </div>
                                ))}
+                               <div className="mt-1 text-[8px] flex justify-between tracking-[0.2em] uppercase font-bold text-slate-600 font-mono">
+                                 <span>Pool: {engineConfig.pooling}</span>
+                                 <span>Dim: [1, 512, {engineConfig.filters}]</span>
+                               </div>
                              </div>
                              <p className="text-[9px] text-slate-500 font-mono mt-3 uppercase tracking-[0.2em] text-right font-black flex justify-end items-center gap-1.5"><Activity className="w-3 h-3 text-violet-400" /> Feature Map Activations</p>
                            </div>
@@ -1604,19 +1727,45 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
                          {idx === 2 && isActive && (
                             <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-2.5 mb-2 mt-2 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-inner font-black uppercase tracking-widest relative z-10 hover:border-cyan-500/30 transition-colors">
-                               <p className="animate-pulse text-cyan-400 flex items-center gap-2 drop-shadow-sm"><Database className="w-3.5 h-3.5 text-cyan-500" /> Loading Index HNSW-1M...</p>
-                               <p className="text-violet-300 flex items-center gap-2"><Search className="w-3 h-3 text-violet-500" /> Performing Cosine Similarity</p>
-                               <div className="w-full bg-slate-900 h-2 mt-3 rounded-full overflow-hidden border border-slate-800/80 p-0.5">
-                                  <div className="bg-gradient-to-r from-cyan-600 to-cyan-400 h-full rounded-full animate-[progress_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(34,211,238,0.6)]" style={{width: `${10 + Math.random() * 80}%`}}></div>
+                               <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 mb-3">
+                                 <span className="text-cyan-400 flex items-center gap-2"><Database className="w-3.5 h-3.5 text-cyan-500" /> Vector DB</span>
+                                 <span className="text-slate-500 text-[8px] bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">HNSW-1M Index</span>
+                               </div>
+                               <div className="relative h-12 w-full flex items-center justify-center border border-dashed border-slate-700/60 rounded-lg overflow-hidden group mb-3 bg-slate-950/50">
+                                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMjBMIDIwIDAiIHN0cm9rZT0iIzFmMjkwMyIgc3Ryb2tlLXdpZHRoPSIwLjUiLz48L3N2Zz4=')] opacity-30"></div>
+                                 <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/5 to-transparent"></div>
+                                 <p className="text-violet-300 flex items-center gap-2 z-10 bg-slate-900 px-3 py-1.5 rounded-lg border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]"><Search className="w-3.5 h-3.5 text-violet-500 animate-spin-slow" /> Cosine Similarity Eval</p>
+                               </div>
+                               <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800 p-0.5 shadow-inner">
+                                  <div className="bg-gradient-to-r from-cyan-600 via-cyan-400 to-cyan-600 h-full rounded-full animate-[progress_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(34,211,238,0.6)] bg-[length:200%_100%]" style={{width: `${10 + Math.random() * 80}%`}}></div>
                                </div>
                             </motion.div>
                          )}
 
                          {idx === 3 && isActive && (
                             <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-2 mb-2 mt-2 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-inner font-black uppercase tracking-widest relative z-10 hover:border-emerald-500/30 transition-colors">
-                               <p className="flex justify-between items-center"><span className="text-violet-300">Dense_1</span> <span className="bg-violet-500/10 border border-violet-500/20 text-violet-400 px-2 py-0.5 rounded drop-shadow-sm">Softmax</span></p>
-                               <div className="text-emerald-400 animate-pulse my-3 drop-shadow-sm flex items-center gap-2 bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]" /> Computing Confidences...</div>
-                               <p className="flex justify-between items-center text-slate-500"><span>Loss</span> <span>Cat_Cross_Ent</span></p>
+                               <div className="grid grid-cols-2 gap-2 mb-3">
+                                 <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col justify-center">
+                                   <span className="text-[7px] text-slate-500 mb-1">LAYER</span>
+                                   <span className="text-violet-300 font-bold border-l-2 border-violet-500 pl-1.5">Dense_1</span>
+                                 </div>
+                                 <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col justify-center">
+                                   <span className="text-[7px] text-slate-500 mb-1">ACTIVATION</span>
+                                   <span className="text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)] font-bold border-l-2 border-emerald-500 pl-1.5">Softmax</span>
+                                 </div>
+                               </div>
+                               <div className="text-emerald-400 animate-pulse my-3 border border-emerald-500/20 flex items-center gap-2 bg-emerald-500/10 p-3 rounded-lg shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]">
+                                 <div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-ping" /> 
+                                 Computing Phase Probabilities...
+                               </div>
+                               <div className="flex items-center gap-[2px] opacity-80 mt-1">
+                                 {Array.from({ length: 8 }).map((_, i) => (
+                                   <div key={`prob-${i}`} className="h-2 flex-1 rounded-sm bg-slate-800 relative overflow-hidden shadow-inner">
+                                     <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-sm" style={{ width: `${Math.random() * 100}%` }} />
+                                   </div>
+                                 ))}
+                               </div>
+                               <p className="flex justify-between items-center text-slate-500 mt-4 border-t border-slate-800 pt-2.5"><span className="text-[8px]">LOSS FUNC</span> <span className="text-[9px] text-slate-400">Categorical Cross-Entropy</span></p>
                             </motion.div>
                          )}
                      </div>

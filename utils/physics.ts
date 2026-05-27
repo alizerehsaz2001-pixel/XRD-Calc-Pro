@@ -1409,10 +1409,12 @@ export const identifyPhasesDL = (
       
       availableDB.forEach((phase, idx) => {
         let matchScore = 0;
+        let maxPossibleScore = 0;
         let matchedPeaksCount = 0;
         const matchedDetails: any[] = [];
         
         for (const refPeak of phase.peaks) {
+          maxPossibleScore += 10 * (Math.log10(refPeak.i + 10) / 2);
           if (remainingPoints.length === 0) continue;
           
           const closest = remainingPoints.reduce((prev, curr) => {
@@ -1426,7 +1428,12 @@ export const identifyPhasesDL = (
             const positionWeight = 1 - Math.pow(diff / TOLERANCE, 2);
             const intensityWeight = Math.log10(refPeak.i + 10) / 2;
             matchScore += (10 * positionWeight * intensityWeight);
-            matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i });
+            
+            // To ensure intensity ratio validity
+            const relativeIntensityMatch = Math.min(refPeak.i + 10, closest.intensity + 10) / Math.max(refPeak.i + 10, closest.intensity + 10);
+            matchScore *= (0.8 + 0.2 * relativeIntensityMatch);
+            
+            matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i, obsI: closest.intensity });
           }
         }
         
@@ -1454,16 +1461,18 @@ export const identifyPhasesDL = (
           activatedSimilarity = 1 / (1 + Math.exp(-8 * (convSimilarity - 0.4)));
         }
 
-        let confidence = (matchScore / 20) * 100; // Heuristic peak match
+        let confidence = maxPossibleScore > 0 ? (matchScore / maxPossibleScore) * 100 : 0;
         
         // Combine convolved continuous alignment (40% weight) and peak discrete check (60% weight) 
         confidence = (0.4 * activatedSimilarity * 100) + (0.6 * confidence);
 
-        const mainPeakMatched = phase.peaks.some(p => p.i >= 95 && matchedDetails.some(md => md.refT === p.t));
-        if (!mainPeakMatched) {
-          confidence *= 0.3;
-        } else {
-          confidence *= 1.2;
+        const mainPeak = phase.peaks.reduce((prev, curr) => curr.i > prev.i ? curr : prev, {t: 0, i: -1});
+        const mainPeakMatched = matchedDetails.some(md => md.refT === mainPeak.t);
+        
+        if (!mainPeakMatched && mainPeak.i > 0) {
+          confidence *= 0.1; // Extremely penalize if main phase peak is missing
+        } else if (mainPeakMatched) {
+          confidence *= 1.25; // Boost if primary diagnostic peak is present
         }
 
         const secondaryPeaks = phase.peaks.filter(p => p.i >= 30 && p.i < 95);
@@ -1531,10 +1540,14 @@ export const identifyPhasesDL = (
 
   const candidates = DB.map(phase => {
     let matchScore = 0;
+    let maxPossibleScore = 0;
     let matchedPeaksCount = 0;
-    const matchedDetails = [];
+    const matchedDetails: any[] = [];
 
     for (const refPeak of phase.peaks) {
+      maxPossibleScore += 10 * (Math.log10(refPeak.i + 10) / 2);
+      if (inputPoints.length === 0) continue;
+      
       const closest = inputPoints.reduce((prev, curr) => {
         return (Math.abs(curr.twoTheta - refPeak.t) < Math.abs(prev.twoTheta - refPeak.t) ? curr : prev);
       });
@@ -1546,8 +1559,12 @@ export const identifyPhasesDL = (
         const positionWeight = 1 - Math.pow(diff / TOLERANCE, 2); 
         const intensityWeight = Math.log10(refPeak.i + 10) / 2;
         
-        matchScore += (10 * positionWeight * intensityWeight);
-        matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i });
+        let scoreInc = (10 * positionWeight * intensityWeight);
+        const relativeIntensityMatch = Math.min(refPeak.i + 10, closest.intensity + 10) / Math.max(refPeak.i + 10, closest.intensity + 10);
+        scoreInc *= (0.8 + 0.2 * relativeIntensityMatch);
+        
+        matchScore += scoreInc;
+        matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i, obsI: closest.intensity });
       }
     }
 
@@ -1586,11 +1603,20 @@ export const identifyPhasesDL = (
     const totalRefPeaks = phase.peaks.length;
     const coverage = matchedPeaksCount / totalRefPeaks;
     
-    let baseConfidence = (matchScore / (totalRefPeaks * 3)) * 100;
+    let baseConfidence = maxPossibleScore > 0 ? (matchScore / maxPossibleScore) * 100 : 0;
     
     // Combine 1D Convolution cross-correlation with discrete peak score
     let confidence = (0.35 * activatedSimilarity * 100) + (0.65 * baseConfidence);
     
+    const mainPeak = phase.peaks.reduce((prev, curr) => curr.i > prev.i ? curr : prev, {t: 0, i: -1});
+    const mainPeakMatched = matchedDetails.some(md => md.refT === mainPeak.t);
+    
+    if (!mainPeakMatched && mainPeak.i > 0) {
+      confidence *= 0.1;
+    } else if (mainPeakMatched) {
+      confidence *= 1.25;
+    }
+
     if (coverage > 0.8) confidence *= 1.2;
     if (coverage < 0.2) confidence *= 0.5;
 
