@@ -21,6 +21,83 @@ import { Box, Brain, Activity, CheckCircle, Search, Database, Layers, Zap, Chevr
 
 import { MATERIAL_DB } from '../utils/materialDB';
 
+const MATERIAL_ELEMENTS: Record<string, { name: string; number: number; category: string; mass: number }> = {
+  H: { name: "Hydrogen", number: 1, category: "Reactive Nonmetal", mass: 1.008 },
+  Li: { name: "Lithium", number: 3, category: "Alkali Metal", mass: 6.94 },
+  B: { name: "Boron", number: 5, category: "Metalloid", mass: 10.81 },
+  C: { name: "Carbon", number: 6, category: "Reactive Nonmetal", mass: 12.011 },
+  N: { name: "Nitrogen", number: 7, category: "Reactive Nonmetal", mass: 14.007 },
+  O: { name: "Oxygen", number: 8, category: "Reactive Nonmetal", mass: 15.999 },
+  Na: { name: "Sodium", number: 11, category: "Alkali Metal", mass: 22.990 },
+  Mg: { name: "Magnesium", number: 12, category: "Alkaline Earth Metal", mass: 24.305 },
+  Al: { name: "Aluminum", number: 13, category: "Post-Transition Metal", mass: 26.982 },
+  Si: { name: "Silicon", number: 14, category: "Metalloid", mass: 28.085 },
+  P: { name: "Phosphorus", number: 15, category: "Reactive Nonmetal", mass: 30.974 },
+  S: { name: "Sulfur", number: 16, category: "Reactive Nonmetal", mass: 32.06 },
+  K: { name: "Potassium", number: 19, category: "Alkali Metal", mass: 39.098 },
+  Ca: { name: "Calcium", number: 20, category: "Alkaline Earth Metal", mass: 40.078 },
+  Ti: { name: "Titanium", number: 22, category: "Transition Metal", mass: 47.867 },
+  V: { name: "Vanadium", number: 23, category: "Transition Metal", mass: 50.942 },
+  Cr: { name: "Chromium", number: 24, category: "Transition Metal", mass: 51.996 },
+  Mn: { name: "Manganese", number: 25, category: "Transition Metal", mass: 54.912 },
+  Fe: { name: "Iron", number: 26, category: "Transition Metal", mass: 55.845 },
+  Co: { name: "Cobalt", number: 27, category: "Transition Metal", mass: 58.933 },
+  Ni: { name: "Nickel", number: 28, category: "Transition Metal", mass: 58.693 },
+  Cu: { name: "Copper", number: 29, category: "Transition Metal", mass: 63.546 },
+  Zn: { name: "Zinc", number: 30, category: "Transition Metal", mass: 65.38 },
+  Ga: { name: "Gallium", number: 31, category: "Post-Transition Metal", mass: 69.723 },
+  Ge: { name: "Germanium", number: 32, category: "Metalloid", mass: 72.63 },
+  As: { name: "Arsenic", number: 33, category: "Metalloid", mass: 74.922 },
+  Se: { name: "Selenium", number: 34, category: "Reactive Nonmetal", mass: 78.971 },
+  Y: { name: "Yttrium", number: 39, category: "Transition Metal", mass: 88.906 },
+  Zr: { name: "Zirconium", number: 40, category: "Transition Metal", mass: 91.224 },
+  Nb: { name: "Niobium", number: 41, category: "Transition Metal", mass: 92.906 },
+  Mo: { name: "Molybdenum", number: 42, category: "Transition Metal", mass: 95.95 },
+  Ru: { name: "Ruthenium", number: 44, category: "Transition Metal", mass: 101.07 },
+  Rh: { name: "Rhodium", number: 45, category: "Transition Metal", mass: 102.91 },
+  Pd: { name: "Palladium", number: 46, category: "Transition Metal", mass: 106.42 },
+  Ag: { name: "Silver", number: 47, category: "Transition Metal", mass: 107.87 },
+  Cd: { name: "Cadmium", number: 48, category: "Transition Metal", mass: 112.41 },
+  In: { name: "Indium", number: 49, category: "Post-Transition Metal", mass: 114.82 },
+  Sn: { name: "Tin", number: 50, category: "Post-Transition Metal", mass: 118.71 },
+  Sb: { name: "Antimony", number: 51, category: "Metalloid", mass: 121.76 },
+  Te: { name: "Tellurium", number: 52, category: "Metalloid", mass: 127.60 },
+  I: { name: "Iodine", number: 53, category: "Reactive Nonmetal", mass: 126.90 },
+  Ba: { name: "Barium", number: 56, category: "Alkaline Earth Metal", mass: 137.33 },
+  La: { name: "Lanthanum", number: 57, category: "Lanthanide", mass: 138.91 },
+  Ce: { name: "Cerium", number: 58, category: "Lanthanide", mass: 140.12 },
+  Nd: { name: "Neodymium", number: 60, category: "Lanthanide", mass: 144.24 },
+  Sm: { name: "Samarium", number: 62, category: "Lanthanide", mass: 150.36 },
+  Eu: { name: "Europium", number: 63, category: "Lanthanide", mass: 151.96 },
+  Gd: { name: "Gd (Gadolinium)", number: 64, category: "Lanthanide", mass: 157.25 },
+  Dy: { name: "Dysprosium", number: 66, category: "Lanthanide", mass: 162.50 },
+  Tm: { name: "Thulium", number: 69, category: "Lanthanide", mass: 168.93 },
+  Yb: { name: "Ytterbium", number: 70, category: "Lanthanide", mass: 173.05 },
+  Lu: { name: "Lutetium", number: 71, category: "Lanthanide", mass: 174.97 },
+  Hf: { name: "Hafnium", number: 72, category: "Transition Metal", mass: 178.49 },
+  Ta: { name: "Tantalum", number: 73, category: "Transition Metal", mass: 180.95 },
+  W: { name: "Tungsten", number: 74, category: "Transition Metal", mass: 183.84 },
+  Re: { name: "Rhenium", number: 75, category: "Transition Metal", mass: 186.21 },
+  Os: { name: "Osmium", number: 76, category: "Transition Metal", mass: 190.23 },
+  Ir: { name: "Iridium", number: 77, category: "Transition Metal", mass: 192.22 },
+  Pt: { name: "Platinum", number: 78, category: "Transition Metal", mass: 195.08 },
+  Au: { name: "Gold", number: 79, category: "Transition Metal", mass: 196.97 },
+  Pb: { name: "Lead", number: 82, category: "Post-Transition Metal", mass: 207.2 },
+  Bi: { name: "Bismuth", number: 83, category: "Post-Transition Metal", mass: 208.98 }
+};
+
+const parseElementsFromFormula = (formulaStr: string): { symbol: string; name: string }[] => {
+  if (!formulaStr) return [];
+  const clean = formulaStr.split(' ')[0].replace(/\s*\(.*\)/g, '');
+  const matches = clean.match(/([A-Z][a-z]?)/g);
+  if (!matches) return [];
+  
+  const uniqueSymbols = Array.from(new Set(matches));
+  return uniqueSymbols
+    .filter(sym => sym in MATERIAL_ELEMENTS)
+    .map(sym => ({ symbol: sym, name: MATERIAL_ELEMENTS[sym].name }));
+};
+
 
 export const DeepLearningModule: React.FC = () => {
   const { t } = useTranslation();
@@ -2469,37 +2546,107 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                        <Activity className="w-5 h-5 text-emerald-400" />
                      </div>
                      <h4 className="text-lg font-black text-white uppercase tracking-widest">Physical property spectrum</h4>
-                   </div>
+                    </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 z-10 relative">
-                     {[
-                       { label: 'Density (g/cm³)', val: selectedCandidate.density, max: 22, color: 'emerald' },
-                       { label: 'Molecular Weight (g/mol)', val: selectedCandidate.molecularWeight, max: 400, color: 'blue' },
-                       { label: 'Band Gap (eV)', val: selectedCandidate.bandGap, max: 10, color: 'violet' },
-                       { label: 'Elastic Modulus (GPa)', val: selectedCandidate.elasticModulus, max: 500, color: 'amber' }
-                     ].map((prop, i) => {
-                       if (prop.val === undefined) return null;
-                       const pct = Math.min((prop.val / prop.max) * 100, 100);
-                       const colorClass = 
-                         prop.color === 'emerald' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.5)]' :
-                         prop.color === 'blue' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' :
-                         prop.color === 'violet' ? 'bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]' :
-                         'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]';
-                       
-                       return (
-                         <div key={"prop-" + i} className="flex flex-col gap-2">
-                           <div className="flex justify-between items-end">
-                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{prop.label}</span>
-                             <span className="text-xs font-mono font-black text-white">{prop.val}</span>
-                           </div>
-                           <div className="h-2 w-full bg-[#0B1221] rounded-full border border-[#1e293b] overflow-hidden">
-                             <div className={`h-full rounded-full transition-all duration-1000 ${colorClass}`} style={{ width: `${pct}%` }} />
-                           </div>
-                         </div>
-                       );
-                     })}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 z-10 relative">
+                      {[
+                        { label: 'Density (g/cm³)', val: selectedCandidate.density, max: 22, color: 'emerald' },
+                        { label: 'Molecular Weight (g/mol)', val: selectedCandidate.molecularWeight, max: 400, color: 'blue' },
+                        { label: 'Band Gap (eV)', val: selectedCandidate.bandGap, max: 10, color: 'violet' },
+                        { label: 'Elastic Modulus (GPa)', val: selectedCandidate.elasticModulus, max: 500, color: 'amber' }
+                      ].map((prop, i) => {
+                        if (prop.val === undefined) return null;
+                        const pct = Math.min((prop.val / prop.max) * 100, 100);
+                        const colorClass = 
+                          prop.color === 'emerald' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.5)]' :
+                          prop.color === 'blue' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' :
+                          prop.color === 'violet' ? 'bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]' :
+                          'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]';
+                        
+                        return (
+                          <div key={"prop-" + i} className="flex flex-col gap-2">
+                            <div className="flex justify-between items-end">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{prop.label}</span>
+                              <span className="text-xs font-mono font-black text-white">{prop.val}</span>
+                            </div>
+                            <div className="h-2 w-full bg-[#0B1221] rounded-full border border-[#1e293b] overflow-hidden">
+                              <div className={`h-full rounded-full transition-all duration-1000 ${colorClass}`} style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Constituent elements under Physical property spectrum */}
+                    {selectedCandidate && (
+                      <div className="mt-8 pt-8 border-t border-[#1e293b]/55 z-10 relative">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-violet-500/10 rounded-xl text-violet-400 border border-violet-500/20">
+                              <FlaskConical className="w-4 h-4 text-violet-400" />
+                            </div>
+                            <div>
+                              <span className="text-[9px] font-black uppercase text-violet-400/80 tracking-[0.25em] block leading-none mb-1">Crystalline Components</span>
+                              <h5 className="text-xs font-black text-white uppercase tracking-wider">Constituent Phase Elements</h5>
+                            </div>
+                          </div>
+                          <span className="text-[9px] font-mono font-black text-slate-400 bg-[#0B1221] px-2.5 py-1.5 rounded-xl border border-[#1e293b] self-start sm:self-auto">
+                            Lattice Signature: {selectedCandidate.formula}
+                          </span>
+                        </div>
+
+                        {/* Elements Cards Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                          {(() => {
+                            const elements = parseElementsFromFormula(selectedCandidate.formula);
+                            if (elements.length === 0) {
+                              return (
+                                <div className="col-span-full py-4 text-center text-xs font-mono text-slate-500">
+                                  No constituent elements identified.
+                                </div>
+                              );
+                            }
+                            return elements.map((elem) => {
+                              const details = MATERIAL_ELEMENTS[elem.symbol] || { name: elem.name, number: '??', category: 'Element', mass: 1.0 };
+                              const isMetal = details.category.includes("Metal") || details.category.includes("Lanthanide");
+                              const isMetalloid = details.category === "Metalloid";
+                              const catColors = isMetal 
+                                ? "from-violet-500/10 to-violet-500/5 text-violet-400 border-violet-500/15" 
+                                : isMetalloid 
+                                  ? "from-amber-500/10 to-amber-500/5 text-amber-400 border-amber-500/15"
+                                  : "from-emerald-500/10 to-emerald-500/5 text-emerald-400 border-emerald-500/15";
+
+                              return (
+                                <div 
+                                  key={elem.symbol} 
+                                  className="p-3.5 rounded-2xl bg-[#090F1B]/95 border border-[#1e293b] hover:border-violet-500/40 hover:shadow-[0_0_20px_rgba(139,92,246,0.12)] transition-all duration-300 relative group/element overflow-hidden flex flex-col justify-between"
+                                >
+                                  <div className="absolute top-0 right-0 w-12 h-12 bg-white/[0.01] group-hover/element:bg-white/[0.02] rounded-full blur-md pointer-events-none transition-colors" />
+                                  <div className="flex justify-between items-start mb-2">
+                                    <span className="text-[9px] font-mono font-black text-slate-600 group-hover/element:text-slate-400 transition-colors">
+                                      #{details.number}
+                                    </span>
+                                    <span className="text-[8px] font-mono text-slate-500">
+                                      {details.mass} u
+                                    </span>
+                                  </div>
+                                  <div className="text-xl font-mono font-black text-white group-hover/element:text-violet-300 transition-colors leading-none mb-0.5">
+                                    {elem.symbol}
+                                  </div>
+                                  <div className="text-[10px] font-extrabold text-slate-300 truncate leading-tight mb-2.5">
+                                    {elem.name}
+                                  </div>
+                                  <div className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-center border bg-gradient-to-br ${catColors} truncate`}>
+                                    {details.category}
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </div>
+                    )}
                    </div>
-                </div>
                 
                 {/* Crystallography (Cell Metrics) */}
                 <div className="md:col-span-12 group/card">

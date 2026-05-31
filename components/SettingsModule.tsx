@@ -5,7 +5,8 @@ import {
   Activity, Cpu, Shield, Zap, Info, Database, Globe,
   Beaker, Monitor, Sliders, Server, Lock, User, Edit3, 
   Save, Check, AlertCircle, Wrench, Microscope, Compass,
-  Key, ExternalLink, RefreshCw, CheckCircle2
+  Key, ExternalLink, RefreshCw, CheckCircle2,
+  Upload, Download, Trash2, FileCode
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
@@ -29,6 +30,9 @@ interface SettingsModuleProps {
   setGoniometerRadius: (val: number) => void;
   defaultWavelength: number;
   setDefaultWavelength: (val: number) => void;
+
+  autosaveInterval?: number;
+  setAutosaveInterval?: (val: number) => void;
 }
 
 export const SettingsModule: React.FC<SettingsModuleProps> = ({
@@ -48,6 +52,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   setGoniometerRadius,
   defaultWavelength,
   setDefaultWavelength,
+  autosaveInterval = 5000,
+  setAutosaveInterval,
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -182,6 +188,119 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     setTimeout(() => {
       setSaveSuccess(false);
     }, 3000);
+  };
+
+  // Systems Configuration Backup & Management
+  const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [importMessage, setImportMessage] = useState('');
+
+  const handleExportConfig = () => {
+    try {
+      const configData = {
+        precision,
+        zeroShift,
+        sampleDisplacement,
+        goniometerRadius,
+        defaultWavelength,
+        soundEnabled,
+        animationsEnabled,
+        theme,
+        autosaveInterval,
+        operator,
+        exportTimestamp: new Date().toISOString()
+      };
+      
+      const blob = new Blob([JSON.stringify(configData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `xrd_system_config_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      playSynthTone('success');
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
+
+  const handleImportConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        
+        if (parsed.precision !== undefined) {
+          setPrecision(Number(parsed.precision));
+          localStorage.setItem('xrd_precision', parsed.precision.toString());
+        }
+        if (parsed.zeroShift !== undefined) {
+          setZeroShift(Number(parsed.zeroShift));
+        }
+        if (parsed.sampleDisplacement !== undefined) {
+          setSampleDisplacement(Number(parsed.sampleDisplacement));
+        }
+        if (parsed.goniometerRadius !== undefined) {
+          setGoniometerRadius(Number(parsed.goniometerRadius));
+        }
+        if (parsed.defaultWavelength !== undefined) {
+          setDefaultWavelength(Number(parsed.defaultWavelength));
+          localStorage.setItem('xrd_default_wavelength', parsed.defaultWavelength.toString());
+        }
+        if (parsed.soundEnabled !== undefined) {
+          setSoundEnabled(!!parsed.soundEnabled);
+          localStorage.setItem('xrd_sound', parsed.soundEnabled.toString());
+        }
+        if (parsed.animationsEnabled !== undefined) {
+          setAnimationsEnabled(!!parsed.animationsEnabled);
+        }
+        if (parsed.theme !== undefined) {
+          setTheme(parsed.theme);
+        }
+        if (parsed.autosaveInterval !== undefined && setAutosaveInterval) {
+          setAutosaveInterval(Number(parsed.autosaveInterval));
+          localStorage.setItem('xrd_autosave_interval', parsed.autosaveInterval.toString());
+        }
+        if (parsed.operator !== undefined) {
+          setOperator(parsed.operator);
+          setIdName(parsed.operator.name || parsed.operator.fullName || '');
+          setIdEmail(parsed.operator.email || '');
+          setIdOrg(parsed.operator.organization || parsed.operator.institution || '');
+          setClearanceLevel(parsed.operator.clearanceLevel || '');
+          setCertifications(parsed.operator.certifications || []);
+          setTerminalId(parsed.operator.terminalId || '');
+          localStorage.setItem('xrd_user_registration', JSON.stringify(parsed.operator));
+        }
+
+        setImportStatus('success');
+        setImportMessage('System parameters successfully mounted and synchronized.');
+        playSynthTone('success');
+        
+        setTimeout(() => {
+          setImportStatus('idle');
+          setImportMessage('');
+          window.location.reload();
+        }, 1500);
+
+      } catch (err: any) {
+        setImportStatus('error');
+        setImportMessage('Parsing abort: file signature mismatch. ' + err.message);
+        playSynthTone('switch');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleHardReset = () => {
+    if (window.confirm("CRITICAL MANDATE: Are you sure you want to trigger a laboratory diagnostic hardware wipe? This restores factory calibrations and erases cached session profiles.")) {
+      localStorage.clear();
+      playSynthTone('switch');
+      window.location.reload();
+    }
   };
 
   const themeOptions = [
@@ -1149,6 +1268,104 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                    Decentralized Sandbox • All processing is securely executed client-side inside the lab container
                  </p>
                </div>
+            </div>
+          </section>
+
+          {/* SystemConfig Backup & Auto-Save Matrix */}
+          <section className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 border border-slate-200 dark:border-white/10 shadow-xl space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-500 border border-indigo-500/20">
+                <Database className="w-4 h-4" />
+              </div>
+              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Settings Storage & Auto-save</h3>
+            </div>
+
+            {/* Auto-save configuration parameters */}
+            <div className="space-y-4">
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-white/5 space-y-3">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">Bragg Auto-Save Cycle</div>
+                    <div className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Prevents data loss during sessions</div>
+                  </div>
+                  <select
+                    value={autosaveInterval}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      if (setAutosaveInterval) {
+                        setAutosaveInterval(val);
+                        localStorage.setItem('xrd_autosave_interval', val.toString());
+                        playSynthTone('success');
+                      }
+                    }}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value={5000}>5 Seconds (Default)</option>
+                    <option value={10000}>10 Seconds</option>
+                    <option value={30000}>30 Seconds</option>
+                    <option value={0}>Disabled / Muted</option>
+                  </select>
+                </div>
+                {autosaveInterval > 0 && (
+                  <div className="text-[8.5px] uppercase font-mono text-emerald-500 flex items-center gap-1 leading-none">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping shrink-0" />
+                    Auto-save loop is active every {autosaveInterval / 1000} seconds
+                  </div>
+                )}
+              </div>
+
+              {/* Import & Export Configuration Parameters */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-white/5 space-y-3">
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">Configuration Transceiver</div>
+                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mb-1 select-none font-sans">
+                  Export or import entire lab parameters, calibrations, and active profile values.
+                </div>
+
+                <div className="grid grid-cols-2 gap-3.5 pt-1">
+                  <button
+                    onClick={handleExportConfig}
+                    className="flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/20 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" /> Export Config
+                  </button>
+                  <label
+                    className="flex items-center justify-center gap-2 px-3 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    <Upload className="w-4 h-4" /> Import Config
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={handleImportConfig}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {importStatus !== 'idle' && (
+                  <div className={`p-2.5 rounded-xl text-[9.5px] uppercase font-bold tracking-tight border ${
+                    importStatus === 'success' 
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                      : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                  }`}>
+                    {importMessage}
+                  </div>
+                )}
+              </div>
+
+              {/* Dangerous hardware wipe / Factory reset */}
+              <div className="p-4 bg-rose-500/5 rounded-2xl border border-rose-500/10 flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">Terminal Factory Reset</div>
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Deletes all local databases and profiles</div>
+                </div>
+                <button
+                  onClick={handleHardReset}
+                  className="p-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl transition-colors cursor-pointer"
+                  title="Factory Reset Laboratory State"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </section>
 

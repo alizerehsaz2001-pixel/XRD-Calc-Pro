@@ -86,16 +86,26 @@ const App: React.FC = () => {
 
   const mainContentRef = useRef<HTMLDivElement>(null);
   
-  // Bragg State initialized with default wavelength from settings
-  const [sampleId, setSampleId] = useState<string>('');
+  // Bragg State initialized with saved state from previous session or defaults
+  const savedState = (() => {
+    try {
+      const saved = localStorage.getItem('xrd_bragg_autosave') || localStorage.getItem('xrd_bragg_current');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+
+  const [sampleId, setSampleId] = useState<string>(savedState?.sampleId ?? '');
   const [wavelength, setWavelength] = useState<number>(() => {
+    if (savedState?.wavelength) return parseFloat(savedState.wavelength);
     const val = localStorage.getItem('xrd_default_wavelength');
     return val ? parseFloat(val) : 1.5406;
   });
-  const [rawPeaks, setRawPeaks] = useState<string>('28.44, 47.30, 56.12, 69.13, 76.38'); 
-  const [rawHKL, setRawHKL] = useState<string>('111, 220, 311, 400, 331');
-  const [materialName, setMaterialName] = useState<string | null>(null);
-  const [results, setResults] = useState<BraggResult[]>([]);
+  const [rawPeaks, setRawPeaks] = useState<string>(savedState?.rawPeaks ?? '28.44, 47.30, 56.12, 69.13, 76.38'); 
+  const [rawHKL, setRawHKL] = useState<string>(savedState?.rawHKL ?? '111, 220, 311, 400, 331');
+  const [materialName, setMaterialName] = useState<string | null>(savedState?.materialName ?? null);
+  const [results, setResults] = useState<BraggResult[]>(savedState?.results ?? []);
   const [braggHistory, setBraggHistory] = useState<BraggHistoryItem[]>(() => {
     try {
       const saved = localStorage.getItem('xrd_bragg_history');
@@ -103,6 +113,15 @@ const App: React.FC = () => {
     } catch (e) {
       return [];
     }
+  });
+
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [lastAutosaved, setLastAutosaved] = useState<string | null>(null);
+  const braggStateRef = useRef({ sampleId, wavelength, rawPeaks, rawHKL, results, materialName });
+
+  const [autosaveInterval, setAutosaveInterval] = useState<number>(() => {
+    const val = localStorage.getItem('xrd_autosave_interval');
+    return val ? parseInt(val) : 5000;
   });
 
   const [isSimulationRunning, setIsSimulationRunning] = useState(false);
@@ -297,6 +316,8 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
+    braggStateRef.current = { sampleId, wavelength, rawPeaks, rawHKL, results, materialName };
+    // Keep xrd_bragg_current updated on-the-fly as well, but the formal autosave ticks periodically
     localStorage.setItem('xrd_bragg_current', JSON.stringify({
       sampleId,
       wavelength,
@@ -306,6 +327,28 @@ const App: React.FC = () => {
       materialName
     }));
   }, [sampleId, wavelength, rawPeaks, rawHKL, results, materialName]);
+
+  useEffect(() => {
+    if (autosaveInterval <= 0) {
+      setIsSaving(false);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setIsSaving(true);
+      const currentData = braggStateRef.current;
+      localStorage.setItem('xrd_bragg_autosave', JSON.stringify(currentData));
+      
+      const now = new Date();
+      setLastAutosaved(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      
+      setTimeout(() => {
+        setIsSaving(false);
+      }, 800);
+    }, autosaveInterval);
+
+    return () => clearInterval(interval);
+  }, [autosaveInterval]);
 
   useEffect(() => {
     handleCalculate(false);
@@ -499,6 +542,8 @@ const App: React.FC = () => {
                           setGoniometerRadius={setGoniometerRadius}
                           isSimulationRunning={isSimulationRunning}
                           simulationStep={simulationStep}
+                          isSaving={isSaving}
+                          lastAutosaved={lastAutosaved}
                         />
                         <BraggHistory 
                           history={braggHistory} 
@@ -571,6 +616,8 @@ const App: React.FC = () => {
                       setGoniometerRadius={setGoniometerRadius}
                       defaultWavelength={defaultWavelength}
                       setDefaultWavelength={setDefaultWavelength}
+                      autosaveInterval={autosaveInterval}
+                      setAutosaveInterval={setAutosaveInterval}
                     />
                   )}
                 </ErrorBoundary>

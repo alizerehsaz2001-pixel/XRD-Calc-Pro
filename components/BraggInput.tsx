@@ -41,6 +41,8 @@ interface BraggInputProps {
   setGoniometerRadius?: (val: number) => void;
   isSimulationRunning?: boolean;
   simulationStep?: number;
+  isSaving?: boolean;
+  lastAutosaved?: string | null;
 }
 
 export const BraggInput: React.FC<BraggInputProps> = ({
@@ -60,7 +62,9 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   goniometerRadius = 240.0,
   setGoniometerRadius,
   isSimulationRunning = false,
-  simulationStep = 0
+  simulationStep = 0,
+  isSaving = false,
+  lastAutosaved = null
 }) => {
   const { t } = useTranslation();
   const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>(
@@ -115,10 +119,22 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   return (
     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
       <div className="flex justify-between items-center mb-5">
-        <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 font-sans tracking-tight uppercase">
-          <Gauge className="h-5 w-5 text-indigo-500 shrink-0" />
-          {t('Parameters')}
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 font-sans tracking-tight uppercase">
+            <Gauge className="h-5 w-5 text-indigo-500 shrink-0" />
+            {t('Parameters')}
+          </h2>
+          {lastAutosaved && (
+            <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] font-mono tracking-tight transition-all duration-300 ${
+              isSaving
+                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 animate-pulse'
+                : 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700/50'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isSaving ? 'bg-emerald-500 animate-ping' : 'bg-slate-400 dark:bg-slate-500'}`} />
+              {isSaving ? 'saving...' : `saved ${lastAutosaved}`}
+            </span>
+          )}
+        </div>
         <button 
           onClick={handleSync}
           disabled={isSyncing}
