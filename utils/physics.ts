@@ -585,26 +585,102 @@ export const parseWAInput = (input: string): WAInputPoint[] => {
   return points;
 };
 
-export const calculateWarrenAverbach = (d1: number, d2: number, points: WAInputPoint[], shapeFactor: number = 1.0, strainModel: string = 'Gaussian'): WAResult => {
-  const sizeDist = []; const strainDist = [];
-  const x1 = 1 / (d1 * d1); const x2 = 1 / (d2 * d2); const dx = x2 - x1;
+export const calculateWarrenAverbach = (
+  d1: number, 
+  d2: number, 
+  points: WAInputPoint[], 
+  shapeFactor: number = 1.0, 
+  strainModel: string = 'Gaussian',
+  instrumentalCorrection: string = 'Stokes',
+  backgroundModel: string = 'Linear',
+  instrumentalFactor: number = 0.005,
+  backgroundOffset: number = 0.02,
+  cutoffRadiusValue: number = 50.0
+): WAResult => {
+  const sizeDist = []; 
+  const strainDist = [];
+  const x1 = 1 / (d1 * d1); 
+  const x2 = 1 / (d2 * d2); 
+  const dx = x2 - x1;
+  
   if (Math.abs(dx) < 1e-9) return { sizeDistribution: [], strainDistribution: [] };
+  
   for (const p of points) {
     if (p.A1 <= 0 || p.A2 <= 0) continue;
-    const slope = (Math.log(p.A2) - Math.log(p.A1)) / dx;
-    const intercept = Math.log(p.A1) - slope * x1;
+    
+    // 1. Background Correction / Base Level offset adjustment
+    let rawA1 = p.A1;
+    let rawA2 = p.A2;
+    
+    if (backgroundModel === 'Linear') {
+      rawA1 = (rawA1 - backgroundOffset) / (1 - backgroundOffset);
+      rawA2 = (rawA2 - backgroundOffset) / (1 - backgroundOffset);
+    } else if (backgroundModel === 'Spline') {
+      const decayOffset = backgroundOffset * (1 - Math.exp(-p.L_nm / 12));
+      rawA1 = (rawA1 - decayOffset) / (1 - decayOffset);
+      rawA2 = (rawA2 - decayOffset) / (1 - decayOffset);
+    }
+    
+    rawA1 = Math.max(0.001, Math.min(1.0, rawA1));
+    rawA2 = Math.max(0.001, Math.min(1.0, rawA2));
+
+    // 2. Instrumental Broadening Deconvolution
+    if (instrumentalCorrection === 'Stokes') {
+      // Divide by instrumental reference coefficients decay (Voigt model standard)
+      const alpha1 = instrumentalFactor;
+      const alpha2 = instrumentalFactor * Math.max(1.2, d1 / d2);
+      const A_inst1 = Math.exp(-alpha1 * p.L_nm - 0.0001 * p.L_nm * p.L_nm);
+      const A_inst2 = Math.exp(-alpha2 * p.L_nm - 0.0002 * p.L_nm * p.L_nm);
+      
+      rawA1 = rawA1 / Math.max(0.05, A_inst1);
+      rawA2 = rawA2 / Math.max(0.05, A_inst2);
+    } else if (instrumentalCorrection === 'Voigt') {
+      // Linear component subtraction 
+      const alpha1 = instrumentalFactor * 0.7;
+      const alpha2 = instrumentalFactor * 0.7 * Math.max(1.2, d1 / d2);
+      const A_inst1 = Math.exp(-alpha1 * p.L_nm);
+      const A_inst2 = Math.exp(-alpha2 * p.L_nm);
+      
+      rawA1 = rawA1 / Math.max(0.05, A_inst1);
+      rawA2 = rawA2 / Math.max(0.05, A_inst2);
+    }
+    
+    rawA1 = Math.max(0.002, Math.min(1.0, rawA1));
+    rawA2 = Math.max(0.002, Math.min(1.0, rawA2));
+
+    // 3. Warren-Averbach size estimation
+    const slope = (Math.log(rawA2) - Math.log(rawA1)) / dx;
+    const intercept = Math.log(rawA1) - slope * x1;
     const A_size = Math.exp(intercept);
     
-    // Applying shape factor conceptually affects the apparent size scaling
-    sizeDist.push({ L_nm: p.L_nm, A_size: A_size * shapeFactor });
+    sizeDist.push({ L_nm: p.L_nm, A_size: Math.min(1.0, A_size * shapeFactor) });
     
+    // 4. Microstrain Distribution calculations
     if (p.L_nm > 0) {
       let msStrain = slope / (-2 * Math.PI * Math.PI * p.L_nm * p.L_nm);
-      if (strainModel === 'Lorentzian') {
-        msStrain = msStrain * 0.785; // Example adjustment factor for Lorentzian
+      let rms_strain = 0;
+      
+      if (msStrain > 0) {
+        if (strainModel === 'Lorentzian') {
+          // Adjust for Cauchy-Lorentz shape factor
+          rms_strain = Math.sqrt(msStrain) * 0.785;
+        } else if (strainModel === 'Dislocation (Wilkens)') {
+          // Logarithmic correlation function modeling screen radius effect
+          const reTerm = Math.log(Math.max(1.1, cutoffRadiusValue / p.L_nm));
+          rms_strain = Math.sqrt(msStrain) * (Math.sqrt(reTerm) / 2.0);
+        } else {
+          // Standard Gaussian (default)
+          rms_strain = Math.sqrt(msStrain);
+        }
       }
-      strainDist.push({ L_nm: p.L_nm, rms_strain: msStrain > 0 ? Math.sqrt(msStrain) : 0 });
-    } else strainDist.push({ L_nm: 0, rms_strain: 0 });
+      
+      strainDist.push({ 
+        L_nm: p.L_nm, 
+        rms_strain: Number.isFinite(rms_strain) ? rms_strain : 0 
+      });
+    } else {
+      strainDist.push({ L_nm: 0, rms_strain: 0 });
+    }
   }
   return { sizeDistribution: sizeDist, strainDistribution: strainDist };
 };

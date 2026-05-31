@@ -73,6 +73,13 @@ export const WarrenAverbachModule: React.FC = () => {
     setD2(MATERIAL_PRESETS[0].d2);
     setSelectedMaterial(MATERIAL_PRESETS[0].label);
     setInputData(defaultData);
+    setShapeFactor(1.0);
+    setStrainModel('Gaussian');
+    setInstrumentalCorrection('Stokes');
+    setBackgroundModel('Linear');
+    setInstrumentalFactor(0.005);
+    setBackgroundOffset(0.02);
+    setCutoffRadiusValue(50.0);
   };
 
   const handleClear = () => {
@@ -127,6 +134,11 @@ export const WarrenAverbachModule: React.FC = () => {
   const [instrumentalCorrection, setInstrumentalCorrection] = useState<string>('Stokes');
   const [backgroundModel, setBackgroundModel] = useState<string>('Linear');
   const [strainModel, setStrainModel] = useState<string>('Gaussian');
+  
+  // Advanced Refinement Parameters
+  const [instrumentalFactor, setInstrumentalFactor] = useState<number>(0.005);
+  const [backgroundOffset, setBackgroundOffset] = useState<number>(0.02);
+  const [cutoffRadiusValue, setCutoffRadiusValue] = useState<number>(50.0); // nm
 
   const [selectedDomainIndex, setSelectedDomainIndex] = useState<number>(0);
   const [burgersVector, setBurgersVector] = useState<number>(0.25); // nm
@@ -209,7 +221,18 @@ export const WarrenAverbachModule: React.FC = () => {
     setIsAnalyzing(true);
     setTimeout(() => {
       const points = parseWAInput(inputData);
-      const computed = calculateWarrenAverbach(d1, d2, points, shapeFactor, strainModel);
+      const computed = calculateWarrenAverbach(
+        d1, 
+        d2, 
+        points, 
+        shapeFactor, 
+        strainModel,
+        instrumentalCorrection,
+        backgroundModel,
+        instrumentalFactor,
+        backgroundOffset,
+        cutoffRadiusValue
+      );
       setResult(computed);
       setIsAnalyzing(false);
       
@@ -389,7 +412,7 @@ export const WarrenAverbachModule: React.FC = () => {
             </div>
 
             {/* Advanced d-Spacing Estimator */}
-                        {/* Advanced Analytical Parameters */}
+            {/* Advanced Analytical Parameters */}
             <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all space-y-4 relative z-0">
               <div className="flex items-center gap-2 mb-2">
                  <Settings className="w-3.5 h-3.5 text-rose-400" />
@@ -419,6 +442,7 @@ export const WarrenAverbachModule: React.FC = () => {
                   >
                     <option value="Gaussian">Gaussian</option>
                     <option value="Lorentzian">Lorentzian</option>
+                    <option value="Dislocation (Wilkens)">Wilkens Disl.</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -446,6 +470,65 @@ export const WarrenAverbachModule: React.FC = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Dynamic Adjustable Advanced Refinement sliders */}
+              {(instrumentalCorrection !== 'None' || backgroundModel !== 'None' || strainModel === 'Dislocation (Wilkens)') && (
+                <div className="pt-4 border-t border-white/5 space-y-4">
+                  {instrumentalCorrection !== 'None' && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 font-bold uppercase tracking-widest">
+                        <span>Inst. Decay Factor (α)</span>
+                        <span className="text-rose-400 font-mono font-bold">{instrumentalFactor.toFixed(4)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.001"
+                        max="0.020"
+                        step="0.001"
+                        value={instrumentalFactor}
+                        onChange={(e) => setInstrumentalFactor(parseFloat(e.target.value))}
+                        className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
+                      />
+                    </div>
+                  )}
+
+                  {backgroundModel !== 'None' && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 font-bold uppercase tracking-widest">
+                        <span>Bkg Baseline Offset</span>
+                        <span className="text-rose-400 font-mono font-bold">{backgroundOffset.toFixed(3)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.000"
+                        max="0.150"
+                        step="0.005"
+                        value={backgroundOffset}
+                        onChange={(e) => setBackgroundOffset(parseFloat(e.target.value))}
+                        className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
+                      />
+                    </div>
+                  )}
+
+                  {strainModel === 'Dislocation (Wilkens)' && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 font-bold uppercase tracking-widest">
+                        <span>Outer Cutoff Radius (Re)</span>
+                        <span className="text-rose-400 font-mono font-bold">{cutoffRadiusValue.toFixed(1)} nm</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="10.0"
+                        max="150.0"
+                        step="5.0"
+                        value={cutoffRadiusValue}
+                        onChange={(e) => setCutoffRadiusValue(parseFloat(e.target.value))}
+                        className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-white/10 transition-all relative z-0">
