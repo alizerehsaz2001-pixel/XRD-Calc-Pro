@@ -49,6 +49,7 @@ const MATERIAL_ELEMENTS: Record<string, { name: string; number: number; category
   Ge: { name: "Germanium", number: 32, category: "Metalloid", mass: 72.63 },
   As: { name: "Arsenic", number: 33, category: "Metalloid", mass: 74.922 },
   Se: { name: "Selenium", number: 34, category: "Reactive Nonmetal", mass: 78.971 },
+  Sr: { name: "Strontium", number: 38, category: "Alkaline Earth Metal", mass: 87.62 },
   Y: { name: "Yttrium", number: 39, category: "Transition Metal", mass: 88.906 },
   Zr: { name: "Zirconium", number: 40, category: "Transition Metal", mass: 91.224 },
   Nb: { name: "Niobium", number: 41, category: "Transition Metal", mass: 92.906 },
@@ -64,12 +65,14 @@ const MATERIAL_ELEMENTS: Record<string, { name: string; number: number; category
   Te: { name: "Tellurium", number: 52, category: "Metalloid", mass: 127.60 },
   I: { name: "Iodine", number: 53, category: "Reactive Nonmetal", mass: 126.90 },
   Ba: { name: "Barium", number: 56, category: "Alkaline Earth Metal", mass: 137.33 },
+  Be: { name: "Beryllium", number: 4, category: "Alkaline Earth Metal", mass: 9.012 },
+  Sc: { name: "Scandium", number: 21, category: "Transition Metal", mass: 44.956 },
   La: { name: "Lanthanum", number: 57, category: "Lanthanide", mass: 138.91 },
   Ce: { name: "Cerium", number: 58, category: "Lanthanide", mass: 140.12 },
   Nd: { name: "Neodymium", number: 60, category: "Lanthanide", mass: 144.24 },
   Sm: { name: "Samarium", number: 62, category: "Lanthanide", mass: 150.36 },
   Eu: { name: "Europium", number: 63, category: "Lanthanide", mass: 151.96 },
-  Gd: { name: "Gd (Gadolinium)", number: 64, category: "Lanthanide", mass: 157.25 },
+  Gd: { name: "Gadolinium", number: 64, category: "Lanthanide", mass: 157.25 },
   Dy: { name: "Dysprosium", number: 66, category: "Lanthanide", mass: 162.50 },
   Tm: { name: "Thulium", number: 69, category: "Lanthanide", mass: 168.93 },
   Yb: { name: "Ytterbium", number: 70, category: "Lanthanide", mass: 173.05 },
@@ -83,7 +86,9 @@ const MATERIAL_ELEMENTS: Record<string, { name: string; number: number; category
   Pt: { name: "Platinum", number: 78, category: "Transition Metal", mass: 195.08 },
   Au: { name: "Gold", number: 79, category: "Transition Metal", mass: 196.97 },
   Pb: { name: "Lead", number: 82, category: "Post-Transition Metal", mass: 207.2 },
-  Bi: { name: "Bismuth", number: 83, category: "Post-Transition Metal", mass: 208.98 }
+  Bi: { name: "Bismuth", number: 83, category: "Post-Transition Metal", mass: 208.98 },
+  Th: { name: "Thorium", number: 90, category: "Actinide", mass: 232.04 },
+  U: { name: "Uranium", number: 92, category: "Actinide", mass: 238.03 }
 };
 
 const parseElementsFromFormula = (formulaStr: string): { symbol: string; name: string }[] => {
@@ -629,8 +634,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       setInputData(`6.1, 40\n12.1, 20\n12.2, 25\n15.5, 30\n16.6, 100\n17.7, 20\n18.2, 90\n18.9, 30\n20.2, 35\n20.4, 18\n22.3, 45\n23.5, 22\n24.4, 40\n32.8, 10`);
       setSearchTerm("CSD-HXACAN: Pharma (Ibu + Para)");
     } else if (type === 'Nuclear-Fuel-Suite') {
-      setInputData(`27.6, 90\n28.2, 100\n31.9, 35\n32.7, 40\n45.8, 50\n47.0, 45\n54.4, 40\n55.8, 35\n57.0, 30\n58.5, 25`);
-      setSearchTerm("ICDD-PDF-4: Nuclear (UO2 + ThO2)");
+      setInputData(`21.44, 20\n25.95, 45\n26.45, 40\n28.25, 100\n32.74, 35\n34.32, 25\n43.15, 12\n44.50, 10\n47.01, 55\n55.78, 45\n58.55, 15\n68.62, 25`);
+      setSearchTerm("ICDD-PDF-4: Nuclear Fuel Suite (UO2 + U3O8)");
     } else if (type === 'Battery-Anode-Suite') {
       setInputData(`26.54, 80\n28.44, 100\n42.39, 5\n44.59, 12\n47.30, 48\n54.67, 10\n56.12, 25`);
       setSearchTerm("ICSD-76031: Battery (Si + C)");
@@ -768,6 +773,10 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'Ir' ? 'Iridium' :
                         type === 'Os' ? 'Osmium' :
                         type === 'Rh' ? 'Rhodium' :
+                        type === 'UO2' ? 'Uranium Dioxide' :
+                        type === 'U3O8' ? 'Triuranium Octoxide' :
+                        type === 'UO3' ? 'Uranium Trioxide' :
+                        type === 'U-Metal' ? 'Alpha-Uranium Metal' :
                         type === 'LiTaO3' ? 'Lithium Tantalate' :
                         type === 'LiNbO3' ? 'Lithium Niobate' :
                         type === 'PbS' ? 'Lead Sulphide' :
@@ -866,7 +875,6 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'PLA' ? 'Polylactic Acid' :
                         type === 'PEEK' ? 'Polyether ether ketone' :
                         type === 'Collagen' ? 'Collagen Type I' :
-                        type === 'UO2' ? 'Uranium Dioxide' :
                         type === 'ThO2' ? 'Thorium Dioxide' :
                         type === 'Zircaloy' ? 'Zircaloy-4' :
                         type === 'NuclearGraphite' ? 'Nuclear Graphite' :
@@ -1530,6 +1538,10 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Bi2Te3', label: 'Bi2Te3' },
                     { id: 'SnO2', label: 'SnO2' },
                     { id: 'LCO', label: 'LCO' },
+                    
+                    { id: 'U3O8', label: 'U3O8' },
+                    { id: 'UO3', label: 'UO3' },
+                    { id: 'U-Metal', label: 'U-Metal' },
                     { id: 'Si3N4', label: 'Si3N4' },
                     { id: 'AlN', label: 'AlN' },
                     { id: 'hBN', label: 'h-BN' },
@@ -1640,7 +1652,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'SOFC-Electrode-Suite', label: 'ICSD-62295: SOFC (YSZ + SRO)' },
                     { id: 'Aerospace-Armor-Suite', label: 'ICSD-43221: Aerospace (TiC + Al2O3)' },
                     { id: 'Pharma-Drug-Suite', label: 'CSD-HXACAN: Pharma (Ibu + Para)' },
-                    { id: 'Nuclear-Fuel-Suite', label: 'ICDD-PDF-4: Nuclear (UO2 + ThO2)' },
+                    { id: 'Nuclear-Fuel-Suite', label: 'ICDD-PDF-4: Nuclear Fuel Suite (UO2 + U3O8)' },
                     { id: 'Battery-Anode-Suite', label: 'ICSD-76031: Battery (Si + C)' },
                     { id: 'Superconductor-Suite', label: 'ICSD-65546: Superconductor (YBCO + CuO)' },
                     { id: 'Zeolite-Catalyst-Suite', label: 'IZA-ZSM5: Zeolite (ZSM-5 + LTA)' },
