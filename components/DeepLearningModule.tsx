@@ -678,6 +678,15 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'Maghemite' ? 'Maghemite' :
                         type === 'Zn-Ferrite' ? 'Zinc-doped Ferrite' :
                         type === 'LMO' ? 'Lithium Manganese Oxide' :
+                        type === 'HfO2' ? 'Hafnium Oxide' :
+                        type === 'SAC305' ? 'Lead-Free Solder' :
+                        type === 'Ta2O5' ? 'Tantalum Pentoxide' :
+                        type === 'SWCNT' ? 'Single-Walled Carbon Nanotubes' :
+                        type === 'Phosphorene' ? 'Black Phosphorus' :
+                        type === 'IGZO' ? 'Indium Gallium Zinc Oxide' :
+                        type === 'SPIONs' ? 'Superparamagnetic Iron Oxide Nanoparticles' :
+                        type === 'MSN' ? 'Mesoporous Silica Nanoparticles' :
+                        type === 'AgNPs' ? 'Silver Nanoparticles' :
                         type === 'Mo' ? 'Molybdenum' :
                         type === 'Ir' ? 'Iridium' :
                         type === 'Os' ? 'Osmium' :
@@ -1516,6 +1525,15 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'BaZrO3', label: 'BaZrO3' },
                     { id: 'NASICON', label: 'NASICON' },
                     { id: 'TiS2', label: 'TiS2' },
+                    { id: 'HfO2', label: 'HfO2 (High-k Oxide)' },
+                    { id: 'SAC305', label: 'SAC305 (Solder)' },
+                    { id: 'Ta2O5', label: 'Ta2O5 (Capacitor)' },
+                    { id: 'SWCNT', label: 'SWCNT (Nanotubes)' },
+                    { id: 'Phosphorene', label: 'Phosphorene' },
+                    { id: 'IGZO', label: 'IGZO TFT' },
+                    { id: 'SPIONs', label: 'SPIONs (Mag-Med)' },
+                    { id: 'MSN', label: 'MSN Carrier' },
+                    { id: 'AgNPs', label: 'AgNPs (Silver Nano)' },
                     { id: 'Modern-Ceramic', label: 'Modern Ceramic' },
                     { id: 'Solar-Mix', label: 'Solar Mix' },
                     { id: 'Cathode-Mix', label: 'Cathode Mix' },

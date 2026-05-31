@@ -2081,5 +2081,104 @@ export const MATERIAL_DB = [
     spaceGroup: 'P-3m1',
     density: 3.22,
     applications: ['Cathode Intercalation', 'Solid State Batteries', 'Thermoelectric Converters']
+  },
+  {
+    name: 'Hafnium Oxide (HfO2)',
+    type: 'High-k Dielectric',
+    pattern: '28.2, 100\n31.5, 75\n34.2, 35\n41.2, 20\n50.2, 30',
+    description: 'A high-k dielectric material used as gate oxides in modern computer processors and dynamic random-access memory (DRAM).',
+    formula: 'HfO2',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/c',
+    density: 9.68,
+    applications: ['CPU Gate Oxide', 'DRAM Capacitors', 'Optical Coatings']
+  },
+  {
+    name: 'Lead-Free Solder (SAC305)',
+    type: 'PCB Interconnect',
+    pattern: '30.6, 100\n32.0, 90\n43.9, 70\n44.9, 60\n55.3, 30\n62.5, 30',
+    description: 'An alloy composed of Tin, Silver, and Copper (Sn-Ag-Cu), widely used as solder for computer hardware printed circuit boards.',
+    formula: 'Sn-3.0Ag-0.5Cu',
+    crystalSystem: 'Tetragonal (Sn matrix)',
+    spaceGroup: 'I41/amd',
+    density: 7.38,
+    applications: ['PCB Assembly', 'SMD Soldering', 'Electronic Packaging']
+  },
+  {
+    name: 'Tantalum Pentoxide (Ta2O5)',
+    type: 'Dielectric Ceramic',
+    pattern: '22.9, 100\n28.3, 40\n36.7, 50\n46.8, 30\n55.6, 25',
+    description: 'A high refractive index and high dielectric constant material used in motherboard decoupler capacitors.',
+    formula: 'Ta2O5',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pccm',
+    density: 8.2,
+    applications: ['Tantalum Capacitors', 'Anti-reflective Coatings', 'RAM Memories']
+  },
+  {
+    name: 'Single-Walled Carbon Nanotubes (SWCNTs)',
+    type: '1D Nanoelectronics',
+    pattern: '26.1, 100\n42.8, 35\n44.4, 25\n53.8, 12\n77.9, 8',
+    description: 'Seamless cylinders of graphene sheets demonstrating ballistical electron conductivity, studied as channels for sub-3nm transistors.',
+    formula: 'C (SWCNT)',
+    crystalSystem: 'Chiral / Hexagonal',
+    spaceGroup: 'Pseudo-P6/mmm',
+    density: 1.3,
+    applications: ['1D Transistors', 'Interconnects', 'Nanostructured Electrodes']
+  },
+  {
+    name: 'Black Phosphorus (Phosphorene)',
+    type: '2D Semiconductor',
+    pattern: '16.9, 100\n34.2, 85\n52.3, 40\n62.1, 20\n65.9, 15',
+    description: 'An anisotropic layered elemental 2D semiconductor possessing a direct bandgap and exceptionally high charge-carrier mobility.',
+    formula: 'P (Phosphorene)',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Cmca',
+    density: 2.69,
+    applications: ['Optoelectronics', 'High-Speed FETs', 'Gas Sensors']
+  },
+  {
+    name: 'Indium Gallium Zinc Oxide (IGZO)',
+    type: 'Thin-Film Transistor',
+    pattern: '30.2, 45\n35.5, 100\n55.4, 30\n60.8, 25',
+    description: 'An amorphous or highly textured oxide semiconductor used primarily as the active channel material of thin-film transistors (TFTs) in OLED/LCD displays.',
+    formula: 'InGaZnO4',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'R-3m',
+    density: 6.25,
+    applications: ['OLED Displays', 'Active-Matrix Backplanes', 'Transparent Electronics']
+  },
+  {
+    name: 'Superparamagnetic Iron Oxide Nanoparticles (SPIONs)',
+    type: 'Nanomedicine',
+    pattern: '30.1, 30\n35.5, 100\n43.1, 20\n53.4, 10\n57.0, 30\n62.6, 40',
+    description: 'Biocompatible magnetite/maghemite core nanoparticles used as T2 MRI contrast enhancement agents and in target-guided magnetic hyperthermia cancer therapy.',
+    formula: 'Fe3O4 (SPION)',
+    crystalSystem: 'Cubic (Broadened)',
+    spaceGroup: 'Fd-3m',
+    density: 5.15,
+    applications: ['MRI Contrast', 'Magnetic Hyperthermia', 'Drug Delivery Carriers']
+  },
+  {
+    name: 'Mesoporous Silica Nanoparticles (MSN / MCM-41)',
+    type: 'Nanomedicine Carrier',
+    pattern: '2.3, 100\n4.0, 20\n4.6, 15\n22.0, 8',
+    description: 'A solid silicate framework featuring highly organized hexagonal arrays of mesopores, ideal for high-capacity drug loading and controlled release.',
+    formula: 'SiO2 (MSN)',
+    crystalSystem: 'Hexagonal Pores / Amorphous matrix',
+    spaceGroup: 'p6mm',
+    density: 1.4,
+    applications: ['Targeted Drug Delivery', 'Gene Therapy', 'Theranostics']
+  },
+  {
+    name: 'Silver Nanoparticles (AgNPs)',
+    type: 'Antimicrobial Nanomedicine',
+    pattern: '38.1, 100\n44.3, 40\n64.4, 25\n77.4, 26\n81.5, 8',
+    description: 'Ultrafine silver crystals with extremely high surface-to-volume ratio, demonstrating potent oligodynamic antimicrobic/antiviral effects.',
+    formula: 'Ag (Nano)',
+    crystalSystem: 'Cubic (Broadened)',
+    spaceGroup: 'Fm-3m',
+    density: 10.49,
+    applications: ['Antimicrobial Coatings', 'Wound Dressings', 'Catalysts']
   }
 ];
