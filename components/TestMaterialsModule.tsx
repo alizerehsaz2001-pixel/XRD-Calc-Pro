@@ -32,6 +32,8 @@ interface MaterialPreset {
   crystalSystem?: string;
   spaceGroup?: string;
   latticeParams?: string;
+  database?: 'ICDD' | 'COD' | 'RRUFF' | 'ICSD' | 'CSD';
+  databaseId?: string;
 }
 
 const PRESETS: MaterialPreset[] = [
@@ -45,7 +47,37 @@ const PRESETS: MaterialPreset[] = [
     category: 'Standard',
     crystalSystem: 'Cubic',
     spaceGroup: 'Fd-3m (No. 227)',
-    latticeParams: 'a = 5.4311 Å'
+    latticeParams: 'a = 5.4311 Å',
+    database: 'ICDD',
+    databaseId: 'PDF 00-027-1402'
+  },
+  {
+    name: 'Corundum Standard (Al2O3)',
+    formula: 'Al2O3',
+    wavelength: 1.5406,
+    peaks: [25.58, 35.15, 37.78, 43.36, 52.55, 57.50, 61.30, 66.52, 68.21],
+    hkls: ['012', '104', '110', '113', '024', '116', '018', '214', '300'],
+    description: 'NIST Standard Reference Material SRM 676a used for quantitative analysis and instrument calibration.',
+    category: 'Standard',
+    crystalSystem: 'Trigonal',
+    spaceGroup: 'R-3c (No. 167)',
+    latticeParams: 'a = 4.7587 Å, c = 12.993 Å',
+    database: 'ICDD',
+    databaseId: 'SRM 676a'
+  },
+  {
+    name: 'Lanthanum Hexaboride (LaB6)',
+    formula: 'LaB6',
+    wavelength: 1.5406,
+    peaks: [21.36, 30.38, 37.44, 43.51, 48.96, 53.99, 58.71, 63.19],
+    hkls: ['100', '110', '111', '200', '210', '211', '220', '300'],
+    description: 'NIST Standard Reference Material SRM 660c, world-wide high-accuracy line profile calibrator.',
+    category: 'Standard',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Pm-3m (No. 221)',
+    latticeParams: 'a = 4.1569 Å',
+    database: 'ICDD',
+    databaseId: 'SRM 660c'
   },
   {
     name: 'Polyethylene (HDPE)',
@@ -57,7 +89,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Polymer',
     crystalSystem: 'Orthorhombic',
     spaceGroup: 'Pnam (No. 62)',
-    latticeParams: 'a = 7.42 Å, b = 4.96 Å, c = 2.54 Å'
+    latticeParams: 'a = 7.42 Å, b = 4.96 Å, c = 2.54 Å',
+    database: 'CSD',
+    databaseId: 'POLYET01'
   },
   {
     name: 'Polypropylene (Isotactic)',
@@ -69,7 +103,51 @@ const PRESETS: MaterialPreset[] = [
     category: 'Polymer',
     crystalSystem: 'Monoclinic',
     spaceGroup: 'P21/c (No. 14)',
-    latticeParams: 'a = 6.65 Å, b = 20.96 Å, c = 6.50 Å, β = 99.3°'
+    latticeParams: 'a = 6.65 Å, b = 20.96 Å, c = 6.50 Å, β = 99.3°',
+    database: 'CSD',
+    databaseId: 'PPOL01'
+  },
+  {
+    name: 'Benzoic Acid',
+    formula: 'C7H6O2',
+    wavelength: 1.5406,
+    peaks: [8.15, 11.95, 15.62, 17.48, 20.15, 23.85, 27.50],
+    hkls: ['001', '100', '101', '110', '111', '200', '202'],
+    description: 'Monoclinic molecular crystal of benzoic acid, classic sublimation standard.',
+    category: 'Polymer',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/c (No. 14)',
+    latticeParams: 'a = 5.51 Å, b = 5.12 Å, c = 21.90 Å, β = 97.3°',
+    database: 'CSD',
+    databaseId: 'BENZAC01'
+  },
+  {
+    name: 'L-Alanine',
+    formula: 'C3H7NO2',
+    wavelength: 1.5406,
+    peaks: [13.06, 17.52, 20.58, 22.18, 25.10, 29.45, 32.10],
+    hkls: ['100', '011', '110', '111', '200', '021', '211'],
+    description: 'Orthorhombic chiral amino acid crystal structure from CSD file reference.',
+    category: 'Polymer',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'P212121 (No. 19)',
+    latticeParams: 'a = 6.02 Å, b = 12.35 Å, c = 5.78 Å',
+    database: 'CSD',
+    databaseId: 'LALNIN12'
+  },
+  {
+    name: 'Paracetamol (Form I)',
+    formula: 'C8H9NO2',
+    wavelength: 1.5406,
+    peaks: [12.15, 15.65, 18.20, 20.35, 23.51, 26.54, 27.20],
+    hkls: ['001', '110', '020', '111', '022', '120', '200'],
+    description: 'Most stable monoclinic polymorph of acetaminophen, CSD reference standard.',
+    category: 'Polymer',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/a (No. 14)',
+    latticeParams: 'a = 7.10 Å, b = 9.38 Å, c = 11.75 Å, β = 97.4°',
+    database: 'CSD',
+    databaseId: 'HXACAN01'
   },
   {
     name: 'PTFE (Teflon)',
@@ -117,7 +195,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Metal',
     crystalSystem: 'Cubic',
     spaceGroup: 'Fm-3m (No. 225)',
-    latticeParams: 'a = 4.0494 Å'
+    latticeParams: 'a = 4.0494 Å',
+    database: 'COD',
+    databaseId: '9008460'
   },
   {
     name: 'Gold Powder',
@@ -129,7 +209,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Metal',
     crystalSystem: 'Cubic',
     spaceGroup: 'Fm-3m (No. 225)',
-    latticeParams: 'a = 4.0786 Å'
+    latticeParams: 'a = 4.0786 Å',
+    database: 'ICSD',
+    databaseId: '52249'
   },
   {
     name: 'Alpha Iron',
@@ -141,7 +223,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Metal',
     crystalSystem: 'Cubic',
     spaceGroup: 'Im-3m (No. 229)',
-    latticeParams: 'a = 2.8664 Å'
+    latticeParams: 'a = 2.8664 Å',
+    database: 'COD',
+    databaseId: '9006597'
   },
   {
     name: 'Cerium Oxide',
@@ -153,7 +237,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Ceramic',
     crystalSystem: 'Cubic',
     spaceGroup: 'Fm-3m (No. 225)',
-    latticeParams: 'a = 5.4110 Å'
+    latticeParams: 'a = 5.4110 Å',
+    database: 'ICSD',
+    databaseId: '28709'
   },
   {
     name: 'Titanium Dioxide (Rutile)',
@@ -165,7 +251,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Ceramic',
     crystalSystem: 'Tetragonal',
     spaceGroup: 'P42/mnm (No. 136)',
-    latticeParams: 'a = 4.5937 Å, c = 2.9587 Å'
+    latticeParams: 'a = 4.5937 Å, c = 2.9587 Å',
+    database: 'COD',
+    databaseId: '9004143'
   },
   {
     name: 'Titanium Dioxide (Anatase)',
@@ -177,7 +265,23 @@ const PRESETS: MaterialPreset[] = [
     category: 'Ceramic',
     crystalSystem: 'Tetragonal',
     spaceGroup: 'I41/amd (No. 141)',
-    latticeParams: 'a = 3.7852 Å, c = 9.5139 Å'
+    latticeParams: 'a = 3.7852 Å, c = 9.5139 Å',
+    database: 'COD',
+    databaseId: '9015929'
+  },
+  {
+    name: 'Calcite (CaCO3)',
+    formula: 'CaCO3',
+    wavelength: 1.5406,
+    peaks: [23.06, 29.40, 31.42, 35.96, 39.40, 43.16, 47.50, 48.50],
+    hkls: ['012', '104', '006', '110', '113', '202', '018', '116'],
+    description: 'Highly crystalline trigonal polymorph of calcium carbonate. COD open benchmark mineral data.',
+    category: 'Ceramic',
+    crystalSystem: 'Trigonal',
+    spaceGroup: 'R-3c (No. 167)',
+    latticeParams: 'a = 4.989 Å, c = 17.062 Å',
+    database: 'COD',
+    databaseId: '9016142'
   },
   {
     name: 'Graphite',
@@ -189,7 +293,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Standard',
     crystalSystem: 'Hexagonal',
     spaceGroup: 'P63/mmc (No. 194)',
-    latticeParams: 'a = 2.464 Å, c = 6.708 Å'
+    latticeParams: 'a = 2.464 Å, c = 6.708 Å',
+    database: 'COD',
+    databaseId: '9008569'
   },
   {
     name: 'Sodium Chloride',
@@ -201,7 +307,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Standard',
     crystalSystem: 'Cubic',
     spaceGroup: 'Fm-3m (No. 225)',
-    latticeParams: 'a = 5.6402 Å'
+    latticeParams: 'a = 5.6402 Å',
+    database: 'COD',
+    databaseId: '9011119'
   },
   {
     name: 'Copper',
@@ -213,7 +321,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Metal',
     crystalSystem: 'Cubic',
     spaceGroup: 'Fm-3m (No. 225)',
-    latticeParams: 'a = 3.6149 Å'
+    latticeParams: 'a = 3.6149 Å',
+    database: 'COD',
+    databaseId: '9013014'
   },
   {
     name: 'Silver',
@@ -225,7 +335,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Metal',
     crystalSystem: 'Cubic',
     spaceGroup: 'Fm-3m (No. 225)',
-    latticeParams: 'a = 4.0862 Å'
+    latticeParams: 'a = 4.0862 Å',
+    database: 'COD',
+    databaseId: '9012431'
   },
   {
     name: 'Zinc Oxide',
@@ -237,7 +349,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Ceramic',
     crystalSystem: 'Hexagonal',
     spaceGroup: 'P63mc (No. 186)',
-    latticeParams: 'a = 3.2498 Å, c = 5.2066 Å'
+    latticeParams: 'a = 3.2498 Å, c = 5.2066 Å',
+    database: 'COD',
+    databaseId: '2107059'
   },
   {
     name: 'Quartz (Alpha)',
@@ -249,7 +363,37 @@ const PRESETS: MaterialPreset[] = [
     category: 'Ceramic',
     crystalSystem: 'Trigonal',
     spaceGroup: 'P3221 (No. 154)',
-    latticeParams: 'a = 4.9134 Å, c = 5.4052 Å'
+    latticeParams: 'a = 4.9134 Å, c = 5.4052 Å',
+    database: 'RRUFF',
+    databaseId: 'R040003'
+  },
+  {
+    name: 'Magnetite (Fe3O4)',
+    formula: 'Fe3O4',
+    wavelength: 1.5406,
+    peaks: [30.10, 35.42, 43.05, 53.48, 56.94, 62.51],
+    hkls: ['220', '311', '400', '422', '511', '440'],
+    description: 'Superparamagnetic spinel structure magnetite mineral standard from RRUFF archive.',
+    category: 'Ceramic',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fd-3m (No. 227)',
+    latticeParams: 'a = 8.397 Å',
+    database: 'RRUFF',
+    databaseId: 'R061111'
+  },
+  {
+    name: 'Beryl (Be3Al2Si6O18)',
+    formula: 'Be3Al2Si6O18',
+    wavelength: 1.5406,
+    peaks: [11.02, 19.15, 22.14, 25.32, 28.18, 30.65, 34.60],
+    hkls: ['100', '110', '111', '201', '202', '300', '212'],
+    description: 'Rare hexagonal ring silicate mineral structure from the RRUFF physical database.',
+    category: 'Ceramic',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P6/mcc (No. 192)',
+    latticeParams: 'a = 9.215 Å, c = 9.192 Å',
+    database: 'RRUFF',
+    databaseId: 'R040018'
   },
   {
     name: 'Diamond',
@@ -261,7 +405,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Standard',
     crystalSystem: 'Cubic',
     spaceGroup: 'Fd-3m (No. 227)',
-    latticeParams: 'a = 3.5671 Å'
+    latticeParams: 'a = 3.5671 Å',
+    database: 'ICSD',
+    databaseId: '26911'
   },
   {
     name: 'Hydroxyapatite',
@@ -273,7 +419,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Biomaterial',
     crystalSystem: 'Hexagonal',
     spaceGroup: 'P63/m (No. 176)',
-    latticeParams: 'a = 9.418 Å, c = 6.884 Å'
+    latticeParams: 'a = 9.418 Å, c = 6.884 Å',
+    database: 'ICSD',
+    databaseId: '16182'
   },
   {
     name: 'Barium Titanate',
@@ -285,7 +433,37 @@ const PRESETS: MaterialPreset[] = [
     category: 'Perovskite',
     crystalSystem: 'Tetragonal / Cubic',
     spaceGroup: 'P4mm / Pm-3m',
-    latticeParams: 'a = 3.996 Å, c = 4.036 Å'
+    latticeParams: 'a = 3.996 Å, c = 4.036 Å',
+    database: 'ICSD',
+    databaseId: '74125'
+  },
+  {
+    name: 'Methylammonium Lead Iodide (MAPbI3)',
+    formula: 'CH3NH3PbI3',
+    wavelength: 1.5406,
+    peaks: [14.08, 24.46, 28.41, 31.85, 40.64, 43.18],
+    hkls: ['110', '200', '220', '310', '224', '314'],
+    description: 'Hybrid organic-inorganic perovskite solar cell material from the ICSD database.',
+    category: 'Perovskite',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'I4/mcm (No. 140)',
+    latticeParams: 'a = 8.855 Å, c = 12.659 Å',
+    database: 'ICSD',
+    databaseId: '238610'
+  },
+  {
+    name: 'Lithium Iron Phosphate (LiFePO4)',
+    formula: 'LiFePO4',
+    wavelength: 1.5406,
+    peaks: [17.14, 20.78, 25.56, 29.68, 32.12, 35.62, 42.15],
+    hkls: ['020', '101', '111', '201', '121', '311', '131'],
+    description: 'Olivine structure high-safety lithium-ion battery cathode material, ICSD reference.',
+    category: 'Ceramic',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'Pnma (No. 62)',
+    latticeParams: 'a = 10.33 Å, b = 6.01 Å, c = 4.69 Å',
+    database: 'ICSD',
+    databaseId: '96738'
   },
   {
     name: 'Uranium Dioxide',
@@ -297,7 +475,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Nuclear',
     crystalSystem: 'Cubic',
     spaceGroup: 'Fm-3m (No. 225)',
-    latticeParams: 'a = 5.470 Å'
+    latticeParams: 'a = 5.470 Å',
+    database: 'ICSD',
+    databaseId: '644550'
   },
   {
     name: 'Thorium Dioxide',
@@ -369,7 +549,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Thermoelectric',
     crystalSystem: 'Trigonal',
     spaceGroup: 'R-3m (No. 166)',
-    latticeParams: 'a = 4.384 Å, c = 30.49 Å'
+    latticeParams: 'a = 4.384 Å, c = 30.49 Å',
+    database: 'ICSD',
+    databaseId: '23554'
   },
   {
     name: 'Gallium Nitride',
@@ -381,7 +563,9 @@ const PRESETS: MaterialPreset[] = [
     category: 'Ceramic',
     crystalSystem: 'Hexagonal (Wurtzite)',
     spaceGroup: 'P63mc (No. 186)',
-    latticeParams: 'a = 3.189 Å, c = 5.185 Å'
+    latticeParams: 'a = 3.189 Å, c = 5.185 Å',
+    database: 'ICSD',
+    databaseId: '51432'
   },
   {
     name: 'Molybdenum Disulfide',
@@ -402,10 +586,12 @@ interface TestMaterialsModuleProps {
 }
 
 type TabGroup = 'All' | 'Standards' | 'Metals' | 'Ceramics' | 'Polymers' | 'Custom';
+type DatabaseRef = 'All' | 'ICDD' | 'COD' | 'RRUFF' | 'ICSD' | 'CSD';
 
 export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoadMaterial }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<TabGroup>('All');
+  const [activeDatabase, setActiveDatabase] = useState<DatabaseRef>('All');
   const [customPresets, setCustomPresets] = useState<MaterialPreset[]>([]);
   const [expandedMaterial, setExpandedMaterial] = useState<string | null>(null);
   
@@ -595,12 +781,17 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
   // Combine standard and custom presets
   const allPresets = [...PRESETS, ...customPresets];
 
-  // Filter based on Tab + Search Query
+  // Filter based on Tab + Database + Search Query
   const filteredPresets = allPresets.filter(preset => {
     // Tab filtering
     if (activeTab !== 'All') {
       const g = getTabOfPreset(preset);
       if (g !== activeTab) return false;
+    }
+
+    // Database filtering
+    if (activeDatabase !== 'All') {
+      if (preset.database !== activeDatabase) return false;
     }
 
     // Search query filtering
@@ -612,7 +803,9 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
       const inCat = preset.category.toLowerCase().includes(q);
       const inHkls = preset.hkls.some(h => h.toLowerCase().includes(q));
       const inSystem = preset.crystalSystem?.toLowerCase().includes(q) || false;
-      return (inName || inFormula || inDesc || inCat || inHkls || inSystem);
+      const inDatabase = preset.database?.toLowerCase().includes(q) || false;
+      const inDatabaseId = preset.databaseId?.toLowerCase().includes(q) || false;
+      return (inName || inFormula || inDesc || inCat || inHkls || inSystem || inDatabase || inDatabaseId);
     }
 
     return true;
@@ -621,6 +814,11 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
   const getCountForTab = (tab: TabGroup): number => {
     if (tab === 'All') return allPresets.length;
     return allPresets.filter(p => getTabOfPreset(p) === tab).length;
+  };
+
+  const getCountForDatabase = (db: DatabaseRef): number => {
+    if (db === 'All') return allPresets.length;
+    return allPresets.filter(p => p.database === db).length;
   };
 
   // Calculate dynamic d-spacings for a peak array and wavelength
@@ -907,7 +1105,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
       </div>
 
       {/* Pill Filters */}
-      <div className="relative z-10 flex gap-2 mb-5 overflow-x-auto pb-2 scrollbar-none select-none max-w-full">
+      <div className="relative z-10 flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-none select-none max-w-full">
         {(['All', 'Standards', 'Metals', 'Ceramics', 'Polymers', 'Custom'] as TabGroup[]).map(tab => {
           const count = getCountForTab(tab);
           return (
@@ -926,6 +1124,35 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                 activeTab === tab 
                   ? 'bg-indigo-400/20 text-indigo-300' 
                   : 'bg-white/5 text-slate-500'
+              }`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Database Registry Filters */}
+      <div className="relative z-10 flex gap-1.5 mb-5 overflow-x-auto pb-2 scrollbar-none select-none max-w-full border-t border-white/5 pt-3 items-center">
+        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mr-1.5 shrink-0">Registry:</span>
+        {(['All', 'ICDD', 'COD', 'RRUFF', 'ICSD', 'CSD'] as DatabaseRef[]).map(db => {
+          const count = getCountForDatabase(db);
+          return (
+            <button
+              key={db}
+              type="button"
+              onClick={() => setActiveDatabase(db)}
+              className={`py-1 px-2.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 flex items-center gap-1 ${
+                activeDatabase === db
+                  ? 'bg-violet-500/20 border-violet-500/40 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.1)]'
+                  : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-400 hover:bg-black/40'
+              }`}
+            >
+              {db}
+              <span className={`text-[8px] px-1 py-0.2 rounded-full ${
+                activeDatabase === db 
+                  ? 'bg-violet-400/20 text-violet-300' 
+                  : 'bg-white/5 text-slate-600'
               }`}>
                 {count}
               </span>
@@ -972,7 +1199,12 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {material.database && (
+                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 leading-none" title={`Scientific registry reference: ${material.database}`}>
+                        {material.database} {material.databaseId ? `#${material.databaseId}` : ''}
+                      </span>
+                    )}
                     <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
                       material.category === 'Standard' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
                       material.category === 'Metal' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :

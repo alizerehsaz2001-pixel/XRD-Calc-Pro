@@ -247,6 +247,35 @@ export const RietveldModule: React.FC = () => {
     };
   }, [currentPhaseObj]);
 
+  const getNominalReferenceRwp = (phaseName: string, system: string): number => {
+    const name = (phaseName || '').toLowerCase();
+    const sys = (system || '').toLowerCase();
+    
+    // Check standard definitions
+    if (name.includes('silicon') || name.includes('standard') || name.includes('srm') || name.includes('halite') || name.includes('nacl')) {
+      return 6.5; 
+    }
+    if (name.includes('alumina') || name.includes('corundum') || name.includes('al2o3')) {
+      return 8.2;
+    }
+    if (name.includes('apatite') || name.includes('bone') || name.includes('enamel')) {
+      return 14.5; 
+    }
+    if (name.includes('glass') || name.includes('amorphous') || name.includes('polymer') || name.includes('ptfe')) {
+      return 22.0; 
+    }
+    
+    // Crystal symmetry-based default targets
+    if (sys.includes('cubic')) return 7.5;
+    if (sys.includes('tetragonal')) return 10.5;
+    if (sys.includes('hexagonal') || sys.includes('trigonal') || sys.includes('rhombohedral')) return 11.5;
+    if (sys.includes('orthorhombic')) return 12.5;
+    if (sys.includes('monoclinic')) return 14.5;
+    if (sys.includes('triclinic')) return 16.5;
+    
+    return 10.0;
+  };
+
   // Unified Setters syncing to the unified SimPhases array
   const setUserParams = (updater: any) => {
     setSimPhases(prev => {
@@ -389,6 +418,17 @@ export const RietveldModule: React.FC = () => {
   const [isAutoRefining, setIsAutoRefining] = useState(false);
   const [rFactor, setRFactor] = useState<number>(0);
 
+  const referenceRwp = useMemo(() => {
+    return getNominalReferenceRwp(currentPhaseObj.name, currentPhaseObj.phaseType);
+  }, [currentPhaseObj.name, currentPhaseObj.phaseType]);
+
+  const stabilityPercentage = useMemo(() => {
+    if (rFactor <= referenceRwp) return 100;
+    const ratio = rFactor / referenceRwp;
+    const score = 100 / Math.pow(ratio, 1.25);
+    return Math.max(0, Math.min(100, score));
+  }, [rFactor, referenceRwp]);
+
   // --- Setup Generator State ---
   const [phases, setPhases] = useState<RietveldPhaseInput[]>([
     { name: 'Phase 1', crystalSystem: 'Cubic', a: 5.43 }
@@ -413,6 +453,20 @@ export const RietveldModule: React.FC = () => {
   const [result, setResult] = useState<RietveldSetupResult | null>(null);
   const [strategyStatus, setStrategyStatus] = useState<'idle' | 'running' | 'success' | 'failed'>('idle');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_rietveld_setup', JSON.stringify({
+      phases, maxObsIntensity, bgModel, bgTerms, profileShape,
+      wavelength, radSource, setupZeroShift, sampleDisplacement, polarization,
+      refineZeroShift, refineBkg, refineSampleDisplacement, refineSurfaceRoughness,
+      geometry, divergenceSlit
+    }));
+  }, [
+    phases, maxObsIntensity, bgModel, bgTerms, profileShape,
+    wavelength, radSource, setupZeroShift, sampleDisplacement, polarization,
+    refineZeroShift, refineBkg, refineSampleDisplacement, refineSurfaceRoughness,
+    geometry, divergenceSlit
+  ]);
 
   const refinementMetrics = useMemo(() => {
     let globalActive = 0;
@@ -456,8 +510,74 @@ export const RietveldModule: React.FC = () => {
   }, [phases, bgModel, bgTerms]);
 
   // --- Simulation Tracking ---
-  const [rHistory, setRHistory] = useState<{iter: number, rwp: number, rexp: number, gof: number}[]>([]);
+  const [rHistory, setRHistory] = useState<{
+    iter: number; 
+    rwp: number; 
+    rexp: number; 
+    gof: number;
+    params?: {
+      id: string;
+      name: string;
+      a: number;
+      scale: number;
+      fwhm: number;
+      eta: number;
+      crystalliteSize: number;
+      microstrain: number;
+    }[];
+  }[]>([]);
   const [iterCount, setIterCount] = useState(0);
+
+  const restoreHistoryStep = (stepParams: any[]) => {
+    setSimPhases(prev => 
+      prev.map(p => {
+        const match = stepParams.find(sp => sp.id === p.id);
+        if (match) {
+          return {
+            ...p,
+            a: match.a,
+            scale: match.scale,
+            fwhm: match.fwhm,
+            eta: match.eta,
+            crystalliteSize: match.crystalliteSize,
+            microstrain: match.microstrain
+          };
+        }
+        return p;
+      })
+    );
+  };
+
+  const [selectedMetric, setSelectedMetric] = useState<'rwp_gof' | 'lattice_a' | 'scale' | 'fwhm' | 'eta' | 'crystallite' | 'microstrain'>('rwp_gof');
+
+  const transformedChartData = useMemo(() => {
+    return rHistory.map(entry => {
+      const row: any = {
+        iter: entry.iter,
+        rwp: entry.rwp,
+        gof: entry.gof,
+        rexp: entry.rexp
+      };
+      if (entry.params) {
+        entry.params.forEach((p, idx) => {
+          row[`phase_${idx}_a`] = p.a;
+          row[`phase_${idx}_scale`] = p.scale;
+          row[`phase_${idx}_fwhm`] = p.fwhm;
+          row[`phase_${idx}_eta`] = p.eta;
+          row[`phase_${idx}_crystallite`] = p.crystalliteSize;
+          row[`phase_${idx}_microstrain`] = p.microstrain;
+        });
+      }
+      return row;
+    });
+  }, [rHistory]);
+
+  const activeLogPhases = useMemo(() => {
+    if (rHistory.length === 0) return [];
+    const first = rHistory[0];
+    if (!first.params) return [];
+    return first.params.map((p, idx) => ({ id: p.id, name: p.name, index: idx }));
+  }, [rHistory]);
 
   // --- Simulation Logic ---
 
@@ -774,17 +894,33 @@ export const RietveldModule: React.FC = () => {
   // Track R-factor history
   useEffect(() => {
     if (isAutoRefining) {
+      const phaseParams = simPhases.map(p => ({
+        id: p.id,
+        name: p.name,
+        a: p.a,
+        scale: p.scale,
+        fwhm: p.fwhm,
+        eta: p.eta,
+        crystalliteSize: p.crystalliteSize,
+        microstrain: p.microstrain
+      }));
       setRHistory(prev => {
         const rexp = Math.max(3.5, rFactor * 0.4 + (Math.random() * 2));
         const gof = Math.pow(rFactor / rexp, 2);
         
-        const next = [...prev, { iter: iterCount, rwp: rFactor, rexp: rexp, gof: gof }];
-        if (next.length > 50) return next.slice(1);
+        const next = [...prev, { 
+          iter: iterCount, 
+          rwp: rFactor, 
+          rexp: rexp, 
+          gof: gof,
+          params: phaseParams
+        }];
+        if (next.length > 100) return next.slice(1);
         return next;
       });
       setIterCount(c => c + 1);
     }
-  }, [rFactor, isAutoRefining]);
+  }, [rFactor, isAutoRefining, simPhases]);
 
   // Reset tracking when phase selection or configuration list changes
   useEffect(() => {
@@ -922,6 +1058,39 @@ export const RietveldModule: React.FC = () => {
     const nextPhases = [...phases];
     nextPhases[phaseIdx] = { ...nextPhases[phaseIdx], atoms: [] };
     setPhases(nextPhases);
+  };
+
+  const importCifAtoms = async (phaseIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const { parseCIF } = await import('../utils/cifParser');
+      const parsedPhase = parseCIF(text, file.name);
+      
+      if (parsedPhase.atoms && parsedPhase.atoms.length > 0) {
+        const nextPhases = [...phases];
+        nextPhases[phaseIdx] = {
+          ...nextPhases[phaseIdx],
+          atoms: parsedPhase.atoms,
+          // Additionally import lattice parameters if the user wants them updated, but let's strictly keep them or map them nicely
+          spaceGroup: parsedPhase.spaceGroup || nextPhases[phaseIdx].spaceGroup,
+          a: parsedPhase.a || nextPhases[phaseIdx].a,
+          b: parsedPhase.b || nextPhases[phaseIdx].b,
+          c: parsedPhase.c || nextPhases[phaseIdx].c,
+          alpha: parsedPhase.alpha || nextPhases[phaseIdx].alpha,
+          beta: parsedPhase.beta || nextPhases[phaseIdx].beta,
+          gamma: parsedPhase.gamma || nextPhases[phaseIdx].gamma,
+          crystalSystem: parsedPhase.crystalSystem || nextPhases[phaseIdx].crystalSystem,
+        };
+        setPhases(nextPhases);
+      }
+    } catch (err) {
+      console.error("Error parsing CIF atoms:", err);
+    }
+    
+    if (e.target) e.target.value = '';
   };
 
   const addPhase = () => {
@@ -1777,26 +1946,50 @@ export const RietveldModule: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center justify-between relative z-10 pt-2 mb-4">
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Structural Health</span>
-                        <span className="text-[9px] font-mono text-slate-500 uppercase font-black">Stability Index</span>
-                      </div>
-                      <div className="text-right flex flex-col items-end flex-1 max-w-[50%]">
-                        <div className="w-full flex items-center gap-3">
-                          <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 relative">
-                             <div 
-                                className={`absolute top-0 left-0 h-full transition-all duration-700 ${Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50)) > 80 ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50)) > 50 ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}
-                                style={{ width: `${Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50))}%` }}
-                             />
-                          </div>
-                          <span className={`text-lg font-black font-mono tracking-tighter ${Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50)) > 80 ? 'text-emerald-400' : Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50)) > 50 ? 'text-amber-400' : 'text-rose-500'}`}>
-                            {Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50)).toFixed(1)}<span className="text-[10px]">%</span>
-                          </span>
+                    <div className="flex flex-col gap-2.5 relative z-10 pt-2 mb-4 border-t border-slate-800/60 mt-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Structural Health</span>
+                          <span className="text-[9px] font-mono text-slate-500 uppercase font-black">Stability Index</span>
                         </div>
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">
-                          vs Database Reference
-                        </span>
+                        <div className="text-right flex flex-col items-end flex-1 max-w-[65%]">
+                          <div className="w-full flex items-center gap-2">
+                            <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 relative">
+                               <div 
+                                  className={`absolute top-0 left-0 h-full transition-all duration-700 ${stabilityPercentage > 85 ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : stabilityPercentage > 50 ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}
+                                  style={{ width: `${stabilityPercentage}%` }}
+                               />
+                            </div>
+                            <span className={`text-lg font-black font-mono tracking-tighter ${stabilityPercentage > 85 ? 'text-emerald-400' : stabilityPercentage > 50 ? 'text-amber-400' : 'text-rose-500'}`}>
+                              {stabilityPercentage.toFixed(1)}<span className="text-[10px]">%</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Stability Report Card */}
+                      <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 text-[10px] space-y-1 text-slate-400 leading-normal">
+                        <div className="flex justify-between items-center text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-800/40 pb-1 mb-1">
+                          <span>Reference Stability Core</span>
+                          <span className="text-indigo-400 max-w-[120px] truncate">{currentPhaseObj.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Target Reference R-wp:</span>
+                          <span className="font-mono text-slate-300 font-bold">{referenceRwp.toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Calculated Match Ratio:</span>
+                          <span className="font-mono text-slate-300 font-bold">{(rFactor / referenceRwp).toFixed(2)}x</span>
+                        </div>
+                        <div className="text-[9px] italic text-slate-500 pt-1 leading-normal border-t border-slate-800/40 mt-1">
+                          {stabilityPercentage > 85 ? (
+                            <span className="text-emerald-400/90 font-sans font-bold flex items-center gap-1">✓ Atomic positions highly consistent with local crystal space constraints.</span>
+                          ) : stabilityPercentage > 50 ? (
+                            <span className="text-amber-400/90 font-sans font-bold flex items-center gap-1">⚠ Acceptable refinement matching. Try adjusting background terms or scale parameters.</span>
+                          ) : (
+                            <span className="text-rose-400/90 font-sans font-bold flex items-center gap-1">✗ Mismatch detected. Reset lattice parameters or reload clean CIF structure.</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   
@@ -2921,7 +3114,16 @@ export const RietveldModule: React.FC = () => {
                                      )}
                                    </div>
                                    <div className="flex gap-2">
-                                     {phase.atoms && phase.atoms.length > 0 && (
+                                     <label className="cursor-pointer text-indigo-400 hover:text-indigo-300 text-[8px] bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 transition-all font-black uppercase tracking-widest flex items-center gap-1">
+                                        <Download className="w-2.5 h-2.5" /> Import CIF Atoms
+                                        <input 
+                                          type="file" 
+                                          accept=".cif" 
+                                          className="hidden" 
+                                          onChange={(e) => importCifAtoms(idx, e)} 
+                                        />
+                                      </label>
+                                      {phase.atoms && phase.atoms.length > 0 && (
                                        <button 
                                          onClick={() => clearAtoms(idx)}
                                          className="text-slate-400 hover:text-rose-400 text-[8px] bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20 transition-all font-black uppercase tracking-widest"
@@ -3272,145 +3474,239 @@ export const RietveldModule: React.FC = () => {
                </div>
             </div>
           </div>
-          </div>
         </div>
+      </div>
       )}
 
       {activeTab === 'log' && (
         <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-           {/* Metric Summary Cards */}
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex items-center justify-between">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-               <div>
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Best R-wp</h4>
-                  <div className="text-3xl font-black font-mono text-emerald-400">
-                    {rHistory.length > 0 ? Math.min(...rHistory.map(h => h.rwp)).toFixed(2) : '--'}
-                    <span className="text-sm ml-1">%</span>
-                  </div>
+             {/* Metric Summary Cards */}
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex items-center justify-between">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                 <div>
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Best R-wp</h4>
+                    <div className="text-3xl font-black font-mono text-emerald-400">
+                      {rHistory.length > 0 ? Math.min(...rHistory.map(h => h.rwp)).toFixed(2) : '--'}
+                      <span className="text-sm ml-1">%</span>
+                    </div>
+                 </div>
+                 <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-center">
+                   <Thermometer className="w-6 h-6 text-emerald-400" />
+                 </div>
                </div>
-               <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-center">
-                 <Thermometer className="w-6 h-6 text-emerald-400" />
+               
+               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex items-center justify-between">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+                 <div>
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Best GoF</h4>
+                    <div className="text-3xl font-black font-mono text-amber-400">
+                      {rHistory.length > 0 ? Math.min(...rHistory.map(h => h.gof)).toFixed(2) : '--'}
+                      <span className="text-sm ml-1">χ²</span>
+                    </div>
+                 </div>
+                 <div className="w-12 h-12 bg-amber-500/10 rounded-2xl border border-amber-500/20 flex items-center justify-center">
+                   <Compass className="w-6 h-6 text-amber-400" />
+                 </div>
+               </div>
+               
+               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex items-center justify-between">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+                 <div>
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Cycles</h4>
+                    <div className="text-3xl font-black font-mono text-teal-400">
+                      {iterCount}
+                    </div>
+                 </div>
+                 <div className="w-12 h-12 bg-teal-500/10 rounded-2xl border border-teal-500/20 flex items-center justify-center">
+                   <RefreshCw className="w-6 h-6 text-teal-400" />
+                 </div>
                </div>
              </div>
-             
-             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex items-center justify-between">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-               <div>
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Best GoF</h4>
-                  <div className="text-3xl font-black font-mono text-amber-400">
-                    {rHistory.length > 0 ? Math.min(...rHistory.map(h => h.gof)).toFixed(2) : '--'}
-                    <span className="text-sm ml-1">χ²</span>
-                  </div>
-               </div>
-               <div className="w-12 h-12 bg-amber-500/10 rounded-2xl border border-amber-500/20 flex items-center justify-center">
-                 <Compass className="w-6 h-6 text-amber-400" />
-               </div>
-             </div>
-             
-             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex items-center justify-between">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-               <div>
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Cycles</h4>
-                  <div className="text-3xl font-black font-mono text-teal-400">
-                    {iterCount}
-                  </div>
-               </div>
-               <div className="w-12 h-12 bg-teal-500/10 rounded-2xl border border-teal-500/20 flex items-center justify-center">
-                 <RefreshCw className="w-6 h-6 text-teal-400" />
-               </div>
-             </div>
-           </div>
 
-           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
-              <div className="flex items-center justify-between mb-6 relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-teal-500/20 rounded-xl border border-teal-500/30">
-                    <Activity className="h-5 w-5 text-teal-400" />
+             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-teal-500/20 rounded-xl border border-teal-500/30">
+                      <Activity className="h-5 w-5 text-teal-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider mb-0.5">Convergence Trace</h3>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Real-time optimization metrics log</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider mb-0.5">Convergence Trace</h3>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Real-time optimization metrics log</p>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 shadow-inner">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Trace Value:</span>
+                      <select
+                        value={selectedMetric}
+                        onChange={(e) => setSelectedMetric(e.target.value as any)}
+                        className="bg-transparent text-xs font-black text-teal-400 outline-none cursor-pointer pr-2"
+                      >
+                        <option value="rwp_gof" className="bg-slate-900 text-slate-300">Rwp & GoF Fit Trace</option>
+                        <option value="lattice_a" className="bg-slate-900 text-slate-300">Lattice Parameter (a)</option>
+                        <option value="scale" className="bg-slate-900 text-slate-300">Scale Factors</option>
+                        <option value="fwhm" className="bg-slate-900 text-slate-300">Profile Width (FWHM)</option>
+                        <option value="eta" className="bg-slate-900 text-slate-300">Lorenz Ratio (η)</option>
+                        <option value="crystallite" className="bg-slate-900 text-slate-300">Crystallite Size (nm)</option>
+                        <option value="microstrain" className="bg-slate-900 text-slate-300">Microstrain (ε)</option>
+                      </select>
+                    </div>
+
+                    <button 
+                      onClick={() => {
+                        if (rHistory.length === 0) return;
+                        let header = "Iteration,R-wp,R-exp,GoF";
+                        if (activeLogPhases.length > 0) {
+                          activeLogPhases.forEach(p => {
+                            header += `,${p.name}_a,${p.name}_scale,${p.name}_fwhm,${p.name}_eta,${p.name}_crystalliteSize,${p.name}_microstrain`;
+                          });
+                        }
+                        header += "\n";
+                        
+                        const rows = rHistory.map(r => {
+                          let line = `${r.iter},${r.rwp},${r.rexp},${r.gof}`;
+                          if (r.params) {
+                            r.params.forEach(p => {
+                              line += `,${p.a},${p.scale},${p.fwhm},${p.eta},${p.crystalliteSize},${p.microstrain}`;
+                            });
+                          }
+                          return line;
+                        }).join('\n');
+
+                        const blob = new Blob([header + rows], { type: 'text/csv' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `rietveld_convergence_log_${Date.now()}.csv`;
+                        a.click();
+                      }}
+                      disabled={rHistory.length === 0}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors text-[10px] uppercase font-black tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Export Data CSV
+                    </button>
                   </div>
                 </div>
-                <button 
-                  onClick={() => {
-                    if (rHistory.length === 0) return;
-                    const csv = "Iteration,R-wp,R-exp,GoF\n" + rHistory.map(r => `${r.iter},${r.rwp},${r.rexp},${r.gof}`).join('\n');
-                    const blob = new Blob([csv], { type: 'text/csv' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `rietveld_convergence_log_${Date.now()}.csv`;
-                    a.click();
-                  }}
-                  disabled={rHistory.length === 0}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors text-[10px] uppercase font-black tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Download className="w-3.5 h-3.5" /> Export CSV
-                </button>
-              </div>
 
-              {rHistory.length > 0 && (
-                <div className="h-48 w-full mb-6 border-b border-slate-800/50 pb-6 relative z-10">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={rHistory} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                      <XAxis dataKey="iter" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} minTickGap={30} />
-                      <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} domain={['auto', 'auto']} width={60} />
-                      <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} domain={['auto', 'auto']} width={40} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
-                        itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
-                        labelStyle={{ color: '#475569', fontSize: '10px', marginBottom: '4px' }}
-                      />
-                      <Line yAxisId="left" type="monotone" dataKey="rwp" name="R-wp (%)" stroke="#34d399" strokeWidth={2} dot={false} isAnimationActive={false} />
-                      <Line yAxisId="right" type="monotone" dataKey="gof" name="GoF (χ²)" stroke="#fbbf24" strokeWidth={2} dot={false} isAnimationActive={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+                {rHistory.length > 0 && (
+                  <div className="h-64 w-full mb-6 border-b border-slate-800/50 pb-6 relative z-10">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={transformedChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                        <XAxis dataKey="iter" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} minTickGap={30} />
+                        
+                        {selectedMetric === 'rwp_gof' ? (
+                          <>
+                            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} domain={['auto', 'auto']} width={60} />
+                            <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} domain={['auto', 'auto']} width={40} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                              itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
+                              labelStyle={{ color: '#475569', fontSize: '10px', marginBottom: '4px' }}
+                            />
+                            <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                            <Line yAxisId="left" type="monotone" dataKey="rwp" name="R-wp (%)" stroke="#34d399" strokeWidth={2.5} dot={false} isAnimationActive={false} />
+                            <Line yAxisId="right" type="monotone" dataKey="gof" name="GoF (χ²)" stroke="#fbbf24" strokeWidth={2.5} dot={false} isAnimationActive={false} />
+                          </>
+                        ) : (
+                          <>
+                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} domain={['auto', 'auto']} width={65} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                              itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
+                              labelStyle={{ color: '#475569', fontSize: '10px', marginBottom: '4px' }}
+                            />
+                            <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                            {activeLogPhases.map((phase) => {
+                              const colors = ['#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#34d399'];
+                              const color = colors[phase.index % colors.length];
+                              
+                              let dataKey = '';
+                              let label = '';
+                              if (selectedMetric === 'lattice_a') { dataKey = `phase_${phase.index}_a`; label = `${phase.name} (a, Å)`; }
+                              else if (selectedMetric === 'scale') { dataKey = `phase_${phase.index}_scale`; label = `${phase.name} (Scale)`; }
+                              else if (selectedMetric === 'fwhm') { dataKey = `phase_${phase.index}_fwhm`; label = `${phase.name} (FWHM)`; }
+                              else if (selectedMetric === 'eta') { dataKey = `phase_${phase.index}_eta`; label = `${phase.name} (η)`; }
+                              else if (selectedMetric === 'crystallite') { dataKey = `phase_${phase.index}_crystallite`; label = `${phase.name} (Size, nm)`; }
+                              else if (selectedMetric === 'microstrain') { dataKey = `phase_${phase.index}_microstrain`; label = `${phase.name} (Strain, %)`; }
+                              
+                              return (
+                                <Line 
+                                  key={phase.id} 
+                                  type="monotone" 
+                                  dataKey={dataKey} 
+                                  name={label} 
+                                  stroke={color} 
+                                  strokeWidth={2} 
+                                  dot={false} 
+                                  isAnimationActive={false} 
+                                />
+                              );
+                            })}
+                          </>
+                        )}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
 
-              <div className="bg-[#050B14] rounded-2xl border border-slate-800 overflow-hidden relative z-10">
-                <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
-                   {rHistory.length === 0 ? (
-                     <div className="flex flex-col items-center justify-center p-12 text-slate-600">
-                        <Activity className="w-12 h-12 mb-3 opacity-50" />
-                        <span className="text-xs font-black uppercase tracking-widest">No optimization data</span>
-                     </div>
-                   ) : (
-                     <table className="w-full text-left border-collapse font-mono text-xs">
-                        <thead className="bg-[#0F172A] sticky top-0 z-20 border-b border-slate-800 shadow-sm">
-                          <tr>
-                            <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest">Iteration</th>
-                            <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">R-wp (%)</th>
-                            <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">R-exp (%)</th>
-                            <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">GoF (χ²)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[...rHistory].reverse().map((entry, idx) => (
-                            <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors">
-                               <td className="p-4 text-teal-400 font-bold font-sans">
-                                 <span className="text-[10px] text-teal-400/50 mr-1">#</span>{entry.iter}
-                               </td>
-                               <td className="p-4 text-emerald-400 text-right">{entry.rwp.toFixed(2)}</td>
-                               <td className="p-4 text-slate-400 text-right">{entry.rexp.toFixed(2)}</td>
-                               <td className="p-4 text-right">
-                                  <span className={`px-2 py-1 rounded border border-transparent ${entry.gof <= 1.5 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : entry.gof <= 3.0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
-                                     {entry.gof.toFixed(3)}
-                                  </span>
-                               </td>
+                <div className="bg-[#050B14] rounded-2xl border border-slate-800 overflow-hidden relative z-10">
+                  <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+                     {rHistory.length === 0 ? (
+                       <div className="flex flex-col items-center justify-center p-12 text-slate-600">
+                          <Activity className="w-12 h-12 mb-3 opacity-50" />
+                          <span className="text-xs font-black uppercase tracking-widest">No optimization data</span>
+                       </div>
+                     ) : (
+                       <table className="w-full text-left border-collapse font-mono text-xs">
+                          <thead className="bg-[#0F172A] sticky top-0 z-20 border-b border-slate-800 shadow-sm">
+                            <tr>
+                              <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest">Iteration</th>
+                              <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">R-wp (%)</th>
+                              <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">R-exp (%)</th>
+                              <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">GoF (χ²)</th>
+                              <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">Action</th>
                             </tr>
-                          ))}
-                        </tbody>
-                     </table>
-                   )}
+                          </thead>
+                          <tbody>
+                            {[...rHistory].reverse().map((entry, idx) => (
+                              <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors">
+                                 <td className="p-4 text-teal-400 font-bold font-sans">
+                                   <span className="text-[10px] text-teal-400/50 mr-1">#</span>{entry.iter}
+                                 </td>
+                                 <td className="p-4 text-emerald-400 text-right">{entry.rwp.toFixed(2)}%</td>
+                                 <td className="p-4 text-slate-400 text-right">{entry.rexp.toFixed(2)}%</td>
+                                 <td className="p-4 text-right">
+                                    <span className={`px-2 py-1 rounded border border-transparent font-sans ${entry.gof <= 1.5 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : entry.gof <= 3.0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                                       {entry.gof.toFixed(3)}
+                                    </span>
+                                 </td>
+                                 <td className="p-4 text-right">
+                                   {entry.params && (
+                                     <button
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         restoreHistoryStep(entry.params || []);
+                                       }}
+                                       className="px-2.5 py-1 bg-teal-500/15 border border-teal-500/30 hover:bg-teal-500/30 hover:border-teal-500/50 text-teal-400 text-[10px] uppercase font-black tracking-wider transition-all rounded-lg inline-flex items-center gap-1 hover:text-white"
+                                       title="Restore simulation parameters to this exact iteration"
+                                     >
+                                       <RotateCcw className="w-3 h-3" /> Rollback
+                                     </button>
+                                   )}
+                                 </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                       </table>
+                     )}
+                  </div>
                 </div>
-              </div>
-           </div>
-        </div>
+             </div>
+          </div>
       )}
     </div>
   );

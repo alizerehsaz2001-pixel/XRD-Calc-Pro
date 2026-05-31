@@ -677,6 +677,23 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'Cobalt-Ferrite' ? 'Cobalt Ferrite' :
                         type === 'Maghemite' ? 'Maghemite' :
                         type === 'Zn-Ferrite' ? 'Zinc-doped Ferrite' :
+                        type === 'LMO' ? 'Lithium Manganese Oxide' :
+                        type === 'Mo' ? 'Molybdenum' :
+                        type === 'Ir' ? 'Iridium' :
+                        type === 'Os' ? 'Osmium' :
+                        type === 'Rh' ? 'Rhodium' :
+                        type === 'LiTaO3' ? 'Lithium Tantalate' :
+                        type === 'LiNbO3' ? 'Lithium Niobate' :
+                        type === 'PbS' ? 'Lead Sulphide' :
+                        type === 'ZnTe' ? 'Zinc Telluride' :
+                        type === 'LaAlO3' ? 'Lanthanum Aluminate' :
+                        type === 'Cu2O' ? 'Cuprite' :
+                        type === 'CdSe' ? 'Cadmium Selenide' :
+                        type === 'SiO' ? 'Silicon Monoxide' :
+                        type === 'Y2O3' ? 'Yttrium Oxide' :
+                        type === 'BaZrO3' ? 'Barium Zirconate' :
+                        type === 'NASICON' ? 'NASICON' :
+                        type === 'TiS2' ? 'Titanium Disulfide' :
                         type === 'ACP' ? 'Amorphous Calcium Phosphate' :
                         type === 'Bio-Glass-1393' ? 'Bioactive Glass (13-93)' :
                         type === 'Bio-Glass-S53P4' ? 'Bioactive Glass (S53P4)' :
@@ -1477,6 +1494,28 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'HKUST1', label: 'HKUST-1' },
                     { id: 'MoO3', label: 'MoO3' },
                     { id: 'V2O3', label: 'V2O3' },
+                    { id: 'NaCl', label: 'NaCl' },
+                    { id: 'Graphene', label: 'Graphene' },
+                    { id: 'LMO', label: 'LMO Cathode' },
+                    { id: 'Bismuth', label: 'Bismuth' },
+                    { id: 'Germanium', label: 'Germanium' },
+                    { id: 'TiN', label: 'TiN' },
+                    { id: 'Mo', label: 'Mo' },
+                    { id: 'Ir', label: 'Ir' },
+                    { id: 'Os', label: 'Os' },
+                    { id: 'Rh', label: 'Rh' },
+                    { id: 'LiTaO3', label: 'LiTaO3' },
+                    { id: 'LiNbO3', label: 'LiNbO3' },
+                    { id: 'PbS', label: 'PbS' },
+                    { id: 'ZnTe', label: 'ZnTe' },
+                    { id: 'LaAlO3', label: 'LaAlO3' },
+                    { id: 'Cu2O', label: 'Cu2O (Cuprite)' },
+                    { id: 'CdSe', label: 'CdSe' },
+                    { id: 'SiO', label: 'SiO Anode' },
+                    { id: 'Y2O3', label: 'Y2O3 (Yttria)' },
+                    { id: 'BaZrO3', label: 'BaZrO3' },
+                    { id: 'NASICON', label: 'NASICON' },
+                    { id: 'TiS2', label: 'TiS2' },
                     { id: 'Modern-Ceramic', label: 'Modern Ceramic' },
                     { id: 'Solar-Mix', label: 'Solar Mix' },
                     { id: 'Cathode-Mix', label: 'Cathode Mix' },
