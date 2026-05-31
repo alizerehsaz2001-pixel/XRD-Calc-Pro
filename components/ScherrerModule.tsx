@@ -5,6 +5,7 @@ import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, Shield
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from './SettingsContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
+import { MorphologyVisualizer } from './MorphologyVisualizer';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -197,6 +198,44 @@ export const ScherrerModule: React.FC = () => {
     localStorage.removeItem('xrd_scherrer_current');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wavelength, constantK, instFwhm, inputData, useCaglioti, caglioti, broadeningModel]);
+
+  const whStrainTriage = useMemo(() => {
+    if (results.length < 2) return { slope: 0, rSquared: 0 };
+    const valid = results.filter(r => !r.error);
+    if (valid.length < 2) return { slope: 0, rSquared: 0 };
+
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+    valid.forEach(r => {
+      const theta = (r.twoTheta / 2) * (Math.PI / 180);
+      const x = 4 * Math.sin(theta);
+      const y = r.betaCorrected * (Math.PI / 180) * Math.cos(theta);
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumX2 += x * x;
+    });
+
+    const n = valid.length;
+    const denominator = n * sumX2 - sumX * sumX;
+    if (denominator === 0) return { slope: 0, rSquared: 0 };
+    
+    const slope = (n * sumXY - sumX * sumY) / denominator;
+    const intercept = (sumY - slope * sumX) / n;
+
+    let ssTot = 0, ssRes = 0;
+    const meanY = sumY / n;
+    valid.forEach(r => {
+      const theta = (r.twoTheta / 2) * (Math.PI / 180);
+      const x = 4 * Math.sin(theta);
+      const y = r.betaCorrected * (Math.PI / 180) * Math.cos(theta);
+      const f = slope * x + intercept;
+      ssTot += Math.pow(y - meanY, 2);
+      ssRes += Math.pow(y - f, 2);
+    });
+    
+    const rSquared = ssTot > 0 ? 1 - (ssRes / ssTot) : 0;
+    return { slope: Math.max(0, slope), rSquared };
+  }, [results]);
 
   const histogramData = useMemo(() => {
     const validResults = results.filter(r => !r.error && r.sizeNm > 0);
@@ -797,65 +836,108 @@ export const ScherrerModule: React.FC = () => {
             </div>
           </div>
 
-          {/* Size Distribution Histogram */}
+          {/* Size Distribution Histogram & Structural Triage */}
           {results.length > 0 && histogramData.length > 0 && (
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-              <div className="flex items-center gap-3 mb-6 relative z-10">
-                <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
-                  <BarChart2 className="h-5 w-5 text-indigo-400" />
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+              {/* Histogram */}
+              <div className="xl:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group flex flex-col">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                <div className="flex items-center gap-3 mb-6 relative z-10">
+                  <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
+                    <BarChart2 className="h-5 w-5 text-indigo-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider mb-0.5">Size Distribution</h3>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Grain Size Frequency Histogram</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-wider mb-0.5">Size Distribution</h3>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Grain Size Frequency Histogram</p>
+                <div className="flex-1 w-full relative z-10 min-h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={histogramData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                      <XAxis 
+                        dataKey="center" 
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                        tickLine={{ stroke: '#334155' }}
+                        axisLine={{ stroke: '#334155' }}
+                        label={{ value: 'Crystallite Size [nm]', position: 'insideBottom', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                      />
+                      <YAxis 
+                        allowDecimals={false}
+                        tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                        tickLine={{ stroke: '#334155' }}
+                        axisLine={{ stroke: '#334155' }}
+                        label={{ value: 'Frequency Count', angle: -90, position: 'insideLeft', offset: 15, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                      />
+                      <Tooltip 
+                        cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-slate-900/95 border border-slate-700/50 p-3 rounded-xl shadow-xl backdrop-blur-md">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Range: <span className="text-indigo-400 font-mono">{data.name}</span></p>
+                                <p className="text-xs font-bold text-white uppercase flex items-center gap-2">
+                                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                                  {payload[0].value} Peaks Found
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar 
+                        dataKey="count" 
+                        radius={[4, 4, 0, 0]}
+                      >
+                        {histogramData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill="rgba(99, 102, 241, 0.8)" stroke="rgba(99, 102, 241, 1)" strokeWidth={1} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
-              <div className="h-64 w-full relative z-10">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={histogramData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis 
-                      dataKey="center" 
-                      tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
-                      tickLine={{ stroke: '#334155' }}
-                      axisLine={{ stroke: '#334155' }}
-                      label={{ value: 'Crystallite Size [nm]', position: 'insideBottom', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
-                    />
-                    <YAxis 
-                      allowDecimals={false}
-                      tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
-                      tickLine={{ stroke: '#334155' }}
-                      axisLine={{ stroke: '#334155' }}
-                      label={{ value: 'Frequency Count', angle: -90, position: 'insideLeft', offset: 15, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
-                    />
-                    <Tooltip 
-                      cursor={{ fill: 'rgba(255,255,255,0.02)' }}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="bg-slate-900/95 border border-slate-700/50 p-3 rounded-xl shadow-xl backdrop-blur-md">
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Range: <span className="text-indigo-400 font-mono">{data.name}</span></p>
-                              <p className="text-xs font-bold text-white uppercase flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                                {payload[0].value} Peaks Found
-                              </p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Bar 
-                      dataKey="count" 
-                      radius={[4, 4, 0, 0]}
-                    >
-                      {histogramData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill="rgba(99, 102, 241, 0.8)" stroke="rgba(99, 102, 241, 1)" strokeWidth={1} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+
+              {/* Triage & Morphology */}
+              <div className="xl:col-span-4 flex flex-col gap-6">
+                 {/* Morphological projection */}
+                 <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative flex flex-col h-1/2 min-h-[220px]">
+                   <h3 className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] mb-4">Morphology</h3>
+                   <div className="flex-1 w-full">
+                     <MorphologyVisualizer kType={selectedKType} sizeNm={avgSize} />
+                   </div>
+                 </div>
+
+                 {/* WH Strain Triage */}
+                 {results.filter(r => !r.error).length > 1 && (
+                 <div className={`flex-1 rounded-3xl p-6 shadow-2xl relative overflow-hidden transition-all duration-500 flex flex-col justify-center ${whStrainTriage.slope > 0.0002 ? 'bg-rose-500/10 border border-rose-500/30' : 'bg-emerald-500/10 border border-emerald-500/30'}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                       <AlertTriangle className={`w-5 h-5 ${whStrainTriage.slope > 0.0002 ? 'text-rose-400' : 'text-emerald-400'}`} />
+                       <h3 className="text-xs font-black text-white uppercase tracking-widest">Strain Triage</h3>
+                    </div>
+                    {whStrainTriage.slope > 0.0002 ? (
+                      <div>
+                        <p className="text-[11px] text-rose-200/80 mb-3 font-medium leading-relaxed">
+                          Significant lattice microstrain detected (<span className="font-mono text-rose-400 font-bold">{whStrainTriage.slope.toExponential(2)}</span>). Scherrer model may underestimate true crystallite dimensions.
+                        </p>
+                        <div className="text-[9px] font-black uppercase text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-lg inline-flex items-center gap-2">
+                           <Zap className="w-3 h-3" /> Consider Williamson-Hall Analysis
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-[11px] text-emerald-200/80 mb-3 font-medium leading-relaxed">
+                          Microstrain is negligible (<span className="font-mono text-emerald-400 font-bold">{whStrainTriage.slope.toExponential(2)}</span>) or indeterminate. Scherrer assumptions apply well.
+                        </p>
+                        <div className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-lg inline-flex items-center gap-2">
+                           <Check className="w-3 h-3" /> High Confidence
+                        </div>
+                      </div>
+                    )}
+                 </div>
+                 )}
               </div>
             </div>
           )}

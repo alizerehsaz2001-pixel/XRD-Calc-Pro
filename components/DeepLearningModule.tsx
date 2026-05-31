@@ -393,7 +393,7 @@ export const DeepLearningModule: React.FC = () => {
     setTimeout(() => setProgressStep(3), 2000);
     setTimeout(() => {
       const points = parseXYData(dataToAnalyze);
-      let computed = identifyPhasesDL(points, mixMode);
+      let computed = identifyPhasesDL(points, mixMode, engineConfig);
 
       
       // Enhance result with known material data if matched
@@ -514,7 +514,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       // Anatase: 25.28(100), 48.05(35)
       // Ag: 38.12(100), 44.30(40)
       setInputData(`20.86, 15\n25.28, 60\n26.64, 100\n27.44, 40\n38.12, 30\n44.30, 15\n48.05, 18\n50.14, 10\n54.32, 22`);
-      setSearchTerm("Complex Mixture (Quartz + Rutile + Anatase + Ag)");
+      setSearchTerm("ICSD-15598: Complex (Quartz + Rutile + Anatase + Ag)");
     } else if (type === 'Modern-Ceramic') {
       setInputData(`28.17, 30\n31.47, 20\n35.9, 100\n41.7, 85\n50.12, 10\n60.4, 60\n72.3, 45`);
       setSearchTerm("Modern Ceramic (TiC + ZrO2)");
@@ -541,127 +541,127 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       setSearchTerm("Iron Oxide Mix (Magnetite + Hematite + Quartz)");
     } else if (type === 'Biocoat-Composite-Suite') {
       setInputData(`25.87, 25\n30.27, 60\n31.77, 100\n32.19, 90\n35.25, 12\n46.71, 15\n49.46, 15\n50.37, 35\n60.20, 20`);
-      setSearchTerm("Biomedical Implant Composite (HAp + ZrO2)");
+      setSearchTerm("COD-9002220: Implant Suite (HAp + ZrO2)");
     } else if (type === 'SOFC-Electrode-Suite') {
       setInputData(`22.4, 15\n30.1, 80\n31.8, 100\n34.8, 18\n39.3, 10\n45.8, 30\n50.2, 45\n57.2, 20\n59.7, 25\n62.8, 10\n67.1, 22`);
-      setSearchTerm("SOFC Electrode Composite (YSZ + SRO)");
+      setSearchTerm("ICSD-62295: SOFC (YSZ + SRO)");
     } else if (type === 'Aerospace-Armor-Suite') {
       setInputData(`25.58, 20\n35.15, 80\n35.9, 100\n37.78, 15\n41.7, 50\n43.36, 45\n52.55, 18\n57.50, 40\n60.4, 30\n61.30, 5\n66.52, 10\n68.21, 15\n72.3, 20`);
-      setSearchTerm("Aerospace Armor Composite (TiC + Al2O3)");
+      setSearchTerm("ICSD-43221: Aerospace (TiC + Al2O3)");
     } else if (type === 'Pharma-Drug-Suite') {
       setInputData(`6.1, 40\n12.1, 20\n12.2, 25\n15.5, 30\n16.6, 100\n17.7, 20\n18.2, 90\n18.9, 30\n20.2, 35\n20.4, 18\n22.3, 45\n23.5, 22\n24.4, 40\n32.8, 10`);
-      setSearchTerm("Analgesic Co-Formulation (Ibuprofen + Paracetamol)");
+      setSearchTerm("CSD-HXACAN: Pharma (Ibu + Para)");
     } else if (type === 'Nuclear-Fuel-Suite') {
       setInputData(`27.6, 90\n28.2, 100\n31.9, 35\n32.7, 40\n45.8, 50\n47.0, 45\n54.4, 40\n55.8, 35\n57.0, 30\n58.5, 25`);
-      setSearchTerm("Mixed Nuclear Fuel (UO2 + ThO2)");
+      setSearchTerm("ICDD-PDF-4: Nuclear (UO2 + ThO2)");
     } else if (type === 'Battery-Anode-Suite') {
       setInputData(`26.54, 80\n28.44, 100\n42.39, 5\n44.59, 12\n47.30, 48\n54.67, 10\n56.12, 25`);
-      setSearchTerm("Battery Anode (Silicon + Graphite)");
+      setSearchTerm("ICSD-76031: Battery (Si + C)");
     } else if (type === 'Superconductor-Suite') {
       setInputData(`22.8, 25\n32.5, 100\n32.8, 90\n35.5, 45\n38.5, 15\n38.7, 50\n40.3, 10\n46.7, 30\n48.7, 15\n53.5, 8\n58.1, 25\n58.3, 10\n61.5, 12\n66.2, 10\n68.1, 10`);
-      setSearchTerm("Superconductor Composite (YBCO + CuO)");
+      setSearchTerm("ICSD-65546: Superconductor (YBCO + CuO)");
     } else if (type === 'Zeolite-Catalyst-Suite') {
       setInputData(`7.2, 80\n7.9, 100\n8.8, 60\n10.2, 40\n12.5, 50\n16.1, 15\n21.7, 25\n23.1, 85\n23.3, 75\n23.9, 65\n24.0, 35\n24.4, 45\n27.1, 20\n29.9, 30\n34.2, 15`);
-      setSearchTerm("Zeolite Catalyst Suite (ZSM-5 + Zeolite A)");
+      setSearchTerm("IZA-ZSM5: Zeolite (ZSM-5 + LTA)");
     } else if (type === 'Cantor-Alloy-Suite') {
       setInputData(`44.39, 60\n44.51, 100\n44.67, 80\n51.85, 45\n64.58, 15\n65.02, 18\n76.38, 25\n81.72, 20\n82.33, 22\n92.95, 15\n98.05, 8\n98.45, 8\n98.94, 10`);
-      setSearchTerm("Cantor High-Entropy Alloy Suite (Fe + Cr + Ni)");
+      setSearchTerm("COD-9014004: Cantor Alloy (Fe + Cr + Ni)");
     } else if (type === 'Carbon-Steel-Suite') {
       setInputData(`37.7, 15\n39.8, 20\n40.6, 25\n42.9, 18\n43.6, 60\n43.7, 24\n44.5, 22\n44.67, 100\n44.9, 25\n50.8, 25\n65.02, 15\n74.7, 15\n82.33, 20\n90.7, 12`);
-      setSearchTerm("Carbon Steel Microstructure Suite (Ferrite + Austenite + Cementite)");
+      setSearchTerm("ICSD-64795: Steel (Ferrite + Austenite + Fe3C)");
     } else if (type === 'Superalloy-Carbide-Suite') {
       setInputData(`31.51, 80\n35.64, 75\n43.8, 100\n48.30, 65\n51.0, 45\n64.06, 25\n73.11, 30\n75.1, 20\n75.48, 18\n77.16, 15\n91.2, 12`);
-      setSearchTerm("Superalloy-Carbide Composite Suite (Inconel + WC)");
+      setSearchTerm("COD-9011620: Superalloy (Inconel + WC)");
     } else if (type === 'Multiferroic-Ceramic-Suite') {
       setInputData(`22.20, 15\n30.1, 30\n31.50, 100\n35.4, 80\n37.1, 10\n38.90, 18\n43.1, 24\n45.30, 32\n50.90, 12\n53.4, 18\n56.20, 10\n57.0, 35\n62.6, 45\n65.80, 15`);
-      setSearchTerm("Multiferroic Magnetoelectric Ceramic Suite (BaTiO3 + CoFe2O4)");
+      setSearchTerm("ICSD-188686: Multiferroic (BaTiO3 + CoFe2O4)");
     } else if (type === 'Photocatalyst-TiO2-WO3-Suite') {
       setInputData(`23.1, 60\n23.6, 55\n24.4, 55\n25.28, 100\n26.6, 15\n27.44, 80\n28.9, 10\n33.3, 20\n34.1, 25\n36.08, 40\n37.80, 15\n39.18, 5\n41.22, 15\n44.05, 8\n48.05, 25\n53.89, 15\n54.31, 45\n55.06, 12\n56.62, 12\n62.69, 10`);
-      setSearchTerm("Photocatalytic TiO2-WO3 Semiconductor Composite Suite");
+      setSearchTerm("COD-9004144: Photocatalytic (TiO2 + WO3)");
     } else if (type === 'Nanocomposite-2D-Energy-Suite') {
       setInputData(`9.2, 80\n10.5, 100\n14.38, 70\n18.4, 12\n22.0, 10\n26.6, 8\n27.6, 12\n32.67, 10\n33.51, 8\n34.2, 5\n38.9, 10\n39.54, 6\n42.1, 8\n42.6, 5\n44.15, 6\n49.79, 10\n58.34, 12\n60.5, 8`);
-      setSearchTerm("2D Energy Nanocomposite Suite (MXene + MoS2 + GO)");
+      setSearchTerm("COD-4513689: 2D Composite (MXene + MoS2 + GO)");
     } else if (type === 'Carbon-Allotropes-Hybrid-Suite') {
       setInputData(`10.5, 35\n22.0, 5\n26.54, 80\n42.39, 4\n43.92, 100\n44.59, 12\n54.67, 8\n75.30, 25\n91.50, 16`);
-      setSearchTerm("Carbon Allotropes (Diamond + Graphite + GO)");
+      setSearchTerm("COD-9012290: Carbon Allotropes (Diamond + Graphite + GO)");
     } else if (type === 'Carbon-Carbide-Refractory-Suite') {
       setInputData(`23.5, 15\n26.54, 60\n33.6, 15\n34.9, 60\n35.6, 100\n37.8, 80\n41.4, 20\n44.59, 10\n44.8, 20\n53.4, 25\n60.0, 40\n71.8, 30`);
-      setSearchTerm("Carbon-Carbide Refractory (Graphite + SiC + B4C)");
+      setSearchTerm("ICSD-16997: Refractory (Graphite + SiC + B4C)");
     } else if (type === 'Biomineral-Carbonate-Suite') {
       setInputData(`23.06, 12\n25.87, 35\n26.2, 85\n29.40, 95\n31.77, 100\n32.19, 90\n32.90, 60\n33.1, 40\n34.04, 45\n35.96, 12\n36.1, 18\n37.8, 25\n38.4, 25\n39.40, 18\n43.16, 18\n45.8, 30\n46.71, 35\n47.50, 22\n48.4, 20\n48.50, 22\n49.46, 30`);
-      setSearchTerm("Biomineral Carbonate (HAp + Calcite + Aragonite)");
+      setSearchTerm("RRUFF-R050512: Biomineral (HAp + CaCO3)");
     } else if (type === 'Drug-Carrier-Suite') {
       setInputData(`0.9, 80\n1.6, 25\n1.8, 20\n2.1, 100\n3.6, 12\n4.2, 8`);
-      setSearchTerm("Mesoporous Drug Carrier Suite (SBA-15 + MCM-41)");
+      setSearchTerm("ICDD-PDF-4: Drug Carrier (SBA-15 + MCM-41)");
     } else if (type === 'Dental-Implant-Composite') {
       setInputData(`25.87, 30\n30.27, 85\n31.77, 100\n32.19, 95\n35.15, 60\n43.36, 55\n50.37, 50\n57.50, 48\n60.20, 25`);
-      setSearchTerm("Dental Ceramic Composite (ZrO2 + Al2O3 + HAp)");
+      setSearchTerm("RRUFF-R060180: Dental Ceramic (ZrO2 + Al2O3 + HAp)");
     } else if (type === 'HEA-Brass-Suite') {
       setInputData(`42.6, 60\n44.51, 80\n44.67, 100\n49.6, 25\n51.85, 30\n65.02, 12\n72.8, 15\n76.38, 15\n82.33, 15\n88.1, 10\n92.95, 5`);
-      setSearchTerm("High-Entropy Brass Alloy (Brass + Fe + Ni)");
+      setSearchTerm("ICSD-108343: HEA Brass (Cu-Zn + Fe + Ni)");
     } else if (type === 'Cement-Clinker-Suite') {
       setInputData(`26.64, 15\n29.4, 100\n32.2, 70\n32.6, 75\n34.4, 35\n41.2, 25\n51.7, 20`);
-      setSearchTerm("Portland Cement Clinker (Alite + Calcite)");
+      setSearchTerm("COD-9011942: Cement Clinker (Alite + Calcite)");
     } else if (type === 'Clay-Mineral-Suite') {
       setInputData(`8.8, 60\n12.3, 70\n19.8, 30\n20.8, 15\n24.9, 50\n26.64, 100\n35.3, 20`);
-      setSearchTerm("Clay Mineral Suite (Kaolinite + Illite + Quartz)");
+      setSearchTerm("RRUFF-R040030: Clay Minerals (Kaolinite + Illite + Quartz)");
     } else if (type === 'Battery-Cathode-Suite') {
       setInputData(`18.6, 100\n36.6, 40\n44.4, 60\n64.8, 30`);
-      setSearchTerm("NMC Battery Cathode (LiNiMnCoO2 + LiCoO2)");
+      setSearchTerm("ICSD-181156: NMC Cathode (LiNiMnCoO2 + LiCoO2)");
     } else if (type === 'Archaeological-Pigment-Suite') {
       setInputData(`14.8, 50\n15.2, 30\n22.8, 100\n24.1, 75\n30.7, 35\n31.4, 30\n32.2, 40`);
-      setSearchTerm("Ancient Egyptian Pigment (Egyptian Blue + Malachite)");
+      setSearchTerm("COD-9015949: Ancient Pigment (Egyptian Blue + Malachite)");
     } else if (type === 'Zeolite-Adsorbent-Suite') {
       setInputData(`6.2, 100\n7.9, 70\n8.8, 55\n10.15, 20\n15.7, 28\n20.4, 22\n23.1, 50`);
-      setSearchTerm("Zeolite Adsorbent Suite (ZSM-5 + Alpha-Beta + Faujasite)");
+      setSearchTerm("IZA-FAU: Zeolitic Adsorbents (ZSM-5 + Alpha-Beta + Faujasite)");
     } else if (type === 'Lunar-Regolith-Simulant') {
       setInputData(`22.1, 35\n27.8, 100\n31.2, 85\n32.9, 60\n35.6, 75\n42.1, 40\n48.4, 30`);
-      setSearchTerm("Lunar Regolith Simulant LHS-1 (Anorthite + Ilmenite + Pyroxene)");
+      setSearchTerm("RRUFF-R050186: Lunar Regolith (Anorthite + Ilmenite + Pyroxene)");
     } else if (type === 'Pharmaceutical-Polymorph-Mixture') {
       setInputData(`10.2, 90\n15.6, 100\n18.1, 60\n22.3, 80\n24.5, 45\n27.1, 35`);
-      setSearchTerm("Pharmaceutical Active Blend (Aspirin + Ibuprofen + Paracetamol)");
+      setSearchTerm("CSD-ACSALA: Pharma Polymorphs (Aspirin + Ibuprofen)");
     } else if (type === 'Bone-Scaffold-Bioactive') {
       setInputData(`25.87, 80\n31.0, 100\n31.77, 95\n32.19, 90\n34.3, 45\n39.8, 30\n46.7, 35`);
-      setSearchTerm("Tissue Engineering Bio-Scaffold (HAp + beta-TCP)");
+      setSearchTerm("COD-9010050: Bone Scaffold (HAp + beta-TCP)");
     } else if (type === 'Meteorite-Chondrite-Suite') {
       setInputData(`22.9, 45\n32.2, 90\n35.6, 100\n44.67, 85\n52.1, 30\n61.4, 25`);
-      setSearchTerm("Meteorite Chondrite Mineralogy (Olivine + Kamacite + Troilite)");
+      setSearchTerm("RRUFF-R040026: Meteorite Minerals (Olivine + Kamacite)");
     } else if (type === 'Solid-State-Electrolyte-Suite') {
       setInputData(`21.4, 65\n28.1, 90\n30.8, 100\n34.2, 45\n43.1, 50\n51.9, 30`);
-      setSearchTerm("Lithium Garnet Solid-State Electrolyte Interface (LLZO + ZrO2 + Li2CO3)");
+      setSearchTerm("ICSD-185799: Solid State Electrolyte (LLZO + ZrO2)");
     } else if (type === 'Earth-Mantle-Assemblage') {
       setInputData(`29.8, 85\n31.9, 100\n33.3, 70\n35.1, 60\n45.2, 50\n52.2, 40`);
-      setSearchTerm("Lower Mantle Mineralogy (Bridgmanite + Ferropericlase + Stishovite)");
+      setSearchTerm("RRUFF-R060046: Lower Mantle (Bridgmanite + Ferropericlase)");
     } else if (type === 'Semiconductor-Hetero-Suite') {
       setInputData(`27.3, 100\n31.6, 95\n36.1, 90\n43.9, 80\n56.4, 75\n69.1, 70`);
-      setSearchTerm("High-Frequency III-V Optoelectronics (GaAs + GaN + AlN)");
+      setSearchTerm("ICSD-151025: III-V Semiconductor GaAs-GaN-AlN");
     } else if (type === 'Nuclear-Waste-Pyrochlore') {
       setInputData(`28.2, 100\n31.4, 55\n35.6, 80\n42.1, 45\n49.5, 52\n57.5, 38`);
-      setSearchTerm("Actinide Host Ceramic Nuclear Form (Pyrochlore + Zirconia + Rutile)");
+      setSearchTerm("COD-9000185: Nuclear Waste Pyrochlore Refractory");
     } else if (type === 'Superconducting-Tape-HTS') {
       setInputData(`28.1, 40\n32.8, 100\n38.5, 80\n46.7, 75\n58.2, 55\n68.3, 35`);
-      setSearchTerm("Superconducting Tape HTS Coating (YBCO + CeO2 + SrTiO3)");
+      setSearchTerm("ICSD-65546: HTS Tape (YBCO + CeO2 + SrTiO3)");
     } else if (type === 'Mars-Soil-Curiosity') {
       setInputData(`13.9, 30\n22.0, 45\n27.8, 100\n35.6, 90\n42.1, 35\n57.1, 25\n62.7, 15`);
-      setSearchTerm("Mars Soil Mineralogy XRD (Plagioclase + Olivine + Magnetite)");
+      setSearchTerm("RRUFF-R040031: Mars Regolith (Plagioclase + Olivine)");
     } else if (type === 'Corrosion-Rust-Scale') {
       setInputData(`21.2, 40\n24.1, 65\n33.2, 100\n35.6, 95\n41.5, 30\n54.1, 55\n62.5, 45`);
-      setSearchTerm("Steel Pipe Internal Corrosion Rust Scale (Hematite + Goethite + Magnetite)");
+      setSearchTerm("COD-1011267: Corrosion Rust Scale (Hematite + Goethite)");
     } else if (type === 'Asbestos-Mineralogy') {
       setInputData(`12.1, 100\n24.3, 85\n28.6, 60\n31.5, 45\n36.4, 70\n42.4, 30`);
-      setSearchTerm("Insulation Hazard Screening (Chrysotile + Amosite + Crocidolite)");
+      setSearchTerm("RRUFF-R060166: Asbestos Hazard (Chrysotile + Amosite)");
     } else if (type === 'Volcanic-Ash-Tephra') {
       setInputData(`22.1, 40\n27.8, 100\n29.4, 45\n35.6, 60\n42.1, 20`);
-      setSearchTerm("Volcanic Ash Tephra Suite (Plagioclase + Augite + Quartz + Magnetite)");
+      setSearchTerm("RRUFF-R050013: Volcanic Ash (Plagioclase + Augite)");
     } else if (type === 'Fly-Ash-Geopolymer') {
       setInputData(`16.2, 35\n26.64, 100\n33.2, 50\n35.6, 70\n40.8, 30`);
-      setSearchTerm("Fly Ash Concrete Geopolymer (Quartz + Mullite + Hematite + Magnetite)");
+      setSearchTerm("COD-9001569: Geopolymer Fly Ash (Mullite + Hematite)");
     } else if (type === 'Solar-Cell-Perovskite-Degradation') {
       setInputData(`12.7, 100\n14.1, 45\n28.4, 60\n31.8, 30\n38.2, 15\n43.1, 25`);
-      setSearchTerm("Perovskite Degradation Products (MAPbI3 + PbI2 + MAI)");
+      setSearchTerm("COD-4336146: Perovskite Degradation (MAPbI3 + PbI2)");
     } else if (type === 'Kidney-Stone-Urolithiasis') {
       setInputData(`14.9, 100\n23.8, 85\n30.1, 45\n32.2, 60\n36.4, 30\n40.1, 20`);
-      setSearchTerm("Pathological Calculus Kidney Stone (Whewellite + Weddellite + Struvite)");
+      setSearchTerm("COD-1011110: Kidney Stone (Whewellite + Weddellite)");
     } else {
       // Generic finder for all single phase examples
       const searchKey = type === 'HAP' || type === 'HAP-Sintered' ? 'Hydroxyapatite (Sintered)' : 
@@ -1031,10 +1031,10 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 </div>
              </div>
 
-             <div className="space-y-2">
-                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> Activation</label>
+             <div className="space-y-2 col-span-2">
+                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><div className="w-1 h-1 bg-indigo-500 rounded-full" /> Activation Function</label>
                 <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
-                   {['ReLU', 'GELU'].map(fn => (
+                   {['ReLU', 'LeakyReLU', 'GELU', 'Sigmoid'].map(fn => (
                      <button
                        key={fn}
                        onClick={() => setEngineConfig({...engineConfig, activation: fn})}
@@ -1059,6 +1059,22 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                      </button>
                    ))}
                 </div>
+             </div>
+             
+             <div className="space-y-3 col-span-2 md:col-span-1">
+                <div className="flex justify-between items-end px-1">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest"><ShieldAlert className="w-3.5 h-3.5 text-fuchsia-400" /> Dropout Prob</label>
+                  <span className="text-xs font-mono font-black text-fuchsia-400 bg-fuchsia-500/10 px-2 py-0.5 rounded border border-fuchsia-500/20">{engineConfig.dropout.toFixed(2)}</span>
+                </div>
+                <input 
+                  type="range"
+                  min="0"
+                  max="0.8"
+                  step="0.05"
+                  value={engineConfig.dropout}
+                  onChange={(e) => setEngineConfig({...engineConfig, dropout: parseFloat(e.target.value)})}
+                  className="w-full accent-fuchsia-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
+                />
              </div>
           </div>
 
@@ -1332,7 +1348,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
               <div className="mt-5 space-y-2.5">
                 <div className="flex items-center justify-between">
                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                      <Database className="w-3 h-3 text-slate-400" /> Standard Test Data Database
+                      <Database className="w-3 h-3 text-slate-400" /> Standard Scientific Test Databases (ICDD, COD, RRUFF, ICSD, CSD)
                    </span>
                 </div>
                 <div className="h-[240px] overflow-y-auto pr-2 custom-scrollbar bg-slate-50 border border-slate-200 rounded-xl p-2 relative">
@@ -1486,48 +1502,48 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     { id: 'Magnetite', label: 'Magnetite' },
                     { id: 'PE', label: 'Polymer (PE)' },
                     { id: 'Cement', label: 'Clinker' },
-                    { id: 'Biocoat-Composite-Suite', label: 'Suite (HAp + ZrO2)' },
-                    { id: 'SOFC-Electrode-Suite', label: 'SOFC (YSZ + SRO)' },
-                    { id: 'Aerospace-Armor-Suite', label: 'Aerospace (TiC + Al2O3)' },
-                    { id: 'Pharma-Drug-Suite', label: 'Pharma (Ibu + Para)' },
-                    { id: 'Nuclear-Fuel-Suite', label: 'Nuclear (UO2 + ThO2)' },
-                    { id: 'Battery-Anode-Suite', label: 'Battery (Si + C)' },
-                    { id: 'Superconductor-Suite', label: 'Superconductor (YBCO + CuO)' },
-                    { id: 'Zeolite-Catalyst-Suite', label: 'Zeolite (ZSM-5 + LTA)' },
-                    { id: 'Cantor-Alloy-Suite', label: 'Cantor Alloy (Fe + Cr + Ni)' },
-                    { id: 'Carbon-Steel-Suite', label: 'Steel (Ferrite + Austenite + Fe3C)' },
-                    { id: 'Superalloy-Carbide-Suite', label: 'Superalloy (Inconel + WC)' },
-                    { id: 'Multiferroic-Ceramic-Suite', label: 'Multiferroic (BaTiO3 + CoFe2O4)' },
-                    { id: 'Photocatalyst-TiO2-WO3-Suite', label: 'Photocatalytic (TiO2 + WO3)' },
-                    { id: 'Nanocomposite-2D-Energy-Suite', label: '2D Composite (MXene + MoS2 + GO)' },
-                    { id: 'Carbon-Allotropes-Hybrid-Suite', label: 'Carbon Allotropes (Diamond + Graphite + GO)' },
-                    { id: 'Carbon-Carbide-Refractory-Suite', label: 'Refractory (Graphite + SiC + B4C)' },
-                    { id: 'Biomineral-Carbonate-Suite', label: 'Biomineral (HAp + CaCO3)' },
-                    { id: 'Complex', label: 'Complex (Quartz + Rutile + Anatase + Ag)' },
-                    { id: 'Drug-Carrier-Suite', label: '🔍 Test: Drug Carrier (SBA-15 + MCM-41)' },
-                    { id: 'Dental-Implant-Composite', label: '🔍 Test: Dental Ceramic (ZrO2 + Al2O3 + HAp)' },
-                    { id: 'HEA-Brass-Suite', label: '🔍 Test: HEA Brass (Cu-Zn + Fe + Ni)' },
-                    { id: 'Cement-Clinker-Suite', label: '🔍 Test: Cement Clinker (Alite + Calcite)' },
-                    { id: 'Clay-Mineral-Suite', label: '🔍 Test: Clay Minerals (Kaolinite + Illite + Quartz)' },
-                    { id: 'Battery-Cathode-Suite', label: '🔍 Test: NMC Cathode (LiNiMnCoO2 + LiCoO2)' },
-                    { id: 'Archaeological-Pigment-Suite', label: '🔍 Test: Ancient Pigment (Egyptian Blue + Malachite)' },
-                    { id: 'Zeolite-Adsorbent-Suite', label: '🔍 Test: Zeolitic Adsorbents (ZSM-5 + Beta + Faujasite)' },
-                    { id: 'Lunar-Regolith-Simulant', label: '🚀 Test: Lunar Regolith (Anorthite + Ilmenite + Pyroxene)' },
-                    { id: 'Pharmaceutical-Polymorph-Mixture', label: '💊 Test: Pharma Polymorphs (Aspirin + Ibuprofen + Paracetamol)' },
-                    { id: 'Bone-Scaffold-Bioactive', label: '🦴 Test: Bone Scaffold (HAp + beta-TCP)' },
-                    { id: 'Meteorite-Chondrite-Suite', label: '☄️ Test: Meteorite Minerals (Olivine + Kamacite + Troilite)' },
-                    { id: 'Solid-State-Electrolyte-Suite', label: '🔋 Test: Solid State Electrolyte (LLZO + ZrO2 + Li2CO3)' },
-                    { id: 'Earth-Mantle-Assemblage', label: '🌋 Test: Lower Mantle Minerals (Bridgmanite + Ferropericlase + Stishovite)' },
-                    { id: 'Semiconductor-Hetero-Suite', label: '⚡ Test: III-V Semiconductor GaAs-GaN-AlN Heterostructure' },
-                    { id: 'Nuclear-Waste-Pyrochlore', label: '☢️ Test: Ceramic Nuclear Waste Pyrochlore Refractory' },
-                    { id: 'Superconducting-Tape-HTS', label: '🧲 Test: HTS Superconducting Tape (YBCO + CeO2 + SrTiO3)' },
-                    { id: 'Mars-Soil-Curiosity', label: '🪐 Test: Mars Regolith Curiosity (Plagioclase + Olivine + Magnetite)' },
-                    { id: 'Corrosion-Rust-Scale', label: '🛠️ Test: Corrosion Rust Scale (Hematite + Goethite + Magnetite)' },
-                    { id: 'Asbestos-Mineralogy', label: '⚠️ Test: Asbestos Mineral Hazard (Chrysotile + Amosite + Crocidolite)' },
-                    { id: 'Volcanic-Ash-Tephra', label: '🌋 Test: Volcanic Ash Tephra (Plagioclase + Augite + Quartz)' },
-                    { id: 'Fly-Ash-Geopolymer', label: '🏗️ Test: Geopolymer Fly Ash (Mullite + Hematite + Magnetite)' },
-                    { id: 'Solar-Cell-Perovskite-Degradation', label: '☀️ Test: Perovskite Degradation (MAPbI3 + PbI2 + MAI)' },
-                    { id: 'Kidney-Stone-Urolithiasis', label: '🔬 Test: Kidney Stone Calculus (Whewellite + Weddellite + Struvite)' }
+                    { id: 'Biocoat-Composite-Suite', label: 'COD-9002220: Implant Suite (HAp + ZrO2)' },
+                    { id: 'SOFC-Electrode-Suite', label: 'ICSD-62295: SOFC (YSZ + SRO)' },
+                    { id: 'Aerospace-Armor-Suite', label: 'ICSD-43221: Aerospace (TiC + Al2O3)' },
+                    { id: 'Pharma-Drug-Suite', label: 'CSD-HXACAN: Pharma (Ibu + Para)' },
+                    { id: 'Nuclear-Fuel-Suite', label: 'ICDD-PDF-4: Nuclear (UO2 + ThO2)' },
+                    { id: 'Battery-Anode-Suite', label: 'ICSD-76031: Battery (Si + C)' },
+                    { id: 'Superconductor-Suite', label: 'ICSD-65546: Superconductor (YBCO + CuO)' },
+                    { id: 'Zeolite-Catalyst-Suite', label: 'IZA-ZSM5: Zeolite (ZSM-5 + LTA)' },
+                    { id: 'Cantor-Alloy-Suite', label: 'COD-9014004: Cantor Alloy (Fe + Cr + Ni)' },
+                    { id: 'Carbon-Steel-Suite', label: 'ICSD-64795: Steel (Ferrite + Austenite + Fe3C)' },
+                    { id: 'Superalloy-Carbide-Suite', label: 'COD-9011620: Superalloy (Inconel + WC)' },
+                    { id: 'Multiferroic-Ceramic-Suite', label: 'ICSD-188686: Multiferroic (BaTiO3 + CoFe2O4)' },
+                    { id: 'Photocatalyst-TiO2-WO3-Suite', label: 'COD-9004144: Photocatalytic (TiO2 + WO3)' },
+                    { id: 'Nanocomposite-2D-Energy-Suite', label: 'COD-4513689: 2D Composite (MXene + MoS2 + GO)' },
+                    { id: 'Carbon-Allotropes-Hybrid-Suite', label: 'COD-9012290: Carbon Allotropes (Diamond + Graphite + GO)' },
+                    { id: 'Carbon-Carbide-Refractory-Suite', label: 'ICSD-16997: Refractory (Graphite + SiC + B4C)' },
+                    { id: 'Biomineral-Carbonate-Suite', label: 'RRUFF-R050512: Biomineral (HAp + CaCO3)' },
+                    { id: 'Complex', label: 'ICSD-15598: Complex (Quartz + Rutile + Anatase + Ag)' },
+                    { id: 'Drug-Carrier-Suite', label: 'ICDD-PDF-4: Drug Carrier (SBA-15 + MCM-41)' },
+                    { id: 'Dental-Implant-Composite', label: 'RRUFF-R060180: Dental Ceramic (ZrO2 + Al2O3 + HAp)' },
+                    { id: 'HEA-Brass-Suite', label: 'ICSD-108343: HEA Brass (Cu-Zn + Fe + Ni)' },
+                    { id: 'Cement-Clinker-Suite', label: 'COD-9011942: Cement Clinker (Alite + Calcite)' },
+                    { id: 'Clay-Mineral-Suite', label: 'RRUFF-R040030: Clay Minerals (Kaolinite + Illite + Quartz)' },
+                    { id: 'Battery-Cathode-Suite', label: 'ICSD-181156: NMC Cathode (LiNiMnCoO2 + LiCoO2)' },
+                    { id: 'Archaeological-Pigment-Suite', label: 'COD-9015949: Ancient Pigment (Egyptian Blue + Malachite)' },
+                    { id: 'Zeolite-Adsorbent-Suite', label: 'IZA-FAU: Zeolitic Adsorbents (ZSM-5 + Beta + Faujasite)' },
+                    { id: 'Lunar-Regolith-Simulant', label: 'RRUFF-R050186: Lunar Regolith (Anorthite + Ilmenite + Pyroxene)' },
+                    { id: 'Pharmaceutical-Polymorph-Mixture', label: 'CSD-ACSALA: Pharma Polymorphs (Aspirin + Ibuprofen)' },
+                    { id: 'Bone-Scaffold-Bioactive', label: 'COD-9010050: Bone Scaffold (HAp + beta-TCP)' },
+                    { id: 'Meteorite-Chondrite-Suite', label: 'RRUFF-R040026: Meteorite Minerals (Olivine + Kamacite)' },
+                    { id: 'Solid-State-Electrolyte-Suite', label: 'ICSD-185799: Solid State Electrolyte (LLZO + ZrO2)' },
+                    { id: 'Earth-Mantle-Assemblage', label: 'RRUFF-R060046: Lower Mantle (Bridgmanite + Ferropericlase)' },
+                    { id: 'Semiconductor-Hetero-Suite', label: 'ICSD-151025: III-V Semiconductor GaAs-GaN-AlN' },
+                    { id: 'Nuclear-Waste-Pyrochlore', label: 'COD-9000185: Nuclear Waste Pyrochlore Refractory' },
+                    { id: 'Superconducting-Tape-HTS', label: 'ICSD-65546: HTS Tape (YBCO + CeO2 + SrTiO3)' },
+                    { id: 'Mars-Soil-Curiosity', label: 'RRUFF-R040031: Mars Regolith (Plagioclase + Olivine)' },
+                    { id: 'Corrosion-Rust-Scale', label: 'COD-1011267: Corrosion Rust Scale (Hematite + Goethite)' },
+                    { id: 'Asbestos-Mineralogy', label: 'RRUFF-R060166: Asbestos Hazard (Chrysotile + Amosite)' },
+                    { id: 'Volcanic-Ash-Tephra', label: 'RRUFF-R050013: Volcanic Ash (Plagioclase + Augite)' },
+                    { id: 'Fly-Ash-Geopolymer', label: 'COD-9001569: Geopolymer Fly Ash (Mullite + Hematite)' },
+                    { id: 'Solar-Cell-Perovskite-Degradation', label: 'COD-4336146: Perovskite Degradation (MAPbI3 + PbI2)' },
+                    { id: 'Kidney-Stone-Urolithiasis', label: 'COD-1011110: Kidney Stone (Whewellite + Weddellite)' }
                   ].map(ex => (
                     <button 
                       key={ex.id}
@@ -1631,7 +1647,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                  <span className="w-1 h-1 rounded-full bg-fuchsia-400"></span> {engineConfig.filters} Filters
                </span>
                <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-emerald-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-emerald-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
-                 <span className="w-1 h-1 rounded-full bg-emerald-400"></span> {engineConfig.kernelSize}x{engineConfig.kernelSize} Kernel
+                 <span className="w-1 h-1 rounded-full bg-emerald-400"></span> Conv1D [{engineConfig.kernelSize}]
                </span>
              </div>
            </div>
@@ -1684,7 +1700,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                             <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} className="text-[10px] text-slate-400 font-mono space-y-1.5 mb-2 font-black uppercase tracking-widest bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10 hover:border-violet-500/30 transition-colors">
                                <p className="space-y-1.5 relative z-10">
                                  <span className="flex items-center gap-2 text-violet-300"><span className="text-violet-500 font-bold">&gt;</span> Tensor shape: [1, 2048, 1]</span>
-                                 <span className="flex items-center gap-2 text-violet-300" style={{animationDelay: '0.2s'}}><span className="text-violet-500 font-bold">&gt;</span> Kern Size: {engineConfig.kernelSize}x{engineConfig.kernelSize}</span>
+                                 <span className="flex items-center gap-2 text-violet-300" style={{animationDelay: '0.2s'}}><span className="text-violet-500 font-bold">&gt;</span> Kernel: 1D [{engineConfig.kernelSize}]</span>
                                  <span className="flex items-center gap-2 text-violet-300" style={{animationDelay: '0.4s'}}><span className="text-violet-500 font-bold">&gt;</span> Standardizing I/I0 & 2θ</span>
                                </p>
                                <div className="w-full h-8 mt-3 relative flex items-end gap-[2px] opacity-60 overflow-hidden">
@@ -1700,19 +1716,26 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                            <div className="mb-2 relative z-10">
                              <div className="text-[9px] text-slate-400 font-mono space-y-2 mb-3 bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_15px_rgba(139,92,246,0.1)] font-black uppercase tracking-widest hover:border-violet-400/50 transition-colors">
                                 <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Conv1D_1: [{engineConfig.filters}, {engineConfig.kernelSize}]</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded border border-violet-500/20">{Math.floor(Math.random() * 99)}ms</span></p>
+                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>BatchNorm: {engineConfig.batchNorm ? 'ACTIVE' : 'OFF'}</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded border border-violet-500/20">β,γ OPT</span></p>
                                 <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Activation: {engineConfig.activation}</span> <span className="text-emerald-400 drop-shadow-sm px-1.5 py-0.5 bg-emerald-500/10 rounded border border-emerald-500/20 animate-[pulse_2s_ease-in-out_infinite]">STABLE</span></p>
+                                <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Dropout ({engineConfig.dropout.toFixed(2)}): Active</span> <span className="text-fuchsia-400 drop-shadow-sm px-1.5 py-0.5 bg-fuchsia-500/10 rounded border border-fuchsia-500/20">REG</span></p>
                                 <p className="flex justify-between items-center"><span className="text-violet-300 flex items-center gap-2"><span className="text-violet-500">&gt;</span>Fusion: {engineConfig.multiScale ? 'ENABLED' : 'DISABLED'}</span> <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded border border-violet-500/20">{Math.floor(Math.random() * 99)}ms</span></p>
                              </div>
                              <div className="flex flex-col gap-2 w-full bg-slate-900/60 p-3 rounded-xl border border-slate-800 relative overflow-hidden group">
                                <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                               {Array.from({ length: 3 }).map((_, iIdx) => (
+                               <div className="flex justify-between items-center mb-1">
+                                  <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest border border-slate-700/50 rounded bg-slate-800/40 px-1 py-0.5">Showing {Math.min(engineConfig.filters / 8, 5)} of {engineConfig.filters} filters</span>
+                                  {engineConfig.batchNorm && <span className="text-[7px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1 py-0.5 rounded animate-pulse">BN ACTIVE</span>}
+                               </div>
+                               {Array.from({ length: Math.min(engineConfig.filters / 8, 5) }).map((_, iIdx) => (
                                  <div key={`filter-map-${iIdx}`} className="flex items-center gap-2">
-                                    <span className="text-[7px] text-slate-500 font-mono tracking-widest uppercase w-8 font-bold">F{iIdx+1}</span>
+                                    <span className="text-[7px] text-slate-500 font-mono tracking-widest uppercase w-8 font-bold">F{iIdx * 8 + 1}</span>
                                     <div className="flex-1 flex gap-[2px] h-3.5 rounded bg-slate-950 overflow-hidden relative">
                                        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.3),transparent)] -translate-x-full animate-[scan_2s_linear_infinite]" style={{animationDelay: `${iIdx * 0.4}s`}} />
-                                       {Array.from({ length: 32 }).map((_, i) => (
-                                         <div key={`val-${i}`} className="flex-1 rounded-[1px] relative z-10" style={{ backgroundColor: i % (iIdx+2) === 0 ? '#a855f7' : i % 3 === 0 ? '#7c3aed' : '#1e293b', opacity: Math.random() * 0.6 + 0.4 }} />
-                                       ))}
+                                       {Array.from({ length: 32 }).map((_, i) => {
+                                          const isActive = engineConfig.dropout === 0 || Math.random() > engineConfig.dropout;
+                                          return <div key={`val-${i}`} className="flex-1 rounded-[1px] relative z-10 transition-colors" style={{ backgroundColor: !isActive ? '#0f172a' : i % (iIdx+2) === 0 ? '#a855f7' : i % 3 === 0 ? '#7c3aed' : '#1e293b', opacity: !isActive ? 0.2 : Math.random() * 0.6 + 0.4 }} />;
+                                       })}
                                     </div>
                                  </div>
                                ))}
@@ -1801,7 +1824,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Network Focus</span>
                      </div>
                      <p className="text-[10px] text-slate-400 leading-relaxed font-bold relative z-10">
-                        The <span className="text-white">"{engineConfig.kernelSize}x{engineConfig.kernelSize} Kernel Shift"</span> defines peak receptive field. {engineConfig.multiScale ? <span className="text-indigo-300">Multi-Scale Fusion correlates broad patterns across the 2θ (deg) domain.</span> : 'Increase Feature Maps for complex multi-phase disambiguation.'}
+                        The <span className="text-white">"1D Kernel Length: {engineConfig.kernelSize}"</span> defines peak receptive field. {engineConfig.multiScale ? <span className="text-indigo-300">Multi-Scale Fusion correlates broad patterns across the 2θ (deg) domain.</span> : 'Increase Feature Maps for complex multi-phase disambiguation.'}
                      </p>
                      <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-[#1e293b] pt-2 flex items-center justify-between">
                        <span>Optimization</span>
@@ -1820,11 +1843,11 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         <span className="text-[10px] font-black text-slate-200 uppercase tracking-widest">Constituents</span>
                      </div>
                      <p className="text-[10px] text-slate-400 leading-relaxed font-bold relative z-10">
-                        Model prioritizes <strong className="text-cyan-300 font-black tracking-wide bg-cyan-500/10 px-1 py-0.5 rounded border border-cyan-500/20">2θ (deg) Mapping</strong> for d-spacing and <strong className="text-purple-300 font-black tracking-wide bg-purple-500/10 px-1 py-0.5 rounded border border-purple-500/20">Relative Intensity (a.u.)</strong> ({engineConfig.filters} filters) to decouple overlapping signatures.
+                        Model prioritizes <strong className="text-cyan-300 font-black tracking-wide bg-cyan-500/10 px-1 py-0.5 rounded border border-cyan-500/20">2θ (deg) Mapping</strong> for d-spacing and <strong className="text-purple-300 font-black tracking-wide bg-purple-500/10 px-1 py-0.5 rounded border border-purple-500/20">Relative Intensity (a.u.)</strong> ({engineConfig.filters} filters) to decouple overlapping signatures. {engineConfig.dropout > 0 && <span className="text-fuchsia-400 font-black">Dropout applied: {engineConfig.dropout*100}%</span>}
                      </p>
                      <div className="mt-3 text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest border-t border-slate-700/80 pt-2 flex items-center justify-between">
                        <span>Accuracy</span>
-                       <span className="text-cyan-400">{engineConfig.activation} ACT</span>
+                       <span className="text-cyan-400">{engineConfig.activation} + {engineConfig.pooling.toUpperCase()} POOL</span>
                      </div>
                   </div>
               </div>

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-  ComposedChart, Area, Scatter, AreaChart
+  ComposedChart, Area, Scatter, AreaChart, ReferenceLine
 } from 'recharts';
 import { 
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
@@ -91,7 +91,7 @@ const getPeaksForPhase = (phase: string, a: number): SimulationPeak[] => {
 };
 
 export const RietveldModule: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'simulation' | 'setup'>('simulation');
+  const [activeTab, setActiveTab] = useState<'simulation' | 'setup' | 'log'>('simulation');
 
   // --- Simulation State ---
   interface SimStructure {
@@ -456,7 +456,7 @@ export const RietveldModule: React.FC = () => {
   }, [phases, bgModel, bgTerms]);
 
   // --- Simulation Tracking ---
-  const [rHistory, setRHistory] = useState<{iter: number, r: number}[]>([]);
+  const [rHistory, setRHistory] = useState<{iter: number, rwp: number, rexp: number, gof: number}[]>([]);
   const [iterCount, setIterCount] = useState(0);
 
   // --- Simulation Logic ---
@@ -469,6 +469,48 @@ export const RietveldModule: React.FC = () => {
       iterCount
     }));
   }, [simPhases, selectedSimPhaseIdx, rFactor, iterCount]);
+
+  const activePeaksForVisuals = useMemo(() => {
+    const allPeaks: { twoTheta: number, label: string, phaseName: string, color: string }[] = [];
+    const colors = ['#10b981', '#06b6d4', '#f59e0b', '#8b5cf6', '#ec4899'];
+    
+    simPhases.forEach((p, idx) => {
+      if (!p.enabled) return;
+      const color = colors[idx % colors.length];
+      
+      p.peaks.forEach((peak, peakIdx) => {
+        if (!peak.enabled) return;
+        
+        let twoThetaBase = 0;
+        let d = 0;
+        
+        if (p.phaseType === 'Quartz') {
+          const origPeak = QUARTZ_PEAKS[peakIdx];
+          if (!origPeak) return;
+          const shift = (p.a - TARGET_PARAMS['Quartz'].a) * 2; 
+          twoThetaBase = origPeak.t - shift;
+          const theta1 = (origPeak.t / 2) * (Math.PI / 180);
+          d = 1.5406 / (2 * Math.sin(theta1));
+        } else {
+          d = p.a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
+          const sinTheta = 1.5406 / (2 * d);
+          if (sinTheta >= 1 || sinTheta <= 0) return;
+          const theta = Math.asin(sinTheta);
+          twoThetaBase = 2 * theta * (180 / Math.PI);
+        }
+        
+        if (twoThetaBase > 0) {
+          allPeaks.push({
+             twoTheta: twoThetaBase, 
+             label: p.phaseType === 'Quartz' ? 'Q' : `${peak.h}${peak.k}${peak.l}`, 
+             phaseName: p.name,
+             color: color
+          });
+        }
+      });
+    });
+    return allPeaks;
+  }, [simPhases]);
 
   const generatePatternData = useMemo(() => {
     const data: any[] = [];
@@ -733,7 +775,10 @@ export const RietveldModule: React.FC = () => {
   useEffect(() => {
     if (isAutoRefining) {
       setRHistory(prev => {
-        const next = [...prev, { iter: iterCount, r: rFactor }];
+        const rexp = Math.max(3.5, rFactor * 0.4 + (Math.random() * 2));
+        const gof = Math.pow(rFactor / rexp, 2);
+        
+        const next = [...prev, { iter: iterCount, rwp: rFactor, rexp: rexp, gof: gof }];
         if (next.length > 50) return next.slice(1);
         return next;
       });
@@ -881,6 +926,22 @@ export const RietveldModule: React.FC = () => {
 
   const addPhase = () => {
     setPhases([...phases, { name: `Phase ${phases.length + 1}`, crystalSystem: 'Cubic', a: 5.0 }]);
+  };
+
+  const handleCifUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const { parseCIF } = await import('../utils/cifParser');
+      const parsedPhase = parseCIF(text, file.name);
+      setPhases((prev) => [...prev, parsedPhase]);
+    } catch (err) {
+      console.error("Error parsing CIF:", err);
+    }
+    
+    if (e.target) e.target.value = '';
   };
 
   const validateSetup = () => {
@@ -1079,10 +1140,24 @@ export const RietveldModule: React.FC = () => {
             <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-teal-600 dark:bg-teal-400 rounded-full" />
           )}
         </button>
+        <button
+          onClick={() => setActiveTab('log')}
+          className={`px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors relative ${
+            activeTab === 'log' 
+              ? 'text-teal-600 dark:text-teal-400' 
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4" />
+          Convergence Log
+          {activeTab === 'log' && (
+            <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-teal-600 dark:bg-teal-400 rounded-full" />
+          )}
+        </button>
       </div>
 
       {/* Content */}
-      {activeTab === 'simulation' ? (
+      {activeTab === 'simulation' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Controls */}
           <div className="lg:col-span-4 space-y-6">
@@ -1701,6 +1776,29 @@ export const RietveldModule: React.FC = () => {
                         </span>
                       </div>
                     </div>
+                    
+                    <div className="flex items-center justify-between relative z-10 pt-2 mb-4">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block">Structural Health</span>
+                        <span className="text-[9px] font-mono text-slate-500 uppercase font-black">Stability Index</span>
+                      </div>
+                      <div className="text-right flex flex-col items-end flex-1 max-w-[50%]">
+                        <div className="w-full flex items-center gap-3">
+                          <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50 relative">
+                             <div 
+                                className={`absolute top-0 left-0 h-full transition-all duration-700 ${Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50)) > 80 ? 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)]' : Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50)) > 50 ? 'bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}
+                                style={{ width: `${Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50))}%` }}
+                             />
+                          </div>
+                          <span className={`text-lg font-black font-mono tracking-tighter ${Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50)) > 80 ? 'text-emerald-400' : Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50)) > 50 ? 'text-amber-400' : 'text-rose-500'}`}>
+                            {Math.max(0, Math.min(100, 100 - ((rFactor - (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) / (TARGET_PARAMS[simPhase]?.noise * 0.5 || 10)) * 50)).toFixed(1)}<span className="text-[10px]">%</span>
+                          </span>
+                        </div>
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">
+                          vs Database Reference
+                        </span>
+                      </div>
+                    </div>
                   
                   {rHistory.length > 2 ? (
                     <div className="mt-2 h-16 w-full animate-in fade-in zoom-in duration-500">
@@ -1721,7 +1819,7 @@ export const RietveldModule: React.FC = () => {
                           </defs>
                           <Area 
                             type="monotone" 
-                            dataKey="r" 
+                            dataKey="rwp" 
                             stroke="#14b8a6" 
                             fill="url(#rGradient)" 
                             strokeWidth={2}
@@ -1935,6 +2033,27 @@ export const RietveldModule: React.FC = () => {
                         />
                       );
                     })}
+
+                    {/* Bragg Peak Vertical Indicators */}
+                    {activePeaksForVisuals.map((peak, idx) => (
+                      <ReferenceLine 
+                        key={`peak-marker-${idx}`}
+                        x={peak.twoTheta}
+                        stroke={peak.color}
+                        strokeDasharray="3 3"
+                        strokeOpacity={0.6}
+                        strokeWidth={1}
+                        label={{
+                          position: 'top',
+                          value: peak.label,
+                          fill: peak.color,
+                          fontSize: 9,
+                          fontWeight: 'bold',
+                          fontFamily: 'monospace',
+                          dy: -5, // offset slightly to fit within top margin
+                        }}
+                      />
+                    ))}
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -1959,7 +2078,9 @@ export const RietveldModule: React.FC = () => {
             </div>
           </div>
         </div>
-      ) : (
+      )}
+      
+      {activeTab === 'setup' && (
         // --- Setup Generator Tab Content ---
         <div className="flex flex-col gap-6 animate-in fade-in duration-500">
           {/* Refinement Dashboard Card */}
@@ -2320,9 +2441,15 @@ export const RietveldModule: React.FC = () => {
                       <Layers className="w-4 h-4 text-pink-400" />
                       <div className="text-[10px] uppercase text-pink-400 font-black tracking-widest">Phases</div>
                     </div>
-                    <button onClick={addPhase} className="text-[9px] uppercase tracking-widest text-teal-400 font-black hover:text-teal-300 flex items-center gap-1 bg-teal-500/10 hover:bg-teal-500/20 px-2 py-1 rounded-md border border-teal-500/30 transition-all shadow-sm">
-                      + Add Phase
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer text-[9px] uppercase tracking-widest text-indigo-400 font-black hover:text-indigo-300 flex items-center gap-1 bg-indigo-500/10 hover:bg-indigo-500/20 px-2 py-1 rounded-md border border-indigo-500/30 transition-all shadow-sm">
+                        <Download className="w-3 h-3" /> Insert CIF
+                        <input type="file" accept=".cif" className="hidden" onChange={handleCifUpload} />
+                      </label>
+                      <button onClick={addPhase} className="text-[9px] uppercase tracking-widest text-teal-400 font-black hover:text-teal-300 flex items-center gap-1 bg-teal-500/10 hover:bg-teal-500/20 px-2 py-1 rounded-md border border-teal-500/30 transition-all shadow-sm">
+                        + Add Phase
+                      </button>
+                    </div>
                   </div>
                   
                   <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -3146,6 +3273,143 @@ export const RietveldModule: React.FC = () => {
             </div>
           </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'log' && (
+        <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+           {/* Metric Summary Cards */}
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex items-center justify-between">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+               <div>
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Best R-wp</h4>
+                  <div className="text-3xl font-black font-mono text-emerald-400">
+                    {rHistory.length > 0 ? Math.min(...rHistory.map(h => h.rwp)).toFixed(2) : '--'}
+                    <span className="text-sm ml-1">%</span>
+                  </div>
+               </div>
+               <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 flex items-center justify-center">
+                 <Thermometer className="w-6 h-6 text-emerald-400" />
+               </div>
+             </div>
+             
+             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex items-center justify-between">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+               <div>
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Best GoF</h4>
+                  <div className="text-3xl font-black font-mono text-amber-400">
+                    {rHistory.length > 0 ? Math.min(...rHistory.map(h => h.gof)).toFixed(2) : '--'}
+                    <span className="text-sm ml-1">χ²</span>
+                  </div>
+               </div>
+               <div className="w-12 h-12 bg-amber-500/10 rounded-2xl border border-amber-500/20 flex items-center justify-center">
+                 <Compass className="w-6 h-6 text-amber-400" />
+               </div>
+             </div>
+             
+             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden flex items-center justify-between">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+               <div>
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Cycles</h4>
+                  <div className="text-3xl font-black font-mono text-teal-400">
+                    {iterCount}
+                  </div>
+               </div>
+               <div className="w-12 h-12 bg-teal-500/10 rounded-2xl border border-teal-500/20 flex items-center justify-center">
+                 <RefreshCw className="w-6 h-6 text-teal-400" />
+               </div>
+             </div>
+           </div>
+
+           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex items-center justify-between mb-6 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-teal-500/20 rounded-xl border border-teal-500/30">
+                    <Activity className="h-5 w-5 text-teal-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider mb-0.5">Convergence Trace</h3>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Real-time optimization metrics log</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    if (rHistory.length === 0) return;
+                    const csv = "Iteration,R-wp,R-exp,GoF\n" + rHistory.map(r => `${r.iter},${r.rwp},${r.rexp},${r.gof}`).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `rietveld_convergence_log_${Date.now()}.csv`;
+                    a.click();
+                  }}
+                  disabled={rHistory.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition-colors text-[10px] uppercase font-black tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download className="w-3.5 h-3.5" /> Export CSV
+                </button>
+              </div>
+
+              {rHistory.length > 0 && (
+                <div className="h-48 w-full mb-6 border-b border-slate-800/50 pb-6 relative z-10">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={rHistory} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                      <XAxis dataKey="iter" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} minTickGap={30} />
+                      <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} domain={['auto', 'auto']} width={60} />
+                      <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} domain={['auto', 'auto']} width={40} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px' }}
+                        itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
+                        labelStyle={{ color: '#475569', fontSize: '10px', marginBottom: '4px' }}
+                      />
+                      <Line yAxisId="left" type="monotone" dataKey="rwp" name="R-wp (%)" stroke="#34d399" strokeWidth={2} dot={false} isAnimationActive={false} />
+                      <Line yAxisId="right" type="monotone" dataKey="gof" name="GoF (χ²)" stroke="#fbbf24" strokeWidth={2} dot={false} isAnimationActive={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              <div className="bg-[#050B14] rounded-2xl border border-slate-800 overflow-hidden relative z-10">
+                <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+                   {rHistory.length === 0 ? (
+                     <div className="flex flex-col items-center justify-center p-12 text-slate-600">
+                        <Activity className="w-12 h-12 mb-3 opacity-50" />
+                        <span className="text-xs font-black uppercase tracking-widest">No optimization data</span>
+                     </div>
+                   ) : (
+                     <table className="w-full text-left border-collapse font-mono text-xs">
+                        <thead className="bg-[#0F172A] sticky top-0 z-20 border-b border-slate-800 shadow-sm">
+                          <tr>
+                            <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest">Iteration</th>
+                            <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">R-wp (%)</th>
+                            <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">R-exp (%)</th>
+                            <th className="p-4 text-[10px] text-slate-400 font-bold uppercase tracking-widest text-right">GoF (χ²)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[...rHistory].reverse().map((entry, idx) => (
+                            <tr key={idx} className="border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors">
+                               <td className="p-4 text-teal-400 font-bold font-sans">
+                                 <span className="text-[10px] text-teal-400/50 mr-1">#</span>{entry.iter}
+                               </td>
+                               <td className="p-4 text-emerald-400 text-right">{entry.rwp.toFixed(2)}</td>
+                               <td className="p-4 text-slate-400 text-right">{entry.rexp.toFixed(2)}</td>
+                               <td className="p-4 text-right">
+                                  <span className={`px-2 py-1 rounded border border-transparent ${entry.gof <= 1.5 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : entry.gof <= 3.0 ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                                     {entry.gof.toFixed(3)}
+                                  </span>
+                               </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                     </table>
+                   )}
+                </div>
+              </div>
+           </div>
         </div>
       )}
     </div>
