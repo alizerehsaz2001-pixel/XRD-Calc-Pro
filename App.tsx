@@ -16,9 +16,11 @@ import { NeutronModule } from './components/NeutronModule';
 import { MagneticNeutronModule } from './components/MagneticNeutronModule';
 import { DeepLearningModule } from './components/DeepLearningModule';
 import { FWHMModule } from './components/FWHMModule';
+import { PreferredOrientationModule } from './components/PreferredOrientationModule';
 import { ImageAnalysisModule } from './components/ImageAnalysisModule';
 import { ImageGenerationModule } from './components/ImageGenerationModule';
 import { PythonExportModule } from './components/PythonExportModule';
+
 import { SettingsModule } from './components/SettingsModule';
 import { ProfilePage } from './components/ProfilePage';
 import { LearnModule } from './components/LearnModule';
@@ -38,7 +40,7 @@ import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Sett
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -375,6 +377,7 @@ const App: React.FC = () => {
     { id: 'integral', label: t('Integral Breadth'), group: t('Size & Strain') },
     { id: 'integral_adv', label: t('IB Advanced (W-H)'), group: t('Size & Strain') },
     { id: 'wa', label: t('Warren-Averbach'), group: t('Size & Strain') },
+    { id: 'preferred_orientation', label: t('Preferred Orientation'), group: t('Fundamentals') },
     { id: 'rietveld', label: t('Rietveld Setup'), group: t('Advanced Sim') },
     { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
     { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
@@ -589,6 +592,7 @@ const App: React.FC = () => {
                   {activeModule === 'integral' && <IntegralBreadthModule />}
                   {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
                   {activeModule === 'wa' && <WarrenAverbachModule />}
+                  {activeModule === 'preferred_orientation' && <PreferredOrientationModule />}
                   {activeModule === 'rietveld' && <RietveldModule />}
                   {activeModule === 'neutron' && <NeutronModule />}
                   {activeModule === 'magnetic' && <MagneticNeutronModule />}

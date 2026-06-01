@@ -32,15 +32,15 @@ const K_FACTORS = [
 const WH_PRESETS = [
   { 
     name: 'Silicon (Standard)', 
-    data: "28.44, 0.12\n47.30, 0.15\n56.12, 0.18\n69.13, 0.22\n76.38, 0.25", 
+    data: "28.44, 0.12, 1, 1, 1\n47.30, 0.15, 2, 2, 0\n56.12, 0.18, 3, 1, 1\n69.13, 0.22, 4, 0, 0\n76.38, 0.25, 3, 3, 1", 
     wavelength: 1.5406, 
     k: 0.9, 
     desc: 'Nearly zero strain reference.',
     icon: '💎'
   },
   { 
-    name: 'Polypropylene (iPP)', 
-    data: "14.1, 0.35\n16.9, 0.42\n18.6, 0.48\n21.2, 0.55\n21.8, 0.58", 
+    name: 'Polycarbonate', 
+    data: "14.1, 0.35, 1, 0, 0\n16.9, 0.42, 1, 1, 0\n18.6, 0.48, 1, 1, 1\n21.2, 0.55, 2, 0, 0\n21.8, 0.58, 2, 1, 0", 
     wavelength: 1.5406, 
     k: 0.94, 
     desc: 'Semi-crystalline polymer with significant strain.',
@@ -48,7 +48,7 @@ const WH_PRESETS = [
   },
   { 
     name: 'Strained Cu Film', 
-    data: "43.30, 0.45\n50.43, 0.52\n74.13, 0.72\n89.93, 0.95", 
+    data: "43.30, 0.45, 1, 1, 1\n50.43, 0.52, 2, 0, 0\n74.13, 0.72, 2, 2, 0\n89.93, 0.95, 3, 1, 1", 
     wavelength: 1.5406, 
     k: 0.9, 
     desc: 'Metals with processing-induced stress.',
@@ -91,8 +91,9 @@ export const WilliamsonHallModule: React.FC = () => {
   const [cagliotiW, setCagliotiW] = useState<number>(0.015);
   const [youngsModulusGPa, setYoungsModulusGPa] = useState<number>(130);
   const [isModulusEnabled, setIsModulusEnabled] = useState<boolean>(false);
-  const [inputData, setInputData] = useState<string>("28.44, 0.25\n47.30, 0.28\n56.12, 0.32\n69.13, 0.38\n76.38, 0.42");
+  const [inputData, setInputData] = useState<string>("28.44, 0.25, 4, 0, 0\n47.30, 0.28, 2, 2, 0\n56.12, 0.32, 2, 2, 2\n69.13, 0.38, 4, 4, 0\n76.38, 0.42, 6, 2, 0");
   const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian'>('Gaussian');
+  const [strainModel, setStrainModel] = useState<'UDM' | 'Stephens'>('UDM');
   const [result, setResult] = useState<WHResult | null>(() => {
     try {
       const saved = localStorage.getItem('xrd_wh_current');
@@ -191,8 +192,9 @@ export const WilliamsonHallModule: React.FC = () => {
     setCagliotiW(0.015);
     setYoungsModulusGPa(130);
     setIsModulusEnabled(false);
-    setInputData("28.44, 0.25\n47.30, 0.28\n56.12, 0.32\n69.13, 0.38\n76.38, 0.42");
+    setInputData("28.44, 0.25, 4, 0, 0\n47.30, 0.28, 2, 2, 0\n56.12, 0.32, 2, 2, 2\n69.13, 0.38, 4, 4, 0\n76.38, 0.42, 6, 2, 0");
     setSelectedKType('Standard Average');
+    setStrainModel('UDM');
   };
 
   const handleClear = () => {
@@ -234,7 +236,8 @@ export const WilliamsonHallModule: React.FC = () => {
         broadeningModel,
         instrumentalMode,
         { U: cagliotiU, V: cagliotiV, W: cagliotiW },
-        isModulusEnabled ? youngsModulusGPa : undefined
+        isModulusEnabled ? youngsModulusGPa : undefined,
+        strainModel
       );
       setResult(computed);
       localStorage.setItem('xrd_wh_current', JSON.stringify(computed));
@@ -262,7 +265,7 @@ export const WilliamsonHallModule: React.FC = () => {
     setResult(null); // Clear result when inputs change to enforce re-analyzing
     localStorage.removeItem('xrd_wh_current');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wavelength, constantK, instFwhm, inputData, broadeningModel, instrumentalMode, cagliotiU, cagliotiV, cagliotiW, youngsModulusGPa, isModulusEnabled]);
+  }, [wavelength, constantK, instFwhm, inputData, broadeningModel, instrumentalMode, cagliotiU, cagliotiV, cagliotiW, youngsModulusGPa, isModulusEnabled, strainModel]);
 
   // Prepare chart data
   const chartData = result ? result.points.map(p => {
@@ -888,8 +891,28 @@ export const WilliamsonHallModule: React.FC = () => {
                      </button>
                    ))}
                 </div>
-                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-3 leading-relaxed">
+                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-2 mb-4 leading-relaxed">
                    {broadeningModel === 'Gaussian' ? 'Quadratic (β²): Used when instrument/strain profiles are Gaussian.' : 'Linear (β): Used when broadening is dominantly Cauchy/Lorentzian.'}
+                </p>
+
+                <label className="block text-[10px] font-black text-slate-500 mb-3 uppercase tracking-[0.2em]">
+                  Strain Regression Model
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                   {(['UDM', 'Stephens'] as const).map(model => (
+                     <button
+                       key={model}
+                       onClick={() => setStrainModel(model)}
+                       className={`py-2 px-1 rounded-lg border text-[9px] font-black uppercase tracking-tight transition-all
+                         ${strainModel === model ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 font-black' : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'}
+                       `}
+                     >
+                       {model === 'UDM' ? 'Uniform (UDM)' : 'Stephens (Anis)'}
+                     </button>
+                   ))}
+                </div>
+                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-2 leading-relaxed">
+                   {strainModel === 'UDM' ? 'Isotropic strain across all hkl planes.' : 'Anisotropic phenomenological S_hkl strain model (requires hkl inputs).'}
                 </p>
               </div>
             </div>
@@ -1014,13 +1037,16 @@ export const WilliamsonHallModule: React.FC = () => {
                   value={inputData}
                   onChange={(e) => setInputData(e.target.value)}
                   className="w-full h-32 px-4 py-3 bg-[#0A101C] text-emerald-300 border border-white/10 focus:border-emerald-500/50 rounded-lg focus:ring-1 focus:ring-emerald-500/20 outline-none custom-scrollbar transition-all leading-relaxed placeholder:text-slate-700"
-                  placeholder="28.44, 0.2&#10;47.30, 0.28"
+                  placeholder="2θ(°), FWHM(°), h, k, l&#10;28.44, 0.25, 4, 0, 0&#10;47.30, 0.28, 2, 2, 0"
                   spellCheck="false"
                 />
               </div>
-              <div className="mt-3 flex items-start gap-2 text-[9px] font-bold text-slate-400 bg-black/40 p-2.5 rounded-lg border border-white/5">
+              <div className="mt-3 flex items-start gap-2 text-[9px] font-bold text-slate-400 bg-black/40 p-2.5 rounded-lg border border-white/5 flex-col">
                 <span className="leading-tight uppercase tracking-widest font-mono text-emerald-500/80">
-                   <span className="text-emerald-500 mr-1">&gt;</span> Enter at least 3 peaks for reliable regression.
+                   <span className="text-emerald-500 mr-1">&gt;</span> Format: 2Theta, FWHM, [H, K, L]
+                </span>
+                <span className="leading-tight uppercase tracking-widest font-mono text-emerald-500/80">
+                   <span className="text-emerald-500 mr-1">&gt;</span> Enter at least 3 peaks for reliable regression. Stephens model requires H, K, L inputs.
                 </span>
               </div>
             </div>
@@ -1178,6 +1204,29 @@ export const WilliamsonHallModule: React.FC = () => {
                 Regression
               </div>
            </div>
+
+           {result?.stephensParams && (
+             <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.05)] relative overflow-hidden group hover:border-emerald-500/40 transition-all flex flex-col justify-between col-span-2">
+                <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Layers className="w-16 h-16 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Stephens Anisotropic Tensor (Cubic)</p>
+                  <div className="flex items-baseline gap-6 mt-2 relative z-10">
+                    <p className="text-xl font-black text-white font-mono drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                      S₄₀₀: {result.stephensParams.S400.toExponential(2)}
+                    </p>
+                    <p className="text-xl font-black text-white font-mono drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                      S₂₂₀: {result.stephensParams.S220.toExponential(2)}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[8px] text-emerald-400 font-black uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 relative z-10 self-start">
+                  <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
+                  Phenomenological Parameters
+                </div>
+             </div>
+           )}
 
            {isModulusEnabled && (
              <>

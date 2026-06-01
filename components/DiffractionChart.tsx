@@ -47,13 +47,23 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
     }
 
     // Add peak markers for tooltips
-    const peakData = results.map(r => ({
+    let peakData = results.map(r => ({
       twoTheta: r.twoTheta,
       intensity: r.intensity !== undefined ? r.intensity : 100,
       isPeak: true,
       hkl: r.hkl,
       dSpacing: r.dSpacing,
-      q: r.qVector
+      q: r.qVector,
+      isLabelVisible: false
+    }));
+
+    // Identify the top 5 most intense peaks
+    const sortedPeaks = [...peakData].sort((a, b) => b.intensity - a.intensity);
+    const topPeakThetas = new Set(sortedPeaks.slice(0, 5).map(p => p.twoTheta));
+
+    peakData = peakData.map(p => ({
+      ...p,
+      isLabelVisible: topPeakThetas.has(p.twoTheta)
     }));
 
     return { points, peakData };
@@ -132,7 +142,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
 
       <div className="flex-1 w-full min-h-0 min-w-0 relative z-10">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart margin={{ top: 10, right: 20, bottom: 20, left: -20 }}>
+          <ComposedChart margin={{ top: 25, right: 20, bottom: 20, left: -20 }}>
             <defs>
                <linearGradient id="profileGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -169,12 +179,17 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               data={chartData.peakData} 
               fill="#10b981"
               shape={(props: any) => {
-                const { cx, cy } = props;
+                const { cx, cy, payload } = props;
                 if (cx === undefined || cy === undefined || isNaN(cx) || isNaN(cy)) return null;
                 return (
                   <g>
                     <line x1={cx} y1={cy} x2={cx} y2={cy + 300} stroke="#10b981" strokeWidth={2} strokeDasharray="3 3" opacity={0.4} />
                     <circle cx={cx} cy={cy} r={4} fill="#10b981" stroke="#fff" strokeWidth={1} />
+                    {payload.isLabelVisible && payload.hkl && (
+                      <text x={cx} y={cy - 12} textAnchor="middle" fill="#94a3b8" fontSize="10" className="font-bold font-mono tracking-widest drop-shadow-md">
+                        ({payload.hkl})
+                      </text>
+                    )}
                   </g>
                 )
               }}

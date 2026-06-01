@@ -773,6 +773,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'Ir' ? 'Iridium' :
                         type === 'Os' ? 'Osmium' :
                         type === 'Rh' ? 'Rhodium' :
+                        type === 'PuDelta' ? 'Plutonium (Delta Phase)' :
+                        type === 'PuAlpha' ? 'Plutonium (Alpha Phase)' :
+                        type === 'PuO2' ? 'Plutonium Dioxide (PuO2)' :
                         type === 'UO2' ? 'Uranium Dioxide' :
                         type === 'U3O8' ? 'Triuranium Octoxide' :
                         type === 'UO3' ? 'Uranium Trioxide' :
@@ -811,6 +814,26 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'SiC' ? 'Silicon Carbide' :
                         type === 'GaAs' ? 'Gallium Arsenide' :
                         type === 'BFO' ? 'Bismuth Ferrite' :
+                        type === 'B4C' ? 'Boron Carbide (B4C)' :
+                        type === 'ZrB2' ? 'Zirconium Diboride (ZrB2)' :
+                        type === 'HfB2' ? 'Hafnium Diboride (HfB2)' :
+                        type === 'TiB2' ? 'Titanium Diboride (TiB2)' :
+                        type === 'U3Si2' ? 'Uranium Silicide (U3Si2)' :
+                        type === 'Gd2O3' ? 'Gadolinium Oxide (Gd2O3)' :
+                        type === 'Er2O3' ? 'Erbium Oxide (Er2O3)' :
+                        type === 'AgInCd' ? 'Ag-In-Cd Alloy (80-15-5)' :
+                        type === 'Kevlar' ? 'Kevlar (PPTA)' :
+                        type === 'UHMWPE' ? 'UHMWPE (Dyneema/Spectra)' :
+                        type === 'ALON' ? 'Aluminum Oxynitride (ALON)' :
+                        type === 'Spinel' ? 'Magnesium Aluminate Spinel' :
+                        type === 'Sm2O3' ? 'Samarium Oxide (Sm2O3)' :
+                        type === 'PbWO4' ? 'Lead Tungstate (PbWO4)' :
+                        type === 'CdWO4' ? 'Cadmium Tungstate (CdWO4)' :
+                        type === 'BeO' ? 'Beryllium Oxide (BeO)' :
+                        type === 'ZrC' ? 'Zirconium Carbide (ZrC)' :
+                        type === 'BGO' ? 'Bismuth Germanate (BGO)' :
+                        type === 'NaITl' ? 'Sodium Iodide doped with Thallium (NaI:Tl)' :
+                        type === 'ZrH2' ? 'Zirconium Hydride (ZrH2)' :
                         type === 'ITO' ? 'Indium Tin Oxide' :
                         type === 'FeS2' ? 'Pyrite' :
                         type === 'Cr' ? 'Chromium' :
@@ -829,6 +852,26 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'AgCl' ? 'Silver Chloride' :
                         type === 'MnO2' ? 'Manganese Oxide' :
                         type === 'PTFE' ? 'Polytetrafluoroethylene' :
+                        type === 'PbO' ? 'Lead(II) Oxide (Litharge)' :
+                        type === 'Bi2O3' ? 'Bismuth(III) Oxide' :
+                        type === 'Sb2O3' ? 'Antimony Trioxide' :
+                        type === 'TeO2' ? 'Tellurium Dioxide' :
+                        type === 'GeO2' ? 'Germanium Dioxide' :
+                        type === 'Sc2O3' ? 'Scandium(III) Oxide' :
+                        type === 'Lu2O3' ? 'Lutetium(III) Oxide' :
+                        type === 'Nb2O5' ? 'Niobium Pentoxide' :
+                        type === 'FeO' ? 'Wüstite (FeO)' :
+                        type === 'LiF' ? 'Lithium Fluoride' :
+                        type === 'NaF' ? 'Sodium Fluoride' :
+                        type === 'MgF2' ? 'Magnesium Fluoride' :
+                        type === 'AlF3' ? 'Aluminum Fluoride' :
+                        type === 'KBr' ? 'Potassium Bromide' :
+                        type === 'KI' ? 'Potassium Iodide' :
+                        type === 'CsI' ? 'Cesium Iodide' :
+                        type === 'CsCl' ? 'Cesium Chloride' :
+                        type === 'AgBr' ? 'Silver Bromide' :
+                        type === 'CuI' ? 'Copper(I) Iodide' :
+                        type === 'PbI2' ? 'Lead(II) Iodide' :
                         type === 'NaCl' ? 'Halite' :
                         type === 'KCl' ? 'Sylvite' :
                         type === 'CaF2' ? 'Calcium Fluoride' :
@@ -905,10 +948,50 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'ZIF8' ? 'ZIF-8' :
                         type === 'Ibuprofen' ? 'Ibuprofen' :
                         type === 'Paracetamol' ? 'Paracetamol' :
+                        type === 'ZTA' ? 'Zirconia Toughened Alumina (ZTA)' :
+                        type === 'YTZP' ? 'Y-TZP (Yttria-stabilized Zirconia)' :
+                        type === 'Alginate' ? 'Alginate' :
+                        type === 'HyaluronicAcid' ? 'Hyaluronic Acid (HA)' :
+                        type === 'Diclofenac' ? 'Diclofenac Sodium' :
+                        type === 'Aspirin' ? 'Aspirin (Acetylsalicylic Acid)' :
+                        type === 'Amoxicillin' ? 'Amoxicillin Trihydrate' :
+                        type === 'MgTCP' ? 'Mg-Substituted beta-TCP (Mg-TCP)' :
+                        type === 'SrTCP' ? 'Sr-Substituted beta-TCP (Sr-TCP)' :
+                        type === 'ZnHAp' ? 'Zn-Substituted HAp (Zn-HAp)' :
+                        type === 'BariumSulfate' ? 'Barium Sulfate' :
+                        type === 'PMMA' ? 'Polymethyl Methacrylate (PMMA)' :
+                        type === 'PCL' ? 'Polycaprolactone (PCL)' :
+                        type === 'PLGA' ? 'Poly(lactic-co-glycolic acid) (PLGA)' :
+                        type === 'TiO2Nano' ? 'TiO2 Nanotubes (Biomedical)' :
+                        type === 'CaSO4Hemi' ? 'Calcium Sulfate Hemihydrate' :
+                        type === 'CaSO4Di' ? 'Calcium Sulfate Dihydrate' :
+                        type === 'Whitlockite' ? 'Whitlockite' :
+                        type === 'Meloxicam' ? 'Meloxicam' :
+                        type === 'Curcumin' ? 'Curcumin' :
                         type === 'Magnetite' ? 'Magnetite (Fe3O4)' :
                         type === 'PE' ? 'Polyethylene (PE)' :
                         type === 'YBCO' ? 'YBCO Superconductor' :
                         type === 'Cement' ? 'Portland Cement (Alite)' :
+                        type === 'Olivine' ? 'Olivine (Forsterite)' :
+                        type === 'Pyroxene' ? 'Pyroxene (Enstatite)' :
+                        type === 'Biotite' ? 'Biotite' :
+                        type === 'Muscovite' ? 'Muscovite' :
+                        type === 'Kaolinite' ? 'Kaolinite' :
+                        type === 'Montmorillonite' ? 'Montmorillonite' :
+                        type === 'Illite' ? 'Illite' :
+                        type === 'Dolomite' ? 'Dolomite' :
+                        type === 'Aragonite' ? 'Aragonite' :
+                        type === 'Ilmenite' ? 'Ilmenite' :
+                        type === 'Apatite' ? 'Apatite (Fluorapatite)' :
+                        type === 'Zircon' ? 'Zircon' :
+                        type === 'Tourmaline' ? 'Tourmaline (Schorl)' :
+                        type === 'Beryl' ? 'Beryl' :
+                        type === 'Almandine' ? 'Almandine (Garnet)' :
+                        type === 'Fullerene' ? 'Fullerene (C60)' :
+                        type === 'MWCNT' ? 'Multi-walled Carbon Nanotubes (MWCNT)' :
+                        type === 'HardCarbon' ? 'Hard Carbon' :
+                        type === 'GlassyCarbon' ? 'Glassy Carbon' :
+                        type === 'Anthracite' ? 'Anthracite' :
                         type;
       
       const mat = MATERIAL_DB.find(m => m.name.includes(searchKey));
@@ -1462,244 +1545,398 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       <Database className="w-3 h-3 text-slate-400" /> Standard Scientific Test Databases (ICDD, COD, RRUFF, ICSD, CSD)
                    </span>
                 </div>
-                <div className="h-[240px] overflow-y-auto pr-2 custom-scrollbar bg-slate-50 border border-slate-200 rounded-xl p-2 relative">
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="h-[300px] overflow-y-auto pr-3 pl-1 pb-4 custom-scrollbar bg-[#f8fafc] border border-slate-200 rounded-xl shadow-inner relative space-y-4">
                   {[
-                    { id: 'Silicon', label: 'Si' },
-                    { id: 'Mixture', label: 'Mixture' },
-                    { id: 'Diamond', label: 'Diamond' },
-                    { id: 'Rutile', label: 'Rutile' },
-                    { id: 'Anatase', label: 'Anatase' },
-                    { id: 'Aluminum', label: 'Al' },
-                    { id: 'Copper', label: 'Cu' },
-                    { id: 'Tungsten', label: 'W' },
-                    { id: 'MoS2', label: 'MoS2' },
-                    { id: 'ZnO', label: 'ZnO' },
-                    { id: 'MgO', label: 'MgO' },
-                    { id: 'BaTiO3', label: 'BaTiO3' },
-                    { id: 'Quartz', label: 'Quartz' },
-                    { id: 'CeO2', label: 'CeO2' },
-                    { id: 'Corundum', label: 'Al2O3' },
-                    { id: 'Calcite', label: 'Calcite' },
-                    { id: 'HAP-Sintered', label: 'HAp (Sintered)' },
-                    { id: 'HAP-Nano', label: 'HAp (Nano)' },
-                    { id: 'Carbonated-HAP', label: 'HAp (Carbonated)' },
-                    { id: 'Dental-HAP', label: 'HAp (Enamel)' },
-                    { id: 'Dentin-HAP', label: 'HAp (Dentin)' },
-                    { id: 'Mg-HAP', label: 'HAp (Mg-doped)' },
-                    { id: 'Si-HAP', label: 'HAp (Si-doped)' },
-                    { id: 'Pb-HAP', label: 'HAp (Pb-doped)' },
-                    { id: 'Cd-HAP', label: 'HAp (Cd-doped)' },
-                    { id: 'ACP', label: 'ACP (Amorphous)' },
-                    { id: 'Fluorapatite', label: 'Fluorapatite' },
-                    { id: 'Sr-HAP', label: 'Sr-HAp' },
-                    { id: 'Chlorapatite', label: 'Chlorapatite' },
-                    { id: 'beta-Tricalcium Phosphate', label: 'beta-TCP' },
-                    { id: 'alpha-Tricalcium Phosphate', label: 'alpha-TCP' },
-                    { id: 'Bioactive Glass', label: 'Bioglass 45S5' },
-                    { id: 'Bio-Glass-1393', label: 'Bioglass 13-93' },
-                    { id: 'Bio-Glass-S53P4', label: 'Bioglass S53P4' },
-                    { id: 'Brushite', label: 'Brushite' },
-                    { id: 'Monetite', label: 'Monetite' },
-                    { id: 'TTCP', label: 'TTCP' },
-                    { id: 'Bio-Aragonite', label: 'Aragonite' },
-                    { id: 'PbTiO3', label: 'PbTiO3' },
-                    { id: 'NiO', label: 'NiO' },
-                    { id: 'Co3O4', label: 'Co3O4' },
-                    { id: 'PZT', label: 'PZT' },
-                    { id: 'VO2', label: 'VO2' },
-                    { id: 'WO3', label: 'WO3' },
-                    { id: 'Austenite', label: 'Austenite' },
-                    { id: 'ZnS', label: 'ZnS' },
-                    { id: 'BaFe12O19', label: 'Ba Ferrite' },
-                    { id: 'CuO', label: 'CuO' },
-                    { id: 'Ag2O', label: 'Ag2O' },
-                    { id: 'LTA', label: 'Zeolite A' },
-                    { id: 'Silver (Ag)', label: 'Ag' },
-                    { id: 'Au', label: 'Au' },
-                    { id: 'Ni', label: 'Ni' },
-                    { id: 'Fe', label: 'Fe (BCC)' },
-                    { id: 'GaN', label: 'GaN' },
-                    { id: 'YAG', label: 'YAG' },
-                    { id: 'SrTiO3', label: 'SrTiO3' },
-                    { id: 'LiFePO4', label: 'LFP' },
-                    { id: 'ZrO2', label: 'ZrO2' },
-                    { id: 'Graphite', label: 'Graphite' },
-                    { id: 'CaF2', label: 'CaF2' },
-                    { id: 'KCl', label: 'KCl' },
-                    { id: 'PTFE', label: 'PTFE' },
-                    { id: 'WC', label: 'WC' },
-                    { id: 'Fe3O4', label: 'Fe3O4' },
-                    { id: 'MAPbI3', label: 'Perovskite' },
-                    { id: 'SiC', label: 'SiC' },
-                    { id: 'GaAs', label: 'GaAs' },
-                    { id: 'Ga2O3', label: 'Ga2O3' },
-                    { id: 'CdTe', label: 'CdTe' },
-                    { id: 'Bi2Te3', label: 'Bi2Te3' },
-                    { id: 'SnO2', label: 'SnO2' },
-                    { id: 'LCO', label: 'LCO' },
-                    
-                    { id: 'U3O8', label: 'U3O8' },
-                    { id: 'UO3', label: 'UO3' },
-                    { id: 'U-Metal', label: 'U-Metal' },
-                    { id: 'Si3N4', label: 'Si3N4' },
-                    { id: 'AlN', label: 'AlN' },
-                    { id: 'hBN', label: 'h-BN' },
-                    { id: 'GaP', label: 'GaP' },
-                    { id: 'ZnSe', label: 'ZnSe' },
-                    { id: 'Ta', label: 'Ta' },
-                    { id: 'V2O5', label: 'V2O5' },
-                    { id: 'AgCl', label: 'AgCl' },
-                    { id: 'MnO2', label: 'MnO2' },
-                    { id: 'BFO', label: 'BFO' },
-                    { id: 'ITO', label: 'ITO' },
-                    { id: 'FeS2', label: 'FeS2' },
-                    { id: 'Cr', label: 'Cr' },
-                    { id: 'LTO', label: 'LTO Anode' },
-                    { id: 'YBCO', label: 'YBCO High-Tc' },
-                    { id: 'ZSM5', label: 'ZSM-5' },
-                    { id: 'MOF5', label: 'MOF-5' },
-                    { id: 'Pt', label: 'Pt Cat' },
-                    { id: 'Pd', label: 'Pd Cat' },
-                    { id: 'NMC', label: 'NMC Cathode' },
-                    { id: 'YSZ', label: '8YSZ' },
-                    { id: 'SRO', label: 'SrRuO3' },
-                    { id: 'GO', label: 'GO' },
-                    { id: 'OCP', label: 'OCP Bio' },
-                    { id: 'Magnetite-Hyper', label: 'Magnetite (Hyper)' },
-                    { id: 'Cobalt-Ferrite', label: 'Co-Ferrite' },
-                    { id: 'Maghemite', label: 'Maghemite' },
-                    { id: 'Zn-Ferrite', label: 'Zn-Ferrite' },
-                    { id: 'Cellulose', label: 'Cellulose' },
-                    { id: 'Chitosan', label: 'Chitosan' },
-                    { id: 'Silk', label: 'Silk Fibroin' },
-                    { id: 'Whewellite', label: 'Whewellite' },
-                    { id: 'PLA', label: 'PLA Bio' },
-                    { id: 'PEEK', label: 'PEEK' },
-                    { id: 'Collagen', label: 'Collagen' },
-                    { id: 'UO2', label: 'UO2 Fuel' },
-                    { id: 'ThO2', label: 'ThO2' },
-                    { id: 'Zircaloy', label: 'Zircaloy-4' },
-                    { id: 'NuclearGraphite', label: 'Nuclear Graphite' },
-                    { id: 'Nd2Fe14B', label: 'Nd Magnet' },
-                    { id: 'TiC', label: 'TiC' },
-                    { id: 'Cr2O3', label: 'Cr2O3' },
-                    { id: 'CoFe2O4', label: 'CoFe2O4' },
-                    { id: 'BiOCl', label: 'BiOCl' },
-                    { id: 'CsPbI3', label: 'CsPbI3' },
-                    { id: 'Ti3C2', label: 'MXene' },
-                    { id: 'UiO66', label: 'UiO-66' },
-                    { id: 'HKUST1', label: 'HKUST-1' },
-                    { id: 'MoO3', label: 'MoO3' },
-                    { id: 'V2O3', label: 'V2O3' },
-                    { id: 'NaCl', label: 'NaCl' },
-                    { id: 'Graphene', label: 'Graphene' },
-                    { id: 'LMO', label: 'LMO Cathode' },
-                    { id: 'Bismuth', label: 'Bismuth' },
-                    { id: 'Germanium', label: 'Germanium' },
-                    { id: 'TiN', label: 'TiN' },
-                    { id: 'Mo', label: 'Mo' },
-                    { id: 'Ir', label: 'Ir' },
-                    { id: 'Os', label: 'Os' },
-                    { id: 'Rh', label: 'Rh' },
-                    { id: 'LiTaO3', label: 'LiTaO3' },
-                    { id: 'LiNbO3', label: 'LiNbO3' },
-                    { id: 'PbS', label: 'PbS' },
-                    { id: 'ZnTe', label: 'ZnTe' },
-                    { id: 'LaAlO3', label: 'LaAlO3' },
-                    { id: 'Cu2O', label: 'Cu2O (Cuprite)' },
-                    { id: 'CdSe', label: 'CdSe' },
-                    { id: 'SiO', label: 'SiO Anode' },
-                    { id: 'Y2O3', label: 'Y2O3 (Yttria)' },
-                    { id: 'BaZrO3', label: 'BaZrO3' },
-                    { id: 'NASICON', label: 'NASICON' },
-                    { id: 'TiS2', label: 'TiS2' },
-                    { id: 'HfO2', label: 'HfO2 (High-k Oxide)' },
-                    { id: 'SAC305', label: 'SAC305 (Solder)' },
-                    { id: 'Ta2O5', label: 'Ta2O5 (Capacitor)' },
-                    { id: 'SWCNT', label: 'SWCNT (Nanotubes)' },
-                    { id: 'Phosphorene', label: 'Phosphorene' },
-                    { id: 'IGZO', label: 'IGZO TFT' },
-                    { id: 'SPIONs', label: 'SPIONs (Mag-Med)' },
-                    { id: 'MSN', label: 'MSN Carrier' },
-                    { id: 'AgNPs', label: 'AgNPs (Silver Nano)' },
-                    { id: 'Modern-Ceramic', label: 'Modern Ceramic' },
-                    { id: 'Solar-Mix', label: 'Solar Mix' },
-                    { id: 'Cathode-Mix', label: 'Cathode Mix' },
-                    { id: 'Geological-Suite', label: 'Geo-Suite' },
-                    { id: 'Catalyst-Mix', label: 'Catalyst Mix' },
-                    { id: 'Precious-Metal-Mix', label: 'Precious Metals' },
-                    { id: 'Halide-Mineral-Mix', label: 'Halide Minerals' },
-                    { id: 'Iron-Oxide-Mix', label: 'Iron Oxides' },
-                    { id: 'Hematite', label: 'Hematite' },
-                    { id: 'Feldspar', label: 'Feldspar' },
-                    { id: 'PerovskiteCat', label: 'Perovskite Cat' },
-                    { id: 'SS316L', label: 'SS 316L' },
-                    { id: 'SS304', label: 'SS 304' },
-                    { id: 'SS310', label: 'SS 310' },
-                    { id: 'SS430', label: 'SS 430' },
-                    { id: 'Ti64', label: 'Ti-6Al-4V' },
-                    { id: 'Brass', label: 'Brass' },
-                    { id: 'Inconel', label: 'Inconel 718' },
-                    { id: 'SBA15', label: 'SBA-15 Silica' },
-                    { id: 'ZIF8', label: 'ZIF-8 MOF' },
-                    { id: 'Ibuprofen', label: 'Ibuprofen' },
-                    { id: 'Paracetamol', label: 'Paracetamol' },
-                    { id: 'Magnetite', label: 'Magnetite' },
-                    { id: 'PE', label: 'Polymer (PE)' },
-                    { id: 'Cement', label: 'Clinker' },
-                    { id: 'Biocoat-Composite-Suite', label: 'COD-9002220: Implant Suite (HAp + ZrO2)' },
-                    { id: 'SOFC-Electrode-Suite', label: 'ICSD-62295: SOFC (YSZ + SRO)' },
-                    { id: 'Aerospace-Armor-Suite', label: 'ICSD-43221: Aerospace (TiC + Al2O3)' },
-                    { id: 'Pharma-Drug-Suite', label: 'CSD-HXACAN: Pharma (Ibu + Para)' },
-                    { id: 'Nuclear-Fuel-Suite', label: 'ICDD-PDF-4: Nuclear Fuel Suite (UO2 + U3O8)' },
-                    { id: 'Battery-Anode-Suite', label: 'ICSD-76031: Battery (Si + C)' },
-                    { id: 'Superconductor-Suite', label: 'ICSD-65546: Superconductor (YBCO + CuO)' },
-                    { id: 'Zeolite-Catalyst-Suite', label: 'IZA-ZSM5: Zeolite (ZSM-5 + LTA)' },
-                    { id: 'Cantor-Alloy-Suite', label: 'COD-9014004: Cantor Alloy (Fe + Cr + Ni)' },
-                    { id: 'Carbon-Steel-Suite', label: 'ICSD-64795: Steel (Ferrite + Austenite + Fe3C)' },
-                    { id: 'Superalloy-Carbide-Suite', label: 'COD-9011620: Superalloy (Inconel + WC)' },
-                    { id: 'Multiferroic-Ceramic-Suite', label: 'ICSD-188686: Multiferroic (BaTiO3 + CoFe2O4)' },
-                    { id: 'Photocatalyst-TiO2-WO3-Suite', label: 'COD-9004144: Photocatalytic (TiO2 + WO3)' },
-                    { id: 'Nanocomposite-2D-Energy-Suite', label: 'COD-4513689: 2D Composite (MXene + MoS2 + GO)' },
-                    { id: 'Carbon-Allotropes-Hybrid-Suite', label: 'COD-9012290: Carbon Allotropes (Diamond + Graphite + GO)' },
-                    { id: 'Carbon-Carbide-Refractory-Suite', label: 'ICSD-16997: Refractory (Graphite + SiC + B4C)' },
-                    { id: 'Biomineral-Carbonate-Suite', label: 'RRUFF-R050512: Biomineral (HAp + CaCO3)' },
-                    { id: 'Complex', label: 'ICSD-15598: Complex (Quartz + Rutile + Anatase + Ag)' },
-                    { id: 'Drug-Carrier-Suite', label: 'ICDD-PDF-4: Drug Carrier (SBA-15 + MCM-41)' },
-                    { id: 'Dental-Implant-Composite', label: 'RRUFF-R060180: Dental Ceramic (ZrO2 + Al2O3 + HAp)' },
-                    { id: 'HEA-Brass-Suite', label: 'ICSD-108343: HEA Brass (Cu-Zn + Fe + Ni)' },
-                    { id: 'Cement-Clinker-Suite', label: 'COD-9011942: Cement Clinker (Alite + Calcite)' },
-                    { id: 'Clay-Mineral-Suite', label: 'RRUFF-R040030: Clay Minerals (Kaolinite + Illite + Quartz)' },
-                    { id: 'Battery-Cathode-Suite', label: 'ICSD-181156: NMC Cathode (LiNiMnCoO2 + LiCoO2)' },
-                    { id: 'Archaeological-Pigment-Suite', label: 'COD-9015949: Ancient Pigment (Egyptian Blue + Malachite)' },
-                    { id: 'Zeolite-Adsorbent-Suite', label: 'IZA-FAU: Zeolitic Adsorbents (ZSM-5 + Beta + Faujasite)' },
-                    { id: 'Lunar-Regolith-Simulant', label: 'RRUFF-R050186: Lunar Regolith (Anorthite + Ilmenite + Pyroxene)' },
-                    { id: 'Pharmaceutical-Polymorph-Mixture', label: 'CSD-ACSALA: Pharma Polymorphs (Aspirin + Ibuprofen)' },
-                    { id: 'Bone-Scaffold-Bioactive', label: 'COD-9010050: Bone Scaffold (HAp + beta-TCP)' },
-                    { id: 'Meteorite-Chondrite-Suite', label: 'RRUFF-R040026: Meteorite Minerals (Olivine + Kamacite)' },
-                    { id: 'Solid-State-Electrolyte-Suite', label: 'ICSD-185799: Solid State Electrolyte (LLZO + ZrO2)' },
-                    { id: 'Earth-Mantle-Assemblage', label: 'RRUFF-R060046: Lower Mantle (Bridgmanite + Ferropericlase)' },
-                    { id: 'Semiconductor-Hetero-Suite', label: 'ICSD-151025: III-V Semiconductor GaAs-GaN-AlN' },
-                    { id: 'Nuclear-Waste-Pyrochlore', label: 'COD-9000185: Nuclear Waste Pyrochlore Refractory' },
-                    { id: 'Superconducting-Tape-HTS', label: 'ICSD-65546: HTS Tape (YBCO + CeO2 + SrTiO3)' },
-                    { id: 'Mars-Soil-Curiosity', label: 'RRUFF-R040031: Mars Regolith (Plagioclase + Olivine)' },
-                    { id: 'Corrosion-Rust-Scale', label: 'COD-1011267: Corrosion Rust Scale (Hematite + Goethite)' },
-                    { id: 'Asbestos-Mineralogy', label: 'RRUFF-R060166: Asbestos Hazard (Chrysotile + Amosite)' },
-                    { id: 'Volcanic-Ash-Tephra', label: 'RRUFF-R050013: Volcanic Ash (Plagioclase + Augite)' },
-                    { id: 'Fly-Ash-Geopolymer', label: 'COD-9001569: Geopolymer Fly Ash (Mullite + Hematite)' },
-                    { id: 'Solar-Cell-Perovskite-Degradation', label: 'COD-4336146: Perovskite Degradation (MAPbI3 + PbI2)' },
-                    { id: 'Kidney-Stone-Urolithiasis', label: 'COD-1011110: Kidney Stone (Whewellite + Weddellite)' }
-                  ].map(ex => (
-                    <button 
-                      key={ex.id}
-                      onClick={() => loadExample(ex.id as any)} 
-                      className="text-[10px] font-bold bg-white text-slate-600 hover:text-violet-700 px-2 py-1 rounded border border-slate-200 hover:border-violet-300 transition-all shadow-sm active:scale-95"
-                    >
-                      {ex.label}
-                    </button>
+                    {
+                      category: "Semiconductors & Electronics",
+                      items: [
+                        { id: 'Silicon', label: 'Si' },
+                        { id: 'Germanium', label: 'Germanium' },
+                        { id: 'GaAs', label: 'GaAs' },
+                        { id: 'GaN', label: 'GaN' },
+                        { id: 'GaP', label: 'GaP' },
+                        { id: 'Ga2O3', label: 'Ga2O3' },
+                        { id: 'SiC', label: 'SiC' },
+                        { id: 'AlN', label: 'AlN' },
+                        { id: 'CdTe', label: 'CdTe' },
+                        { id: 'CdSe', label: 'CdSe' },
+                        { id: 'ZnS', label: 'ZnS' },
+                        { id: 'ZnSe', label: 'ZnSe' },
+                        { id: 'ZnTe', label: 'ZnTe' },
+                        { id: 'Bi2Te3', label: 'Bi2Te3' },
+                        { id: 'VO2', label: 'VO2' },
+                        { id: 'IGZO', label: 'IGZO TFT' },
+                        { id: 'PbS', label: 'PbS' },
+                        { id: 'TiN', label: 'TiN' },
+                        { id: 'ITO', label: 'ITO' },
+                        { id: 'BaTiO3', label: 'BaTiO3' },
+                        { id: 'SrTiO3', label: 'SrTiO3' },
+                        { id: 'PZT', label: 'PZT' },
+                        { id: 'PbTiO3', label: 'PbTiO3' },
+                        { id: 'LiTaO3', label: 'LiTaO3' },
+                        { id: 'LiNbO3', label: 'LiNbO3' },
+                        { id: 'LaAlO3', label: 'LaAlO3' },
+                        { id: 'HfO2', label: 'HfO2 (High-k)' },
+                        { id: 'Ta2O5', label: 'Ta2O5 (Caps)' },
+                      ]
+                    },
+                    {
+                      category: "Bioceramics, Biomaterials & Pharma",
+                      items: [
+                        { id: 'HAP-Sintered', label: 'HAp (Sintered)' },
+                        { id: 'HAP-Nano', label: 'HAp (Nano)' },
+                        { id: 'Carbonated-HAP', label: 'HAp (Carbonated)' },
+                        { id: 'Dental-HAP', label: 'HAp (Enamel)' },
+                        { id: 'Dentin-HAP', label: 'HAp (Dentin)' },
+                        { id: 'Mg-HAP', label: 'HAp (Mg-doped)' },
+                        { id: 'Si-HAP', label: 'HAp (Si-doped)' },
+                        { id: 'Pb-HAP', label: 'HAp (Pb-doped)' },
+                        { id: 'Cd-HAP', label: 'HAp (Cd-doped)' },
+                        { id: 'Sr-HAP', label: 'Sr-HAp' },
+                        { id: 'ACP', label: 'ACP' },
+                        { id: 'Fluorapatite', label: 'Fluorapatite' },
+                        { id: 'Chlorapatite', label: 'Chlorapatite' },
+                        { id: 'beta-Tricalcium Phosphate', label: 'beta-TCP' },
+                        { id: 'alpha-Tricalcium Phosphate', label: 'alpha-TCP' },
+                        { id: 'TTCP', label: 'TTCP' },
+                        { id: 'Brushite', label: 'Brushite' },
+                        { id: 'Monetite', label: 'Monetite' },
+                        { id: 'OCP', label: 'OCP Bio' },
+                        { id: 'Bio-Glass-1393', label: 'Bioglass 13-93' },
+                        { id: 'Bioactive Glass', label: 'Bioglass 45S5' },
+                        { id: 'Bio-Glass-S53P4', label: 'Bioglass S53P4' },
+                        { id: 'Bio-Aragonite', label: 'Aragonite' },
+                        { id: 'Whewellite', label: 'Whewellite' },
+                        { id: 'Cellulose', label: 'Cellulose' },
+                        { id: 'Chitosan', label: 'Chitosan' },
+                        { id: 'Silk', label: 'Silk Fibroin' },
+                        { id: 'Collagen', label: 'Collagen' },
+                        { id: 'PLA', label: 'PLA Bio' },
+                        { id: 'PEEK', label: 'PEEK' },
+                        { id: 'PE', label: 'Polymer (PE)' },
+                        { id: 'Ibuprofen', label: 'Ibuprofen' },
+                        { id: 'Paracetamol', label: 'Paracetamol' },
+                        { id: 'MSN', label: 'MSN Carrier' },
+                        { id: 'SPIONs', label: 'SPIONs (Mag)' },
+                        { id: 'AgNPs', label: 'AgNPs (Silver)' },
+                        { id: 'ZTA', label: 'ZTA (Alumina-Zirconia)' },
+                        { id: 'YTZP', label: 'Y-TZP (Yttria-ZrO2)' },
+                        { id: 'Alginate', label: 'Alginate' },
+                        { id: 'HyaluronicAcid', label: 'Hyaluronic Acid' },
+                        { id: 'Diclofenac', label: 'Diclofenac Sodium' },
+                        { id: 'Aspirin', label: 'Aspirin' },
+                        { id: 'Amoxicillin', label: 'Amoxicillin Trihydrate' },
+                        { id: 'MgTCP', label: 'Mg-TCP' },
+                        { id: 'SrTCP', label: 'Sr-TCP' },
+                        { id: 'ZnHAp', label: 'Zn-HAp' },
+                        { id: 'BariumSulfate', label: 'Barium Sulfate' },
+                        { id: 'PMMA', label: 'PMMA Bone Cement' },
+                        { id: 'PCL', label: 'PCL (Polycaprolactone)' },
+                        { id: 'PLGA', label: 'PLGA' },
+                        { id: 'TiO2Nano', label: 'TiO2 Nanotubes' },
+                        { id: 'CaSO4Hemi', label: 'Plaster of Paris' },
+                        { id: 'CaSO4Di', label: 'Gypsum (CaSO4-2H2O)' },
+                        { id: 'Whitlockite', label: 'Whitlockite' },
+                        { id: 'Meloxicam', label: 'Meloxicam' },
+                        { id: 'Curcumin', label: 'Curcumin' },
+                      ]
+                    },
+                    {
+                      category: "Metals, Alloys & Steel",
+                      items: [
+                        { id: 'Aluminum', label: 'Al' },
+                        { id: 'Copper', label: 'Cu' },
+                        { id: 'Silver (Ag)', label: 'Ag' },
+                        { id: 'Au', label: 'Au' },
+                        { id: 'Pt', label: 'Pt Cat' },
+                        { id: 'Pd', label: 'Pd Cat' },
+                        { id: 'Ir', label: 'Ir' },
+                        { id: 'Os', label: 'Os' },
+                        { id: 'Rh', label: 'Rh' },
+                        { id: 'Fe', label: 'Fe' },
+                        { id: 'Ni', label: 'Ni' },
+                        { id: 'Cr', label: 'Cr' },
+                        { id: 'Tungsten', label: 'W' },
+                        { id: 'Mo', label: 'Mo' },
+                        { id: 'Ta', label: 'Ta' },
+                        { id: 'Bismuth', label: 'Bismuth' },
+                        { id: 'Austenite', label: 'Austenite' },
+                        { id: 'SS304', label: 'SS 304' },
+                        { id: 'SS310', label: 'SS 310' },
+                        { id: 'SS316L', label: 'SS 316L' },
+                        { id: 'SS430', label: 'SS 430' },
+                        { id: 'Ti64', label: 'Ti-6Al-4V' },
+                        { id: 'Inconel', label: 'Inconel 718' },
+                        { id: 'Brass', label: 'Brass' },
+                        { id: 'SAC305', label: 'SAC305' },
+                        { id: 'TiGrade2', label: 'Ti (Grade 2)' },
+                        { id: 'AZ31B', label: 'Magnesium AZ31B' },
+                        { id: 'Al7075', label: 'Al 7075-T6' },
+                        { id: 'CoCrMo', label: 'CoCrMo' },
+                        { id: 'Nitinol', label: 'Nitinol' },
+                        { id: 'Zircaloy2', label: 'Zircaloy-2' },
+                        { id: 'HastelloyX', label: 'Hastelloy X' },
+                        { id: 'Monel400', label: 'Monel 400' },
+                        { id: 'Maraging300', label: 'Maraging Steel' },
+                        { id: 'Beryllium', label: 'Beryllium' },
+                        { id: 'Vanadium', label: 'Vanadium' },
+                        { id: 'Niobium', label: 'Niobium' },
+                        { id: 'Zirconium', label: 'Zirconium' },
+                        { id: 'Magnesium', label: 'Mg' },
+                        { id: 'Tin', label: 'Tin (Sn)' },
+                        { id: 'Zinc', label: 'Zinc (Zn)' },
+                        { id: 'Lead', label: 'Lead (Pb)' },
+                        { id: 'PoloniumEl', label: 'Polonium (Po)' },
+                        { id: 'ElectricalSteel', label: 'Electrical Steel' },
+                        { id: 'Permalloy', label: 'Permalloy' },
+                        { id: 'PhosphorBronze', label: 'Phosphor Bronze' },
+                      ]
+                    },
+                    {
+                      category: "Energy Devices",
+                      items: [
+                        { id: 'Graphite', label: 'Graphite' },
+                        { id: 'LCO', label: 'LCO' },
+                        { id: 'LMO', label: 'LMO Cathode' },
+                        { id: 'NMC', label: 'NMC' },
+                        { id: 'LiFePO4', label: 'LFP' },
+                        { id: 'LTO', label: 'LTO' },
+                        { id: 'SiO', label: 'SiO Anode' },
+                        { id: 'NASICON', label: 'NASICON' },
+                        { id: 'YSZ', label: '8YSZ' },
+                        { id: 'SRO', label: 'SrRuO3' },
+                        { id: 'MAPbI3', label: 'Perovskite' },
+                        { id: 'CsPbI3', label: 'CsPbI3' },
+                        { id: 'Rutile', label: 'Rutile' }, 
+                        { id: 'Anatase', label: 'Anatase' },
+                        { id: 'ZnO', label: 'ZnO' },
+                        { id: 'WO3', label: 'WO3' },
+                        { id: 'MoS2', label: 'MoS2' },
+                        { id: 'TiS2', label: 'TiS2' },
+                        { id: 'YBCO', label: 'YBCO High-Tc' },
+                        { id: 'LTA', label: 'Zeolite A' },
+                        { id: 'ZSM5', label: 'ZSM-5' },
+                        { id: 'SBA15', label: 'SBA-15' },
+                        { id: 'MOF5', label: 'MOF-5' },
+                        { id: 'UiO66', label: 'UiO-66' },
+                        { id: 'HKUST1', label: 'HKUST-1' },
+                        { id: 'ZIF8', label: 'ZIF-8' },
+                      ]
+                    },
+                    {
+                      category: "Geology, Minerals & Carbon",
+                      items: [
+                        { id: 'Quartz', label: 'Quartz' },
+                        { id: 'Calcite', label: 'Calcite' },
+                        { id: 'Feldspar', label: 'Feldspar' },
+                        { id: 'Hematite', label: 'Hematite' },
+                        { id: 'Magnetite', label: 'Magnetite' },
+                        { id: 'Magnetite-Hyper', label: 'Magnetite (Hyper)' },
+                        { id: 'Maghemite', label: 'Maghemite' },
+                        { id: 'FeS2', label: 'FeS2' },
+                        { id: 'Diamond', label: 'Diamond' },
+                        { id: 'Graphene', label: 'Graphene' },
+                        { id: 'GO', label: 'GO' },
+                        { id: 'SWCNT', label: 'SWCNT' },
+                        { id: 'Phosphorene', label: 'Phosphorene' },
+                        { id: 'Ti3C2', label: 'MXene' },
+                        { id: 'Cement', label: 'Clinker' },
+                        { id: 'Olivine', label: 'Olivine (Forsterite)' },
+                        { id: 'Pyroxene', label: 'Pyroxene' },
+                        { id: 'Biotite', label: 'Biotite' },
+                        { id: 'Muscovite', label: 'Muscovite' },
+                        { id: 'Kaolinite', label: 'Kaolinite' },
+                        { id: 'Montmorillonite', label: 'Montmorillonite' },
+                        { id: 'Illite', label: 'Illite' },
+                        { id: 'Dolomite', label: 'Dolomite' },
+                        { id: 'Aragonite', label: 'Aragonite' },
+                        { id: 'Ilmenite', label: 'Ilmenite' },
+                        { id: 'Apatite', label: 'Apatite' },
+                        { id: 'Zircon', label: 'Zircon' },
+                        { id: 'Tourmaline', label: 'Tourmaline' },
+                        { id: 'Beryl', label: 'Beryl' },
+                        { id: 'Almandine', label: 'Almandine Garnet' },
+                        { id: 'Fullerene', label: 'Fullerene (C60)' },
+                        { id: 'MWCNT', label: 'MWCNT' },
+                        { id: 'HardCarbon', label: 'Hard Carbon' },
+                        { id: 'GlassyCarbon', label: 'Glassy Carbon' },
+                        { id: 'Anthracite', label: 'Anthracite' },
+                      ]
+                    },
+                    {
+                      category: "Nuclear & Defensive",
+                      items: [
+                        { id: 'Polonium', label: 'Polonium (Po)' },
+                        { id: 'PuDelta', label: 'Plutonium (δ)' },
+                        { id: 'PuAlpha', label: 'Plutonium (α)' },
+                        { id: 'PuO2', label: 'PuO2 (Dioxide)' },
+                        { id: 'PoO2', label: 'Polonium Dioxide' },
+                        { id: 'PoBe', label: 'Po-Be Source' },
+                        { id: 'UO2', label: 'UO2 Fuel' },
+                        { id: 'U3O8', label: 'U3O8' },
+                        { id: 'UO3', label: 'UO3' },
+                        { id: 'U-Metal', label: 'U-Metal' },
+                        { id: 'ThO2', label: 'ThO2' },
+                        { id: 'Zircaloy', label: 'Zircaloy-4' },
+                        { id: 'NuclearGraphite', label: 'Nuclear Graphite' },
+                        { id: 'WC', label: 'WC' },
+                        { id: 'TiC', label: 'TiC' },
+                        { id: 'AlN', label: 'AlN' },
+                        { id: 'Si3N4', label: 'Si3N4' },
+                        { id: 'hBN', label: 'h-BN' },
+                        { id: 'Corundum', label: 'Al2O3' },
+                        { id: 'MgO', label: 'MgO' },
+                        { id: 'Cr2O3', label: 'Cr2O3' },
+                        { id: 'Nd2Fe14B', label: 'Nd Magnet' },
+                        { id: 'BaFe12O19', label: 'Ba Ferrite' },
+                        { id: 'Cobalt-Ferrite', label: 'Co-Ferrite' },
+                        { id: 'Zn-Ferrite', label: 'Zn-Ferrite' },
+                        { id: 'CoFe2O4', label: 'CoFe2O4' },
+                        { id: 'BFO', label: 'BFO' },
+                        { id: 'B4C', label: 'Boron Carbide (B4C)' },
+                        { id: 'ZrB2', label: 'ZrB2' },
+                        { id: 'HfB2', label: 'HfB2' },
+                        { id: 'TiB2', label: 'TiB2' },
+                        { id: 'U3Si2', label: 'U3Si2 Fuel' },
+                        { id: 'Gd2O3', label: 'Gd2O3 Poison' },
+                        { id: 'Er2O3', label: 'Er2O3 Poison' },
+                        { id: 'AgInCd', label: 'Ag-In-Cd' },
+                        { id: 'Kevlar', label: 'Kevlar (PPTA)' },
+                        { id: 'UHMWPE', label: 'UHMWPE Armor' },
+                        { id: 'ALON', label: 'ALON Armor' },
+                        { id: 'Spinel', label: 'Spinel Armor' },
+                        { id: 'Sm2O3', label: 'Sm2O3 Poison' },
+                        { id: 'PbWO4', label: 'PbWO4 Scintillator' },
+                        { id: 'CdWO4', label: 'CdWO4' },
+                        { id: 'BeO', label: 'BeO Moderator' },
+                        { id: 'ZrC', label: 'ZrC' },
+                        { id: 'BGO', label: 'BGO Scintillator' },
+                        { id: 'NaITl', label: 'NaI:Tl' },
+                        { id: 'ZrH2', label: 'ZrH2 Moderator' },
+                      ]
+                    },
+                    {
+                      category: "Oxides & Halides",
+                      items: [
+                        { id: 'CeO2', label: 'CeO2' },
+                        { id: 'ZrO2', label: 'ZrO2' },
+                        { id: 'Y2O3', label: 'Y2O3' },
+                        { id: 'CuO', label: 'CuO' },
+                        { id: 'Cu2O', label: 'Cu2O' },
+                        { id: 'NiO', label: 'NiO' },
+                        { id: 'Co3O4', label: 'Co3O4' },
+                        { id: 'Fe3O4', label: 'Fe3O4' },
+                        { id: 'MnO2', label: 'MnO2' },
+                        { id: 'V2O3', label: 'V2O3' },
+                        { id: 'V2O5', label: 'V2O5' },
+                        { id: 'MoO3', label: 'MoO3' },
+                        { id: 'SnO2', label: 'SnO2' },
+                        { id: 'Ag2O', label: 'Ag2O' },
+                        { id: 'BaZrO3', label: 'BaZrO3' },
+                        { id: 'NaCl', label: 'NaCl' },
+                        { id: 'CaF2', label: 'CaF2' },
+                        { id: 'KCl', label: 'KCl' },
+                        { id: 'AgCl', label: 'AgCl' },
+                        { id: 'BiOCl', label: 'BiOCl' },
+                        { id: 'PTFE', label: 'PTFE' },
+                        { id: 'PbO', label: 'PbO (Litharge)' },
+                        { id: 'Bi2O3', label: 'Bi2O3' },
+                        { id: 'Sb2O3', label: 'Sb2O3' },
+                        { id: 'TeO2', label: 'TeO2' },
+                        { id: 'GeO2', label: 'GeO2' },
+                        { id: 'Sc2O3', label: 'Sc2O3' },
+                        { id: 'Lu2O3', label: 'Lu2O3' },
+                        { id: 'Nb2O5', label: 'Nb2O5' },
+                        { id: 'FeO', label: 'FeO' },
+                        { id: 'LiF', label: 'LiF' },
+                        { id: 'NaF', label: 'NaF' },
+                        { id: 'MgF2', label: 'MgF2' },
+                        { id: 'AlF3', label: 'AlF3' },
+                        { id: 'KBr', label: 'KBr' },
+                        { id: 'KI', label: 'KI' },
+                        { id: 'CsI', label: 'CsI' },
+                        { id: 'CsCl', label: 'CsCl' },
+                        { id: 'AgBr', label: 'AgBr' },
+                        { id: 'CuI', label: 'CuI' },
+                        { id: 'PbI2', label: 'PbI2' },
+                      ]
+                    },
+                    {
+                      category: "Suites & Mixtures",
+                      items: [
+                        { id: 'Mixture', label: 'General Mixture' },
+                        { id: 'Complex', label: 'Complex Mix' },
+                        { id: 'PerovskiteCat', label: 'Perovskite Cat' },      
+                        { id: 'Modern-Ceramic', label: 'Modern Ceramic' },
+                        { id: 'Solar-Mix', label: 'Solar Mix' },
+                        { id: 'Cathode-Mix', label: 'Cathode Mix' },
+                        { id: 'Geological-Suite', label: 'Geo-Suite' },
+                        { id: 'Catalyst-Mix', label: 'Catalyst Mix' },
+                        { id: 'Precious-Metal-Mix', label: 'Precious Metals' },
+                        { id: 'Halide-Mineral-Mix', label: 'Halide Minerals' },
+                        { id: 'Iron-Oxide-Mix', label: 'Iron Oxides' },
+                        { id: 'Biocoat-Composite-Suite', label: 'Implant Suite' },
+                        { id: 'SOFC-Electrode-Suite', label: 'SOFC Suite' },
+                        { id: 'Aerospace-Armor-Suite', label: 'Aerospace' },
+                        { id: 'Pharma-Drug-Suite', label: 'Pharma Suite' },
+                        { id: 'Nuclear-Fuel-Suite', label: 'Nuclear Fuel' },
+                        { id: 'Battery-Anode-Suite', label: 'Battery Anode' },
+                        { id: 'Superconductor-Suite', label: 'Superconductor' },
+                        { id: 'Zeolite-Catalyst-Suite', label: 'Zeolite Suite' },
+                        { id: 'Cantor-Alloy-Suite', label: 'Cantor Alloy' },
+                        { id: 'Carbon-Steel-Suite', label: 'Steel Suite' },
+                        { id: 'Superalloy-Carbide-Suite', label: 'Superalloy' },
+                        { id: 'Multiferroic-Ceramic-Suite', label: 'Multiferroic' },
+                        { id: 'Photocatalyst-TiO2-WO3-Suite', label: 'Photocatalytic' },
+                        { id: 'Nanocomposite-2D-Energy-Suite', label: '2D Composite' },
+                        { id: 'Carbon-Allotropes-Hybrid-Suite', label: 'Carbon Hybrid' },
+                        { id: 'Carbon-Carbide-Refractory-Suite', label: 'Refractory' },
+                        { id: 'Biomineral-Carbonate-Suite', label: 'Biomineral' },
+                        { id: 'Drug-Carrier-Suite', label: 'Drug Carrier' },
+                        { id: 'Dental-Implant-Composite', label: 'Dental Ceramic' },
+                        { id: 'HEA-Brass-Suite', label: 'HEA Brass' },
+                        { id: 'Cement-Clinker-Suite', label: 'Cement Clinker' },
+                        { id: 'Clay-Mineral-Suite', label: 'Clay Minerals' },
+                        { id: 'Battery-Cathode-Suite', label: 'NMC Cathode Mix' },
+                        { id: 'Archaeological-Pigment-Suite', label: 'Ancient Pigment' },
+                        { id: 'Zeolite-Adsorbent-Suite', label: 'Zeolitic Adsorbents' },
+                        { id: 'Lunar-Regolith-Simulant', label: 'Lunar Regolith' },
+                        { id: 'Pharmaceutical-Polymorph-Mixture', label: 'Pharma Polymorphs' },
+                        { id: 'Bone-Scaffold-Bioactive', label: 'Bone Scaffold' },
+                        { id: 'Meteorite-Chondrite-Suite', label: 'Meteorite Minerals' },
+                        { id: 'Solid-State-Electrolyte-Suite', label: 'Solid Electrolyte' },
+                        { id: 'Earth-Mantle-Assemblage', label: 'Lower Mantle' },
+                        { id: 'Semiconductor-Hetero-Suite', label: 'III-V Semiconductor' },
+                        { id: 'Nuclear-Waste-Pyrochlore', label: 'Nuclear Waste' },
+                        { id: 'Superconducting-Tape-HTS', label: 'HTS Tape' },
+                        { id: 'Mars-Soil-Curiosity', label: 'Mars Regolith' },
+                        { id: 'Corrosion-Rust-Scale', label: 'Corrosion Rust' },
+                        { id: 'Asbestos-Mineralogy', label: 'Asbestos Hazard' },
+                        { id: 'Volcanic-Ash-Tephra', label: 'Volcanic Ash' },
+                        { id: 'Fly-Ash-Geopolymer', label: 'Geopolymer Fly Ash' },
+                        { id: 'Solar-Cell-Perovskite-Degradation', label: 'Perovskite Degraded' },
+                        { id: 'Kidney-Stone-Urolithiasis', label: 'Kidney Stone' }
+                      ]
+                    }
+                  ].map((categoryObj, idx) => (
+                    <div key={idx} className="mt-2">
+                       <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 mb-2 border-b border-slate-200 pb-1 sticky top-0 bg-[#f8fafc]/90 backdrop-blur-sm z-10 p-1 flex items-center gap-1.5">
+                         <div className="w-1.5 h-1.5 rounded-full bg-violet-400"></div>
+                         {categoryObj.category}
+                       </h4>
+                       <div className="flex flex-wrap gap-1.5 px-1 py-1">
+                         {categoryObj.items.map(ex => (
+                           <button 
+                             key={ex.id}
+                             onClick={() => loadExample(ex.id as any)} 
+                             className="text-[10px] font-semibold bg-white text-slate-600 hover:text-white hover:bg-violet-600 px-2.5 py-1 rounded-md border border-slate-300 hover:border-violet-600 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-95"
+                           >
+                             {ex.label}
+                           </button>
+                         ))}
+                       </div>
+                    </div>
                   ))}
-                  </div>
                 </div>
               </div>
             </div>

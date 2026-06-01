@@ -28,7 +28,7 @@ interface MaterialPreset {
   peaks: number[];
   hkls: string[];
   description: string;
-  category: 'Standard' | 'Metal' | 'Ceramic' | 'Perovskite' | 'Biomaterial' | 'Nuclear' | 'Thermoelectric' | 'Metallurgy' | 'Polymer' | 'Custom';
+  category: 'Standard' | 'Metal' | 'Ceramic' | 'Perovskite' | 'Biomaterial' | 'Nuclear' | 'Thermoelectric' | 'Metallurgy' | 'Polymer' | 'Semiconductor' | 'Custom';
   crystalSystem?: string;
   spaceGroup?: string;
   latticeParams?: string;
@@ -1346,6 +1346,118 @@ const PRESETS: MaterialPreset[] = [
     latticeParams: 'a = 3.905 Å',
     database: 'COD',
     databaseId: '1511910'
+  },
+  {
+    name: 'Gallium Arsenide (GaAs)',
+    formula: 'GaAs',
+    wavelength: 1.5406,
+    peaks: [27.30, 45.32, 53.71, 65.98, 72.82, 84.48],
+    hkls: ['111', '220', '311', '400', '331', '422'],
+    description: 'Device-grade Gallium Arsenide, the classic III-V binary semiconductor. Highly valued for high-frequency microelectronics, solar cells, and optoelectronics.',
+    category: 'Semiconductor',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'F-43m (No. 216)',
+    latticeParams: 'a = 5.653 Å',
+    database: 'COD',
+    databaseId: '1541246'
+  },
+  {
+    name: 'Wurtzite Gallium Nitride (GaN)',
+    formula: 'GaN',
+    wavelength: 1.5406,
+    peaks: [32.39, 34.56, 36.84, 48.08, 57.78, 63.45, 67.89],
+    hkls: ['100', '002', '101', '102', '110', '103', '200'],
+    description: 'Hexagonal wurtzite Gallium Nitride. Essential wide bandgap semiconductor for power electronics, blue LEDs, and laser diodes.',
+    category: 'Semiconductor',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63mc (No. 186)',
+    latticeParams: 'a = 3.189 Å, c = 5.185 Å',
+    database: 'COD',
+    databaseId: '1533654'
+  },
+  {
+    name: 'Silicon Carbide (3C-SiC)',
+    formula: 'SiC',
+    wavelength: 1.5406,
+    peaks: [35.60, 41.40, 60.00, 71.70, 75.50],
+    hkls: ['111', '200', '220', '311', '222'],
+    description: 'Beta structural polytype 3C-SiC. A crucial wide-bandgap compound semiconductor for high-temperature and high-power electronics.',
+    category: 'Semiconductor',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'F-43m (No. 216)',
+    latticeParams: 'a = 4.360 Å',
+    database: 'COD',
+    databaseId: '1011032'
+  },
+  {
+    name: 'Methylammonium Lead Iodide (MAPbI3)',
+    formula: 'CH3NH3PbI3',
+    wavelength: 1.5406,
+    peaks: [14.08, 19.98, 24.47, 28.41, 31.84, 35.15, 40.56, 43.19],
+    hkls: ['110', '112', '211', '202', '220', '310', '224', '314'],
+    description: 'The prototypical organic-inorganic hybrid halide perovskite. Revolutionized the field of low-cost solid-state solar cell absorbers.',
+    category: 'Semiconductor',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'I4/mcm (No. 140)',
+    latticeParams: 'a = 8.855 Å, c = 12.659 Å',
+    database: 'COD',
+    databaseId: '4335637'
+  },
+  {
+    name: 'Indium Phosphide (InP)',
+    formula: 'InP',
+    wavelength: 1.5406,
+    peaks: [26.28, 43.51, 51.53, 63.20, 69.69, 80.50],
+    hkls: ['111', '220', '311', '400', '331', '422'],
+    description: 'High electron velocity semiconductor. Extensively used in high-speed electronics and fiber-optic communication laser sources.',
+    category: 'Semiconductor',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'F-43m (No. 216)',
+    latticeParams: 'a = 5.869 Å',
+    database: 'COD',
+    databaseId: '1011244'
+  },
+  {
+    name: 'Monolayer Molybdenum Disulfide (MoS2)',
+    formula: 'MoS2',
+    wavelength: 1.5406,
+    peaks: [14.40, 32.70, 39.50, 49.80, 58.30, 60.10],
+    hkls: ['002', '100', '103', '105', '110', '008'],
+    description: '2D layered transition metal dichalcogenide semiconductor with a direct bandgap when isolated to monolayer thickness.',
+    category: 'Semiconductor',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/mmc (No. 194)',
+    latticeParams: 'a = 3.160 Å, c = 12.300 Å',
+    database: 'COD',
+    databaseId: '1010993'
+  },
+  {
+    name: 'Zinc Oxide Nanorods (ZnO)',
+    formula: 'ZnO',
+    wavelength: 1.5406,
+    peaks: [31.77, 34.42, 36.25, 47.54, 56.60, 62.86, 67.96],
+    hkls: ['100', '002', '101', '102', '110', '103', '112'],
+    description: 'Transparent wide-bandgap semiconductor. Exaggerated (002) reflection intensity when aligned vertically as nanorod architectures.',
+    category: 'Semiconductor',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63mc (No. 186)',
+    latticeParams: 'a = 3.250 Å, c = 5.207 Å',
+    database: 'COD',
+    databaseId: '1011258'
+  },
+  {
+    name: 'Cadmium Telluride (CdTe)',
+    formula: 'CdTe',
+    wavelength: 1.5406,
+    peaks: [23.75, 39.29, 46.43, 56.76, 62.45, 71.18],
+    hkls: ['111', '220', '311', '400', '331', '422'],
+    description: 'A major crystalline compound semiconductor for thin-film photovoltaic technology and infrared optical components.',
+    category: 'Semiconductor',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'F-43m (No. 216)',
+    latticeParams: 'a = 6.482 Å',
+    database: 'COD',
+    databaseId: '1521994'
   }
 ];
 
@@ -1353,7 +1465,7 @@ interface TestMaterialsModuleProps {
   onLoadMaterial: (peaks: number[], wavelength: number, hkls: string[], name: string) => void;
 }
 
-type TabGroup = 'All' | 'Standards' | 'Metals' | 'Ceramics' | 'Polymers' | 'Custom';
+type TabGroup = 'All' | 'Standards' | 'Metals' | 'Ceramics' | 'Polymers' | 'Semiconductors' | 'Custom';
 type DatabaseRef = 'All' | 'ICDD' | 'COD' | 'RRUFF' | 'ICSD' | 'CSD';
 
 export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoadMaterial }) => {
@@ -1371,7 +1483,7 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
   const [newPeaks, setNewPeaks] = useState('');
   const [newHkls, setNewHkls] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [newCategory, setNewCategory] = useState<'Standard' | 'Metal' | 'Ceramic' | 'Polymer'>('Standard');
+  const [newCategory, setNewCategory] = useState<'Standard' | 'Metal' | 'Ceramic' | 'Polymer' | 'Semiconductor'>('Standard');
   const [newCrystalSystem, setNewCrystalSystem] = useState('');
   const [newSpaceGroup, setNewSpaceGroup] = useState('');
   const [newLattice, setNewLattice] = useState('');
@@ -1445,6 +1557,7 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
     if (['Metal', 'Metallurgy'].includes(preset.category)) return 'Metals';
     if (['Ceramic', 'Perovskite', 'Thermoelectric', 'Biomaterial'].includes(preset.category)) return 'Ceramics';
     if (['Polymer'].includes(preset.category)) return 'Polymers';
+    if (['Semiconductor'].includes(preset.category)) return 'Semiconductors';
     return 'All';
   };
 
@@ -1874,7 +1987,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
       {/* Pill Filters */}
       <div className="relative z-10 flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-none select-none max-w-full">
-        {(['All', 'Standards', 'Metals', 'Ceramics', 'Polymers', 'Custom'] as TabGroup[]).map(tab => {
+        {(['All', 'Standards', 'Metals', 'Ceramics', 'Polymers', 'Semiconductors', 'Custom'] as TabGroup[]).map(tab => {
           const count = getCountForTab(tab);
           return (
             <button
@@ -1981,6 +2094,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                       material.category === 'Biomaterial' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
                       material.category === 'Nuclear' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
                       material.category === 'Polymer' ? 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20' :
+                      material.category === 'Semiconductor' ? 'bg-teal-500/15 text-teal-400 border border-teal-500/30' :
                       material.category === 'Custom' ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30' :
                       'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
                     }`}>

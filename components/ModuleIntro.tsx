@@ -245,6 +245,23 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; tag: 
         <M>L</M> = <F>E</F> [||<M>ε</M> − <M>ε</M><sub>θ</sub>(<M>x</M><sub>t</sub>, <M>t</M>, <M>c</M>)||²]
       </FormulaContainer>
     )
+  },
+  preferred_orientation: {
+    title: "Preferred Orientation Core",
+    tag: "Texture & Habit Analysis",
+    icon: Layers,
+    color: "from-indigo-500 to-rose-500",
+    description: "Models and corrects systematic peak intensity anomalies caused by non-random crystallite spatial orientation using the March-Dollase distribution function.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans">
+        <FormulaContainer label="March-Dollase Equation">
+          <M>P</M>(<M>α</M>) = [ <M>r</M>² <F>cos</F>²(<M>α</M>) + <M>r</M><sup>−1</sup> <F>sin</F>²(<M>α</M>) ]<sup>−3/2</sup>
+        </FormulaContainer>
+        <FormulaContainer label="Cubic Lattice Axis Angle">
+          <F>cos</F>(<M>α</M>) = <Fraction num={<span><M>h</M>·<M>H</M> + <M>k</M>·<M>K</M> + <M>l</M>·<M>L</M></span>} den={<span>√(<M>h</M>² + <M>k</M>² + <M>l</M>²) · √(<M>H</M>² + <M>K</M>² + <M>L</M>²)</span>} />
+        </FormulaContainer>
+      </div>
+    )
   }
 };
 

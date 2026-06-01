@@ -66,6 +66,7 @@ export interface ScherrerInput {
   twoTheta: number;
   fwhmObs: number;
   intensity?: number;
+  hkl?: [number, number, number];
 }
 
 export interface ScherrerResult {
@@ -89,6 +90,7 @@ export interface WHPoint {
   x: number; // 4 * sin(theta)
   y: number; // beta * cos(theta)
   twoTheta: number;
+  hkl?: [number, number, number];
 }
 
 export interface WHResult {
@@ -98,6 +100,10 @@ export interface WHResult {
     slope: number;
     intercept: number;
     rSquared: number;
+  };
+  stephensParams?: {
+    S400: number;
+    S220: number;
   };
   points: WHPoint[];
   stressMPa?: number;
