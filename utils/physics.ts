@@ -12,13 +12,14 @@ export const calculateBragg = (wavelength: number, twoTheta: number): BraggResul
   return { twoTheta, dSpacing, qVector, sinThetaOverLambda };
 };
 
-export const calculateMarchDollase = (r: number, alphaDeg: number): number => {
+export const calculateMarchDollase = (r: number, alphaDeg: number, fraction: number = 1.0): number => {
   if (r <= 0) return 1;
   const a = alphaDeg * (Math.PI / 180);
   const cos2 = Math.pow(Math.cos(a), 2);
   const sin2 = Math.pow(Math.sin(a), 2);
   const base = r * r * cos2 + (1 / r) * sin2;
-  return Math.pow(base, -1.5);
+  const pAlpha = Math.pow(base, -1.5);
+  return fraction * pAlpha + (1 - fraction);
 };
 
 export const calculateCubicAngle = (h1: number, k1: number, l1: number, h2: number, k2: number, l2: number): number => {
@@ -26,6 +27,51 @@ export const calculateCubicAngle = (h1: number, k1: number, l1: number, h2: numb
   const mag1 = Math.sqrt(h1 * h1 + k1 * k1 + l1 * l1);
   const mag2 = Math.sqrt(h2 * h2 + k2 * k2 + l2 * l2);
   if (mag1 === 0 || mag2 === 0) return 0;
+  let cosTheta = dot / (mag1 * mag2);
+  if (cosTheta > 1) cosTheta = 1;
+  if (cosTheta < -1) cosTheta = -1;
+  return Math.acos(cosTheta) * (180 / Math.PI);
+};
+
+export const calculateInterplanarAngle = (
+  h1: number, k1: number, l1: number,
+  h2: number, k2: number, l2: number,
+  crystalSystem: 'Cubic' | 'Tetragonal' | 'Hexagonal' | 'Orthorhombic' = 'Cubic',
+  a: number = 1, b: number = 1, c: number = 1
+): number => {
+  let dot = 0;
+  let mag1Sq = 0;
+  let mag2Sq = 0;
+
+  if (crystalSystem === 'Cubic') {
+    dot = h1 * h2 + k1 * k2 + l1 * l2;
+    mag1Sq = h1 * h1 + k1 * k1 + l1 * l1;
+    mag2Sq = h2 * h2 + k2 * k2 + l2 * l2;
+  } else if (crystalSystem === 'Tetragonal') {
+    const a2 = a * a;
+    const c2 = c * c;
+    dot = (h1 * h2 + k1 * k2) / a2 + (l1 * l2) / c2;
+    mag1Sq = (h1 * h1 + k1 * k1) / a2 + (l1 * l1) / c2;
+    mag2Sq = (h2 * h2 + k2 * k2) / a2 + (l2 * l2) / c2;
+  } else if (crystalSystem === 'Orthorhombic') {
+    const a2 = a * a;
+    const b2 = b * b;
+    const c2 = c * c;
+    dot = (h1 * h2) / a2 + (k1 * k2) / b2 + (l1 * l2) / c2;
+    mag1Sq = (h1 * h1) / a2 + (k1 * k1) / b2 + (l1 * l1) / c2;
+    mag2Sq = (h2 * h2) / a2 + (k2 * k2) / b2 + (l2 * l2) / c2;
+  } else if (crystalSystem === 'Hexagonal') {
+    const a2 = a * a;
+    const c2 = c * c;
+    // For hexagonal: d*^2 = 4/3 * (h^2 + k^2 + hk)/a^2 + l^2/c^2
+    dot = (4 / 3) * (h1 * h2 + k1 * k2 + 0.5 * (h1 * k2 + h2 * k1)) / a2 + (l1 * l2) / c2;
+    mag1Sq = (4 / 3) * (h1 * h1 + k1 * k1 + h1 * k1) / a2 + (l1 * l1) / c2;
+    mag2Sq = (4 / 3) * (h2 * h2 + k2 * k2 + h2 * k2) / a2 + (l2 * l2) / c2;
+  }
+
+  if (mag1Sq === 0 || mag2Sq === 0) return 0;
+  const mag1 = Math.sqrt(mag1Sq);
+  const mag2 = Math.sqrt(mag2Sq);
   let cosTheta = dot / (mag1 * mag2);
   if (cosTheta > 1) cosTheta = 1;
   if (cosTheta < -1) cosTheta = -1;

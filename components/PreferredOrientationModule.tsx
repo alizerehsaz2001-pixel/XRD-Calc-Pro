@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSettings } from './SettingsContext';
-import { calculateMarchDollase, calculateCubicAngle } from '../utils/physics';
+import { calculateMarchDollase, calculateCubicAngle, calculateInterplanarAngle } from '../utils/physics';
 import { 
   Activity, 
   Beaker, 
@@ -15,7 +15,8 @@ import {
   HelpCircle, 
   Flame, 
   Dices,
-  CircleDot
+  CircleDot,
+  Download
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -34,7 +35,13 @@ export const PreferredOrientationModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'simulator' | 'formulas' | 'solver'>('simulator');
   
   // States
+  const [habitModel, setHabitModel] = useState<'Platelet' | 'Cylindrical'>('Platelet');
   const [rValue, setRValue] = useState<number>(0.8);
+  const [fraction, setFraction] = useState<number>(1.0);
+  const [crystalSystem, setCrystalSystem] = useState<'Cubic' | 'Tetragonal' | 'Hexagonal' | 'Orthorhombic'>('Cubic');
+  const [latticeA, setLatticeA] = useState<number>(1.0);
+  const [latticeB, setLatticeB] = useState<number>(1.0);
+  const [latticeC, setLatticeC] = useState<number>(1.0);
   const [targetHKL, setTargetHKL] = useState<string>('0, 0, 1');
   const [inputData, setInputData] = useState<string>(
     "0, 0, 1, 100, 100\n1, 0, 0, 80, 80\n1, 1, 0, 60, 60\n1, 1, 1, 90, 90\n0, 0, 2, 40, 40"
@@ -48,6 +55,7 @@ export const PreferredOrientationModule: React.FC = () => {
   // Solver states
   const [solverResult, setSolverResult] = useState<{
     refinedR: number;
+    refinedFraction: number;
     initialRwp: number;
     finalRwp: number;
     scalingFactor: number;
@@ -99,7 +107,9 @@ export const PreferredOrientationModule: React.FC = () => {
   ], []);
 
   const selectPreset = (preset: Preset) => {
+    setHabitModel(preset.r < 1.0 ? 'Platelet' : 'Cylindrical');
     setRValue(preset.r);
+    setFraction(1.0);
     setTargetHKL(preset.direction);
     setInputData(preset.data);
     setSolverResult(null);
@@ -128,8 +138,8 @@ export const PreferredOrientationModule: React.FC = () => {
       const iTh = parts.length > 3 ? (isNaN(parts[3]) ? 100 : parts[3]) : 100;
       const iMeas = parts.length > 4 ? (isNaN(parts[4]) ? iTh : parts[4]) : iTh;
       
-      const angle = calculateCubicAngle(h, k, l, H, K, L);
-      const correction = calculateMarchDollase(rValue, angle);
+      const angle = calculateInterplanarAngle(h, k, l, H, K, L, crystalSystem, latticeA, latticeB, latticeC);
+      const correction = calculateMarchDollase(rValue, angle, fraction);
       
       return {
         hkl: `(${h} ${k} ${l})`,
@@ -172,6 +182,40 @@ export const PreferredOrientationModule: React.FC = () => {
     }));
   }, [results]);
 
+  const fitQuality = useMemo(() => {
+    if (overlayResults.length === 0) return null;
+    
+    let sumSquaredError = 0;
+    let sumSST = 0;
+    let chiSquared = 0;
+    
+    // Mean of measured data
+    const meanMeas = overlayResults.reduce((acc, r) => acc + r.iMeas, 0) / overlayResults.length;
+    
+    overlayResults.forEach(r => {
+      const diff = r.iMeas - r.iModeledScaled;
+      sumSquaredError += diff * diff;
+      sumSST += r.iMeas * r.iMeas; 
+      
+      // Error variance is approx max(I_meas, 1) for Poisson stats
+      const variance = Math.max(r.iMeas, 1);
+      chiSquared += (diff * diff) / variance;
+    });
+
+    const Rwp = sumSST > 0 ? Math.sqrt(sumSquaredError / sumSST) * 100 : 0;
+    
+    // Degrees of freedom = N - P (assume P=3: scale factor, r, fraction)
+    const dof = Math.max(overlayResults.length - 3, 1);
+    const reducedChiSquared = chiSquared / dof;
+    
+    return {
+      Rwp,
+      reducedChiSquared,
+      chiSquared,
+      dof
+    };
+  }, [overlayResults]);
+
   const chartData = useMemo(() => {
     return overlayResults.map(r => ({
       name: r.hkl,
@@ -195,7 +239,7 @@ export const PreferredOrientationModule: React.FC = () => {
     const L = isNaN(tParts[2]) ? 1 : tParts[2];
 
     const measurements = results.map(r => {
-      const angle = calculateCubicAngle(r.h, r.k, r.l, H, K, L);
+      const angle = calculateInterplanarAngle(r.h, r.k, r.l, H, K, L, crystalSystem, latticeA, latticeB, latticeC);
       return {
         iTh: r.iTh,
         iMeas: r.iMeas,
@@ -204,42 +248,45 @@ export const PreferredOrientationModule: React.FC = () => {
     });
 
     let bestR = 1.0;
+    let bestFraction = 1.0;
     let minRwp = Infinity;
     let finalScaling = 1.0;
 
-    // Fast global search sweep from r=0.1 to r=5.0 with high precision 0.005
-    for (let r = 0.1; r <= 5.0; r += 0.005) {
-      let sumMeasCorr = 0;
-      let sumCorrSq = 0;
-      
-      // Calculate corrections for this r
-      const currentCorrs = measurements.map(m => {
-        const corr = calculateMarchDollase(r, m.angle);
-        const iCorrected = m.iTh * corr;
-        return { iCorrected, iMeas: m.iMeas };
-      });
+    // Fast global 2D search sweep covering the selected habit model domain
+    const rStart = habitModel === 'Platelet' ? 0.1 : 1.02;
+    const rEnd = habitModel === 'Platelet' ? 0.98 : 5.0;
 
-      currentCorrs.forEach(cItem => {
-        sumMeasCorr += cItem.iMeas * cItem.iCorrected;
-        sumCorrSq += cItem.iCorrected * cItem.iCorrected;
-      });
+    for (let r = rStart; r <= rEnd; r += 0.02) {
+      for (let f = 0.1; f <= 1.0; f += 0.02) {
+        let scaleNum = 0;
+        let scaleDen = 0;
+        let num = 0;
+        let den = 0;
 
-      const scale = sumCorrSq > 0 ? (sumMeasCorr / sumCorrSq) : 1;
+        for (const m of measurements) {
+          const corr = calculateMarchDollase(r, m.angle, f);
+          const iCorrected = m.iTh * corr;
+          scaleNum += m.iMeas * iCorrected;
+          scaleDen += iCorrected * iCorrected;
+        }
 
-      // Compute Rwp
-      let num = 0;
-      let den = 0;
-      currentCorrs.forEach(cItem => {
-        const diff = cItem.iMeas - scale * cItem.iCorrected;
-        num += diff * diff;
-        den += cItem.iMeas * cItem.iMeas;
-      });
+        const scale = scaleDen > 0 ? (scaleNum / scaleDen) : 1;
 
-      const Rwp = den > 0 ? Math.sqrt(num / den) * 100 : 0;
-      if (Rwp < minRwp) {
-        minRwp = Rwp;
-        bestR = r;
-        finalScaling = scale;
+        for (const m of measurements) {
+          const corr = calculateMarchDollase(r, m.angle, f);
+          const iCorrected = m.iTh * corr;
+          const diff = m.iMeas - scale * iCorrected;
+          num += diff * diff;
+          den += m.iMeas * m.iMeas;
+        }
+
+        const Rwp = den > 0 ? Math.sqrt(num / den) * 100 : 0;
+        if (Rwp < minRwp) {
+          minRwp = Rwp;
+          bestR = r;
+          bestFraction = f;
+          finalScaling = scale;
+        }
       }
     }
 
@@ -260,14 +307,16 @@ export const PreferredOrientationModule: React.FC = () => {
     });
     const initialRwp = initDen > 0 ? Math.sqrt(initNum / initDen) * 100 : 0;
 
-    // Apply refined r to state
+    // Apply refined parameters
     setRValue(parseFloat(bestR.toFixed(3)));
+    setFraction(parseFloat(bestFraction.toFixed(3)));
     setSolverResult({
       refinedR: parseFloat(bestR.toFixed(3)),
+      refinedFraction: parseFloat(bestFraction.toFixed(3)),
       initialRwp,
       finalRwp: minRwp,
       scalingFactor: finalScaling,
-      message: `Rwp reduced from ${initialRwp.toFixed(1)}% (isotropic) to ${minRwp.toFixed(1)}% with optimal March r value of ${bestR.toFixed(3)}.`
+      message: `Rwp reduced from ${initialRwp.toFixed(1)}% to ${minRwp.toFixed(1)}% (r = ${bestR.toFixed(3)}, f = ${(bestFraction * 100).toFixed(0)}%).`
     });
   };
 
@@ -277,21 +326,21 @@ export const PreferredOrientationModule: React.FC = () => {
     const H = isNaN(tParts[0]) ? 0 : tParts[0];
     const K = isNaN(tParts[1]) ? 0 : tParts[1];
     const L = isNaN(tParts[2]) ? 1 : tParts[2];
-    return calculateCubicAngle(testH, testK, testL, H, K, L);
-  }, [testH, testK, testL, targetHKL]);
+    return calculateInterplanarAngle(testH, testK, testL, H, K, L, crystalSystem, latticeA, latticeB, latticeC);
+  }, [testH, testK, testL, targetHKL, crystalSystem, latticeA, latticeB, latticeC]);
 
   const userTestCorrection = useMemo(() => {
-    return calculateMarchDollase(rValue, userTestAngle);
-  }, [rValue, userTestAngle]);
+    return calculateMarchDollase(rValue, userTestAngle, fraction);
+  }, [rValue, userTestAngle, fraction]);
 
   // Compute live properties
   const maxCorrection = useMemo(() => {
-    return calculateMarchDollase(rValue, 0); // Parallel (alpha=0)
-  }, [rValue]);
+    return calculateMarchDollase(rValue, 0, fraction); // Parallel (alpha=0)
+  }, [rValue, fraction]);
 
   const minCorrection = useMemo(() => {
-    return calculateMarchDollase(rValue, 90); // Perpendicular (alpha=90)
-  }, [rValue]);
+    return calculateMarchDollase(rValue, 90, fraction); // Perpendicular (alpha=90)
+  }, [rValue, fraction]);
 
   // Render beautiful 2D polar texture contour map representing the ODF
   const polarOdfPath = useMemo(() => {
@@ -304,7 +353,7 @@ export const PreferredOrientationModule: React.FC = () => {
       // March correction for angle relative to preferred orientation (drawn aligned with top vertical, deg = 90)
       // Angle alpha is measured from vertical axis
       const alpha = deg; 
-      const pVal = calculateMarchDollase(rValue, alpha);
+      const pVal = calculateMarchDollase(rValue, alpha, fraction);
       
       // Limit scale factor from running off the SVG boundary (max radius 95px)
       const scaledRadius = Math.min(randomRadius * pVal, 95);
@@ -320,6 +369,44 @@ export const PreferredOrientationModule: React.FC = () => {
     }
     return points.join(' ') + ' Z';
   }, [rValue]);
+
+  const exportToCSV = () => {
+    if (overlayResults.length === 0) return;
+    
+    const headers = ["hkl", "h", "k", "l", "Angle (alpha)", "Correction P(alpha)", "Standard Intensity", "Measured Intensity", "Modeled Scaled Intensity"];
+    const rows = overlayResults.map(r => [
+      `"${r.hkl}"`,
+      r.h,
+      r.k,
+      r.l,
+      r.angle.toFixed(3),
+      r.correction.toFixed(4),
+      r.iTh.toFixed(1),
+      r.iMeas.toFixed(1),
+      r.iModeledScaled.toFixed(1)
+    ]);
+    
+    const metaInfo = [
+      ["March-Dollase Parameter r", rValue.toFixed(3)],
+      ["Textured Fraction f", fraction.toFixed(3)],
+      ["Preferred Axis [H K L]", `"[${targetHKL}]"`],
+      ["Crystal System", crystalSystem],
+      []
+    ];
+    
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + metaInfo.map(e => e.join(",")).join("\n")
+      + headers.join(",") + "\n" 
+      + rows.map(e => e.join(",")).join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `march_dollase_export_r${rValue.toFixed(2)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
 
   return (
     <div className="space-y-6 flex flex-col min-h-screen">
@@ -436,6 +523,38 @@ export const PreferredOrientationModule: React.FC = () => {
                   
                   {/* March Slider */}
                   <div className="bg-black/40 p-4 rounded-xl border border-slate-800 space-y-3">
+                    <div className="flex justify-between items-center text-xs mb-3">
+                      <span className="font-bold text-slate-300">Habit Distribution Model</span>
+                    </div>
+
+                    {/* Habit Switch */}
+                    <div className="flex bg-slate-950 border border-slate-800 rounded-lg p-1.5 mb-4">
+                       <button
+                         onClick={() => {
+                           setHabitModel('Platelet');
+                           if (rValue > 1.0) setRValue(0.5);
+                           setSolverResult(null);
+                         }}
+                         className={`flex-1 text-[10px] font-bold uppercase tracking-wider py-1.5 rounded-md transition-all ${
+                           habitModel === 'Platelet' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 hover:text-slate-300'
+                         }`}
+                       >
+                         Platelet (Platy)
+                       </button>
+                       <button
+                         onClick={() => {
+                           setHabitModel('Cylindrical');
+                           if (rValue < 1.0) setRValue(2.0);
+                           setSolverResult(null);
+                         }}
+                         className={`flex-1 text-[10px] font-bold uppercase tracking-wider py-1.5 rounded-md transition-all ${
+                           habitModel === 'Cylindrical' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 hover:text-slate-300'
+                         }`}
+                       >
+                         Cylindrical (Needle)
+                       </button>
+                    </div>
+
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-slate-300">March r parameter</span>
                       <span className="font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded font-bold text-sm">
@@ -444,8 +563,8 @@ export const PreferredOrientationModule: React.FC = () => {
                     </div>
                     <input
                       type="range"
-                      min="0.1"
-                      max="4.0"
+                      min={habitModel === 'Platelet' ? 0.1 : 1.02}
+                      max={habitModel === 'Platelet' ? 0.98 : 4.0}
                       step="0.01"
                       value={rValue}
                       onChange={(e) => {
@@ -455,9 +574,17 @@ export const PreferredOrientationModule: React.FC = () => {
                       className="w-full accent-indigo-500"
                     />
                     <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                      <span>r ≪ 1.0 (Plates)</span>
-                      <span>Random (1.00)</span>
-                      <span>r ≫ 1.0 (Needles)</span>
+                      {habitModel === 'Platelet' ? (
+                        <>
+                          <span>r ≪ 1.0 (Plates)</span>
+                          <span>Iso (≈1.0)</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Iso (≈1.0)</span>
+                          <span>r ≫ 1.0 (Needles)</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -469,7 +596,7 @@ export const PreferredOrientationModule: React.FC = () => {
                       <MoveRight className="w-3.5 h-3.5 text-indigo-400" />
                       Preferred Axis [H, K, L]
                     </span>
-                    <span className="text-[10px] text-slate-500 font-mono">Cubic/Ortho Metric</span>
+                    <span className="text-[10px] text-slate-500 font-mono">Fiber Normal</span>
                   </div>
                   <input
                     type="text"
@@ -481,9 +608,83 @@ export const PreferredOrientationModule: React.FC = () => {
                     placeholder="0, 0, 1"
                     className="w-full px-3 py-2 bg-slate-950 font-mono text-sm text-indigo-400 border border-slate-800 rounded-lg outline-none focus:border-indigo-500 transition-colors"
                   />
+                </div>
+
+                {/* Texture Fraction Slider */}
+                <div className="bg-black/40 p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-300">Textured Fraction (f)</span>
+                    <span className="font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-bold text-sm">
+                      {(fraction * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.0"
+                    max="1.0"
+                    step="0.01"
+                    value={fraction}
+                    onChange={(e) => {
+                      setFraction(parseFloat(e.target.value));
+                      setSolverResult(null);
+                    }}
+                    className="w-full accent-emerald-500"
+                  />
                   <p className="text-[10px] text-slate-400 leading-normal">
-                    This vector defines the fiber axis. Grains incline structurally along or away from this reciprocal crystal normal.
+                    Real samples contain an un-textured isotropic background phase.
                   </p>
+                </div>
+
+                {/* Crystal System & Lattice Inputs */}
+                <div className="bg-black/40 p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div className="flex justify-between items-center text-xs mb-2">
+                     <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                       <Layers className="w-3.5 h-3.5 text-pink-400" /> Crystal System
+                     </span>
+                  </div>
+                  <select 
+                    value={crystalSystem}
+                    onChange={(e) => {
+                      setCrystalSystem(e.target.value as any);
+                      setSolverResult(null);
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-lg px-3 py-2 outline-none focus:border-pink-500"
+                  >
+                    <option value="Cubic">Cubic / Isomeric (a=b=c)</option>
+                    <option value="Tetragonal">Tetragonal (a=b≠c)</option>
+                    <option value="Hexagonal">Hexagonal (a=b≠c, γ=120°)</option>
+                    <option value="Orthorhombic">Orthorhombic (a≠b≠c)</option>
+                  </select>
+                  
+                  {crystalSystem !== 'Cubic' && (
+                    <div className="grid grid-cols-3 gap-2 mt-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] uppercase font-mono text-slate-500">Lattice a (Å)</label>
+                        <input 
+                          type="number" step="0.01" min="0.1" value={latticeA} 
+                          onChange={(e) => { setLatticeA(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
+                          className="w-full px-2 py-1.5 bg-slate-950 font-mono text-xs text-pink-400 border border-slate-800 rounded outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                         <label className="text-[9px] uppercase font-mono text-slate-500">Lattice b (Å)</label>
+                         <input 
+                           type="number" step="0.01" min="0.1" value={crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? latticeA : latticeB} 
+                           onChange={(e) => { setLatticeB(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
+                           disabled={crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal'}
+                           className={`w-full px-2 py-1.5 font-mono text-xs border border-slate-800 rounded outline-none ${crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? 'bg-slate-900 text-slate-600' : 'bg-slate-950 text-pink-400'}`}
+                         />
+                      </div>
+                      <div className="space-y-1">
+                         <label className="text-[9px] uppercase font-mono text-slate-500">Lattice c (Å)</label>
+                         <input 
+                           type="number" step="0.01" min="0.1" value={latticeC} 
+                           onChange={(e) => { setLatticeC(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
+                           className="w-full px-2 py-1.5 bg-slate-950 font-mono text-xs text-pink-400 border border-slate-800 rounded outline-none"
+                         />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Live Model Stats Block */}
@@ -514,6 +715,37 @@ export const PreferredOrientationModule: React.FC = () => {
                     </span>
                   </div>
                 </div>
+
+                {/* Quality of Fit Diagnostics Block */}
+                {fitQuality && (
+                  <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-xs">
+                    <div className="text-emerald-400 font-black uppercase text-[10px] tracking-wider mb-3 flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5 text-emerald-400" /> Quality of Fit
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between py-1 border-b border-slate-800/50">
+                        <span className="text-slate-400">R<sub className="pointer-events-none">wp</sub> Factor</span>
+                        <span className="font-mono text-emerald-400 font-bold">
+                          {fitQuality.Rwp.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-slate-800/50 flex-col gap-1">
+                        <div className="flex justify-between">
+                           <span className="text-slate-400">Reduced Chi-Squared (<span className="font-serif italic font-bold">χ²<sub className="font-sans not-italic text-[9px]">r</sub></span>)</span>
+                           <span className={`font-mono font-bold ${fitQuality.reducedChiSquared < 2 ? 'text-emerald-400' : fitQuality.reducedChiSquared < 5 ? 'text-amber-400' : 'text-rose-400'}`}>
+                             {fitQuality.reducedChiSquared.toFixed(2)}
+                           </span>
+                        </div>
+                        <span className="text-[9px] text-slate-500 font-sans">
+                          Ideal fit ≈ 1.0 (DOF: {fitQuality.dof})
+                        </span>
+                      </div>
+                      <div className="pt-2 text-[10px] text-slate-500 leading-relaxed font-sans">
+                        These metrics update dynamically. Use the solver below to automatically minimize R<sub>wp</sub>.
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               </div>
 
@@ -628,10 +860,17 @@ export const PreferredOrientationModule: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="flex gap-2">
-                    <span className="text-[9px] bg-slate-950 text-indigo-400 border border-slate-800 px-3 py-1 rounded-lg font-mono">
+                  <div className="flex gap-2 items-center">
+                    <span className="text-[9px] bg-slate-950 text-indigo-400 border border-slate-800 px-3 py-1.5 rounded-lg font-mono">
                       Target direction normal: [{targetHKL}]
                     </span>
+                    <button 
+                      onClick={exportToCSV}
+                      disabled={overlayResults.length === 0}
+                      className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:bg-slate-800/50 disabled:text-slate-500 disabled:border-slate-800 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Export Data
+                    </button>
                   </div>
                 </div>
 
@@ -851,12 +1090,17 @@ export const PreferredOrientationModule: React.FC = () => {
                   <p className="text-xs text-slate-400">
                     The mathematical derivation of sample structural orientation during diffraction modeling.
                   </p>
+                  
+                  <div className="mt-3 inline-block bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800 text-[10px] text-slate-400 font-sans leading-relaxed">
+                    <span className="font-bold text-slate-300 mr-2">Official Reference:</span>
+                    Dollase, W. A. (1986). Correction of intensities for preferred orientation in powder diffractometry: application of the March model. <em className="text-slate-300">Journal of Applied Crystallography</em>, 19(4), 267-272.
+                  </div>
                 </div>
 
                 {/* Super Nice Formula Display Cards */}
                 <div className="p-6 bg-slate-950/60 rounded-2xl border border-slate-850 flex flex-col items-center justify-center space-y-4">
                   <div className="text-center font-serif text-slate-200 text-xl md:text-2xl tracking-wide max-w-full overflow-x-auto py-3 px-4 bg-black/40 rounded-xl">
-                    P(<span className="text-indigo-400">α</span>) = [ <span className="text-pink-400">r</span><sup>2</sup> cos<sup>2</sup><span className="text-indigo-400">α</span> + <span className="text-pink-400">r</span><sup>-1</sup> sin<sup>2</sup><span className="text-indigo-400">α</span> ]<sup>-3/2</sup>
+                    P<sub>eff</sub>(<span className="text-indigo-400">α</span>) = <span className="text-emerald-400">f</span> · [ <span className="text-pink-400">r</span><sup>2</sup> cos<sup>2</sup><span className="text-indigo-400">α</span> + <span className="text-pink-400">r</span><sup>-1</sup> sin<sup>2</sup><span className="text-indigo-400">α</span> ]<sup>-3/2</sup> + (1 - <span className="text-emerald-400">f</span>)
                   </div>
                   
                   <div className="w-full text-xs text-slate-400 space-y-2 border-t border-slate-800/50 pt-4">
@@ -869,8 +1113,12 @@ export const PreferredOrientationModule: React.FC = () => {
                       <span>The March-Dollase parameter, representing sample habit profile.</span>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="font-bold text-slate-200 min-w-[20px]">P(α)</span>
-                      <span>The multiplicative scale factor applied to the randomized theoretical peak intensity: <code className="text-xs bg-slate-900 px-1 py-0.5 rounded text-indigo-400">I_corrected = I_isotropic * P(α)</code></span>
+                      <span className="font-bold text-emerald-400 min-w-[20px]">f</span>
+                      <span>The isotropic / textured fraction volume. Represents the percentage of the bulk material that is preferentially aligned vs randomly oriented.</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="font-bold text-slate-200 min-w-[20px]">P_eff(α)</span>
+                      <span>The multiplicative scale factor applied to the randomized theoretical peak intensity: <code className="text-xs bg-slate-900 px-1 py-0.5 rounded text-indigo-400">I_corrected = I_isotropic * P_eff(α)</code></span>
                     </div>
                   </div>
                 </div>
@@ -893,6 +1141,38 @@ export const PreferredOrientationModule: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                
+                <div className="mt-8 bg-slate-950 p-6 rounded-2xl border border-slate-800">
+                  <h4 className="text-xs font-black uppercase text-emerald-400 tracking-wider mb-3 flex items-center gap-1.5">
+                    <Activity className="w-4 h-4 text-emerald-400" /> Export Python Calculation Script
+                  </h4>
+                  <pre className="text-[10px] font-mono text-slate-300 bg-slate-900 p-4 rounded-xl overflow-x-auto border border-slate-850 custom-scrollbar">
+{`import numpy as np
+
+def march_dollase(r, alpha_deg, fraction=1.0):
+    """
+    Computes the effective March-Dollase preferred orientation correction.
+    
+    Parameters:
+    - r: The March parameter (1.0 = isotropic, < 1.0 = plates, > 1.0 = needles)
+    - alpha_deg: Angle between (hkl) normal and the preferred axis (degrees)
+    - fraction: Volume fraction of the textured domain (0.0 to 1.0)
+    """
+    if r <= 0: return 1.0
+    alpha = np.radians(alpha_deg)
+    
+    # Calculate March factor formula
+    base = (r**2) * (np.cos(alpha)**2) + (1.0/r) * (np.sin(alpha)**2)
+    p_alpha = base**(-1.5)
+    
+    # Incorporate uniform isotropic background
+    return fraction * p_alpha + (1.0 - fraction)
+
+# Example usage for clay platelets:
+print(f"Correction at 0°: {march_dollase(0.35, 0):.3f}")
+print(f"Correction at 90°: {march_dollase(0.35, 90):.3f}")`}
+                  </pre>
+                </div>
               </div>
 
               {/* Side Angle Formula panel */}
@@ -902,19 +1182,33 @@ export const PreferredOrientationModule: React.FC = () => {
                     Crystallographic Angle Math
                   </h2>
                   <p className="text-xs text-slate-400">
-                    How α is calculated for cubic lattice systems:
+                    How interplanar angle α is calculated in reciprocal space:
                   </p>
                 </div>
 
-                <div className="p-5 bg-slate-950 rounded-2xl border border-slate-850 space-y-4">
-                  <div className="font-serif text-slate-200 text-center py-2 px-3 bg-black/40 rounded-xl text-base">
-                    cos(α) = (h·H + k·K + l·L) / [ √(h²+k²+l²) · √(H²+K²+L²) ]
+                <div className="p-5 bg-slate-950 rounded-2xl border border-slate-850 space-y-4 text-[11px] text-slate-400 leading-relaxed">
+                  <div className="font-serif text-slate-200 text-center py-2 px-3 bg-black/40 rounded-xl lg:text-sm">
+                    cos(α) = d<sub>1</sub>·d<sub>2</sub> / ( |d<sub>1</sub>| |d<sub>2</sub>| )
                   </div>
-                  
-                  <p className="text-xs text-slate-400 leading-normal font-sans">
-                    March models find standard vectors representing the normal. Since cubic systems feature perpendicular unit dimensions, the spatial angle derives directly from the vector dot-product between indices.
+                  <div>
+                    <h5 className="font-black text-pink-400 uppercase tracking-wider mb-2">Cubic / Orthorhombic</h5>
+                    <div className="bg-black/60 font-mono text-[10px] p-2 rounded text-slate-300">
+                      dot = h1·H/a² + k1·K/b² + l1·L/c²
+                    </div>
+                  </div>
+                  <div>
+                    <h5 className="font-black text-pink-400 uppercase tracking-wider mb-2">Hexagonal</h5>
+                    <div className="bg-black/60 font-mono text-[10px] p-2 rounded text-slate-300">
+                      dot = 4/3(h1·H + k1·K + ½(h1·K + k1·H))/a² + l1·L/c²
+                    </div>
+                  </div>
+                  <p>
+                    These dot products compute the structural orientation between the scattering plane and the macroscopic fiber axis.
                   </p>
                 </div>
+                <p className="text-xs text-slate-400 leading-normal font-sans">
+                  The standard March-Dollase model defines a single standard vector representing the geometric normal. 
+                </p>
 
                 <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-850 space-y-3">
                   <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
@@ -953,9 +1247,15 @@ export const PreferredOrientationModule: React.FC = () => {
               </div>
 
               <div className="p-4 bg-slate-950 rounded-xl border border-slate-850 text-xs text-slate-400 space-y-4">
-                <p className="leading-relaxed">
-                  Provide measured experimental peak values against random standards in the table. The solver sweeps the full analytical domain of March parameters ($r \in [0.1, 5.0]$) in 0.005 steps to find the global minimum for residual profiling factor R<sub>wp</sub>.
+                <p className="leading-relaxed mb-3">
+                  Provide measured experimental peak values against random standards in the table. The solver sweeps the full analytical 2D domain of March parameters and fractional components to find the global minimum for the weighted profile factor R<sub>wp</sub>.
                 </p>
+                
+                <div className="flex justify-center bg-black/60 py-3 rounded-lg border border-slate-900 mb-3">
+                  <div className="font-serif text-slate-300 text-[11px] lg:text-sm">
+                    R<sub>wp</sub> = 100 × √[ Σ ( I<sub>obs</sub> - c·I<sub>calc</sub> )² / Σ ( I<sub>obs</sub> )² ]
+                  </div>
+                </div>
                 
                 <div className="bg-indigo-950/20 p-3 rounded-lg border border-indigo-900/30 text-indigo-200">
                   <strong>How to use:</strong> Select a platelet or needle preset from the main tab to populate test experimental data, or paste custom measurements in the main tab input panel, then click the fit solver below!

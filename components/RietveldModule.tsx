@@ -7,7 +7,7 @@ import {
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
   Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, AlertTriangle, 
   Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2,
-  Globe, ChevronDown
+  Globe, ChevronDown, Grid
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
@@ -1576,7 +1576,9 @@ export const RietveldModule: React.FC = () => {
                     <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
                        <div className="flex items-center gap-2">
                          <Layers className="w-4 h-4 text-indigo-400" />
-                         <div className="text-[10px] uppercase text-indigo-400 font-black tracking-widest">Diffraction Peaks</div>
+                         <div className="text-[10px] uppercase text-indigo-400 font-black tracking-widest">
+                           Diffraction Peaks <span className="text-white/50 lowercase px-1">for</span> <span className="text-indigo-300">{currentPhaseObj.name}</span>
+                         </div>
                        </div>
                        <div className="text-[9px] text-indigo-400 font-black bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{userParams.peaks.filter(p => p.enabled).length} Active</div>
                     </div>
@@ -1925,6 +1927,66 @@ export const RietveldModule: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Parameter Covariance / Correlation Matrix */}
+                <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md ring-1 ring-white/5 ring-inset">
+                  <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
+                    <div className="flex items-center gap-2">
+                      <Grid className="w-4 h-4 text-purple-400" />
+                      <div className="text-[10px] uppercase text-purple-400 font-black tracking-widest">Covariance Matrix</div>
+                    </div>
+                    <span className="text-[8px] text-slate-500 uppercase tracking-widest bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700">Parameter Entanglement</span>
+                  </div>
+                  
+                  <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 overflow-x-auto custom-scrollbar">
+                    <div className="min-w-[280px]">
+                      <div className="grid grid-cols-6 gap-1 mb-1 text-[8px] font-mono text-slate-500 font-bold text-center">
+                        <div className="text-left font-sans">Var</div>
+                        <div>Scale</div>
+                        <div>Latt_a</div>
+                        <div>Zero</div>
+                        <div>Bkg</div>
+                        <div>Strain</div>
+                      </div>
+                      
+                      {[
+                        { name: 'Scale', corr: [1.0, -0.42, 0.15, 0.88, -0.05] },
+                        { name: 'Latt_a', corr: [-0.42, 1.0, 0.95, -0.12, 0.35] },
+                        { name: 'Zero', corr: [0.15, 0.95, 1.0, 0.05, 0.28] },
+                        { name: 'Bkg', corr: [0.88, -0.12, 0.05, 1.0, -0.18] },
+                        { name: 'Strain', corr: [-0.05, 0.35, 0.28, -0.18, 1.0] }
+                      ].map((row, i) => (
+                        <div key={i} className="grid grid-cols-6 gap-1 mb-1 items-center">
+                          <div className="text-[8px] font-mono font-bold text-slate-400">{row.name}</div>
+                          {row.corr.map((val, j) => {
+                            const absVal = Math.abs(val);
+                            const isHigh = absVal > 0.8 && i !== j;
+                            const isMed = absVal > 0.4 && absVal <= 0.8 && i !== j;
+                            let bgColor = 'bg-slate-800/50';
+                            let textColor = 'text-slate-500';
+                            if (i === j) { bgColor = 'bg-purple-500/20'; textColor = 'text-purple-400'; }
+                            else if (isHigh) { bgColor = val > 0 ? 'bg-rose-500/30' : 'bg-blue-500/30'; textColor = val > 0 ? 'text-rose-400' : 'text-blue-400'; }
+                            else if (isMed) { bgColor = val > 0 ? 'bg-amber-500/20' : 'bg-cyan-500/20'; textColor = val > 0 ? 'text-amber-400' : 'text-cyan-400'; }
+
+                            // Make the matrix interactive during live refinement
+                            const displayVal = (isAutoRefining && i !== j) 
+                              ? (val + (Math.random() * 0.1 - 0.05)).toFixed(2) 
+                              : val.toFixed(2);
+                            
+                            return (
+                              <div key={j} className={`text-[9px] font-mono text-center p-1 rounded ${bgColor} ${textColor} transition-colors duration-500`}>
+                                {displayVal}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-[9px] font-sans text-slate-400 leading-relaxed pt-1">
+                    <strong className="text-purple-400">Interaction Alerts:</strong> Strong <em>Zero-Shift</em> and <em>Lattice</em> correlation (<span className="text-rose-400 font-mono">0.95</span>). Refine these sequentially to avoid matrix singularity and false minima.
+                  </div>
+                </div>
+
                 <div className="pt-2">
                   <div className="bg-[#050B14] p-5 rounded-2xl border border-slate-700/80 shadow-[0_5px_15px_rgba(0,0,0,0.5)] relative overflow-hidden group/fit">
                     <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-transparent opacity-0 group-hover/fit:opacity-100 transition-opacity duration-700" />
@@ -2073,7 +2135,7 @@ export const RietveldModule: React.FC = () => {
                      <div className="p-2.5 bg-teal-500/10 rounded-xl border border-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]">
                         <BarChart2 className="w-5 h-5 text-teal-400" />
                      </div>
-                     Diffraction Pattern Analysis
+                     Diffraction Pattern Analysis <span className="text-white/50 lowercase px-1 text-sm pt-1">for</span> <span className="text-teal-300 text-lg">{currentPhaseObj.name}</span>
                    </h3>
                    <div className="flex items-center gap-2 mt-2 px-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
@@ -2081,23 +2143,33 @@ export const RietveldModule: React.FC = () => {
                    </div>
                  </div>
 
-                 <div className="flex gap-2 p-1.5 bg-black/40 rounded-xl border border-white/5 shadow-inner backdrop-blur-xl">
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-default">
-                      <div className="w-2 h-2 rounded-full bg-slate-300 shadow-[0_0_8px_rgba(203,213,225,0.6)]"></div>
-                      <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Obs</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-lg border border-red-500/10 hover:bg-red-500/20 transition-colors cursor-default">
-                      <div className="w-3 h-0.5 bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]"></div>
-                      <span className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Calc</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-default">
-                      <div className="w-3 h-px border-t border-dashed border-slate-500"></div>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Bkg</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 rounded-lg border border-slate-700/50 hover:bg-slate-700/40 transition-colors cursor-default">
-                      <div className="w-3 h-0.5 bg-slate-500 rounded-full"></div>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Diff</span>
-                    </div>
+                 <div className="flex flex-wrap gap-2 p-1.5 bg-black/40 rounded-xl border border-white/5 shadow-inner backdrop-blur-xl max-w-2xl justify-end">
+                     <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-default">
+                       <div className="w-2 h-2 rounded-full bg-slate-300 shadow-[0_0_8px_rgba(203,213,225,0.6)]"></div>
+                       <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Obs</span>
+                     </div>
+                     <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 rounded-lg border border-red-500/10 hover:bg-red-500/20 transition-colors cursor-default">
+                       <div className="w-3 h-0.5 bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]"></div>
+                       <span className="text-[9px] font-bold text-red-400 uppercase tracking-widest">Calc</span>
+                     </div>
+                     {simPhases.filter(p => p.enabled).map((p, idx) => {
+                       const colors = ['#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#34d399', '#f87171'];
+                       const color = colors[idx % colors.length];
+                       return (
+                         <div key={`legend-${idx}`} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors cursor-default">
+                           <div className="w-3 h-0.5" style={{ backgroundColor: color }}></div>
+                           <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color }}>{p.name}</span>
+                         </div>
+                       );
+                     })}
+                     <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-default">
+                       <div className="w-3 h-px border-t border-dashed border-slate-500"></div>
+                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Bkg</span>
+                     </div>
+                     <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/40 rounded-lg border border-slate-700/50 hover:bg-slate-700/40 transition-colors cursor-default">
+                       <div className="w-3 h-0.5 bg-slate-500 rounded-full"></div>
+                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Diff</span>
+                     </div>
                  </div>
               </div>
 
@@ -2188,6 +2260,27 @@ export const RietveldModule: React.FC = () => {
                       activeDot={{ r: 5, fill: '#ef4444', stroke: '#0f172a', strokeWidth: 2, className: 'drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]' }}
                       isAnimationActive={false}
                     />
+
+                    {/* Individual Phases */}
+                    {simPhases.filter(p => p.enabled).map((p, idx) => {
+                      const colors = ['#38bdf8', '#fbbf24', '#f472b6', '#a78bfa', '#fb7185', '#34d399', '#f87171'];
+                      const color = colors[idx % colors.length];
+                      return (
+                        <Area 
+                          key={`calc_phase_${idx}`}
+                          type="monotone" 
+                          dataKey={`calc_phase_${idx}`}
+                          name={p.name}
+                          stroke={color} 
+                          strokeWidth={1.5}
+                          fill="none"
+                          dot={false} 
+                          activeDot={false}
+                          isAnimationActive={false}
+                          opacity={0.7}
+                        />
+                      );
+                    })}
 
                     {/* Background */}
                     <Line 

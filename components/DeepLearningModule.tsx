@@ -28,12 +28,14 @@ const MATERIAL_ELEMENTS: Record<string, { name: string; number: number; category
   C: { name: "Carbon", number: 6, category: "Reactive Nonmetal", mass: 12.011 },
   N: { name: "Nitrogen", number: 7, category: "Reactive Nonmetal", mass: 14.007 },
   O: { name: "Oxygen", number: 8, category: "Reactive Nonmetal", mass: 15.999 },
+  F: { name: "Fluorine", number: 9, category: "Reactive Nonmetal", mass: 18.998 },
   Na: { name: "Sodium", number: 11, category: "Alkali Metal", mass: 22.990 },
   Mg: { name: "Magnesium", number: 12, category: "Alkaline Earth Metal", mass: 24.305 },
   Al: { name: "Aluminum", number: 13, category: "Post-Transition Metal", mass: 26.982 },
   Si: { name: "Silicon", number: 14, category: "Metalloid", mass: 28.085 },
   P: { name: "Phosphorus", number: 15, category: "Reactive Nonmetal", mass: 30.974 },
   S: { name: "Sulfur", number: 16, category: "Reactive Nonmetal", mass: 32.06 },
+  Cl: { name: "Chlorine", number: 17, category: "Reactive Nonmetal", mass: 35.45 },
   K: { name: "Potassium", number: 19, category: "Alkali Metal", mass: 39.098 },
   Ca: { name: "Calcium", number: 20, category: "Alkaline Earth Metal", mass: 40.078 },
   Ti: { name: "Titanium", number: 22, category: "Transition Metal", mass: 47.867 },
@@ -49,6 +51,7 @@ const MATERIAL_ELEMENTS: Record<string, { name: string; number: number; category
   Ge: { name: "Germanium", number: 32, category: "Metalloid", mass: 72.63 },
   As: { name: "Arsenic", number: 33, category: "Metalloid", mass: 74.922 },
   Se: { name: "Selenium", number: 34, category: "Reactive Nonmetal", mass: 78.971 },
+  Br: { name: "Bromine", number: 35, category: "Reactive Nonmetal", mass: 79.904 },
   Sr: { name: "Strontium", number: 38, category: "Alkaline Earth Metal", mass: 87.62 },
   Y: { name: "Yttrium", number: 39, category: "Transition Metal", mass: 88.906 },
   Zr: { name: "Zirconium", number: 40, category: "Transition Metal", mass: 91.224 },
@@ -93,7 +96,13 @@ const MATERIAL_ELEMENTS: Record<string, { name: string; number: number; category
 
 const parseElementsFromFormula = (formulaStr: string): { symbol: string; name: string }[] => {
   if (!formulaStr) return [];
-  const clean = formulaStr.split(' ')[0].replace(/\s*\(.*\)/g, '');
+  
+  let clean = formulaStr
+    .replace(/\([^)]*[A-Za-z]{3,}[^)]*\)/g, '')
+    .replace(/\b(17-4PH|H13|C276|2205|316L|304|310|430)\b/gi, '')
+    .replace(/\b(HEA|APM|Nano|impure|primarily|phase)\b/gi, '')
+    .replace(/[A-Za-z][a-z]{2,}/g, '');
+
   const matches = clean.match(/([A-Z][a-z]?)/g);
   if (!matches) return [];
   
@@ -776,6 +785,12 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'PuDelta' ? 'Plutonium (Delta Phase)' :
                         type === 'PuAlpha' ? 'Plutonium (Alpha Phase)' :
                         type === 'PuO2' ? 'Plutonium Dioxide (PuO2)' :
+                        type === 'BNNT' ? 'BNNT (Boron Nitride Nanotubes)' :
+                        type === 'GdYSZ' ? 'Gd-YSZ (Gadolinia-doped Zirconia)' :
+                        type === 'U3Si5' ? 'U3Si5 Fuel' :
+                        type === 'SiCSiC' ? 'SiC-SiC Composite' :
+                        type === 'LaBr3Ce' ? 'LaBr3:Ce Scintillator' :
+                        type === 'TiCN' ? 'TiCN Defensive Armor' :
                         type === 'UO2' ? 'Uranium Dioxide' :
                         type === 'U3O8' ? 'Triuranium Octoxide' :
                         type === 'UO3' ? 'Uranium Trioxide' :
@@ -939,8 +954,26 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'SS304' ? 'Stainless Steel 304' :
                         type === 'SS310' ? 'Stainless Steel 310' :
                         type === 'SS430' ? 'Stainless Steel 430' :
+                         type === 'SS174PH' ? 'Stainless Steel 17-4PH' :
+                         type === 'Duplex2205' ? 'Duplex Stainless Steel 2205' :
+                         type === 'HastelloyC276' ? 'Hastelloy C-276' :
+                         type === 'ToolSteelH13' ? 'Tool Steel H13' :
+                         type === 'FeCrAlKanthal' ? 'FeCrAl Alloy (Kanthal APM)' :
+                         type === 'AlCoCrFeNiHEA' ? 'High-Entropy Alloy (AlCoCrFeNi)' :
                         type === 'Ti64' ? 'Ti-6Al-4V (Grade 5)' :
                         type === 'Brass' ? 'Brass (C26000)' :
+                        type === 'AlSb' ? 'AlSb Semiconductor' :
+                        type === 'MoTe2' ? 'MoTe2 Monolayer' :
+                        type === 'BaSnO3' ? 'Barium Stannate Perovskite' :
+                        type === 'Sb2Se3' ? 'Sb2Se3 Photovoltaic Absorber' :
+                        type === 'CZTS' ? 'CZTS Kesterite' :
+                        type === 'Fe3GeTe2' ? 'Fe3GeTe2 Layered Ferromagnet' :
+                        type === 'LLZO' ? 'LLZO (Li7La3Zr2O12)' :
+                        type === 'LGPS' ? 'LGPS (Li10GeP2S12)' :
+                        type === 'LATP' ? 'LATP (Li1.3Al0.3Ti1.7(PO4)3)' :
+                        type === 'FAPbI3' ? 'FAPbI3 Perovskite' :
+                        type === 'PrussianBlueNa' ? 'Prussian Blue Na-Cathode' :
+                        type === 'MgH2' ? 'Magnesium Hydride' :
                         type === 'Inconel' ? 'Inconel 718' :
                         type === 'SBA15' ? 'SBA-15' :
                         type === 'MCM41' ? 'MCM-41' :
@@ -968,6 +1001,18 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'Whitlockite' ? 'Whitlockite' :
                         type === 'Meloxicam' ? 'Meloxicam' :
                         type === 'Curcumin' ? 'Curcumin' :
+                        type === 'CoralAragoniteScaffold' ? 'Coral Aragonite Scaffold' :
+                        type === 'PyrolyticCarbon' ? 'Pyrolytic Carbon' :
+                        type === 'AkermaniteCeramic' ? 'Akermanite Ceramic' :
+                        type === 'AWGlassCeramic' ? 'A-W Glass-ceramic' :
+                        type === 'AtorvastatinCalcium' ? 'Atorvastatin Calcium' :
+                        type === 'AlSb' ? 'AlSb Semiconductor' :
+                        type === 'MoTe2' ? 'MoTe2 monolayer' :
+                        type === 'BaSnO3' ? 'Barium Stannate Perovskite' :
+                        type === 'Sb2Se3' ? 'Sb2Se3 Photovoltaic absorber' :
+                        type === 'CZTS' ? 'CZTS Kesterite' :
+                        type === 'Fe3GeTe2' ? 'Fe3GeTe2 layered Ferromagnet' :
+                        type === 'ZTAFemoralJoint' ? 'ZTA Femoral Joint' :
                         type === 'Magnetite' ? 'Magnetite (Fe3O4)' :
                         type === 'PE' ? 'Polyethylene (PE)' :
                         type === 'YBCO' ? 'YBCO Superconductor' :
@@ -1578,6 +1623,12 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { id: 'LaAlO3', label: 'LaAlO3' },
                         { id: 'HfO2', label: 'HfO2 (High-k)' },
                         { id: 'Ta2O5', label: 'Ta2O5 (Caps)' },
+                        { id: 'AlSb', label: 'AlSb' },
+                        { id: 'MoTe2', label: 'MoTe2' },
+                        { id: 'BaSnO3', label: 'BaSnO3' },
+                        { id: 'Sb2Se3', label: 'Sb2Se3' },
+                        { id: 'CZTS', label: 'CZTS' },
+                        { id: 'Fe3GeTe2', label: 'Fe3GeTe2' },
                       ]
                     },
                     {
@@ -1639,6 +1690,12 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { id: 'Whitlockite', label: 'Whitlockite' },
                         { id: 'Meloxicam', label: 'Meloxicam' },
                         { id: 'Curcumin', label: 'Curcumin' },
+                        { id: 'CoralAragoniteScaffold', label: 'Coral Aragonite' },
+                        { id: 'PyrolyticCarbon', label: 'Pyrolytic Carbon' },
+                        { id: 'AkermaniteCeramic', label: 'Akermanite Ceramic' },
+                        { id: 'AWGlassCeramic', label: 'A-W Glass-ceramic' },
+                        { id: 'AtorvastatinCalcium', label: 'Atorvastatin' },
+                        { id: 'ZTAFemoralJoint', label: 'ZTA Femoral Head' },
                       ]
                     },
                     {
@@ -1667,6 +1724,12 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { id: 'SS430', label: 'SS 430' },
                         { id: 'Ti64', label: 'Ti-6Al-4V' },
                         { id: 'Inconel', label: 'Inconel 718' },
+                         { id: 'SS174PH', label: 'SS 17-4PH' },
+                         { id: 'Duplex2205', label: 'Duplex SS 2205' },
+                         { id: 'HastelloyC276', label: 'Hastelloy C-276' },
+                         { id: 'ToolSteelH13', label: 'Tool Steel H13' },
+                         { id: 'FeCrAlKanthal', label: 'FeCrAl (Kanthal)' },
+                         { id: 'AlCoCrFeNiHEA', label: 'AlCoCrFeNi HEA' },
                         { id: 'Brass', label: 'Brass' },
                         { id: 'SAC305', label: 'SAC305' },
                         { id: 'TiGrade2', label: 'Ti (Grade 2)' },
@@ -1721,6 +1784,12 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { id: 'UiO66', label: 'UiO-66' },
                         { id: 'HKUST1', label: 'HKUST-1' },
                         { id: 'ZIF8', label: 'ZIF-8' },
+                        { id: 'LLZO', label: 'LLZO Solid Electrolyte' },
+                        { id: 'LGPS', label: 'LGPS Superionic' },
+                        { id: 'LATP', label: 'LATP Solid Electrolyte' },
+                        { id: 'FAPbI3', label: 'FAPbI3 Perovskite' },
+                        { id: 'PrussianBlueNa', label: 'Prussian Blue Na-Cathode' },
+                        { id: 'MgH2', label: 'Magnesium Hydride (MgH2)' },
                       ]
                     },
                     {
@@ -1766,6 +1835,12 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     {
                       category: "Nuclear & Defensive",
                       items: [
+                        { id: 'BNNT', label: 'BNNT' },
+                        { id: 'GdYSZ', label: 'Gd-YSZ Poison' },
+                        { id: 'U3Si5', label: 'U3Si5 Fuel' },
+                        { id: 'SiCSiC', label: 'SiC-SiC Cladding' },
+                        { id: 'LaBr3Ce', label: 'LaBr3:Ce' },
+                        { id: 'TiCN', label: 'TiCN Armor' },
                         { id: 'Polonium', label: 'Polonium (Po)' },
                         { id: 'PuDelta', label: 'Plutonium (δ)' },
                         { id: 'PuAlpha', label: 'Plutonium (α)' },
