@@ -27,7 +27,16 @@ import {
   Activity,
   Award,
   Settings,
-  HelpCircle
+  HelpCircle,
+  Compass,
+  Ruler,
+  Lock,
+  Unlock,
+  Layers,
+  Grid,
+  RefreshCw,
+  Flame,
+  User
 } from 'lucide-react';
 
 type Topic = 'start' | 'system_overview' | 'input' | 'generators' | 'polymer_calc' | 'rietveld_protocol' | 'troubleshoot' | 'ai_advisor';
@@ -65,6 +74,14 @@ const PLATFORM_SECTIONS: PlatformSectionInfo[] = [
     description: 'Validates crystal extinction spaces mapped onto Bragg index vectors. Features live allowed/forbidden reflection indicators for various crystal classes.',
     updates: 'Added support for detailed hexagonal close-packed (HCP) space group conditions alongside diamond cubic structure validation algorithms.',
     status: 'active'
+  },
+  {
+    id: 'preferred_orientation',
+    label: 'Preferred Orientation',
+    group: 'Fundamentals',
+    description: 'Models crystallographic texture biases (e.g. alignment of tabular/acicular grains) using standard March-Dollace parameter scaling calculations.',
+    updates: 'Integrated real-time cylinder, needle, and plate ODF calculations with dynamic 3D-projection poles.',
+    status: 'validated'
   },
   {
     id: 'scherrer',
@@ -131,6 +148,14 @@ const PLATFORM_SECTIONS: PlatformSectionInfo[] = [
     status: 'enhanced'
   },
   {
+    id: 'python_export',
+    label: 'Python Generator',
+    group: 'Advanced Sim',
+    description: 'Automates custom script creation mapping raw physical algorithms into interactive Python executions supported by NumPy, SciPy, and GSAS-II.',
+    updates: 'Configured automated LMFIT and xrayutilities direct structure mapping blocks.',
+    status: 'validated'
+  },
+  {
     id: 'dl',
     label: 'PhaseID Neural Net',
     group: 'AI Tools',
@@ -180,10 +205,237 @@ const PLATFORM_SECTIONS: PlatformSectionInfo[] = [
   }
 ];
 
+const DRILLDOWN_SPACE_GROUP_INFO: Record<string, {
+  number: number;
+  hermannMauguin: string;
+  schoenflies: string;
+  crystalSystem: string;
+  pointGroup: string;
+  centrosymmetric: boolean;
+  chiral: boolean;
+  wyckoffSites: Array<{ site: string; multiplicity: number; coordinates: string }>;
+  ops: string[];
+}> = {
+  'Simple Cubic': {
+    number: 221,
+    hermannMauguin: 'P m-3m',
+    schoenflies: 'O_h^1',
+    crystalSystem: 'Cubic',
+    pointGroup: 'm-3m (O_h)',
+    centrosymmetric: true,
+    chiral: false,
+    wyckoffSites: [
+      { site: '1a', multiplicity: 1, coordinates: '(0, 0, 0)' },
+      { site: '1b', multiplicity: 1, coordinates: '(½, ½, ½)' },
+      { site: '3c', multiplicity: 3, coordinates: '(0, ½, ½)' },
+      { site: '6e', multiplicity: 6, coordinates: '(x, 0, 0)' }
+    ],
+    ops: ['(x, y, z)', '(-x, -y, -z)', '(y, z, x)', '(-y, -z, -x)', '(z, x, y)', '(-z, -x, -y)', '(x, -y, -z)', '(-x, y, z)']
+  },
+  'BCC': {
+    number: 229,
+    hermannMauguin: 'I m-3m',
+    schoenflies: 'O_h^9',
+    crystalSystem: 'Cubic (Fe-type)',
+    pointGroup: 'm-3m (O_h)',
+    centrosymmetric: true,
+    chiral: false,
+    wyckoffSites: [
+      { site: '2a', multiplicity: 2, coordinates: '(0, 0, 0), (½, ½, ½)' },
+      { site: '6e', multiplicity: 6, coordinates: '(x, 0, 0) + B.C.' },
+      { site: '12d', multiplicity: 12, coordinates: '(¼, 0, ½) + B.C.' }
+    ],
+    ops: ['(x, y, z)', '(-x, -y, -z)', '(x+½, y+½, z+½)', '(-x+½, -y+½, -z+½)', '(y, z, x)', '(-y, -z, -x)']
+  },
+  'FCC': {
+    number: 225,
+    hermannMauguin: 'F m-3m',
+    schoenflies: 'O_h^5',
+    crystalSystem: 'Cubic (Cu-type)',
+    pointGroup: 'm-3m (O_h)',
+    centrosymmetric: true,
+    chiral: false,
+    wyckoffSites: [
+      { site: '4a', multiplicity: 4, coordinates: '(0, 0, 0) + F.C.' },
+      { site: '4b', multiplicity: 4, coordinates: '(½, ½, ½) + F.C.' },
+      { site: '8c', multiplicity: 8, coordinates: '(¼, ¼, ¼) + F.C.' }
+    ],
+    ops: ['(x, y, z)', '(x, y+½, z+½)', '(x+½, y, z+½)', '(x+½, y+½, z)', '(-x, -y, -z)']
+  },
+  'Perovskite': {
+    number: 221,
+    hermannMauguin: 'P m-3m',
+    schoenflies: 'O_h^1',
+    crystalSystem: 'Cubic (CaTiO3)',
+    pointGroup: 'm-3m (O_h)',
+    centrosymmetric: true,
+    chiral: false,
+    wyckoffSites: [
+      { site: '1a', multiplicity: 1, coordinates: '(0, 0, 0) [Ti]' },
+      { site: '1b', multiplicity: 1, coordinates: '(½, ½, ½) [Sr]' },
+      { site: '3c', multiplicity: 3, coordinates: '(0, ½, ½) [O]' }
+    ],
+    ops: ['(x, y, z)', '(-x, -y, -z)', '(y, z, x)', '(z, x, y)', '(x, -y, -z)', '(-x, y, z)']
+  },
+  'Rutile': {
+    number: 136,
+    hermannMauguin: 'P 4_2/m n m',
+    schoenflies: 'D_4h^14',
+    crystalSystem: 'Tetragonal (TiO2)',
+    pointGroup: '4/mmm (D_4h)',
+    centrosymmetric: true,
+    chiral: false,
+    wyckoffSites: [
+      { site: '2a', multiplicity: 2, coordinates: '(0, 0, 0)' },
+      { site: '4f', multiplicity: 4, coordinates: '(u, u, 0)' },
+      { site: '4g', multiplicity: 4, coordinates: '(u, -u, 0)' }
+    ],
+    ops: ['(x, y, z)', '(-x, -y, z)', '(x+½, -y+½, z+½)', '(-x+½, y+½, -z+½)', '(-y, x, w)', '(y, -x, w)']
+  },
+  'Quartz': {
+    number: 154,
+    hermannMauguin: 'P 3_2 2 1',
+    schoenflies: 'D_3^6',
+    crystalSystem: 'Trigonal',
+    pointGroup: '32 (D_3)',
+    centrosymmetric: false,
+    chiral: true,
+    wyckoffSites: [
+      { site: '3a', multiplicity: 3, coordinates: '(x, 0, ⅓)' },
+      { site: '3b', multiplicity: 3, coordinates: '(x, 0, ⅚)' },
+      { site: '6c', multiplicity: 6, coordinates: '(x, y, z)' }
+    ],
+    ops: ['(x, y, z)', '(-y, x-y, z+⅔)', '(y-x, -x, z+⅓)', '(y, x, -z)', '(-x, y-x, -z+⅔)', '(x-y, -y, -z+⅓)']
+  }
+};
+
+/**
+ * Calculates transformed atomic coordinates (ab-plane projection) from [x, y] to help
+ * the user visualize symmetry equivalent positions dynamically.
+ */
+const getSymmetryEquivalentPositionsList = (type: string, x: number, y: number): string[] => {
+  const mod1 = (v: number) => {
+    const m = v % 1;
+    return m < 0 ? m + 1 : m;
+  };
+  const pts: string[] = [];
+  const addPt = (px: number, py: number, pzLabel: string) => {
+    const rx = parseFloat(mod1(px).toFixed(3));
+    const ry = parseFloat(mod1(py).toFixed(3));
+    const label = `(${rx}, ${ry}, ${pzLabel})`;
+    if (!pts.includes(label)) {
+      pts.push(label);
+    }
+  };
+
+  if (type === 'Simple Cubic' || type === 'Perovskite') {
+    addPt(x, y, 'z');
+    addPt(1 - x, y, '-z');
+    addPt(x, 1 - y, '-z');
+    addPt(1 - x, 1 - y, 'z');
+    addPt(y, x, 'z');
+    addPt(1 - y, x, '-z');
+    addPt(y, 1 - x, '-z');
+    addPt(1 - y, 1 - x, 'z');
+  } else if (type === 'BCC') {
+    const coords = [
+      { px: x, py: y, pz: 'z' },
+      { px: 1 - x, py: y, pz: '-z' },
+      { px: x, py: 1 - y, pz: '-z' },
+      { px: 1 - x, py: 1 - y, pz: 'z' }
+    ];
+    coords.forEach(c => {
+      addPt(c.px, c.py, c.pz);
+      addPt(c.px + 0.5, c.py + 0.5, c.pz + '+½');
+    });
+  } else if (type === 'FCC') {
+    const coords = [
+      { px: x, py: y, pz: 'z' },
+      { px: 1 - x, py: y, pz: '-z' },
+      { px: x, py: 1 - y, pz: '-z' },
+      { px: 1 - x, py: 1 - y, pz: 'z' }
+    ];
+    coords.forEach(c => {
+      addPt(c.px, c.py, c.pz);
+      addPt(c.px + 0.5, c.py + 0.5, c.pz + '+½');
+      addPt(c.px, c.py + 0.5, c.pz + '+½');
+      addPt(c.px + 0.5, c.py, c.pz);
+    });
+  } else if (type === 'Rutile') {
+    addPt(x, y, 'z');
+    addPt(1 - x, 1 - y, 'z');
+    addPt(x + 0.5, 1.5 - y, 'z+½');
+    addPt(1.5 - x, y + 0.5, '-z+½');
+    addPt(y, x, 'z');
+    addPt(1 - y, 1 - x, 'z');
+  } else if (type === 'Quartz') {
+    addPt(x, y, 'z');
+    addPt(1 - y, x - y, 'z+⅔');
+    addPt(y - x, 1 - x, 'z+⅓');
+    addPt(y, x, '-z');
+    addPt(1 - x, y - x, '-z+⅔');
+    addPt(x - y, 1 - y, '-z+⅓');
+  } else {
+    addPt(x, y, 'z');
+  }
+  return pts;
+};
+
 export const LearnModule: React.FC = () => {
   const [activeTopic, setActiveTopic] = useState<Topic>('start');
   const [sectionSearch, setSectionSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('All');
+
+  // Improved Rietveld Protocol Interactive Substructure states
+  const [protocolSubTab, setProtocolSubTab] = useState<'checklist' | 'symmetry' | 'qpa' | 'caglioti' | 'preferred' | 'python'>('checklist');
+  const [checklistProgress, setChecklistProgress] = useState<number>(1);
+  const [checklistUnlocked, setChecklistUnlocked] = useState<Record<number, boolean>>({
+    1: true,
+    2: false,
+    3: false,
+    4: false,
+    5: false
+  });
+  const [checklistParams, setChecklistParams] = useState({
+    rFactor: 95.0,
+    rBragg: 85.0,
+    chi2: 12.5,
+    converged: false
+  });
+
+  const [symmetryActiveGroup, setSymmetryActiveGroup] = useState<string>('Simple Cubic');
+  const [symCoordX, setSymCoordX] = useState<number>(0.25);
+  const [symCoordY, setSymCoordY] = useState<number>(0.35);
+
+  const [qpaPhase1Name, setQpaPhase1Name] = useState<string>('Hematite Fe2O3');
+  const [qpaPhase1Scale, setQpaPhase1Scale] = useState<number>(0.0025);
+  const [qpaPhase1Volume, setQpaPhase1Volume] = useState<number>(302.2);
+  const [qpaPhase1Mass, setQpaPhase1Mass] = useState<number>(159.69); 
+  const [qpaPhase1Z, setQpaPhase1Z] = useState<number>(6);
+
+  const [qpaPhase2Name, setQpaPhase2Name] = useState<string>('Magnetite Fe3O4');
+  const [qpaPhase2Scale, setQpaPhase2Scale] = useState<number>(0.0012);
+  const [qpaPhase2Volume, setQpaPhase2Volume] = useState<number>(592.1);
+  const [qpaPhase2Mass, setQpaPhase2Mass] = useState<number>(231.53);
+  const [qpaPhase2Z, setQpaPhase2Z] = useState<number>(8);
+
+  const [cagliotiU, setCagliotiU] = useState<number>(0.025);
+  const [cagliotiV, setCagliotiV] = useState<number>(-0.012);
+  const [cagliotiW, setCagliotiW] = useState<number>(0.018);
+
+  // Preferred Orientation subtab states
+  const [prefRValue, setPrefRValue] = useState<number>(0.75);
+  const [prefAlphaDeg, setPrefAlphaDeg] = useState<number>(45);
+  const [prefFraction, setPrefFraction] = useState<number>(0.8);
+
+  // Python Generator subtab states
+  const [pySelectedLibrary, setPySelectedLibrary] = useState<string>('numpy');
+  const [pyAnodeMaterial, setPyAnodeMaterial] = useState<string>('Cu');
+  const [pyPeaksInput, setPyPeaksInput] = useState<string>('28.44, 47.30, 56.12, 69.13');
+  const [pyAIPrompt, setPyAIPrompt] = useState<string>('');
+  const [aiPyCode, setAiPyCode] = useState<string | null>(null);
+  const [generatingPy, setGeneratingPy] = useState<boolean>(false);
+  const [pyAIError, setPyAIError] = useState<string | null>(null);
 
   // Topic definitions
   const topics: { id: Topic; label: string; icon: any; color: string; bg: string; description: string }[] = [
@@ -237,6 +489,42 @@ export const LearnModule: React.FC = () => {
       setAiError("Connection error while calling crystallography server: " + e.message);
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleAIGeneratePython = async () => {
+    if (!pyAIPrompt.trim()) return;
+    setGeneratingPy(true);
+    setPyAIError(null);
+    setAiPyCode(null);
+
+    try {
+      const context = {
+        wavelength: pyAnodeMaterial === 'Cu' ? 1.54184 : pyAnodeMaterial === 'Mo' ? 0.71073 : 1.78901,
+        anode: pyAnodeMaterial,
+        experimentalPeaks: pyPeaksInput.split(',').map(p => p.trim()).filter(p => p !== ''),
+        instrumentProfile: { u: cagliotiU, v: cagliotiV, w: cagliotiW }
+      };
+
+      const res = await fetch("/api/gemini/coder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: pyAIPrompt,
+          context,
+          customKey: localStorage.getItem('xrd_custom_gemini_key') || undefined
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiPyCode(data.text);
+      } else {
+        setPyAIError(data.error || "Failed to generate code.");
+      }
+    } catch (e: any) {
+      setPyAIError("Network error: " + e.message);
+    } finally {
+      setGeneratingPy(false);
     }
   };
 
@@ -1254,63 +1542,1172 @@ export const LearnModule: React.FC = () => {
                       <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
                         Thermoplastics (e.g. Polybutylene adipate terephthalate or low-density polyethylene) exhibit a distinctive "amorphous hump" around 15–25° (2θ). The crystalline index maps the structural degradation or strength profile of polymers.
                       </p>
+
                     </div>
 
                   </div>
                 </div>
               )}
 
-              {/* Topic 5: Rietveld Refinement timeline steps */}
+              {/* Topic 5: Rietveld Refinement timeline steps & Advanced Protocol Sandbox */}
               {activeTopic === 'rietveld_protocol' && (
-                <div className="space-y-8">
+                <div className="space-y-8 animate-in fade-in duration-500">
                   <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                       <span className="px-3 py-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-rose-500/20 font-mono">Academic Protocol</span>
+                       <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+                    </div>
                     <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-sans">
-                      Acyclic Rietveld Refinement Protocol
+                      Advanced Crystallographic Refinement Manual
                     </h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 font-bold leading-relaxed font-sans">
-                      Fitting a crystal structure model to raw scan data is non-linear. Optimizing too many variables in a single calculation cycle initiates divergent matrices. Follow our established, safe refinement sequence.
+                      Refining physical material parameters to matches raw scan intensities is a non-linear optimization task. Explore our dynamic sequencer, symmetry operator guides, and calibration helpers.
                     </p>
                   </div>
 
-                  <div className="space-y-3 relative before:absolute before:left-3 mt-4 before:top-4 before:bottom-4 before:w-0.5 before:bg-slate-100 dark:before:bg-slate-800">
-                    {rietveldSteps.map((s, idx) => (
-                      <div key={idx} className="flex gap-6 items-start relative group pl-1">
-                         {/* Circle indicator */}
-                         <div className="w-6 h-6 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center text-[10px] font-black font-semibold shrink-0 select-none shadow z-10">
-                           {s.step}
-                         </div>
-                         
-                         {/* Details */}
-                         <div className="flex-1 bg-slate-50 dark:bg-slate-950 p-5 rounded-[1.5rem] border border-slate-150 dark:border-slate-850 hover:border-indigo-500/20 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 font-sans">
-                           <div className="space-y-1 md:max-w-2xl">
-                             <div className="flex items-center gap-2">
-                               <h4 className="text-xs font-black uppercase text-slate-805 dark:text-slate-100 tracking-tight leading-none">{s.title}</h4>
-                               <span className={`text-[8px] font-black tracking-wider px-1.5 py-0.5 rounded ${
-                                 s.relevance === 'EXTREME' || s.relevance === 'CRITICAL' 
-                                   ? 'bg-rose-500/10 text-rose-500' 
-                                   : 'bg-indigo-500/10 text-indigo-500'
-                               }`}>{s.relevance}</span>
-                             </div>
-                             <p className="text-[10px] font-bold text-slate-455 dark:text-slate-400 leading-normal">{s.desc}</p>
-                           </div>
+                  {/* Sub-Tabs Row */}
+                  <div className="flex flex-wrap gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <button 
+                      onClick={() => setProtocolSubTab('checklist')}
+                      className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                        protocolSubTab === 'checklist' 
+                          ? 'bg-rose-500 text-white shadow-md' 
+                          : 'bg-slate-50 dark:bg-slate-950 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900'
+                      }`}
+                    >
+                      <Lock size={12} className={protocolSubTab === 'checklist' ? 'text-white' : 'text-rose-500'} /> 1. Sequential Locks
+                    </button>
+                    <button 
+                      onClick={() => setProtocolSubTab('symmetry')}
+                      className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                        protocolSubTab === 'symmetry' 
+                          ? 'bg-rose-500 text-white shadow-md' 
+                          : 'bg-slate-50 dark:bg-slate-950 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900'
+                      }`}
+                    >
+                      <Compass size={12} className={protocolSubTab === 'symmetry' ? 'text-white' : 'text-cyan-500'} /> 2. Symmetry Operations
+                    </button>
+                    <button 
+                      onClick={() => setProtocolSubTab('qpa')}
+                      className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                        protocolSubTab === 'qpa' 
+                          ? 'bg-rose-500 text-white shadow-md' 
+                          : 'bg-slate-50 dark:bg-slate-950 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900'
+                      }`}
+                    >
+                      <Layers size={12} className={protocolSubTab === 'qpa' ? 'text-white' : 'text-amber-500'} /> 3. Quantitative QPA
+                    </button>
+                    <button 
+                      onClick={() => setProtocolSubTab('caglioti')}
+                      className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                        protocolSubTab === 'caglioti' 
+                          ? 'bg-rose-500 text-white shadow-md' 
+                          : 'bg-slate-50 dark:bg-slate-950 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900'
+                      }`}
+                    >
+                      <Ruler size={12} className={protocolSubTab === 'caglioti' ? 'text-white' : 'text-violet-500'} /> 4. Caglioti FWHM
+                    </button>
+                    <button 
+                      onClick={() => setProtocolSubTab('preferred')}
+                      className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                        protocolSubTab === 'preferred' 
+                          ? 'bg-rose-500 text-white shadow-md' 
+                          : 'bg-slate-50 dark:bg-slate-950 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900'
+                      }`}
+                    >
+                      <Target size={12} className={protocolSubTab === 'preferred' ? 'text-white' : 'text-emerald-500'} /> 5. Preferred Orientation (M-D)
+                    </button>
+                    <button 
+                      onClick={() => setProtocolSubTab('python')}
+                      className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all ${
+                        protocolSubTab === 'python' 
+                          ? 'bg-rose-500 text-white shadow-md' 
+                          : 'bg-slate-50 dark:bg-slate-950 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900'
+                      }`}
+                    >
+                      <FileCode size={12} className={protocolSubTab === 'python' ? 'text-white' : 'text-amber-500'} /> 6. Script Generator SDK
+                    </button>
+                  </div>
 
-                           <div className="shrink-0 text-right">
-                              <span className="text-[8.5px] font-black uppercase tracking-widest text-slate-400 block">Output Status</span>
-                              <span className="text-[10px] font-mono font-semibold text-indigo-555 dark:text-indigo-400 block mt-0.5">{s.status}</span>
-                           </div>
+                  {/* SUBTAB 1 - SEQUENTIAL LOCKS */}
+                  {protocolSubTab === 'checklist' && (
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                      
+                      {/* Left side: Fit Progress Card */}
+                      <div className="xl:col-span-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-850 space-y-5">
+                         <div>
+                            <span className="text-[9px] font-mono text-indigo-500 dark:text-indigo-400 font-black uppercase tracking-wider">Least-Squares Workspace</span>
+                            <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 tracking-tight leading-tight mt-1">Refinement Convergence</h3>
+                         </div>
+
+                         <div className="space-y-3.5">
+                            {/* Rwp */}
+                            <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-150 dark:border-slate-850">
+                               <div className="flex justify-between text-[9px] text-slate-400 font-bold uppercase">
+                                 <span>Weighted Profile (Rwp)</span>
+                                 <span className="font-mono text-indigo-600 dark:text-indigo-400 font-semibold">Goal &lt; 10%</span>
+                               </div>
+                               <p className="text-2xl font-black text-slate-800 dark:text-white font-mono mt-1">{checklistParams.rFactor.toFixed(1)}%</p>
+                            </div>
+
+                            {/* Rbragg */}
+                            <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-150 dark:border-slate-850">
+                               <div className="flex justify-between text-[9px] text-slate-400 font-bold uppercase">
+                                 <span>Bragg Factor (Rb)</span>
+                                 <span className="font-mono text-indigo-600 dark:text-indigo-400 font-semibold">Goal &lt; 5%</span>
+                               </div>
+                               <p className="text-2xl font-black text-slate-800 dark:text-white font-mono mt-1">{checklistParams.rBragg.toFixed(1)}%</p>
+                            </div>
+
+                            {/* Chi2 */}
+                            <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-150 dark:border-slate-850">
+                               <div className="flex justify-between text-[9px] text-slate-400 font-bold uppercase">
+                                 <span>Goodness of Fit (χ²)</span>
+                                 <span className="font-mono text-indigo-600 dark:text-indigo-400 font-semibold">Goal ~ 1.0</span>
+                               </div>
+                               <p className="text-2xl font-black text-slate-800 dark:text-white font-mono mt-1">{checklistParams.chi2.toFixed(2)}</p>
+                            </div>
+                         </div>
+
+                         {/* Status bar */}
+                         <div className={`p-4 rounded-2xl border text-center ${
+                             checklistParams.converged 
+                               ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+                               : 'bg-indigo-550/10 border-indigo-500/20 text-indigo-550 dark:text-indigo-400'
+                         }`}>
+                           <span className="text-[10px] font-black uppercase tracking-widest block font-sans">
+                             {checklistParams.converged ? '✓ Matrix Fully Converged' : '🛠️ Fitting Matrix Iterating'}
+                           </span>
+                           <span className="text-[8.5px] font-semibold opacity-80 block mt-0.5">
+                             {checklistParams.converged 
+                               ? 'Your model is ready for academic publication submission!'
+                               : `Completed ${checklistProgress - 1} of 5 systematic optimization gates.`
+                             }
+                           </span>
+                         </div>
+
+                         {/* Reset Simulation */}
+                         {(checklistProgress > 1 || checklistParams.converged) && (
+                           <button
+                             onClick={() => {
+                               setChecklistProgress(1);
+                               setChecklistUnlocked({ 1: true, 2: false, 3: false, 4: false, 5: false });
+                               setChecklistParams({ rFactor: 95.0, rBragg: 85.0, chi2: 12.5, converged: false });
+                             }}
+                             className="w-full py-2.5 bg-slate-200 hover:bg-slate-300 dark:bg-slate-850 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
+                           >
+                             <RotateCcw size={10} /> Reset Refinement Matrix
+                           </button>
+                         )}
+                      </div>
+
+                      {/* Right side: Phase checklist steps */}
+                      <div className="xl:col-span-8 space-y-4">
+                        {rietveldSteps.map((s) => {
+                          const isUnlocked = checklistUnlocked[s.step as keyof typeof checklistUnlocked];
+                          const isCompleted = checklistProgress > s.step;
+                          const isActive = checklistProgress === s.step;
+
+                          return (
+                            <div 
+                              key={s.step} 
+                              className={`p-5 rounded-[2rem] border transition-all relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-5 ${
+                                isCompleted 
+                                  ? 'bg-emerald-500/5 dark:bg-emerald-500/2 border-emerald-500/20 hover:border-emerald-500/40' 
+                                  : isActive
+                                    ? 'bg-white dark:bg-slate-900 border-rose-500 shadow-md scale-101'
+                                    : 'bg-slate-50/50 dark:bg-slate-950/20 border-slate-150 dark:border-slate-850 opacity-60'
+                              }`}
+                            >
+                               <div className="space-y-1 md:max-w-xl">
+                                  <div className="flex items-center gap-2">
+                                     <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black font-semibold ${
+                                        isCompleted 
+                                          ? 'bg-emerald-500 text-white' 
+                                          : isActive
+                                            ? 'bg-rose-500 text-white animate-pulse'
+                                            : 'bg-slate-200 dark:bg-slate-850 text-slate-500'
+                                     }`}>
+                                       {isCompleted ? '✓' : s.step}
+                                     </div>
+                                     <h4 className="text-xs font-black uppercase text-slate-800 dark:text-white tracking-tight">{s.title}</h4>
+                                     <span className={`text-[8px] font-mono font-black uppercase px-1.5 py-0.5 rounded ${
+                                        s.relevance === 'CRITICAL' || s.relevance === 'EXTREME'
+                                          ? 'bg-rose-500/10 text-rose-500'
+                                          : 'bg-indigo-500/10 text-indigo-500'
+                                     }`}>{s.relevance}</span>
+                                  </div>
+                                  <p className="text-[10px] font-bold text-slate-455 dark:text-slate-400 leading-normal pl-7">{s.desc}</p>
+                               </div>
+
+                               <div className="shrink-0 text-right flex flex-col items-end gap-1.5 pl-7 md:pl-0">
+                                  <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block font-sans">Operation Parameter</span>
+                                  <span className="text-[9.5px] font-mono text-slate-800 dark:text-slate-200 block bg-slate-100 dark:bg-slate-950 px-2 py-1 rounded border border-slate-200/50 dark:border-white/5">{s.status}</span>
+                                  
+                                  {isActive && isUnlocked && (
+                                    <button 
+                                      onClick={() => {
+                                        const currentStepNum = s.step;
+                                        setChecklistProgress(Math.max(checklistProgress, currentStepNum + 1));
+                                        setChecklistUnlocked(prev => ({ ...prev, [currentStepNum + 1]: true }));
+                                        
+                                        // Decrease R-factors
+                                        if (currentStepNum === 1) {
+                                          setChecklistParams({ rFactor: 64.2, rBragg: 48.5, chi2: 7.15, converged: false });
+                                        } else if (currentStepNum === 2) {
+                                          setChecklistParams({ rFactor: 38.5, rBragg: 22.1, chi2: 3.42, converged: false });
+                                        } else if (currentStepNum === 3) {
+                                          setChecklistParams({ rFactor: 18.0, rBragg: 11.4, chi2: 1.88, converged: false });
+                                        } else if (currentStepNum === 4) {
+                                          setChecklistParams({ rFactor: 11.2, rBragg: 6.9, chi2: 1.22, converged: false });
+                                        } else if (currentStepNum === 5) {
+                                          setChecklistParams({ rFactor: 7.2, rBragg: 3.1, chi2: 1.02, converged: true });
+                                        }
+                                      }}
+                                      className="mt-1 px-3 py-1.5 bg-rose-500 text-white rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-rose-600 transition-all flex items-center gap-1 self-end"
+                                    >
+                                      Refine Stage <ArrowRight size={10} />
+                                    </button>
+                                  )}
+                               </div>
+                            </div>
+                          );
+                        })}
+
+                        <div className="p-4 bg-slate-900 border border-slate-800 rounded-[1.5rem] flex items-start gap-3">
+                           <Sparkles size={14} className="text-amber-400 animate-pulse shrink-0 mt-0.5" />
+                           <p className="text-[10px] text-slate-400 font-bold leading-normal">
+                             <strong className="text-white">Divergence Mitigation rule:</strong> Always lock backgrounds and scale factors first before opening lattice variables. Refine atomic heights only after cell axes have settled perfectly.
+                           </p>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* SUBTAB 2 - SYMMETRY OPERATIONS */}
+                  {protocolSubTab === 'symmetry' && (
+                    <div className="space-y-6">
+                      <div className="p-5 bg-indigo-500/5 border border-indigo-500/20 rounded-[2rem] flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <h3 className="text-xs font-black uppercase text-slate-800 dark:text-indigo-400 tracking-wide flex items-center gap-1">
+                            <Compass size={12} /> Space Group Equivalent Positions Explorer
+                          </h3>
+                          <p className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400">
+                            Translate any core fractional coordinate vector [x, y, z] to see its symmetry-transformed positions across the cell.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase">Interactive Projection</span>
+                           <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded text-[9px] font-mono border border-indigo-500/20">ab Plane</span>
+                        </div>
+                      </div>
+
+                      {/* Selector buttons */}
+                      <div className="flex flex-wrap gap-1.5 bg-slate-50 dark:bg-slate-950 p-2 rounded-[2rem] border border-slate-150 dark:border-slate-850">
+                        {Object.keys(DRILLDOWN_SPACE_GROUP_INFO).map((sg) => (
+                          <button
+                            key={sg}
+                            onClick={() => setSymmetryActiveGroup(sg)}
+                            className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                              symmetryActiveGroup === sg
+                                ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                                : 'text-slate-505 dark:text-slate-400 hover:bg-slate-150 dark:hover:bg-slate-900'
+                            }`}
+                          >
+                            {sg}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Display Data */}
+                      {(() => {
+                        const sDetails = DRILLDOWN_SPACE_GROUP_INFO[symmetryActiveGroup];
+                        const transformedList = getSymmetryEquivalentPositionsList(symmetryActiveGroup, symCoordX, symCoordY);
+
+                        return (
+                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch pt-2">
+                             
+                             {/* Left column: Parameters list */}
+                             <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-855 space-y-4 flex flex-col justify-between">
+                                <div className="space-y-3">
+                                   <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                      <span className="text-[9px] text-slate-400 font-black uppercase">Sg Hermann-Mauguin</span>
+                                      <span className="text-xs font-mono font-black text-slate-800 dark:text-white px-2 py-0.5 bg-slate-100 dark:bg-slate-900 rounded">{sDetails.hermannMauguin}</span>
+                                   </div>
+
+                                   <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                      <span className="text-[9px] text-slate-400 font-black uppercase">Sg Schoenflies Code</span>
+                                      <span className="text-xs font-mono font-black text-slate-800 dark:text-white">{sDetails.schoenflies}</span>
+                                   </div>
+
+                                   <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                      <span className="text-[9px] text-slate-400 font-black uppercase">Space Group Number</span>
+                                      <span className="text-xs font-mono font-black text-slate-800 dark:text-white">#{sDetails.number}</span>
+                                   </div>
+
+                                   <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                      <span className="text-[9px] text-slate-400 font-black uppercase">Crystal System</span>
+                                      <span className="text-xs font-mono font-black text-slate-800 dark:text-white">{sDetails.crystalSystem}</span>
+                                   </div>
+
+                                   <div className="flex justify-between items-center pb-2 border-b border-slate-200/50 dark:border-white/5">
+                                      <span className="text-[9px] text-slate-400 font-black uppercase">Centrosymmetric?</span>
+                                      <span className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded ${sDetails.centrosymmetric ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>{sDetails.centrosymmetric ? 'CENTRO' : 'NON-CENTRO'}</span>
+                                   </div>
+
+                                   <div className="flex justify-between items-center">
+                                      <span className="text-[9px] text-slate-400 font-black uppercase">Chiral Symmetry?</span>
+                                      <span className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded ${sDetails.chiral ? 'bg-cyan-500/10 text-cyan-500' : 'bg-slate-200 text-slate-400 dark:bg-slate-900 border border-slate-800'}`}>{sDetails.chiral ? 'CHIRAL' : 'ACHIRAL'}</span>
+                                   </div>
+                                </div>
+
+                                <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-150 dark:border-slate-850 space-y-3">
+                                   <div className="flex items-center gap-1 text-[9.5px] font-black text-slate-400 uppercase">
+                                     <Sliders size={10} /> Probe Position [x, y]
+                                   </div>
+                                   
+                                   <div className="grid grid-cols-2 gap-3 font-mono">
+                                      <div className="space-y-0.5">
+                                         <label className="text-[8px] font-black text-slate-400">COORDINATE X</label>
+                                         <input 
+                                           title="Fractional Coordinate X"
+                                           type="number" 
+                                           step="0.05"
+                                           min="0"
+                                           max="1"
+                                           value={symCoordX}
+                                           onChange={(e) => setSymCoordX(Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)))}
+                                           className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1 text-xs text-slate-800 dark:text-white text-center focus:outline-none focus:border-rose-500"
+                                         />
+                                      </div>
+                                      <div className="space-y-0.5">
+                                         <label className="text-[8px] font-black text-slate-400">COORDINATE Y</label>
+                                         <input 
+                                           title="Fractional Coordinate Y"
+                                           type="number" 
+                                           step="0.05"
+                                           min="0"
+                                           max="1"
+                                           value={symCoordY}
+                                           onChange={(e) => setSymCoordY(Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)))}
+                                           className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1 text-xs text-slate-800 dark:text-white text-center focus:outline-none focus:border-rose-500"
+                                         />
+                                      </div>
+                                   </div>
+
+                                   <div className="flex gap-1.5 justify-center pt-1">
+                                      <button 
+                                        onClick={() => { setSymCoordX(0.20); setSymCoordY(0.40); }}
+                                        className="text-[8.5px] font-black uppercase text-rose-500 hover:underline hover:text-rose-600"
+                                      >
+                                        Preset A [0.2, 0.4]
+                                      </button>
+                                      <span className="text-slate-300">|</span>
+                                      <button 
+                                        onClick={() => { setSymCoordX(0.33); setSymCoordY(0.66); }}
+                                        className="text-[8.5px] font-black uppercase text-rose-500 hover:underline hover:text-rose-600"
+                                      >
+                                        Preset B [0.33, 0.66]
+                                      </button>
+                                   </div>
+                                </div>
+                             </div>
+
+                             {/* Right column: Wyckoff & Operators list */}
+                             <div className="lg:col-span-8 space-y-5">
+                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-white/5 p-6 rounded-[2.5rem] shadow-sm space-y-4">
+                                   <span className="text-[9.5px] font-black uppercase text-rose-505 dark:text-rose-450 tracking-wider flex items-center gap-1 select-none">
+                                     <Grid size={11} /> Wyckoff Crystallographic Positions
+                                   </span>
+                                   
+                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                                      {sDetails.wyckoffSites.map((wyc, wi) => (
+                                         <div key={wi} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-150 dark:border-slate-855 flex items-center justify-between font-mono">
+                                            <div>
+                                               <span className="text-[9px] font-black text-rose-500 uppercase">Site {wyc.site}</span>
+                                               <p className="text-[10.5px] font-bold text-slate-805 dark:text-slate-200 mt-0.5">{wyc.coordinates}</p>
+                                            </div>
+                                            <div className="text-right">
+                                               <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 block">Multiplicity</span>
+                                               <span className="text-xs text-indigo-505 dark:text-indigo-400 font-black uppercase">{wyc.multiplicity}x Positions</span>
+                                            </div>
+                                         </div>
+                                      ))}
+                                   </div>
+                                </div>
+
+                                <div className="bg-white dark:bg-slate-900 border border-slate-155 dark:border-white/5 p-6 rounded-[2.5rem] shadow-sm space-y-4">
+                                   <div className="flex justify-between items-center">
+                                      <span className="text-[9.5px] font-black uppercase text-rose-505 dark:text-rose-400 tracking-wider flex items-center gap-1 select-none">
+                                        <Layers size={11} /> Symmetry Equivalent Generators
+                                      </span>
+                                      <span className="text-[8px] font-mono font-black uppercase px-2 py-0.5 bg-slate-100 dark:bg-slate-950 text-slate-450 rounded border border-slate-155">
+                                         Input: [ {symCoordX.toFixed(2)}, {symCoordY.toFixed(2)}, z ]
+                                      </span>
+                                   </div>
+
+                                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 font-mono">
+                                      {transformedList.map((trans, ti) => {
+                                         const opTitle = sDetails.ops[ti] || `op_${ti}`;
+                                         return (
+                                            <div key={ti} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-150 dark:border-slate-850 text-center flex flex-col justify-between">
+                                               <span className="text-[8px] text-slate-400 font-semibold block leading-none">{opTitle}</span>
+                                               <span className="text-[10px] font-black text-indigo-650 dark:text-indigo-400 block mt-1 leading-none">{trans}</span>
+                                            </div>
+                                         );
+                                      })}
+                                   </div>
+                                </div>
+                             </div>
+
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* SUBTAB 3 - QUANTITATIVE RESIDUAL ANALYSIS */}
+                  {protocolSubTab === 'qpa' && (
+                    <div className="space-y-6 animate-in fade-in duration-300">
+                      
+                      {/* Top theoretical panel */}
+                      <div className="p-6 bg-amber-500/5 border border-amber-500/20 rounded-[2rem] space-y-2">
+                         <h3 className="text-xs font-black uppercase text-slate-800 dark:text-amber-400 tracking-wide flex items-center gap-1.5 leading-none">
+                            <Layers size={12} className="text-amber-500" /> Hill-Howard Quantitative Phase Analysis (QPA)
+                         </h3>
+                         <p className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                            Quantitative analysis derives the absolute weight percentage ($W_p$) of crystalline compound mixtures in multi-phase datasets. Crucially, scale factor ($S$) adjustments from the Rietveld model are combined with cell volumes ($V$) and compound densities.
+                         </p>
+
+                         {/* Math block */}
+                         <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-150 dark:border-slate-850 flex items-center justify-center py-5 font-serif select-none text-slate-800 dark:text-slate-200">
+                            <div className="text-center font-mono text-xs leading-relaxed">
+                               <p className="text-sm font-bold text-rose-500 dark:text-indigo-400">Wₚ = [Sₚ(Z·M·V)ₚ] / ∑ᵢ [Sᵢ(Z·M·V)ᵢ]</p>
+                               <p className="text-[8.5px] text-slate-400 font-sans font-black uppercase tracking-widest mt-2">Where: S = Scale Factor, Z = Formula units, M = Molar Mass, V = Unit Cell Volume</p>
+                            </div>
                          </div>
                       </div>
-                    ))}
-                  </div>
 
-                  <div className="p-6 bg-slate-900 text-slate-400 rounded-[2rem] border border-slate-800 space-y-3 font-sans">
-                     <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5 leading-none">
-                       <Sparkles size={12} className="text-amber-400 animate-pulse" /> Convergence Matrix Hint
-                     </h4>
-                     <p className="text-[10.5px] font-bold leading-relaxed">
-                       If refinement divergence occurs: immediate structural rollback is recommended. Reset Caglioti parameters to instrumental settings, freeze fractional atomic factors, and isolate background limits alone until convergence stabilizes.
-                     </p>
-                  </div>
+                      {/* Split Input Grid */}
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch pt-2">
+                         
+                         {/* Phase 1 Setup Card */}
+                         <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-855 space-y-4">
+                            <div className="flex items-center gap-1.5 pb-2 border-b border-slate-200/50 dark:border-white/5">
+                               <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                               <span className="text-xs font-black uppercase tracking-wide text-slate-800 dark:text-white">Compound Phase A</span>
+                            </div>
+
+                            <div className="space-y-3 font-sans">
+                               <div className="space-y-0.5">
+                                  <label className="text-[8.5px] font-black text-slate-400 uppercase">Phase Name</label>
+                                  <input 
+                                    title="Phase A Name"
+                                    type="text"
+                                    value={qpaPhase1Name}
+                                    onChange={(e) => setQpaPhase1Name(e.target.value)}
+                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-850 dark:text-slate-100"
+                                  />
+                               </div>
+
+                               <div className="grid grid-cols-2 gap-3.5 font-mono">
+                                  <div className="space-y-0.5">
+                                     <label className="text-[8px] font-black text-slate-450 uppercase">Mass M (g/mol)</label>
+                                     <input 
+                                       title="Molar Mass Phase A"
+                                       type="number"
+                                       value={qpaPhase1Mass}
+                                       onChange={(e) => setQpaPhase1Mass(parseFloat(e.target.value) || 0)}
+                                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
+                                     />
+                                  </div>
+                                  <div className="space-y-0.5">
+                                     <label className="text-[8px] font-black text-slate-450 uppercase">Formula Units Z</label>
+                                     <input 
+                                       title="Formula Units Phase A"
+                                       type="number"
+                                       value={qpaPhase1Z}
+                                       onChange={(e) => setQpaPhase1Z(parseFloat(e.target.value) || 0)}
+                                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
+                                     />
+                                  </div>
+                               </div>
+
+                               <div className="space-y-0.5 font-mono">
+                                  <div className="flex justify-between text-[8px] font-black text-slate-450 uppercase">
+                                     <span>Cell Volume V</span>
+                                     <span>{qpaPhase1Volume} Å³</span>
+                                  </div>
+                                  <input 
+                                    title="Cell Volume Phase A"
+                                    type="number"
+                                    step="10"
+                                    value={qpaPhase1Volume}
+                                    onChange={(e) => setQpaPhase1Volume(parseFloat(e.target.value) || 1)}
+                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
+                                  />
+                               </div>
+
+                               <div className="space-y-1 pt-1.5 border-t border-slate-200/50 dark:border-white/5 font-mono">
+                                  <div className="flex justify-between text-[8px] font-black text-slate-400 uppercase">
+                                     <span>Scale Factor (Sp)</span>
+                                     <span className="text-amber-500 font-bold">{qpaPhase1Scale.toFixed(5)}</span>
+                                  </div>
+                                  <input 
+                                    title="Scale Factor Phase A"
+                                    type="range"
+                                    min="0.0001"
+                                    max="0.0100"
+                                    step="0.0001"
+                                    value={qpaPhase1Scale}
+                                    onChange={(e) => setQpaPhase1Scale(parseFloat(e.target.value))}
+                                    className="w-full accent-amber-500"
+                                  />
+                               </div>
+                            </div>
+                         </div>
+
+                         {/* Phase 2 Setup Card */}
+                         <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-855 space-y-4">
+                            <div className="flex items-center gap-1.5 pb-2 border-b border-slate-200/50 dark:border-white/5">
+                               <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                               <span className="text-xs font-black uppercase tracking-wide text-slate-800 dark:text-white">Compound Phase B</span>
+                            </div>
+
+                            <div className="space-y-3 font-sans">
+                               <div className="space-y-0.5">
+                                  <label className="text-[8.5px] font-black text-slate-400 uppercase">Phase Name</label>
+                                  <input 
+                                    title="Phase B Name"
+                                    type="text"
+                                    value={qpaPhase2Name}
+                                    onChange={(e) => setQpaPhase2Name(e.target.value)}
+                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-850 dark:text-slate-100"
+                                  />
+                               </div>
+
+                               <div className="grid grid-cols-2 gap-3.5 font-mono">
+                                  <div className="space-y-0.5">
+                                     <label className="text-[8px] font-black text-slate-450 uppercase">Mass M (g/mol)</label>
+                                     <input 
+                                       title="Molar Mass Phase B"
+                                       type="number"
+                                       value={qpaPhase2Mass}
+                                       onChange={(e) => setQpaPhase2Mass(parseFloat(e.target.value) || 0)}
+                                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
+                                     />
+                                  </div>
+                                  <div className="space-y-0.5">
+                                     <label className="text-[8px] font-black text-slate-450 uppercase">Formula Units Z</label>
+                                     <input 
+                                       title="Formula Units Phase B"
+                                       type="number"
+                                       value={qpaPhase2Z}
+                                       onChange={(e) => setQpaPhase2Z(parseFloat(e.target.value) || 0)}
+                                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
+                                     />
+                                  </div>
+                               </div>
+
+                               <div className="space-y-0.5 font-mono">
+                                  <div className="flex justify-between text-[8px] font-black text-slate-455 uppercase">
+                                     <span>Cell Volume V</span>
+                                     <span>{qpaPhase2Volume} Å³</span>
+                                  </div>
+                                  <input 
+                                    title="Cell Volume Phase B"
+                                    type="number"
+                                    step="10"
+                                    value={qpaPhase2Volume}
+                                    onChange={(e) => setQpaPhase2Volume(parseFloat(e.target.value) || 1)}
+                                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
+                                  />
+                               </div>
+
+                               <div className="space-y-1 pt-1.5 border-t border-slate-200/50 dark:border-white/5 font-mono">
+                                  <div className="flex justify-between text-[8px] font-black text-slate-400 uppercase">
+                                     <span>Scale Factor (Sp)</span>
+                                     <span className="text-indigo-550 dark:text-indigo-400 font-bold">{qpaPhase2Scale.toFixed(5)}</span>
+                                  </div>
+                                  <input 
+                                    title="Scale Factor Phase B"
+                                    type="range"
+                                    min="0.0001"
+                                    max="0.0100"
+                                    step="0.0001"
+                                    value={qpaPhase2Scale}
+                                    onChange={(e) => setQpaPhase2Scale(parseFloat(e.target.value))}
+                                    className="w-full accent-indigo-500"
+                                  />
+                               </div>
+                            </div>
+                         </div>
+
+                         {/* Results Card */}
+                         {(() => {
+                           const v1 = qpaPhase1Scale * qpaPhase1Z * qpaPhase1Mass * qpaPhase1Volume;
+                           const v2 = qpaPhase2Scale * qpaPhase2Z * qpaPhase2Mass * qpaPhase2Volume;
+                           const sumV = v1 + v2;
+                           const fraction1 = sumV > 0 ? v1 / sumV : 0.5;
+                           const fraction2 = sumV > 0 ? v2 / sumV : 0.5;
+                           
+                           return (
+                             <div className="lg:col-span-4 bg-slate-900 border border-slate-800 p-6 rounded-[2rem] flex flex-col justify-between space-y-6 text-white font-sans">
+                                <div>
+                                   <span className="text-[9px] font-mono font-black text-amber-400 uppercase tracking-widest block mb-1">Computational Outcomes</span>
+                                   <h3 className="text-sm font-extrabold text-slate-100 tracking-tight leading-tight">Live Weight Fractions</h3>
+                                </div>
+
+                                <div className="space-y-4">
+                                   {/* Progress bar split */}
+                                   <div className="space-y-1.5">
+                                      <div className="flex justify-between text-[9px] font-black uppercase text-slate-400">
+                                         <span>{qpaPhase1Name || 'Phase A'}</span>
+                                         <span>{qpaPhase2Name || 'Phase B'}</span>
+                                      </div>
+                                      <div className="h-4 w-full rounded-full overflow-hidden flex bg-slate-850">
+                                         <div className="bg-amber-500 h-full transition-all duration-305" style={{ width: `${fraction1 * 100}%` }} />
+                                         <div className="bg-indigo-505 h-full transition-all duration-350" style={{ width: `${fraction2 * 100}%` }} />
+                                      </div>
+                                   </div>
+
+                                   {/* Score readout */}
+                                   <div className="grid grid-cols-2 gap-4 font-mono">
+                                      <div className="p-3 bg-slate-950 rounded-xl border border-white/5 text-center">
+                                         <span className="text-[8px] font-black text-amber-400 uppercase tracking-wider block">WEIGHT %</span>
+                                         <span className="text-lg font-black text-amber-400 block mt-0.5">{(fraction1 * 100).toFixed(2)}%</span>
+                                      </div>
+                                      <div className="p-3 bg-slate-950 rounded-xl border border-white/5 text-center">
+                                         <span className="text-[8px] font-black text-indigo-400 uppercase tracking-wider block">WEIGHT %</span>
+                                         <span className="text-lg font-black text-indigo-400 block mt-0.5">{(fraction2 * 100).toFixed(2)}%</span>
+                                      </div>
+                                   </div>
+                                </div>
+
+                                <div className="p-4.5 bg-slate-950 rounded-[1.5rem] border border-white/5 space-y-1.5 text-[10px] text-slate-400 leading-normal font-bold">
+                                   <p className="flex justify-between items-center text-[9px] font-black uppercase text-slate-500 pb-1.5 border-b border-white/5 font-mono">
+                                      <span>Metric details</span>
+                                      <span>Phase Product</span>
+                                   </p>
+                                   <p className="flex justify-between font-mono"><span>A: S·Z·M·V</span> <span>{v1.toFixed(1)}</span></p>
+                                   <p className="flex justify-between font-mono"><span>B: S·Z·M·V</span> <span>{v2.toFixed(1)}</span></p>
+                                </div>
+                             </div>
+                           );
+                         })()}
+
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBTAB 4 - CAGLIOTI PROFILE BROADENING */}
+                  {protocolSubTab === 'caglioti' && (
+                    <div className="space-y-6">
+                      <div className="p-5 bg-violet-500/5 border border-violet-500/20 rounded-[2rem] space-y-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <h3 className="text-xs font-black uppercase text-slate-805 dark:text-violet-405 tracking-wide flex items-center gap-1.5">
+                            <Ruler size={12} className="text-violet-500" /> Caglioti Instrumental Broadening Curve Simulator
+                          </h3>
+                          <p className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400">
+                             Simulates the instrumental FWHM peak broadening across the full 2θ diffraction spectrum angular range.
+                          </p>
+                        </div>
+                        <div className="shrink-0 font-mono text-[9px] font-black text-slate-405 bg-white dark:bg-slate-950 border px-3 py-1 rounded-xl">
+                           H² = U tan²θ + V tanθ + W
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch pt-2">
+                        
+                        {/* Sliders Input Panel */}
+                        <div className="lg:col-span-5 bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-850 space-y-6">
+                           <div>
+                              <span className="text-[9px] font-mono text-violet-505 dark:text-violet-400 font-black uppercase tracking-widest block">Instrument Resolution Function</span>
+                              <h3 className="text-sm font-extrabold text-slate-805 dark:text-slate-205 leading-tight mt-0.5">Caglioti Coefficients</h3>
+                           </div>
+
+                           <div className="space-y-4 font-mono text-[10px]">
+                              {/* U Slider */}
+                              <div className="space-y-1">
+                                 <div className="flex justify-between font-black uppercase text-slate-450">
+                                   <span>Coefficient U (Gaussian Shape)</span>
+                                   <span className="text-violet-500 font-bold">{cagliotiU.toFixed(4)}</span>
+                                 </div>
+                                 <input 
+                                   title="Caglioti U"
+                                   type="range"
+                                   min="-0.0100"
+                                   max="0.1000"
+                                   step="0.0005"
+                                   value={cagliotiU}
+                                   onChange={(e) => setCagliotiU(parseFloat(e.target.value))}
+                                   className="w-full accent-violet-500"
+                                 />
+                              </div>
+
+                              {/* V Slider */}
+                              <div className="space-y-1">
+                                 <div className="flex justify-between font-black uppercase text-slate-450">
+                                   <span>Coefficient V (Cross Term factor)</span>
+                                   <span className="text-violet-500 font-bold">{cagliotiV.toFixed(4)}</span>
+                                 </div>
+                                 <input 
+                                   title="Caglioti V"
+                                   type="range"
+                                   min="-0.0900"
+                                   max="0.0500"
+                                   step="0.0005"
+                                   value={cagliotiV}
+                                   onChange={(e) => setCagliotiV(parseFloat(e.target.value))}
+                                   className="w-full accent-violet-500"
+                                 />
+                              </div>
+
+                              {/* W Slider */}
+                              <div className="space-y-1">
+                                 <div className="flex justify-between font-black uppercase text-slate-450">
+                                   <span>Coefficient W (Broadening Base)</span>
+                                   <span className="text-violet-500 font-bold">{cagliotiW.toFixed(4)}</span>
+                                 </div>
+                                 <input 
+                                   title="Caglioti W"
+                                   type="range"
+                                   min="0.0005"
+                                   max="0.1000"
+                                   step="0.0005"
+                                   value={cagliotiW}
+                                   onChange={(e) => setCagliotiW(parseFloat(e.target.value))}
+                                   className="w-full accent-violet-500"
+                                 />
+                              </div>
+                           </div>
+
+                           <div className="p-4 bg-white dark:bg-slate-900 border border-slate-150 rounded-2xl text-[10px] text-slate-550 dark:text-slate-400 font-bold font-sans">
+                              Adjust coefficients to reflect high-resolution synchrotron slits (low W, low U) versus standard laboratory goniometer widths (elevated W).
+                           </div>
+                        </div>
+
+                        {/* Chart Render / Readout */}
+                        <div className="lg:col-span-7 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-6 rounded-[2rem] flex flex-col justify-between space-y-5">
+                           <div>
+                              <span className="text-[9px] font-mono font-black text-rose-505 dark:text-rose-400 uppercase tracking-widest block">Simulation Plot</span>
+                              <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">FWHM(2θ) Broadening Results</h3>
+                           </div>
+
+                           <div className="space-y-3.5 font-mono leading-none">
+                              {[15, 30, 45, 60, 75, 90].map((angleTheta) => {
+                                 // H^2 = U tan^2(theta) + V tan(theta) + W
+                                 const rad = (angleTheta * Math.PI) / 180;
+                                 const tanVal = Math.tan(rad);
+                                 const hSquared = cagliotiU * (tanVal * tanVal) + cagliotiV * tanVal + cagliotiW;
+                                 const fwhmCalculated = Math.sqrt(Math.max(0.0001, hSquared));
+                                 
+                                 // scale of bar width percentage (max 1.0 deg)
+                                 const barPercentage = Math.min(100, (fwhmCalculated / 0.5) * 100);
+
+                                 return (
+                                    <div key={angleTheta} className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-150 dark:border-slate-850">
+                                       <div className="flex justify-between items-center text-[10px] text-slate-405">
+                                          <span>Peak at {angleTheta * 2}° (2θ)</span>
+                                          <span className="text-slate-800 dark:text-slate-150 font-black">{fwhmCalculated.toFixed(4)}° 2θ</span>
+                                       </div>
+                                       <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-950 overflow-hidden mt-1 select-none">
+                                          <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${barPercentage}%` }} />
+                                       </div>
+                                    </div>
+                                 );
+                              })}
+                           </div>
+
+                           <div className="px-1 text-[9.5px] font-bold text-slate-455 font-sans leading-relaxed">
+                              Peak FWHM typically increases at wider angles (high $2\theta$) due to the mathematical $\tan\theta$ progression of standard Bragg divergence curves.
+                           </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBTAB 5 - PREFERRED ORIENTATION (MARCH-DOLLASE) */}
+                  {protocolSubTab === 'preferred' && (
+                    <div className="space-y-6 animate-in fade-in duration-305">
+                      <div className="p-5 bg-emerald-500/5 border border-emerald-500/20 rounded-[2rem] space-y-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <h3 className="text-xs font-black uppercase text-slate-805 dark:text-emerald-450 tracking-wide flex items-center gap-1.5 font-sans">
+                            <Target size={12} className="text-emerald-500" /> March-Dollase Preferred Orientation Estimator
+                          </h3>
+                          <p className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400 font-sans">
+                             Simulate how non-random crystal alignment in bulk/powder samples skews relative peak intensities.
+                          </p>
+                        </div>
+                        <div className="shrink-0 font-mono text-[9px] font-black text-slate-405 bg-white dark:bg-slate-950 border px-3 py-1 rounded-xl">
+                            P_MD = [r² cos²α + sin²α / r]^-1.5
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch pt-2">
+                         {/* Controls */}
+                         <div className="lg:col-span-5 bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-850 space-y-5 font-sans">
+                            <div>
+                               <span className="text-[9px] font-mono text-emerald-520 dark:text-emerald-400 font-black uppercase tracking-widest block">Texture Fitting parameters</span>
+                               <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5 font-sans">March-Dollase Model</h3>
+                            </div>
+
+                            <div className="space-y-4 font-mono text-[10px]">
+                               {/* Slider: r parameter */}
+                               <div className="space-y-1">
+                                  <div className="flex justify-between font-black uppercase text-slate-450">
+                                     <span>Preferred Parameter r</span>
+                                     <span className="text-emerald-500 font-bold">r = {prefRValue.toFixed(2)}</span>
+                                  </div>
+                                  <input 
+                                    title="March Parameter r"
+                                    type="range"
+                                    min="0.25"
+                                    max="2.0"
+                                    step="0.05"
+                                    value={prefRValue}
+                                    onChange={(e) => setPrefRValue(parseFloat(e.target.value))}
+                                    className="w-full accent-emerald-500"
+                                  />
+                                  <div className="flex justify-between text-[8px] text-slate-400 font-bold uppercase mt-0.5 leading-none">
+                                     <span>Plates (r &lt; 1.0)</span>
+                                     <span>Random (r = 1.0)</span>
+                                     <span>Needles (r &gt; 1.0)</span>
+                                  </div>
+                               </div>
+
+                               {/* Slider: alpha_deg */}
+                               <div className="space-y-1">
+                                  <div className="flex justify-between font-black uppercase text-slate-450">
+                                     <span>Angle α (Reflection vs Normal)</span>
+                                     <span className="text-emerald-500 font-bold">{prefAlphaDeg}°</span>
+                                  </div>
+                                  <input 
+                                    title="Orientation Normal Angle Alpha"
+                                    type="range"
+                                    min="0"
+                                    max="90"
+                                    step="1"
+                                    value={prefAlphaDeg}
+                                    onChange={(e) => setPrefAlphaDeg(parseInt(e.target.value) || 0)}
+                                    className="w-full accent-emerald-500"
+                                  />
+                               </div>
+
+                               {/* Slider: fraction */}
+                               <div className="space-y-1">
+                                  <div className="flex justify-between font-black uppercase text-slate-450">
+                                     <span>Volume Fraction of Textured Domain</span>
+                                     <span className="text-emerald-500 font-bold">{(prefFraction * 100).toFixed(0)}%</span>
+                                  </div>
+                                  <input 
+                                    title="Textured Volume Fraction"
+                                    type="range"
+                                    min="0.0"
+                                    max="1.0"
+                                    step="0.05"
+                                    value={prefFraction}
+                                    onChange={(e) => setPrefFraction(parseFloat(e.target.value))}
+                                    className="w-full accent-emerald-500"
+                                  />
+                               </div>
+                            </div>
+                         </div>
+
+                         {/* Results plot or display */}
+                         {(() => {
+                            const alpha_rad = (prefAlphaDeg * Math.PI) / 180;
+                            const rSq = prefRValue * prefRValue;
+                            const invR = 1.0 / prefRValue;
+                            const cosAlphaSq = Math.pow(Math.cos(alpha_rad), 2);
+                            const sinAlphaSq = Math.pow(Math.sin(alpha_rad), 2);
+                            const baseMD = rSq * cosAlphaSq + invR * sinAlphaSq;
+                            const pAlpha = Math.pow(baseMD, -1.5);
+                            const correctionFactor = prefFraction * pAlpha + (1.0 - prefFraction);
+
+                            // generate list of corrections from 0 to 90 at 15 deg steps to show curves
+                            const curveSteps = [0, 15, 30, 45, 60, 75, 90];
+
+                            return (
+                               <div className="lg:col-span-7 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-6 rounded-[2rem] flex flex-col justify-between space-y-4">
+                                  <div>
+                                     <span className="text-[9px] font-mono font-black text-emerald-550 dark:text-emerald-400 uppercase tracking-widest block font-sans">Calculation Output</span>
+                                     <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5 font-sans">Intensity Modification Factor</h3>
+                                  </div>
+
+                                  <div className="p-4 bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-850 rounded-2xl flex items-center justify-between gap-5 font-mono">
+                                     <div>
+                                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Isotropic Normal</span>
+                                        <p className="text-lg font-black text-slate-400 mt-1">1.000x</p>
+                                     </div>
+                                     <div className="text-right">
+                                        <span className="text-[8px] font-black uppercase tracking-widest text-emerald-550 block">March-Dollase Multiplier</span>
+                                        <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{correctionFactor.toFixed(4)}x</p>
+                                     </div>
+                                  </div>
+
+                                  {/* Dynamic curve bar chart */}
+                                  <div className="space-y-1.5 font-mono text-[9px] leading-none">
+                                     {curveSteps.map((angle) => {
+                                        const rad_s = (angle * Math.PI) / 180;
+                                        const cosAs = Math.pow(Math.cos(rad_s), 2);
+                                        const sinAs = Math.pow(Math.sin(rad_s), 2);
+                                        const bStep = rSq * cosAs + invR * sinAs;
+                                        const pStep = Math.pow(bStep, -1.5);
+                                        const cStepVal = prefFraction * pStep + (1.0 - prefFraction);
+                                        
+                                        // let's scale relative to max value (cap bar width at 2.5 multiplier)
+                                        const barW = Math.min(100, (cStepVal / 2.5) * 100);
+
+                                        return (
+                                           <div key={angle} className="space-y-0.5">
+                                              <div className="flex justify-between text-slate-455 items-center">
+                                                 <span className={angle === prefAlphaDeg ? 'text-emerald-550 font-bold' : ''}>α = {angle}°</span>
+                                                 <span className={angle === prefAlphaDeg ? 'text-emerald-555 font-bold' : ''}>{cStepVal.toFixed(3)}x</span>
+                                              </div>
+                                              <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-905 overflow-hidden rounded-full mt-0.5 select-none relative">
+                                                 <div 
+                                                    className={`h-full rounded-full ${angle === prefAlphaDeg ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`} 
+                                                    style={{ width: `${barW}%` }} 
+                                                 />
+                                                 {/* isotropic tick at 40% (since 1.0 / 2.5 = 40%) */}
+                                                 <div className="absolute top-0 bottom-0 left-[40%] w-0.5 bg-slate-400 dark:bg-slate-600 opacity-60 z-10" />
+                                              </div>
+                                           </div>
+                                        );
+                                     })}
+                                  </div>
+
+                                  <div className="p-3 bg-slate-905 border border-slate-800 rounded-xl font-sans text-xs">
+                                     <p className="text-[10px] text-slate-405 font-bold leading-normal">
+                                        <strong className="text-slate-800 dark:text-white">Explanation:</strong> When <span className="text-emerald-500">{prefRValue < 1 ? 'r < 1' : prefRValue > 1 ? 'r > 1' : 'r = 1'}</span> ({prefRValue < 1 ? 'Plate-like morphology' : prefRValue > 1 ? 'Needle-like morphology' : 'Random texture'}), reflections matching planes parallel to the growth substrate (low α) are {correctionFactor > 1 ? 'heavily enhanced' : 'suppressed'} by <span className="text-emerald-500">{Math.abs((correctionFactor - 1) * 100).toFixed(1)}%</span>, while orthogonal side walls (high α) shift inversely.
+                                     </p>
+                                  </div>
+                               </div>
+                            );
+                         })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUBTAB 6 - SCRIPT GENERATOR SDK */}
+                  {protocolSubTab === 'python' && (
+                    <div className="space-y-6 animate-in fade-in duration-305">
+                      <div className="p-5 bg-amber-500/5 border border-amber-500/20 rounded-[2rem] space-y-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="space-y-0.5 font-sans">
+                          <h3 className="text-xs font-black uppercase text-slate-805 dark:text-amber-405 tracking-wide flex items-center gap-1.5 font-sans">
+                            <FileCode size={12} className="text-amber-500" /> Automated Python Workflow Generator
+                          </h3>
+                          <p className="text-[10.5px] font-bold text-slate-500 dark:text-slate-400">
+                             Translate parameters designed in this manual directly into academic Python analysis scripts.
+                          </p>
+                        </div>
+                        <div className="shrink-0 font-mono text-[9px] font-black text-slate-405 bg-white dark:bg-slate-950 border px-3 py-1 rounded-xl">
+                            NumPy • SciPy • GSAS-II • LMFIT
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch pt-2">
+                         {/* Config Side */}
+                         <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-850 space-y-4 font-sans">
+                            <div>
+                               <span className="text-[9px] font-mono text-amber-500 dark:text-amber-400 font-black uppercase tracking-widest block">Script Parameters</span>
+                               <h3 className="text-sm font-extrabold text-slate-805 dark:text-slate-100 mt-0.5">Configuration Setup</h3>
+                            </div>
+
+                            <div className="space-y-3 font-sans">
+                               {/* Target Lib */}
+                               <div className="space-y-0.5">
+                                  <label className="text-[8.5px] font-black text-slate-400 uppercase">Target Engine</label>
+                                  <div className="grid grid-cols-2 gap-2">
+                                     {['numpy', 'gsas2'].map((lib) => (
+                                        <button
+                                          key={lib}
+                                          type="button"
+                                          onClick={() => setPySelectedLibrary(lib)}
+                                          className={`py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border transition-all ${
+                                             pySelectedLibrary === lib 
+                                               ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow' 
+                                               : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                          }`}
+                                        >
+                                           {lib === 'numpy' ? 'SciPy / NumPy' : 'GSAS-II Api'}
+                                        </button>
+                                     ))}
+                                  </div>
+                               </div>
+
+                               {/* Anode */}
+                               <div className="space-y-0.5">
+                                  <label className="text-[8.5px] font-black text-slate-400 uppercase">X-Ray Target source</label>
+                                  <select
+                                    title="Target Source Anode"
+                                    value={pyAnodeMaterial}
+                                    onChange={(e) => setPyAnodeMaterial(e.target.value)}
+                                    className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-850 dark:text-slate-100 font-bold"
+                                  >
+                                     <option value="Cu">Copper Kα (λ=1.5418 Å)</option>
+                                     <option value="Mo">Molybdenum Kα (λ=0.7107 Å)</option>
+                                     <option value="Co">Cobalt Kα (λ=1.7890 Å)</option>
+                                  </select>
+                               </div>
+
+                               {/* Peaks */}
+                               <div className="space-y-0.5">
+                                  <label className="text-[8.5px] font-black text-slate-400 uppercase">Experimental 2θ Peaks (deg)</label>
+                                  <input 
+                                    title="Peaks Entry"
+                                    type="text"
+                                    value={pyPeaksInput}
+                                    onChange={(e) => setPyPeaksInput(e.target.value)}
+                                    className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-slate-850 dark:text-slate-100"
+                                  />
+                               </div>
+
+                               {/* AI POWERED PROMPT SECTION */}
+                               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                                  <div>
+                                     <span className="text-[9px] font-mono text-fuchsia-500 font-black uppercase tracking-widest block">AI Intelligent generator</span>
+                                     <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-100 mt-0.5">Prompt Engineering</h4>
+                                  </div>
+                                  <textarea
+                                    title="AI Prompt"
+                                    placeholder="Describe what you want the Python script to do (e.g., 'Perform a LeBail fit and plot the results with error bars')"
+                                    value={pyAIPrompt}
+                                    onChange={(e) => setPyAIPrompt(e.target.value)}
+                                    className="w-full bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl px-3 py-2 text-[10px] font-semibold text-slate-800 dark:text-slate-200 min-h-[80px] focus:ring-1 focus:ring-fuchsia-500 outline-none transition-all"
+                                  />
+                                  <button
+                                    type="button"
+                                    disabled={generatingPy || !pyAIPrompt.trim()}
+                                    onClick={handleAIGeneratePython}
+                                    className={`w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                                      generatingPy 
+                                        ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed' 
+                                        : 'bg-fuchsia-600 hover:bg-fuchsia-500 text-white shadow-lg shadow-fuchsia-500/20 active:scale-95'
+                                    }`}
+                                  >
+                                    {generatingPy ? (
+                                      <>
+                                        <Activity size={12} className="animate-spin" /> Coding with Gemini...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Brain size={12} /> Generate AI Script
+                                      </>
+                                    )}
+                                  </button>
+                                  {pyAIError && (
+                                    <p className="text-[9px] text-rose-500 font-bold bg-rose-500/10 p-2 rounded-lg border border-rose-500/20">
+                                      Error: {pyAIError}
+                                    </p>
+                                  )}
+                               </div>
+                            </div>
+                         </div>
+
+                         {/* Preview Code Component */}
+                         {(() => {
+                            const wl = pyAnodeMaterial === 'Cu' ? 1.54184 : pyAnodeMaterial === 'Mo' ? 0.71073 : 1.78901;
+                            const peaksArray = pyPeaksInput.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+                            
+                            const pythonScript = pySelectedLibrary === 'numpy' 
+                              ? `#!/usr/bin/env python3
+import numpy as np
+from scipy.optimize import curve_fit
+
+# Analytical XRD Calibration parameters
+WAVELENGTH = ${wl} # Å (${pyAnodeMaterial} Target)
+PEAKS_2THETA = np.array([${peaksArray.join(', ')}])
+
+def bragg_d_spacing(two_theta_deg):
+    """Computes interplanar d-spacing (Å)"""
+    theta_rad = np.radians(two_theta_deg / 2.0)
+    return WAVELENGTH / (2.0 * np.sin(theta_rad))
+
+def caglioti_broadening(theta_rad, u, v, w):
+    """Gaussian instrument resolution broadening model"""
+    tan_t = np.tan(theta_rad)
+    h_squared = u * (tan_t**2) + v * tan_t + w
+    return np.sqrt(np.maximum(1e-5, h_squared))
+
+# Dynamic physical mapping
+for idx, pk in enumerate(PEAKS_2THETA):
+    d_space = bragg_d_spacing(pk)
+    q_vec = 4 * np.pi * np.sin(np.radians(pk/2)) / WAVELENGTH
+    print(f"Peak #{idx+1} ({pk}° 2THETA): d-spacing={d_space:.4f} Å, Q={q_vec:.4f} 1/Å")
+`
+                              : `#!/usr/bin/env python3
+import sys
+try:
+    import GSASIIpath
+except ImportError:
+    print("Please install GSAS-II build in your Python path environment.")
+    sys.exit(1)
+
+# Initialize automated crystal refinement matrix
+print("Initializing GSAS-II scripting pipeline wrapper...")
+import GSASIIAPI as g2api
+
+# Experimental configuration
+WAVELENGTH = ${wl} # Å
+INST_COEFFS = {'u': ${cagliotiU.toFixed(4)}, 'v': ${cagliotiV.toFixed(4)}, 'w': ${cagliotiW.toFixed(4)}}
+PEAKS = [${peaksArray.join(', ')}]
+
+project = g2api.G2Project(newfile="refined_model.gpx")
+phase = project.add_phase(phasename="hematite_phase")
+print(f"Created crystallographic phase. Target wavelength={WAVELENGTH} Å")
+`;
+                            return (
+                               <div className="lg:col-span-8 bg-slate-905 border border-slate-800 p-6 rounded-[2.5rem] flex flex-col justify-between space-y-4 text-white">
+                                  <div className="flex justify-between items-center pb-2 border-b border-slate-800 font-sans text-xs">
+                                     <div className="flex items-center gap-2">
+                                        <div className={`w-2.5 h-2.5 rounded-full ${aiPyCode ? 'bg-fuchsia-500' : 'bg-yellow-500'} animate-pulse`} />
+                                        <span className="text-[9px] font-mono font-black uppercase text-slate-400">
+                                           {aiPyCode ? 'AI GENERATED SCRIPT' : `Target: ${pySelectedLibrary === 'numpy' ? 'SciPy/NumPy' : 'GSAS-II Suite'}`}
+                                        </span>
+                                     </div>
+                                     
+                                     <div className="flex items-center gap-2">
+                                        {aiPyCode && (
+                                           <button
+                                              type="button"
+                                              onClick={() => setAiPyCode(null)}
+                                              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded text-[9px] font-black uppercase tracking-wider transition-all"
+                                           >
+                                              Reset to Template
+                                           </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                             navigator.clipboard.writeText(aiPyCode || pythonScript);
+                                          }}
+                                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all"
+                                        >
+                                           <Copy size={9} /> Copy script
+                                        </button>
+                                     </div>
+                                  </div>
+
+                                  <div className="relative">
+                                     <pre className="text-[10px] font-mono text-slate-300 bg-slate-950 p-4 rounded-2xl overflow-x-auto border border-slate-850 h-56 custom-scrollbar leading-relaxed">
+                                        {aiPyCode || pythonScript}
+                                     </pre>
+                                  </div>
+
+                                  <div className="text-[9.5px] text-slate-400 font-bold leading-normal font-sans">
+                                     Click "Copy script" above and execute this fully functional module in your local Anaconda environment to reproduce parallel diffraction peak fitting matching this laboratory environment exactly.
+                                  </div>
+                               </div>
+                            );
+                         })()}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               )}
 

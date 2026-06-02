@@ -105,6 +105,49 @@ async function startServer() {
     }
   });
 
+  app.post("/api/gemini/coder", async (req, res) => {
+    const { prompt, context, customKey } = req.body;
+    try {
+      if (!prompt || typeof prompt !== 'string') {
+        res.status(400).json({ success: false, error: "A valid coding prompt is required." });
+        return;
+      }
+      
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+      
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-coder',
+          }
+        }
+      });
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: "You are the XRD-Calc Pro Automated Python Scripting Engine. " +
+            "Your task is to generate complete, functional, and standalone Python 3 scripts for X-ray diffraction data analysis. " +
+            "Use libraries like NumPy, SciPy (for curve fitting), Matplotlib (for plotting), and optionally GSAS-II or xrayutilities if requested. " +
+            "Always include imports, meaningful comments, and sample data structures where appropriate. " +
+            "Output ONLY the raw Python code without any markdown code block wrappers (no backticks). " +
+            "Incorporate the following laboratory context if relevant: " + JSON.stringify(context || {})
+        }
+      });
+      
+      res.json({ success: true, text: response.text });
+    } catch (error: any) {
+      console.error("Gemini Coder Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.post("/api/gemini/verify", async (req, res) => {
     const { customKey } = req.body;
     const keyToUse = customKey || process.env.GEMINI_API_KEY;
