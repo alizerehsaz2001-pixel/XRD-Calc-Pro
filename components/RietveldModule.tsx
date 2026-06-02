@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   ComposedChart, Area, Scatter, AreaChart, ReferenceLine
@@ -7,7 +7,7 @@ import {
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
   Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, AlertTriangle, 
   Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2,
-  Globe, ChevronDown, Grid
+  Globe, ChevronDown, Grid, Lock, Unlock, Edit2, Check
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
@@ -43,6 +43,8 @@ const TARGET_PARAMS: Record<string, SimulationParams> = {
   'BCC': { a: 3.5, scale: 1200, fwhm: 0.15, eta: 0.6, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 80, microstrain: 0.1, background: 40, noise: 15, peaks: [] },
   'FCC': { a: 4.5, scale: 1500, fwhm: 0.25, eta: 0.4, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 120, microstrain: 0.02, background: 60, noise: 25, peaks: [] },
   'Quartz': { a: 4.913, scale: 800, fwhm: 0.1, eta: 0.7, zeroShift: 0.0, sampleDisplacement: 0.1, crystalliteSize: 200, microstrain: 0.01, background: 80, noise: 30, peaks: [] },
+  'Rutile': { a: 4.594, scale: 1000, fwhm: 0.18, eta: 0.6, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 150, microstrain: 0.03, background: 40, noise: 20, peaks: [] },
+  'Perovskite': { a: 3.905, scale: 900, fwhm: 0.12, eta: 0.5, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 180, microstrain: 0.02, background: 30, noise: 15, peaks: [] }
 };
 
 const QUARTZ_PEAKS = [
@@ -51,14 +53,25 @@ const QUARTZ_PEAKS = [
   { t: 45.79, i: 3 }, { t: 50.14, i: 14 }, { t: 54.87, i: 3 }, 
   { t: 59.96, i: 5 }, { t: 67.74, i: 4 }, { t: 68.14, i: 3 }
 ];
+const RUTILE_PEAKS = [
+  { t: 27.45, i: 100 }, { t: 36.09, i: 50 }, { t: 39.19, i: 8 }, 
+  { t: 41.23, i: 25 }, { t: 44.05, i: 15 }, { t: 54.32, i: 60 }, 
+  { t: 56.64, i: 20 }, { t: 62.74, i: 10 }, { t: 64.04, i: 10 },
+  { t: 69.01, i: 20 }, { t: 69.80, i: 12 }
+];
+const PEROVSKITE_PEAKS = [
+  { t: 22.78, i: 16 }, { t: 32.42, i: 100 }, { t: 40.05, i: 28 }, 
+  { t: 46.57, i: 35 }, { t: 52.48, i: 12 }, { t: 57.94, i: 23 }, 
+  { t: 68.01, i: 15 }, { t: 72.76, i: 8 }, { t: 77.39, i: 12 }
+];
 
 const getPeaksForPhase = (phase: string, a: number): SimulationPeak[] => {
   if (phase === 'Quartz') {
-    return QUARTZ_PEAKS.map((p, idx) => ({
-      h: 0, k: 0, l: idx + 1,
-      intensity: p.i * 10,
-      enabled: true
-    }));
+    return QUARTZ_PEAKS.map((p, idx) => ({ h: 0, k: 0, l: idx + 1, intensity: p.i * 10, enabled: true }));
+  } else if (phase === 'Rutile') {
+    return RUTILE_PEAKS.map((p, idx) => ({ h: 0, k: 0, l: idx + 1, intensity: p.i * 10, enabled: true }));
+  } else if (phase === 'Perovskite') {
+    return PEROVSKITE_PEAKS.map((p, idx) => ({ h: 0, k: 0, l: idx + 1, intensity: p.i * 10, enabled: true }));
   }
 
   const peaks: SimulationPeak[] = [];
@@ -88,6 +101,266 @@ const getPeaksForPhase = (phase: string, a: number): SimulationPeak[] => {
     }
   }
   return peaks;
+};
+
+const computeCrystallographicVolumeAndDensity = (phaseType: string, a: number) => {
+  let volume = a * a * a;
+  let density = 0.0;
+  let unitCellFormula = '';
+  
+  if (phaseType === 'Simple Cubic') {
+    volume = Math.pow(a, 3);
+    density = (1 * 28.0855) / (volume * 0.60221415); // Silicon simple cubic Z=1 MW=28.0855
+    unitCellFormula = 'Si';
+  } else if (phaseType === 'BCC') {
+    volume = Math.pow(a, 3);
+    density = (2 * 55.845) / (volume * 0.60221415); // Iron BCC Z=2 MW=55.845
+    unitCellFormula = 'Fe-α';
+  } else if (phaseType === 'FCC') {
+    volume = Math.pow(a, 3);
+    density = (4 * 63.546) / (volume * 0.60221415); // Copper FCC Z=4 MW=63.546
+    unitCellFormula = 'Cu';
+  } else if (phaseType === 'Quartz') {
+    // Quartz Trigonal: standard SiO2 Z=3 MW=60.08 c/a ratio ~1.1
+    // V = a^2 * c * sin(60), where c ~ 1.1 * a, sin(60) ~ 0.866
+    volume = 0.866025 * Math.pow(a, 3) * 1.1;
+    density = (3 * 60.08) / (volume * 0.60221415);
+    unitCellFormula = 'SiO₂';
+  } else if (phaseType === 'Rutile') {
+    // Rutile Tetragonal: TiO2 Z=2 MW=79.866 c/a ratio ~0.644
+    volume = Math.pow(a, 3) * 0.644;
+    density = (2 * 79.866) / (volume * 0.60221415);
+    unitCellFormula = 'TiO₂';
+  } else if (phaseType === 'Perovskite') {
+    // SrTiO3 or similar: CaTiO3 Z=1 MW=135.96
+    volume = Math.pow(a, 3);
+    density = (1 * 135.962) / (volume * 0.60221415);
+    unitCellFormula = 'CaTiO₃';
+  }
+
+  return { volume, density, unitCellFormula };
+};
+
+interface SpaceGroupInfo {
+  number: number;
+  hermannMauguin: string;
+  schoenflies: string;
+  hall: string;
+  crystalSystem: string;
+  pointGroup: string;
+  laueClass: string;
+  latticeType: string;
+  centrosymmetric: boolean;
+  chiral: boolean;
+  symmorphic: boolean;
+  wyckoffSites: Array<{ site: string; multiplicity: number; symmetry: string; coordinates: string }>;
+  symmetryElements: string[];
+}
+
+const SPACE_GROUP_DETAILS: Record<string, SpaceGroupInfo> = {
+  'Simple Cubic': {
+    number: 221,
+    hermannMauguin: 'P m-3m',
+    schoenflies: 'O_h^1',
+    hall: '-P 4 2 3',
+    crystalSystem: 'Cubic',
+    pointGroup: 'm-3m (O_h)',
+    laueClass: 'm-3m',
+    latticeType: 'Primitive Cubic (cP)',
+    centrosymmetric: true,
+    chiral: false,
+    symmorphic: true,
+    wyckoffSites: [
+      { site: '1a', multiplicity: 1, symmetry: 'm-3m', coordinates: '(0, 0, 0)' },
+      { site: '1b', multiplicity: 1, symmetry: 'm-3m', coordinates: '(½, ½, ½)' },
+      { site: '3c', multiplicity: 3, symmetry: '4/m.m.m', coordinates: '(0, ½, ½)' },
+      { site: '6e', multiplicity: 6, symmetry: '4m.m', coordinates: '(x, 0, 0)' }
+    ],
+    symmetryElements: ['3-fold axes along [111]', '4-fold axes along [100]', 'Mirror planes (100), (110)', 'Inversion center (0,0,0)']
+  },
+  'BCC': {
+    number: 229,
+    hermannMauguin: 'I m-3m',
+    schoenflies: 'O_h^9',
+    hall: '-I 4 2 3',
+    crystalSystem: 'Cubic',
+    pointGroup: 'm-3m (O_h)',
+    laueClass: 'm-3m',
+    latticeType: 'Body-Centered Cubic (cI)',
+    centrosymmetric: true,
+    chiral: false,
+    symmorphic: true,
+    wyckoffSites: [
+      { site: '2a', multiplicity: 2, symmetry: 'm-3m', coordinates: '(0,0,0), (½,½,½)' },
+      { site: '6e', multiplicity: 6, symmetry: '4/m.m.m', coordinates: '(±x, 0, 0) + B.C.' },
+      { site: '12d', multiplicity: 12, symmetry: '-4m.2', coordinates: '(¼, 0, ½) + B.C.' }
+    ],
+    symmetryElements: ['Body-Centering translation (½,½,½)', '4-fold screw axes', 'Glide planes', '3-fold axes along [111]']
+  },
+  'FCC': {
+    number: 225,
+    hermannMauguin: 'F m-3m',
+    schoenflies: 'O_h^5',
+    hall: '-F 4 2 3',
+    crystalSystem: 'Cubic',
+    pointGroup: 'm-3m (O_h)',
+    laueClass: 'm-3m',
+    latticeType: 'Face-Centered Cubic (cF)',
+    centrosymmetric: true,
+    chiral: false,
+    symmorphic: true,
+    wyckoffSites: [
+      { site: '4a', multiplicity: 4, symmetry: 'm-3m', coordinates: '(0,0,0) + F.C.' },
+      { site: '4b', multiplicity: 4, symmetry: 'm-3m', coordinates: '(½,½,½) + F.C.' },
+      { site: '8c', multiplicity: 8, symmetry: '-43m', coordinates: '(¼,¼,¼) + F.C.' },
+      { site: '24e', multiplicity: 24, symmetry: '4m.m', coordinates: '(x, 0, 0) + F.C.' }
+    ],
+    symmetryElements: ['Face-Centering translations', '3-fold axis along diagonals', '4-fold rotational symmetry', 'Mirror planes']
+  },
+  'Quartz': {
+    number: 154,
+    hermannMauguin: 'P 3_2 2 1',
+    schoenflies: 'D_3^6',
+    hall: 'P 3_2 2"',
+    crystalSystem: 'Trigonal / Hexagonal',
+    pointGroup: '32 (D_3)',
+    laueClass: '.3m',
+    latticeType: 'Primitive Trigonal (hP)',
+    centrosymmetric: false,
+    chiral: true,
+    symmorphic: false,
+    wyckoffSites: [
+      { site: '3a', multiplicity: 3, symmetry: '.2', coordinates: '(x, 0, ⅓)' },
+      { site: '3b', multiplicity: 3, symmetry: '.2', coordinates: '(x, 0, ⅚)' },
+      { site: '6c', multiplicity: 6, symmetry: '1', coordinates: '(x, y, z)' }
+    ],
+    symmetryElements: ['3_2 screw axis (120 deg translation)', '2-fold rotation axes perpendicular to c', 'Chiral space symmetry (enantiomorphic with P 3_1 2 1)']
+  },
+  'Rutile': {
+    number: 136,
+    hermannMauguin: 'P 4_2/m n m',
+    schoenflies: 'D_4h^14',
+    hall: '-P 4n 2n',
+    crystalSystem: 'Tetragonal',
+    pointGroup: '4/mmm (D_4h)',
+    laueClass: '4/mmm',
+    latticeType: 'Primitive Tetragonal (tP)',
+    centrosymmetric: true,
+    chiral: false,
+    symmorphic: false,
+    wyckoffSites: [
+      { site: '2a', multiplicity: 2, symmetry: 'm.mm', coordinates: '(0, 0, 0), (½, ½, ½)' },
+      { site: '4f', multiplicity: 4, symmetry: 'm.2m', coordinates: '(u, u, 0), (-u, -u, 0)...' },
+      { site: '4g', multiplicity: 4, symmetry: 'm.2m', coordinates: '(u, -u, 0), (-u, u, 0)...' }
+    ],
+    symmetryElements: ['4_2 screw axis along c', 'n-glide and m-glide planes', '2-fold axes alongside [100] and [110]']
+  },
+  'Perovskite': {
+    number: 221,
+    hermannMauguin: 'P m-3m',
+    schoenflies: 'O_h^1',
+    hall: '-P 4 2 3',
+    crystalSystem: 'Cubic',
+    pointGroup: 'm-3m (O_h)',
+    laueClass: 'm-3m',
+    latticeType: 'Primitive Cubic (cP)',
+    centrosymmetric: true,
+    chiral: false,
+    symmorphic: true,
+    wyckoffSites: [
+      { site: '1a', multiplicity: 1, symmetry: 'm-3m', coordinates: '(0,0,0) - Ti' },
+      { site: '1b', multiplicity: 1, symmetry: 'm-3m', coordinates: '(½,½,½) - Sr' },
+      { site: '3c', multiplicity: 3, symmetry: '4/m.m.m', coordinates: '(0,½,½) - O' }
+    ],
+    symmetryElements: ['Standard Cubic symmetry', 'Perfect octahedral alignment', 'Pm-3m simple lattices']
+  }
+};
+
+const getEquivalentPositions = (type: string, x: number, y: number) => {
+  const mod1 = (v: number) => {
+    const m = v % 1;
+    return m < 0 ? m + 1 : m;
+  };
+  const pts: Array<{ x: number; y: number }> = [];
+  const addPt = (px: number, py: number) => {
+    const rx = mod1(px);
+    const ry = mod1(py);
+    if (!pts.some(p => Math.abs(p.x - rx) < 1e-4 && Math.abs(p.y - ry) < 1e-4)) {
+      pts.push({ x: rx, y: ry });
+    }
+  };
+
+  if (type === 'Simple Cubic' || type === 'Perovskite') {
+    addPt(x, y);
+    addPt(1 - x, y);
+    addPt(x, 1 - y);
+    addPt(1 - x, 1 - y);
+    addPt(y, x);
+    addPt(1 - y, x);
+    addPt(y, 1 - x);
+    addPt(1 - y, 1 - x);
+  } else if (type === 'BCC') {
+    const base = [
+      { x, y }, { x: 1 - x, y }, { x, y: 1 - y }, { x: 1 - x, y: 1 - y },
+      { x: y, y: x }, { x: 1 - y, y: x }, { x: y, y: 1 - x }, { x: 1 - y, y: 1 - x }
+    ];
+    base.forEach(p => {
+      addPt(p.x, p.y);
+      addPt(p.x + 0.5, p.y + 0.5);
+    });
+  } else if (type === 'FCC') {
+    const base = [
+      { x, y }, { x: 1 - x, y }, { x, y: 1 - y }, { x: 1 - x, y: 1 - y },
+      { x: y, y: x }, { x: 1 - y, y: x }, { x: y, y: 1 - x }, { x: 1 - y, y: 1 - x }
+    ];
+    base.forEach(p => {
+      addPt(p.x, p.y);
+      addPt(p.x + 0.5, p.y + 0.5);
+      addPt(p.x, p.y + 0.5);
+      addPt(p.x + 0.5, p.y);
+    });
+  } else if (type === 'Rutile') {
+    addPt(x, y);
+    addPt(-x, -y);
+    addPt(0.5 - x, 0.5 + y);
+    addPt(0.5 + x, 0.5 - y);
+    addPt(y, x);
+    addPt(-y, -x);
+    addPt(0.5 - y, 0.5 + x);
+    addPt(0.5 + y, 0.5 - x);
+  } else if (type === 'Quartz') {
+    addPt(x, y);
+    addPt(-y, x - y);
+    addPt(y - x, -x);
+    addPt(y, x);
+    addPt(-x, y - x);
+    addPt(x - y, -y);
+  } else {
+    addPt(x, y);
+  }
+  return pts;
+};
+
+const toSymmetryScreenCoords = (px: number, py: number, width: number, height: number, isTrigonal: boolean) => {
+  const pad = 25;
+  const wActive = width - 2 * pad;
+  const hActive = height - 2 * pad;
+  
+  if (isTrigonal) {
+    const originX = pad + wActive * 0.45;
+    const originY = height - pad - 12;
+    const ax = wActive * 0.55;
+    const ay = 0;
+    const bx = -wActive * 0.55 * 0.5;
+    const by = -hActive * 0.866;
+    const sx = originX + px * ax + py * bx;
+    const sy = originY + px * ay + py * by;
+    return { x: sx, y: sy };
+  } else {
+    const sx = pad + px * wActive;
+    const sy = height - pad - py * hActive;
+    return { x: sx, y: sy };
+  }
 };
 
 export const RietveldModule: React.FC = () => {
@@ -199,6 +472,52 @@ export const RietveldModule: React.FC = () => {
     } catch (e) {}
     return 0;
   });
+
+  const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
+  const [editingPhaseName, setEditingPhaseName] = useState<string>('');
+  
+  const [selectedPhaseSubTab, setSelectedPhaseSubTab] = useState<'params' | 'symmetry'>('params');
+  const [symmetryProbeX, setSymmetryProbeX] = useState<number>(0.2);
+  const [symmetryProbeY, setSymmetryProbeY] = useState<number>(0.35);
+  const [isDraggingSymmetry, setIsDraggingSymmetry] = useState<boolean>(false);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  const handleSvgInteraction = (e: React.MouseEvent<SVGSVGElement> | React.TouchEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    let clientX = 0;
+    let clientY = 0;
+    if ('touches' in e) {
+      if (!e.touches || e.touches.length === 0) return;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    const x = (clientX - rect.left) / rect.width;
+    const y = 1 - (clientY - rect.top) / rect.height;
+    
+    const posX = Math.max(0, Math.min(1, x));
+    const posY = Math.max(0, Math.min(1, y));
+    setSymmetryProbeX(parseFloat(posX.toFixed(3)));
+    setSymmetryProbeY(parseFloat(posY.toFixed(3)));
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    setIsDraggingSymmetry(true);
+    handleSvgInteraction(e);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (isDraggingSymmetry) {
+      handleSvgInteraction(e);
+    }
+  };
+
+  const handleMouseUpOrLeave = () => {
+    setIsDraggingSymmetry(false);
+  };
 
   const currentPhaseObj = useMemo(() => {
     return simPhases[selectedSimPhaseIdx] || simPhases[0] || {
@@ -384,7 +703,7 @@ export const RietveldModule: React.FC = () => {
     });
   };
 
-  const handleAddNewSimStructure = (type: 'Simple Cubic' | 'BCC' | 'FCC' | 'Quartz') => {
+  const handleAddNewSimStructure = (type: 'Simple Cubic' | 'BCC' | 'FCC' | 'Quartz' | 'Rutile' | 'Perovskite') => {
     const defaultParams = TARGET_PARAMS[type];
     const newPhase: SimStructure = {
       id: `phase_${Date.now()}`,
@@ -604,10 +923,10 @@ export const RietveldModule: React.FC = () => {
         let twoThetaBase = 0;
         let d = 0;
         
-        if (p.phaseType === 'Quartz') {
-          const origPeak = QUARTZ_PEAKS[peakIdx];
+        if (['Quartz', 'Rutile', 'Perovskite'].includes(p.phaseType)) {
+          const origPeak = p.phaseType === 'Quartz' ? QUARTZ_PEAKS[peakIdx] : p.phaseType === 'Rutile' ? RUTILE_PEAKS[peakIdx] : PEROVSKITE_PEAKS[peakIdx];
           if (!origPeak) return;
-          const shift = (p.a - TARGET_PARAMS['Quartz'].a) * 2; 
+          const shift = (p.a - TARGET_PARAMS[p.phaseType].a) * 2; 
           twoThetaBase = origPeak.t - shift;
           const theta1 = (origPeak.t / 2) * (Math.PI / 180);
           d = 1.5406 / (2 * Math.sin(theta1));
@@ -691,10 +1010,10 @@ export const RietveldModule: React.FC = () => {
           let twoThetaBase = 0;
           let d = 0;
 
-          if (p.phaseType === 'Quartz') {
-            const origPeak = QUARTZ_PEAKS[peakIdx];
+          if (['Quartz', 'Rutile', 'Perovskite'].includes(p.phaseType)) {
+            const origPeak = p.phaseType === 'Quartz' ? QUARTZ_PEAKS[peakIdx] : p.phaseType === 'Rutile' ? RUTILE_PEAKS[peakIdx] : PEROVSKITE_PEAKS[peakIdx];
             if (!origPeak) return;
-            const shift = (a - TARGET_PARAMS['Quartz'].a) * 2; 
+            const shift = (a - TARGET_PARAMS[p.phaseType].a) * 2; 
             twoThetaBase = origPeak.t - shift;
             const theta1 = (origPeak.t / 2) * (Math.PI / 180);
             d = 1.5406 / (2 * Math.sin(theta1));
@@ -801,10 +1120,10 @@ export const RietveldModule: React.FC = () => {
         let twoThetaBase = 0;
         let d = 0;
 
-        if (p.phaseType === 'Quartz') {
-          const origPeak = QUARTZ_PEAKS[peakIdx];
+        if (['Quartz', 'Rutile', 'Perovskite'].includes(p.phaseType)) {
+          const origPeak = p.phaseType === 'Quartz' ? QUARTZ_PEAKS[peakIdx] : p.phaseType === 'Rutile' ? RUTILE_PEAKS[peakIdx] : PEROVSKITE_PEAKS[peakIdx];
           if (!origPeak) return;
-          const shift = (p.a - TARGET_PARAMS['Quartz'].a) * 2; 
+          const shift = (p.a - TARGET_PARAMS[p.phaseType].a) * 2; 
           twoThetaBase = origPeak.t - shift;
           const theta1 = (origPeak.t / 2) * (Math.PI / 180);
           d = 1.5406 / (2 * Math.sin(theta1));
@@ -1388,187 +1707,664 @@ export const RietveldModule: React.FC = () => {
               <div className="space-y-6 relative z-10">
                 <div className="space-y-6">
                   {/* Multi-Phase Crystallographic Inventory Group */}
-                  <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md ring-1 ring-white/5 ring-inset">
-                    <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
-                      <div className="flex items-center gap-2">
-                        <Database className="w-4 h-4 text-teal-400" />
-                        <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest">Multi-Phase Inventory</div>
-                      </div>
-                      <span className="text-[8px] text-slate-500 uppercase tracking-widest bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 font-bold">
-                        {simPhases.filter(p => p.enabled).length}/{simPhases.length} Active
-                      </span>
-                    </div>
+                  {(() => {
+                    const activePhases = simPhases.filter(p => p.enabled);
+                    const totalScaleVal = activePhases.reduce((acc, p) => acc + p.scale, 0);
 
-                    <div className="space-y-2 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
-                      {simPhases.map((phase, idx) => (
-                        <div 
-                          key={phase.id}
-                          onClick={() => setSelectedSimPhaseIdx(idx)}
-                          className={`p-3 rounded-xl border transition-all cursor-pointer relative group ${
-                            idx === selectedSimPhaseIdx 
-                              ? 'bg-teal-500/10 border-teal-500/40 shadow-[0_0_15px_rgba(20,184,166,0.1)]' 
-                              : 'bg-slate-800/20 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <div className="flex items-center gap-2 min-w-0">
-                              <input 
-                                type="checkbox"
-                                checked={phase.enabled}
-                                onClick={(e) => e.stopPropagation()}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  setSimPhases(prev => {
-                                    const next = [...prev];
-                                    next[idx] = { ...next[idx], enabled: e.target.checked };
-                                    return next;
-                                  });
-                                }}
-                                className="w-3.5 h-3.5 rounded bg-black/40 border-slate-700 text-teal-500 focus:ring-teal-500/20 cursor-pointer"
-                              />
-                              <span className={`text-xs font-bold truncate ${phase.enabled ? 'text-slate-200' : 'text-slate-500 line-through'}`}>
-                                {phase.name}
+                    return (
+                      <div className="space-y-4 bg-black/25 p-5 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md ring-1 ring-white/5 ring-inset">
+                        <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
+                          <div className="flex items-center gap-2">
+                            <Database className="w-4 h-4 text-teal-400 animate-pulse" />
+                            <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest">Multi-Phase Inventory</div>
+                          </div>
+                          <span className="text-[8px] text-slate-400 uppercase tracking-widest bg-slate-800/60 px-2 py-0.5 rounded border border-slate-700/50 font-black flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            {activePhases.length}/{simPhases.length} Active System{simPhases.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+
+                        {/* Dynamic Abundance Proportional Bar */}
+                        {activePhases.length > 0 && (
+                          <div className="bg-slate-950/60 p-3 rounded-xl border border-white/[0.03] space-y-2">
+                            <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-wider text-slate-400">
+                              <span className="flex items-center gap-1.5 font-mono">
+                                <Layers className="w-3 h-3 text-teal-400" /> Relative Phase Weight Fraction (Wf)
                               </span>
+                              <span className="text-teal-400 font-bold font-mono">Normalized Sum: 100%</span>
                             </div>
                             
-                            <div className="flex items-center gap-1 shrink-0">
-                              <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-slate-900 text-teal-400 border border-slate-800">
-                                {phase.phaseType}
-                              </span>
-                              {simPhases.length > 1 && (
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveSimStructure(idx);
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 transition-all rounded ml-1"
-                                  title="Delete Phase"
-                                >
-                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                </button>
-                              )}
+                            <div className="h-2 px-[1px] rounded-full overflow-hidden flex bg-slate-900 border border-slate-800/80 shadow-inner">
+                              {simPhases.map((p, idx) => {
+                                if (!p.enabled) return null;
+                                const pct = totalScaleVal > 0 ? (p.scale / totalScaleVal) * 100 : 0;
+                                const colorClass = [
+                                  'bg-gradient-to-r from-teal-500 to-emerald-400 hover:brightness-110',
+                                  'bg-gradient-to-r from-indigo-500 to-purple-400 hover:brightness-110',
+                                  'bg-gradient-to-r from-rose-500 to-pink-400 hover:brightness-110',
+                                  'bg-gradient-to-r from-amber-500 to-orange-400 hover:brightness-110',
+                                  'bg-gradient-to-r from-cyan-500 to-blue-400 hover:brightness-110',
+                                  'bg-gradient-to-r from-teal-400 to-indigo-400 hover:brightness-110'
+                                ][idx % 6];
+                                return (
+                                  <div 
+                                    key={p.id}
+                                    style={{ width: `${pct}%` }}
+                                    className={`h-full ${colorClass} transition-all duration-300 relative`}
+                                    title={`${p.name}: ${pct.toFixed(1)}%`}
+                                  />
+                                );
+                              })}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {simPhases.map((p, idx) => {
+                                if (!p.enabled) return null;
+                                const pct = totalScaleVal > 0 ? (p.scale / totalScaleVal) * 100 : 0;
+                                const borderColors = ['border-teal-500/10', 'border-indigo-500/10', 'border-rose-500/10', 'border-amber-500/10', 'border-cyan-500/10', 'border-teal-400/10'];
+                                const textColors = ['text-teal-400 font-bold', 'text-indigo-400 font-bold', 'text-rose-400 font-bold', 'text-amber-400 font-bold', 'text-cyan-400 font-bold', 'text-teal-300 font-bold'];
+                                const bulletColors = ['bg-teal-400', 'bg-indigo-400', 'bg-rose-400', 'bg-amber-400', 'bg-cyan-400', 'bg-teal-300'];
+                                return (
+                                  <div 
+                                    key={p.id} 
+                                    className={`flex items-center gap-2 p-1.5 rounded bg-black/40 border ${borderColors[idx % 6]} text-[10px]`}
+                                  >
+                                    <div className={`w-1.5 h-1.5 rounded-full ${bulletColors[idx % 6]}`} />
+                                    <div className="flex-1 min-w-0 flex items-center justify-between gap-1">
+                                      <span className="text-slate-400 font-bold truncate text-[9px]">{p.name}</span>
+                                      <span className={`font-mono text-[9px] ${textColors[idx % 6]}`}>{pct.toFixed(1)}%</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
+                        )}
 
-                          <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-800/40 text-[9px] font-mono text-slate-400">
-                            <div>
-                              Lattice <span className="text-teal-400 font-bold">{phase.a.toFixed(3)}Å</span>
-                              <span className="text-slate-600 ml-1">(target {phase.targetA.toFixed(3)}Å)</span>
-                            </div>
-                            <div>
-                              Scale <span className="text-blue-400 font-bold">{(phase.scale / 10).toFixed(0)}%</span>
-                            </div>
-                          </div>
+                        <div className="space-y-2 max-h-[320px] overflow-y-auto custom-scrollbar pr-1">
+                          {simPhases.map((phase, idx) => {
+                            const stats = computeCrystallographicVolumeAndDensity(phase.phaseType, phase.a);
+                            const targetStats = computeCrystallographicVolumeAndDensity(phase.phaseType, phase.targetA);
+                            const colorIndex = idx % 6;
+                            const badgeColors = [
+                              'text-teal-400 bg-teal-500/15 border-teal-500/30',
+                              'text-indigo-400 bg-indigo-500/15 border-indigo-500/30',
+                              'text-rose-400 bg-rose-500/15 border-rose-500/30',
+                              'text-amber-400 bg-amber-500/15 border-amber-500/30',
+                              'text-cyan-400 bg-cyan-500/15 border-cyan-500/30',
+                              'text-teal-300 bg-teal-400/15 border-teal-400/30'
+                            ];
 
-                          {idx === selectedSimPhaseIdx && (
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-l-xl" />
-                          )}
+                            return (
+                              <div 
+                                key={phase.id}
+                                onClick={() => setSelectedSimPhaseIdx(idx)}
+                                className={`p-3.5 rounded-xl border transition-all cursor-pointer relative group ${
+                                  idx === selectedSimPhaseIdx 
+                                    ? 'bg-slate-900/90 border-teal-500/50 shadow-[0_4px_20px_rgba(20,184,166,0.12)]' 
+                                    : 'bg-slate-850/45 border-slate-800 hover:border-slate-700/70 hover:bg-slate-800/65'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <input 
+                                      type="checkbox"
+                                      checked={phase.enabled}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        setSimPhases(prev => {
+                                          const next = [...prev];
+                                          next[idx] = { ...next[idx], enabled: e.target.checked };
+                                          return next;
+                                        });
+                                      }}
+                                      className="w-3.5 h-3.5 rounded bg-black/40 border-slate-700 text-teal-500 focus:ring-teal-500/20 cursor-pointer shrink-0"
+                                    />
+                                    
+                                    {editingPhaseId === phase.id ? (
+                                      <div className="flex items-center gap-1 flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                        <input 
+                                          type="text"
+                                          value={editingPhaseName}
+                                          onChange={(e) => setEditingPhaseName(e.target.value)}
+                                          className="flex-1 px-2 py-0.5 max-h-7 bg-slate-950 border border-teal-500 text-teal-200 text-xs rounded focus:outline-none focus:ring-1 focus:ring-teal-500 font-bold"
+                                          autoFocus
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              setSimPhases(prev => {
+                                                const next = [...prev];
+                                                next[idx] = { ...next[idx], name: editingPhaseName };
+                                                return next;
+                                              });
+                                              setEditingPhaseId(null);
+                                            } else if (e.key === 'Escape') {
+                                              setEditingPhaseId(null);
+                                            }
+                                          }}
+                                        />
+                                        <button 
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSimPhases(prev => {
+                                              const next = [...prev];
+                                              next[idx] = { ...next[idx], name: editingPhaseName };
+                                              return next;
+                                            });
+                                            setEditingPhaseId(null);
+                                          }}
+                                          className="p-1 bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 hover:text-teal-200 rounded border border-teal-500/20 transition-all cursor-pointer shrink-0"
+                                          title="Save Name"
+                                        >
+                                          <Check className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                        <span className={`text-xs font-bold truncate ${phase.enabled ? 'text-slate-200' : 'text-slate-500 line-through'}`}>
+                                          {phase.name}
+                                        </span>
+                                        {phase.enabled && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditingPhaseId(phase.id);
+                                              setEditingPhaseName(phase.name);
+                                            }}
+                                            className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-500 hover:text-teal-400 rounded transition-all ml-0.5 shrink-0"
+                                            title="Rename Phase"
+                                          >
+                                            <Edit2 className="w-3 h-3" />
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${badgeColors[colorIndex]}`}>
+                                      {stats.unitCellFormula || phase.phaseType}
+                                    </span>
+                                    {simPhases.length > 1 && (
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleRemoveSimStructure(idx);
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 transition-all rounded hover:bg-slate-800/80 shrink-0"
+                                        title="Delete Phase"
+                                      >
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 mt-2.5 pt-2.5 border-t border-slate-800/40 text-[9px] font-mono text-slate-400 select-none">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1 text-[10px]">
+                                      <span>Wf:</span>
+                                      <span className="text-blue-400 font-black">{(phase.scale / 10).toFixed(1)}%</span>
+                                      {phase.enabled && (
+                                        <div className="flex items-center gap-0.5 ml-1" onClick={(e) => e.stopPropagation()}>
+                                          <button 
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSimPhases(prev => {
+                                                const next = [...prev];
+                                                next[idx] = { ...next[idx], scale: Math.max(0, next[idx].scale - 50) };
+                                                return next;
+                                              });
+                                            }}
+                                            className="w-3.5 h-3.5 text-[8px] bg-slate-950 border border-slate-800 text-slate-400 hover:text-teal-400 hover:border-teal-500/20 rounded flex items-center justify-center font-bold"
+                                            title="Decrement relative scale by 5%"
+                                          >
+                                            -
+                                          </button>
+                                          <button 
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSimPhases(prev => {
+                                                const next = [...prev];
+                                                next[idx] = { ...next[idx], scale: next[idx].scale + 50 };
+                                                return next;
+                                              });
+                                            }}
+                                            className="w-3.5 h-3.5 text-[8px] bg-slate-950 border border-slate-800 text-slate-400 hover:text-teal-400 hover:border-teal-500/20 rounded flex items-center justify-center font-bold"
+                                            title="Increment relative scale by 5%"
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="text-slate-400">
+                                      a: <span className="text-teal-400 font-bold">{phase.a.toFixed(4)}Å</span>
+                                      <span className="text-slate-600 text-[8px] ml-1">({phase.targetA.toFixed(4)})</span>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between text-slate-500">
+                                    <div>
+                                      Vol: <span className="text-amber-400/90 font-bold">{stats.volume.toFixed(2)}Å³</span>
+                                    </div>
+                                    <div>
+                                      Density: <span className="text-indigo-400/90 font-bold">{stats.density.toFixed(3)} g/cm³</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <span className="hidden sm:inline">Crystallite Size:</span><span className="sm:hidden">Cry.S:</span> <span className="text-indigo-400 font-bold">{phase.crystalliteSize.toFixed(1)}nm</span>
+                                    </div>
+                                    <div>
+                                      Strain: <span className="text-orange-400 font-bold">{(phase.microstrain * 100).toFixed(3)}%</span>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between text-[8px] text-slate-500">
+                                    <div>
+                                      FWHM: <span className="text-emerald-400 font-bold">{phase.fwhm.toFixed(3)}°</span>
+                                    </div>
+                                    <div>
+                                      Pseud-Voigt η: <span className="text-purple-400 font-bold">{phase.eta.toFixed(2)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {idx === selectedSimPhaseIdx && (
+                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-l-xl" />
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/60">
-                      <button
-                        onClick={() => handleAddNewSimStructure('Simple Cubic')}
-                        className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors border border-slate-700/50 flex items-center justify-center gap-1.5"
-                      >
-                        + Simple Cubic
-                      </button>
-                      <button
-                        onClick={() => handleAddNewSimStructure('Quartz')}
-                        className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors border border-slate-700/50 flex items-center justify-center gap-1.5"
-                      >
-                        + Quartz
-                      </button>
-                      <button
-                        onClick={() => handleAddNewSimStructure('FCC')}
-                        className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors border border-slate-700/50 flex items-center justify-center gap-1.5"
-                      >
-                        + Face Centered
-                      </button>
-                      <button
-                        onClick={() => handleAddNewSimStructure('BCC')}
-                        className="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors border border-slate-700/50 flex items-center justify-center gap-1.5"
-                      >
-                        + Body Centered
-                      </button>
-                    </div>
-                  </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 pt-2 border-t border-slate-800/60">
+                          <button
+                            onClick={() => handleAddNewSimStructure('Simple Cubic')}
+                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5"
+                          >
+                            + Cubic
+                          </button>
+                          <button
+                            onClick={() => handleAddNewSimStructure('Quartz')}
+                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5"
+                          >
+                            + Quartz
+                          </button>
+                          <button
+                            onClick={() => handleAddNewSimStructure('FCC')}
+                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5"
+                          >
+                            + FCC
+                          </button>
+                          <button
+                            onClick={() => handleAddNewSimStructure('BCC')}
+                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5"
+                          >
+                            + BCC
+                          </button>
+                          <button
+                            onClick={() => handleAddNewSimStructure('Rutile')}
+                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5 whitespace-nowrap"
+                          >
+                            + Rutile
+                          </button>
+                          <button
+                            onClick={() => handleAddNewSimStructure('Perovskite')}
+                            className="py-1.5 bg-slate-900/80 hover:bg-teal-900/30 text-teal-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border border-slate-700/50 hover:border-teal-500/30 hover:shadow-[0_0_10px_rgba(20,184,166,0.15)] flex items-center justify-center gap-1.5 whitespace-nowrap"
+                          >
+                            + Perovskite
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Active Selected Phase Properties */}
-                  <div className="space-y-4 bg-teal-950/10 p-5 rounded-2xl border border-teal-500/10 shadow-inner backdrop-blur-md ring-1 ring-teal-500/5 ring-inset">
-                    <div className="flex items-center justify-between pb-2 border-b border-teal-500/10">
+                  <div className="space-y-4 bg-[#0a1120]/80 p-5 rounded-2xl border border-teal-500/20 shadow-xl backdrop-blur-md ring-1 ring-teal-500/10 ring-inset">
+                    <div className="flex items-center justify-between pb-3 border-b border-teal-500/10">
                       <div className="flex items-center gap-2">
-                        <Beaker className="w-4 h-4 text-teal-400" />
-                        <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest">Selected Phase Model</div>
+                        <Beaker className="w-4 h-4 text-teal-400 animate-pulse" />
+                        <div className="flex flex-col">
+                          <div className="text-[10px] uppercase text-teal-400 font-extrabold tracking-widest leading-none">Selected Phase Model</div>
+                          <div className="text-[8px] text-slate-400 font-medium uppercase tracking-[0.08em] mt-0.5">Physical Parameters & Space Group</div>
+                        </div>
                       </div>
-                      <span className="text-[8px] text-teal-500 font-black uppercase tracking-widest bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20 max-w-[124px] truncate">
+                      <span className="text-[9px] text-teal-400 font-black uppercase tracking-widest bg-teal-950/60 px-2.5 py-1 rounded border border-teal-500/30 shadow-sm max-w-[150px] truncate">
                         {currentPhaseObj.name}
                       </span>
                     </div>
 
-                    <div className="bg-slate-800/40 p-3.5 rounded-xl border border-slate-700/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Space Group Symmetry</label>
-                        <span className="text-[9px] font-mono text-teal-400 font-black">
-                          {currentPhaseObj.phaseType === 'Simple Cubic' ? 'P m-3m (#221)' :
-                           currentPhaseObj.phaseType === 'BCC' ? 'I m-3m (#229)' :
-                           currentPhaseObj.phaseType === 'FCC' ? 'F m-3m (#225)' :
-                           'P 32 21 (#154)'}
-                        </span>
-                      </div>
-                      <div className="relative">
-                        <select 
-                          value={simPhase}
-                          onChange={(e) => setSimPhase(e.target.value)}
-                          className="w-full pl-3 pr-8 py-2 bg-black/40 border border-slate-700/80 rounded-lg text-xs font-bold text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 appearance-none cursor-pointer"
-                        >
-                          <option value="Simple Cubic">Simple Cubic (P m-3m)</option>
-                          <option value="BCC">Body Centered (I m-3m)</option>
-                          <option value="FCC">Face Centered (F m-3m)</option>
-                          <option value="Quartz">Quartz (P 32 21)</option>
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                           <ChevronDown className="w-4 h-4 text-slate-500" />
-                        </div>
-                      </div>
+                    {/* Sub Tab Buttons */}
+                    <div className="grid grid-cols-2 bg-slate-950/40 p-1 rounded-xl border border-slate-800 gap-1 mt-1">
+                      <button
+                        onClick={() => setSelectedPhaseSubTab('params')}
+                        className={`py-2 text-center rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                          selectedPhaseSubTab === 'params'
+                            ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30 shadow-inner'
+                            : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                        }`}
+                      >
+                        <Ruler className="w-3.5 h-3.5" />
+                        Lattice & State
+                      </button>
+                      <button
+                        onClick={() => setSelectedPhaseSubTab('symmetry')}
+                        className={`py-2 text-center rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                          selectedPhaseSubTab === 'symmetry'
+                            ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30'
+                            : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                        }`}
+                      >
+                        <Compass className="w-3.5 h-3.5" />
+                        Symmetry Projection
+                      </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 group/lattice">
-                        <div className="flex justify-between items-center mb-2">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
-                          <span className="text-[10px] font-mono font-black text-teal-400">{userParams.a.toFixed(3)} Å</span>
+                    {selectedPhaseSubTab === 'params' ? (
+                      <div className="space-y-4">
+                        {/* Space Group symmetry info block */}
+                        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80">
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Symmetry System Selector</label>
+                            {(() => {
+                              const details = SPACE_GROUP_DETAILS[simPhase];
+                              return details ? (
+                                <span className="text-[9px] font-mono text-teal-400 font-black px-1.5 py-0.5 rounded bg-teal-500/5 border border-teal-500/10">
+                                  {details.hermannMauguin} (#{details.number})
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-mono text-teal-400 font-black">
+                                  {currentPhaseObj.phaseType === 'Simple Cubic' ? 'P m-3m (#221)' :
+                                   currentPhaseObj.phaseType === 'BCC' ? 'I m-3m (#229)' :
+                                   currentPhaseObj.phaseType === 'FCC' ? 'F m-3m (#225)' :
+                                   currentPhaseObj.phaseType === 'Rutile' ? 'P 4_2/mnm (#136)' :
+                                   currentPhaseObj.phaseType === 'Perovskite' ? 'P m-3m (#221)' :
+                                   'P 32 21 (#154)'}
+                                </span>
+                              );
+                            })()}
+                          </div>
+                          
+                          <div className="relative">
+                            <select 
+                              value={simPhase}
+                              onChange={(e) => setSimPhase(e.target.value)}
+                              className="w-full pl-3 pr-8 py-2 bg-slate-950 border border-slate-850 rounded-lg text-xs font-bold text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500/50 appearance-none cursor-pointer hover:bg-slate-900 transition-colors"
+                            >
+                              <option value="Simple Cubic">Simple Cubic (P m-3m)</option>
+                              <option value="BCC">Body Centered Iron Type (I m-3m)</option>
+                              <option value="FCC">Face Centered Copper Type (F m-3m)</option>
+                              <option value="Perovskite">Perovskite CaTiO3 Type (P m-3m)</option>
+                              <option value="Rutile">Rutile TiO2 Type (P 4_2/m n m)</option>
+                              <option value="Quartz">Quartz Alpha-SiO2 Type (P 32 21)</option>
+                            </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                              <ChevronDown className="w-4 h-4 text-slate-500" />
+                            </div>
+                          </div>
                         </div>
-                        <input 
-                          type="range" 
-                          min={simPhase === 'Quartz' ? 4.5 : 2.5} 
-                          max={simPhase === 'Quartz' ? 5.5 : 6.0} 
-                          step="0.001"
-                          value={userParams.a}
-                          onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
-                          className="w-full h-1 bg-slate-900 rounded-full appearance-none cursor-pointer accent-teal-500"
-                        />
-                      </div>
 
-                      <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 group/scale">
-                        <div className="flex justify-between items-center mb-2">
-                          <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Scale Factor</label>
-                          <span className="text-[10px] font-mono font-black text-blue-400">{userParams.scale}</span>
+                        {/* Interactive Sliders for Lattice and Scale */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 group/lattice">
+                            <div className="flex justify-between items-center mb-1.5">
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lattice (a)</label>
+                              <span className="text-[10px] font-mono font-black text-teal-400">{userParams.a.toFixed(4)} Å</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min={simPhase === 'Quartz' ? 4.5 : 2.5} 
+                              max={simPhase === 'Quartz' ? 5.5 : 6.0} 
+                              step="0.001"
+                              value={userParams.a}
+                              onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
+                              className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
+                            />
+                            <div className="flex items-center justify-between text-[8px] text-slate-500 font-mono mt-1 select-none">
+                              <span>{simPhase === 'Quartz' ? '4.50' : '2.50'}</span>
+                              <span>{simPhase === 'Quartz' ? '5.50' : '6.00'}</span>
+                            </div>
+                          </div>
+
+                          <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 group/scale">
+                            <div className="flex justify-between items-center mb-1.5">
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Intensity Scale</label>
+                              <span className="text-[10px] font-mono font-black text-blue-400">{userParams.scale}</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="100" 
+                              max="2000" 
+                              step="10"
+                              value={userParams.scale}
+                              onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
+                              className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-blue-500"
+                            />
+                            <div className="flex items-center justify-between text-[8px] text-slate-500 font-mono mt-1 select-none">
+                              <span>100</span>
+                              <span>2000</span>
+                            </div>
+                          </div>
                         </div>
-                        <input 
-                          type="range" 
-                          min="100" 
-                          max="2000" 
-                          step="10"
-                          value={userParams.scale}
-                          onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
-                          className="w-full h-1 bg-slate-900 rounded-full appearance-none cursor-pointer accent-blue-500"
-                        />
+
+                        {/* Live Physics derived values */}
+                        {(() => {
+                          const stats = computeCrystallographicVolumeAndDensity(simPhase, userParams.a);
+                          const details = SPACE_GROUP_DETAILS[simPhase];
+                          return (
+                            <div className="grid grid-cols-3 gap-2 bg-slate-950/60 p-3 rounded-xl border border-white/5 text-[9px] font-mono text-slate-400 shadow-inner select-none">
+                              <div className="flex flex-col items-center justify-center p-1.5 border-r border-slate-800">
+                                <span className="text-[8px] text-slate-500 uppercase tracking-[0.1em] mb-1 font-sans">Formula Unit</span>
+                                <span className="text-[11px] text-slate-200 font-bold font-sans tracking-wide">{stats.unitCellFormula}</span>
+                              </div>
+                              <div className="flex flex-col items-center justify-center p-1.5 border-r border-slate-800">
+                                <span className="text-[8px] text-slate-500 uppercase tracking-[0.1em] mb-1 font-sans">Cell Volume</span>
+                                <span className="text-[11px] text-emerald-400 font-extrabold">{stats.volume.toFixed(2)} Å³</span>
+                              </div>
+                              <div className="flex flex-col items-center justify-center p-1.5">
+                                <span className="text-[8px] text-slate-500 uppercase tracking-[0.1em] mb-1 font-sans">Calc Density</span>
+                                <span className="text-[11px] text-rose-400 font-extrabold">{stats.density.toFixed(3)} V\u209c</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
-                    </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Space Group Symmetry Sub UI */}
+                        {(() => {
+                          const details = SPACE_GROUP_DETAILS[simPhase] || SPACE_GROUP_DETAILS['Simple Cubic'];
+                          const isTrigonal = details.crystalSystem.includes('Trigonal') || details.crystalSystem.includes('Hexagonal');
+                          const eqPts = getEquivalentPositions(simPhase, symmetryProbeX, symmetryProbeY);
+                          
+                          return (
+                            <div className="space-y-4">
+                              {/* Layout with SVG visualization on left/top and metrics on right/bottom */}
+                              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 animate-fadeIn">
+                                {/* SVG Interactive Canvas */}
+                                <div className="md:col-span-6 bg-slate-950 rounded-xl p-3 border border-slate-850 flex flex-col items-center relative overflow-hidden group">
+                                  <div className="absolute top-2 left-2 z-10 flex gap-1 items-center bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800 text-[8px] uppercase tracking-wider text-teal-400 font-black">
+                                    <Grid className="w-2.5 h-2.5" /> Projection (ab plane)
+                                  </div>
+                                  
+                                  <div className="absolute top-2 right-2 z-10 text-[8px] font-mono text-slate-500 select-none">
+                                    Total Nodes: {eqPts.length}
+                                  </div>
+
+                                  <div className="w-full aspect-square mt-6 mb-2 relative flex items-center justify-center">
+                                    <svg
+                                      ref={svgRef}
+                                      onMouseDown={handleMouseDown}
+                                      onMouseMove={handleMouseMove}
+                                      onMouseUp={handleMouseUpOrLeave}
+                                      onMouseLeave={handleMouseUpOrLeave}
+                                      onTouchStart={handleSvgInteraction}
+                                      onTouchMove={handleSvgInteraction}
+                                      onTouchEnd={handleMouseUpOrLeave}
+                                      className="w-full max-w-[190px] aspect-square bg-[#030712] border border-slate-800/80 rounded-lg cursor-crosshair relative shadow-inner select-none overflow-visible"
+                                    >
+                                      {/* Grid lines inside unit cell */}
+                                      {!isTrigonal ? (
+                                        <>
+                                          <line x1="0%" y1="25%" x2="100%" y2="25%" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" />
+                                          <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="#334155" strokeWidth="0.5" />
+                                          <line x1="0%" y1="75%" x2="100%" y2="75%" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" />
+                                          
+                                          <line x1="25%" y1="0%" x2="25%" y2="100%" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" />
+                                          <line x1="50%" y1="0%" x2="50%" y2="100%" stroke="#334155" strokeWidth="0.5" />
+                                          <line x1="75%" y1="0%" x2="75%" y2="100%" stroke="#1e293b" strokeWidth="0.5" strokeDasharray="2,2" />
+                                        </>
+                                      ) : (
+                                        <>
+                                          {/* Draw hexagonal boundary guidelines */}
+                                          <polygon points="95,190 190,95 142,10 47,10 5,95" fill="none" stroke="#1e293b" strokeWidth="0.75" strokeDasharray="3,3" />
+                                          {/* Main translation axes */}
+                                          <line x1="10" y1="180" x2="180" y2="180" stroke="#334155" strokeWidth="0.5" />
+                                          <line x1="10" y1="180" x2="85" y2="20" stroke="#334155" strokeWidth="0.5" />
+                                        </>
+                                      )}
+
+                                      {/* Draw generated equivalent positions */}
+                                      {eqPts.map((pt, pidx) => {
+                                        const isOriginal = Math.abs(pt.x - symmetryProbeX) < 1e-3 && Math.abs(pt.y - symmetryProbeY) < 1e-3;
+                                        const xy = toSymmetryScreenCoords(pt.x, pt.y, 190, 190, isTrigonal);
+                                        return (
+                                          <g key={pidx}>
+                                            {/* Glow halo */}
+                                            <circle
+                                              cx={xy.x}
+                                              cy={xy.y}
+                                              r={isOriginal ? 9 : 6}
+                                              fill={isOriginal ? 'rgba(20,184,166,0.22)' : 'rgba(59,130,246,0.14)'}
+                                              className={isOriginal ? 'animate-ping' : ''}
+                                              style={{ animationDuration: '3s' }}
+                                            />
+                                            {/* Solid atom core */}
+                                            <circle
+                                              cx={xy.x}
+                                              cy={xy.y}
+                                              r={isOriginal ? 4 : 3}
+                                              fill={isOriginal ? '#14b8a6' : '#3b82f6'}
+                                              stroke="#ffffff"
+                                              strokeWidth="0.5"
+                                              className="transition-all"
+                                            />
+                                            {/* Label coordinate tooltip on hover */}
+                                            <title>{`(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)}, z)`}</title>
+                                          </g>
+                                        );
+                                      })}
+                                    </svg>
+                                  </div>
+
+                                  <div className="text-[8px] text-slate-500 font-sans text-center mt-1 leading-normal max-w-full truncate px-3">
+                                    <span className="text-teal-400 font-black">● Primary Probe</span> (drag or touch) • <span className="text-blue-500 font-black">● Symmop Nodes</span>
+                                  </div>
+                                </div>
+
+                                {/* Coordinate Sliders and Symmetry stats */}
+                                <div className="md:col-span-6 flex flex-col justify-between space-y-3.5">
+                                  {/* Coordination probe inputs */}
+                                  <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 space-y-3">
+                                    <div className="text-[10px] uppercase text-teal-400 font-black tracking-widest flex items-center justify-between pb-1.5 border-b border-white/5">
+                                      <span>Probe Position</span>
+                                      <span className="text-[8px] font-mono text-teal-400/80 font-black font-sans uppercase">Asymmetric Unit</span>
+                                    </div>
+
+                                    {/* Slider X */}
+                                    <div className="space-y-1">
+                                      <div className="flex items-center justify-between font-mono text-[9px]">
+                                        <span className="text-slate-400 uppercase font-sans">Fractional X</span>
+                                        <span className="text-teal-400 font-black font-mono">{symmetryProbeX.toFixed(3)}</span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min="0.0"
+                                        max="1.0"
+                                        step="0.01"
+                                        value={symmetryProbeX}
+                                        onChange={(e) => setSymmetryProbeX(parseFloat(e.target.value))}
+                                        className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
+                                      />
+                                    </div>
+
+                                    {/* Slider Y */}
+                                    <div className="space-y-1">
+                                      <div className="flex items-center justify-between font-mono text-[9px]">
+                                        <span className="text-slate-400 uppercase font-sans">Fractional Y</span>
+                                        <span className="text-teal-400 font-black font-mono">{symmetryProbeY.toFixed(3)}</span>
+                                      </div>
+                                      <input
+                                        type="range"
+                                        min="0.0"
+                                        max="1.0"
+                                        step="0.01"
+                                        value={symmetryProbeY}
+                                        onChange={(e) => setSymmetryProbeY(parseFloat(e.target.value))}
+                                        className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Details Table */}
+                                  <div className="bg-slate-950/70 p-3.5 rounded-xl border border-slate-850 space-y-2 select-none">
+                                    <div className="grid grid-cols-2 gap-2 text-[9px] font-sans">
+                                      <div className="bg-slate-900/40 p-2 rounded border border-slate-800 flex flex-col">
+                                        <span className="text-[7px] text-slate-500 uppercase tracking-wider mb-0.5">Schoenflies</span>
+                                        <span className="font-mono text-slate-300 font-black">{details.schoenflies}</span>
+                                      </div>
+                                      <div className="bg-slate-900/40 p-2 rounded border border-slate-800 flex flex-col">
+                                        <span className="text-[7px] text-slate-500 uppercase tracking-wider mb-0.5">Point Group</span>
+                                        <span className="font-mono text-slate-300 font-black">{details.pointGroup}</span>
+                                      </div>
+                                      <div className="bg-slate-900/40 p-2 rounded border border-slate-800 flex flex-col">
+                                        <span className="text-[7px] text-slate-500 uppercase tracking-wider mb-0.5">Laue Class</span>
+                                        <span className="font-mono text-slate-300 font-black">{details.laueClass}</span>
+                                      </div>
+                                      <div className="bg-slate-900/40 p-2 rounded border border-slate-800 flex flex-col">
+                                        <span className="text-[7px] text-slate-500 uppercase tracking-wider mb-0.5">Lattice Type</span>
+                                        <span className="font-mono text-slate-300 font-black truncate">{details.latticeType}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Symmetry Flags (Centrosymm, Chiral, Symmorphic) */}
+                              <div className="grid grid-cols-3 gap-2 text-[8px] uppercase tracking-wider font-extrabold select-none">
+                                <div className={`px-2 py-2 rounded-xl border text-center flex flex-col items-center justify-center gap-1 ${details.centrosymmetric ? 'bg-indigo-950/20 border-indigo-500/20 text-indigo-400' : 'bg-amber-950/20 border-amber-500/20 text-amber-500'}`}>
+                                  <span className="text-[7px] text-slate-500 block font-normal tracking-wide lowercase">Centrosymmetry</span>
+                                  <span>{details.centrosymmetric ? 'Centrosymmetric' : 'Non-Centrosymm.'}</span>
+                                </div>
+                                <div className={`px-2 py-2 rounded-xl border text-center flex flex-col items-center justify-center gap-1 ${details.chiral ? 'bg-violet-950/20 border-violet-500/20 text-violet-400' : 'bg-slate-900/40 border-slate-800 text-slate-400'}`}>
+                                  <span className="text-[7px] text-slate-500 block font-normal tracking-wide lowercase">Enantiomorphism</span>
+                                  <span>{details.chiral ? 'Chiral / Enantio' : 'Achiral'}</span>
+                                </div>
+                                <div className={`px-2 py-2 rounded-xl border text-center flex flex-col items-center justify-center gap-1 ${details.symmorphic ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-400' : 'bg-yellow-950/20 border-yellow-500/20 text-yellow-500'}`}>
+                                  <span className="text-[7px] text-slate-500 block font-normal tracking-wide lowercase">Symmorphism</span>
+                                  <span>{details.symmorphic ? 'Symmorphic GP' : 'Non-Symmorphic'}</span>
+                                </div>
+                              </div>
+
+                              {/* Symmetry Elements Description */}
+                              <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 text-[9px] text-slate-400 select-none">
+                                <span className="block text-[8px] text-teal-400 uppercase tracking-widest font-extrabold mb-1.5">Symmetry Operators & Elements</span>
+                                <ul className="space-y-1 list-disc list-inside h-[56px] overflow-y-auto custom-scrollbar">
+                                  {details.symmetryElements.map((el, index) => (
+                                    <li key={index} className="text-slate-300 font-sans tracking-wide leading-relaxed">{el}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
 
                   {/* Peak Management Group */}
@@ -1599,10 +2395,10 @@ export const RietveldModule: React.FC = () => {
                              {userParams.peaks.map((peak, pIdx) => {
                                 let display2Theta = 0;
                                 let rawTheta = 0;
-                                if (simPhase === 'Quartz') {
-                                  const origPeak = QUARTZ_PEAKS[pIdx];
+                                if (['Quartz', 'Rutile', 'Perovskite'].includes(simPhase)) {
+                                  const origPeak = simPhase === 'Quartz' ? QUARTZ_PEAKS[pIdx] : simPhase === 'Rutile' ? RUTILE_PEAKS[pIdx] : PEROVSKITE_PEAKS[pIdx];
                                   if (origPeak) {
-                                    const shift = (userParams.a - TARGET_PARAMS['Quartz'].a) * 2; 
+                                    const shift = (userParams.a - TARGET_PARAMS[simPhase].a) * 2; 
                                     display2Theta = origPeak.t - shift;
                                     rawTheta = display2Theta / 2;
                                   }
