@@ -7,14 +7,14 @@ import {
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
   Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, AlertTriangle, 
   Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2,
-  Globe, ChevronDown, Grid, Lock, Unlock, Edit2, Check
+  Globe, ChevronDown, Grid, Lock, Unlock, Edit2, Check, Trash2
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
 
 // --- Simulation Constants & Types ---
 
-const SIMULATION_RANGE = { start: 10, end: 90, step: 0.1 };
+const SIMULATION_RANGE = { start: 10, end: 90, step: 0.05 };
 
 interface SimulationPeak {
   h: number;
@@ -1787,48 +1787,54 @@ export const RietveldModule: React.FC = () => {
                             const targetStats = computeCrystallographicVolumeAndDensity(phase.phaseType, phase.targetA);
                             const colorIndex = idx % 6;
                             const badgeColors = [
-                              'text-teal-400 bg-teal-500/15 border-teal-500/30',
-                              'text-indigo-400 bg-indigo-500/15 border-indigo-500/30',
-                              'text-rose-400 bg-rose-500/15 border-rose-500/30',
-                              'text-amber-400 bg-amber-500/15 border-amber-500/30',
-                              'text-cyan-400 bg-cyan-500/15 border-cyan-500/30',
-                              'text-teal-300 bg-teal-400/15 border-teal-400/30'
+                              'text-teal-400 bg-teal-500/10 border-teal-500/20 shadow-[0_0_8px_rgba(20,184,166,0.2)]',
+                              'text-indigo-400 bg-indigo-500/10 border-indigo-500/20 shadow-[0_0_8px_rgba(99,102,241,0.2)]',
+                              'text-rose-400 bg-rose-500/10 border-rose-500/20 shadow-[0_0_8px_rgba(244,63,94,0.2)]',
+                              'text-amber-400 bg-amber-500/10 border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.2)]',
+                              'text-cyan-400 bg-cyan-500/10 border-cyan-500/20 shadow-[0_0_8px_rgba(6,182,212,0.2)]',
+                              'text-teal-300 bg-teal-400/10 border-teal-400/20 shadow-[0_0_8px_rgba(45,212,191,0.2)]'
                             ];
 
                             return (
                               <div 
                                 key={phase.id}
                                 onClick={() => setSelectedSimPhaseIdx(idx)}
-                                className={`p-3.5 rounded-xl border transition-all cursor-pointer relative group ${
+                                className={`p-4 rounded-xl border transition-all cursor-pointer relative group overflow-hidden ${
                                   idx === selectedSimPhaseIdx 
-                                    ? 'bg-slate-900/90 border-teal-500/50 shadow-[0_4px_20px_rgba(20,184,166,0.12)]' 
-                                    : 'bg-slate-850/45 border-slate-800 hover:border-slate-700/70 hover:bg-slate-800/65'
+                                    ? 'bg-gradient-to-br from-[#070D18] to-[#0A1220] border-teal-500/40 shadow-[inset_0_1px_5px_rgba(20,184,166,0.1),0_4px_25px_rgba(0,0,0,0.5)]' 
+                                    : 'bg-[#0B1221]/50 border-[#1e293b] hover:border-slate-700/80 hover:bg-[#070D18]/80'
                                 }`}
                               >
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    <input 
-                                      type="checkbox"
-                                      checked={phase.enabled}
-                                      onClick={(e) => e.stopPropagation()}
-                                      onChange={(e) => {
-                                        e.stopPropagation();
-                                        setSimPhases(prev => {
-                                          const next = [...prev];
-                                          next[idx] = { ...next[idx], enabled: e.target.checked };
-                                          return next;
-                                        });
-                                      }}
-                                      className="w-3.5 h-3.5 rounded bg-black/40 border-slate-700 text-teal-500 focus:ring-teal-500/20 cursor-pointer shrink-0"
-                                    />
+                                {idx === selectedSimPhaseIdx && (
+                                  <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-3xl" />
+                                )}
+                                
+                                <div className="flex items-start justify-between gap-3 relative z-10">
+                                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <div className="shrink-0 flex items-center justify-center p-1.5 bg-black/40 rounded border border-slate-800">
+                                      <input 
+                                        type="checkbox"
+                                        checked={phase.enabled}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => {
+                                          e.stopPropagation();
+                                          setSimPhases(prev => {
+                                            const next = [...prev];
+                                            next[idx] = { ...next[idx], enabled: e.target.checked };
+                                            return next;
+                                          });
+                                        }}
+                                        className="w-3.5 h-3.5 rounded bg-black/40 border-slate-700 text-teal-400 focus:ring-teal-500/20 cursor-pointer"
+                                      />
+                                    </div>
                                     
                                     {editingPhaseId === phase.id ? (
-                                      <div className="flex items-center gap-1 flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                      <div className="flex items-center gap-2 flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
                                         <input 
                                           type="text"
                                           value={editingPhaseName}
                                           onChange={(e) => setEditingPhaseName(e.target.value)}
-                                          className="flex-1 px-2 py-0.5 max-h-7 bg-slate-950 border border-teal-500 text-teal-200 text-xs rounded focus:outline-none focus:ring-1 focus:ring-teal-500 font-bold"
+                                          className="flex-1 px-2.5 py-1 max-h-8 bg-slate-950/80 border border-teal-500 text-teal-200 text-xs rounded focus:outline-none focus:ring-2 focus:ring-teal-500/30 font-bold shadow-inner"
                                           autoFocus
                                           onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
@@ -1853,62 +1859,62 @@ export const RietveldModule: React.FC = () => {
                                             });
                                             setEditingPhaseId(null);
                                           }}
-                                          className="p-1 bg-teal-500/20 text-teal-400 hover:bg-teal-500/30 hover:text-teal-200 rounded border border-teal-500/20 transition-all cursor-pointer shrink-0"
+                                          className="p-1.5 bg-teal-500/20 text-teal-400 hover:bg-teal-500/40 hover:text-teal-200 rounded border border-teal-500/30 transition-all cursor-pointer shrink-0"
                                           title="Save Name"
                                         >
-                                          <Check className="w-3 h-3" />
+                                          <Check className="w-3.5 h-3.5" />
                                         </button>
                                       </div>
                                     ) : (
-                                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                        <span className={`text-xs font-bold truncate ${phase.enabled ? 'text-slate-200' : 'text-slate-500 line-through'}`}>
-                                          {phase.name}
+                                      <div className="flex flex-col min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className={`text-sm font-black truncate tracking-wide ${phase.enabled ? 'text-slate-100' : 'text-slate-600 line-through'}`}>
+                                            {phase.name}
+                                          </span>
+                                          {phase.enabled && (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditingPhaseId(phase.id);
+                                                setEditingPhaseName(phase.name);
+                                              }}
+                                              className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-500 hover:text-teal-400 rounded transition-all ml-0.5 shrink-0"
+                                              title="Rename Phase"
+                                            >
+                                              <Edit2 className="w-3 h-3" />
+                                            </button>
+                                          )}
+                                        </div>
+                                        <span className={`text-[9px] font-black uppercase tracking-widest mt-1 px-1.5 py-0.5 rounded border inline-block w-fit ${badgeColors[colorIndex]}`}>
+                                          {stats.unitCellFormula || phase.phaseType}
                                         </span>
-                                        {phase.enabled && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setEditingPhaseId(phase.id);
-                                              setEditingPhaseName(phase.name);
-                                            }}
-                                            className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-500 hover:text-teal-400 rounded transition-all ml-0.5 shrink-0"
-                                            title="Rename Phase"
-                                          >
-                                            <Edit2 className="w-3 h-3" />
-                                          </button>
-                                        )}
                                       </div>
                                     )}
                                   </div>
                                   
-                                  <div className="flex items-center gap-1.5 shrink-0">
-                                    <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${badgeColors[colorIndex]}`}>
-                                      {stats.unitCellFormula || phase.phaseType}
-                                    </span>
+                                  <div className="flex items-start gap-1.5 shrink-0">
                                     {simPhases.length > 1 && (
                                       <button 
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleRemoveSimStructure(idx);
                                         }}
-                                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 transition-all rounded hover:bg-slate-800/80 shrink-0"
+                                        className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all rounded shrink-0"
                                         title="Delete Phase"
                                       >
-                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
+                                        <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                     )}
                                   </div>
                                 </div>
 
-                                <div className="flex flex-col gap-1.5 mt-2.5 pt-2.5 border-t border-slate-800/40 text-[9px] font-mono text-slate-400 select-none">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-1 text-[10px]">
-                                      <span>Wf:</span>
-                                      <span className="text-blue-400 font-black">{(phase.scale / 10).toFixed(1)}%</span>
+                                <div className="mt-4 pt-3 border-t border-slate-800/60 grid grid-cols-2 gap-3 relative z-10">
+                                  {/* Weight Fraction & Scale */}
+                                  <div className="bg-black/30 rounded-lg p-2 border border-slate-800/40">
+                                    <div className="flex items-center justify-between mb-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                                      <span>Weight Frac (Wf)</span>
                                       {phase.enabled && (
-                                        <div className="flex items-center gap-0.5 ml-1" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex gap-0.5" onClick={e => e.stopPropagation()}>
                                           <button 
                                             onClick={(e) => {
                                               e.stopPropagation();
@@ -1918,8 +1924,7 @@ export const RietveldModule: React.FC = () => {
                                                 return next;
                                               });
                                             }}
-                                            className="w-3.5 h-3.5 text-[8px] bg-slate-950 border border-slate-800 text-slate-400 hover:text-teal-400 hover:border-teal-500/20 rounded flex items-center justify-center font-bold"
-                                            title="Decrement relative scale by 5%"
+                                            className="w-4 h-4 bg-slate-900 border border-slate-700 text-slate-400 hover:text-teal-400 hover:border-teal-400/50 rounded flex items-center justify-center transition-colors"
                                           >
                                             -
                                           </button>
@@ -1932,50 +1937,46 @@ export const RietveldModule: React.FC = () => {
                                                 return next;
                                               });
                                             }}
-                                            className="w-3.5 h-3.5 text-[8px] bg-slate-950 border border-slate-800 text-slate-400 hover:text-teal-400 hover:border-teal-500/20 rounded flex items-center justify-center font-bold"
-                                            title="Increment relative scale by 5%"
+                                            className="w-4 h-4 bg-slate-900 border border-slate-700 text-slate-400 hover:text-teal-400 hover:border-teal-400/50 rounded flex items-center justify-center transition-colors"
                                           >
                                             +
                                           </button>
                                         </div>
                                       )}
                                     </div>
-                                    <div className="text-slate-400">
-                                      a: <span className="text-teal-400 font-bold">{phase.a.toFixed(4)}Å</span>
-                                      <span className="text-slate-600 text-[8px] ml-1">({phase.targetA.toFixed(4)})</span>
+                                    <div className="font-mono text-sm font-bold text-blue-400 tracking-tight">
+                                      {(phase.scale / 10).toFixed(1)}<span className="text-[10px] text-zinc-500 ml-0.5">%</span>
                                     </div>
                                   </div>
                                   
-                                  <div className="flex items-center justify-between text-slate-500">
-                                    <div>
-                                      Vol: <span className="text-amber-400/90 font-bold">{stats.volume.toFixed(2)}Å³</span>
-                                    </div>
-                                    <div>
-                                      Density: <span className="text-indigo-400/90 font-bold">{stats.density.toFixed(3)} g/cm³</span>
+                                  {/* Lattice Paramenters */}
+                                  <div className="bg-black/30 rounded-lg p-2 border border-slate-800/40">
+                                    <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Cell Axis (a)</div>
+                                    <div className="font-mono text-sm font-bold text-teal-400 tracking-tight flex items-baseline gap-1.5">
+                                      {phase.a.toFixed(4)}<span className="text-[10px] text-zinc-500">Å</span>
+                                      <span className="text-[9px] text-slate-600 line-through">({phase.targetA.toFixed(4)})</span>
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <span className="hidden sm:inline">Crystallite Size:</span><span className="sm:hidden">Cry.S:</span> <span className="text-indigo-400 font-bold">{phase.crystalliteSize.toFixed(1)}nm</span>
+                                  {/* Structural Properties */}
+                                  <div className="col-span-2 grid grid-cols-3 gap-2">
+                                    <div className="flex flex-col">
+                                      <span className="text-[8px] uppercase tracking-widest text-slate-500 font-bold mb-0.5">Cell Vol</span>
+                                      <span className="font-mono text-xs font-bold text-amber-400">{stats.volume.toFixed(2)}<span className="text-[8px] text-slate-600 ml-0.5">Å³</span></span>
                                     </div>
-                                    <div>
-                                      Strain: <span className="text-orange-400 font-bold">{(phase.microstrain * 100).toFixed(3)}%</span>
+                                    <div className="flex flex-col">
+                                      <span className="text-[8px] uppercase tracking-widest text-slate-500 font-bold mb-0.5">Density</span>
+                                      <span className="font-mono text-xs font-bold text-indigo-400">{stats.density.toFixed(2)}<span className="text-[8px] text-slate-600 ml-0.5">g/cm³</span></span>
                                     </div>
-                                  </div>
-                                  
-                                  <div className="flex items-center justify-between text-[8px] text-slate-500">
-                                    <div>
-                                      FWHM: <span className="text-emerald-400 font-bold">{phase.fwhm.toFixed(3)}°</span>
-                                    </div>
-                                    <div>
-                                      Pseud-Voigt η: <span className="text-purple-400 font-bold">{phase.eta.toFixed(2)}</span>
+                                    <div className="flex flex-col">
+                                      <span className="text-[8px] uppercase tracking-widest text-slate-500 font-bold mb-0.5">μ-Strain</span>
+                                      <span className="font-mono text-xs font-bold text-rose-400">{(phase.microstrain * 100).toFixed(2)}<span className="text-[8px] text-slate-600 ml-0.5">%</span></span>
                                     </div>
                                   </div>
                                 </div>
 
                                 {idx === selectedSimPhaseIdx && (
-                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500 rounded-l-xl" />
+                                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-teal-400 to-indigo-500 shadow-[0_0_10px_rgba(20,184,166,0.5)]" />
                                 )}
                               </div>
                             );
@@ -2025,52 +2026,60 @@ export const RietveldModule: React.FC = () => {
                   })()}
 
                   {/* Active Selected Phase Properties */}
-                  <div className="space-y-4 bg-[#0a1120]/80 p-5 rounded-2xl border border-teal-500/20 shadow-xl backdrop-blur-md ring-1 ring-teal-500/10 ring-inset">
-                    <div className="flex items-center justify-between pb-3 border-b border-teal-500/10">
-                      <div className="flex items-center gap-2">
-                        <Beaker className="w-4 h-4 text-teal-400 animate-pulse" />
+                  <div className="space-y-4 bg-gradient-to-br from-[#070D18] to-[#0a1120] p-5 rounded-2xl border border-teal-500/30 shadow-[0_10px_40px_rgba(20,184,166,0.1)] relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(20,184,166,0.05),transparent_60%)] pointer-events-none" />
+                    
+                    <div className="flex items-start justify-between pb-4 border-b border-teal-500/10 relative z-10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center shadow-[inset_0_2px_10px_rgba(20,184,166,0.2)]">
+                          <Beaker className="w-5 h-5 text-teal-400 drop-shadow-[0_0_8px_rgba(20,184,166,0.6)] animate-pulse" />
+                        </div>
                         <div className="flex flex-col">
-                          <div className="text-[10px] uppercase text-teal-400 font-extrabold tracking-widest leading-none">Selected Phase Model</div>
-                          <div className="text-[8px] text-slate-400 font-medium uppercase tracking-[0.08em] mt-0.5">Physical Parameters & Space Group</div>
+                          <div className="text-xs uppercase text-teal-400 font-black tracking-widest leading-none drop-shadow-sm">Selected Phase Model</div>
+                          <div className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-1.5 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> Live Parameter Tuning
+                          </div>
                         </div>
                       </div>
-                      <span className="text-[9px] text-teal-400 font-black uppercase tracking-widest bg-teal-950/60 px-2.5 py-1 rounded border border-teal-500/30 shadow-sm max-w-[150px] truncate">
+                      <span className="text-[10px] text-teal-300 font-black uppercase tracking-widest bg-teal-950/80 px-3 py-1.5 rounded-lg border border-teal-500/40 shadow-inner max-w-[180px] truncate">
                         {currentPhaseObj.name}
                       </span>
                     </div>
 
                     {/* Sub Tab Buttons */}
-                    <div className="grid grid-cols-2 bg-slate-950/40 p-1 rounded-xl border border-slate-800 gap-1 mt-1">
+                    <div className="grid grid-cols-2 bg-[#050B14] p-1.5 rounded-xl border border-slate-800 gap-1.5 mt-2 relative z-10">
                       <button
                         onClick={() => setSelectedPhaseSubTab('params')}
-                        className={`py-2 text-center rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                        className={`py-2.5 text-center rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                           selectedPhaseSubTab === 'params'
-                            ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30 shadow-inner'
-                            : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                            ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30 shadow-[inset_0_1px_5px_rgba(20,184,166,0.2)]'
+                            : 'text-slate-500 hover:text-slate-300 border border-transparent hover:bg-white/5'
                         }`}
                       >
-                        <Ruler className="w-3.5 h-3.5" />
+                        <Ruler className="w-4 h-4" />
                         Lattice & State
                       </button>
                       <button
                         onClick={() => setSelectedPhaseSubTab('symmetry')}
-                        className={`py-2 text-center rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+                        className={`py-2.5 text-center rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                           selectedPhaseSubTab === 'symmetry'
-                            ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30'
-                            : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                            ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30 shadow-[inset_0_1px_5px_rgba(20,184,166,0.2)]'
+                            : 'text-slate-500 hover:text-slate-300 border border-transparent hover:bg-white/5'
                         }`}
                       >
-                        <Compass className="w-3.5 h-3.5" />
+                        <Compass className="w-4 h-4" />
                         Symmetry Projection
                       </button>
                     </div>
 
                     {selectedPhaseSubTab === 'params' ? (
-                      <div className="space-y-4">
+                      <div className="space-y-4 relative z-10">
                         {/* Space Group symmetry info block */}
-                        <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80">
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Symmetry System Selector</label>
+                        <div className="bg-[#050B14] p-4 rounded-xl border border-[#1e293b] shadow-inner">
+                          <div className="flex items-center justify-between mb-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                              <Layers className="w-3.5 h-3.5 text-slate-500" /> Symmetry System Selector
+                            </label>
                             {(() => {
                               const details = SPACE_GROUP_DETAILS[simPhase];
                               return details ? (
@@ -2368,30 +2377,42 @@ export const RietveldModule: React.FC = () => {
                   </div>
 
                   {/* Peak Management Group */}
-                  <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md ring-1 ring-white/5 ring-inset">
-                    <div className="flex items-center justify-between px-1 pb-2 border-b border-slate-800/80">
-                       <div className="flex items-center gap-2">
-                         <Layers className="w-4 h-4 text-indigo-400" />
-                         <div className="text-[10px] uppercase text-indigo-400 font-black tracking-widest">
-                           Diffraction Peaks <span className="text-white/50 lowercase px-1">for</span> <span className="text-indigo-300">{currentPhaseObj.name}</span>
+                  <div className="space-y-4 bg-gradient-to-br from-[#070D18] to-[#0a1120] p-5 rounded-2xl border border-indigo-500/20 shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                    
+                    <div className="flex items-center justify-between pb-4 border-b border-indigo-500/10 relative z-10">
+                       <div className="flex items-center gap-3">
+                         <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center shadow-[inset_0_2px_10px_rgba(99,102,241,0.2)]">
+                           <Layers className="w-5 h-5 text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+                         </div>
+                         <div className="flex flex-col">
+                           <div className="text-xs uppercase text-indigo-400 font-black tracking-widest leading-none drop-shadow-sm">
+                             Diffraction Peaks <span className="text-indigo-200/50 lowercase px-1 font-medium">for</span> <span className="text-indigo-300">{currentPhaseObj.name}</span>
+                           </div>
+                           <div className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-1.5 flex items-center gap-1.5">
+                             <Activity className="w-3 h-3 text-indigo-500" /> Reflection Inventory
+                           </div>
                          </div>
                        </div>
-                       <div className="text-[9px] text-indigo-400 font-black bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">{userParams.peaks.filter(p => p.enabled).length} Active</div>
+                       <div className="text-[10px] text-indigo-300 font-black bg-indigo-950/80 px-3 py-1.5 rounded-lg border border-indigo-500/40 shadow-inner flex items-center gap-2">
+                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                         {userParams.peaks.filter(p => p.enabled).length} Active Index
+                       </div>
                     </div>
 
-                    <div className="bg-[#050B14] rounded-xl border border-[#1e293b] overflow-hidden">
-                       <div className="max-h-[200px] overflow-y-auto overflow-x-hidden custom-scrollbar">
+                    <div className="bg-[#050B14] rounded-xl border border-indigo-500/20 overflow-hidden shadow-inner relative z-10">
+                       <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar">
                          <table className="w-full text-left border-collapse">
-                           <thead className="sticky top-0 bg-[#050B14] z-10">
-                             <tr className="border-b border-slate-800">
-                               <th className="p-2 text-[8px] uppercase text-slate-500 font-black">HKL</th>
-                               <th className="p-2 text-[8px] uppercase text-slate-500 font-black text-center">Pos 2θ(°)</th>
-                               <th className="p-2 text-[8px] uppercase text-slate-500 font-black text-center">FWHM(°)</th>
-                               <th className="p-2 text-[8px] uppercase text-slate-500 font-black text-center">Int. & Status</th>
-                               <th className="p-2 text-[8px] uppercase text-slate-500 font-black text-right">Del</th>
+                           <thead className="sticky top-0 bg-[#070D18] z-10 shadow-md">
+                             <tr className="border-b border-indigo-500/20">
+                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest">HKL Index</th>
+                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center">Pos 2θ(°)</th>
+                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center">FWHM(°)</th>
+                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center">Intensity & State</th>
+                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-right">Delete</th>
                              </tr>
                            </thead>
-                           <tbody className="divide-y divide-slate-800/50">
+                           <tbody className="divide-y divide-indigo-500/10">
                              {userParams.peaks.map((peak, pIdx) => {
                                 let display2Theta = 0;
                                 let rawTheta = 0;
@@ -2429,9 +2450,9 @@ export const RietveldModule: React.FC = () => {
                                    displayFWHM = userParams.fwhm + bSizeDeg + bStrainDeg;
                                 }
                                 return (
-                               <tr key={pIdx} className={`group hover:bg-slate-800/30 transition-colors ${!peak.enabled ? 'opacity-30' : ''}`}>
-                                 <td className="p-2">
-                                   <div className="flex gap-0.5 items-center">
+                               <tr key={pIdx} className={`group hover:bg-indigo-500/5 transition-colors ${!peak.enabled ? 'opacity-30 grayscale' : ''}`}>
+                                 <td className="p-3">
+                                   <div className="flex gap-1 items-center bg-black/40 px-1.5 py-1 rounded inline-flex border border-slate-800/80 shadow-inner">
                                      <input 
                                        type="number"
                                        value={peak.h}
@@ -2442,8 +2463,9 @@ export const RietveldModule: React.FC = () => {
                                          newPeaks[pIdx].h = parseInt(e.target.value) || 0;
                                          setUserParams({...userParams, peaks: newPeaks});
                                        }}
-                                       className="w-5 bg-black/40 border border-slate-700/50 rounded text-[9px] font-mono text-slate-300 text-center"
+                                       className="w-5 bg-transparent border-none text-[10px] font-mono font-black text-indigo-300 text-center focus:ring-0 focus:outline-none p-0"
                                      />
+                                     <span className="text-slate-600 text-[8px] font-black">:</span>
                                      <input 
                                        type="number"
                                        value={peak.k}
@@ -2454,8 +2476,9 @@ export const RietveldModule: React.FC = () => {
                                          newPeaks[pIdx].k = parseInt(e.target.value) || 0;
                                          setUserParams({...userParams, peaks: newPeaks});
                                        }}
-                                       className="w-5 bg-black/40 border border-slate-700/50 rounded text-[9px] font-mono text-slate-300 text-center"
+                                       className="w-5 bg-transparent border-none text-[10px] font-mono font-black text-indigo-300 text-center focus:ring-0 focus:outline-none p-0"
                                      />
+                                     <span className="text-slate-600 text-[8px] font-black">:</span>
                                      <input 
                                        type="number"
                                        value={peak.l}
@@ -2466,45 +2489,53 @@ export const RietveldModule: React.FC = () => {
                                          newPeaks[pIdx].l = parseInt(e.target.value) || 0;
                                          setUserParams({...userParams, peaks: newPeaks});
                                        }}
-                                       className="w-5 bg-black/40 border border-slate-700/50 rounded text-[9px] font-mono text-slate-300 text-center"
+                                       className="w-5 bg-transparent border-none text-[10px] font-mono font-black text-indigo-300 text-center focus:ring-0 focus:outline-none p-0"
                                      />
                                    </div>
                                  </td>
-                                 <td className="p-2 text-center text-[10px] font-mono text-slate-400 font-bold">
-                                    {display2Theta > 0 ? display2Theta.toFixed(2) : '-'}
-                                  </td>
-                                  <td className="p-2 text-center flex items-center justify-center gap-2">
-                                   <input 
-                                     type="number"
-                                     value={peak.intensity}
-                                     step="50"
-                                     onChange={(e) => {
-                                       const newPeaks = [...userParams.peaks];
-                                       newPeaks[pIdx].intensity = parseInt(e.target.value) || 0;
-                                       setUserParams({...userParams, peaks: newPeaks});
-                                     }}
-                                     className="w-12 bg-black/40 border border-slate-700/50 rounded px-1 py-0.5 text-[10px] font-mono text-blue-400 text-right"
-                                   />
-                                   <button 
-                                     onClick={() => {
-                                       const newPeaks = [...userParams.peaks];
-                                       newPeaks[pIdx].enabled = !newPeaks[pIdx].enabled;
-                                       setUserParams({...userParams, peaks: newPeaks});
-                                     }}
-                                     className={`p-1 rounded transition-colors ${peak.enabled ? 'text-teal-400 hover:bg-teal-500/20' : 'text-slate-500 hover:bg-slate-700'}`}
-                                   >
-                                      {peak.enabled ? <CheckCircle2 className="w-3.5 h-3.5" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                                   </button>
+                                 <td className="p-3 text-center text-xs font-mono font-bold text-teal-200 tracking-tight">
+                                    {display2Theta > 0 ? display2Theta.toFixed(2) : <span className="text-slate-600">-</span>}
                                  </td>
-                                 <td className="p-2 text-right">
+                                 <td className="p-3 text-center text-xs font-mono font-bold text-amber-200/90 tracking-tight">
+                                    {displayFWHM > 0 ? displayFWHM.toFixed(3) : <span className="text-slate-600">-</span>}
+                                 </td>
+                                 <td className="p-3 text-center">
+                                   <div className="flex items-center justify-center gap-3">
+                                     <div className="relative flex items-center">
+                                       <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest absolute -left-6">I:</span>
+                                       <input 
+                                         type="number"
+                                         value={peak.intensity}
+                                         step="50"
+                                         onChange={(e) => {
+                                           const newPeaks = [...userParams.peaks];
+                                           newPeaks[pIdx].intensity = parseInt(e.target.value) || 0;
+                                           setUserParams({...userParams, peaks: newPeaks});
+                                         }}
+                                         className="w-14 bg-black/60 border border-slate-700/50 rounded px-2 py-1 text-[11px] font-mono font-bold text-indigo-200 text-right focus:border-indigo-500/50 focus:ring-indigo-500/20"
+                                       />
+                                     </div>
+                                     <button 
+                                       onClick={() => {
+                                         const newPeaks = [...userParams.peaks];
+                                         newPeaks[pIdx].enabled = !newPeaks[pIdx].enabled;
+                                         setUserParams({...userParams, peaks: newPeaks});
+                                       }}
+                                       className={`p-1.5 rounded transition-all ${peak.enabled ? 'text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]' : 'text-slate-500 bg-slate-800/50 hover:bg-slate-700 border border-slate-700/50'}`}
+                                     >
+                                        {peak.enabled ? <CheckCircle2 className="w-3.5 h-3.5" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                                     </button>
+                                   </div>
+                                 </td>
+                                 <td className="p-3 text-right">
                                    <button 
                                      onClick={() => {
                                        const newPeaks = userParams.peaks.filter((_, i) => i !== pIdx);
                                        setUserParams({...userParams, peaks: newPeaks});
                                      }}
-                                     className="p-1 text-slate-600 hover:text-rose-500 transition-colors"
+                                     className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 rounded transition-all inline-flex"
                                    >
-                                     <Zap className="w-3.5 h-3.5" />
+                                     <Trash2 className="w-3.5 h-3.5" />
                                    </button>
                                  </td>
                                </tr>
@@ -3017,7 +3048,7 @@ export const RietveldModule: React.FC = () => {
                     
                     {/* Difference Curve (Area for better visual anchoring) */}
                     <Area 
-                      type="monotone" 
+                      type="natural" 
                       dataKey="diff" 
                       name="diff"
                       stroke="#64748b" 
@@ -3046,7 +3077,7 @@ export const RietveldModule: React.FC = () => {
                     
                     {/* Calculated Profile over Obs data */}
                     <Area 
-                      type="monotone" 
+                      type="natural" 
                       dataKey="calc" 
                       name="calc"
                       stroke="#ef4444" 
@@ -3064,7 +3095,7 @@ export const RietveldModule: React.FC = () => {
                       return (
                         <Area 
                           key={`calc_phase_${idx}`}
-                          type="monotone" 
+                          type="natural" 
                           dataKey={`calc_phase_${idx}`}
                           name={p.name}
                           stroke={color} 
@@ -3080,7 +3111,7 @@ export const RietveldModule: React.FC = () => {
 
                     {/* Background */}
                     <Line 
-                      type="monotone" 
+                      type="natural" 
                       dataKey="bkg" 
                       name="bkg"
                       stroke="#94a3b8"
@@ -3103,7 +3134,7 @@ export const RietveldModule: React.FC = () => {
                       return (
                         <Area 
                           key={`phase_area_${p.id}`}
-                          type="monotone" 
+                          type="natural" 
                           dataKey={`calc_phase_${idx}`} 
                           name={`${p.name}`}
                           stroke={c.stroke} 

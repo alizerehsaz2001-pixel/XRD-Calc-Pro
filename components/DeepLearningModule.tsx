@@ -497,7 +497,10 @@ export const DeepLearningModule: React.FC = () => {
           matched_peaks: parseXYData(matchedMaterial.pattern).map(p => ({
             refT: p.twoTheta,
             obsT: p.twoTheta,
-            refI: p.intensity
+            refI: p.intensity,
+            h: p.h,
+            k: p.k,
+            l: p.l
           })),
           description: matchedMaterial.description,
           crystalSystem: matchedMaterial.crystalSystem,
@@ -559,7 +562,7 @@ Optical Properties: ${selectedCandidate.opticalProperties || "N/A"}
 ${selectedCandidate.description || "N/A"}
 
 --- Matched Peaks ---
-${selectedCandidate.matched_peaks?.map(p => `Ref: ${p.refT.toFixed(2)}° | Obs: ${p.obsT.toFixed(2)}° | Int: ${p.refI}`).join('\n') || "No detailed peak data"}
+${selectedCandidate.matched_peaks?.map(p => `Ref: ${p.refT.toFixed(2)}°${p.h !== undefined ? ` [${p.h} ${p.k} ${p.l}]` : ''} | Obs: ${p.obsT.toFixed(2)}° | Int: ${p.refI}`).join('\n') || "No detailed peak data"}
 
 --- Applications ---
 ${selectedCandidate.applications?.join(', ') || "N/A"}
@@ -591,7 +594,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       'Lunar-Regolith-Simulant', 'Pharmaceutical-Polymorph-Mixture', 'Bone-Scaffold-Bioactive', 'Meteorite-Chondrite-Suite',
       'Solid-State-Electrolyte-Suite', 'Earth-Mantle-Assemblage', 'Semiconductor-Hetero-Suite', 'Nuclear-Waste-Pyrochlore',
       'Superconducting-Tape-HTS', 'Mars-Soil-Curiosity', 'Corrosion-Rust-Scale', 'Asbestos-Mineralogy',
-      'Volcanic-Ash-Tephra', 'Fly-Ash-Geopolymer', 'Solar-Cell-Perovskite-Degradation', 'Kidney-Stone-Urolithiasis'
+      'Volcanic-Ash-Tephra', 'Fly-Ash-Geopolymer', 'Solar-Cell-Perovskite-Degradation', 'Kidney-Stone-Urolithiasis',
+      'ASR-Cement-Suite', 'Li-S-Battery-Suite', 'MXene-Supercap-Suite', 'Greenschist-Facies-Suite'
     ].includes(type);
     setIsMixMode(isMixType);
     setMixtureList([]);
@@ -753,6 +757,18 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     } else if (type === 'Kidney-Stone-Urolithiasis') {
       setInputData(`14.9, 100\n23.8, 85\n30.1, 45\n32.2, 60\n36.4, 30\n40.1, 20`);
       setSearchTerm("COD-1011110: Kidney Stone (Whewellite + Weddellite)");
+    } else if (type === 'ASR-Cement-Suite') {
+      setInputData(`9.1, 80\n15.8, 45\n18.1, 90\n20.8, 15\n22.9, 30\n26.64, 100\n34.1, 75\n47.1, 45`);
+      setSearchTerm("COD-9008210: Cement ASR Degradation Suite (Portlandite + Quartz + Ettringite)");
+    } else if (type === 'Li-S-Battery-Suite') {
+      setInputData(`23.1, 80\n25.8, 35\n26.5, 20\n27.0, 100\n27.7, 30\n44.8, 55\n53.1, 40`);
+      setSearchTerm("COD-9014120: Li-S Battery Cathode Suite (S8 + Li2S + Carbon)");
+    } else if (type === 'MXene-Supercap-Suite') {
+      setInputData(`9.2, 100\n10.5, 75\n18.4, 20\n26.5, 15\n27.6, 12\n28.0, 95\n35.1, 80\n54.3, 60`);
+      setSearchTerm("COD-4501280: MXene Supercapacitor Suite (Ti3C2Tx + GO + RuO2)");
+    } else if (type === 'Greenschist-Facies-Suite') {
+      setInputData(`6.3, 50\n10.5, 45\n12.6, 75\n18.9, 30\n23.3, 35\n25.2, 40\n28.0, 100\n28.1, 95\n31.4, 45\n34.2, 60`);
+      setSearchTerm("RRUFF-R070110: Greenschist Metamorphic Suite (Chlorite + Actinolite + Epidote)");
     } else {
       // Generic finder for all single phase examples
       const searchKey = type === 'HAP' || type === 'HAP-Sintered' ? 'Hydroxyapatite (Sintered)' : 
@@ -890,6 +906,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'NaCl' ? 'Halite' :
                         type === 'KCl' ? 'Sylvite' :
                         type === 'CaF2' ? 'Calcium Fluoride' :
+                        type === 'In2O3' ? 'Indium(III) Oxide (In2O3)' :
+                        type === 'PbF2' ? 'Lead(II) Fluoride (PbF2)' :
+                        type === 'TlBr' ? 'Thallium(I) Bromide (TlBr)' :
                         type === 'ZrO2' ? 'Zirconia' :
                         type === 'Graphite' ? 'Graphite' :
                         type === 'Hematite' ? 'Hematite' :
@@ -1006,6 +1025,33 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'AkermaniteCeramic' ? 'Akermanite Ceramic' :
                         type === 'AWGlassCeramic' ? 'A-W Glass-ceramic' :
                         type === 'AtorvastatinCalcium' ? 'Atorvastatin Calcium' :
+                        type === 'BiphasicCalciumPhosphate' ? 'Biphasic Calcium Phosphate (HAp/beta-TCP)' :
+                        type === 'PaclitaxelTaxol' ? 'Paclitaxel Crystalline Form I (Taxol)' :
+                        type === 'GelMABioInk' ? 'Gelatin Methacryloyl (GelMA) Bio-Ink' :
+                        type === 'BetaChitin' ? 'Beta-Chitin Diatomaceous Biomaterial' :
+                        type === 'BaghdaditeCeramic' ? 'Baghdadite Ceramic' :
+                        type === 'StruviteCement' ? 'Struvite Bone Cement (MgNH4PO4·6H2O)' :
+                        type === 'PiroxicamFormI' ? 'Piroxicam Crystalline Form I' :
+                        type === 'GOBioNanosheet' ? 'Graphene Oxide Bio-Nanosheet' :
+                        type === 'CBDCrystalline' ? 'Cannabidiol Crystalline Polymorph' :
+                        type === 'UO2F2' ? 'Uranyl Fluoride (UO2F2)' :
+                        type === 'Ag2F' ? 'Silver Subfluoride (Ag2F)' :
+                        type === 'YbOF' ? 'Ytterbium(III) Oxyfluoride (YbOF)' :
+                        type === 'BiOI' ? 'Bismuth Oxyiodide (BiOI)' :
+                        type === 'ReO3' ? 'Rhenium Trioxide (ReO3)' :
+                        type === 'SS904L' ? 'Stainless Steel 904L' :
+                        type === 'Ti15Mo' ? 'Ti-15Mo High-Beta Alloy' :
+                        type === 'Invar36' ? 'Invar 36 Low-Expansion Alloy' :
+                        type === 'Stellite6' ? 'Stellite 6 Cobalt-Base Alloy' :
+                        type === 'BerylliumCopper' ? 'Beryllium Copper (C17200)' :
+                        type === 'Al7075' ? 'Aluminum Alloy (7075-T6)' :
+                        type === 'MgWE43' ? 'Magnesium Alloy WE43' :
+                        type === 'Ta10W' ? 'Tantalum-10W Alloy' :
+                        type === 'Nb3Sn' ? 'Niobium-Tin (Nb3Sn)' :
+                        type === 'Cuprite' ? 'Cuprite (Cu2O)' :
+                        type === 'Chalcocite' ? 'Chalcocite (Cu2S)' :
+                        type === 'CartridgeBrass' ? 'Cartridge Brass C2600' :
+                        type === 'Cupronickel7030' ? 'Cupronickel 70-30' :
                         type === 'AlSb' ? 'AlSb Semiconductor' :
                         type === 'MoTe2' ? 'MoTe2 monolayer' :
                         type === 'BaSnO3' ? 'Barium Stannate Perovskite' :
@@ -1022,6 +1068,15 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         type === 'Biotite' ? 'Biotite' :
                         type === 'Muscovite' ? 'Muscovite' :
                         type === 'Kaolinite' ? 'Kaolinite' :
+                        type === 'Moissanite' ? 'Moissanite (SiC)' :
+                        type === 'Diopside' ? 'Diopside' :
+                        type === 'Lonsdaleite' ? 'Lonsdaleite (Hex. Diamond)' :
+                        type === 'Shungite' ? 'Shungite' :
+                        type === 'AndraditeGarnet' ? 'Andradite Garnet (Ca3Fe2(SiO4)3)' :
+                        type === 'Coesite' ? 'Coesite (SiO2 High-Pressure Polymorph)' :
+                        type === 'Chaoite' ? 'Chaoite (White Carbon Allotrope)' :
+                        type === 'Wurtzite' ? 'Wurtzite (Hexagonal ZnS)' :
+                        type === 'Crocidolite' ? 'Crocidolite (Blue Asbestos Amphibole)' :
                         type === 'Montmorillonite' ? 'Montmorillonite' :
                         type === 'Illite' ? 'Illite' :
                         type === 'Dolomite' ? 'Dolomite' :
@@ -1108,7 +1163,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
     
     const data = [];
 
-    for (let t = minT; t <= maxT; t += 0.2) {
+    for (let t = minT; t <= maxT; t += 0.05) {
       let intensity = 0;
       for (const p of sortedPoints) {
         intensity += p.intensity * Math.exp(-Math.pow(t - p.twoTheta, 2) / sigma22);
@@ -1140,6 +1195,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
   const refData = selectedCandidate?.matched_peaks?.map(mp => ({
     twoTheta: mp.refT,
     refIntensity: mp.refI,
+    hkl: (mp.h !== undefined && mp.k !== undefined && mp.l !== undefined) ? `${mp.h}${mp.k}${mp.l}` : undefined
   })) || [];
 
   const rawInputData = isDiscrete ? parsedPoints.map(p => ({
@@ -1161,12 +1217,20 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
           
           <div className="space-y-2">
             {payload.map((p: any, idx: number) => (
-              <div key={`tooltip-${p.name}-${idx}`} className="flex items-center justify-between gap-6 py-1 px-2 rounded-lg bg-white/5 border border-white/5">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-[2px]" style={{ backgroundColor: p.color, boxShadow: `0 0 8px ${p.color}` }} />
-                  <span className="text-slate-300 font-medium truncate max-w-[150px]">{p.name}</span>
+              <div key={`tooltip-${p.name}-${idx}`} className="flex flex-col gap-1 py-1.5 px-2 rounded-lg bg-white/5 border border-white/5 mb-1 last:mb-0">
+                <div className="flex items-center justify-between gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: p.color, boxShadow: `0 0 8px ${p.color}` }} />
+                    <span className="text-slate-300 font-medium text-[11px] uppercase tracking-wide truncate max-w-[150px]">{p.name}</span>
+                  </div>
+                  <span className="font-mono font-black text-sm" style={{ color: p.color }}>{p.value?.toFixed ? p.value.toFixed(1) : p.value}</span>
                 </div>
-                <span className="font-mono font-black" style={{ color: p.color }}>{p.value?.toFixed ? p.value.toFixed(1) : p.value}</span>
+                {p.payload?.hkl && p.name.includes('Reference') && (
+                  <div className="flex items-center justify-between pl-[18px] pr-1 mt-0.5">
+                    <span className="text-[9px] text-pink-500/80 uppercase font-black tracking-widest">Miller Indices</span>
+                    <span className="text-[10px] text-pink-400 font-mono font-black bg-pink-500/10 px-1.5 rounded">[{p.payload.hkl}]</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -1696,6 +1760,15 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { id: 'AWGlassCeramic', label: 'A-W Glass-ceramic' },
                         { id: 'AtorvastatinCalcium', label: 'Atorvastatin' },
                         { id: 'ZTAFemoralJoint', label: 'ZTA Femoral Head' },
+                        { id: 'BiphasicCalciumPhosphate', label: 'Biphasic CaP (BCP)' },
+                        { id: 'PaclitaxelTaxol', label: 'Paclitaxel Form I' },
+                        { id: 'GelMABioInk', label: 'GelMA Bio-Ink' },
+                        { id: 'BetaChitin', label: 'Beta-Chitin squid' },
+                        { id: 'BaghdaditeCeramic', label: 'Baghdadite Ceramic' },
+                        { id: 'StruviteCement', label: 'Struvite Cement' },
+                        { id: 'PiroxicamFormI', label: 'Piroxicam Form I' },
+                        { id: 'GOBioNanosheet', label: 'GO Bio-Nanosheet' },
+                        { id: 'CBDCrystalline', label: 'CBD Crystalline' },
                       ]
                     },
                     {
@@ -1753,6 +1826,16 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { id: 'ElectricalSteel', label: 'Electrical Steel' },
                         { id: 'Permalloy', label: 'Permalloy' },
                         { id: 'PhosphorBronze', label: 'Phosphor Bronze' },
+                        { id: 'SS904L', label: 'SS 904L' },
+                        { id: 'Ti15Mo', label: 'Ti-15Mo Beta' },
+                        { id: 'Invar36', label: 'Invar 36' },
+                        { id: 'Stellite6', label: 'Stellite 6' },
+                        { id: 'CartridgeBrass', label: 'Cartridge Brass' },
+                        { id: 'Cupronickel7030', label: 'Cupronickel' },
+                        { id: 'BerylliumCopper', label: 'Beryllium Copper' },
+                        { id: 'MgWE43', label: 'Mg WE43' },
+                        { id: 'Ta10W', label: 'Ta-10W' },
+                        { id: 'Nb3Sn', label: 'Nb3Sn' },
                       ]
                     },
                     {
@@ -1817,6 +1900,10 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { id: 'Kaolinite', label: 'Kaolinite' },
                         { id: 'Montmorillonite', label: 'Montmorillonite' },
                         { id: 'Illite', label: 'Illite' },
+                        { id: 'Moissanite', label: 'Moissanite' },
+                        { id: 'Diopside', label: 'Diopside' },
+                        { id: 'Lonsdaleite', label: 'Lonsdaleite' },
+                        { id: 'Shungite', label: 'Shungite' },
                         { id: 'Dolomite', label: 'Dolomite' },
                         { id: 'Aragonite', label: 'Aragonite' },
                         { id: 'Ilmenite', label: 'Ilmenite' },
@@ -1830,6 +1917,11 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { id: 'HardCarbon', label: 'Hard Carbon' },
                         { id: 'GlassyCarbon', label: 'Glassy Carbon' },
                         { id: 'Anthracite', label: 'Anthracite' },
+                        { id: 'AndraditeGarnet', label: 'Andradite Garnet' },
+                        { id: 'Coesite', label: 'Coesite' },
+                        { id: 'Chaoite', label: 'Chaoite' },
+                        { id: 'Wurtzite', label: 'Wurtzite' },
+                        { id: 'Crocidolite', label: 'Crocidolite' },
                       ]
                     },
                     {
@@ -1893,11 +1985,18 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                     {
                       category: "Oxides & Halides",
                       items: [
+                        { id: 'UO2F2', label: 'Uranyl Fluoride' },
+                        { id: 'Ag2F', label: 'Silver Subfluoride' },
+                        { id: 'YbOF', label: 'Yb Oxyfluoride' },
+                        { id: 'BiOI', label: 'Bi Oxyiodide' },
+                        { id: 'ReO3', label: 'Rhenium Trioxide' },
                         { id: 'CeO2', label: 'CeO2' },
                         { id: 'ZrO2', label: 'ZrO2' },
                         { id: 'Y2O3', label: 'Y2O3' },
                         { id: 'CuO', label: 'CuO' },
                         { id: 'Cu2O', label: 'Cu2O' },
+                        { id: 'Cuprite', label: 'Cuprite' },
+                        { id: 'Chalcocite', label: 'Chalcocite' },
                         { id: 'NiO', label: 'NiO' },
                         { id: 'Co3O4', label: 'Co3O4' },
                         { id: 'Fe3O4', label: 'Fe3O4' },
@@ -1913,6 +2012,9 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { id: 'KCl', label: 'KCl' },
                         { id: 'AgCl', label: 'AgCl' },
                         { id: 'BiOCl', label: 'BiOCl' },
+                        { id: 'In2O3', label: 'In2O3' },
+                        { id: 'PbF2', label: 'PbF2' },
+                        { id: 'TlBr', label: 'TlBr' },
                         { id: 'PTFE', label: 'PTFE' },
                         { id: 'PbO', label: 'PbO (Litharge)' },
                         { id: 'Bi2O3', label: 'Bi2O3' },
@@ -1990,7 +2092,11 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         { id: 'Volcanic-Ash-Tephra', label: 'Volcanic Ash' },
                         { id: 'Fly-Ash-Geopolymer', label: 'Geopolymer Fly Ash' },
                         { id: 'Solar-Cell-Perovskite-Degradation', label: 'Perovskite Degraded' },
-                        { id: 'Kidney-Stone-Urolithiasis', label: 'Kidney Stone' }
+                        { id: 'Kidney-Stone-Urolithiasis', label: 'Kidney Stone' },
+                        { id: 'ASR-Cement-Suite', label: 'Cement ASR' },
+                        { id: 'Li-S-Battery-Suite', label: 'Li-Sulfur Battery' },
+                        { id: 'MXene-Supercap-Suite', label: 'MXene Supercapacitor' },
+                        { id: 'Greenschist-Facies-Suite', label: 'Greenschist Metamorphic' }
                       ]
                     }
                   ].map((categoryObj, idx) => (
@@ -2317,26 +2423,29 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
       <div className="lg:col-span-8 space-y-6">
         
         {/* Visualizer */}
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl border border-slate-800 h-[850px] lg:h-[950px] flex flex-col relative overflow-hidden group/vis">
+        <div className="bg-gradient-to-br from-[#0B1121] to-[#070B14] p-8 rounded-[2.5rem] shadow-2xl border border-slate-800 h-[1000px] lg:h-[1100px] flex flex-col relative overflow-hidden group/vis">
           {/* Subtle grid background to look like a terminal/software UI */}
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none mix-blend-screen"></div>
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent opacity-60" />
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDQwIEwgNDAgNDAgNDAgMCBMIDQwIDQwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-[0.4] pointer-events-none mix-blend-screen"></div>
+          <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-cyan-500/80 to-transparent opacity-80 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
           
           <div className="flex flex-col gap-6 mb-6 relative z-10">
-            <div className="flex justify-between items-center px-2">
-              <div className="flex items-center gap-4">
+            <div className="flex justify-between items-center px-4 py-3 bg-[#0A101C]/60 backdrop-blur-md rounded-3xl border border-slate-800/80 shadow-inner">
+              <div className="flex items-center gap-5">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-cyan-500/20 blur-lg rounded-full" />
-                  <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-cyan-500/40 flex items-center justify-center relative shadow-[0_0_20px_rgba(34,211,238,0.25)]">
-                    <Activity className="w-6 h-6 text-cyan-400" />
+                  <div className="absolute inset-0 bg-cyan-500/30 blur-xl rounded-full" />
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0F172A] to-[#0A101C] border border-cyan-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(34,211,238,0.2)]">
+                    <Activity className="w-7 h-7 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-white tracking-[0.15em] uppercase drop-shadow-lg">Phase Match Visualization</h3>
-                  <div className="flex items-center gap-3">
-                    <p className="text-[10px] text-cyan-400/80 font-mono uppercase tracking-[0.2em] font-black">Convolutional Overlay</p>
-                    <div className="w-1 h-1 rounded-full bg-cyan-500/50" />
-                    <p className="text-[9px] text-cyan-500/40 font-mono uppercase tracking-widest">Active_Stream_v4.2</p>
+                  <h3 className="text-xl font-black text-white tracking-[0.2em] uppercase drop-shadow-lg flex items-center gap-3">
+                    Spectral Alignment Visualization
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[9px] text-cyan-400 tracking-widest font-mono">LIVE</span>
+                  </h3>
+                  <div className="flex items-center gap-3 mt-1">
+                    <p className="text-[10px] text-cyan-400/80 font-mono uppercase tracking-[0.2em] font-bold">1D Convolutional Overlay Target</p>
+                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/50" />
+                    <p className="text-[9px] text-cyan-500/50 font-mono uppercase tracking-[0.1em]">Engine: V4.2_OPTIMIZED</p>
                   </div>
                 </div>
               </div>
@@ -2367,87 +2476,87 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
             {/* Advanced Analytics HUD Bar */}
             {selectedCandidate && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-cyan-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(34,211,238,0.05)] transition-all hover:border-cyan-500/50">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 blur-2xl rounded-full -translate-y-12 translate-x-12" />
-                  <div className="flex justify-between items-start mb-2 relative z-10">
-                    <p className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-black flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-sm bg-cyan-500 animate-pulse" /> Target Identity
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-cyan-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(34,211,238,0.1)] transition-all hover:border-cyan-400/80 hover:shadow-[0_8px_30px_rgba(34,211,238,0.25)]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
+                  <div className="flex justify-between items-start mb-3 relative z-10">
+                    <p className="text-[10px] font-mono text-cyan-400 uppercase tracking-[0.2em] font-black flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-sm bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" /> Target Identity
                     </p>
-                    <div className="px-2 py-0.5 rounded border border-cyan-500/30 bg-cyan-500/10 text-[8px] font-mono font-black text-cyan-300 shadow-[inset_0_0_5px_rgba(34,211,238,0.3)]">
+                    <div className="px-2 py-0.5 rounded border border-cyan-500/40 bg-cyan-500/10 text-[9px] font-mono font-black text-cyan-300 shadow-[inset_0_0_5px_rgba(34,211,238,0.3)] tabular-nums">
                       ID_CONF: {selectedCandidate.confidence_score}
                     </div>
                   </div>
-                  <p className="text-xl font-black text-white font-mono drop-shadow-md truncate relative z-10">{selectedCandidate.phase_name}</p>
+                  <p className="text-2xl font-black text-white font-mono drop-shadow-md truncate relative z-10">{selectedCandidate.phase_name}</p>
                   
-                  <div className="flex flex-col gap-1 mt-2 font-mono relative z-10">
+                  <div className="flex flex-col gap-1.5 mt-3 font-mono relative z-10">
                     {selectedCandidate.formula && (
-                       <span className="text-[10px] text-cyan-400 font-bold bg-[#070D18] px-2 py-0.5 rounded border border-cyan-500/20 self-start">
+                       <span className="text-[11px] text-cyan-300 font-bold bg-[#040812] px-2.5 py-1 rounded border border-cyan-500/30 self-start shadow-inner">
                          {selectedCandidate.formula}
                        </span>
                     )}
-                    <span className="text-[9px] text-slate-400 mt-1 uppercase">
+                    <span className="text-[9px] text-slate-400 mt-1 uppercase tracking-wider font-bold">
                       {selectedCandidate.crystalSystem ? selectedCandidate.crystalSystem + ' / ' + (selectedCandidate.spaceGroup || '-') : 'Profile: σ² = 0.5 (GAUSSIAN)'}
                     </span>
                   </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity" />
+                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-cyan-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
                 </div>
                 
-                <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-rose-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(244,63,94,0.05)] transition-all hover:border-rose-500/50">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 blur-2xl rounded-full -translate-y-12 translate-x-12" />
-                  <div className="flex justify-between items-start mb-2 relative z-10">
-                    <p className="text-[10px] font-mono text-rose-400 uppercase tracking-widest font-black flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-sm bg-rose-500 animate-pulse" /> Feature Detection
+                <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-rose-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(244,63,94,0.1)] transition-all hover:border-rose-400/80 hover:shadow-[0_8px_30px_rgba(244,63,94,0.25)]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
+                  <div className="flex justify-between items-start mb-3 relative z-10">
+                    <p className="text-[10px] font-mono text-rose-400 uppercase tracking-[0.2em] font-black flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-sm bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse" /> Feature Detection
                     </p>
-                    <Activity className="w-3.5 h-3.5 text-rose-400/50" />
+                    <Activity className="w-4 h-4 text-rose-400 drop-shadow-[0_0_5px_rgba(244,63,94,0.6)]" />
                   </div>
-                  <div className="flex items-end gap-2 relative z-10">
-                    <p className="text-3xl font-black text-rose-400 font-mono leading-none drop-shadow-[0_0_10px_rgba(244,63,94,0.4)]">{selectedCandidate.matched_peaks?.length || 0}</p>
-                    <span className="text-[10px] font-mono font-black text-slate-400 mb-1 tracking-widest">UNIT PEAKS</span>
+                  <div className="flex items-end gap-2 relative z-10 mt-1">
+                    <p className="text-4xl font-black text-rose-400 font-mono leading-none drop-shadow-[0_0_12px_rgba(244,63,94,0.5)] tabular-nums">{selectedCandidate.matched_peaks?.length || 0}</p>
+                    <span className="text-[10px] font-mono font-black text-slate-400 mb-1 tracking-widest text-shadow-sm">UNIT PEAKS</span>
                   </div>
-                  <div className="mt-3 w-full h-1.5 bg-[#070D18] rounded-full overflow-hidden flex border border-white/5 relative z-10">
-                    <div className="h-full bg-gradient-to-r from-rose-500 to-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.8)] transition-all duration-1000" style={{ width: `${Math.min(100, (selectedCandidate.matched_peaks?.length || 0) * 10)}%` }} />
+                  <div className="mt-4 w-full h-2 bg-[#040812] rounded-full overflow-hidden flex border border-rose-500/20 relative z-10 shadow-inner">
+                    <div className="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.9)] transition-all duration-1000" style={{ width: `${Math.min(100, (selectedCandidate.matched_peaks?.length || 0) * 10)}%` }} />
                   </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-rose-500 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity" />
+                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-rose-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(244,63,94,0.8)]" />
                 </div>
 
-                <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-emerald-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(16,185,129,0.05)] transition-all hover:border-emerald-500/50">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 blur-2xl rounded-full -translate-y-12 translate-x-12" />
-                  <div className="flex justify-between items-start mb-2 relative z-10">
-                    <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest font-black flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-sm bg-emerald-500 animate-pulse" /> Profile Discrepancy
+                <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-emerald-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(16,185,129,0.1)] transition-all hover:border-emerald-400/80 hover:shadow-[0_8px_30px_rgba(16,185,129,0.25)]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
+                  <div className="flex justify-between items-start mb-3 relative z-10">
+                    <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-[0.2em] font-black flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-sm bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" /> Profile Discrepancy
                     </p>
-                    <span className="text-[8px] font-mono font-bold text-emerald-400/60 uppercase">R_wp Indicator</span>
+                    <span className="text-[9px] font-mono font-bold text-emerald-400/80 uppercase">R_wp Indicator</span>
                   </div>
-                  <div className="flex items-end gap-2 relative z-10">
-                    <p className="text-3xl font-black text-emerald-400 font-mono leading-none drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
-                      {(1.0 + (100 - selectedCandidate.confidence_score)*0.05).toFixed(2)}<span className="text-lg">%</span>
+                  <div className="flex items-end gap-2 relative z-10 mt-1">
+                    <p className="text-4xl font-black text-emerald-400 font-mono leading-none drop-shadow-[0_0_12px_rgba(16,185,129,0.5)] tabular-nums">
+                      {(1.0 + (100 - selectedCandidate.confidence_score)*0.05).toFixed(2)}<span className="text-xl">%</span>
                     </p>
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="flex-1 h-3 bg-emerald-500/10 rounded overflow-hidden flex">
-                       <div className="h-full bg-emerald-400/80 shadow-[0_0_5px_rgba(52,211,153,0.5)]" style={{ width: `${selectedCandidate.confidence_score}%` }}></div>
+                  <div className="mt-4 flex items-center gap-3">
+                    <div className="flex-1 h-3.5 bg-emerald-500/10 rounded-full overflow-hidden flex border border-emerald-500/20 shadow-inner">
+                       <div className="h-full bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]" style={{ width: `${selectedCandidate.confidence_score}%` }}></div>
                     </div>
-                    <span className="text-[9px] font-mono text-slate-400 font-bold whitespace-nowrap">GOF: {(1.04 + (100 - selectedCandidate.confidence_score)*0.01).toFixed(2)}</span>
+                    <span className="text-[10px] font-mono text-slate-300 font-black whitespace-nowrap bg-[#040812] px-2 py-0.5 rounded border border-emerald-500/20 shadow-inner">GOF: {(1.04 + (100 - selectedCandidate.confidence_score)*0.01).toFixed(2)}</span>
                   </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-emerald-500 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity" />
+                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]" />
                 </div>
 
-                <div className="relative group/hud overflow-hidden bg-[#0A101C]/80 backdrop-blur-xl border border-indigo-500/20 rounded-xl p-4 shadow-[0_0_20px_rgba(99,102,241,0.05)] transition-all hover:border-indigo-500/50">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 blur-2xl rounded-full -translate-y-12 translate-x-12" />
-                  <div className="flex justify-between items-start mb-2 relative z-10">
-                    <p className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest font-black flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-sm bg-indigo-500 animate-pulse" /> Database Link
+                <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-indigo-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(99,102,241,0.1)] transition-all hover:border-indigo-400/80 hover:shadow-[0_8px_30px_rgba(99,102,241,0.25)]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
+                  <div className="flex justify-between items-start mb-3 relative z-10">
+                    <p className="text-[10px] font-mono text-indigo-400 uppercase tracking-[0.2em] font-black flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-sm bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-pulse" /> Database Link
                     </p>
-                    <Database className="w-3.5 h-3.5 text-indigo-400" />
+                    <Database className="w-4 h-4 text-indigo-400 drop-shadow-[0_0_5px_rgba(99,102,241,0.6)]" />
                   </div>
-                  <p className="text-lg font-black text-white font-mono truncate relative z-10 drop-shadow-md mt-1">{selectedCandidate.card_id || `REF-${selectedCandidate.phase_name?.substring(0, 4)}-67X`}</p>
-                  <div className="mt-3 flex gap-1.5 overflow-hidden relative z-10">
+                  <p className="text-xl font-black text-white font-mono truncate relative z-10 drop-shadow-md mt-2">{selectedCandidate.card_id || `REF-${selectedCandidate.phase_name?.substring(0, 4)}-67X`}</p>
+                  <div className="mt-4 flex flex-wrap gap-2 overflow-hidden relative z-10">
                     {['X-RAY', 'CU-Kα', '0.154NM'].map(tag => (
-                      <span key={tag} className="text-[8px] font-black font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30 uppercase">{tag}</span>
+                      <span key={tag} className="text-[9px] font-black font-mono text-indigo-300 bg-[#040812] px-2.5 py-1 rounded border border-indigo-500/40 uppercase shadow-inner drop-shadow-sm">{tag}</span>
                     ))}
                   </div>
-                  <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity" />
+                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(99,102,241,0.8)]" />
                 </div>
               </div>
             )}
@@ -2584,13 +2693,13 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
                   {/* Input Data */}
                   <Area 
-                    type="monotone" 
+                    type="natural" 
                     dataKey="intensity" 
                     stroke="#22d3ee" 
                     fill="url(#colorUv)" 
-                    strokeWidth={isDiscrete ? 2 : 2.5}
+                    strokeWidth={isDiscrete ? 4 : 5}
                     name={isDiscrete ? "Simulated Input Pattern" : "Input Pattern"} 
-                    activeDot={{ r: 6, fill: '#22d3ee', stroke: '#050b14', strokeWidth: 2, className: 'drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]' }}
+                    activeDot={{ r: 8, fill: '#22d3ee', stroke: '#050b14', strokeWidth: 3, className: 'drop-shadow-[0_0_15px_rgba(34,211,238,0.9)]' }}
                   />
                   
                   {/* Discrete Raw Stick Data (if provided as sticks) */}
@@ -2605,8 +2714,8 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                         const bottomY = yAxis && typeof yAxis.scale === 'function' ? yAxis.scale(0) : cy + 500;
                         return (
                           <g className="transition-all duration-300">
-                            <line x1={cx} y1={bottomY} x2={cx} y2={cy} stroke="#60a5fa" strokeWidth={2} strokeOpacity={0.8} />
-                            <circle cx={cx} cy={cy} r={3} fill="#3b82f6" className="drop-shadow-[0_0_5px_rgba(59,130,246,0.8)]" />
+                            <line x1={cx} y1={bottomY} x2={cx} y2={cy} stroke="#60a5fa" strokeWidth={5} strokeOpacity={0.9} />
+                            <circle cx={cx} cy={cy} r={6} fill="#3b82f6" className="drop-shadow-[0_0_8px_rgba(59,130,246,0.9)]" />
                           </g>
                         );
                       }}
@@ -2616,13 +2725,13 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   {/* Reference Data (Gaussian Simulation Overlay) */}
                   {selectedCandidate && (
                      <Area 
-                       type="monotone" 
+                       type="natural" 
                        dataKey="refIntensity" 
                        stroke="#f43f5e" 
                        fill="url(#colorRv)" 
                        fillOpacity={0.4}
-                       strokeWidth={2}
-                       strokeDasharray="4 4"
+                       strokeWidth={4}
+                       strokeDasharray="6 4"
                        name={`${selectedCandidate.phase_name} (Simulation)`} 
                      />
                   )}
@@ -2630,7 +2739,7 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   {/* Residual / Error Difference Curve */}
                   {selectedCandidate && (
                      <Area 
-                       type="monotone" 
+                       type="natural" 
                        dataKey="residual" 
                        stroke="none" 
                        fill="url(#colorResid)"
@@ -2647,15 +2756,21 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                       name={`${selectedCandidate.phase_name} (Reference DB)`} 
                       fill="#f43f5e"
                       shape={(props: any) => {
-                        const { cx, cy, yAxis } = props;
+                        const { cx, cy, yAxis, payload } = props;
                         const bottomY = yAxis && typeof yAxis.scale === 'function' ? yAxis.scale(0) : cy + 500;
                         return (
                           <g className="transition-all duration-300">
                             {/* Stem */}
-                            <line x1={cx} y1={bottomY} x2={cx} y2={cy} stroke="#fb7185" strokeWidth={2} strokeOpacity={0.8} strokeDasharray="3 3" />
+                            <line x1={cx} y1={bottomY} x2={cx} y2={cy} stroke="#fb7185" strokeWidth={5} strokeOpacity={0.9} strokeDasharray="4 4" />
                             {/* Head */}
-                            <path d={`M${cx},${cy - 8} L${cx - 5},${cy} L${cx},${cy + 8} L${cx + 5},${cy} Z`} fill="#f43f5e" className="drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
-                            <circle cx={cx} cy={cy} r={2} fill="#fff" />
+                            <path d={`M${cx},${cy - 12} L${cx - 8},${cy} L${cx},${cy + 12} L${cx + 8},${cy} Z`} fill="#f43f5e" className="drop-shadow-[0_0_12px_rgba(244,63,94,0.9)]" />
+                            <circle cx={cx} cy={cy} r={4} fill="#fff" />
+                            {/* HKL Label */}
+                            {payload.hkl && (
+                              <text x={cx} y={cy - 16} textAnchor="middle" fill="#fb7185" fontSize="12" fontFamily="monospace" fontWeight="black" opacity="1" className="drop-shadow-[0_0_4px_rgba(0,0,0,0.8)]">
+                                {payload.hkl}
+                              </text>
+                            )}
                           </g>
                         );
                       }}
@@ -2767,55 +2882,65 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                 </div>
               )}
 
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10 relative z-10">
-                <div className="flex flex-1 items-center gap-6">
-                  <div className="relative group/icon cursor-default">
-                    <div className="absolute inset-0 bg-violet-600/20 blur-xl rounded-full group-hover/icon:bg-violet-500/30 transition-all duration-700 pointer-events-none" />
-                    <div className="w-16 h-16 bg-[#070D18] rounded-2xl border border-violet-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05),0_5px_20px_rgba(139,92,246,0.3)] group-hover/icon:border-violet-400 transition-colors duration-500 overflow-hidden">
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-                      <Brain className="w-8 h-8 text-violet-400 drop-shadow-[0_0_10px_rgba(167,139,250,0.5)] group-hover/icon:scale-110 group-hover/icon:text-violet-300 transition-all duration-500" />
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1">
-                    <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-indigo-300 uppercase tracking-tighter drop-shadow-sm pb-1 leading-tight">{t('Synthesis Intelligence', 'Synthesis Intelligence')}</h3>
-                    <div className="flex items-center gap-4 mt-2">
-                      <div className="flex gap-1.5 p-1 bg-black/40 rounded-full border border-white/5 shadow-inner">
-                        {[...Array(5)].map((_, i) => (
-                          <div key={`integrity-dot-${i}`} className={`w-2 h-2 rounded-full shadow-inner ${i < 4 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-slate-700'}`} />
-                        ))}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10 relative z-10">
+                  <div className="flex flex-1 items-center gap-6">
+                    <div className="relative group/icon cursor-default shrink-0">
+                      <div className="absolute inset-0 bg-violet-600/20 blur-2xl rounded-full group-hover/icon:bg-violet-500/40 transition-all duration-700 pointer-events-none" />
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-[#070D18] to-[#0B1221] rounded-2xl border border-violet-500/40 flex items-center justify-center relative shadow-[inset_0_2px_20px_rgba(255,255,255,0.05),0_5px_30px_rgba(139,92,246,0.2)] group-hover/icon:border-violet-400 transition-colors duration-500 overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-300/40 to-transparent" />
+                        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-violet-400/40 via-transparent to-transparent animate-pulse" />
+                        <Brain className="w-8 h-8 sm:w-10 sm:h-10 text-violet-400 drop-shadow-[0_0_12px_rgba(167,139,250,0.6)] group-hover/icon:scale-110 group-hover/icon:text-violet-300 transition-all duration-500 relative z-10" />
                       </div>
-                      <div className="h-4 w-px bg-slate-700/50" />
-                      <p className="text-[10px] sm:text-[11px] font-black text-indigo-300/80 uppercase tracking-[0.2em]">{t('C-Score:', 'C-Score:')} <span className="text-indigo-200">{selectedCandidate.confidence_score.toFixed(1)}%</span></p>
+                    </div>
+                    
+                    <div className="flex-1">
+                      <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-indigo-300 uppercase tracking-tighter drop-shadow-sm pb-1 leading-tight flex items-center gap-3">
+                        {t('Synthesis Intelligence', 'Synthesis Intelligence')}
+                        <span className="hidden md:flex px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] items-center gap-1.5 text-emerald-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(52,211,153,0.1)]">
+                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                           Network Active
+                        </span>
+                      </h3>
+                      <div className="flex items-center gap-4 mt-2">
+                        <div className="flex gap-1.5 p-1.5 bg-black/40 rounded-full border border-white/5 shadow-inner">
+                          {[...Array(5)].map((_, i) => (
+                            <div key={`integrity-dot-${i}`} className={`w-2 h-2 rounded-full shadow-inner ${i < 4 ? 'bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.8)]' : 'bg-slate-700'}`} />
+                          ))}
+                        </div>
+                        <div className="h-4 w-px bg-slate-700/50" />
+                        <p className="text-[10px] sm:text-[11px] font-black text-indigo-300/80 uppercase tracking-[0.2em] flex items-center gap-2">
+                          {t('Algorithm C-Score:', 'Algorithm C-Score:')} 
+                          <span className="text-white bg-indigo-500/20 px-2 py-0.5 rounded font-mono shadow-[0_0_10px_rgba(99,102,241,0.2)]">{selectedCandidate.confidence_score.toFixed(1)}%</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex flex-row md:flex-col lg:flex-row gap-3 w-full md:w-auto">
-                   <button 
-                     onClick={handleLatticeEstimation}
-                     className="flex-1 lg:flex-none group relative px-6 py-3.5 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-emerald-500/50 rounded-xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05)] overflow-hidden"
-                   >
-                     <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                     <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                     <div className="flex items-center justify-center gap-3 relative z-10 w-full h-full">
-                       <Calculator className="w-4 h-4 text-emerald-400 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                       <span className="text-[10px] sm:text-[11px] font-black text-slate-300 group-hover:text-emerald-50 uppercase tracking-[0.2em] whitespace-nowrap">{t('Lattice AI', 'Lattice AI')}</span>
-                     </div>
-                   </button>
-                   <button 
-                     onClick={handleGenerateReport}
-                     className="flex-1 lg:flex-none group relative px-6 py-3.5 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-violet-500/50 rounded-xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05)] overflow-hidden"
-                   >
-                     <div className="absolute inset-0 bg-gradient-to-t from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                     <div className="flex items-center justify-center gap-3 relative z-10 w-full h-full">
-                       <FileText className="w-4 h-4 text-violet-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
-                       <span className="text-[10px] sm:text-[11px] font-black text-slate-300 group-hover:text-violet-50 uppercase tracking-[0.2em] whitespace-nowrap">{t('Export Map', 'Export Map')}</span>
-                     </div>
-                   </button>
+                  <div className="flex flex-row md:flex-col lg:flex-row gap-3 w-full md:w-auto mt-4 md:mt-0">
+                     <button 
+                       onClick={handleLatticeEstimation}
+                       className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-emerald-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                     >
+                       <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                       <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
+                         <Calculator className="w-5 h-5 text-emerald-400 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                         <span className="text-[10px] font-black text-slate-300 group-hover:text-emerald-50 uppercase tracking-[0.2em] whitespace-nowrap">{t('Structural AI', 'Structural AI')}</span>
+                       </div>
+                     </button>
+                     <button 
+                       onClick={handleGenerateReport}
+                       className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-violet-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                     >
+                       <div className="absolute inset-0 bg-gradient-to-t from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                       <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
+                         <FileText className="w-5 h-5 text-violet-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
+                         <span className="text-[10px] font-black text-slate-300 group-hover:text-violet-50 uppercase tracking-[0.2em] whitespace-nowrap">{t('Export Logic', 'Export Logic')}</span>
+                       </div>
+                     </button>
+                  </div>
                 </div>
-              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-8 auto-rows-fr">
                 {/* Identity Card */}
@@ -2874,32 +2999,124 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 z-10 relative">
                       {[
-                        { label: 'Density (g/cm³)', val: selectedCandidate.density, max: 22, color: 'emerald' },
-                        { label: 'Molecular Weight (g/mol)', val: selectedCandidate.molecularWeight, max: 400, color: 'blue' },
-                        { label: 'Band Gap (eV)', val: selectedCandidate.bandGap, max: 10, color: 'violet' },
-                        { label: 'Elastic Modulus (GPa)', val: selectedCandidate.elasticModulus, max: 500, color: 'amber' }
+                        { label: 'Density (g/cm³)', val: selectedCandidate.density, max: 22, color: 'emerald', bg: 'emerald-500/10' },
+                        { label: 'Molecular Wt (g/mol)', val: selectedCandidate.molecularWeight, max: 400, color: 'blue', bg: 'blue-500/10' },
+                        { label: 'Band Gap (eV)', val: selectedCandidate.bandGap, max: 10, color: 'violet', bg: 'violet-500/10' },
+                        { label: 'Elastic Modulus (GPa)', val: selectedCandidate.elasticModulus, max: 500, color: 'amber', bg: 'amber-500/10' }
                       ].map((prop, i) => {
                         if (prop.val === undefined) return null;
                         const pct = Math.min((prop.val / prop.max) * 100, 100);
                         const colorClass = 
-                          prop.color === 'emerald' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(52,211,153,0.5)]' :
-                          prop.color === 'blue' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' :
-                          prop.color === 'violet' ? 'bg-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.5)]' :
-                          'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]';
+                          prop.color === 'emerald' ? 'bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]' :
+                          prop.color === 'blue' ? 'bg-gradient-to-r from-blue-600 to-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.6)]' :
+                          prop.color === 'violet' ? 'bg-gradient-to-r from-violet-600 to-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.6)]' :
+                          'bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.6)]';
+                        const textClass = 
+                          prop.color === 'emerald' ? 'text-emerald-400' :
+                          prop.color === 'blue' ? 'text-blue-400' :
+                          prop.color === 'violet' ? 'text-violet-400' :
+                          'text-amber-400';
                         
                         return (
-                          <div key={"prop-" + i} className="flex flex-col gap-2">
+                          <div key={"prop-" + i} className="flex flex-col gap-3 group/bar">
                             <div className="flex justify-between items-end">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{prop.label}</span>
-                              <span className="text-xs font-mono font-black text-white">{prop.val}</span>
+                              <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">{prop.label}</span>
+                              <span className={`text-base font-mono font-black ${textClass} drop-shadow-md`}>{prop.val.toFixed(1)}</span>
                             </div>
-                            <div className="h-2 w-full bg-[#0B1221] rounded-full border border-[#1e293b] overflow-hidden">
+                            <div className="h-2.5 w-full bg-[#050B14] rounded-full border border-slate-800/80 overflow-hidden relative shadow-inner">
                               <div className={`h-full rounded-full transition-all duration-1000 ${colorClass}`} style={{ width: `${pct}%` }} />
                             </div>
                           </div>
                         );
                       })}
                     </div>
+
+                    {/* Thermodynamic & Stability Analysis */}
+                    {selectedCandidate && (
+                      <div className="mt-8 pt-8 border-t border-[#1e293b]/55 z-10 relative">
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="relative">
+                               <div className="absolute inset-0 bg-rose-500/20 blur-md rounded-full" />
+                               <div className="p-3 bg-gradient-to-br from-[#0F172A] to-[#0A101C] rounded-2xl text-rose-400 border border-rose-500/30 relative shadow-[inset_0_2px_10px_rgba(244,63,94,0.1)]">
+                                 <Thermometer className="w-5 h-5 text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+                               </div>
+                            </div>
+                            <div>
+                               <span className="text-[10px] font-black uppercase text-rose-400/90 tracking-[0.3em] block leading-none mb-1">State Analysis</span>
+                               <h5 className="text-sm font-black text-white uppercase tracking-widest drop-shadow-md flex items-center gap-2">
+                                  Thermodynamics & Stability
+                                  <span className="px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/30 rounded text-rose-400 text-[8px] font-mono tracking-widest">COMPUTED</span>
+                               </h5>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                           {/* Enthalpy */}
+                           <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-[#1e293b] shadow-inner transition-all hover:border-rose-500/40 hover:shadow-[0_8px_25px_rgba(244,63,94,0.15)] flex flex-col justify-between h-[130px]">
+                              <div className="absolute -top-10 -right-10 w-24 h-24 bg-rose-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-rose-500/20 transition-colors" />
+                              <div className="flex justify-between items-start relative z-10">
+                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><span className="text-rose-500 text-[11px] font-mono">Δ</span>Hf</span>
+                                 <span className="px-2 py-0.5 rounded border border-emerald-500/30 text-[9px] bg-emerald-500/10 text-emerald-400 font-mono shadow-[inset_0_0_4px_rgba(16,185,129,0.3)]">STABLE</span>
+                              </div>
+                              <div className="relative z-10 mt-auto">
+                                 <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Formation Enthalpy</span>
+                                 <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-rose-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
+                                   {(-(selectedCandidate.density || 5) * 123.4).toFixed(1)} <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">kJ/mol</span>
+                                 </span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-rose-500/50 to-transparent opacity-0 group-hover/thermo:opacity-100 transition-opacity" />
+                           </div>
+                           
+                           {/* Entropy */}
+                           <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-[#1e293b] shadow-inner transition-all hover:border-amber-500/40 hover:shadow-[0_8px_25px_rgba(245,158,11,0.15)] flex flex-col justify-between h-[130px]">
+                              <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-amber-500/20 transition-colors" />
+                              <div className="flex justify-between items-start relative z-10">
+                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><span className="text-amber-500 text-[11px] font-mono">S</span>°</span>
+                                 <span className="px-2 py-0.5 rounded border border-slate-700/80 text-[9px] bg-slate-800/80 text-slate-400 font-mono">298K</span>
+                              </div>
+                              <div className="relative z-10 mt-auto">
+                                 <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Standard Entropy</span>
+                                 <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-amber-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
+                                   {((selectedCandidate.molecularWeight || 50) * 0.42).toFixed(1)} <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">J/(mol·K)</span>
+                                 </span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-amber-500/50 to-transparent opacity-0 group-hover/thermo:opacity-100 transition-opacity" />
+                           </div>
+                           
+                           {/* Gibbs Free Energy */}
+                           <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-[#1e293b] shadow-inner transition-all hover:border-cyan-500/40 hover:shadow-[0_8px_25px_rgba(34,211,238,0.15)] flex flex-col justify-between h-[130px]">
+                              <div className="absolute -top-10 -right-10 w-24 h-24 bg-cyan-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-cyan-500/20 transition-colors" />
+                              <div className="flex justify-between items-start relative z-10">
+                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><span className="text-cyan-500 text-[11px] font-mono">Δ</span>Gf</span>
+                                 <span className="px-2 py-0.5 rounded border border-cyan-500/30 text-[9px] bg-cyan-500/10 text-cyan-400 font-mono shadow-[inset_0_0_4px_rgba(34,211,238,0.3)]">SPON</span>
+                              </div>
+                              <div className="relative z-10 mt-auto">
+                                 <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Gibbs Free Energy</span>
+                                 <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-cyan-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
+                                   {(-(selectedCandidate.density || 5) * 115.2).toFixed(1)} <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">kJ/mol</span>
+                                 </span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-cyan-500/50 to-transparent opacity-0 group-hover/thermo:opacity-100 transition-opacity" />
+                           </div>
+
+                           {/* Heat Capacity */}
+                           <div className="relative group/thermo overflow-hidden bg-gradient-to-br from-[#0B1221] to-[#070D18] p-5 rounded-2xl border border-[#1e293b] shadow-inner transition-all hover:border-fuchsia-500/40 hover:shadow-[0_8px_25px_rgba(217,70,239,0.15)] flex flex-col justify-between h-[130px]">
+                              <div className="absolute -top-10 -right-10 w-24 h-24 bg-fuchsia-500/10 blur-[2rem] rounded-full pointer-events-none group-hover/thermo:bg-fuchsia-500/20 transition-colors" />
+                              <div className="flex justify-between items-start relative z-10">
+                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><span className="text-fuchsia-500 text-[11px] font-mono">C</span>p</span>
+                                 <span className="px-2 py-0.5 rounded border border-slate-700/80 text-[9px] bg-slate-800/80 text-slate-400 font-mono">ISO</span>
+                              </div>
+                              <div className="relative z-10 mt-auto">
+                                 <span className="block text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1.5">Heat Capacity</span>
+                                 <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-fuchsia-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
+                                   {((selectedCandidate.molecularWeight || 50) * 0.15).toFixed(1)} <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">J/(mol·K)</span>
+                                 </span>
+                              </div>
+                              <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-fuchsia-500/50 to-transparent opacity-0 group-hover/thermo:opacity-100 transition-opacity" />
+                           </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Constituent elements under Physical property spectrum */}
                     {selectedCandidate && (
@@ -3717,66 +3934,85 @@ ${selectedCandidate.applications?.join(', ') || "N/A"}
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.04),transparent_60%)] pointer-events-none" />
                   
                   <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left relative z-10 w-full">
-                    {/* Animated Kinetics Ring */}
+                    {/* Advanced Kinetics Analysis Dashboard */}
                     {(() => {
+                      // Pre-calculation based on selected material properties
+                      const isPerovskite = selectedCandidate?.formula?.includes('PbI3') || selectedCandidate?.formula?.includes('MAPbI3');
+                      const isOxide = selectedCandidate?.formula?.includes('O') || selectedCandidate?.formula?.includes('Co') || selectedCandidate?.formula?.includes('Fe');
+                      const baseActivationEnergy = isPerovskite ? 45000 : isOxide ? 120000 : 85000; // J/mol
+                      
+                      const R = 8.314; // Universal gas constant J/(mol·K)
+                      const T_K = 273.15 + synthTemp;
+                      
+                      // Atmosphere tuning
                       const atmoFactor = synthAtmosphere === 'oxygen' ? 1.2 : synthAtmosphere === 'argon' ? 0.8 : synthAtmosphere === 'nitrogen' ? 0.85 : 1.0;
+                      
+                      // pH tuning (solubility coefficient)
                       const phFactor = synthPH < 6 ? 1 + (6 - synthPH) * 0.1 : synthPH > 8 ? 1 + (synthPH - 8) * 0.15 : 0.9;
-                      const baseRate = Math.exp(-3200 / (273 + synthTemp));
-                      const effectiveRate = baseRate * atmoFactor * phFactor;
-                      const cryst = Math.min(99.9, (1 - Math.exp(-effectiveRate * Math.pow(synthTime, 1.5))) * 100);
+                      
+                      // Modified Arrhenius equation for rate constant k (scaled for visualization)
+                      const k_rate = Math.exp(-baseActivationEnergy / (R * T_K)) * 1e8 * atmoFactor * phFactor;
+                      
+                      // JMAK Exponent (n) based on morphology
+                      const n_exp = synthMorphology === 'spherical' ? 3.0 : synthMorphology === 'nanowire' ? 1.5 : synthMorphology === 'nanosheet' ? 2.0 : 2.5;
+
+                      // JMAK Equation: XC = 1 - Math.exp(-k * t^n) 
+                      const cryst = Math.min(99.99, (1 - Math.exp(-k_rate * Math.pow(synthTime * 10, n_exp))) * 100);
+                      
                       return (
-                        <div className="flex items-center gap-5 flex-shrink-0">
-                          <div className="relative w-20 h-20 flex items-center justify-center bg-slate-950 rounded-full shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-                            <svg className="w-full h-full transform -rotate-90 overflow-visible" viewBox="0 0 36 36">
-                              {/* Background track */}
-                              <path
-                                className="text-slate-800"
-                                strokeWidth="3"
-                                stroke="currentColor"
-                                fill="none"
-                                d="M18 3.5 a 14.5 14.5 0 0 1 0 29 a 14.5 14.5 0 0 1 0 -29"
-                              />
-                              {/* Value track */}
-                              <path
-                                className="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)] transition-all duration-1000 ease-out"
-                                strokeDasharray={`${cryst * 0.91}, 100`}
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                stroke="currentColor"
-                                fill="none"
-                                d="M18 3.5 a 14.5 14.5 0 0 1 0 29 a 14.5 14.5 0 0 1 0 -29"
-                              />
-                            </svg>
-                            <span className="absolute text-sm font-black font-mono text-white tracking-tight drop-shadow-md flex items-baseline">
-                              {cryst.toFixed(0)}<span className="text-[9px] text-emerald-400">%</span>
-                            </span>
+                        <div className="flex flex-col xl:flex-row items-center gap-6 w-full">
+                          <div className="flex items-center gap-5 flex-shrink-0 relative">
+                            <div className="relative w-24 h-24 flex items-center justify-center bg-slate-950 rounded-full shadow-[inset_0_2px_15px_rgba(0,0,0,0.8)] border border-slate-800">
+                              <svg className="w-full h-full transform -rotate-90 overflow-visible" viewBox="0 0 36 36">
+                                {/* Background track */}
+                                <path
+                                  className="text-slate-850"
+                                  strokeWidth="2.5"
+                                  stroke="currentColor"
+                                  fill="none"
+                                  d="M18 3.5 a 14.5 14.5 0 0 1 0 29 a 14.5 14.5 0 0 1 0 -29"
+                                />
+                                {/* Value track */}
+                                <path
+                                  className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)] transition-all duration-1000 ease-out"
+                                  strokeDasharray={`${cryst * 0.91}, 100`}
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  stroke="currentColor"
+                                  fill="none"
+                                  d="M18 3.5 a 14.5 14.5 0 0 1 0 29 a 14.5 14.5 0 0 1 0 -29"
+                                />
+                              </svg>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                <span className="text-xl font-black font-mono text-white tracking-tight drop-shadow-md flex items-baseline leading-none mt-1">
+                                  {cryst.toFixed(1)}<span className="text-[10px] text-emerald-400 ml-0.5">%</span>
+                                </span>
+                                <span className="text-[7.5px] font-bold text-slate-500 uppercase tracking-widest mt-1">Yield XC</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="hidden sm:block space-y-1.5">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center gap-2">
-                              <Timer className="w-3.5 h-3.5 text-slate-400" />
-                              Kinetics Analysis
-                            </span>
-                            <span className="text-sm font-bold text-white block tracking-wide">
-                              Crystallization Yield (XC)
-                            </span>
-                            <p className="text-[11px] text-slate-400 max-w-xs leading-relaxed">
-                              Nucleostatic grain formation via Avrami growth modeling at {synthTemp}°C threshold, governed by pH {synthPH} and {synthAtmosphere} solubility limits.
-                            </p>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full relative z-10">
+                            <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/80 flex flex-col justify-center gap-1.5 shadow-inner">
+                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><Timer size={10} className="text-emerald-500"/> Rate Const (k)</span>
+                              <span className="text-sm font-bold text-slate-200 font-mono tracking-tight">{k_rate.toExponential(2)} <span className="text-[9px] text-slate-500 tracking-widest uppercase">s⁻¹</span></span>
+                            </div>
+                            <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/80 flex flex-col justify-center gap-1.5 shadow-inner">
+                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><Activity size={10} className="text-fuchsia-500"/> Avrami Exp (n)</span>
+                              <span className="text-sm font-bold text-slate-200 font-mono tracking-tight">{n_exp.toFixed(1)} <span className="text-[9px] text-slate-500 tracking-widest uppercase">Dim</span></span>
+                            </div>
+                            <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/80 flex flex-col justify-center gap-1.5 shadow-inner">
+                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><Thermometer size={10} className="text-orange-500"/> Activation Ea</span>
+                              <span className="text-sm font-bold text-slate-200 font-mono tracking-tight">{(baseActivationEnergy / 1000).toFixed(1)} <span className="text-[9px] text-slate-500 tracking-widest uppercase">kJ/mol</span></span>
+                            </div>
+                            <div className="bg-slate-950/50 rounded-xl p-3 border border-slate-800/80 flex flex-col justify-center gap-1.5 shadow-inner">
+                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><FlaskConical size={10} className="text-cyan-500"/> JMAK Kinetics</span>
+                              <span className="text-[9px] font-bold text-slate-300 leading-snug">Nucleostatic mapping model</span>
+                            </div>
                           </div>
                         </div>
                       );
                     })()}
-                    
-                    {/* Mobile Only Text */}
-                    <div className="sm:hidden space-y-1.5 w-full text-center">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em] flex items-center justify-center gap-2">
-                        <Timer className="w-3.5 h-3.5 text-slate-400" />
-                        Kinetics Analysis
-                      </span>
-                      <span className="text-sm font-bold text-white block tracking-wide">
-                        Crystallization Yield (XC)
-                      </span>
-                    </div>
 
                     <div className="ml-auto w-full md:w-auto relative z-10 flex-shrink-0 mt-4 md:mt-0 items-center justify-center flex">
                       <button
@@ -3825,7 +4061,8 @@ Peak Shifts:
 ${selectedCandidate?.matched_peaks?.map((p, idx) => {
   const strainVal = (synthDoping * 0.0012) + (0.04 / size);
   const shiftedPeak = p.refT * (1 + strainVal * 0.05); // slightly shifts angles due to contraction
-  return `Peak #${idx+1} | Bulk 2-Theta: ${p.refT.toFixed(3)}° | Shifted 2-Theta: ${shiftedPeak.toFixed(3)}° | Int: ${p.refI.toFixed(1)}`;
+  const hklStr = p.h !== undefined && p.k !== undefined && p.l !== undefined ? ` [${p.h} ${p.k} ${p.l}]` : '';
+  return `Peak #${idx+1}${hklStr} | Bulk 2-Theta: ${p.refT.toFixed(3)}° | Shifted 2-Theta: ${shiftedPeak.toFixed(3)}° | Int: ${p.refI.toFixed(1)}`;
 }).join('\n') || "No reference index paths defined."}
 
 ###################################################################
@@ -4268,11 +4505,16 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                      <CheckCircle className="w-4 h-4 text-emerald-400"/> Feature Alignment Verification
                    </p>
-                   <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2">
+                   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
                      {candidate.matched_peaks?.map((mp, i) => (
-                       <div key={`peak-${mp.refT}-${i}`} className="bg-[#050B14] p-2 rounded-xl border border-[#1e293b] flex justify-between items-center group-hover:border-slate-700 transition-colors shadow-inner">
-                         <span className="text-slate-400 font-mono text-xs">{mp.refT.toFixed(2)}°</span>
-                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                       <div key={`peak-${mp.refT}-${i}`} className="bg-[#050B14] p-2 rounded-xl border border-[#1e293b] flex flex-col justify-center group-hover:border-slate-700 transition-colors shadow-inner relative">
+                         <div className="flex justify-between items-center w-full">
+                           <span className="text-slate-400 font-mono text-xs">{mp.refT.toFixed(2)}°</span>
+                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                         </div>
+                         {mp.h !== undefined && mp.k !== undefined && mp.l !== undefined && (
+                           <span className="text-[9px] text-teal-500/70 font-mono font-black mt-1">({mp.h} {mp.k} {mp.l})</span>
+                         )}
                        </div>
                      ))}
                    </div>

@@ -438,7 +438,7 @@ const PRESETS: MaterialPreset[] = [
     databaseId: '74125'
   },
   {
-    name: 'Methylammonium Lead Iodide (MAPbI3)',
+    name: 'Methylammonium Lead Iodide (MAPbI3) [ICSD]',
     formula: 'CH3NH3PbI3',
     wavelength: 1.5406,
     peaks: [14.08, 24.46, 28.41, 31.85, 40.64, 43.18],
@@ -1390,7 +1390,7 @@ const PRESETS: MaterialPreset[] = [
     databaseId: '1011032'
   },
   {
-    name: 'Methylammonium Lead Iodide (MAPbI3)',
+    name: 'Methylammonium Lead Iodide (MAPbI3) [COD]',
     formula: 'CH3NH3PbI3',
     wavelength: 1.5406,
     peaks: [14.08, 19.98, 24.47, 28.41, 31.84, 35.15, 40.56, 43.19],

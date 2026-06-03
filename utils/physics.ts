@@ -1562,7 +1562,7 @@ export const identifyPhasesDL = (
       name: m.name,
       formula: m.formula || '',
       cardId: 'COD-' + Math.floor(1000000 + Math.random() * 9000000),
-      peaks: m.pattern ? parseXYData(m.pattern).map(p => ({t: p.twoTheta, i: p.intensity})) : [],
+      peaks: m.pattern ? parseXYData(m.pattern).map(p => ({t: p.twoTheta, i: p.intensity, h: p.h, k: p.k, l: p.l})) : [],
       description: m.description,
       crystalSystem: m.crystalSystem,
       spaceGroup: m.spaceGroup,
@@ -1665,7 +1665,7 @@ export const identifyPhasesDL = (
             const relativeIntensityMatch = Math.min(refPeak.i + 10, closest.intensity + 10) / Math.max(refPeak.i + 10, closest.intensity + 10);
             matchScore *= (0.8 + 0.2 * relativeIntensityMatch);
             
-            matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i, obsI: closest.intensity });
+            matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i, obsI: closest.intensity, h: refPeak.h, k: refPeak.k, l: refPeak.l });
           }
         }
         
@@ -1801,7 +1801,7 @@ export const identifyPhasesDL = (
         scoreInc *= (0.8 + 0.2 * relativeIntensityMatch);
         
         matchScore += scoreInc;
-        matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i, obsI: closest.intensity });
+        matchedDetails.push({ refT: refPeak.t, obsT: closest.twoTheta, refI: refPeak.i, obsI: closest.intensity, h: refPeak.h, k: refPeak.k, l: refPeak.l });
       }
     }
 
@@ -1899,7 +1899,13 @@ export const identifyPhasesDL = (
 
 export const parseXYData = (input: string) => {
   return input.split('\n').filter(l => l.trim()).map(l => {
-    const p = l.split(/[\s,]+/).map(parseFloat);
-    return { twoTheta: p[0], intensity: p[1] || 100 };
-  }).filter(p => p.twoTheta > 0);
+    const p = l.split(/[\s,]+/).filter(v => v !== '').map(parseFloat);
+    return { 
+      twoTheta: p[0], 
+      intensity: p[1] || 100,
+      h: p.length > 2 && !isNaN(p[2]) ? p[2] : undefined,
+      k: p.length > 3 && !isNaN(p[3]) ? p[3] : undefined,
+      l: p.length > 4 && !isNaN(p[4]) ? p[4] : undefined
+    };
+  }).filter(p => !isNaN(p.twoTheta) && p.twoTheta > 0);
 };

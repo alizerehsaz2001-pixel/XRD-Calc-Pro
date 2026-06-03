@@ -363,7 +363,7 @@ export interface DLPhaseCandidate {
   match_quality?: string;
   card_id: string;
   formula: string;
-  matched_peaks?: { refT: number; obsT: number; refI: number }[];
+  matched_peaks?: { refT: number; obsT: number; refI: number; h?: number; k?: number; l?: number }[];
   // Material Intelligence Metadata
   description?: string;
   crystalSystem?: string;
