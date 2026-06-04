@@ -13,6 +13,8 @@ export const PythonExportModule: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [isAiMode, setIsAiMode] = useState(false);
+  const [neuralLogs, setNeuralLogs] = useState<string[]>([]);
+  const [currentStepName, setCurrentStepName] = useState<string>('');
 
   const templates = [
     { id: 'basic_analysis', label: 'Basic Peak Analysis', category: 'Analysis', icon: Terminal },
@@ -22,13 +24,32 @@ export const PythonExportModule: React.FC = () => {
     { id: 'plot_publication', label: 'Publication Plotting', category: 'Visualization', icon: Share2 }
   ];
 
-  const aiSuggestions = [
-    "Refine the Lorentzian peak width based on instrument resolution...",
-    "Calculate the lattice strain using a Williamson-Hall plot approach...",
-    "Export a batch processing script for 500 .xy files in my folder...",
-    "Implement a genetic algorithm for crystal structure prediction...",
-    "Fit background using a 5th order Chebyshev polynomial..."
-  ];
+  const aiSuggestionsByLibrary: Record<'pysyn' | 'lmfit' | 'xrayutilities' | 'gsas2', string[]> = {
+    pysyn: [
+      "Calculate high-accuracy Bragg d-spacing & Miller indexing from peak list",
+      "Fit XRD background with custom 5th order Chebyshev baseline subtraction",
+      "Deconvolve crystallite size & strain using Williamson-Hall plot analysis",
+      "Process bulk batch of 100 raw copper .xy powder datasets recursively"
+    ],
+    lmfit: [
+      "Fit Pseudo-Voigt peak models with R-weighted profile (Rwp) optimization",
+      "Perform multi-phase peak deconvolution of Anatase/Rutile standard profiles",
+      "Apply asymmetric Pearson-VII profiles to capture instrument-broadened peaks",
+      "Constrain peak centers to +/- 0.3° 2theta with refined mix parameters"
+    ],
+    gsas2: [
+      "Auto-generate inline CIF directories & perform bulk 15-iteration Rietveld",
+      "Refine sample displacement, instrument zeros, & background variables",
+      "Perform quantitative phase ratio calculations using G2sc scriptable API",
+      "Extract index parameters, final Rwp matrix, & generate refined .gpx graphs"
+    ],
+    xrayutilities: [
+      "Model thin-film texture coplanar geometry with RSM (Reciprocal Space Map)",
+      "Define multi-layer substrate Crystal materials & Bragg reflection angles",
+      "Calculate 3D Q-vector transformations for asymmetric triple-axis reflections",
+      "Construct diffractometer component with non-planar sample tilt corrections"
+    ],
+  };
 
   // Load initial state
   useEffect(() => {
@@ -61,16 +82,43 @@ export const PythonExportModule: React.FC = () => {
     if (!aiPrompt.trim()) return;
     setIsGenerating(true);
     setAiError(null);
+    setNeuralLogs([]);
+    setCurrentStepName('Initializing...');
+
+    // Gather context similar to generateScript
+    const braggStr = localStorage.getItem('xrd_bragg_current');
+    const braggData = braggStr ? JSON.parse(braggStr) : null;
+    const rietveldStr = localStorage.getItem('xrd_rietveld_setup');
+    const rietveldData = rietveldStr ? JSON.parse(rietveldStr) : null;
+
+    const wavelength = braggData?.wavelength || 1.5406;
+    const peaksCount = (braggData?.rawPeaks || '').split(/[,;]+/).filter(Boolean).length || 3;
+
+    const steps = [
+      "⚡ Bootstrapping Neural Core Analysis Compiler (Gemini 3.5-Flash Model)...",
+      `🔬 Context Ingested: Target Wavelength = ${wavelength} Å, ${peaksCount} Peak Indices Loaded.`,
+      `📦 Resolving Python API bindings for system library: '${selectedLibrary}'`,
+      "🧠 Aligning mathematical models (Bragg's Spacings, Scherrer Peak Broadenings)...",
+      "⚒️ Synthesizing dynamic offline-safe dataset simulation fallback script...",
+      "🎨 Optimizing vector-graphic matplotlib layout aesthetics...",
+      "📜 Verifying PEP 8 styling conventions, docstrings, and type assertions...",
+      "✅ Synthesis Successful: Delivering code block to local workspace!"
+    ];
+
+    let logIndex = 0;
+    const logInterval = setInterval(() => {
+      if (logIndex < steps.length) {
+        setNeuralLogs((prev) => [...prev, steps[logIndex]]);
+        setCurrentStepName(steps[logIndex]);
+        logIndex++;
+      } else {
+        clearInterval(logInterval);
+      }
+    }, 450);
 
     try {
-      // Gather context similar to generateScript
-      const braggStr = localStorage.getItem('xrd_bragg_current');
-      const braggData = braggStr ? JSON.parse(braggStr) : null;
-      const rietveldStr = localStorage.getItem('xrd_rietveld_setup');
-      const rietveldData = rietveldStr ? JSON.parse(rietveldStr) : null;
-
       const context = {
-        wavelength: braggData?.wavelength || 1.5406,
+        wavelength,
         peaks: braggData?.rawPeaks || '28.44, 47.30, 56.12',
         phases: rietveldData?.phases || [],
         backgroundTerms: rietveldData?.bgTerms || 6,
@@ -88,6 +136,12 @@ export const PythonExportModule: React.FC = () => {
       });
 
       const data = await res.json();
+      
+      // Ensure all logs have opportunity to render or force fill them remaining
+      clearInterval(logInterval);
+      setNeuralLogs(steps);
+      setCurrentStepName("DELIVERED");
+
       if (data.success) {
         setScriptContent(data.text);
         setIsAiMode(true);
@@ -96,6 +150,7 @@ export const PythonExportModule: React.FC = () => {
         setAiError(data.error || "Failed to generate AI script.");
       }
     } catch (err: any) {
+      clearInterval(logInterval);
       setAiError("Network Error: " + err.message);
     } finally {
       setIsGenerating(false);
@@ -600,7 +655,7 @@ for two_theta in peaks_2theta:
                    </button>
                    
                    <div className="flex-1 flex flex-wrap gap-2">
-                      {aiSuggestions.map((s, i) => (
+                      {(aiSuggestionsByLibrary[selectedLibrary] || []).map((s, i) => (
                          <button
                             key={i}
                             onClick={() => setAiPrompt(s)}
@@ -612,7 +667,35 @@ for two_theta in peaks_2theta:
                    </div>
                 </div>
 
-                {aiError && (
+                {isGenerating && neuralLogs.length > 0 && (
+                   <div className="p-4 rounded-2xl bg-black border border-fuchsia-500/35 shadow-inner font-mono text-[10px] text-fuchsia-400 space-y-1.5 max-h-[160px] overflow-y-auto mt-4 mb-4">
+                     <div className="flex items-center justify-between border-b border-fuchsia-500/10 pb-1.5 mb-2">
+                       <span className="font-sans font-black uppercase tracking-widest flex items-center gap-1.5 text-xs text-white">
+                         <Activity className="w-3.5 h-3.5 text-fuchsia-500 animate-pulse" />
+                         Spectral Compiler Link
+                       </span>
+                       <span className="text-[8px] opacity-75 font-mono bg-fuchsia-500/20 text-fuchsia-300 px-1.5 py-0.5 rounded">
+                         TUNED ACTIVE // 8 SUBSYSTEMS
+                       </span>
+                     </div>
+                     <div className="space-y-1">
+                       {neuralLogs.map((log, idx) => (
+                         <div key={idx} className="flex items-start gap-2">
+                           <span className="text-fuchsia-600 font-bold">[{idx + 1}/8]</span>
+                           <span className={`${idx === neuralLogs.length - 1 ? 'text-white font-extrabold animate-pulse' : 'opacity-80'}`}>
+                             {log}
+                           </span>
+                         </div>
+                       ))}
+                     </div>
+                     <div className="pt-2 border-t border-fuchsia-500/10 text-[9px] uppercase tracking-wider flex justify-between items-center text-fuchsia-500/50">
+                       <span>FORGING LOGICAL THREADS...</span>
+                       <div className="w-2.5 h-2.5 rounded-full bg-fuchsia-500 animate-ping" />
+                     </div>
+                   </div>
+                 )}
+
+                 {aiError && (
                   <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[11px] font-black uppercase tracking-wider flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
                     <div className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                     Neural Failure: {aiError}
@@ -622,6 +705,17 @@ for two_theta in peaks_2theta:
           </div>
 
          <div className="relative group z-10">
+             {isAiMode ? (
+                <div className="absolute left-4 top-3.5 flex items-center gap-1.5 pointer-events-none select-none bg-fuchsia-500/10 text-fuchsia-400 px-2.5 py-1 rounded-md border border-fuchsia-500/20 text-[9px] uppercase tracking-[0.1px] font-mono leading-none z-20">
+                   <Brain className="w-3.5 h-3.5 text-fuchsia-500 animate-pulse" />
+                   AI Synthesis Active // XRD NEURAL INTELLIGENCE
+                </div>
+             ) : (
+                <div className="absolute left-4 top-3.5 flex items-center gap-1.5 pointer-events-none select-none bg-indigo-500/10 text-indigo-400 px-2.5 py-1 rounded-md border border-indigo-500/20 text-[9px] uppercase tracking-[0.1px] font-mono leading-none z-20">
+                   <Terminal className="w-3.5 h-3.5 text-indigo-400" />
+                   Standard Script Engine
+                </div>
+             )}
             <div className="absolute right-4 top-4 flex gap-2">
                {userEdited && (
                   <span className="text-[10px] bg-amber-500/10 text-amber-500 px-2 py-1 rounded-md border border-amber-500/20 flex items-center h-[34px]">

@@ -381,6 +381,78 @@ const getSymmetryEquivalentPositionsList = (type: string, x: number, y: number):
   return pts;
 };
 
+/**
+ * Helper to get parsed coordinate points for active rendering in the ab-plane SVG projection.
+ */
+const getSymmetryCoordinates = (type: string, x: number, y: number): Array<{ x: number; y: number; label: string; isSource: boolean }> => {
+  const mod1 = (v: number) => {
+    let m = v % 1;
+    return m < 0 ? m + 1 : m;
+  };
+  const pts: Array<{ x: number; y: number; label: string; isSource: boolean }> = [];
+  const added = new Set<string>();
+
+  const addPt = (px: number, py: number, label: string, isSource: boolean) => {
+    const rx = parseFloat(mod1(px).toFixed(3));
+    const ry = parseFloat(mod1(py).toFixed(3));
+    const key = `${rx}_${ry}`;
+    if (!added.has(key)) {
+      added.add(key);
+      pts.push({ x: rx, y: ry, label, isSource });
+    }
+  };
+
+  // Primary probe position is source
+  addPt(x, y, 'z', true);
+
+  if (type === 'Simple Cubic' || type === 'Perovskite') {
+    addPt(1 - x, y, '-z', false);
+    addPt(x, 1 - y, '-z', false);
+    addPt(1 - x, 1 - y, 'z', false);
+    addPt(y, x, 'z', false);
+    addPt(1 - y, x, '-z', false);
+    addPt(y, 1 - x, '-z', false);
+    addPt(1 - y, 1 - x, 'z', false);
+  } else if (type === 'BCC') {
+    const coords = [
+      { px: x, py: y, pz: 'z' },
+      { px: 1 - x, py: y, pz: '-z' },
+      { px: x, py: 1 - y, pz: '-z' },
+      { px: 1 - x, py: 1 - y, pz: 'z' }
+    ];
+    coords.forEach(c => {
+      addPt(c.px, c.py, c.pz, c.px === x && c.py === y);
+      addPt(c.px + 0.5, c.py + 0.5, c.pz + '+½', false);
+    });
+  } else if (type === 'FCC') {
+    const coords = [
+      { px: x, py: y, pz: 'z' },
+      { px: 1 - x, py: y, pz: '-z' },
+      { px: x, py: 1 - y, pz: '-z' },
+      { px: 1 - x, py: 1 - y, pz: 'z' }
+    ];
+    coords.forEach(c => {
+      addPt(c.px, c.py, c.pz, c.px === x && c.py === y);
+      addPt(c.px + 0.5, c.py + 0.5, c.pz + '+½', false);
+      addPt(c.px, c.py + 0.5, c.pz + '+½', false);
+      addPt(c.px + 0.5, c.py, c.pz, false);
+    });
+  } else if (type === 'Rutile') {
+    addPt(1 - x, 1 - y, 'z', false);
+    addPt(x + 0.5, 1.5 - y, 'z+½', false);
+    addPt(1.5 - x, y + 0.5, '-z+½', false);
+    addPt(y, x, 'z', false);
+    addPt(1 - y, 1 - x, 'z', false);
+  } else if (type === 'Quartz') {
+    addPt(1 - y, x - y, 'z+⅔', false);
+    addPt(y - x, 1 - x, 'z+⅓', false);
+    addPt(y, x, '-z', false);
+    addPt(1 - x, y - x, '-z+⅔', false);
+    addPt(x - y, 1 - y, '-z+⅓', false);
+  }
+  return pts;
+};
+
 export const LearnModule: React.FC = () => {
   const [activeTopic, setActiveTopic] = useState<Topic>('start');
   const [sectionSearch, setSectionSearch] = useState('');
@@ -1819,8 +1891,7 @@ export const LearnModule: React.FC = () => {
                           </button>
                         ))}
                       </div>
-
-                      {/* Display Data */}
+                                            {/* Display Data */}
                       {(() => {
                         const sDetails = DRILLDOWN_SPACE_GROUP_INFO[symmetryActiveGroup];
                         const transformedList = getSymmetryEquivalentPositionsList(symmetryActiveGroup, symCoordX, symCoordY);
@@ -1914,46 +1985,148 @@ export const LearnModule: React.FC = () => {
                                 </div>
                              </div>
 
-                             {/* Right column: Wyckoff & Operators list */}
-                             <div className="lg:col-span-8 space-y-5">
-                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-white/5 p-6 rounded-[2.5rem] shadow-sm space-y-4">
-                                   <span className="text-[9.5px] font-black uppercase text-rose-505 dark:text-rose-450 tracking-wider flex items-center gap-1 select-none">
-                                     <Grid size={11} /> Wyckoff Crystallographic Positions
-                                   </span>
-                                   
-                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                             {/* Right/Central Columns parsed into visualizer and Wyckoff Lists */}
+                             <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                                
+                                {/* 2D Crystallographic Unit Cell ab-plane projection */}
+                                <div className="bg-slate-950 p-6 rounded-[2.5rem] border border-slate-900 shadow-inner flex flex-col justify-between min-h-[360px] text-white">
+                                   <div>
+                                      <div className="flex justify-between items-center mb-3">
+                                         <div className="flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-white">2D Unit Cell Projection</span>
+                                         </div>
+                                         <span className="text-[8.5px] font-mono text-slate-500 uppercase tracking-wider">ab Plane Map</span>
+                                      </div>
+                                      <p className="text-[10px] text-slate-400 leading-normal mb-4 font-sans">
+                                         Click or drag anywhere in the grid to translate coordinates. Pulsing marker is the source atom position <span className="text-rose-455 font-bold font-mono">[{symCoordX.toFixed(2)}, {symCoordY.toFixed(2)}]</span>. Smaller nodes are equivalent locations.
+                                      </p>
+                                   </div>
+
+                                   {/* SVG interactive projection viewport */}
+                                   <div className="w-full flex justify-center py-2 relative">
+                                      <svg 
+                                         viewBox="0 0 220 220" 
+                                         className="w-full h-auto max-w-[210px] overflow-visible select-none cursor-crosshair bg-slate-900/50 rounded-xl border border-white/5"
+                                         onClick={(e) => {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            const clickX = e.clientX - rect.left;
+                                            const clickY = e.clientY - rect.top;
+                                            const svgX = (clickX / rect.width) * 220;
+                                            const svgY = (clickY / rect.height) * 220;
+                                            
+                                            // 10 to 210 coordinates maps to [0,1]
+                                            const fx = Math.max(0, Math.min(1, (svgX - 10) / 200));
+                                            const fy = Math.max(0, Math.min(1, (210 - svgY) / 200));
+                                            setSymCoordX(parseFloat(fx.toFixed(2)));
+                                            setSymCoordY(parseFloat(fy.toFixed(2)));
+                                         }}
+                                      >
+                                         <rect x="10" y="10" width="200" height="200" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                                         
+                                         {/* Grid lines */}
+                                         <line x1="60" y1="10" x2="60" y2="210" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                         <line x1="110" y1="10" x2="110" y2="210" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                         <line x1="160" y1="10" x2="160" y2="210" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                         
+                                         <line x1="10" y1="60" x2="210" y2="60" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                         <line x1="10" y1="110" x2="210" y2="110" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                         <line x1="10" y1="160" x2="210" y2="160" stroke="rgba(255,255,255,0.05)" strokeWidth="0.5" strokeDasharray="2 2" />
+
+                                         <circle cx="110" cy="110" r="1.5" fill="rgba(255,255,255,0.25)" />
+
+                                         {getSymmetryCoordinates(symmetryActiveGroup, symCoordX, symCoordY).map((pt, index) => {
+                                            const cx = 10 + pt.x * 200;
+                                            const cy = 210 - pt.y * 200;
+
+                                            if (pt.isSource) {
+                                               return (
+                                                  <g key={index}>
+                                                     <circle cx={cx} cy={cy} r="10" className="animate-ping fill-fuchsia-450/20" />
+                                                     <circle cx={cx} cy={cy} r="5" fill="rgba(236,72,153,0.35)" />
+                                                     <circle cx={cx} cy={cy} r="2.5" fill="#ec4899" stroke="#ffffff" strokeWidth="0.75" />
+                                                  </g>
+                                               );
+                                            } else {
+                                               return (
+                                                  <g key={index}>
+                                                     <line 
+                                                        x1={10 + symCoordX * 200} 
+                                                        y1={210 - symCoordY * 200} 
+                                                        x2={cx} 
+                                                        y2={cy} 
+                                                        stroke="rgba(6,182,212,0.15)" 
+                                                        strokeWidth="0.5" 
+                                                        strokeDasharray="2 2" 
+                                                     />
+                                                     <circle cx={cx} cy={cy} r="4" fill="rgba(6,182,212,0.2)" stroke="#22d3ee" strokeWidth="0.5" />
+                                                     <circle cx={cx} cy={cy} r="1.5" fill="#22d3ee" />
+                                                  </g>
+                                               );
+                                            }
+                                         })}
+
+                                         {/* Axes labels */}
+                                         <text x="10" y="217" fill="#64748b" fontSize="6" fontFamily="monospace" textAnchor="middle">0,0</text>
+                                         <text x="210" y="217" fill="#64748b" fontSize="6" fontFamily="monospace" textAnchor="middle">1.0a</text>
+                                         <text x="8" y="14" fill="#64748b" fontSize="6" fontFamily="monospace" textAnchor="end">1.0b</text>
+                                      </svg>
+                                   </div>
+
+                                   <div className="flex justify-between text-[8px] font-mono text-slate-500 uppercase tracking-widest pt-2 border-t border-white/5">
+                                      <span>[X] maps to a-Axis</span>
+                                      <span>[Y] maps to b-Axis</span>
+                                      <span>Z component projected</span>
+                                   </div>
+                                </div>
+
+                                {/* Wyckoff Positions card */}
+                                <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-white/5 p-6 rounded-[2.5rem] shadow-sm flex flex-col justify-between space-y-4">
+                                   <div>
+                                      <span className="text-[9.5px] font-black uppercase text-rose-505 dark:text-rose-450 tracking-wider flex items-center gap-1 select-none font-sans">
+                                        <Grid size={11} /> Wyckoff Sites
+                                      </span>
+                                      <p className="text-[9px] text-slate-500 mt-1 uppercase font-mono tracking-wider">Lattice multiplicity for {symmetryActiveGroup}</p>
+                                   </div>
+
+                                   <div className="space-y-2 flex-1 overflow-y-auto max-h-[220px] scrollbar-thin">
                                       {sDetails.wyckoffSites.map((wyc, wi) => (
-                                         <div key={wi} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-150 dark:border-slate-855 flex items-center justify-between font-mono">
+                                         <div key={wi} className="p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-150 dark:border-slate-855 flex items-center justify-between font-mono text-[9.5px]">
                                             <div>
-                                               <span className="text-[9px] font-black text-rose-500 uppercase">Site {wyc.site}</span>
-                                               <p className="text-[10.5px] font-bold text-slate-805 dark:text-slate-200 mt-0.5">{wyc.coordinates}</p>
+                                               <span className="text-[8px] font-black text-rose-500 uppercase">Site {wyc.site}</span>
+                                               <p className="text-[9.5px] font-bold text-slate-805 dark:text-slate-200 mt-0.5">{wyc.coordinates}</p>
                                             </div>
                                             <div className="text-right">
-                                               <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 block">Multiplicity</span>
-                                               <span className="text-xs text-indigo-505 dark:text-indigo-400 font-black uppercase">{wyc.multiplicity}x Positions</span>
+                                               <span className="text-[7px] font-black uppercase tracking-wider text-slate-400 block">Mult</span>
+                                               <span className="text-[10px] text-indigo-505 dark:text-indigo-400 font-extrabold uppercase">{wyc.multiplicity}x</span>
                                             </div>
                                          </div>
                                       ))}
                                    </div>
+
+                                   <div className="p-3 bg-indigo-505/5 rounded-xl border border-indigo-500/10 text-[9.5px] text-slate-455 dark:text-slate-400 font-bold leading-normal font-sans">
+                                      Multiplicity tracks equivalent coordinates mapped by operations inside the space group cell.
+                                   </div>
                                 </div>
 
-                                <div className="bg-white dark:bg-slate-900 border border-slate-155 dark:border-white/5 p-6 rounded-[2.5rem] shadow-sm space-y-4">
+                                {/* Symmetry Equivalent Generators */}
+                                <div className="md:col-span-2 bg-white dark:bg-slate-900 border border-slate-155 dark:border-white/5 p-6 rounded-[2.5rem] shadow-sm space-y-4">
                                    <div className="flex justify-between items-center">
-                                      <span className="text-[9.5px] font-black uppercase text-rose-505 dark:text-rose-400 tracking-wider flex items-center gap-1 select-none">
-                                        <Layers size={11} /> Symmetry Equivalent Generators
+                                      <span className="text-[9.5px] font-black uppercase text-rose-505 dark:text-rose-450 tracking-wider flex items-center gap-1 select-none font-sans">
+                                        <Layers size={11} /> Equivalent Positions Coordinates ({transformedList.length})
                                       </span>
                                       <span className="text-[8px] font-mono font-black uppercase px-2 py-0.5 bg-slate-100 dark:bg-slate-950 text-slate-450 rounded border border-slate-155">
                                          Input: [ {symCoordX.toFixed(2)}, {symCoordY.toFixed(2)}, z ]
                                       </span>
                                    </div>
 
-                                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 font-mono">
+                                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
                                       {transformedList.map((trans, ti) => {
                                          const opTitle = sDetails.ops[ti] || `op_${ti}`;
                                          return (
                                             <div key={ti} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-150 dark:border-slate-850 text-center flex flex-col justify-between">
                                                <span className="text-[8px] text-slate-400 font-semibold block leading-none">{opTitle}</span>
-                                               <span className="text-[10px] font-black text-indigo-650 dark:text-indigo-400 block mt-1 leading-none">{trans}</span>
+                                               <span className="text-[10px] font-black text-indigo-650 dark:text-indigo-400 block mt-1.5 leading-none">{trans}</span>
                                             </div>
                                          );
                                       })}
@@ -2291,30 +2464,87 @@ export const LearnModule: React.FC = () => {
                         {/* Chart Render / Readout */}
                         <div className="lg:col-span-7 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-6 rounded-[2rem] flex flex-col justify-between space-y-5">
                            <div>
-                              <span className="text-[9px] font-mono font-black text-rose-505 dark:text-rose-400 uppercase tracking-widest block">Simulation Plot</span>
-                              <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">FWHM(2θ) Broadening Results</h3>
+                              <span className="text-[9px] font-mono font-black text-rose-505 dark:text-rose-450 uppercase tracking-widest block">Resolution Graph</span>
+                              <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">Instrument Res Function Curve</h3>
                            </div>
 
-                           <div className="space-y-3.5 font-mono leading-none">
+                           {/* Real Curve Plotting */}
+                           <div className="p-1">
+                              {(() => {
+                                 // Generate 15 points across 2theta range [10, 120]
+                                 const pts: Array<{ d2th: number; fwhm: number; x: number; y: number }> = [];
+                                 for (let d2th = 10; d2th <= 120; d2th += 8) {
+                                    const angleTheta = d2th / 2;
+                                    const rad = (angleTheta * Math.PI) / 180;
+                                    const tanVal = Math.tan(rad);
+                                    const hSquared = cagliotiU * (tanVal * tanVal) + cagliotiV * tanVal + cagliotiW;
+                                    const fwhmCalculated = Math.sqrt(Math.max(0.0001, hSquared));
+                                    
+                                    // Map to SVG coordinates (width: 350, height: 150)
+                                    const x = 35 + ((d2th - 10) / 110) * 300;
+                                    const y = 135 - (Math.min(0.5, fwhmCalculated) / 0.5) * 110;
+                                    pts.push({ d2th, fwhm: fwhmCalculated, x, y });
+                                 }
+                                 const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+                                 const filledPathD = `${pathD} L ${pts[pts.length - 1].x.toFixed(1)} 135 L ${pts[0].x.toFixed(1)} 135 Z`;
+                                 
+                                 return (
+                                    <div className="relative">
+                                       <svg viewBox="0 0 350 155" className="w-full h-auto bg-slate-900/60 dark:bg-slate-950 p-4 rounded-2xl border border-slate-205 dark:border-white/5 select-none overflow-visible">
+                                          <defs>
+                                             <linearGradient id="cagliotiGradient" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.25" />
+                                                <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
+                                             </linearGradient>
+                                          </defs>
+                                          {/* Grid Lines */}
+                                          <line x1="35" y1="135" x2="335" y2="135" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                                          <line x1="35" y1="80" x2="335" y2="80" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                          <line x1="35" y1="25" x2="335" y2="25" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                          
+                                          <line x1="35" y1="25" x2="35" y2="135" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+                                          <line x1="185" y1="25" x2="185" y2="135" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                          <line x1="335" y1="25" x2="335" y2="135" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" strokeDasharray="2 2" />
+
+                                          {/* Shaded Area Under Curve */}
+                                          <path d={filledPathD} fill="url(#cagliotiGradient)" />
+
+                                          {/* Curve path */}
+                                          <path d={pathD} fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+                                          {/* Selected sample points with values */}
+                                          {pts.filter((_, idx) => idx % 4 === 0).map((pt, i) => (
+                                             <g key={i}>
+                                                <circle cx={pt.x} cy={pt.y} r="3" fill="#8b5cf6" stroke="#ffffff" strokeWidth="0.5" />
+                                                <text x={pt.x} y={pt.y - 7} fill="#c084fc" fontSize="5" fontFamily="monospace" textAnchor="middle" fontWeight="bold">{pt.fwhm.toFixed(3)}°</text>
+                                             </g>
+                                          ))}
+
+                                          {/* Axis tags */}
+                                          <text x="35" y="145" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="middle">10°</text>
+                                          <text x="185" y="145" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="middle">65°</text>
+                                          <text x="335" y="145" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="middle">120° (2θ)</text>
+
+                                          <text x="30" y="137" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="end">0.0°</text>
+                                          <text x="30" y="82" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="end">0.25°</text>
+                                          <text x="30" y="27" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="end">0.5° FWHM</text>
+                                       </svg>
+                                    </div>
+                                 );
+                              })()}
+                           </div>
+
+                           {/* Compact Grid Table beneath */}
+                           <div className="grid grid-cols-3 gap-2 text-center">
                               {[15, 30, 45, 60, 75, 90].map((angleTheta) => {
-                                 // H^2 = U tan^2(theta) + V tan(theta) + W
                                  const rad = (angleTheta * Math.PI) / 180;
                                  const tanVal = Math.tan(rad);
                                  const hSquared = cagliotiU * (tanVal * tanVal) + cagliotiV * tanVal + cagliotiW;
                                  const fwhmCalculated = Math.sqrt(Math.max(0.0001, hSquared));
-                                 
-                                 // scale of bar width percentage (max 1.0 deg)
-                                 const barPercentage = Math.min(100, (fwhmCalculated / 0.5) * 100);
-
                                  return (
-                                    <div key={angleTheta} className="space-y-1 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-150 dark:border-slate-850">
-                                       <div className="flex justify-between items-center text-[10px] text-slate-405">
-                                          <span>Peak at {angleTheta * 2}° (2θ)</span>
-                                          <span className="text-slate-800 dark:text-slate-150 font-black">{fwhmCalculated.toFixed(4)}° 2θ</span>
-                                       </div>
-                                       <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-950 overflow-hidden mt-1 select-none">
-                                          <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${barPercentage}%` }} />
-                                       </div>
+                                    <div key={angleTheta} className="p-2 bg-white dark:bg-slate-905 rounded-xl border border-slate-150 dark:border-slate-850 font-mono text-[9px] flex flex-col justify-between">
+                                       <span className="text-slate-400 font-bold block leading-none">Angle {angleTheta * 2}°</span>
+                                       <span className="text-indigo-505 dark:text-indigo-400 font-extrabold mt-1 block leading-none">{fwhmCalculated.toFixed(4)}°</span>
                                     </div>
                                  );
                               })}
@@ -2431,25 +2661,97 @@ export const LearnModule: React.FC = () => {
                             const curveSteps = [0, 15, 30, 45, 60, 75, 90];
 
                             return (
-                               <div className="lg:col-span-7 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-6 rounded-[2rem] flex flex-col justify-between space-y-4">
+                               <div className="lg:col-span-7 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-850 p-6 rounded-[2rem] flex flex-col justify-between space-y-5">
                                   <div>
-                                     <span className="text-[9px] font-mono font-black text-emerald-550 dark:text-emerald-400 uppercase tracking-widest block font-sans">Calculation Output</span>
-                                     <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5 font-sans">Intensity Modification Factor</h3>
+                                     <span className="text-[9px] font-mono font-black text-emerald-550 dark:text-emerald-450 uppercase tracking-widest block font-sans">Visualizer Plot</span>
+                                     <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5 font-sans">Texture Factor vs. Reflection Angle (α)</h3>
                                   </div>
 
-                                  <div className="p-4 bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-850 rounded-2xl flex items-center justify-between gap-5 font-mono">
-                                     <div>
-                                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 block">Isotropic Normal</span>
-                                        <p className="text-lg font-black text-slate-400 mt-1">1.000x</p>
-                                     </div>
-                                     <div className="text-right">
-                                        <span className="text-[8px] font-black uppercase tracking-widest text-emerald-550 block">March-Dollase Multiplier</span>
-                                        <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{correctionFactor.toFixed(4)}x</p>
-                                     </div>
+                                  {/* Real Curve Plotting */}
+                                  <div className="p-1">
+                                     {(() => {
+                                        // Generate points from 0 to 90 degrees in steps of 5 for a flawless curved line
+                                        const pts: Array<{ alpha: number; yVal: number; x: number; y: number }> = [];
+                                        for (let a = 0; a <= 90; a += 5) {
+                                           const aRad = (a * Math.PI) / 180;
+                                           const cosSq = Math.pow(Math.cos(aRad), 2);
+                                           const sinSq = Math.pow(Math.sin(aRad), 2);
+                                           const bStep = rSq * cosSq + invR * sinSq;
+                                           const pStep = Math.pow(bStep, -1.5);
+                                           const cStepVal = prefFraction * pStep + (1.0 - prefFraction);
+                                           
+                                           // Map to SVG coordinates width: 350, height: 140
+                                           const x = 35 + (a / 90) * 300;
+                                           // y is inverted, max value mapped is 3.0
+                                           const y = 120 - (Math.min(3.0, cStepVal) / 3.0) * 100;
+                                           pts.push({ alpha: a, yVal: cStepVal, x, y });
+                                        }
+
+                                        const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+                                        const filledPathD = `${pathD} L ${pts[pts.length - 1].x.toFixed(1)} 120 L ${pts[0].x.toFixed(1)} 120 Z`;
+
+                                        // Calculating user indicator coordinate
+                                        const userX = 35 + (prefAlphaDeg / 90) * 300;
+                                        const userY = 120 - (Math.min(3.0, correctionFactor) / 3.0) * 100;
+                                        const isotropicY = 120 - (1.0 / 3.0) * 100; // factor 1.0
+
+                                        return (
+                                           <div className="relative">
+                                              <svg viewBox="0 0 350 140" className="w-full h-auto bg-slate-900/60 dark:bg-slate-950 p-4 rounded-2xl border border-slate-205 dark:border-white/5 select-none overflow-visible">
+                                                 <defs>
+                                                    <linearGradient id="prefGradient" x1="0" y1="0" x2="0" y2="1">
+                                                       <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                                                       <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                                                    </linearGradient>
+                                                 </defs>
+
+                                                 {/* Axis & Reference Gridlines */}
+                                                 <line x1="35" y1="120" x2="335" y2="120" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+                                                 <line x1="35" y1="87" x2="335" y2="87" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                                 <line x1="35" y1="53" x2="335" y2="53" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                                 <line x1="35" y1="20" x2="335" y2="20" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5" strokeDasharray="2 2" />
+
+                                                 <line x1="35" y1="20" x2="35" y2="120" stroke="rgba(255,255,255,0.08)" strokeWidth="0.5" />
+                                                 <line x1="185" y1="20" x2="185" y2="120" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" strokeDasharray="2 2" />
+                                                 <line x1="335" y1="20" x2="335" y2="120" stroke="rgba(255,255,255,0.04)" strokeWidth="0.5" strokeDasharray="2 2" />
+
+                                                 {/* Isotropic Baseline marker (1.0x) */}
+                                                 <line x1="35" y1={isotropicY} x2="335" y2={isotropicY} stroke="#ef4444" strokeWidth="0.75" strokeDasharray="3 3" opacity="0.6" />
+                                                 <text x="330" y={isotropicY - 4} fill="#f87171" fontSize="5" fontFamily="monospace" textAnchor="end">Isotropic (1.0x)</text>
+
+                                                 {/* Shaded Area Under Curve */}
+                                                 <path d={filledPathD} fill="url(#prefGradient)" />
+
+                                                 {/* Curve Path Line */}
+                                                 <path d={pathD} fill="none" stroke="#34d399" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
+
+                                                 {/* Selected Alpha Vertical Slider Intersection Line */}
+                                                 <line x1={userX} y1="20" x2={userX} y2="120" stroke="rgba(16,185,129,0.3)" strokeWidth="1" strokeDasharray="2 1" />
+
+                                                 {/* Active dot intersection */}
+                                                 <circle cx={userX} cy={userY} r="4.5" fill="#10b981" stroke="#ffffff" strokeWidth="1" />
+                                                 <text x={userX} y={userY - 8} fill="#34d399" fontSize="6.5" fontFamily="monospace" textAnchor="middle" fontWeight="black">
+                                                    {correctionFactor.toFixed(3)}x Match
+                                                 </text>
+
+                                                 {/* X Axis Coordinates */}
+                                                 <text x="35" y="130" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="middle">α = 0°</text>
+                                                 <text x="185" y="130" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="middle">α = 45°</text>
+                                                 <text x="335" y="130" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="middle">α = 90°</text>
+
+                                                 {/* Y Axis Numbers */}
+                                                 <text x="30" y="122" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="end">0.0x</text>
+                                                 <text x="30" y="89" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="end">1.0x</text>
+                                                 <text x="30" y="56" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="end">2.0x</text>
+                                                 <text x="30" y="23" fill="#64748b" fontSize="6.5" fontFamily="monospace" textAnchor="end">3.0x Multiplier</text>
+                                              </svg>
+                                           </div>
+                                        );
+                                     })()}
                                   </div>
 
-                                  {/* Dynamic curve bar chart */}
-                                  <div className="space-y-1.5 font-mono text-[9px] leading-none">
+                                  {/* Multiplier readout table */}
+                                  <div className="grid grid-cols-4 gap-2 text-center">
                                      {curveSteps.map((angle) => {
                                         const rad_s = (angle * Math.PI) / 180;
                                         const cosAs = Math.pow(Math.cos(rad_s), 2);
@@ -2457,24 +2759,16 @@ export const LearnModule: React.FC = () => {
                                         const bStep = rSq * cosAs + invR * sinAs;
                                         const pStep = Math.pow(bStep, -1.5);
                                         const cStepVal = prefFraction * pStep + (1.0 - prefFraction);
-                                        
-                                        // let's scale relative to max value (cap bar width at 2.5 multiplier)
-                                        const barW = Math.min(100, (cStepVal / 2.5) * 100);
+                                        const isActiveAngle = angle === prefAlphaDeg;
 
                                         return (
-                                           <div key={angle} className="space-y-0.5">
-                                              <div className="flex justify-between text-slate-455 items-center">
-                                                 <span className={angle === prefAlphaDeg ? 'text-emerald-550 font-bold' : ''}>α = {angle}°</span>
-                                                 <span className={angle === prefAlphaDeg ? 'text-emerald-555 font-bold' : ''}>{cStepVal.toFixed(3)}x</span>
-                                              </div>
-                                              <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-905 overflow-hidden rounded-full mt-0.5 select-none relative">
-                                                 <div 
-                                                    className={`h-full rounded-full ${angle === prefAlphaDeg ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`} 
-                                                    style={{ width: `${barW}%` }} 
-                                                 />
-                                                 {/* isotropic tick at 40% (since 1.0 / 2.5 = 40%) */}
-                                                 <div className="absolute top-0 bottom-0 left-[40%] w-0.5 bg-slate-400 dark:bg-slate-600 opacity-60 z-10" />
-                                              </div>
+                                           <div key={angle} className={`p-1.5 rounded-xl border text-[8.5px] font-mono flex flex-col justify-between ${
+                                              isActiveAngle
+                                                 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-extrabold'
+                                                 : 'bg-white dark:bg-slate-905 border-slate-150 dark:border-slate-850 text-slate-500 dark:text-slate-400'
+                                           }`}>
+                                              <span className="opacity-75 block leading-none">α = {angle}°</span>
+                                              <span className="mt-1 block leading-none font-bold">{cStepVal.toFixed(3)}x</span>
                                            </div>
                                         );
                                      })}

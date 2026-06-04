@@ -132,16 +132,34 @@ async function startServer() {
         model: "gemini-3.5-flash",
         contents: prompt,
         config: {
-          systemInstruction: "You are the XRD-Calc Pro Automated Python Scripting Engine. " +
-            "Your task is to generate complete, functional, and standalone Python 3 scripts for X-ray diffraction data analysis. " +
-            "Use libraries like NumPy, SciPy (for curve fitting), Matplotlib (for plotting), and optionally GSAS-II or xrayutilities if requested. " +
-            "Always include imports, meaningful comments, and sample data structures where appropriate. " +
-            "Output ONLY the raw Python code without any markdown code block wrappers (no backticks). " +
-            "Incorporate the following laboratory context if relevant: " + JSON.stringify(context || {})
+          systemInstruction: "You are the advanced XRD-Calc Pro Automated Python Scripting Engine. " +
+            "Your task is to generate complete, production-ready, functional, and standalone Python 3 scripts for X-ray diffraction (XRD) data analysis. " +
+            "Your coding style is exemplary. Follow clean architecture principles:\n" +
+            "1. Always include clear docstrings, typing hints, PEP 8 compliance, and thorough inline explanations of crystallographic math.\n" +
+            "2. Implement core mathematical models directly: Bragg's law (d = lambda / (2 * sin(theta))), Scherrer equations (D = K*lambda / (B*cos(theta))), lattice strain derivations, or composite profile modeling.\n" +
+            "3. Ensure the script includes a 'Self-Generating Mock XRD data fallback' at the very beginning of its execution block. If the local data file (e.g. data.xy or data.csv) is not found, the script must dynamically generate a high-fidelity synthetic XRD pattern with peak noise, baseline curvature, and realistic peak broadening, save it to disk, and continue analysis seamlessly. This ensures the output script acts as an out-of-the-box working sandbox.\n" +
+            "4. Use high-performance scientific libraries like NumPy, SciPy (optimize, signal, interpolate), Matplotlib (publication-grade style), Pandas, or GSAS-II/xrayutilities if requested.\n" +
+            "5. Output ONLY valid, executable Python code. Never include introductory text, explanations outside comments, or conversational sentences.\n" +
+            "Context to integrate:\n" + JSON.stringify(context || {})
         }
       });
       
-      res.json({ success: true, text: response.text });
+      let codeText = response.text || "";
+      // Strip markdown code block boundaries if they are present
+      if (codeText.includes("```python")) {
+        const parts = codeText.split("```python");
+        if (parts.length > 1) {
+          codeText = parts[1].split("```")[0];
+        }
+      } else if (codeText.includes("```")) {
+        const parts = codeText.split("```");
+        if (parts.length > 1) {
+          codeText = parts[1].split("```")[0];
+        }
+      }
+      codeText = codeText.trim();
+      
+      res.json({ success: true, text: codeText });
     } catch (error: any) {
       console.error("Gemini Coder Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });

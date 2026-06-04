@@ -6,7 +6,7 @@ import {
   Beaker, Monitor, Sliders, Server, Lock, User, Edit3, 
   Save, Check, AlertCircle, Wrench, Microscope, Compass,
   Key, ExternalLink, RefreshCw, CheckCircle2,
-  Upload, Download, Trash2, FileCode
+  Upload, Download, Trash2, FileCode, Send, Terminal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
@@ -110,22 +110,89 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const [activeTier, setActiveTier] = useState<'free' | 'paid'>('free');
   const [hasSystemKey, setHasSystemKey] = useState(false);
 
+  // Improved capabilities states for Cognitive API access
+  const [lastLatency, setLastLatency] = useState<number | null>(null);
+  const [dryRunPrompt, setDryRunPrompt] = useState('Verify model with 2-theta crystallography math response');
+  const [dryRunResponse, setDryRunResponse] = useState('');
+  const [dryRunLoading, setDryRunLoading] = useState(false);
+  const [apiLogs, setApiLogs] = useState<Array<{ id: string; time: string; action: string; status: 'SUCCESS' | 'ERROR'; info: string; latency?: number }>>(() => {
+    try {
+      const stored = localStorage.getItem('xrd_api_diagnostic_logs');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return [
+      { id: '1', time: new Date(Date.now() - 3600000).toLocaleTimeString(), action: 'System Initialization', status: 'SUCCESS', info: 'Gateway connected to local system port 3000' }
+    ];
+  });
+
+  const addLog = (action: string, status: 'SUCCESS' | 'ERROR', info: string, latency?: number) => {
+    const newLog = {
+      id: Math.random().toString(36).substr(2, 9),
+      time: new Date().toLocaleTimeString(),
+      action,
+      status,
+      info,
+      latency
+    };
+    setApiLogs(prev => {
+      const updated = [newLog, ...prev].slice(0, 8);
+      localStorage.setItem('xrd_api_diagnostic_logs', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   useEffect(() => {
-    const checkSystemKey = async () => {
+    const checkSystemKeyAndVerify = async () => {
       try {
         const res = await fetch('/api/gemini/config');
-        const data = await res.json();
-        setHasSystemKey(!!data?.hasEnvKey);
-      } catch (err) {
-        console.error("Error reading system key configuration:", err);
+        const configData = await res.json();
+        const systemKeyActive = !!configData?.hasEnvKey;
+        setHasSystemKey(systemKeyActive);
+        
+        const storedKey = localStorage.getItem('xrd_custom_gemini_key') || '';
+        
+        // If we have a stored override key OR a system-wide default key, auto-handshake instantly!
+        if (storedKey || systemKeyActive) {
+          setAuthStatus('checking');
+          setAuthFeedback('Performing automatic handshake check...');
+          const startTime = performance.now();
+          
+          const verifyRes = await fetch('/api/gemini/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ customKey: storedKey })
+          });
+          const verifyData = await verifyRes.json();
+          const endTime = performance.now();
+          const latencyVal = Math.round(endTime - startTime);
+          
+          if (verifyData.success && verifyData.status === 'ACTIVE') {
+            setAuthStatus('active');
+            setLastLatency(latencyVal);
+            setAuthFeedback(`Quantum handshake verified. Round-trip latency: ${latencyVal}ms.`);
+            addLog(storedKey ? 'Custom Key Auto-Handshake' : 'System Key Auto-Handshake', 'SUCCESS', 'Gateway established successfully', latencyVal);
+          } else {
+            setAuthStatus(verifyData.status === 'MISSING' ? 'missing' : 'invalid');
+            setAuthFeedback(verifyData.error || 'Verification handshake failed.');
+            addLog(storedKey ? 'Custom Key Auto-Handshake' : 'System Key Auto-Handshake', 'ERROR', verifyData.error || 'Verification handshake rejected', latencyVal);
+          }
+        } else {
+          setAuthStatus('missing');
+          setAuthFeedback('No Gemini API key detected. Direct local calculations remain offline-capable, but advisory requires a key.');
+          addLog('System Startup', 'ERROR', 'No credentials available');
+        }
+      } catch (err: any) {
+        console.error("Auto key configuration check error:", err);
+        addLog('System Startup Verification', 'ERROR', err.message || 'Network timeout');
       }
     };
-    checkSystemKey();
+    checkSystemKeyAndVerify();
   }, []);
 
   const handleVerifyAndSaveKey = async (keyInput: string) => {
     setAuthStatus('checking');
     setAuthFeedback('Contacting Google AI Studio verification gateway...');
+    const startTime = performance.now();
     try {
       const res = await fetch('/api/gemini/verify', {
         method: 'POST',
@@ -135,9 +202,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         body: JSON.stringify({ customKey: keyInput })
       });
       const data = await res.json();
+      const endTime = performance.now();
+      const latencyVal = Math.round(endTime - startTime);
       
       if (data.success && data.status === 'ACTIVE') {
         setAuthStatus('active');
+        setLastLatency(latencyVal);
         setAuthFeedback(data.message || 'Verification successful!');
         // Save to local storage
         if (keyInput) {
@@ -145,15 +215,18 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
         } else {
           localStorage.removeItem('xrd_custom_gemini_key');
         }
+        addLog(keyInput ? 'Manual Override Mount' : 'Default Credentials Restore', 'SUCCESS', 'Key verified successfully', latencyVal);
         playSynthTone('success');
       } else {
         setAuthStatus(data.status === 'MISSING' ? 'missing' : 'invalid');
         setAuthFeedback(data.error || 'Identity verification failed. Please align your settings.');
+        addLog(keyInput ? 'Manual Override Mount' : 'Default Credentials Restore', 'ERROR', data.error || 'Credentials rejected', latencyVal);
         playSynthTone('switch');
       }
     } catch (err: any) {
       setAuthStatus('invalid');
       setAuthFeedback('Network or gateway execution timeout: ' + err.message);
+      addLog(keyInput ? 'Manual Override Mount' : 'Default Credentials Restore', 'ERROR', err.message);
       playSynthTone('switch');
     }
   };
@@ -163,7 +236,45 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     localStorage.removeItem('xrd_custom_gemini_key');
     setAuthStatus('unchecked');
     setAuthFeedback('Custom key removed. Reverted to default system parameters.');
+    addLog('Override Key Cleared', 'SUCCESS', 'Default configuration restored');
     playSynthTone('tick');
+  };
+
+  const handleRunDryRun = async () => {
+    if (!dryRunPrompt.trim()) return;
+    setDryRunLoading(true);
+    setDryRunResponse('');
+    addLog('Sandbox Diagnostic Exec', 'SUCCESS', 'Initiating pilot prompt run');
+    const startTime = performance.now();
+    try {
+      const res = await fetch('/api/gemini/coder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `${dryRunPrompt}\n(Requirement: provide a single short mathematically sound sentence response about chemistry/crystallography)`,
+          customKey: customApiKey || undefined
+        })
+      });
+      const data = await res.json();
+      const endTime = performance.now();
+      const latencyVal = Math.round(endTime - startTime);
+      
+      if (data.success) {
+        setDryRunResponse(data.text);
+        addLog('Sandbox Diagnostic Exec', 'SUCCESS', `Dry-run OK. Yield: ${data.text?.length || 0} chars`, latencyVal);
+        playSynthTone('success');
+      } else {
+        setDryRunResponse(`Diagnostic failed: ${data.error}`);
+        addLog('Sandbox Diagnostic Exec', 'ERROR', data.error || 'Model endpoint error', latencyVal);
+        playSynthTone('switch');
+      }
+    } catch (err: any) {
+      setDryRunResponse(`Dry run connection loss: ${err.message}`);
+      addLog('Sandbox Diagnostic Exec', 'ERROR', err.message);
+      playSynthTone('switch');
+    } finally {
+      setDryRunLoading(false);
+    }
   };
 
   const handleSaveProfile = (e: React.FormEvent) => {
@@ -974,7 +1085,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     : authStatus === 'invalid'
                     ? 'bg-rose-500/5 border-rose-500/30'
                     : authStatus === 'checking'
-                    ? 'bg-indigo-500/5 border-indigo-500/30'
+                    ? 'bg-indigo-500/5 border-indigo-500/30 animate-pulse'
                     : authStatus === 'missing'
                     ? 'bg-amber-500/5 border-amber-500/30'
                     : 'bg-slate-50 dark:bg-slate-950 border-slate-205 dark:border-white/5'
@@ -1013,7 +1124,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">AUTHENTICATION STATUS</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-sans">AUTHENTICATION STATUS</span>
                         {hasSystemKey && !customApiKey && (
                           <span className="px-1.5 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[8px] font-black uppercase tracking-wider rounded border border-indigo-500/20 font-mono">System Default Key</span>
                         )}
@@ -1022,12 +1133,19 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                         )}
                       </div>
                       
-                      <div className="text-[12px] font-black uppercase tracking-tight mt-1 text-slate-800 dark:text-white leading-none">
-                        {authStatus === 'active' && 'Verified Hub Active'}
-                        {authStatus === 'invalid' && 'Handshake Failure'}
-                        {authStatus === 'checking' && 'Exchanging Quantum Handshake...'}
-                        {authStatus === 'missing' && 'Key Missing / Incomplete'}
-                        {authStatus === 'unchecked' && 'Unchecked State / Initialized'}
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="text-[12px] font-black uppercase tracking-tight text-slate-800 dark:text-white leading-none">
+                          {authStatus === 'active' && 'Verified Hub Active'}
+                          {authStatus === 'invalid' && 'Handshake Failure'}
+                          {authStatus === 'checking' && 'Exchanging Quantum Handshake...'}
+                          {authStatus === 'missing' && 'Key Missing / Incomplete'}
+                          {authStatus === 'unchecked' && 'Unchecked State / Initialized'}
+                        </div>
+                        {authStatus === 'active' && lastLatency !== null && (
+                          <span className="px-1.5 py-0.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[7.5px] font-black uppercase tracking-wider rounded border border-emerald-500/25 font-mono">
+                            ⚡ {lastLatency}ms latency
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1081,6 +1199,78 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     💡 <strong>Privacy First:</strong> Custom API keys reside securely inside your browser's local sandbox memory. They are forwarded exclusively to Google model endpoints over secure proxy requests and never stored on third-party servers.
                   </p>
                 </div>
+
+                {/* Interactive Diagnostics sandbox preview */}
+                <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-white/5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-fuchsia-500" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-sans">Inline Diagnostics Sandbox</span>
+                    </div>
+                    <span className="text-[8px] bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 px-1.5 py-0.5 rounded uppercase font-bold font-mono tracking-wider">Live Model Test</span>
+                  </div>
+
+                  <p className="text-[10px] text-slate-500 leading-normal">
+                    Issue a real-time crystalline proof command directly to check connection integrity and response authenticity:
+                  </p>
+
+                  <div className="flex gap-2">
+                    <input 
+                      type="text"
+                      value={dryRunPrompt}
+                      onChange={(e) => setDryRunPrompt(e.target.value)}
+                      placeholder="Ask the advisor a quick physics proof..."
+                      className="flex-1 p-2.5 bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-850 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-fuchsia-500 transition-all font-sans"
+                    />
+                    <button
+                      type="button"
+                      disabled={dryRunLoading || authStatus === 'checking' || (authStatus !== 'active' && authStatus !== 'unchecked')}
+                      onClick={handleRunDryRun}
+                      className="px-4 py-2.5 bg-slate-800 dark:bg-white text-white dark:text-slate-900 hover:opacity-95 disabled:opacity-30 rounded-xl text-xs font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1 shrink-0"
+                    >
+                      {dryRunLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+
+                  {/* Sandbox Response Box */}
+                  {dryRunResponse && (
+                    <div className="p-3.5 bg-slate-950 dark:bg-black rounded-xl border border-emerald-500/10 font-mono text-[9px] text-emerald-400 max-h-28 overflow-y-auto leading-relaxed select-text">
+                      <div className="flex justify-between items-center text-[7.5px] border-b border-emerald-500/10 pb-1 mb-1.5 uppercase font-bold tracking-widest text-emerald-500/60 leading-none">
+                        <span>Transmission Result</span>
+                        <span>gemini-3.5-flash</span>
+                      </div>
+                      <p>{dryRunResponse}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Session audit telemetry */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-sans">Active Operational Log (Session)</span>
+                  </div>
+                  <div className="bg-slate-950/40 dark:bg-black p-4 rounded-2xl border border-slate-205 dark:border-white/5 font-mono text-[9px] space-y-1.5 max-h-[160px] overflow-y-auto leading-tight">
+                    {apiLogs.map((log) => (
+                      <div key={log.id} className="flex items-start justify-between gap-3 text-slate-400 border-b border-slate-150/5 dark:border-white/5 pb-1 last:border-0 last:pb-0">
+                        <div className="flex items-start gap-1.5 min-w-0">
+                          <span className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${log.status === 'SUCCESS' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500 animate-bounce'}`} />
+                          <div className="min-w-0">
+                            <span className="text-[7.5px] text-slate-500 font-bold block">{log.time}</span>
+                            <span className="text-slate-850 dark:text-slate-200 font-extrabold truncate block">{log.action}</span>
+                            <span className="text-slate-500 text-[8px] truncate block opacity-85">{log.info}</span>
+                          </div>
+                        </div>
+                        {log.latency && (
+                          <span className="px-1 bg-indigo-500/25 text-indigo-400 rounded text-[7.5px] font-bold shrink-0 self-center">
+                            {log.latency}ms
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               </div>
 
               {/* Interactive visual limit comparisons */}
