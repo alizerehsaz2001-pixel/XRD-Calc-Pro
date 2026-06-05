@@ -1361,7 +1361,7 @@ export const LearnModule: React.FC = () => {
                            {/* FWHM Slider */}
                            <div className="space-y-1">
                              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-slate-500">
-                               <span>Full Width Half Max (FWHM)</span>
+                               <span>Peak Broadening β (FWHM)</span>
                                <span className="font-mono text-indigo-505 dark:text-indigo-400">{scherrerFWHM.toFixed(3)}° 2θ</span>
                              </div>
                              <input
@@ -1420,7 +1420,7 @@ export const LearnModule: React.FC = () => {
                          
                          {selectedSubSolver === 'scherrer' ? (
                            <>
-                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Solved Crystallite Dimension</span>
+                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Mean Coherent Domain Size (τ)</span>
                              <div className="py-2">
                                <p className="text-4xl font-black text-white font-mono tracking-tighter leading-none">
                                  {scherrerResult} <span className="text-xl text-slate-400">nm</span>
@@ -1429,9 +1429,9 @@ export const LearnModule: React.FC = () => {
                              </div>
                              <div className="h-px bg-slate-800 w-12 mx-auto" />
                              <div className="text-[10px] font-mono text-slate-400 space-y-1 leading-normal">
-                               <p>Equation Applied: D = (K·λ) / (β·cosθ)</p>
-                               <p>Calculated θ: {((scherrerTwoTheta / 2)).toFixed(3)}°</p>
-                               <p>Calculated beta (rad): {(((scherrerFWHM * Math.PI) / 180)).toFixed(5)} rad</p>
+                               <p>Equation Applied: τ = (K·λ) / (β·cosθ)</p>
+                               <p>Calculated θ: {((scherrerTwoTheta / 2)).toFixed(4)}°</p>
+                               <p>Broadening β (rad): {(((scherrerFWHM * Math.PI) / 180)).toFixed(5)} rad</p>
                              </div>
                            </>
                          ) : (

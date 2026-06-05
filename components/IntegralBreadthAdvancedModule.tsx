@@ -717,9 +717,27 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                <p className="text-2xl font-black text-white relative z-10 drop-shadow-[0_0_15px_rgba(16,185,129,0.4)] mt-2">
                  {result ? (result.sizeInterceptNm > 0 ? result.sizeInterceptNm.toFixed(2) : '∞') : '-'} <span className="text-base text-emerald-500/80 font-mono tracking-widest uppercase">NM</span>
                </p>
-               {result && <p className="text-[9px] text-slate-500 mt-1 font-medium">Average over whole sample</p>}
+               {result && <p className="text-[9px] text-slate-500 mt-1 font-medium">Global W-H intercept average</p>}
              </div>
-             <p className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded inline-block mt-3 border border-emerald-500/20 uppercase tracking-widest relative z-10 w-fit">From Intercept</p>
+             
+             {result && result.pointsExtended && result.pointsExtended.length > 0 && (
+               <div className="mt-4 py-3 border-y border-emerald-500/10 relative z-10">
+                 <p className="text-[8px] font-black text-emerald-400/80 uppercase tracking-widest mb-2 flex items-center justify-between">
+                    <span>Single-Peak Estimates</span>
+                    <span className="text-emerald-500/50">Apparent Size</span>
+                 </p>
+                 <div className="space-y-1.5 max-h-[70px] overflow-y-auto custom-scrollbar pr-2">
+                   {result.pointsExtended.map((p, i) => (
+                     <div key={i} className="flex justify-between items-center text-[10px] font-mono bg-emerald-500/5 px-2 py-1 rounded border border-emerald-500/10">
+                       <span className="text-slate-400">{p.twoTheta.toFixed(2)}°</span>
+                       <span className="text-emerald-300 font-bold">{p.singlePeakSizeNm > 0 ? p.singlePeakSizeNm.toFixed(1) : '∞'} <span className="text-[8px] font-sans text-emerald-500/50">nm</span></span>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             )}
+
+             <p className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded inline-block mt-3 border border-emerald-500/20 uppercase tracking-widest relative z-10 w-fit">Y-Intercept Derived</p>
            </div>
 
            {/* Card 3: Isotropic Elastic Stress */}

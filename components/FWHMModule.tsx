@@ -171,9 +171,12 @@ export const FWHMModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Configuration Sidebar */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
+        <div className="bg-white dark:bg-slate-900/80 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800/80 backdrop-blur-xl relative overflow-hidden">
+          {/* Subtle Grid Background */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none" />
+          
+          <div className="flex items-center justify-between mb-6 relative z-10">
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -181,7 +184,7 @@ export const FWHMModule: React.FC = () => {
             </h2>
             <button 
               onClick={resetToDefaults}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 group"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 group"
               title="Reset all parameters to defaults"
             >
               <RotateCcw className="w-3.5 h-3.5 group-hover:rotate-[-45deg] transition-transform" />
@@ -357,42 +360,51 @@ export const FWHMModule: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-6 border-t border-slate-100">
-               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Strict JSON Results</h3>
-               <div className="bg-slate-900 p-4 rounded-lg overflow-x-auto">
-                 <pre className="text-[10px] font-mono text-fuchsia-400">
-                   {JSON.stringify({
-                     module: "FWHM-Basics",
-                     profile_type: type,
-                     caglioti_active: useCaglioti,
-                     ...(useCaglioti ? { caglioti_params: cagliotiParams, diffractometer: cagliotiPreset } : {}),
-                     results: stats
-                   }, null, 2)}
-                 </pre>
+            <div className="pt-6 border-t border-slate-100 dark:border-slate-800/60 mt-4">
+               <div className="flex justify-between items-center mb-3">
+                 <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Diagnostic Telemetry</h3>
+                 <span className="flex items-center gap-1.5 text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20">
+                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                   DATA STREAM ACTIVE
+                 </span>
+               </div>
+               <div className="bg-slate-950 p-4 rounded-xl shadow-inner border border-slate-800/80 overflow-x-auto relative group max-h-[220px] overflow-y-auto custom-scrollbar">
+                 <div className="absolute top-0 right-0 p-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                   <Activity className="w-3.5 h-3.5 text-slate-600" />
+                 </div>
+                 <pre className="text-[10px] font-mono leading-relaxed text-slate-300" 
+                      dangerouslySetInnerHTML={{ __html: JSON.stringify({
+                        module: "FWHM-Basics",
+                        profile_type: type,
+                        caglioti_active: useCaglioti,
+                        ...(useCaglioti ? { caglioti_params: cagliotiParams, diffractometer: cagliotiPreset } : {}),
+                        results: stats
+                      }, null, 2).replace(/"([^"]+)":/g, '<span class="text-indigo-400">"$1"</span>:') 
+                 }} />
                </div>
             </div>
 
             {/* Profile Analysis Section */}
             {analysis && (
               <div className={`p-4 rounded-lg border ${
-                analysis.status === 'ok' ? 'bg-emerald-50 border-emerald-200' : 
-                analysis.status === 'warning' ? 'bg-amber-50 border-amber-200' : 
-                'bg-red-50 border-red-200'
+                analysis.status === 'ok' ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/50' : 
+                analysis.status === 'warning' ? 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/50' : 
+                'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800/50'
               }`}>
                 <div className="flex items-center gap-2 mb-2">
                   {analysis.status === 'ok' ? (
-                    <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className={`w-5 h-5 ${analysis.status === 'warning' ? 'text-amber-600 dark:text-amber-500' : 'text-red-600 dark:text-red-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                   )}
                   <h3 className={`text-sm font-bold ${
-                    analysis.status === 'ok' ? 'text-emerald-800' : 
-                    analysis.status === 'warning' ? 'text-amber-800' : 
-                    'text-red-800'
+                    analysis.status === 'ok' ? 'text-emerald-800 dark:text-emerald-300' : 
+                    analysis.status === 'warning' ? 'text-amber-800 dark:text-amber-300' : 
+                    'text-red-800 dark:text-red-300'
                   }`}>
                     Profile Analysis
                   </h3>
@@ -402,21 +414,21 @@ export const FWHMModule: React.FC = () => {
                   <ul className="space-y-1.5 mt-2">
                     {analysis.messages.map((msg, idx) => (
                       <li key={`${msg.text}-${idx}`} className={`text-[11px] leading-tight flex items-start gap-1.5 ${
-                        msg.type === 'warning' ? 'text-amber-700 font-medium' : 
-                        msg.type === 'success' ? 'text-emerald-700 font-bold' :
-                        'text-slate-600'
+                        msg.type === 'warning' ? 'text-amber-700 dark:text-amber-400 font-medium' : 
+                        msg.type === 'success' ? 'text-emerald-700 dark:text-emerald-400 font-bold' :
+                        'text-slate-600 dark:text-slate-400'
                       }`}>
                         <span className="mt-0.5">
                            {msg.type === 'success' ? <CheckCircle className="w-3 h-3 text-emerald-500" /> : 
                             msg.type === 'warning' ? <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg> : 
-                            <span className="text-slate-400">•</span>}
+                            <span className="text-slate-400 dark:text-slate-500">•</span>}
                         </span>
                         <span>{msg.text}</span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-xs text-emerald-700">Parameters appear physically consistent for standard XRD analysis.</p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400">Parameters appear physically consistent for standard XRD analysis.</p>
                 )}
               </div>
             )}
@@ -523,15 +535,33 @@ export const FWHMModule: React.FC = () => {
                              </div>
                              <div className="space-y-3 relative z-10">
                                <div className="flex justify-between gap-4 items-center">
-                                 <span className="text-slate-400 font-medium tracking-wide">Intensity</span>
+                                 <span className="text-slate-400 font-medium tracking-wide flex items-center gap-1.5"><Activity className="w-3 h-3"/> I(2θ)</span>
                                  <span className="font-mono font-bold text-white drop-shadow-[0_0_8px_rgba(232,121,249,0.8)] px-1">{dataPoint.y.toFixed(1)}</span>
                                </div>
                                <div className="flex justify-between gap-4 items-center">
-                                 <span className="text-slate-400 font-medium tracking-wide">Scale FWHM</span>
+                                 <span className="text-slate-400 font-medium tracking-wide flex items-center gap-1.5"><Scan className="w-3 h-3"/> Scale FWHM</span>
                                  <span className="font-mono text-cyan-300 font-bold drop-shadow-[0_0_5px_rgba(103,232,249,0.5)] px-1">{fwhm.toFixed(4)}°</span>
                                </div>
                                <div className="flex justify-between gap-4 items-center">
-                                 <span className="text-slate-400 font-medium tracking-wide">Est. Domain Size</span>
+                                 <span className="text-slate-400 font-medium tracking-wide flex items-center gap-1.5"><Layers className="w-3 h-3"/> Shape Factor</span>
+                                 <span className="font-mono text-violet-300 font-bold px-1">{stats?.shapeFactor.toFixed(3) || '-'}</span>
+                               </div>
+                               {type === 'Pseudo-Voigt' && (
+                                 <div className="flex justify-between gap-4 items-center">
+                                   <span className="text-slate-400 font-medium tracking-wide text-[9px] bg-indigo-500/10 px-1.5 py-0.5 rounded text-indigo-300">Lorentzian η</span>
+                                   <span className="font-mono text-orange-300 font-bold text-[10px] px-1">{(eta * 100).toFixed(1)}%</span>
+                                 </div>
+                               )}
+                               {type === 'Pearson VII' && (
+                                 <div className="flex justify-between gap-4 items-center">
+                                   <span className="text-slate-400 font-medium tracking-wide text-[9px] bg-fuchsia-500/10 px-1.5 py-0.5 rounded text-fuchsia-300">Pearson m</span>
+                                   <span className="font-mono text-fuchsia-300 font-bold text-[10px] px-1">{(Math.max(1, eta * 10)).toFixed(2)}</span>
+                                 </div>
+                               )}
+                               <div className="flex justify-between gap-4 items-center border-t border-slate-700/50 pt-2.5 mt-1 relative">
+                                 {/* Glowing indicator line */}
+                                 <div className="absolute top-0 left-0 w-8 h-px bg-emerald-500/50" />
+                                 <span className="text-slate-400 font-medium tracking-wide text-[10px]">Domain Size (τ)</span>
                                  <span className="font-mono text-emerald-400 font-bold drop-shadow-[0_0_5px_rgba(52,211,153,0.5)] px-1">{localSize.toFixed(1)} nm</span>
                                </div>
                              </div>
@@ -620,11 +650,25 @@ export const FWHMModule: React.FC = () => {
                </ResponsiveContainer>
                
                {/* Custom Annotations Overlay */}
-               <div className="absolute bottom-28 right-12 text-[10px] font-black text-slate-400 flex items-center gap-2 pointer-events-none tracking-[0.2em] uppercase bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-700/50 transition-opacity">
-                  <span>Integrated Area ∫I(θ)dθ</span>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+               <div className="absolute bottom-24 lg:bottom-28 right-8 lg:right-12 flex flex-col items-end gap-3 pointer-events-none transition-opacity z-20">
+                  <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl shadow-indigo-500/5 text-slate-800 dark:text-white font-mono tracking-tight max-w-[260px] lg:max-w-[320px]">
+                    <div className="text-[12px] lg:text-[14px] flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300 text-center leading-relaxed">
+                      {type === 'Gaussian' && <span>I(2θ) = Iₘₐₓ · exp[-ln(2)·((2θ-2θ₀)/w)²]</span>}
+                      {type === 'Lorentzian' && <span>I(2θ) = Iₘₐₓ / [1 + ((2θ-2θ₀)/w)²]</span>}
+                      {type === 'Pseudo-Voigt' && <span>I(2θ) = Iₘₐₓ · <br/>[η·L(2θ) + (1-η)·G(2θ)]</span>}
+                      {type === 'Pearson VII' && <span>I(2θ) = Iₘₐₓ / <br/>[1 + (2^(1/m)-1)·((2θ-2θ₀)/w)²]^m</span>}
+                    </div>
+                    <div className="text-[8px] lg:text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 text-center font-sans font-black flex items-center justify-center gap-1.5 opacity-80 border-t border-slate-300/50 dark:border-slate-600/50 pt-2">
+                      <Zap className="w-3 h-3 text-fuchsia-500" /> Current Convolution Kernel
+                    </div>
+                  </div>
+
+                  <div className="text-[9px] lg:text-[10px] font-black text-slate-500 dark:text-slate-400 flex items-center gap-2 pointer-events-none tracking-[0.2em] uppercase bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                    <span>Integrated Area ∫I(θ)dθ</span>
+                    <svg className="w-3 h-3 lg:w-4 lg:h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
                </div>
 
              </div>

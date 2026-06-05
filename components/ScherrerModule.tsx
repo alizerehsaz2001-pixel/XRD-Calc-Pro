@@ -903,36 +903,46 @@ export const ScherrerModule: React.FC = () => {
               {/* Triage & Morphology */}
               <div className="xl:col-span-4 flex flex-col gap-6">
                  {/* Morphological projection */}
-                 <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative flex flex-col h-1/2 min-h-[220px]">
-                   <h3 className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em] mb-4">Morphology</h3>
-                   <div className="flex-1 w-full">
+                 <div className="bg-[#050b14] border border-blue-900/30 rounded-3xl p-6 shadow-2xl relative flex flex-col h-1/2 min-h-[220px] overflow-hidden group">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
+                   <h3 className="text-[11px] font-black text-blue-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 relative z-10">
+                     <Atom className="w-3.5 h-3.5" /> Morphological Projection
+                   </h3>
+                   <div className="flex-1 w-full relative z-10 border border-blue-900/40 rounded-xl bg-black/40 overflow-hidden">
                      <MorphologyVisualizer kType={selectedKType} sizeNm={avgSize} />
                    </div>
                  </div>
 
                  {/* WH Strain Triage */}
                  {results.filter(r => !r.error).length > 1 && (
-                 <div className={`flex-1 rounded-3xl p-6 shadow-2xl relative overflow-hidden transition-all duration-500 flex flex-col justify-center ${whStrainTriage.slope > 0.0002 ? 'bg-rose-500/10 border border-rose-500/30' : 'bg-emerald-500/10 border border-emerald-500/30'}`}>
-                    <div className="flex items-center gap-2 mb-3">
-                       <AlertTriangle className={`w-5 h-5 ${whStrainTriage.slope > 0.0002 ? 'text-rose-400' : 'text-emerald-400'}`} />
-                       <h3 className="text-xs font-black text-white uppercase tracking-widest">Strain Triage</h3>
+                 <div className={`flex-1 rounded-3xl p-6 shadow-2xl relative overflow-hidden transition-all duration-500 flex flex-col justify-center ${whStrainTriage.slope > 0.0002 ? 'bg-[#1a0f14] border border-rose-900/40' : 'bg-[#0a1410] border border-emerald-900/40'}`}>
+                    <div className="absolute top-0 left-0 w-1 bg-gradient-to-b h-full opacity-50" style={{ backgroundImage: whStrainTriage.slope > 0.0002 ? 'linear-gradient(to bottom, #fb7185, transparent)' : 'linear-gradient(to bottom, #34d399, transparent)' }} />
+                    <div className="flex justify-between items-start mb-4 relative z-10">
+                      <div className="flex items-center gap-2">
+                         <Activity className={`w-4 h-4 ${whStrainTriage.slope > 0.0002 ? 'text-rose-400' : 'text-emerald-400'}`} />
+                         <h3 className="text-[11px] font-black text-slate-300 uppercase tracking-[0.2em]">Strain Triage</h3>
+                      </div>
+                      <span className={`text-[9px] px-2 py-0.5 rounded border font-mono font-bold uppercase tracking-widest ${whStrainTriage.slope > 0.0002 ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+                        R² = {whStrainTriage.rSquared.toFixed(2)}
+                      </span>
                     </div>
+                    
                     {whStrainTriage.slope > 0.0002 ? (
-                      <div>
+                      <div className="relative z-10 bg-black/20 p-4 rounded-xl border border-rose-900/30">
                         <p className="text-[11px] text-rose-200/80 mb-3 font-medium leading-relaxed">
-                          Significant lattice microstrain detected (<span className="font-mono text-rose-400 font-bold">{whStrainTriage.slope.toExponential(2)}</span>). Scherrer model may underestimate true crystallite dimensions.
+                          Significant lattice microstrain detected (<span className="font-mono text-rose-400 font-bold">ε ≈ {(whStrainTriage.slope * 100).toPrecision(2)}%</span>). Scherrer model will <span className="text-rose-400 font-bold">underestimate</span> true crystallite dimensions due to un-decoupled strain broadening.
                         </p>
-                        <div className="text-[9px] font-black uppercase text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-lg inline-flex items-center gap-2">
-                           <Zap className="w-3 h-3" /> Consider Williamson-Hall Analysis
+                        <div className="text-[9px] font-black uppercase text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-2 rounded-lg inline-flex items-center gap-2 shadow-[0_0_15px_rgba(225,29,72,0.1)]">
+                           <Zap className="w-3 h-3" /> Execute Williamson-Hall Analysis
                         </div>
                       </div>
                     ) : (
-                      <div>
+                      <div className="relative z-10 bg-black/20 p-4 rounded-xl border border-emerald-900/30">
                         <p className="text-[11px] text-emerald-200/80 mb-3 font-medium leading-relaxed">
-                          Microstrain is negligible (<span className="font-mono text-emerald-400 font-bold">{whStrainTriage.slope.toExponential(2)}</span>) or indeterminate. Scherrer assumptions apply well.
+                          Microstrain is negligible (<span className="font-mono text-emerald-400 font-bold">ε ≈ {(whStrainTriage.slope * 100).toPrecision(2)}%</span>) or indeterminate. Pure size-broadening assumption is physically sound.
                         </p>
-                        <div className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-lg inline-flex items-center gap-2">
-                           <Check className="w-3 h-3" /> High Confidence
+                        <div className="text-[9px] font-black uppercase text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-lg inline-flex items-center gap-2 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
+                           <Check className="w-3 h-3" /> High Confidence Scherrer Limit
                         </div>
                       </div>
                     )}

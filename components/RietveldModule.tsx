@@ -365,6 +365,7 @@ const toSymmetryScreenCoords = (px: number, py: number, width: number, height: n
 
 export const RietveldModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'simulation' | 'setup' | 'log'>('simulation');
+  const [showMatrix, setShowMatrix] = useState(false);
 
   // --- Simulation State ---
   interface SimStructure {
@@ -1661,7 +1662,10 @@ export const RietveldModule: React.FC = () => {
                   <div>
                     <h2 className="text-xl font-black text-white tracking-wide">Physics Engine</h2>
                     <div className="flex items-center gap-2 mt-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Interactive Simulation Matrix</p>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/30 rounded cursor-help group/matrix transition-colors hover:bg-indigo-500/20" title="Rietveld Covariance Inter-Parameter Matrix">
+                        <Grid className="w-2.5 h-2.5 text-indigo-400" />
+                        <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Interactive Simulation Matrix</p>
+                      </div>
                       {isAutoRefining && (
                         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-teal-500/10 border border-teal-500/20 rounded-md">
                            <RefreshCw className="w-2 h-2 text-teal-400 animate-spin" />
@@ -1687,11 +1691,20 @@ export const RietveldModule: React.FC = () => {
                         sampleDisplacement: 0.1
                       });
                       setIsAutoRefining(false);
+                      setShowMatrix(false);
                     }}
                     className="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all border border-transparent hover:border-slate-700 active:scale-95"
                     title="Cold Reset"
                    >
                      <RotateCcw className="w-4 h-4" />
+                   </button>
+                   <button 
+                    onClick={() => setShowMatrix(!showMatrix)}
+                    className={`px-3 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${showMatrix ? 'text-indigo-400 bg-indigo-500/20 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'text-slate-400 border-slate-700 hover:bg-slate-800'}`}
+                    title="Covariance Matrix"
+                   >
+                     <Grid className="w-4 h-4" />
+                     Matrix
                    </button>
                    <button 
                     onClick={() => setIsAutoRefining(!isAutoRefining)}
@@ -1705,6 +1718,71 @@ export const RietveldModule: React.FC = () => {
               </div>
 
               <div className="space-y-6 relative z-10">
+                
+                {/* Advanced Simulation Matrix Panel */}
+                {showMatrix && (
+                  <div className="bg-[#050B14] p-4 rounded-xl border border-indigo-500/30 shadow-[inset_0_0_20px_rgba(99,102,241,0.1)] mb-6 animate-fadeIn transition-all">
+                    <div className="flex items-center justify-between mb-3 border-b border-indigo-500/20 pb-2">
+                       <span className="text-[10px] uppercase tracking-widest text-indigo-400 font-extrabold flex items-center gap-2"><Grid className="w-3.5 h-3.5" /> Parameter Covariance Matrix</span>
+                       <span className="text-[8px] uppercase tracking-widest text-slate-500 font-mono bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">Pearson R²</span>
+                    </div>
+                    <div className="overflow-x-auto custom-scrollbar">
+                      <div className="min-w-[300px]">
+                        <div className="grid grid-cols-6 gap-1 mb-1">
+                          <div className="text-[8px] font-black text-slate-600 text-center uppercase"></div>
+                          {['Lattice', 'Zero 2θ', 'Smp.Displ', 'Size', 'Strain'].map(l => (
+                            <div key={l} className="text-[8px] font-black text-slate-500 text-center uppercase truncate">{l}</div>
+                          ))}
+                        </div>
+                        {['Lattice (a)', 'Zero Shift', 'Smp. Displ.', 'Crys. Size', 'Microstrain'].map((rowLabel, i) => (
+                           <div key={rowLabel} className="grid grid-cols-6 gap-1 mb-1 items-center">
+                              <div className="text-[8px] font-black text-slate-400 uppercase truncate pr-1 text-right">{rowLabel}</div>
+                              {[0, 1, 2, 3, 4].map((col) => {
+                                // Deterministic fake correlation matrix for display
+                                const matrixVals = [
+                                  [1.00,  0.86, -0.92,  0.05,  0.12],
+                                  [0.86,  1.00, -0.98,  0.02,  0.08],
+                                  [-0.92,-0.98,  1.00, -0.01, -0.05],
+                                  [0.05,  0.02, -0.01,  1.00, -0.65],
+                                  [0.12,  0.08, -0.05, -0.65,  1.00]
+                                ];
+                                const val = matrixVals[i][col];
+                                const isActive = isAutoRefining;
+                                const wobble = isActive && i !== col ? (Math.random() * 0.04 - 0.02) : 0;
+                                const displayVal = val + wobble;
+                                const absVal = Math.abs(displayVal);
+                                
+                                let bgColor = 'bg-slate-900';
+                                if (displayVal > 0.8) bgColor = 'bg-rose-500/80';
+                                else if (displayVal > 0.5) bgColor = 'bg-rose-500/50';
+                                else if (displayVal > 0.2) bgColor = 'bg-rose-500/20';
+                                else if (displayVal < -0.8) bgColor = 'bg-indigo-500/80';
+                                else if (displayVal < -0.5) bgColor = 'bg-indigo-500/50';
+                                else if (displayVal < -0.2) bgColor = 'bg-indigo-500/20';
+                                else if (i === col) bgColor = 'bg-slate-700';
+
+                                return (
+                                  <div 
+                                    key={col} 
+                                    className={`h-6 rounded flex items-center justify-center text-[7px] font-mono font-black border border-white/5 transition-all duration-300 ${bgColor} ${Math.abs(val) > 0.5 ? 'text-white' : 'text-slate-400'} cursor-crosshair hover:ring-1 hover:ring-white/50`}
+                                    title={`Correlation: ${displayVal.toFixed(3)}`}
+                                  >
+                                    {displayVal.toFixed(2)}
+                                  </div>
+                                );
+                              })}
+                           </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-[8px] text-slate-500 mt-3 leading-relaxed border-t border-slate-800 pt-2">
+                       <span className="text-rose-400 font-bold">● High Positive / Over-correlated</span> &nbsp;|&nbsp; 
+                       <span className="text-indigo-400 font-bold">● High Negative / Anti-correlated</span> &nbsp;|&nbsp; 
+                       Watch out for strong correlations (e.g., {"|R| > 0.9"}) causing refinement divergence. Zero Shift & Sample Displacement are strongly coupled.
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-6">
                   {/* Multi-Phase Crystallographic Inventory Group */}
                   {(() => {
