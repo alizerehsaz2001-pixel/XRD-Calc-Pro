@@ -391,6 +391,8 @@ export const DeepLearningModule: React.FC = () => {
 
   // Search & Advanced Tools State
   const [searchTerm, setSearchTerm] = useState("");
+  const [dbSearch, setDbSearch] = useState("");
+  const [dbFilter, setDbFilter] = useState("All");
   const [checkedAudits, setCheckedAudits] = useState<boolean[]>([
     true,
     true,
@@ -3410,14 +3412,66 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               )}
 
               <div className="mt-5 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Database className="w-3 h-3 text-slate-400" /> Standard
-                    Scientific Test Databases (ICDD, COD, RRUFF, ICSD, CSD)
-                  </span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 animate-pulse">
+                      <Database className="w-3.5 h-3.5 text-indigo-400 animate-spin" style={{ animationDuration: '6s' }} /> Standard Reference Registries
+                    </span>
+                    <span className="text-[8px] font-mono bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full font-bold">
+                      ICDD / COD / RRUFF / ICSD / CSD
+                    </span>
+                  </div>
+
+                  {/* Interactive filter & search deck */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Fast Filter Keys:</span>
+                      <div className="flex gap-1 flex-wrap">
+                        {[
+                          { name: "ICDD", style: "bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-700 font-bold" },
+                          { name: "COD", style: "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700 font-bold" },
+                          { name: "RRUFF", style: "bg-cyan-50 hover:bg-cyan-100 border-cyan-200 text-cyan-700 font-bold" },
+                          { name: "ICSD", style: "bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-700 font-bold" },
+                          { name: "CSD", style: "bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 font-bold" }
+                        ].map(badge => (
+                          <button
+                            key={badge.name}
+                            type="button"
+                            onClick={() => setDbSearch(badge.name)}
+                            className={`px-1.5 py-0.5 text-[8px] rounded border transition-all ${badge.style}`}
+                          >
+                            {badge.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={dbSearch}
+                        onChange={(e) => setDbSearch(e.target.value)}
+                        placeholder="Search formulas or indexing databases (e.g. NIST, Oxide, Fe)..."
+                        className="w-full bg-white text-slate-800 border border-slate-300 hover:border-violet-400 rounded-lg py-1.5 pl-8 pr-8 text-xs focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all shadow-inner"
+                      />
+                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                      {dbSearch && (
+                        <button
+                          key="clear-db-search"
+                          type="button"
+                          onClick={() => setDbSearch("")}
+                          className="absolute right-2.5 top-2 p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all active:scale-95"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="h-[300px] overflow-y-auto pr-3 pl-1 pb-4 custom-scrollbar bg-[#f8fafc] border border-slate-200 rounded-xl shadow-inner relative space-y-4">
-                  {[
+
+                <div className="h-[300px] overflow-y-auto pr-3 pl-1 pb-4 custom-scrollbar bg-slate-50/50 border border-slate-200 rounded-xl shadow-inner relative space-y-4">
+                {(() => {
+                  const rawCategoriesList = [
                     {
                       category: "Standard Reference Materials (NIST/SRM)",
                       items: [
@@ -4192,25 +4246,61 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         { id: "Ultra-High Temperature Ceramic Ablator", label: "UHTC Ablator Suite" },
                       ],
                     },
-                  ].map((categoryObj, idx) => (
-                    <div key={idx} className="mt-2">
-                      <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 mb-2 border-b border-slate-200 pb-1 sticky top-0 bg-[#f8fafc]/90 backdrop-blur-sm z-10 p-1 flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-violet-400"></div>
-                        {categoryObj.category}
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5 px-1 py-1">
-                        {categoryObj.items.map((ex) => (
-                          <button
-                            key={ex.id}
-                            onClick={() => loadExample(ex.id as any)}
-                            className="text-[10px] font-semibold bg-white text-slate-600 hover:text-white hover:bg-violet-600 px-2.5 py-1 rounded-md border border-slate-300 hover:border-violet-600 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-95"
-                          >
-                            {ex.label}
-                          </button>
-                        ))}
-                      </div>
+                  ];
+
+                  const filteredCategories = rawCategoriesList
+                    .map(cat => ({
+                      ...cat,
+                      items: cat.items.filter(item => {
+                        const searchLower = dbSearch.trim().toLowerCase();
+                        if (!searchLower) return true;
+                        return (
+                          item.label.toLowerCase().includes(searchLower) ||
+                          item.id.toLowerCase().includes(searchLower) ||
+                          cat.category.toLowerCase().includes(searchLower)
+                        );
+                      })
+                    }))
+                    .filter(cat => cat.items.length > 0);
+                  
+                  return filteredCategories.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400 gap-2">
+                      <SlidersHorizontal className="w-8 h-8 text-slate-300 stroke-1" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">No reference materials match filter</span>
+                      <span className="text-[10px] text-slate-400 font-sans">Try searching for other formulas or database indexes</span>
                     </div>
-                  ))}
+                  ) : (
+                    filteredCategories.map((categoryObj, idx) => (
+                      <div key={idx} className="mt-2">
+                        <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 mb-2 border-b border-slate-200 pb-1 sticky top-0 bg-[#f8fafc]/90 backdrop-blur-sm z-10 p-1 flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-violet-400"></div>
+                          {categoryObj.category}
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5 px-1 py-1">
+                          {categoryObj.items.map((ex) => {
+                            const isSearchMatch = dbSearch.trim() !== "" && (
+                              ex.label.toLowerCase().includes(dbSearch.toLowerCase()) ||
+                              ex.id.toLowerCase().includes(dbSearch.toLowerCase())
+                            );
+                            return (
+                              <button
+                                key={ex.id}
+                                onClick={() => loadExample(ex.id as any)}
+                                className={`text-[10px] font-semibold px-2.5 py-1 rounded-md border transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-95 ${
+                                  isSearchMatch 
+                                    ? "bg-violet-600 text-white border-violet-700 shadow-md ring-2 ring-violet-500/20"
+                                    : "bg-white text-slate-600 hover:text-white hover:bg-violet-600 border-slate-300 hover:border-violet-600"
+                                }`}
+                              >
+                                {ex.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  );
+                })()}
                 </div>
               </div>
             </div>

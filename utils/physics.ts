@@ -1175,100 +1175,168 @@ export const MAGNETIC_FORM_FACTORS: Record<string, { A: number, a: number, B: nu
   'Cr3+': { A: 0.3644, a: 12.441, B: 0.2473, b: 4.492, C: 0.3926, c: 1.458, D: -0.0043 }
 };
 
-export const calculateMagneticDiffraction = (wavelength: number, lattice: LatticeParameters, atoms: MagneticAtom[], maxTwoTheta: number = 100): MagneticResult[] => {
-  const results = []; 
-  const { a, b, c } = lattice; 
+export const calculateMagneticDiffraction = (
+  wavelength: number,
+  lattice: LatticeParameters,
+  atoms: MagneticAtom[],
+  maxTwoTheta: number = 100,
+  kVector: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 }
+): MagneticResult[] => {
+  const results: MagneticResult[] = [];
+  const { a, b, c } = lattice;
   if (a <= 0 || b <= 0 || c <= 0 || wavelength <= 0) return [];
-  
+
   const maxSinTheta = Math.sin((maxTwoTheta / 2) * (Math.PI / 180));
   const maxDim = Math.max(a, b, c);
-  const maxIndex = Math.ceil((2 * maxDim * maxSinTheta) / wavelength);
+  const maxIndex = Math.ceil((2 * maxDim * maxSinTheta) / wavelength) + 1;
 
+  const isKZero = Math.abs(kVector.x) < 1e-4 && Math.abs(kVector.y) < 1e-4 && Math.abs(kVector.z) < 1e-4;
+
+  const addReflection = (
+    h: number, k: number, l: number,
+    qh: number, qk: number, ql: number,
+    isSatellite: boolean,
+    satDirection: 1 | -1 | 0
+  ) => {
+    // Avoid double counting (e.g. 0 0 0)
+    if (Math.abs(qh) < 1e-4 && Math.abs(qk) < 1e-4 && Math.abs(ql) < 1e-4) return;
+
+    const d = calculateDSpacing(qh, qk, ql, lattice);
+    if (!isFinite(d) || d <= 0) return;
+
+    const sinTheta = wavelength / (2 * d);
+    if (sinTheta > 1 || sinTheta > maxSinTheta) return;
+
+    const s = sinTheta / wavelength;
+    const theta = Math.asin(sinTheta);
+    const L = 1 / (sinTheta * Math.sin(2 * theta));
+
+    // 1. Calculate Nuclear contribution
+    let In = 0;
+    if (!isSatellite) {
+      let Fn_r = 0;
+      let Fn_i = 0;
+      for (const atom of atoms) {
+        const phase = 2 * Math.PI * (h * atom.x + k * atom.y + l * atom.z);
+        const T = Math.exp(-atom.B_iso * s * s);
+        const atom_b = atom.b || 0;
+        Fn_r += atom_b * T * Math.cos(phase);
+        Fn_i += atom_b * T * Math.sin(phase);
+      }
+      In = Fn_r * Fn_r + Fn_i * Fn_i;
+    }
+
+    // 2. Calculate Magnetic contribution
+    let Im = 0;
+    let Fm_r = { x: 0, y: 0, z: 0 };
+    let Fm_i = { x: 0, y: 0, z: 0 };
+
+    const Qmag = 1 / d;
+    const Qhat = { x: (qh / a) / Qmag, y: (qk / b) / Qmag, z: (ql / c) / Qmag };
+
+    for (const atom of atoms) {
+      // Use fractional reciprocal coordinates for the magnetic phase factor in the cell
+      const phase = 2 * Math.PI * (qh * atom.x + qk * atom.y + ql * atom.z);
+      const T = Math.exp(-atom.B_iso * s * s);
+
+      let f_mag = 0;
+      if (atom.ion && MAGNETIC_FORM_FACTORS[atom.ion]) {
+        const { A, a: mA, B, b: mB, C, c: mC, D } = MAGNETIC_FORM_FACTORS[atom.ion];
+        f_mag = A * Math.exp(-mA * s * s) + B * Math.exp(-mB * s * s) + C * Math.exp(-mC * s * s) + D;
+      } else {
+        f_mag = Math.exp(-4 * s * s);
+      }
+
+      const mx = atom.mx || 0;
+      const my = atom.my || 0;
+      const mz = atom.mz || 0;
+
+      const MdotQ = mx * Qhat.x + my * Qhat.y + mz * Qhat.z;
+      const weight = 2.696 * f_mag * T;
+
+      // Project M perpendicular to Q
+      const compX = mx - MdotQ * Qhat.x;
+      const compY = my - MdotQ * Qhat.y;
+      const compZ = mz - MdotQ * Qhat.z;
+
+      Fm_r.x += weight * compX * Math.cos(phase);
+      Fm_r.y += weight * compY * Math.cos(phase);
+      Fm_r.z += weight * compZ * Math.cos(phase);
+
+      Fm_i.x += weight * compX * Math.sin(phase);
+      Fm_i.y += weight * compY * Math.sin(phase);
+      Fm_i.z += weight * compZ * Math.sin(phase);
+    }
+
+    Im = (Fm_r.x * Fm_r.x + Fm_i.x * Fm_i.x) + 
+         (Fm_r.y * Fm_r.y + Fm_i.y * Fm_i.y) + 
+         (Fm_r.z * Fm_r.z + Fm_i.z * Fm_i.z);
+
+    // Apply the 0.5 splitting factor for incommensurate magnetic satellites
+    if (isSatellite) {
+      Im = Im * 0.5;
+    }
+
+    const total = (In + Im) * L;
+    if (total > 1e-4) {
+      const twoTheta = 2 * theta * (180 / Math.PI);
+      const label = isSatellite 
+        ? `[${h} ${k} ${l}] ${satDirection === 1 ? '+' : '-'} k` 
+        : `[${h} ${k} ${l}]`;
+
+      // Look for an existing reflection at close twoTheta to merge
+      const existing = results.find(r => Math.abs(r.twoTheta - twoTheta) < 0.02);
+      if (existing) {
+        existing.nuclearIntensity += In * L;
+        existing.magneticIntensity += Im * L;
+        existing.totalIntensity += total;
+        // Merge labels if different
+        if (existing.label && !existing.label.includes(label)) {
+          existing.label += `, ${label}`;
+        }
+      } else {
+        results.push({
+          hkl: [Math.abs(h), Math.abs(k), Math.abs(l)],
+          twoTheta,
+          dSpacing: d,
+          nuclearIntensity: In * L,
+          magneticIntensity: Im * L,
+          totalIntensity: total,
+          F_squared: In + Im,
+          intensity: total,
+          label,
+          q: [qh, qk, ql]
+        });
+      }
+    }
+  };
+
+  // Generate reciprocal grid
   for (let h = -maxIndex; h <= maxIndex; h++) {
     for (let k = -maxIndex; k <= maxIndex; k++) {
       for (let l = -maxIndex; l <= maxIndex; l++) {
-        if (h === 0 && k === 0 && l === 0) continue;
-        const d = calculateDSpacing(h, k, l, lattice);
-        const sinTheta = wavelength / (2 * d);
-        if (sinTheta > 1 || sinTheta > maxSinTheta) continue;
-        
-        const s = sinTheta / wavelength;
-        let Fn_r = 0; let Fn_i = 0; 
-        let Fm_r = { x: 0, y: 0, z: 0 }; let Fm_i = { x: 0, y: 0, z: 0 };
-        
-        // Q vector in reciprocal space components
-        const Qmag = 1 / d; 
-        // Approx relative components for magnetic orientation:
-        const Qhat = { x: (h / a) / Qmag, y: (k / b) / Qmag, z: (l / c) / Qmag };
+        // A. Nuclear Peak (& commensurate magnetic peak if k is zero)
+        addReflection(h, k, l, h, k, l, false, 0);
 
-        for (const atom of atoms) {
-          const phase = 2 * Math.PI * (h * atom.x + k * atom.y + l * atom.z);
-          const T = Math.exp(-atom.B_iso * s * s);
-          Fn_r += atom.b * T * Math.cos(phase); 
-          Fn_i += atom.b * T * Math.sin(phase);
-          
-          let f_mag = 0;
-          if (atom.ion && MAGNETIC_FORM_FACTORS[atom.ion]) {
-             const { A, a: mA, B, b: mB, C, c: mC, D } = MAGNETIC_FORM_FACTORS[atom.ion];
-             f_mag = A * Math.exp(-mA * s * s) + B * Math.exp(-mB * s * s) + C * Math.exp(-mC * s * s) + D;
-          } else {
-             f_mag = Math.exp(-4 * s * s);
-          }
-
-          const MdotQ = atom.mx * Qhat.x + atom.my * Qhat.y + atom.mz * Qhat.z;
-          const weight = 2.696 * f_mag * T; 
-          
-          const component = {
-            x: atom.mx - MdotQ * Qhat.x,
-            y: atom.my - MdotQ * Qhat.y,
-            z: atom.mz - MdotQ * Qhat.z
-          };
-
-          Fm_r.x += weight * component.x * Math.cos(phase);
-          Fm_r.y += weight * component.y * Math.cos(phase);
-          Fm_r.z += weight * component.z * Math.cos(phase);
-          
-          Fm_i.x += weight * component.x * Math.sin(phase);
-          Fm_i.y += weight * component.y * Math.sin(phase);
-          Fm_i.z += weight * component.z * Math.sin(phase);
-        }
-        
-        const In = (Fn_r * Fn_r + Fn_i * Fn_i); 
-        const Im = (Fm_r.x * Fm_r.x + Fm_i.x * Fm_i.x) + (Fm_r.y * Fm_r.y + Fm_i.y * Fm_i.y) + (Fm_r.z * Fm_r.z + Fm_i.z * Fm_i.z);
-        
-        const theta = Math.asin(sinTheta);
-        const L = 1 / (sinTheta * Math.sin(2 * theta));
-        const total = (In + Im) * L;
-
-        if (total > 1e-4) {
-          const twoTheta = 2 * theta * (180 / Math.PI);
-          const existing = results.find(r => Math.abs(r.twoTheta - twoTheta) < 0.01);
-          if (existing) {
-            existing.nuclearIntensity += In * L;
-            existing.magneticIntensity += Im * L;
-            existing.totalIntensity += total;
-          } else {
-            results.push({ 
-              hkl: [Math.abs(h), Math.abs(k), Math.abs(l)], 
-              twoTheta, 
-              dSpacing: d, 
-              nuclearIntensity: In * L, 
-              magneticIntensity: Im * L, 
-              totalIntensity: total,
-              F_squared: In + Im,
-              intensity: total // for general NeutronResult compatibility
-            });
-          }
+        // B. Satellite Peaks (only if k is non-zero)
+        if (!isKZero) {
+          // Satellite 1: H + k
+          addReflection(h, k, l, h + kVector.x, k + kVector.y, l + kVector.z, true, 1);
+          // Satellite 2: H - k
+          addReflection(h, k, l, h - kVector.x, k - kVector.y, l - kVector.z, true, -1);
         }
       }
     }
   }
+
   if (results.length === 0) return [];
+
+  // Normalize relative intensities to maximum peak = 100
   const maxI = Math.max(...results.map(r => r.totalIntensity));
-  return results.sort((a, b) => a.twoTheta - b.twoTheta).map(r => ({ 
-    ...r, 
-    nuclearIntensity: (r.nuclearIntensity / maxI) * 100, 
-    magneticIntensity: (r.magneticIntensity / maxI) * 100, 
+  return results.sort((a, b) => a.twoTheta - b.twoTheta).map(r => ({
+    ...r,
+    nuclearIntensity: (r.nuclearIntensity / maxI) * 100,
+    magneticIntensity: (r.magneticIntensity / maxI) * 100,
     totalIntensity: (r.totalIntensity / maxI) * 100,
     intensity: (r.totalIntensity / maxI) * 100
   }));

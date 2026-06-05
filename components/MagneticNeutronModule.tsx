@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MagneticAtom, MagneticResult, LatticeParameters } from '../types';
 import { calculateMagneticDiffraction, NEUTRON_SCATTERING_LENGTHS, MAGNETIC_FORM_FACTORS, NEUTRON_WAVELENGTHS, calculateCellVolume } from '../utils/physics';
 import {
@@ -12,7 +12,7 @@ import {
   Legend
 } from 'recharts';
 
-import { Upload, Atom, Zap, Info, Layers, Download, Move, Database } from 'lucide-react';
+import { Upload, Atom, Zap, Info, Layers, Download, Move, Database, Trash2, Plus, RotateCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const MagneticNeutronModule: React.FC = () => {
@@ -20,6 +20,14 @@ export const MagneticNeutronModule: React.FC = () => {
   const [lattice, setLattice] = useState<LatticeParameters>({
     a: 4.0, b: 4.0, c: 4.0, alpha: 90, beta: 90, gamma: 90
   });
+  const [kVector, setKVector] = useState({ x: 0, y: 0, z: 0 });
+
+  // Visualizer Rotation State
+  const [rotation, setRotation] = useState({ x: 25, y: -45 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
@@ -32,7 +40,7 @@ export const MagneticNeutronModule: React.FC = () => {
   const [results, setResults] = useState<MagneticResult[]>([]);
 
   const handleCalculate = () => {
-    const computed = calculateMagneticDiffraction(wavelength, lattice, atoms);
+    const computed = calculateMagneticDiffraction(wavelength, lattice, atoms, 100, kVector);
     setResults(computed);
   };
 
@@ -41,6 +49,7 @@ export const MagneticNeutronModule: React.FC = () => {
       lattice,
       atoms,
       wavelength,
+      kVector,
       type: 'Magnetic Neutron',
       timestamp: new Date().toISOString()
     };
@@ -55,7 +64,7 @@ export const MagneticNeutronModule: React.FC = () => {
 
   useEffect(() => {
     handleCalculate();
-  }, [atoms, wavelength, lattice]);
+  }, [atoms, wavelength, lattice, kVector]);
 
   const updateAtom = (id: string, field: keyof MagneticAtom, value: any) => {
     setAtoms(atoms.map(a => {
@@ -70,6 +79,261 @@ export const MagneticNeutronModule: React.FC = () => {
     }));
   };
 
+  // Dynamic Atom list controls
+  const handleAddAtom = () => {
+    const newId = (Date.now() + Math.random()).toString();
+    setAtoms([
+      ...atoms,
+      {
+        id: newId,
+        element: 'Fe',
+        label: `Fe (Site ${atoms.length + 1})`,
+        b: 9.45,
+        x: 0,
+        y: 0,
+        z: 0.5,
+        B_iso: 0.5,
+        mx: 0,
+        my: 0,
+        mz: 2.0,
+        ion: 'Fe3+'
+      }
+    ]);
+  };
+
+  const handleDeleteAtom = (id: string) => {
+    if (atoms.length <= 1) return;
+    setAtoms(atoms.filter(a => a.id !== id));
+  };
+
+  // Quick alignment operations
+  const alignSpinsAxis = (axis: 'x' | 'y' | 'z', value: number) => {
+    setAtoms(atoms.map(a => ({
+      ...a,
+      mx: axis === 'x' ? value : 0,
+      my: axis === 'y' ? value : 0,
+      mz: axis === 'z' ? value : 0,
+    })));
+  };
+
+  const invertSpins = () => {
+    setAtoms(atoms.map(a => ({
+      ...a,
+      mx: -(a.mx || 0),
+      my: -(a.my || 0),
+      mz: -(a.mz || 0),
+    })));
+  };
+
+  const randomizeSpins = () => {
+    setAtoms(atoms.map(a => {
+      const theta = Math.random() * Math.PI;
+      const phi = Math.random() * 2 * Math.PI;
+      const mag = 3.5;
+      return {
+        ...a,
+        mx: parseFloat((mag * Math.sin(theta) * Math.cos(phi)).toFixed(1)),
+        my: parseFloat((mag * Math.sin(theta) * Math.sin(phi)).toFixed(1)),
+        mz: parseFloat((mag * Math.cos(theta)).toFixed(1))
+      };
+    }));
+  };
+
+  // 3D Visualizer Dragging Handlers
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    setRotation(prev => ({
+      x: Math.max(-95, Math.min(95, prev.x - dy * 0.5)),
+      y: prev.y + dx * 0.5
+    }));
+    setDragStart({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Rotatable Canvas Effect
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const width = rect.width;
+    const height = rect.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    const cx = width / 2;
+    const cy = height / 2;
+    const scale = Math.min(width, height) * 0.38;
+
+    const rx = rotation.x * Math.PI / 180;
+    const ry = rotation.y * Math.PI / 180;
+
+    const project = (fx: number, fy: number, fz: number) => {
+      const dx = fx - 0.5;
+      const dy = fy - 0.5;
+      const dz = fz - 0.5;
+
+      const x1 = dx * Math.cos(ry) - dz * Math.sin(ry);
+      const z1 = dx * Math.sin(ry) + dz * Math.cos(ry);
+
+      const y2 = dy * Math.cos(rx) - z1 * Math.sin(rx);
+      const z2 = dy * Math.sin(rx) + z1 * Math.cos(rx);
+
+      return { x: cx + x1 * scale, y: cy + y2 * scale, z: z2 };
+    };
+
+    const elements: any[] = [];
+
+    // Unit Cell edge vertices
+    const vertices = [
+      [0,0,0], [1,0,0], [0,1,0], [0,0,1],
+      [1,1,0], [1,0,1], [0,1,1], [1,1,1]
+    ];
+    const edges = [
+      [0,1], [0,2], [0,3],
+      [1,4], [1,5], [2,4], [2,6], [3,5], [3,6],
+      [7,4], [7,5], [7,6]
+    ];
+
+    edges.forEach(([v1, v2]) => {
+      const p1 = vertices[v1];
+      const p2 = vertices[v2];
+      const proj1 = project(p1[0], p1[1], p1[2]);
+      const proj2 = project(p2[0], p2[1], p2[2]);
+      elements.push({
+        type: 'edge',
+        p1: proj1,
+        p2: proj2,
+        color: 'rgba(99, 102, 241, 0.25)',
+        width: 1.5,
+        z: (proj1.z + proj2.z) / 2
+      });
+    });
+
+    // Metric axes
+    const origin = project(0, 0, 0);
+    const ax_a = project(0.4, 0, 0);
+    const ax_b = project(0, 0.4, 0);
+    const ax_c = project(0, 0, 0.4);
+
+    elements.push({ type: 'axis', p1: origin, p2: ax_a, label: 'a', color: '#ef4444', z: origin.z });
+    elements.push({ type: 'axis', p1: origin, p2: ax_b, label: 'b', color: '#10b981', z: origin.z });
+    elements.push({ type: 'axis', p1: origin, p2: ax_c, label: 'c', color: '#3b82f6', z: origin.z });
+
+    // Atoms
+    atoms.forEach((atom) => {
+      const proj = project(atom.x, atom.y, atom.z);
+      let color = '#a78bfa';
+      if (atom.element === 'Fe') color = '#ef4444';
+      else if (atom.element === 'Mn') color = '#f97316';
+      else if (atom.element === 'Co') color = '#8b5cf6';
+      else if (atom.element === 'Ni') color = '#06b6d4';
+      else if (atom.element === 'Cu') color = '#10b981';
+      else if (atom.element === 'Cr') color = '#eab308';
+
+      elements.push({
+        type: 'atom',
+        p: proj,
+        rawAtom: atom,
+        radius: 12 + Math.abs(atom.b || 3) * 0.4,
+        color: color,
+        label: atom.label,
+        mx: atom.mx || 0,
+        my: atom.my || 0,
+        mz: atom.mz || 0,
+        z: proj.z
+      });
+    });
+
+    elements.sort((a, b) => b.z - a.z);
+
+    elements.forEach((el) => {
+      if (el.type === 'edge') {
+        ctx.beginPath();
+        ctx.moveTo(el.p1.x, el.p1.y);
+        ctx.lineTo(el.p2.x, el.p2.y);
+        ctx.strokeStyle = el.color;
+        ctx.lineWidth = el.width;
+        ctx.stroke();
+      } else if (el.type === 'axis') {
+        ctx.beginPath();
+        ctx.moveTo(el.p1.x, el.p1.y);
+        ctx.lineTo(el.p2.x, el.p2.y);
+        ctx.strokeStyle = el.color;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = el.color;
+        ctx.font = 'bold 9px monospace';
+        ctx.fillText(el.label, el.p2.x + 4, el.p2.y + 4);
+      } else if (el.type === 'atom') {
+        const grad = ctx.createRadialGradient(
+          el.p.x - el.radius * 0.3, el.p.y - el.radius * 0.3, el.radius * 0.1,
+          el.p.x, el.p.y, el.radius
+        );
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.2, el.color);
+        grad.addColorStop(1, '#000000');
+
+        ctx.beginPath();
+        ctx.arc(el.p.x, el.p.y, el.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(el.label, el.p.x, el.p.y - el.radius - 4);
+
+        const momentMag = Math.sqrt(el.mx*el.mx + el.my*el.my + el.mz*el.mz);
+        if (momentMag > 0.05) {
+          const arrowScale = 0.15;
+          const destProj = project(el.rawAtom.x + el.mx * arrowScale, el.rawAtom.y + el.my * arrowScale, el.rawAtom.z + el.mz * arrowScale);
+
+          ctx.beginPath();
+          ctx.moveTo(el.p.x, el.p.y);
+          ctx.lineTo(destProj.x, destProj.y);
+          ctx.strokeStyle = '#f43f5e';
+          ctx.lineWidth = 3.5;
+          ctx.stroke();
+
+          const angle = Math.atan2(destProj.y - el.p.y, destProj.x - el.p.x);
+          const headLength = 7;
+          ctx.beginPath();
+          ctx.moveTo(destProj.x, destProj.y);
+          ctx.lineTo(destProj.x - headLength * Math.cos(angle - Math.PI / 6), destProj.y - headLength * Math.sin(angle - Math.PI / 6));
+          ctx.lineTo(destProj.x - headLength * Math.cos(angle + Math.PI / 6), destProj.y - headLength * Math.sin(angle + Math.PI / 6));
+          ctx.closePath();
+          ctx.fillStyle = '#f43f5e';
+          ctx.fill();
+        }
+      }
+    });
+
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+    ctx.font = 'bold 8px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`ROTATION X: ${Math.round(rotation.x)}° Y: ${Math.round(rotation.y)}°`, 10, 15);
+    ctx.fillText('DRAG TO ORBIT CELLS', 10, 26);
+  }, [atoms, rotation]);
+
   const handleImport = () => {
     try {
       const data = JSON.parse(importJson);
@@ -81,6 +345,13 @@ export const MagneticNeutronModule: React.FC = () => {
           alpha: data.lattice.alpha || 90,
           beta: data.lattice.beta || 90,
           gamma: data.lattice.gamma || 90
+        });
+      }
+      if (data.kVector) {
+        setKVector({
+          x: data.kVector.x || 0,
+          y: data.kVector.y || 0,
+          z: data.kVector.z || 0
         });
       }
       if (data.atoms && Array.isArray(data.atoms)) {
@@ -322,8 +593,7 @@ export const MagneticNeutronModule: React.FC = () => {
                      ))}
                    </div>
                 </div>
-                
-                <div className="space-y-4">
+                           <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-3">
                     {['a', 'b', 'c'].map((axis) => (
                       <div key={axis} className="space-y-1.5">
@@ -332,7 +602,7 @@ export const MagneticNeutronModule: React.FC = () => {
                           type="number"
                           step="0.01"
                           value={lattice[axis as keyof LatticeParameters]}
-                          onChange={(e) => setLattice({ ...lattice, [axis]: parseFloat(e.target.value) })}
+                          onChange={(e) => setLattice({ ...lattice, [axis]: parseFloat(e.target.value) || 0 })}
                           className="w-full px-3 py-2 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none"
                         />
                       </div>
@@ -348,12 +618,60 @@ export const MagneticNeutronModule: React.FC = () => {
                           type="number"
                           step="0.1"
                           value={lattice[angle as keyof LatticeParameters]}
-                          onChange={(e) => setLattice({ ...lattice, [angle]: parseFloat(e.target.value) })}
+                          onChange={(e) => setLattice({ ...lattice, [angle]: parseFloat(e.target.value) || 0 })}
                           className="w-full px-3 py-2 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none"
                         />
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              {/* Propagation vector wave vector k */}
+              <div className="space-y-1.5 p-4 bg-slate-950/40 rounded-2xl border border-slate-800 text-left">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Propagation Wave Vector (k)</label>
+                  <span className="text-[8px] font-mono font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">Satellites</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {['kx', 'ky', 'kz'].map((comp, idx) => {
+                    const keys = ['x', 'y', 'z'] as const;
+                    const key = keys[idx];
+                    return (
+                      <div key={comp} className="space-y-1">
+                        <span className="text-[8px] text-slate-500 font-black px-1 uppercase tracking-widest">{comp}</span>
+                        <input
+                          type="number"
+                          step="0.05"
+                          value={kVector[key]}
+                          onChange={(e) => setKVector({ ...kVector, [key]: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-2 py-1.5 bg-slate-900 border border-slate-800 text-indigo-400 font-mono text-[11px] font-black rounded-lg outline-none focus:ring-1 focus:ring-indigo-500/50"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex gap-1.5 mt-2 overflow-x-auto pb-1 scrollbar-hide">
+                  {[
+                    { label: 'Commensurate [0 0 0]', val: { x: 0, y: 0, z: 0 } },
+                    { label: 'AFM Doubling [0 0 0.5]', val: { x: 0, y: 0, z: 0.5 } },
+                    { label: 'C-axis Wave [0 0 0.15]', val: { x: 0, y: 0, z: 0.15 } },
+                    { label: 'Incommensurate [0.1 0.1 0]', val: { x: 0.1, y: 0.1, z: 0 } }
+                  ].map((preset, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setKVector(preset.val)}
+                      className={`px-2 py-1 text-[8px] font-mono rounded border transition-all shrink-0
+                        ${kVector.x === preset.val.x && kVector.y === preset.val.y && kVector.z === preset.val.z
+                          ? 'bg-indigo-550/20 border-indigo-500/40 text-indigo-400 font-bold'
+                          : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-400 hover:border-slate-700'
+                        }
+                      `}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -364,22 +682,43 @@ export const MagneticNeutronModule: React.FC = () => {
                    <div className="w-1 h-3 bg-indigo-500 rounded-full" />
                    <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Magnetic Basis</h4>
                  </div>
+                 <button
+                   onClick={handleAddAtom}
+                   className="flex items-center gap-1 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-[9px] font-black uppercase tracking-wider text-white rounded-xl transition-all"
+                 >
+                   <Plus className="w-3 h-3 mr-1" /> ADD ATOM
+                 </button>
                </div>
                
                <div className="space-y-4 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
                  {atoms.map((atom) => (
                    <div key={atom.id} className="bg-slate-950/30 p-5 rounded-2xl border border-slate-800/80 group/atom hover:border-slate-700 transition-colors">
                      <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-black text-white">{atom.label}</span>
-                          <span className="text-[10px] font-bold text-slate-600 bg-black/40 px-2 py-0.5 border border-slate-800 rounded-md">b={atom.b} fm</span>
+                        <div className="flex items-center gap-2 flex-1 mr-2">
+                          <input
+                            type="text"
+                            value={atom.label}
+                            onChange={(e) => updateAtom(atom.id, 'label', e.target.value)}
+                            className="bg-transparent border-b border-dashed border-slate-700 focus:border-indigo-500 font-black text-xs text-white outline-none py-0.5 w-32"
+                          />
+                          <span className="text-[8.5px] font-bold text-slate-500 bg-black/40 px-1.5 py-0.5 border border-slate-850 rounded">b={atom.b} fm</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                            {/* Small vector indicator */}
                            <div className="flex items-center gap-1 bg-black/20 p-1 rounded-md border border-slate-800">
-                              <Move className="w-3 h-3 text-indigo-500" style={{ transform: `rotate(${Math.atan2(atom.my, atom.mx) * (180/Math.PI)}deg)` }} />
-                              <span className="text-[8px] font-black text-slate-500">M</span>
+                              <Move className="w-3 h-3 text-indigo-400" style={{ transform: `rotate(${Math.atan2(atom.my, atom.mx) * (180/Math.PI)}deg)` }} />
+                              <span className="text-[8px] font-mono font-black text-slate-500">M={Math.sqrt((atom.mx||0)**2 + (atom.my||0)**2 + (atom.mz||0)**2).toFixed(1)}</span>
                            </div>
+
+                           {atoms.length > 1 && (
+                             <button
+                               onClick={() => handleDeleteAtom(atom.id)}
+                               className="p-1 px-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-lg hover:bg-rose-500 hover:text-white transition-all"
+                               title="Delete Atom"
+                             >
+                               <Trash2 className="w-3.5 h-3.5" />
+                             </button>
+                           )}
                         </div>
                      </div>
                      
@@ -412,9 +751,9 @@ export const MagneticNeutronModule: React.FC = () => {
                      </div>
 
                      <div className="grid grid-cols-3 gap-3 mb-4">
-                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">x</label><input type="number" step="0.1" value={atom.x} onChange={(e) => updateAtom(atom.id, 'x', parseFloat(e.target.value))} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
-                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">y</label><input type="number" step="0.1" value={atom.y} onChange={(e) => updateAtom(atom.id, 'y', parseFloat(e.target.value))} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
-                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">z</label><input type="number" step="0.1" value={atom.z} onChange={(e) => updateAtom(atom.id, 'z', parseFloat(e.target.value))} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
+                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">x</label><input type="number" step="0.05" value={atom.x} onChange={(e) => updateAtom(atom.id, 'x', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
+                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">y</label><input type="number" step="0.05" value={atom.y} onChange={(e) => updateAtom(atom.id, 'y', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
+                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">z</label><input type="number" step="0.05" value={atom.z} onChange={(e) => updateAtom(atom.id, 'z', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
                      </div>
 
                      <div className="bg-indigo-500/5 p-4 rounded-2xl border border-indigo-500/10">
@@ -423,14 +762,82 @@ export const MagneticNeutronModule: React.FC = () => {
                           <span className="text-[10px] text-indigo-400 font-black uppercase tracking-widest">Moment Vector (μB)</span>
                         </div>
                         <div className="grid grid-cols-3 gap-3">
-                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mx (μB)</span><input type="number" step="0.1" value={atom.mx} onChange={(e) => updateAtom(atom.id, 'mx', parseFloat(e.target.value))} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
-                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">My (μB)</span><input type="number" step="0.1" value={atom.my} onChange={(e) => updateAtom(atom.id, 'my', parseFloat(e.target.value))} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
-                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mz (μB)</span><input type="number" step="0.1" value={atom.mz} onChange={(e) => updateAtom(atom.id, 'mz', parseFloat(e.target.value))} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
+                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mx (μB)</span><input type="number" step="0.1" value={atom.mx} onChange={(e) => updateAtom(atom.id, 'mx', parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
+                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">My (μB)</span><input type="number" step="0.1" value={atom.my} onChange={(e) => updateAtom(atom.id, 'my', parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
+                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mz (μB)</span><input type="number" step="0.1" value={atom.mz} onChange={(e) => updateAtom(atom.id, 'mz', parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
                         </div>
                      </div>
                    </div>
                  ))}
                </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Rotatable 3D Spin and Lattice Visualizer Card */}
+        <div className="bg-slate-900 p-8 rounded-3xl shadow-xl border border-slate-800 space-y-4 text-left">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-pink-500/15 rounded-xl border border-pink-500/20">
+                <Layers className="w-4.5 h-4.5 text-rose-400" />
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-white uppercase tracking-widest leading-none">3D Spin & Lattice Visualizer</h4>
+                <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">Interactive Magnetic Vector Array</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setRotation({ x: 25, y: -45 })}
+              className="px-2.5 py-1.5 bg-slate-950 border border-slate-850 hover:border-slate-700 hover:text-white rounded-xl text-[8px] text-slate-400 font-mono flex items-center gap-1.5 transition-colors"
+            >
+              <RotateCw className="w-3 h-3 text-slate-500" /> RESET VIEW
+            </button>
+          </div>
+
+          <div className="relative bg-black/40 rounded-2xl border border-slate-800/80 overflow-hidden cursor-grab active:cursor-grabbing">
+            <canvas
+              ref={canvasRef}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              className="w-full h-[220px] block"
+            />
+          </div>
+
+          <div className="space-y-1.5 pt-1">
+            <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Spins Quick-Align operations</div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => alignSpinsAxis('z', 4.0)}
+                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-[8px] font-mono text-slate-300 rounded"
+              >
+                ALIGN ALL Z+
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAtoms(atoms.map((a, idx) => ({ ...a, mx: 0, my: 0, mz: idx % 2 === 0 ? 4.0 : -4.0 })));
+                }}
+                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-[8px] font-mono text-slate-300 rounded"
+              >
+                AFM COLLINEAR (+/-)
+              </button>
+              <button
+                type="button"
+                onClick={invertSpins}
+                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-[8px] font-mono text-slate-300 rounded"
+              >
+                INVERT ALL SPINS
+              </button>
+              <button
+                type="button"
+                onClick={randomizeSpins}
+                className="px-2.5 py-1.5 bg-slate-950 border border-slate-800 hover:border-slate-700 text-[8px] font-mono text-slate-300 rounded"
+              >
+                RANDOM SPHERICAL
+              </button>
             </div>
           </div>
         </div>
@@ -535,21 +942,26 @@ export const MagneticNeutronModule: React.FC = () => {
                       const d = payload[0].payload as MagneticResult;
                       return (
                         <div className="bg-slate-900 border border-slate-700 p-4 rounded-2xl shadow-2xl backdrop-blur-md">
-                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 border-b border-slate-800 pb-2">Reflection profile: ({d.hkl.join(' ')})</p>
-                          <div className="space-y-2">
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 border-b border-slate-800 pb-2">
+                             Reflection Profile: {d.label || `(${d.hkl.join(' ')})`}
+                          </p>
+                          <div className="space-y-2 mt-1">
                              <div className="flex justify-between items-center gap-8">
-                                <span className="text-[11px] font-bold text-slate-400">Nuclear</span>
+                                <span className="text-[11px] font-bold text-slate-400">Nuclear Intensity</span>
                                 <span className="text-xs font-mono font-black text-slate-200">{d.nuclearIntensity.toFixed(1)}</span>
                              </div>
                              <div className="flex justify-between items-center gap-8">
-                                <span className="text-[11px] font-bold text-indigo-400">Magnetic</span>
+                                <span className="text-[11px] font-bold text-indigo-400">Magnetic Intensity</span>
                                 <span className="text-xs font-mono font-black text-indigo-400">{d.magneticIntensity.toFixed(1)}</span>
                              </div>
                              <div className="pt-2 border-t border-slate-800 flex justify-between items-center gap-8">
-                                <span className="text-[11px] font-black text-white">Total Int.</span>
+                                <span className="text-[11px] font-black text-white font-sans">Total Intensity</span>
                                 <span className="text-sm font-mono font-black text-white">{d.totalIntensity.toFixed(1)}</span>
                              </div>
-                             <p className="text-[9px] font-mono font-bold text-slate-600 pt-1">At 2θ = {d.twoTheta.toFixed(2)}°</p>
+                             <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono mt-1 pt-1 border-t border-slate-800/40">
+                                <span>2θ = {d.twoTheta.toFixed(2)}°</span>
+                                <span>d = {d.dSpacing.toFixed(3)} Å</span>
+                             </div>
                           </div>
                         </div>
                       );
@@ -576,7 +988,7 @@ export const MagneticNeutronModule: React.FC = () => {
              <table className="w-full text-sm text-left text-slate-300">
                 <thead className="text-[9px] text-slate-500 uppercase tracking-widest bg-slate-900/80 sticky top-0 backdrop-blur-sm z-10 border-b border-slate-800">
                    <tr>
-                      <th className="px-6 py-4 font-black">HKL Plane</th>
+                      <th className="px-6 py-4 font-black">Plane Index</th>
                       <th className="px-6 py-4 font-black text-right">Position (2θ)</th>
                       <th className="px-6 py-4 font-black text-right">d-Spacing</th>
                       <th className="px-6 py-4 font-black text-right text-slate-500">Nuc</th>
@@ -589,10 +1001,18 @@ export const MagneticNeutronModule: React.FC = () => {
                       <tr key={`${r.twoTheta}-${i}`} className="bg-transparent hover:bg-slate-800/40 transition-colors group">
                          <td className="px-6 py-3.5 font-mono font-black text-slate-200 group-hover:text-white transition-colors">
                            <span className="opacity-40">[</span>{r.hkl.join(' ')}<span className="opacity-40">]</span>
+                           {r.label && r.label.includes('k') && (
+                             <span className="ml-2 px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[8px] font-black rounded font-sans uppercase">
+                               Satellite
+                             </span>
+                           )}
+                           <div className="text-[9px] text-slate-500 font-semibold font-sans mt-0.5 whitespace-pre">
+                             {r.label || `Plane [${r.hkl.join(' ')}]`}
+                           </div>
                          </td>
                          <td className="px-6 py-3.5 text-right text-slate-400 font-bold font-mono">{r.twoTheta.toFixed(2)}°</td>
-                         <td className="px-6 py-3.5 text-right text-slate-500 font-bold font-mono">{r.dSpacing.toFixed(3)}</td>
-                         <td className="px-6 py-3.5 text-right text-slate-500 font-bold font-mono">{r.nuclearIntensity.toFixed(1)}</td>
+                         <td className="px-6 py-3.5 text-right text-slate-500 font-bold font-mono">{r.dSpacing.toFixed(3)} Å</td>
+                         <td className="px-6 py-3.5 text-right text-slate-400 font-bold font-mono">{r.nuclearIntensity.toFixed(1)}</td>
                          <td className="px-6 py-3.5 text-right font-mono text-indigo-400 font-black bg-indigo-500/5">{r.magneticIntensity.toFixed(1)}</td>
                          <td className="px-6 py-3.5 text-right font-black text-white">{r.totalIntensity.toFixed(1)}</td>
                       </tr>

@@ -6,7 +6,7 @@ import {
   CheckCircle2, XCircle, Info, RefreshCw, Filter, BookOpen, 
   Layers, Zap, ChevronDown, Check, Maximize, RotateCw, 
   Split, CircleDot, ShieldQuestion, Loader2, Atom, Binary, Beaker,
-  Network, Hexagon, Component, Box, Cuboid, Pyramid, Download
+  Network, Hexagon, Component, Box, Cuboid, Pyramid, Download, X
 } from 'lucide-react';
 
 const Symmetry3DVisualizer = ({ system, showLatticeOutline, showMirrorPlanes, showSymmetryAxes, showInversionCenter, currentSymmetry }: any) => {
@@ -306,6 +306,308 @@ export const SelectionRulesModule: React.FC = () => {
   const [sandboxH, setSandboxH] = useState(1);
   const [sandboxK, setSandboxK] = useState(1);
   const [sandboxL, setSandboxL] = useState(0);
+
+  // Reciprocal space 3D visualizer states
+  const [recipRotation, setRecipRotation] = useState({ x: 25, y: -45 });
+  const [isRecipDragging, setIsRecipDragging] = useState(false);
+  const [recipDragStart, setRecipDragStart] = useState({ x: 0, y: 0 });
+  const recipCanvasRef = useRef<HTMLCanvasElement>(null);
+  const clickStartPos = useRef({ x: 0, y: 0 });
+  const [hoveredNode, setHoveredNode] = useState<[number, number, number] | null>(null);
+
+  // Quick addition indices state
+  const [quickH, setQuickH] = useState(1);
+  const [quickK, setQuickK] = useState(1);
+  const [quickL, setQuickL] = useState(1);
+
+  // Toggle index in the array list
+  const toggleHKLNode = (h: number, k: number, l: number) => {
+    const parsed = parseHKLString(hklInput);
+    const exists = parsed.some(p => p[0] === h && p[1] === k && p[2] === l);
+    let newParsed: [number, number, number][];
+    if (exists) {
+      newParsed = parsed.filter(p => !(p[0] === h && p[1] === k && p[2] === l));
+    } else {
+      newParsed = [...parsed, [h, k, l]];
+    }
+    setHklInput(newParsed.map(p => `${p[0]} ${p[1]} ${p[2]}`).join(', '));
+  };
+
+  const addQuickHKL = () => {
+    const parsed = parseHKLString(hklInput);
+    const exists = parsed.some(p => p[0] === quickH && p[1] === quickK && p[2] === quickL);
+    if (!exists) {
+      const newParsed = [...parsed, [quickH, quickK, quickL]];
+      setHklInput(newParsed.map(p => `${p[0]} ${p[1]} ${p[2]}`).join(', '));
+    }
+  };
+
+  const removeHKLAtIndex = (index: number) => {
+    const parsed = parseHKLString(hklInput);
+    const newParsed = parsed.filter((_, idx) => idx !== index);
+    setHklInput(newParsed.map(p => `${p[0]} ${p[1]} ${p[2]}`).join(', '));
+  };
+
+  const clearAllHKLs = () => {
+    setHklInput('');
+  };
+
+  const loadLowIndexPresets = () => {
+    setHklInput('1 0 0, 1 1 0, 1 1 1, 2 0 0, 2 1 0, 2 1 1, 2 2 0, 3 1 1');
+  };
+
+  // 3D Reciprocal visualizer event handlers
+  const handleRecipMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setIsRecipDragging(true);
+    setRecipDragStart({ x: e.clientX, y: e.clientY });
+    clickStartPos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleRecipMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = recipCanvasRef.current;
+    if (!canvas) return;
+    
+    if (isRecipDragging) {
+      const dx = e.clientX - recipDragStart.x;
+      const dy = e.clientY - recipDragStart.y;
+      setRecipRotation(prev => ({
+        x: Math.max(-95, Math.min(95, prev.x - dy * 0.5)),
+        y: prev.y + dx * 0.5
+      }));
+      setRecipDragStart({ x: e.clientX, y: e.clientY });
+      return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    let found: [number, number, number] | null = null;
+    let mindist = 15;
+    
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const scale = Math.min(rect.width, rect.height) * 0.18;
+    const rx = recipRotation.x * Math.PI / 180;
+    const ry = recipRotation.y * Math.PI / 180;
+
+    for (let h = -2; h <= 2; h++) {
+      for (let k = -2; k <= 2; k++) {
+        for (let l = -2; l <= 2; l++) {
+          if (h === 0 && k === 0 && l === 0) continue; // skip center
+
+          const x1 = h * Math.cos(ry) - l * Math.sin(ry);
+          const z1 = h * Math.sin(ry) + l * Math.cos(ry);
+          const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
+
+          const projX = cx + x1 * scale;
+          const projY = cy + y2 * scale;
+
+          const dist = Math.sqrt((mouseX - projX) ** 2 + (mouseY - projY) ** 2);
+          if (dist < mindist) {
+            mindist = dist;
+            found = [h, k, l];
+          }
+        }
+      }
+    }
+    setHoveredNode(found);
+  };
+
+  const handleRecipMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setIsRecipDragging(false);
+    
+    if (Math.abs(e.clientX - clickStartPos.current.x) < 5 && Math.abs(e.clientY - clickStartPos.current.y) < 5) {
+      const canvas = recipCanvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      let closest: { h: number, k: number, l: number, dist: number } | null = null;
+      const cx = rect.width / 2;
+      const cy = rect.height / 2;
+      const scale = Math.min(rect.width, rect.height) * 0.18;
+      const rx = recipRotation.x * Math.PI / 180;
+      const ry = recipRotation.y * Math.PI / 180;
+
+      for (let h = -2; h <= 2; h++) {
+        for (let k = -2; k <= 2; k++) {
+          for (let l = -2; l <= 2; l++) {
+            if (h === 0 && k === 0 && l === 0) continue;
+
+            const x1 = h * Math.cos(ry) - l * Math.sin(ry);
+            const z1 = h * Math.sin(ry) + l * Math.cos(ry);
+            const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
+
+            const projX = cx + x1 * scale;
+            const projY = cy + y2 * scale;
+
+            const dist = Math.sqrt((clickX - projX) ** 2 + (clickY - projY) ** 2);
+            if (dist < 15) {
+              if (!closest || dist < closest.dist) {
+                closest = { h, k, l, dist };
+              }
+            }
+          }
+        }
+      }
+
+      if (closest) {
+        toggleHKLNode(closest.h, closest.k, closest.l);
+      }
+    }
+  };
+
+  // Drawing reciprocal space nodes in 3D
+  useEffect(() => {
+    const canvas = recipCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const width = rect.width;
+    const height = rect.height;
+
+    ctx.clearRect(0, 0, width, height);
+
+    const cx = width / 2;
+    const cy = height / 2;
+
+    const rx = recipRotation.x * Math.PI / 180;
+    const ry = recipRotation.y * Math.PI / 180;
+
+    const project = (h: number, k: number, l: number) => {
+      const scale = Math.min(width, height) * 0.17;
+      const x1 = h * Math.cos(ry) - l * Math.sin(ry);
+      const z1 = h * Math.sin(ry) + l * Math.cos(ry);
+      const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
+      const z2 = k * Math.sin(rx) + z1 * Math.cos(rx);
+      return { x: cx + x1 * scale, y: cy + y2 * scale, z: z2 };
+    };
+
+    const parsedHKLs = parseHKLString(hklInput);
+    const elements: any[] = [];
+
+    // Axis projections
+    const origin = project(0, 0, 0);
+    const axH = project(1.8, 0, 0);
+    const axK = project(0, 1.8, 0);
+    const axL = project(0, 0, 1.8);
+
+    elements.push({ type: 'axis', p1: origin, p2: axH, label: 'h* (a*)', color: '#ff4d4d', z: origin.z });
+    elements.push({ type: 'axis', p1: origin, p2: axK, label: 'k* (b*)', color: '#10b981', z: origin.z });
+    elements.push({ type: 'axis', p1: origin, p2: axL, label: 'l* (c*)', color: '#0fbcf9', z: origin.z });
+
+    // Grid nodes (h, k, l in -2 to 2)
+    for (let h = -2; h <= 2; h++) {
+      for (let k = -2; k <= 2; k++) {
+        for (let l = -2; l <= 2; l++) {
+          if (h === 0 && k === 0 && l === 0) continue;
+
+          const proj = project(h, k, l);
+          const isSelected = parsedHKLs.some(p => p[0] === h && p[1] === k && p[2] === l);
+          
+          let status: 'Allowed' | 'Forbidden' | 'None' = 'None';
+          let reason = '';
+          if (isSelected) {
+            const val = validateSelectionRule(system, [h, k, l]);
+            status = val.status;
+            reason = val.reason;
+          }
+
+          elements.push({
+            type: 'node',
+            h, k, l,
+            p: proj,
+            isSelected,
+            status,
+            reason,
+            z: proj.z
+          });
+        }
+      }
+    }
+
+    elements.sort((a, b) => b.z - a.z);
+
+    elements.forEach((el) => {
+      if (el.type === 'axis') {
+        ctx.beginPath();
+        ctx.moveTo(el.p1.x, el.p1.y);
+        ctx.lineTo(el.p2.x, el.p2.y);
+        ctx.strokeStyle = el.color;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        ctx.fillStyle = el.color;
+        ctx.font = 'bold 8px monospace';
+        ctx.fillText(el.label, el.p2.x + 4, el.p2.y + 4);
+      } else if (el.type === 'node') {
+        const isHovered = hoveredNode && hoveredNode[0] === el.h && hoveredNode[1] === el.k && hoveredNode[2] === el.l;
+        const radius = el.isSelected ? (isHovered ? 8 : 6.5) : (isHovered ? 5.5 : 3.5);
+        
+        ctx.beginPath();
+        ctx.arc(el.p.x, el.p.y, radius, 0, 2 * Math.PI);
+
+        if (el.isSelected) {
+          if (el.status === 'Allowed') {
+            const grad = ctx.createRadialGradient(
+              el.p.x - radius*0.3, el.p.y - radius*0.3, radius*0.1,
+              el.p.x, el.p.y, radius
+            );
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.3, '#10b981');
+            grad.addColorStop(1, '#064e3b');
+            ctx.fillStyle = grad;
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 1;
+            ctx.shadowColor = 'rgba(16, 185, 129, 0.45)';
+            ctx.shadowBlur = isHovered ? 10 : 5;
+          } else {
+            const grad = ctx.createRadialGradient(
+              el.p.x - radius*0.3, el.p.y - radius*0.3, radius*0.1,
+              el.p.x, el.p.y, radius
+            );
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.3, '#ef4444');
+            grad.addColorStop(1, '#7f1d1d');
+            ctx.fillStyle = grad;
+            ctx.strokeStyle = '#f87171';
+            ctx.lineWidth = 1;
+            ctx.shadowColor = 'rgba(239, 68, 68, 0.45)';
+            ctx.shadowBlur = isHovered ? 10 : 5;
+          }
+          ctx.fill();
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        } else {
+          ctx.fillStyle = isHovered ? 'rgba(255, 255, 255, 0.7)' : 'rgba(148, 163, 184, 0.22)';
+          ctx.fill();
+        }
+
+        if (el.isSelected || isHovered) {
+          ctx.fillStyle = el.isSelected ? '#ffffff' : '#94a3b8';
+          ctx.font = isHovered ? 'bold 8.5px monospace' : '7.5px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`(${el.h},${el.k},${el.l})`, el.p.x, el.p.y - radius - 3);
+        }
+      }
+    });
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.4)';
+    ctx.font = 'bold 8px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`ROTATION X: ${Math.round(recipRotation.x)}° Y: ${Math.round(recipRotation.y)}°`, 10, 15);
+    ctx.fillText('DRAG ORBIT / CLICK NODE TO TOGGLE ARRAY', 10, 26);
+  }, [hklInput, recipRotation, system, hoveredNode]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -868,14 +1170,137 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
             </div>
 
+            {/* Reciprocal Space 3D interactive grid */}
+            <div className="space-y-2 p-4 bg-[#050B14] rounded-2xl border border-[#1e293b]">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black font-mono text-emerald-400 uppercase tracking-widest">3D Reciprocal Space Probe</span>
+                <button
+                  type="button"
+                  onClick={() => setRecipRotation({ x: 25, y: -45 })}
+                  className="px-2 py-0.5 bg-black rounded border border-[#1e293b] text-[8px] text-slate-400 font-mono flex items-center hover:text-white transition-colors uppercase tracking-widest"
+                >
+                  <RotateCw className="w-2.5 h-2.5 mr-1 text-emerald-500" /> Reset View
+                </button>
+              </div>
+              <div className="relative rounded-xl border border-[#1e293b]/80 overflow-hidden cursor-grab active:cursor-grabbing bg-[#010308]">
+                <canvas
+                  ref={recipCanvasRef}
+                  onMouseDown={handleRecipMouseDown}
+                  onMouseMove={handleRecipMouseMove}
+                  onMouseUp={handleRecipMouseUp}
+                  onMouseLeave={() => { setIsRecipDragging(false); setHoveredNode(null); }}
+                  className="w-full h-[180px] block"
+                />
+                {hoveredNode && (
+                  <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/90 border border-emerald-500/30 rounded-lg text-[9px] font-mono text-emerald-400 animate-pulse">
+                    Point ({hoveredNode.join(' ')}) • Click to Toggle
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick manual entry helper */}
+            <div className="space-y-2 p-4 bg-[#050B14]/40 rounded-2xl border border-[#1e293b]">
+              <div className="flex items-center justify-between text-left">
+                <div className="text-[9px] font-black font-mono text-slate-400 uppercase tracking-widest">Quick-Append Plane (h k l)</div>
+                <span className="text-[8px] font-black text-[#10b981] bg-[#10b981]/10 border border-[#10b981]/20 px-1.5 py-0.5 rounded font-mono">SYNTHESIS_PROMPT</span>
+              </div>
+              <div className="flex gap-2 items-center">
+                {['h', 'k', 'l'].map((index, idx) => {
+                  const val = idx === 0 ? quickH : idx === 1 ? quickK : quickL;
+                  const setter = idx === 0 ? setQuickH : idx === 1 ? setQuickK : setQuickL;
+                  return (
+                    <div key={index} className="flex-1 flex gap-1 items-center bg-black/60 rounded-xl px-2 py-1.5 border border-[#1e293b]">
+                      <span className="text-[9px] font-mono font-black text-slate-500 uppercase">{index}:</span>
+                      <input
+                        type="number"
+                        step="1"
+                        value={val}
+                        onChange={(e) => setter(parseInt(e.target.value) || 0)}
+                        className="w-full font-mono font-bold text-xs bg-transparent text-emerald-400 outline-none text-center"
+                      />
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={addQuickHKL}
+                  className="px-4 py-2 bg-[#10b981]/15 hover:bg-[#10b981]/25 border border-[#10b981]/30 text-[#10b981] font-black text-[10px] rounded-xl flex items-center justify-center uppercase tracking-wider relative active:scale-95 transition-all text-center self-stretch"
+                >
+                  ADD
+                </button>
+              </div>
+              
+              {/* Preset operational row */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={loadLowIndexPresets}
+                  className="px-2 py-1 bg-black/40 border border-[#1e293b] hover:border-slate-700 rounded text-[8px] font-bold font-mono text-slate-400 hover:text-slate-200 transition-colors uppercase tracking-tight"
+                >
+                  Family Preset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHklInput('1 1 1, 2 2 2, 3 3 3, 4 4 4, 1 1 0, 2 2 0, 3 3 0')}
+                  className="px-2 py-1 bg-black/40 border border-[#1e293b] hover:border-slate-700 rounded text-[8px] font-bold font-mono text-slate-400 hover:text-slate-200 transition-colors uppercase tracking-tight"
+                >
+                  Axes Diagonal rows
+                </button>
+                <button
+                  type="button"
+                  onClick={clearAllHKLs}
+                  className="px-2 py-1 bg-red-950/20 border border-red-900/30 hover:border-red-600 rounded text-[8px] font-bold font-mono text-red-400 transition-colors uppercase tracking-tight"
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+
+            {/* Chip tag group representation */}
+            {parseHKLString(hklInput).length > 0 && (
+              <div className="space-y-2 p-4 bg-[#050B14]/30 rounded-2xl border border-[#1e293b] text-left">
+                <div className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-widest pl-0.5 mb-1">
+                  Active Coordinates ({parseHKLString(hklInput).length} planes)
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1 pt-1">
+                  {parseHKLString(hklInput).map((pt, i) => {
+                    const ruleResult = validateSelectionRule(system, pt);
+                    const isAllowed = ruleResult.status === 'Allowed';
+                    return (
+                      <div
+                        key={`${pt.join('-')}-${i}`}
+                        className={`pl-2 pr-1 py-1 rounded-lg border flex items-center gap-1.5 text-[10px] font-mono select-none transition-colors
+                          ${isAllowed 
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                            : 'bg-red-500/10 border-red-500/20 text-red-300'
+                          }
+                        `}
+                      >
+                        <span className="font-black">({pt.join(' ')})</span>
+                        <button
+                          type="button"
+                          onClick={() => removeHKLAtIndex(i)}
+                          className="p-0.5 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors shrink-0"
+                          title="Remove reflection"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="p-1 bgColor-emerald-500/20 rounded border border-emerald-500/30">
+                  <div className="p-1 bg-emerald-500/20 rounded border border-emerald-500/30">
                     <Binary className="w-3 h-3 text-emerald-400" />
                   </div>
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                    HKL Vector Array
+                    Raw Sequence Sequence
                   </label>
                 </div>
                 <div className="flex items-center gap-2">
@@ -892,21 +1317,18 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
               <div className="relative group/indices">
                 <div className="absolute top-2 right-3 z-10 flex gap-1">
-                  <div className="w-2 h-2 rounded-full bg-red-500/30" />
-                  <div className="w-2 h-2 rounded-full bg-amber-500/30" />
-                  <div className="w-2 h-2 rounded-full bg-emerald-500/30" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500/30" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500/30" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/30" />
                 </div>
                 <div className="absolute inset-y-0 left-0 w-1 bg-emerald-500/30 rounded-full my-4 scale-y-0 group-focus-within/indices:scale-y-100 transition-transform duration-500" />
                 <textarea
                   value={hklInput}
                   onChange={(e) => setHklInput(e.target.value)}
                   placeholder="e.g. 1 0 0, 1 1 0, 1 1 1"
-                  className="w-full h-36 px-5 py-6 bg-[#050B14] text-emerald-400 border-2 border-[#1e293b] rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 outline-none transition-all font-mono text-sm leading-relaxed resize-none shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] custom-scrollbar"
+                  className="w-full h-24 px-4 py-4 bg-[#050B14] text-emerald-400 border-2 border-[#1e293b] rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 outline-none transition-all font-mono text-[11px] leading-relaxed resize-none shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] custom-scrollbar"
                   spellCheck={false}
                 />
-                <div className="absolute bottom-3 left-5 text-[8px] font-mono text-slate-600 uppercase tracking-widest opacity-0 group-focus-within/indices:opacity-100 transition-opacity">
-                  Systematic_Absence_Parser_Ready
-                </div>
               </div>
             </div>
 

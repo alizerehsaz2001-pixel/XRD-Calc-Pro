@@ -354,6 +354,8 @@ export interface MagneticResult extends NeutronResult {
   nuclearIntensity: number;
   magneticIntensity: number;
   totalIntensity: number;
+  label?: string;
+  q?: [number, number, number];
 }
 
 export interface DLPhaseCandidate {

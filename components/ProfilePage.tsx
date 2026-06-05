@@ -241,6 +241,34 @@ export const ProfilePage: React.FC = () => {
     return PRESETS.ali;
   });
 
+  // Load standard database configurations
+  const [profileDbConfigs, setProfileDbConfigs] = useState(() => {
+    try {
+      const saved = localStorage.getItem('xrd_database_configs');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      ICDD: { enabled: true, version: 'PDF-4+ 2026', key: 'ICDD-AZ92-U81', path: '/usr/share/ref/icdd/', priority: 'High' },
+      COD: { enabled: true, version: 'COD Release 2025', key: 'OPEN-ACCESS-FREE', path: '/var/db/cod/', priority: 'High' },
+      RRUFF: { enabled: true, version: 'RRUFF Core 2024', key: 'RRUFF-GEOLOGY-R1', path: '/opt/rruff/', priority: 'Medium' },
+      ICSD: { enabled: true, version: 'ICSD 4.1.0', key: 'ICSD-LIC-8821', path: '/usr/local/db/icsd/', priority: 'Medium' },
+      CSD: { enabled: true, version: 'CSD Release 2025', key: 'CSD-ORG-LIC-90', path: '/usr/local/db/csd/', priority: 'Low' },
+    };
+  });
+
+  useEffect(() => {
+    // Sync from settings whenever profile page is shown or storage is updated
+    const handleStorageChange = () => {
+      try {
+        const saved = localStorage.getItem('xrd_database_configs');
+        if (saved) setProfileDbConfigs(JSON.parse(saved));
+      } catch {}
+    };
+    window.addEventListener('storage', handleStorageChange);
+    handleStorageChange();
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [activeTab]);
+
   // Save profile state helper
   const saveProfileData = (newProfile: ProfileData) => {
     setProfile(newProfile);
@@ -741,6 +769,96 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
               </div>
+
+                    {/* Standard Reference Database Sync Monitor */}
+                    <div className="p-8 md:p-10 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-[3rem] shadow-sm space-y-8 mt-12 relative overflow-hidden">
+                       <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[80px] rounded-full -mr-32 -mt-32 pointer-events-none" />
+                       
+                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 flex-wrap">
+                             <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-2xl border border-indigo-500/20 animate-pulse">
+                                <Database className="w-5 h-5" />
+                             </div>
+                             <div>
+                                <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-300 font-sans">Scientific Reference Databases</h3>
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Sovereign lattice matching index node matrices</p>
+                             </div>
+                          </div>
+                          
+                          <div className="flex gap-2 text-[8px] font-black uppercase tracking-widest leading-none shrink-0">
+                             <div className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded font-mono font-black">
+                                SYSTEM CONVERGENCE: STABLE
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                          {(['ICDD', 'COD', 'RRUFF', 'ICSD', 'CSD'] as const).map((dbKey) => {
+                             const item = profileDbConfigs[dbKey];
+                             
+                             const colorClass = dbKey === 'ICDD' ? 'text-amber-500 border-amber-500/15 bg-amber-500/5' :
+                                                dbKey === 'COD' ? 'text-emerald-500 border-emerald-500/15 bg-emerald-500/5' :
+                                                dbKey === 'RRUFF' ? 'text-cyan-500 border-cyan-500/15 bg-cyan-500/5' :
+                                                dbKey === 'ICSD' ? 'text-indigo-400 border-indigo-500/15 bg-indigo-500/5' :
+                                                'text-rose-500 border-rose-500/15 bg-rose-500/5';
+                                                
+                             const recCount = dbKey === 'ICDD' ? '485,280 Peaks' :
+                                              dbKey === 'COD' ? '512,940 Cells' :
+                                              dbKey === 'RRUFF' ? '32,410 Raman' :
+                                              dbKey === 'ICSD' ? '239,180 Inorg' :
+                                              '1,250,910 Organic';
+
+                             return (
+                                <div key={dbKey} className="p-5 bg-white dark:bg-slate-950 rounded-2xl border border-slate-150 dark:border-white/5 space-y-4 hover:border-indigo-500/30 transition-all flex flex-col justify-between">
+                                   <div className="space-y-2">
+                                      <div className="flex items-center justify-between">
+                                         <span className={`text-[10px] font-black tracking-widest px-2 py-0.5 rounded border uppercase ${colorClass}`}>
+                                            {dbKey}
+                                         </span>
+                                         <div className="flex items-center gap-1.5">
+                                            <span className={`w-1.5 h-1.5 rounded-full ${item.enabled ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                                            <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-tighter">
+                                               {item.enabled ? 'ONLINE' : 'MUTED'}
+                                            </span>
+                                         </div>
+                                      </div>
+
+                                      <div className="space-y-0.5">
+                                         <div className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400">Catalog Version</div>
+                                         <div className="text-[10px] font-mono font-extrabold text-slate-705 dark:text-slate-200 uppercase truncate">
+                                            {item.version}
+                                         </div>
+                                      </div>
+                                   </div>
+
+                                   <div className="space-y-3.5 pt-3 border-t border-slate-100 dark:border-white/5 mt-auto">
+                                      <div className="grid grid-cols-2 gap-1 text-[8px] font-sans font-bold uppercase text-slate-450 dark:text-slate-500 leading-normal">
+                                         <div>
+                                            <div className="text-slate-400">INDEXED CORES</div>
+                                            <div className="text-[9.5px] font-extrabold font-mono text-slate-600 dark:text-slate-350">{recCount}</div>
+                                         </div>
+                                         <div>
+                                            <div className="text-slate-400">PRIORITY</div>
+                                            <div className="text-[9.5px] font-extrabold font-mono text-slate-650 dark:text-slate-350">{item.priority}</div>
+                                         </div>
+                                      </div>
+
+                                      <div className="space-y-1">
+                                         <span className="block text-[8px] font-black uppercase text-slate-400">AUTHORIZED AT:</span>
+                                         <span className="block text-[8px] font-mono uppercase bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-white/5 py-1 px-1.5 rounded text-slate-500 dark:text-slate-400 truncate" title={item.path}>
+                                            {item.path}
+                                         </span>
+                                      </div>
+                                   </div>
+                                </div>
+                             );
+                          })}
+                       </div>
+
+                       <div className="p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 text-[9.5px] leading-relaxed text-slate-500 text-center font-medium">
+                          ℹ <strong>Sovereign Credentials Verified:</strong> Standard Reference Databases are checked and authenticated by the Laboratory Director for the analysis pipeline. Changes can be applied within the <strong>Settings tab</strong>.
+                       </div>
+                    </div>
 
               {/* Milestones / Archive section */}
               <div className="mt-16 pt-12 border-t border-slate-200 dark:border-slate-800 space-y-8">

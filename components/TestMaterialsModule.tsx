@@ -2134,32 +2134,80 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
       </div>
 
       {/* Database Registry Filters */}
-      <div className="relative z-10 flex gap-1.5 mb-5 overflow-x-auto pb-2 scrollbar-none select-none max-w-full border-t border-white/5 pt-3 items-center">
-        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mr-1.5 shrink-0">Registry:</span>
-        {(['All', 'ICDD', 'COD', 'RRUFF', 'ICSD', 'CSD'] as DatabaseRef[]).map(db => {
-          const count = getCountForDatabase(db);
-          return (
-            <button
-              key={db}
-              type="button"
-              onClick={() => setActiveDatabase(db)}
-              className={`py-1 px-2.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 flex items-center gap-1 ${
-                activeDatabase === db
-                  ? 'bg-violet-500/20 border-violet-500/40 text-violet-400 shadow-[0_0_15px_rgba(139,92,246,0.1)]'
-                  : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-400 hover:bg-black/40'
-              }`}
-            >
-              {db}
-              <span className={`text-[8px] px-1 py-0.2 rounded-full ${
-                activeDatabase === db 
-                  ? 'bg-violet-400/20 text-violet-300' 
-                  : 'bg-white/5 text-slate-600'
-              }`}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
+      <div className="relative z-10 border-t border-white/5 pt-3 mb-5">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-none select-none max-w-full items-center">
+          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mr-1.5 shrink-0 flex items-center gap-1">
+            <Database className="w-2.5 h-2.5 text-slate-500" /> Registry Filter:
+          </span>
+          {(['All', 'ICDD', 'COD', 'RRUFF', 'ICSD', 'CSD'] as DatabaseRef[]).map(db => {
+            const count = getCountForDatabase(db);
+            const theme = db === 'All' 
+              ? { activeClass: 'bg-slate-500/20 border-slate-500/40 text-slate-300 shadow-[0_0_15px_rgba(148,163,184,0.1)]', badgeClass: 'bg-slate-400/20 text-slate-300' }
+              : db === 'ICDD'
+              ? { activeClass: 'bg-amber-500/20 border-amber-500/40 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.15)]', badgeClass: 'bg-amber-400/20 text-amber-300' }
+              : db === 'COD'
+              ? { activeClass: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]', badgeClass: 'bg-emerald-400/20 text-emerald-300' }
+              : db === 'RRUFF'
+              ? { activeClass: 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)]', badgeClass: 'bg-cyan-400/20 text-cyan-300' }
+              : db === 'ICSD'
+              ? { activeClass: 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]', badgeClass: 'bg-indigo-400/20 text-indigo-300' }
+              : { activeClass: 'bg-rose-500/20 border-rose-500/40 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.15)]', badgeClass: 'bg-rose-400/20 text-rose-300' };
+
+            return (
+              <button
+                key={db}
+                type="button"
+                onClick={() => setActiveDatabase(db)}
+                className={`py-1 px-2.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 flex items-center gap-1 ${
+                  activeDatabase === db
+                    ? theme.activeClass
+                    : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-400 hover:bg-black/35 hover:border-slate-800'
+                }`}
+              >
+                {db}
+                <span className={`text-[8px] px-1 py-0.2 rounded-full ${
+                  activeDatabase === db 
+                    ? theme.badgeClass 
+                    : 'bg-white/5 text-slate-600'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Database context banner card */}
+        <div className="mt-1 pb-1">
+          <div className={`p-3 rounded-lg border text-[9.5px] leading-relaxed transition-all duration-300 ${
+            activeDatabase === 'All'
+              ? 'bg-slate-900/40 border-slate-800/60 text-slate-400'
+              : activeDatabase === 'ICDD'
+              ? 'bg-amber-950/10 border-amber-900/20 text-amber-300/80'
+              : activeDatabase === 'COD'
+              ? 'bg-[#10b98115] border-emerald-950 text-emerald-300/80'
+              : activeDatabase === 'RRUFF'
+              ? 'bg-[#06b6d415] border-cyan-950 text-cyan-300/80'
+              : activeDatabase === 'ICSD'
+              ? 'bg-[#6366f115] border-indigo-950 text-indigo-300/80'
+              : 'bg-[#f43f5e15] border-rose-950 text-rose-300/80'
+          }`}>
+            <span className="font-bold underline uppercase tracking-wider mr-1.5">
+              {activeDatabase === 'All' && 'Combined Catalog:'}
+              {activeDatabase === 'ICDD' && 'International Centre for Diffraction Data (PDF):'}
+              {activeDatabase === 'COD' && 'Crystallography Open Database (COD):'}
+              {activeDatabase === 'RRUFF' && 'RRUFF Project Mineral Matrix:'}
+              {activeDatabase === 'ICSD' && 'Inorganic Crystal Structure Database (ICSD):'}
+              {activeDatabase === 'CSD' && 'Cambridge Structural Database (CSD):'}
+            </span>
+            {activeDatabase === 'All' && 'Accesses all standard phase records across composite experimental and simulated indexing registries.'}
+            {activeDatabase === 'ICDD' && 'Global powder patterns reference index containing primary synthetic inorganic diffraction vectors.'}
+            {activeDatabase === 'COD' && 'Fully open-access structures with coordinate values for experimental materials analysis.'}
+            {activeDatabase === 'RRUFF' && 'High-resolution XRD parameters paired with natural mineral chemistry references.'}
+            {activeDatabase === 'ICSD' && 'Completely evaluated structures encompassing purely inorganic crystals, ceramic compounds, and engineering metals.'}
+            {activeDatabase === 'CSD' && 'The sovereign structural coordinate registry for organic, polymer, and pharmaceutical materials.'}
+          </div>
+        </div>
       </div>
 
       {/* Presets List */}
@@ -2202,7 +2250,13 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
                   <div className="flex items-center gap-1.5 shrink-0">
                     {material.database && (
-                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 leading-none" title={`Scientific registry reference: ${material.database}`}>
+                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border leading-none transition-all ${
+                        material.database === 'ICDD' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
+                        material.database === 'COD' ? 'bg-[#10b98115] text-emerald-400 border-[#10b98130]' :
+                        material.database === 'RRUFF' ? 'bg-[#06b6d415] text-cyan-400 border-[#06b6d430]' :
+                        material.database === 'ICSD' ? 'bg-[#6366f115] text-indigo-400 border-[#6366f130]' :
+                        'bg-[#f43f5e15] text-rose-400 border-[#f43f5e30]'
+                      }`} title={`Scientific registry reference: ${material.database}`}>
                         {material.database} {material.databaseId ? `#${material.databaseId}` : ''}
                       </span>
                     )}
