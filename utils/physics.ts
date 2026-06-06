@@ -1567,16 +1567,31 @@ const generateContinuousSpectrum = (
 };
 
 // High-fidelity 1D Convolution with kernel filter size
-const convolve1D = (vector: number[], kernelSize: number): number[] => {
+const convolve1D = (vector: number[], kernelSize: number, kernelProfile: string = "Gaussian"): number[] => {
   const kernelSizeSafe = kernelSize < 3 ? 3 : (kernelSize % 2 === 0 ? kernelSize + 1 : kernelSize);
   const half = Math.floor(kernelSizeSafe / 2);
   const result = new Array(vector.length).fill(0);
   
-  // Gaussian weighting convolver filter
+  // Convolutional weighting convolver filter
   const kernel = [];
   let sum = 0;
+  const sigma = Math.max(1.0, half / 2.0); // Make standard deviation scale with kernel size
+  const gamma = sigma; // For Lorentzian
+
   for (let i = -half; i <= half; i++) {
-    const v = Math.exp(-(i * i) / (2 * 1.0 * 1.0));
+    let v = 0;
+    if (kernelProfile === "Gaussian") {
+       v = Math.exp(-(i * i) / (2 * sigma * sigma));
+    } else if (kernelProfile === "Lorentzian") {
+       v = (gamma * gamma) / (i * i + gamma * gamma);
+    } else if (kernelProfile === "Pseudo-Voigt") {
+       const eta = 0.5;
+       const g = Math.exp(-(i * i) / (2 * sigma * sigma));
+       const l = (gamma * gamma) / (i * i + gamma * gamma);
+       v = eta * l + (1 - eta) * g;
+    } else {
+       v = Math.exp(-(i * i) / (2 * sigma * sigma)); // default
+    }
     kernel.push(v);
     sum += v;
   }
@@ -1614,6 +1629,7 @@ export const identifyPhasesDL = (
   isMixMode: boolean = false,
   engineConfig?: {
     kernelSize: number;
+    kernelProfile?: string;
     filters: number;
     depth: number;
     pooling: string;
@@ -1635,6 +1651,7 @@ export const identifyPhasesDL = (
       crystalSystem: m.crystalSystem,
       spaceGroup: m.spaceGroup,
       density: m.density,
+      elements: (m as any).elements,
       applications: m.applications,
       materialType: m.type,
       molecularWeight: (m as any).molecularWeight,
@@ -1642,7 +1659,14 @@ export const identifyPhasesDL = (
       elasticModulus: (m as any).elasticModulus,
       magneticProperties: (m as any).magneticProperties,
       opticalProperties: (m as any).opticalProperties,
-      hazards: (m as any).hazards
+      hazards: (m as any).hazards,
+      thermalConductivity: (m as any).thermalConductivity,
+      meltingPoint: (m as any).meltingPoint,
+      vickersHardness: (m as any).vickersHardness,
+      poissonsRatio: (m as any).poissonsRatio,
+      electricalResistivity: (m as any).electricalResistivity,
+      dielectricConstant: (m as any).dielectricConstant,
+      thermalExpansion: (m as any).thermalExpansion
     };
   });
 
@@ -1669,7 +1693,7 @@ export const identifyPhasesDL = (
   }
 
   // Apply our 1D Convolution with selected kernel size representing receptive fields
-  const Conv_obs = convolve1D(S_obs, kernelSize);
+  const Conv_obs = convolve1D(S_obs, kernelSize, engineConfig?.kernelProfile);
   
   // Simulate pooling Layer
   const poolType = engineConfig?.pooling || 'max';
@@ -1692,7 +1716,7 @@ export const identifyPhasesDL = (
   const Pooled_obs = applyPooling(Conv_obs);
 
   // Optional multi-scale convolved spectrum
-  const Conv_obs_wide = isMultiScale ? applyPooling(convolve1D(S_obs, Math.round(kernelSize * 1.8))) : null;
+  const Conv_obs_wide = isMultiScale ? applyPooling(convolve1D(S_obs, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile)) : null;
 
   if (isMixMode) {
     let remainingPoints = [...inputPoints];
@@ -1744,11 +1768,11 @@ export const identifyPhasesDL = (
             const vari = S_ref.reduce((a,b)=>a+Math.pow(b-mean,2),0) / S_ref.length;
             S_ref = S_ref.map(v => (v - mean) / Math.max(Math.sqrt(vari), 1e-5));
         }
-        const Conv_ref = applyPooling(convolve1D(S_ref, kernelSize));
+        const Conv_ref = applyPooling(convolve1D(S_ref, kernelSize, engineConfig?.kernelProfile));
         let convSimilarity = cosineSimilarity(Pooled_obs, Conv_ref);
 
         if (isMultiScale && Conv_obs_wide) {
-          const Conv_ref_wide = applyPooling(convolve1D(S_ref, Math.round(kernelSize * 1.8)));
+          const Conv_ref_wide = applyPooling(convolve1D(S_ref, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile));
           const similarityWide = cosineSimilarity(Conv_obs_wide, Conv_ref_wide);
           convSimilarity = 0.6 * convSimilarity + 0.4 * similarityWide;
         }
@@ -1796,6 +1820,14 @@ export const identifyPhasesDL = (
         else if (precisionAvg < 0.5) confidence *= 0.8;
 
         let finalConfidence = confidence;
+
+        if (engineConfig?.optimization === 'Adam') {
+           if (precisionAvg > 0.8) finalConfidence *= (1.0 + (engineConfig.learningRate || 0.001) * 50); 
+           else finalConfidence *= (1.0 - (engineConfig.learningRate || 0.001) * 20);
+        } else if (engineConfig?.optimization === 'RMSProp') {
+           finalConfidence = finalConfidence > 60 ? finalConfidence * 0.95 : finalConfidence * 1.05;
+        }
+
         finalConfidence = Math.min(99.9, Math.max(0, finalConfidence));
         
         if (confidence > bestConf && finalConfidence > 15) {
@@ -1814,12 +1846,26 @@ export const identifyPhasesDL = (
             confidence_score: parseFloat(finalConfidence.toFixed(1)),
             match_quality: matchQuality,
             matched_peaks: matchedDetails,
+            elements: (phase as any).elements,
             description: phase.description,
             crystalSystem: phase.crystalSystem,
             spaceGroup: phase.spaceGroup,
             density: phase.density,
             applications: phase.applications,
-            materialType: phase.materialType || "Mineral/Metal"
+            materialType: phase.materialType || "Mineral/Metal",
+            molecularWeight: phase.molecularWeight,
+            bandGap: phase.bandGap,
+            elasticModulus: phase.elasticModulus,
+            magneticProperties: phase.magneticProperties,
+            opticalProperties: phase.opticalProperties,
+            hazards: phase.hazards,
+            thermalConductivity: phase.thermalConductivity,
+            meltingPoint: phase.meltingPoint,
+            vickersHardness: phase.vickersHardness,
+            poissonsRatio: phase.poissonsRatio,
+            electricalResistivity: phase.electricalResistivity,
+            dielectricConstant: phase.dielectricConstant,
+            thermalExpansion: phase.thermalExpansion
           };
           
           bestPhase = enhancePhaseCandidateProperties(rawCandidate);
@@ -1880,11 +1926,11 @@ export const identifyPhasesDL = (
         const vari = S_ref.reduce((a,b)=>a+Math.pow(b-mean,2),0) / S_ref.length;
         S_ref = S_ref.map(v => (v - mean) / Math.max(Math.sqrt(vari), 1e-5));
     }
-    const Conv_ref = applyPooling(convolve1D(S_ref, kernelSize));
+    const Conv_ref = applyPooling(convolve1D(S_ref, kernelSize, engineConfig?.kernelProfile));
     let convSimilarity = cosineSimilarity(Pooled_obs, Conv_ref);
 
     if (isMultiScale && Conv_obs_wide) {
-      const Conv_ref_wide = applyPooling(convolve1D(S_ref, Math.round(kernelSize * 1.8)));
+      const Conv_ref_wide = applyPooling(convolve1D(S_ref, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile));
       const similarityWide = cosineSimilarity(Conv_obs_wide, Conv_ref_wide);
       convSimilarity = 0.6 * convSimilarity + 0.4 * similarityWide;
     }
@@ -1936,7 +1982,20 @@ export const identifyPhasesDL = (
       confidence *= (1 - (impurityRatio * 0.4));
     }
 
-    let finalConfidence = Math.min(99.9, Math.max(0, confidence));
+    const precisionAvg = matchedDetails.length > 0 
+      ? matchedDetails.reduce((acc, md) => acc + (1 - Math.abs(md.refT - md.obsT)/TOLERANCE), 0) / matchedDetails.length
+      : 0;
+
+    let finalConfidence = confidence;
+
+    if (engineConfig?.optimization === 'Adam') {
+       if (precisionAvg > 0.8) finalConfidence *= (1.0 + (engineConfig.learningRate || 0.001) * 50); 
+       else finalConfidence *= (1.0 - (engineConfig.learningRate || 0.001) * 20);
+    } else if (engineConfig?.optimization === 'RMSProp') {
+       finalConfidence = finalConfidence > 60 ? finalConfidence * 0.95 : finalConfidence * 1.05;
+    }
+
+    finalConfidence = Math.min(99.9, Math.max(0, finalConfidence));
     
     let matchQuality = "Low";
     if (finalConfidence > 85) matchQuality = "Excellent";
@@ -1951,12 +2010,26 @@ export const identifyPhasesDL = (
       raw_score: confidence,
       match_quality: matchQuality,
       matched_peaks: matchedDetails,
+      elements: (phase as any).elements,
       description: phase.description,
       crystalSystem: phase.crystalSystem,
       spaceGroup: phase.spaceGroup,
       density: phase.density,
       applications: phase.applications,
-      materialType: phase.materialType || "Mineral/Metal"
+      materialType: phase.materialType || "Mineral/Metal",
+      molecularWeight: phase.molecularWeight,
+      bandGap: phase.bandGap,
+      elasticModulus: phase.elasticModulus,
+      magneticProperties: phase.magneticProperties,
+      opticalProperties: phase.opticalProperties,
+      hazards: phase.hazards,
+      thermalConductivity: phase.thermalConductivity,
+      meltingPoint: phase.meltingPoint,
+      vickersHardness: phase.vickersHardness,
+      poissonsRatio: phase.poissonsRatio,
+      electricalResistivity: phase.electricalResistivity,
+      dielectricConstant: phase.dielectricConstant,
+      thermalExpansion: phase.thermalExpansion
     };
 
     return enhancePhaseCandidateProperties(rawCandidate);

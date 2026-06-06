@@ -387,13 +387,15 @@ export const SelectionRulesModule: React.FC = () => {
     
     const cx = rect.width / 2;
     const cy = rect.height / 2;
-    const scale = Math.min(rect.width, rect.height) * 0.18;
+    const maxBound = Math.min(Math.max(1, maxIndex), 3);
+    const scaleBase = Math.min(rect.width, rect.height) * 0.4;
+    const scale = scaleBase / (maxBound + 0.5);
     const rx = recipRotation.x * Math.PI / 180;
     const ry = recipRotation.y * Math.PI / 180;
 
-    for (let h = -2; h <= 2; h++) {
-      for (let k = -2; k <= 2; k++) {
-        for (let l = -2; l <= 2; l++) {
+    for (let h = -maxBound; h <= maxBound; h++) {
+      for (let k = -maxBound; k <= maxBound; k++) {
+        for (let l = -maxBound; l <= maxBound; l++) {
           if (h === 0 && k === 0 && l === 0) continue; // skip center
 
           const x1 = h * Math.cos(ry) - l * Math.sin(ry);
@@ -427,13 +429,15 @@ export const SelectionRulesModule: React.FC = () => {
       let closest: { h: number, k: number, l: number, dist: number } | null = null;
       const cx = rect.width / 2;
       const cy = rect.height / 2;
-      const scale = Math.min(rect.width, rect.height) * 0.18;
+      const maxBound = Math.min(Math.max(1, maxIndex), 3);
+      const scaleBase = Math.min(rect.width, rect.height) * 0.4;
+      const scale = scaleBase / (maxBound + 0.5);
       const rx = recipRotation.x * Math.PI / 180;
       const ry = recipRotation.y * Math.PI / 180;
 
-      for (let h = -2; h <= 2; h++) {
-        for (let k = -2; k <= 2; k++) {
-          for (let l = -2; l <= 2; l++) {
+      for (let h = -maxBound; h <= maxBound; h++) {
+        for (let k = -maxBound; k <= maxBound; k++) {
+          for (let l = -maxBound; l <= maxBound; l++) {
             if (h === 0 && k === 0 && l === 0) continue;
 
             const x1 = h * Math.cos(ry) - l * Math.sin(ry);
@@ -483,8 +487,12 @@ export const SelectionRulesModule: React.FC = () => {
     const rx = recipRotation.x * Math.PI / 180;
     const ry = recipRotation.y * Math.PI / 180;
 
+    const maxBound = Math.min(Math.max(1, maxIndex), 3);
+
     const project = (h: number, k: number, l: number) => {
-      const scale = Math.min(width, height) * 0.17;
+      // Dynamic scale based on extent
+      const scaleBase = Math.min(width, height) * 0.4;
+      const scale = scaleBase / (maxBound + 0.5);
       const x1 = h * Math.cos(ry) - l * Math.sin(ry);
       const z1 = h * Math.sin(ry) + l * Math.cos(ry);
       const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
@@ -497,21 +505,32 @@ export const SelectionRulesModule: React.FC = () => {
 
     // Axis projections
     const origin = project(0, 0, 0);
-    const axH = project(1.8, 0, 0);
-    const axK = project(0, 1.8, 0);
-    const axL = project(0, 0, 1.8);
+    const axH = project(maxBound + 0.5, 0, 0);
+    const axK = project(0, maxBound + 0.5, 0);
+    const axL = project(0, 0, maxBound + 0.5);
 
-    elements.push({ type: 'axis', p1: origin, p2: axH, label: 'h* (a*)', color: '#ff4d4d', z: origin.z });
-    elements.push({ type: 'axis', p1: origin, p2: axK, label: 'k* (b*)', color: '#10b981', z: origin.z });
-    elements.push({ type: 'axis', p1: origin, p2: axL, label: 'l* (c*)', color: '#0fbcf9', z: origin.z });
+    // Grid edges and nodes
+    for (let h = -maxBound; h <= maxBound; h++) {
+      for (let k = -maxBound; k <= maxBound; k++) {
+        for (let l = -maxBound; l <= maxBound; l++) {
+          const p1 = project(h, k, l);
 
-    // Grid nodes (h, k, l in -2 to 2)
-    for (let h = -2; h <= 2; h++) {
-      for (let k = -2; k <= 2; k++) {
-        for (let l = -2; l <= 2; l++) {
+          // Render edges
+          if (h < maxBound) {
+            const p2 = project(h + 1, k, l);
+            elements.push({ type: 'edge', p1, p2, h1: h, k1: k, l1: l, h2: h + 1, k2: k, l2: l, z: (p1.z + p2.z) / 2 });
+          }
+          if (k < maxBound) {
+            const p2 = project(h, k + 1, l);
+            elements.push({ type: 'edge', p1, p2, h1: h, k1: k, l1: l, h2: h, k2: k + 1, l2: l, z: (p1.z + p2.z) / 2 });
+          }
+          if (l < maxBound) {
+            const p2 = project(h, k, l + 1);
+            elements.push({ type: 'edge', p1, p2, h1: h, k1: k, l1: l, h2: h, k2: k, l2: l + 1, z: (p1.z + p2.z) / 2 });
+          }
+
           if (h === 0 && k === 0 && l === 0) continue;
 
-          const proj = project(h, k, l);
           const isSelected = parsedHKLs.some(p => p[0] === h && p[1] === k && p[2] === l);
           
           let status: 'Allowed' | 'Forbidden' | 'None' = 'None';
@@ -525,20 +544,36 @@ export const SelectionRulesModule: React.FC = () => {
           elements.push({
             type: 'node',
             h, k, l,
-            p: proj,
+            p: p1,
             isSelected,
             status,
             reason,
-            z: proj.z
+            z: p1.z
           });
         }
       }
     }
 
+    elements.push({ type: 'axis', p1: origin, p2: axH, label: 'h* (a*)', color: '#ff4d4d', z: origin.z + 0.1 });
+    elements.push({ type: 'axis', p1: origin, p2: axK, label: 'k* (b*)', color: '#10b981', z: origin.z + 0.1 });
+    elements.push({ type: 'axis', p1: origin, p2: axL, label: 'l* (c*)', color: '#0fbcf9', z: origin.z + 0.1 });
+    elements.push({ type: 'origin', p: origin, z: origin.z });
+
     elements.sort((a, b) => b.z - a.z);
 
     elements.forEach((el) => {
-      if (el.type === 'axis') {
+      if (el.type === 'edge') {
+        const isHoveredEdge = hoveredNode && (
+          (hoveredNode[0] === el.h1 && hoveredNode[1] === el.k1 && hoveredNode[2] === el.l1) ||
+          (hoveredNode[0] === el.h2 && hoveredNode[1] === el.k2 && hoveredNode[2] === el.l2)
+        );
+        ctx.beginPath();
+        ctx.moveTo(el.p1.x, el.p1.y);
+        ctx.lineTo(el.p2.x, el.p2.y);
+        ctx.strokeStyle = isHoveredEdge ? 'rgba(52, 211, 153, 0.5)' : 'rgba(148, 163, 184, 0.1)';
+        ctx.lineWidth = isHoveredEdge ? 1.5 : 0.8;
+        ctx.stroke();
+      } else if (el.type === 'axis') {
         ctx.beginPath();
         ctx.moveTo(el.p1.x, el.p1.y);
         ctx.lineTo(el.p2.x, el.p2.y);
@@ -547,8 +582,20 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.stroke();
 
         ctx.fillStyle = el.color;
-        ctx.font = 'bold 8px monospace';
+        ctx.font = 'bold 9px monospace';
         ctx.fillText(el.label, el.p2.x + 4, el.p2.y + 4);
+      } else if (el.type === 'origin') {
+        ctx.beginPath();
+        ctx.arc(el.p.x, el.p.y, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = '#facc15';
+        ctx.shadowColor = 'rgba(250, 204, 21, 0.6)';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#facc15';
+        ctx.font = 'bold 8.5px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('(0,0,0)', el.p.x, el.p.y - 6);
       } else if (el.type === 'node') {
         const isHovered = hoveredNode && hoveredNode[0] === el.h && hoveredNode[1] === el.k && hoveredNode[2] === el.l;
         const radius = el.isSelected ? (isHovered ? 8 : 6.5) : (isHovered ? 5.5 : 3.5);
@@ -569,7 +616,7 @@ export const SelectionRulesModule: React.FC = () => {
             ctx.strokeStyle = '#34d399';
             ctx.lineWidth = 1;
             ctx.shadowColor = 'rgba(16, 185, 129, 0.45)';
-            ctx.shadowBlur = isHovered ? 10 : 5;
+            ctx.shadowBlur = isHovered ? 12 : 6;
           } else {
             const grad = ctx.createRadialGradient(
               el.p.x - radius*0.3, el.p.y - radius*0.3, radius*0.1,
@@ -582,13 +629,13 @@ export const SelectionRulesModule: React.FC = () => {
             ctx.strokeStyle = '#f87171';
             ctx.lineWidth = 1;
             ctx.shadowColor = 'rgba(239, 68, 68, 0.45)';
-            ctx.shadowBlur = isHovered ? 10 : 5;
+            ctx.shadowBlur = isHovered ? 12 : 6;
           }
           ctx.fill();
           ctx.stroke();
           ctx.shadowBlur = 0;
         } else {
-          ctx.fillStyle = isHovered ? 'rgba(255, 255, 255, 0.7)' : 'rgba(148, 163, 184, 0.22)';
+          ctx.fillStyle = isHovered ? 'rgba(255, 255, 255, 0.8)' : 'rgba(148, 163, 184, 0.22)';
           ctx.fill();
         }
 
@@ -602,12 +649,12 @@ export const SelectionRulesModule: React.FC = () => {
     });
 
     ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.4)';
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
     ctx.font = 'bold 8px monospace';
     ctx.textAlign = 'left';
     ctx.fillText(`ROTATION X: ${Math.round(recipRotation.x)}° Y: ${Math.round(recipRotation.y)}°`, 10, 15);
     ctx.fillText('DRAG ORBIT / CLICK NODE TO TOGGLE ARRAY', 10, 26);
-  }, [hklInput, recipRotation, system, hoveredNode]);
+  }, [hklInput, recipRotation, system, hoveredNode, maxIndex]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

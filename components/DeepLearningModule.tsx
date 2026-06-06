@@ -377,6 +377,7 @@ export const DeepLearningModule: React.FC = () => {
   // Advanced Engine Configuration
   const [engineConfig, setEngineConfig] = useState({
     kernelSize: 5,
+    kernelProfile: "Gaussian",
     filters: 64,
     activation: "ReLU",
     optimization: "Adam",
@@ -595,24 +596,25 @@ export const DeepLearningModule: React.FC = () => {
     const isPeakSearch =
       numericTokens.length > 0 && numericTokens.length >= keywords.length / 2;
 
-    return MATERIAL_DB.map((material) => {
+    return MATERIAL_DB.map((material: any) => {
       let score = 0;
 
       keywords.forEach((kw) => {
         if (material.name.toLowerCase().includes(kw)) score += 10;
-        if (material.formula?.toLowerCase().includes(kw)) score += 10;
+        if (material.formula?.toLowerCase().includes(kw)) score += 15; // formula is highly specific
+        if (material.elements?.some((el: string) => el.toLowerCase() === kw)) score += 20; // explicit element search
         if (material.crystalSystem?.toLowerCase().includes(kw)) score += 5;
         if (material.type?.toLowerCase().includes(kw)) score += 5;
         if (material.spaceGroup?.toLowerCase().includes(kw)) score += 3;
         if (
-          material.applications?.some((app) => app.toLowerCase().includes(kw))
+          material.applications?.some((app: string) => app.toLowerCase().includes(kw))
         )
           score += 2;
       });
 
       // Unified peak matching
       if (isPeakSearch && material.pattern) {
-        let patternPeaks;
+        let patternPeaks: number[];
         try {
           patternPeaks = parseXYData(material.pattern).map((p) => p.twoTheta);
         } catch (e) {
@@ -637,7 +639,7 @@ export const DeepLearningModule: React.FC = () => {
       .filter((item) => item.score > 0)
       .sort((a, b) => b.score - a.score)
       .map((item) => item.material)
-      .slice(0, 10);
+      .slice(0, 15); // Show top 15 results
   };
 
   const searchResults = getFilteredMaterials();
@@ -838,6 +840,7 @@ export const DeepLearningModule: React.FC = () => {
           confidence_score: 98.5,
           card_id: "DB-MATCH-001",
           formula: matchedMaterial.formula,
+          elements: (matchedMaterial as any).elements,
           matched_peaks: parseXYData(matchedMaterial.pattern).map((p) => ({
             refT: p.twoTheta,
             obsT: p.twoTheta,
@@ -858,6 +861,13 @@ export const DeepLearningModule: React.FC = () => {
           magneticProperties: (matchedMaterial as any).magneticProperties,
           opticalProperties: (matchedMaterial as any).opticalProperties,
           hazards: (matchedMaterial as any).hazards,
+          thermalConductivity: (matchedMaterial as any).thermalConductivity,
+          meltingPoint: (matchedMaterial as any).meltingPoint,
+          vickersHardness: (matchedMaterial as any).vickersHardness,
+          poissonsRatio: (matchedMaterial as any).poissonsRatio,
+          electricalResistivity: (matchedMaterial as any).electricalResistivity,
+          dielectricConstant: (matchedMaterial as any).dielectricConstant,
+          thermalExpansion: (matchedMaterial as any).thermalExpansion,
         };
 
         // Put the matched one first
@@ -904,8 +914,16 @@ Material Type: ${selectedCandidate.materialType || "N/A"}
 Molecular Weight: ${selectedCandidate.molecularWeight ? selectedCandidate.molecularWeight + " g/mol" : "N/A"}
 Band Gap: ${selectedCandidate.bandGap !== undefined ? selectedCandidate.bandGap + " eV" : "N/A"}
 Elastic Modulus: ${selectedCandidate.elasticModulus !== undefined ? selectedCandidate.elasticModulus + " GPa" : "N/A"}
-Magnetic Properties: ${selectedCandidate.magneticProperties || "Homogenous/N/A"}
+Thermal Conductivity: ${selectedCandidate.thermalConductivity !== undefined ? selectedCandidate.thermalConductivity + " W/m·K" : "N/A"}
+Melting Point: ${selectedCandidate.meltingPoint !== undefined ? selectedCandidate.meltingPoint + " °C" : "N/A"}
+Vickers Hardness: ${selectedCandidate.vickersHardness !== undefined ? selectedCandidate.vickersHardness + " GPa" : "N/A"}
+Poisson's Ratio: ${selectedCandidate.poissonsRatio !== undefined ? selectedCandidate.poissonsRatio : "N/A"}
+Electrical Resistivity: ${selectedCandidate.electricalResistivity !== undefined ? selectedCandidate.electricalResistivity + " µΩ·cm" : "N/A"}
+Dielectric Constant: ${selectedCandidate.dielectricConstant !== undefined ? selectedCandidate.dielectricConstant : "N/A"}
+Thermal Expansion: ${selectedCandidate.thermalExpansion !== undefined ? selectedCandidate.thermalExpansion + " 10^-6/K" : "N/A"}
+Magnetic Properties: ${selectedCandidate.magneticProperties || "N/A"}
 Optical Properties: ${selectedCandidate.opticalProperties || "N/A"}
+Hazards: ${selectedCandidate.hazards ? selectedCandidate.hazards.join(", ") : "None Detected"}
 
 --- Description ---
 ${selectedCandidate.description || "N/A"}
@@ -2962,6 +2980,26 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             <div className="space-y-2 col-span-2">
               <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 <div className="w-1 h-1 bg-indigo-500 rounded-full" />{" "}
+                Kernel Profile
+              </label>
+              <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
+                {["Gaussian", "Lorentzian", "Pseudo-Voigt"].map((profile) => (
+                  <button
+                    key={profile}
+                    onClick={() =>
+                      setEngineConfig({ ...engineConfig, kernelProfile: profile })
+                    }
+                    className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.kernelProfile === profile ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
+                  >
+                    {profile}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2 col-span-2">
+              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <div className="w-1 h-1 bg-indigo-500 rounded-full" />{" "}
                 Activation Function
               </label>
               <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
@@ -3196,10 +3234,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
               {/* Suggestions Dropdown */}
               {showSuggestions && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 max-h-72 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
                   {searchResults.length > 0 ? (
                     <div className="p-1">
-                      {searchResults.map((material, idx) => (
+                      {searchResults.map((material: any, idx: number) => (
                         <button
                           key={`${material.name}-${idx}`}
                           onClick={() => handleMaterialSelect(material)}
@@ -3213,9 +3251,25 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               <span className="font-bold text-slate-700 block text-sm group-hover:text-violet-700 transition-colors">
                                 {material.name}
                               </span>
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
-                                {material.type}
-                              </span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                                  {material.type}
+                                </span>
+                                {material.elements && material.elements.length > 0 && (
+                                  <div className="flex gap-1">
+                                    {material.elements.slice(0, 5).map((el: string, elIdx: number) => (
+                                      <span key={elIdx} className="text-[9px] px-1 py-0.5 font-bold rounded bg-blue-50 text-blue-600 border border-blue-100">
+                                        {el}
+                                      </span>
+                                    ))}
+                                    {material.elements.length > 5 && (
+                                      <span className="text-[9px] px-1 py-0.5 font-bold rounded bg-slate-50 text-slate-400">
+                                        +{material.elements.length - 5}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                           <span className="text-xs font-mono text-slate-500 bg-slate-100 border border-slate-200 px-2 py-1 rounded shadow-sm group-hover:bg-white group-hover:border-violet-300 group-hover:text-violet-600 transition-all">
@@ -5690,9 +5744,15 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                             unit: "",
                             icon: Eye,
                           },
+                          {
+                            label: "Hazards",
+                            val: selectedCandidate.hazards ? selectedCandidate.hazards.join(", ") : undefined,
+                            unit: "",
+                            icon: ShieldAlert,
+                          },
                         ]
                           .filter((i) => i.val !== undefined && i.val !== "")
-                          .slice(0, 4)
+                          .slice(0, 8)
                           .map((item, i) => (
                             <div
                               key={`item-${i}`}
@@ -5733,55 +5793,75 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       </h4>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 z-10 relative">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 z-10 relative">
                       {[
                         {
                           label: "Density (g/cm³)",
                           val: selectedCandidate.density,
                           max: 22,
                           color: "emerald",
-                          bg: "emerald-500/10",
                         },
                         {
                           label: "Molecular Wt (g/mol)",
                           val: selectedCandidate.molecularWeight,
                           max: 400,
                           color: "blue",
-                          bg: "blue-500/10",
                         },
                         {
                           label: "Band Gap (eV)",
                           val: selectedCandidate.bandGap,
                           max: 10,
                           color: "violet",
-                          bg: "violet-500/10",
                         },
                         {
                           label: "Elastic Modulus (GPa)",
                           val: selectedCandidate.elasticModulus,
                           max: 500,
                           color: "amber",
-                          bg: "amber-500/10",
+                        },
+                        {
+                          label: "Therm. Conduct. (W/m·K)",
+                          val: selectedCandidate.thermalConductivity,
+                          max: 400,
+                          color: "rose",
+                        },
+                        {
+                          label: "Melting Point (°C)",
+                          val: selectedCandidate.meltingPoint,
+                          max: 3500,
+                          color: "orange",
+                        },
+                        {
+                          label: "Hardness (GPa)",
+                          val: selectedCandidate.vickersHardness,
+                          max: 50,
+                          color: "slate",
+                        },
+                        {
+                          label: "Elec. Resistivity (µΩ·cm)",
+                          val: selectedCandidate.electricalResistivity,
+                          max: 200,
+                          color: "cyan",
+                        },
+                        {
+                          label: "Dielectric Constant",
+                          val: selectedCandidate.dielectricConstant,
+                          max: 100,
+                          color: "fuchsia",
                         },
                       ].map((prop, i) => {
                         if (prop.val === undefined) return null;
                         const pct = Math.min((prop.val / prop.max) * 100, 100);
-                        const colorClass =
-                          prop.color === "emerald"
-                            ? "bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]"
-                            : prop.color === "blue"
-                              ? "bg-gradient-to-r from-blue-600 to-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.6)]"
-                              : prop.color === "violet"
-                                ? "bg-gradient-to-r from-violet-600 to-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.6)]"
-                                : "bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.6)]";
-                        const textClass =
-                          prop.color === "emerald"
-                            ? "text-emerald-400"
-                            : prop.color === "blue"
-                              ? "text-blue-400"
-                              : prop.color === "violet"
-                                ? "text-violet-400"
-                                : "text-amber-400";
+                        let colorClass = "bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]";
+                        let textClass = "text-emerald-400";
+                        if (prop.color === "blue") { colorClass = "bg-gradient-to-r from-blue-600 to-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.6)]"; textClass = "text-blue-400"; }
+                        else if (prop.color === "violet") { colorClass = "bg-gradient-to-r from-violet-600 to-violet-400 shadow-[0_0_12px_rgba(139,92,246,0.6)]"; textClass = "text-violet-400"; }
+                        else if (prop.color === "amber") { colorClass = "bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.6)]"; textClass = "text-amber-400"; }
+                        else if (prop.color === "rose") { colorClass = "bg-gradient-to-r from-rose-600 to-rose-400 shadow-[0_0_12px_rgba(225,29,72,0.6)]"; textClass = "text-rose-400"; }
+                        else if (prop.color === "orange") { colorClass = "bg-gradient-to-r from-orange-600 to-orange-400 shadow-[0_0_12px_rgba(234,88,12,0.6)]"; textClass = "text-orange-400"; }
+                        else if (prop.color === "slate") { colorClass = "bg-gradient-to-r from-slate-600 to-slate-400 shadow-[0_0_12px_rgba(71,85,105,0.6)]"; textClass = "text-slate-400"; }
+                        else if (prop.color === "cyan") { colorClass = "bg-gradient-to-r from-cyan-600 to-cyan-400 shadow-[0_0_12px_rgba(6,182,212,0.6)]"; textClass = "text-cyan-400"; }
+                        else if (prop.color === "fuchsia") { colorClass = "bg-gradient-to-r from-fuchsia-600 to-fuchsia-400 shadow-[0_0_12px_rgba(192,38,211,0.6)]"; textClass = "text-fuchsia-400"; }
 
                         return (
                           <div
@@ -5983,9 +6063,9 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         {/* Elements Cards Grid */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                           {(() => {
-                            const elements = parseElementsFromFormula(
-                              selectedCandidate.formula,
-                            );
+                            const elements = selectedCandidate.elements 
+                               ? selectedCandidate.elements.map((s: string) => ({ symbol: s, name: "" })) // Minimal, we expect MATERIAL_ELEMENTS dict to fill name below
+                               : parseElementsFromFormula(selectedCandidate.formula);
                             if (elements.length === 0) {
                               return (
                                 <div className="col-span-full py-4 text-center text-xs font-mono text-slate-500">
@@ -7950,6 +8030,11 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                         >
                           {candidate.formula}
                         </span>
+                        {candidate.elements && candidate.elements.length > 0 && (
+                          <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-widest rounded bg-blue-500/10 border border-blue-500/30 text-blue-400">
+                            {candidate.elements.join(", ")}
+                          </span>
+                        )}
                         <span className="text-[10px] font-mono text-slate-500 flex items-center gap-1 uppercase tracking-widest">
                           <Database className="w-3 h-3" /> {candidate.card_id}
                         </span>
