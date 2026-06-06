@@ -1,6 +1,137 @@
 import { MATERIAL_DB } from './materialDB';
 import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
 
+// --- Signal Processing (Savitzky-Golay) ---
+
+function invertMatrix(matrix: number[][]): number[][] {
+  const n = matrix.length;
+  let a = matrix.map((row, i) => {
+    let newRow = row.slice();
+    for (let j = 0; j < n; j++) {
+      newRow.push(i === j ? 1 : 0);
+    }
+    return newRow;
+  });
+
+  for (let i = 0; i < n; i++) {
+    let maxEl = Math.abs(a[i][i]);
+    let maxRow = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(a[k][i]) > maxEl) {
+        maxEl = Math.abs(a[k][i]);
+        maxRow = k;
+      }
+    }
+
+    let temp = a[maxRow];
+    a[maxRow] = a[i];
+    a[i] = temp;
+
+    for (let k = 0; k < n; k++) {
+      if (k === i) continue;
+      let c = -a[k][i] / a[i][i];
+      for (let j = i; j < 2 * n; j++) {
+        if (i === j) {
+          a[k][j] = 0;
+        } else {
+          a[k][j] += c * a[i][j];
+        }
+      }
+    }
+  }
+
+  for (let i = 0; i < n; i++) {
+    let c = a[i][i];
+    for (let j = 0; j < 2 * n; j++) {
+      a[i][j] /= c;
+    }
+  }
+
+  return a.map(row => row.slice(n, 2 * n));
+}
+
+function sgCoefficients(m: number, degree: number): number[] {
+  let J: number[][] = [];
+  for (let i = -m; i <= m; i++) {
+    let row = [];
+    for (let j = 0; j <= degree; j++) {
+      row.push(Math.pow(i, j));
+    }
+    J.push(row);
+  }
+
+  let JT: number[][] = [];
+  for (let j = 0; j <= degree; j++) {
+    let row = [];
+    for (let i = -m; i <= m; i++) {
+      row.push(J[i + m][j]);
+    }
+    JT.push(row);
+  }
+
+  let JTJ: number[][] = [];
+  for (let i = 0; i <= degree; i++) {
+    let row = [];
+    for (let j = 0; j <= degree; j++) {
+      let sum = 0;
+      for (let k = 0; k < 2 * m + 1; k++) {
+        sum += JT[i][k] * J[k][j];
+      }
+      row.push(sum);
+    }
+    JTJ.push(row);
+  }
+
+  let JTJ_inv = invertMatrix(JTJ);
+
+  let JTJ_inv_0 = JTJ_inv[0];
+  let coefs = [];
+  for (let k = 0; k < 2 * m + 1; k++) {
+    let sum = 0;
+    for (let i = 0; i <= degree; i++) {
+      sum += JTJ_inv_0[i] * JT[i][k];
+    }
+    coefs.push(sum);
+  }
+  return coefs;
+}
+
+export const applySavitzkyGolay = (
+  data: { twoTheta: number; intensity: number }[],
+  windowSize: number, // must be odd
+  degree: number
+): { twoTheta: number; intensity: number }[] => {
+  if (data.length === 0) return [];
+  if (windowSize % 2 === 0) windowSize += 1;
+  if (windowSize < 3) windowSize = 3;
+  if (degree >= windowSize) degree = windowSize - 1;
+
+  const m = Math.floor(windowSize / 2);
+  const coefs = sgCoefficients(m, degree);
+
+  const result = [];
+  const n = data.length;
+
+  for (let i = 0; i < n; i++) {
+    let sum = 0;
+    let weightSum = 0;
+    for (let j = -m; j <= m; j++) {
+      const idx = i + j;
+      if (idx >= 0 && idx < n) {
+        sum += data[idx].intensity * coefs[j + m];
+        weightSum += coefs[j + m];
+      }
+    }
+    // Correct boundaries if sums are not 1 to avoid dropoff
+    result.push({
+      twoTheta: data[i].twoTheta,
+      intensity: weightSum !== 0 ? Math.max(0, sum / weightSum) : data[i].intensity,
+    });
+  }
+
+  return result;
+};
+
 export const calculateBragg = (wavelength: number, twoTheta: number): BraggResult | null => {
   if (wavelength <= 0 || twoTheta <= 0 || twoTheta >= 180) return null;
   const thetaRad = (twoTheta / 2) * (Math.PI / 180);
