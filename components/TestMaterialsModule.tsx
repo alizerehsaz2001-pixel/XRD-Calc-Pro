@@ -18,7 +18,8 @@ import {
   Eye,
   Download,
   Upload,
-  FileJson
+  FileJson,
+  Landmark
 } from 'lucide-react';
 
 interface MaterialPreset {
@@ -28,7 +29,7 @@ interface MaterialPreset {
   peaks: number[];
   hkls: string[];
   description: string;
-  category: 'Standard' | 'Metal' | 'Ceramic' | 'Perovskite' | 'Biomaterial' | 'Nuclear' | 'Thermoelectric' | 'Metallurgy' | 'Polymer' | 'Semiconductor' | 'Custom';
+  category: 'Standard' | 'Metal' | 'Ceramic' | 'Perovskite' | 'Biomaterial' | 'Nuclear' | 'Thermoelectric' | 'Metallurgy' | 'Polymer' | 'Semiconductor' | 'Historical' | 'Custom';
   crystalSystem?: string;
   spaceGroup?: string;
   latticeParams?: string;
@@ -36,7 +37,132 @@ interface MaterialPreset {
   databaseId?: string;
 }
 
+import { MATERIAL_DB } from '../utils/materialDB';
+
+// Map MATERIAL_DB to MaterialPreset format
+const mappedPresets: MaterialPreset[] = MATERIAL_DB.map(m => {
+  const peaks = m.pattern.split('\n').filter(p=>p.trim() !== '').map(l => parseFloat(l.split(',')[0]));
+  const hkls = Array(peaks.length).fill('?');
+  
+  let category: MaterialPreset['category'] = 'Ceramic';
+  const typeLower = (m.type || '').toLowerCase();
+  if (typeLower.includes('metal') || typeLower.includes('alloy')) category = 'Metal';
+  else if (typeLower.includes('polymer') || typeLower.includes('organic') || typeLower.includes('carbon')) category = 'Polymer';
+  else if (typeLower.includes('semiconductor')) category = 'Semiconductor';
+  else if (typeLower.includes('standard') || m.name.toLowerCase().includes('standard')) category = 'Standard';
+  else if (typeLower.includes('bio') || typeLower.includes('biomaterial') || typeLower.includes('protein') || typeLower.includes('pharma')) category = 'Biomaterial';
+  
+  return {
+    name: m.name,
+    formula: m.formula,
+    wavelength: 1.5406, // Default X-ray wavelength
+    peaks,
+    hkls,
+    description: m.description,
+    category,
+    crystalSystem: m.crystalSystem,
+    spaceGroup: m.spaceGroup,
+    latticeParams: m.density ? `Density: ${m.density} g/cm³` : undefined,
+    database: 'COD',
+    databaseId: 'AI-Extracted'
+  };
+});
+
 const PRESETS: MaterialPreset[] = [
+  {
+    name: 'Roman Concrete (Alberese Lime)',
+    formula: 'CaCO3·Ca(OH)2·Al-Tobermorite',
+    wavelength: 1.5406,
+    peaks: [11.2, 29.4, 32.1, 47.1, 49.8],
+    hkls: ['002', '104', '200', '018', '214'],
+    description: "Ancient Roman marine concrete composed of quicklime, volcanic ash, and pumice. Famous for self-healing cracks through fluid chemistry.",
+    category: 'Historical',
+    crystalSystem: 'Complex Multiphase',
+    database: 'COD'
+  },
+  {
+    name: 'Egyptian Natron',
+    formula: 'Na2CO3·10H2O + NaHCO3',
+    wavelength: 1.5406,
+    peaks: [18.5, 26.2, 34.0, 39.1, 42.5],
+    hkls: ['020', '110', '130', '200', '220'],
+    description: "A naturally occurring mixture of sodium carbonate decahydrate and sodium bicarbonate, harvested from dry lake beds and heavily utilized in Egyptian mummification.",
+    category: 'Historical',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'C2/c',
+    database: 'RRUFF'
+  },
+  {
+    name: 'Corinthian Bronze',
+    formula: 'Cu-Sn-Au-Ag Alloy',
+    wavelength: 1.5406,
+    peaks: [42.8, 49.9, 73.2, 88.6],
+    hkls: ['111', '200', '220', '311'],
+    description: "Highly prized alloy of classical antiquity, supposedly formed by the mixture of copper, gold, and silver. A standard metal in Ancient Greece and Rome.",
+    category: 'Historical',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    database: 'ICDD'
+  },
+  {
+    name: 'Egyptian Blue (Cuprorivaite)',
+    formula: 'CaCuSi4O10',
+    wavelength: 1.5406,
+    peaks: [15.6, 21.0, 21.6, 23.3, 26.6, 29.4, 32.8, 38.0],
+    hkls: ['002', '102', '004', '200', '202', '212', '204', '302'],
+    description: "The world's first synthetic pigment, widely used in Ancient Egypt. Chemically identical to the rare mineral cuprorivaite.",
+    category: 'Historical',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'P4/ncc',
+    database: 'COD'
+  },
+  {
+    name: 'Han Purple',
+    formula: 'BaCuSi2O6',
+    wavelength: 1.5406,
+    peaks: [18.2, 23.8, 25.1, 28.5, 30.2, 34.6, 39.8, 43.1],
+    hkls: ['110', '112', '200', '211', '202', '220', '310', '224'],
+    description: "A synthetic barium copper silicate pigment developed in China during the Western Zhou period, famous for its use on the Terracotta Army.",
+    category: 'Historical',
+    crystalSystem: 'Tetragonal',
+    spaceGroup: 'I41/acd',
+    database: 'COD'
+  },
+  {
+    name: 'Maya Blue',
+    formula: '(Mg,Al)2Si4O10(OH)·4(H2O)',
+    wavelength: 1.5406,
+    peaks: [8.4, 10.5, 13.7, 19.8, 26.5, 33.1],
+    hkls: ['010', '110', '130', '040', '240', '330'],
+    description: "An incredibly durable ancient Mesoamerican pigment created by intercalating indigo dye into the clay mineral palygorskite.",
+    category: 'Historical',
+    crystalSystem: 'Monoclinic',
+    database: 'CSD'
+  },
+  {
+    name: 'Greek Electrum',
+    formula: 'Au0.7Ag0.3',
+    wavelength: 1.5406,
+    peaks: [38.2, 44.4, 64.6, 77.5, 81.7],
+    hkls: ['111', '200', '220', '311', '222'],
+    description: "A naturally occurring or historically smelted alloy of gold and silver widely used in ancient Lydia and Greece for early coinage.",
+    category: 'Historical',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m',
+    database: 'ICDD'
+  },
+  {
+    name: 'Lead White (Hydrocerussite)',
+    formula: '2PbCO3·Pb(OH)2',
+    wavelength: 1.5406,
+    peaks: [24.8, 27.2, 34.1, 35.5, 43.5, 47.1],
+    hkls: ['003', '101', '104', '110', '113', '202'],
+    description: "An ancient artificial pigment produced globally since at least 400 BC (including Greece and Rome), prized for its brilliant opacity but highly toxic.",
+    category: 'Historical',
+    crystalSystem: 'Trigonal',
+    spaceGroup: 'R-3m',
+    database: 'ICSD'
+  },
   {
     name: 'Silicon Standard',
     formula: 'Si',
@@ -1585,7 +1711,7 @@ interface TestMaterialsModuleProps {
   onLoadMaterial: (peaks: number[], wavelength: number, hkls: string[], name: string) => void;
 }
 
-type TabGroup = 'All' | 'Standards' | 'Metals' | 'Ceramics' | 'Polymers' | 'Semiconductors' | 'Custom';
+type TabGroup = 'All' | 'Standards' | 'Metals' | 'Ceramics' | 'Polymers' | 'Semiconductors' | 'Historical' | 'Custom';
 type DatabaseRef = 'All' | 'ICDD' | 'COD' | 'RRUFF' | 'ICSD' | 'CSD';
 
 export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoadMaterial }) => {
@@ -1678,6 +1804,7 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
     if (['Ceramic', 'Perovskite', 'Thermoelectric', 'Biomaterial'].includes(preset.category)) return 'Ceramics';
     if (['Polymer'].includes(preset.category)) return 'Polymers';
     if (['Semiconductor'].includes(preset.category)) return 'Semiconductors';
+    if (['Historical'].includes(preset.category)) return 'Historical';
     return 'All';
   };
 
@@ -1779,8 +1906,8 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
     }
   };
 
-  // Combine standard and custom presets
-  const allPresets = [...PRESETS, ...customPresets];
+  // Combine standard, mapped, and custom presets
+  const allPresets = [...PRESETS, ...mappedPresets, ...customPresets];
 
   // Filter based on Tab + Database + Search Query
   const filteredPresets = allPresets.filter(preset => {
@@ -1878,18 +2005,20 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
   };
 
   return (
-    <div className="bg-[#0A101C]/95 rounded-[2rem] p-6 shadow-2xl border border-white/10 relative overflow-hidden transition-all text-left">
-      <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+    <div className="bg-slate-950/80 backdrop-blur-md rounded-[2rem] p-6 shadow-2xl border border-emerald-500/10 relative overflow-hidden transition-all text-left">
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none translate-x-1/2 -translate-y-1/2" />
+              <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-teal-500/10 rounded-full blur-[80px] pointer-events-none -translate-x-1/2 translate-y-1/2" />
+
       
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/30">
-            <FlaskConical className="w-5 h-5 text-indigo-400" />
+          <div className="p-2.5 bg-emerald-500/10 rounded-xl border border-emerald-500/30">
+            <Database className="w-5 h-5 text-emerald-400" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-white uppercase tracking-[0.2em] leading-none">Test Data Suites</h3>
-            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 block">Experimental Presets & Register</span>
+            <h3 className="text-sm font-black text-white uppercase tracking-[0.2em] leading-none">Standard Reference Registries</h3>
+            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 block">Scientific Material Presets & Catalog</span>
           </div>
         </div>
         
@@ -1903,11 +2032,11 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 bg-slate-800/50 border border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white"
+            className="px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 bg-slate-800/50 border border-slate-700 text-slate-300 hover:bg-slate-700/50 hover:text-white hover:shadow-lg"
             title="Import custom suites from JSON"
           >
             <Upload className="w-3 h-3" />
-            Import
+            Import CSV/JSON
           </button>
           
           {customPresets.length > 0 && (
@@ -1927,23 +2056,23 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               setFormError(null);
               setSuccessMsg(null);
             }}
-            className={`px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 border ${
+            className={`px-3.5 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 border shadow-sm ${
               isAdding 
                 ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 hover:bg-rose-500/30' 
-                : 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400 hover:bg-indigo-500/30'
+                : 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/30 hover:shadow-emerald-500/20'
             }`}
           >
             {isAdding ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-            {isAdding ? 'Close Builder' : 'Build Custom Suite'}
+            {isAdding ? 'Close Builder' : 'New Phase Entry'}
           </button>
         </div>
       </div>
 
       {/* Add Custom Preset Form Block */}
       {isAdding && (
-        <div className="mb-6 p-5 rounded-2xl bg-[#0F172A]/90 border border-indigo-500/20 shadow-inner relative z-10 animate-in slide-in-from-top duration-300">
+        <div className="mb-6 p-5 rounded-2xl bg-[#0F172A]/90 border border-emerald-500/20 shadow-inner relative z-10 animate-in slide-in-from-top duration-300">
           <form onSubmit={handleAddCustomPreset} className="space-y-4">
-            <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+            <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" /> Define Custom Crystal Suite
             </h4>
 
@@ -1959,108 +2088,108 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">Standard Name *</label>
+                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Standard Name *</label>
                 <input
                   type="text"
                   placeholder="e.g. Zinc Nitride Reference"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg outline-none text-xs text-white focus:border-indigo-500/50 transition-colors"
+                  className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner"
                 />
               </div>
 
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">Chemical Formula *</label>
+                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Chemical Formula *</label>
                 <input
                   type="text"
                   placeholder="e.g. Zn3N2"
                   value={newFormula}
                   onChange={e => setNewFormula(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg outline-none text-xs text-white focus:border-indigo-500/50 transition-colors"
+                  className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">Wavelength (Å)</label>
+                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Wavelength (Å)</label>
                 <input
                   type="number"
                   step="0.0001"
                   value={newWavelength}
                   onChange={e => setNewWavelength(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg outline-none text-xs text-white font-mono focus:border-indigo-500/50 transition-colors"
+                  className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white font-mono focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner"
                 />
               </div>
 
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">Crystal System (Opt)</label>
+                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Crystal System (Opt)</label>
                 <input
                   type="text"
                   placeholder="e.g. Cubic"
                   value={newCrystalSystem}
                   onChange={e => setNewCrystalSystem(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg outline-none text-xs text-white focus:border-indigo-500/50 transition-colors"
+                  className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner"
                 />
               </div>
 
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">Space Group (Opt)</label>
+                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Space Group (Opt)</label>
                 <input
                   type="text"
                   placeholder="e.g. Ia-3 (No. 206)"
                   value={newSpaceGroup}
                   onChange={e => setNewSpaceGroup(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg outline-none text-xs text-white focus:border-indigo-500/50 transition-colors"
+                  className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">Lattice Dimensions (Opt)</label>
+              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Lattice Dimensions (Opt)</label>
               <input
                 type="text"
                 placeholder="e.g. a = 9.78 Å"
                 value={newLattice}
                 onChange={e => setNewLattice(e.target.value)}
-                className="w-full px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg outline-none text-xs text-white focus:border-indigo-500/50 transition-colors"
+                className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">Diffraction Peaks (2θ, comma separated) *</label>
+                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Diffraction Peaks (2θ, comma separated) *</label>
                 <textarea
                   rows={2}
                   placeholder="e.g. 21.24, 30.56, 35.88"
                   value={newPeaks}
                   onChange={e => setNewPeaks(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg outline-none text-xs text-white font-mono placeholder:text-slate-600 focus:border-indigo-500/50 transition-colors resize-none"
+                  className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white font-mono placeholder:text-slate-600 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">HKL Indices (comma separated, matching peaks counter)</label>
+                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">HKL Indices (comma separated, matching peaks counter)</label>
                 <textarea
                   rows={2}
                   placeholder="e.g. 110, 200, 211"
                   value={newHkls}
                   onChange={e => setNewHkls(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg outline-none text-xs text-white font-mono placeholder:text-slate-600 focus:border-indigo-500/50 transition-colors resize-none"
+                  className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white font-mono placeholder:text-slate-600 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner resize-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1">Description (Opt)</label>
+              <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Description (Opt)</label>
               <input
                 type="text"
                 placeholder="Refractory nitride powder prepared by chemical synthesis."
                 value={newDesc}
                 onChange={e => setNewDesc(e.target.value)}
-                className="w-full px-3 py-1.5 bg-black/40 border border-white/5 rounded-lg outline-none text-xs text-white focus:border-indigo-500/50 transition-colors"
+                className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner"
               />
             </div>
 
@@ -2084,47 +2213,64 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
       )}
 
       {/* Search Input */}
-      <div className="relative mb-5 z-10 flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search suite by element, formula, structural space group, HKL..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-2 bg-slate-950/60 border border-white/5 text-slate-200 outline-none rounded-xl focus:border-indigo-500/30 focus:ring-1 focus:ring-indigo-500/10 placeholder:text-slate-600 transition-all text-xs font-mono"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+      <div className="relative mb-6 z-10">
+        <div className="flex flex-col gap-4 p-5 bg-black/40 border border-emerald-500/20 rounded-2xl shadow-inner backdrop-blur-sm">
+          <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+            <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+              <Search className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-black text-white uppercase tracking-widest leading-none">Database Query</h4>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1.5">Global unified registry search & material suite filtering</p>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-black/50 border border-emerald-500/20 rounded-lg">
+              <Database className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-[10px] font-mono font-bold text-emerald-400">{filteredPresets.length} / {allPresets.length} Records</span>
+            </div>
+          </div>
+          
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500/50 group-focus-within:text-emerald-400 transition-colors" />
+            <input
+              type="text"
+              placeholder="Query phase name, formula, space group, or database ID..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-10 py-3 bg-black/60 backdrop-blur border border-emerald-500/30 text-emerald-100 outline-none rounded-xl focus:border-emerald-400 focus:ring-1 focus:ring-emerald-500/30 placeholder:text-slate-500 transition-all text-xs font-mono shadow-inner selection:bg-emerald-500/30"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors"
+                title="Clear query"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Pill Filters */}
-      <div className="relative z-10 flex gap-2 mb-3 overflow-x-auto pb-1 scrollbar-none select-none max-w-full">
-        {(['All', 'Standards', 'Metals', 'Ceramics', 'Polymers', 'Semiconductors', 'Custom'] as TabGroup[]).map(tab => {
+      <div className="relative z-10 flex gap-3 mb-6 overflow-x-auto pb-4 scrollbar-none select-none max-w-full items-center">
+        {(['All', 'Standards', 'Metals', 'Ceramics', 'Polymers', 'Semiconductors', 'Historical', 'Custom'] as TabGroup[]).map(tab => {
           const count = getCountForTab(tab);
           return (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`py-1.5 px-3.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border shrink-0 flex items-center gap-1.5 ${
+              className={`py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 border flex items-center gap-2.5 whitespace-nowrap ${
                 activeTab === tab
-                  ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.1)]'
-                  : 'bg-black/20 border-white/5 text-slate-400 hover:text-slate-300 hover:bg-black/40'
+                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-[0_4_25px_rgba(16,185,129,0.2)] ring-1 ring-emerald-500/30 -translate-y-0.5'
+                  : 'bg-black/40 border-emerald-500/10 text-slate-400 hover:text-emerald-100 hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:-translate-y-0.5 hover:shadow-[0_4_15px_rgba(16,185,129,0.1)]'
               }`}
             >
               {tab}
-              <span className={`text-[8px] px-1.5 py-0.5 rounded-full ${
+              <span className={`text-[9px] px-2 py-0.5 rounded-lg border font-mono transition-colors ${
                 activeTab === tab 
-                  ? 'bg-indigo-400/20 text-indigo-300' 
-                  : 'bg-white/5 text-slate-500'
+                  ? 'bg-emerald-400/20 text-emerald-200 border-emerald-400/30 shadow-inner' 
+                  : 'bg-black/50 text-slate-500 border-white/5 group-hover:bg-emerald-500/20 group-hover:text-emerald-300 group-hover:border-emerald-500/30'
               }`}>
                 {count}
               </span>
@@ -2134,23 +2280,23 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
       </div>
 
       {/* Database Registry Filters */}
-      <div className="relative z-10 border-t border-white/5 pt-3 mb-5">
-        <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-none select-none max-w-full items-center">
-          <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mr-1.5 shrink-0 flex items-center gap-1">
-            <Database className="w-2.5 h-2.5 text-slate-500" /> Registry Filter:
+      <div className="relative z-10 border-t border-emerald-500/10 pt-4 mb-6">
+        <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-none select-none max-w-full items-center">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mr-2 shrink-0 flex items-center gap-1.5">
+            <Database className="w-3 h-3 text-emerald-500/70" /> Reference Registry:
           </span>
           {(['All', 'ICDD', 'COD', 'RRUFF', 'ICSD', 'CSD'] as DatabaseRef[]).map(db => {
             const count = getCountForDatabase(db);
             const theme = db === 'All' 
-              ? { activeClass: 'bg-slate-500/20 border-slate-500/40 text-slate-300 shadow-[0_0_15px_rgba(148,163,184,0.1)]', badgeClass: 'bg-slate-400/20 text-slate-300' }
+              ? { activeClass: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]', badgeClass: 'bg-emerald-400/20 text-emerald-200' }
               : db === 'ICDD'
               ? { activeClass: 'bg-amber-500/20 border-amber-500/40 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.15)]', badgeClass: 'bg-amber-400/20 text-amber-300' }
               : db === 'COD'
-              ? { activeClass: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]', badgeClass: 'bg-emerald-400/20 text-emerald-300' }
+              ? { activeClass: 'bg-[#10b98120] border-[#10b98150] text-[#10b981] shadow-[0_0_15px_rgba(16,185,129,0.15)]', badgeClass: 'bg-[#10b98130] text-[#10b981]' }
               : db === 'RRUFF'
               ? { activeClass: 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.15)]', badgeClass: 'bg-cyan-400/20 text-cyan-300' }
               : db === 'ICSD'
-              ? { activeClass: 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.15)]', badgeClass: 'bg-indigo-400/20 text-indigo-300' }
+              ? { activeClass: 'bg-purple-500/20 border-purple-500/40 text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.15)]', badgeClass: 'bg-purple-400/20 text-purple-300' }
               : { activeClass: 'bg-rose-500/20 border-rose-500/40 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.15)]', badgeClass: 'bg-rose-400/20 text-rose-300' };
 
             return (
@@ -2158,17 +2304,17 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                 key={db}
                 type="button"
                 onClick={() => setActiveDatabase(db)}
-                className={`py-1 px-2.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 flex items-center gap-1 ${
+                className={`py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all border shrink-0 flex items-center gap-1.5 ${
                   activeDatabase === db
                     ? theme.activeClass
-                    : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-400 hover:bg-black/35 hover:border-slate-800'
+                    : 'bg-black/40 border-white/5 text-slate-500 hover:text-slate-300 hover:bg-black/60 hover:border-emerald-500/20'
                 }`}
               >
                 {db}
-                <span className={`text-[8px] px-1 py-0.2 rounded-full ${
+                <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-mono ${
                   activeDatabase === db 
                     ? theme.badgeClass 
-                    : 'bg-white/5 text-slate-600'
+                    : 'bg-white/5 text-slate-500'
                 }`}>
                   {count}
                 </span>
@@ -2178,42 +2324,47 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
         </div>
 
         {/* Database context banner card */}
-        <div className="mt-1 pb-1">
-          <div className={`p-3 rounded-lg border text-[9.5px] leading-relaxed transition-all duration-300 ${
+        <div className="mt-1 pb-1 animate-in fade-in slide-in-from-top-1">
+          <div className={`p-4 rounded-xl border text-[10px] leading-relaxed transition-all duration-300 shadow-inner flex items-start gap-4 ${
             activeDatabase === 'All'
-              ? 'bg-slate-900/40 border-slate-800/60 text-slate-400'
+              ? 'bg-emerald-950/10 border-emerald-900/30 text-emerald-200/80'
               : activeDatabase === 'ICDD'
-              ? 'bg-amber-950/10 border-amber-900/20 text-amber-300/80'
+              ? 'bg-amber-950/10 border-amber-900/30 text-amber-300/80'
               : activeDatabase === 'COD'
-              ? 'bg-[#10b98115] border-emerald-950 text-emerald-300/80'
+              ? 'bg-[#10b98110] border-[#10b98130] text-emerald-300/80'
               : activeDatabase === 'RRUFF'
-              ? 'bg-[#06b6d415] border-cyan-950 text-cyan-300/80'
+              ? 'bg-[#06b6d410] border-[#06b6d430] text-cyan-300/80'
               : activeDatabase === 'ICSD'
-              ? 'bg-[#6366f115] border-indigo-950 text-indigo-300/80'
-              : 'bg-[#f43f5e15] border-rose-950 text-rose-300/80'
+              ? 'bg-purple-500/10 border-purple-500/30 text-purple-300/80'
+              : 'bg-[#f43f5e10] border-[#f43f5e30] text-rose-300/80'
           }`}>
-            <span className="font-bold underline uppercase tracking-wider mr-1.5">
-              {activeDatabase === 'All' && 'Combined Catalog:'}
-              {activeDatabase === 'ICDD' && 'International Centre for Diffraction Data (PDF):'}
-              {activeDatabase === 'COD' && 'Crystallography Open Database (COD):'}
-              {activeDatabase === 'RRUFF' && 'RRUFF Project Mineral Matrix:'}
-              {activeDatabase === 'ICSD' && 'Inorganic Crystal Structure Database (ICSD):'}
-              {activeDatabase === 'CSD' && 'Cambridge Structural Database (CSD):'}
-            </span>
-            {activeDatabase === 'All' && 'Accesses all standard phase records across composite experimental and simulated indexing registries.'}
-            {activeDatabase === 'ICDD' && 'Global powder patterns reference index containing primary synthetic inorganic diffraction vectors.'}
-            {activeDatabase === 'COD' && 'Fully open-access structures with coordinate values for experimental materials analysis.'}
-            {activeDatabase === 'RRUFF' && 'High-resolution XRD parameters paired with natural mineral chemistry references.'}
-            {activeDatabase === 'ICSD' && 'Completely evaluated structures encompassing purely inorganic crystals, ceramic compounds, and engineering metals.'}
-            {activeDatabase === 'CSD' && 'The sovereign structural coordinate registry for organic, polymer, and pharmaceutical materials.'}
+            <Database className="w-5 h-5 opacity-60 mt-0.5 shrink-0" />
+            <div>
+              <span className="font-black uppercase tracking-widest mr-2 text-white">
+                {activeDatabase === 'All' && 'Combined Catalog:'}
+                {activeDatabase === 'ICDD' && 'International Centre for Diffraction Data (PDF):'}
+                {activeDatabase === 'COD' && 'Crystallography Open Database (COD):'}
+                {activeDatabase === 'RRUFF' && 'RRUFF Project Mineral Matrix:'}
+                {activeDatabase === 'ICSD' && 'Inorganic Crystal Structure Database (ICSD):'}
+                {activeDatabase === 'CSD' && 'Cambridge Structural Database (CSD):'}
+              </span>
+              <span className="font-sans opacity-90">
+                {activeDatabase === 'All' && 'Accesses all standard phase records across composite experimental and simulated indexing registries.'}
+                {activeDatabase === 'ICDD' && 'Global powder patterns reference index containing primary synthetic inorganic diffraction vectors.'}
+                {activeDatabase === 'COD' && 'Fully open-access structures with coordinate values for experimental materials analysis.'}
+                {activeDatabase === 'RRUFF' && 'High-resolution XRD parameters paired with natural mineral chemistry references.'}
+                {activeDatabase === 'ICSD' && 'Completely evaluated structures encompassing purely inorganic crystals, ceramic compounds, and engineering metals.'}
+                {activeDatabase === 'CSD' && 'The sovereign structural coordinate registry for organic, polymer, and pharmaceutical materials.'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Presets List */}
-      <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1.5 custom-scrollbar scrollbar-thin scrollbar-thumb-slate-800">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar scrollbar-thin scrollbar-thumb-slate-800 p-2">
         {filteredPresets.length === 0 ? (
-          <div className="py-12 text-center rounded-2xl bg-black/20 border border-white/5 text-slate-500 text-xs flex flex-col items-center gap-2">
+          <div className="py-12 col-span-full text-center rounded-2xl bg-black/20 border border-white/5 text-slate-500 text-xs flex flex-col items-center gap-2">
             <SlidersHorizontal className="w-8 h-8 text-slate-600 stroke-1" />
             <p className="uppercase font-mono tracking-widest text-[10px]">No material suites found matching terms</p>
             <p className="text-[9px] text-slate-600 font-sans italic">Try resetting query filter parameters</p>
@@ -2223,54 +2374,113 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
             const isExpanded = expandedMaterial === material.name;
             const computedD = calculateDSpacings(material.peaks, material.wavelength);
 
+            let bgStyle = 'bg-black/20 hover:bg-black/40 shadow-sm backdrop-blur-md border-white/5';
+            let activeBorder = 'border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/20';
+            let hoverBorder = 'hover:border-emerald-500/30 hover:shadow-[0_4_20px_rgba(16,185,129,0.05)] hover:bg-emerald-500/5';
+            let iconColor = 'text-emerald-400/70 group-hover:text-emerald-400';
+            let lineAccent = 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]';
+            let lineHover = 'bg-emerald-500/30';
+            let formulaBg = 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
+            
+            if (material.category === 'Metal') {
+              bgStyle = 'bg-amber-950/5 hover:bg-amber-950/10 shadow-sm backdrop-blur-md border-white/5';
+              activeBorder = 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/20';
+              hoverBorder = 'hover:border-amber-500/30 hover:shadow-[0_4_20px_rgba(245,158,11,0.05)] hover:bg-amber-500/5';
+              iconColor = 'text-amber-500/70 group-hover:text-amber-400';
+              lineAccent = 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]';
+              lineHover = 'bg-amber-500/30';
+              formulaBg = 'bg-amber-500/10 text-amber-300 border-amber-500/20';
+            } else if (material.category === 'Ceramic') {
+              bgStyle = 'bg-blue-950/5 hover:bg-blue-950/10 shadow-sm backdrop-blur-md border-white/5';
+              activeBorder = 'border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/20';
+              hoverBorder = 'hover:border-blue-500/30 hover:shadow-[0_4_20px_rgba(59,130,246,0.05)] hover:bg-blue-500/5';
+              iconColor = 'text-blue-500/70 group-hover:text-blue-400';
+              lineAccent = 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]';
+              lineHover = 'bg-blue-500/30';
+              formulaBg = 'bg-blue-500/10 text-blue-300 border-blue-500/20';
+            } else if (material.category === 'Biomaterial') {
+              bgStyle = 'bg-rose-950/5 hover:bg-rose-950/10 shadow-sm backdrop-blur-md border-white/5';
+              activeBorder = 'border-rose-500/50 shadow-[0_0_30px_rgba(244,63,94,0.15)] ring-1 ring-rose-500/20';
+              hoverBorder = 'hover:border-rose-500/30 hover:shadow-[0_4_20px_rgba(244,63,94,0.05)] hover:bg-rose-500/5';
+              iconColor = 'text-rose-500/70 group-hover:text-rose-400';
+              lineAccent = 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]';
+              lineHover = 'bg-rose-500/30';
+              formulaBg = 'bg-rose-500/10 text-rose-300 border-rose-500/20';
+            } else if (material.category === 'Polymer') {
+              bgStyle = 'bg-fuchsia-950/5 hover:bg-fuchsia-950/10 shadow-sm backdrop-blur-md border-white/5';
+              activeBorder = 'border-fuchsia-500/50 shadow-[0_0_30px_rgba(217,70,239,0.15)] ring-1 ring-fuchsia-500/20';
+              hoverBorder = 'hover:border-fuchsia-500/30 hover:shadow-[0_4_20px_rgba(217,70,239,0.05)] hover:bg-fuchsia-500/5';
+              iconColor = 'text-fuchsia-500/70 group-hover:text-fuchsia-400';
+              lineAccent = 'bg-fuchsia-500 shadow-[0_0_10px_rgba(217,70,239,0.5)]';
+              lineHover = 'bg-fuchsia-500/30';
+              formulaBg = 'bg-fuchsia-500/10 text-fuchsia-300 border-fuchsia-500/20';
+            } else if (material.category === 'Historical') {
+              bgStyle = 'bg-yellow-950/5 hover:bg-yellow-950/10 shadow-sm backdrop-blur-md border-white/5';
+              activeBorder = 'border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.15)] ring-1 ring-yellow-500/20';
+              hoverBorder = 'hover:border-yellow-500/30 hover:shadow-[0_4_20px_rgba(234,179,8,0.05)] hover:bg-yellow-500/5';
+              iconColor = 'text-yellow-500/70 group-hover:text-yellow-400';
+              lineAccent = 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]';
+              lineHover = 'bg-yellow-500/30';
+              formulaBg = 'bg-yellow-500/10 text-yellow-300 border-yellow-500/20';
+            }
+
             return (
               <div
-                key={material.name}
+                key={`${material.name}-${idx}`}
                 onClick={() => setExpandedMaterial(isExpanded ? null : material.name)}
-                className={`group flex flex-col p-4 bg-slate-950/40 border rounded-2xl cursor-pointer hover:bg-slate-950/70 transition-all relative overflow-hidden select-none ${
-                  isExpanded 
-                    ? 'border-indigo-500/40 ring-1 ring-indigo-500/10' 
-                    : 'border-white/5 hover:border-indigo-500/20'
+                className={`group flex flex-col p-5 border rounded-[1.5rem] cursor-pointer transition-all duration-300 relative overflow-hidden select-none ${bgStyle} ${
+                  isExpanded ? activeBorder : hoverBorder
                 }`}
               >
                 {/* Visual accent left line */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 transition-all ${
-                  isExpanded ? 'bg-indigo-500' : 'bg-transparent group-hover:bg-indigo-500/30'
+                <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-all duration-300 ${
+                  isExpanded ? lineAccent : `bg-transparent group-hover:${lineHover}`
                 }`} />
 
-                <div className="flex justify-between items-start mb-2 gap-2">
-                  <div className="flex items-baseline flex-wrap gap-x-2 gap-y-1">
-                    <span className="text-xs font-black text-white hover:text-indigo-400 transition-colors">
-                      {material.name}
-                    </span>
-                    <span className="text-[10px] font-mono font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded leading-none">
-                      {material.formula}
-                    </span>
+                <div className="flex justify-between items-start mb-3 gap-3">
+                  <div className="flex items-start gap-4">
+                    <div className={`mt-1 bg-white/5 p-2 rounded-xl border border-white/5 shrink-0 transition-transform duration-300 ${isExpanded ? 'scale-110 shadow-lg' : 'group-hover:scale-105 group-hover:bg-white/10'}`}>
+                      {material.category === 'Metal' ? <Sparkles className={`w-5 h-5 ${iconColor} transition-colors`}/> :
+                       material.category === 'Historical' ? <Landmark className={`w-5 h-5 ${iconColor} transition-colors`}/> :
+                       material.category === 'Biomaterial' ? <FlaskConical className={`w-5 h-5 ${iconColor} transition-colors`}/> :
+                       material.category === 'Polymer' ? <Layers className={`w-5 h-5 ${iconColor} transition-colors`}/> :
+                       material.category === 'Ceramic' ? <Database className={`w-5 h-5 ${iconColor} transition-colors`}/> :
+                       <Database className={`w-5 h-5 ${iconColor} transition-colors`}/>}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-base font-black text-white/90 group-hover:text-white transition-colors tracking-tight">
+                        {material.name}
+                      </span>
+                      <span className={`text-[10px] w-fit font-mono font-bold px-2 py-0.5 rounded-md leading-none border shadow-sm ${formulaBg}`}>
+                        {material.formula}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
                     {material.database && (
-                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border leading-none transition-all ${
+                      <span className={`text-[8px] font-black px-2 py-0.5 rounded border leading-none transition-all shadow-sm ${
                         material.database === 'ICDD' ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
                         material.database === 'COD' ? 'bg-[#10b98115] text-emerald-400 border-[#10b98130]' :
                         material.database === 'RRUFF' ? 'bg-[#06b6d415] text-cyan-400 border-[#06b6d430]' :
-                        material.database === 'ICSD' ? 'bg-[#6366f115] text-indigo-400 border-[#6366f130]' :
+                        material.database === 'ICSD' ? 'bg-purple-500/15 text-purple-400 border-purple-500/30' :
                         'bg-[#f43f5e15] text-rose-400 border-[#f43f5e30]'
                       }`} title={`Scientific registry reference: ${material.database}`}>
                         {material.database} {material.databaseId ? `#${material.databaseId}` : ''}
                       </span>
                     )}
-                    <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
-                      material.category === 'Standard' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                      material.category === 'Metal' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                      material.category === 'Ceramic' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-                      material.category === 'Perovskite' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' :
-                      material.category === 'Biomaterial' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                      material.category === 'Nuclear' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
-                      material.category === 'Polymer' ? 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20' :
-                      material.category === 'Semiconductor' ? 'bg-teal-500/15 text-teal-400 border border-teal-500/30' :
-                      material.category === 'Custom' ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30' :
-                      'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm backdrop-blur-md ${
+                      material.category === 'Standard' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' :
+                      material.category === 'Historical' ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/20' :
+                      material.category === 'Metal' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' :
+                      material.category === 'Ceramic' ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20' :
+                      material.category === 'Perovskite' ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20' :
+                      material.category === 'Biomaterial' ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20' :
+                      material.category === 'Nuclear' ? 'bg-orange-500/10 text-orange-300 border border-orange-500/20' :
+                      material.category === 'Polymer' ? 'bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/20' :
+                      material.category === 'Semiconductor' ? 'bg-teal-500/15 text-teal-300 border border-teal-500/30' :
+                      material.category === 'Custom' ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30' :
+                      'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20'
                     }`}>
                       {material.category}
                     </span>
@@ -2278,7 +2488,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                     {material.category === 'Custom' && (
                       <button
                         onClick={(e) => handleDeleteCustomPreset(material.name, e)}
-                        className="p-1 text-slate-500 hover:text-rose-400 transition-colors hover:bg-rose-500/10 rounded-md"
+                        className="p-1.5 mt-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors rounded-lg border border-transparent hover:border-rose-500/20"
                         title="Delete Custom Preset"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -2287,31 +2497,31 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                   </div>
                 </div>
 
-                <p className="text-[11px] text-slate-400 line-clamp-2 leading-normal mb-3 pr-4">
+                <p className="text-[11px] text-slate-400/90 line-clamp-2 leading-relaxed mb-4 pr-1 font-sans">
                   {material.description}
                 </p>
 
                 {/* Micro metrics view in main state */}
-                <div className="flex items-center justify-between text-[10px] font-mono border-t border-white/5 pt-3">
-                  <div className="flex items-center gap-4 text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-amber-400" /> λ = {material.wavelength}Å
+                <div className="flex items-center justify-between text-[10px] font-mono border-t border-white/5 pt-3 mt-auto">
+                  <div className="flex items-center gap-4 text-slate-400">
+                    <span className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded-md border border-white/5">
+                      <Zap className="w-3 h-3 text-amber-500" /> λ = {material.wavelength}Å
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Database className="w-3 h-3 text-cyan-400" /> {material.peaks.length} Reflections
+                    <span className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded-md border border-white/5">
+                      <Database className="w-3 h-3 text-cyan-500" /> {material.peaks.length} Refl.
                     </span>
                     {material.crystalSystem && (
-                      <span className="hidden sm:inline-block px-1.5 py-0.2 bg-white/5 text-[9px] font-sans font-bold text-slate-400 rounded">
+                      <span className="hidden lg:inline-flex items-center gap-1.5 px-2 py-0.5 bg-white/5 text-[9px] font-sans font-bold text-slate-300 rounded-md border border-white/5">
                         {material.crystalSystem}
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 text-[9px] text-indigo-400 font-sans font-bold uppercase tracking-wider">
+                  <div className={`flex items-center gap-1.5 text-[9.5px] font-sans font-bold uppercase tracking-wider transition-colors ${isExpanded ? 'text-rose-400' : iconColor}`}>
                     {isExpanded ? (
-                      <span className="flex items-center gap-1"><X className="w-3 h-3 text-rose-400" /> Collapse</span>
+                      <span className="flex items-center gap-1"><X className="w-3.5 h-3.5" /> Close</span>
                     ) : (
-                      <span className="flex items-center gap-1"><Eye className="w-3 h-3 text-indigo-400 animate-pulse" /> Inspect</span>
+                      <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5 opacity-80" /> Inspect</span>
                     )}
                   </div>
                 </div>
@@ -2334,7 +2544,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                         {material.spaceGroup && (
                           <div>
                             <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider block">Space Group</span>
-                            <span className="font-mono text-indigo-300 font-bold block mt-0.5">{material.spaceGroup}</span>
+                            <span className="font-mono text-emerald-300 font-bold block mt-0.5">{material.spaceGroup}</span>
                           </div>
                         )}
                         {material.latticeParams && (
@@ -2353,7 +2563,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                         <table className="w-full text-left font-mono text-[10px]">
                           <thead>
                             <tr className="border-b border-white/5 bg-white/5 text-[8px] text-slate-500 tracking-wider font-sans uppercase">
-                              <th className="px-3 py-1.5 text-indigo-400">Reflection (2θ)</th>
+                              <th className="px-3 py-1.5 text-emerald-400">Reflection (2θ)</th>
                               <th className="px-3 py-1.5">Miller (hkl)</th>
                               <th className="px-3 py-1.5 text-right font-sans font-black text-emerald-400">d-spacing (Å)</th>
                             </tr>
@@ -2361,7 +2571,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                           <tbody className="divide-y divide-white/5 text-slate-300">
                             {material.peaks.map((peak, pidx) => (
                               <tr key={pidx} className="hover:bg-white/5">
-                                <td className="px-3 py-2 text-indigo-300 font-bold">{peak.toFixed(3)}°</td>
+                                <td className="px-3 py-2 text-emerald-300 font-bold">{peak.toFixed(3)}°</td>
                                 <td className="px-3 py-2 text-slate-400">{material.hkls[pidx] || '?'}</td>
                                 <td className="px-3 py-2 text-right font-bold text-emerald-400">
                                   {computedD[pidx] > 0 ? `${computedD[pidx].toFixed(4)} Å` : 'N/A'}
@@ -2381,7 +2591,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                           e.stopPropagation();
                           onLoadMaterial(material.peaks, material.wavelength, material.hkls, material.name);
                         }}
-                        className="flex-1 py-2 px-3 bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-sans font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-indigo-500/30 transition-all flex items-center justify-center gap-1.5"
+                        className="flex-1 py-2 px-3 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-sans font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-emerald-500/30 transition-all flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
                       >
                         <ClipboardCheck className="w-3.5 h-3.5" /> Initialize Session
                       </button>
@@ -2389,7 +2599,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                       <button
                         type="button"
                         onClick={(e) => handleCopyPeaksText(material, idx, e)}
-                        className="py-2 px-3 bg-slate-900 border border-white/5 text-slate-300 hover:text-white font-sans font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
+                        className="py-2 px-3 bg-black/40 border border-emerald-500/20 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/40 font-sans font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
                         title="Copy peaks list to clipboard"
                       >
                         {copiedIndex === idx ? (
@@ -2398,7 +2608,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                           </>
                         ) : (
                           <>
-                            <Copy className="w-3.5 h-3.5 text-slate-500" /> List Peaks
+                            <Copy className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400" /> List Peaks
                           </>
                         )}
                       </button>
@@ -2406,10 +2616,10 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                       <button
                         type="button"
                         onClick={(e) => handleExportConfigText(material, computedD, e)}
-                        className="py-2 px-3 bg-slate-900 border border-white/5 text-slate-300 hover:text-white font-sans font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
+                        className="py-2 px-3 bg-black/40 border border-emerald-500/20 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/40 font-sans font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1"
                         title="Export suite data to text file"
                       >
-                        <FileJson className="w-3.5 h-3.5 text-slate-500" /> Export Data
+                        <FileJson className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400" /> Export Data
                       </button>
                     </div>
                   </div>
@@ -2420,10 +2630,10 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
         )}
       </div>
 
-      <div className="mt-5 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 relative z-10 flex items-start gap-3">
-        <Info className="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" />
+      <div className="mt-6 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 relative z-10 flex items-start gap-4">
+        <Info className="w-5 h-5 text-emerald-400/80 mt-0.5 shrink-0" />
         <div className="text-[10px] text-slate-400 leading-normal font-sans text-left">
-          <strong>Suite Reference calibration:</strong> Presets default to traditional copper K-alpha (1.5406 Å) wavelengths unless specified. You can load these standards into your active calculator session to test indexing logic, calculate exact grain sizes, or cross-calibrate.
+          <strong className="text-emerald-300">Reference Configuration:</strong> Database records are automatically normalized to Cu-Kα (1.5406 Å) wavelengths for synthetic indexation. You can initialize these pristine models into your active sandbox to test phase simulation, calculate precise grain morphologies, or validate structure refinement algorithms.
         </div>
       </div>
     </div>

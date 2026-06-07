@@ -56,10 +56,10 @@ const DiffractionGrid = () => (
     <div className="absolute top-1/3 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
     
     {/* Floating Scientific Equations */}
-    <div className="absolute top-[15%] left-[5%] opacity-10 font-mono text-xl text-violet-300 transform -rotate-12 select-none font-black italic">nλ = 2d sin(θ)</div>
-    <div className="absolute top-[45%] right-[10%] opacity-[0.08] font-mono text-2xl text-cyan-300 transform rotate-12 select-none font-black">τ = Kλ / (β cos(θ))</div>
-    <div className="absolute bottom-[20%] left-[25%] opacity-10 font-mono text-xl text-emerald-300 transform -rotate-6 select-none font-black">1/d² = (h²+k²+l²)/a²</div>
-    <div className="absolute top-[30%] right-[30%] opacity-[0.06] font-mono text-3xl text-rose-300 transform rotate-6 select-none font-black">I(θ) = |F(hkl)|² · Lp</div>
+    <div className="absolute top-[15%] left-[5%] opacity-20 font-serif text-2xl text-violet-300 transform -rotate-12 select-none drop-shadow-[0_0_10px_rgba(139,92,246,0.6)] font-bold italic border border-white/5 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl">nλ = 2d sin(θ)</div>
+    <div className="absolute top-[45%] right-[10%] opacity-20 font-serif text-3xl text-cyan-300 transform rotate-12 select-none drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] font-bold border border-white/5 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl">τ = Kλ / (β cos(θ))</div>
+    <div className="absolute bottom-[20%] left-[25%] opacity-20 font-serif text-2xl text-emerald-300 transform -rotate-6 select-none drop-shadow-[0_0_12px_rgba(16,185,129,0.6)] font-bold border border-white/5 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl">1/d² = (h²+k²+l²)/a²</div>
+    <div className="absolute top-[30%] right-[30%] opacity-10 font-serif text-4xl text-rose-300 transform rotate-6 select-none drop-shadow-[0_0_20px_rgba(244,63,94,0.4)] font-bold border border-white/5 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl">I(θ) = |F(hkl)|² · Lp</div>
     
   </div>
 );

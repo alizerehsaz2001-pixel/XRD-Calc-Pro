@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'motion/react';
 import { BookOpen, ChevronRight, Info, Zap, Layers, Cpu, Database, Brain, ArrowRight } from 'lucide-react';
@@ -10,38 +9,55 @@ interface ModuleIntroProps {
 
 // Helper for vertical fractions
 const Fraction = ({ num, den }: { num: React.ReactNode, den: React.ReactNode }) => (
-  <div className="inline-flex flex-col items-center align-middle mx-1" style={{ verticalAlign: 'middle' }}>
-    <span className="border-b border-slate-300 dark:border-slate-700 w-full text-center px-1 pb-[1px] mb-[1px]">{num}</span>
-    <span className="w-full text-center px-1">{den}</span>
+  <div className="inline-flex flex-col items-center align-middle mx-2" style={{ verticalAlign: 'middle' }}>
+    <span className="border-b-2 border-indigo-500/30 w-full text-center px-1.5 pb-1 mb-[2px]">{num}</span>
+    <span className="w-full text-center px-1.5 pt-[1px]">{den}</span>
   </div>
 );
 
 // Helper for Math variables (Serif, Italic)
 const M = ({ children, className = "" }: { children?: React.ReactNode, className?: string }) => (
-  <span className={`font-serif italic text-slate-900 dark:text-slate-100 ${className}`}>{children}</span>
+  <span className={`font-serif italic text-indigo-50 ${className}`}>{children}</span>
 );
 
 // Helper for Function names (Serif, Upright)
 const F = ({ children }: { children?: React.ReactNode }) => (
-  <span className="font-serif font-normal text-slate-700 dark:text-slate-400">{children}</span>
+  <span className="font-serif font-normal text-indigo-300">{children}</span>
 );
 
 const FormulaContainer = ({ children, label }: { children: React.ReactNode, label: string }) => (
-  <div className="relative p-6 bg-slate-50 dark:bg-slate-950 rounded-[2rem] border border-slate-100 dark:border-slate-800 group overflow-hidden w-full flex flex-col">
-    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
-       <Cpu className="w-6 h-6 text-indigo-500" />
+  <motion.div 
+    whileHover={{ y: -4, scale: 1.01 }}
+    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+    className="relative p-8 bg-black/60 rounded-[2.5rem] border border-indigo-500/30 group w-full flex flex-col shadow-[inset_0_0_80px_rgba(99,102,241,0.08)] backdrop-blur-2xl overflow-hidden"
+  >
+    {/* Animated Geometric Background */}
+    <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden">
+      <svg className="absolute -right-10 -top-10 w-64 h-64 text-indigo-500/30 animate-[spin_40s_linear_infinite]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 4"/>
+        <path d="M 50 10 L 50 90 M 10 50 L 90 50 M 20 20 L 80 80 M 20 80 L 80 20" stroke="currentColor" strokeWidth="0.5"/>
+        <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="0.5" />
+      </svg>
+      <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
     </div>
-    <div className="flex flex-col gap-4 w-full">
-      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 font-sans shrink-0">{label}</span>
-      <div className="w-full overflow-x-auto custom-scrollbar pb-2">
-        <div className="text-xl md:text-2xl font-serif whitespace-nowrap min-w-max pt-1 flex items-center">
-          <div className="inline-block align-middle">
-            {children}
-          </div>
+
+    <div className="flex justify-between items-start w-full relative z-10 mb-6">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+          <Cpu className="w-4 h-4 text-indigo-300" />
+        </div>
+        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-300 font-sans">{label}</span>
+      </div>
+    </div>
+    
+    <div className="w-full overflow-x-auto custom-scrollbar pb-4 relative z-10">
+      <div className="text-3xl md:text-4xl font-serif whitespace-nowrap min-w-max pt-2 flex items-center tracking-wide text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+        <div className="inline-block align-middle">
+          {children}
         </div>
       </div>
     </div>
-  </div>
+  </motion.div>
 );
 
 const MODULE_CONTENT: Record<string, { title: string; description: string; tag: string; icon: any; color: string; formulas: React.ReactNode }> = {
@@ -148,14 +164,14 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; tag: 
     color: "from-fuchsia-500 to-violet-500",
     description: "Convolutional Neural Network (CNN) designed for probabilistic phase matching. Operates on raw 1D diffraction pattern vectors.",
     formulas: (
-       <div className="flex w-full overflow-x-auto custom-scrollbar items-center gap-2 font-mono text-[10px] text-slate-500 uppercase tracking-widest bg-slate-950 p-6 rounded-[2rem] border border-slate-800 whitespace-nowrap">
+       <div className="flex w-full overflow-x-auto custom-scrollbar items-center gap-2 font-mono text-[10px] text-indigo-200 uppercase tracking-widest bg-black/40 shadow-[inset_0_0_40px_rgba(99,102,241,0.05)] backdrop-blur-md p-8 rounded-[2rem] border border-indigo-500/20 whitespace-nowrap">
          <span className="text-white/40 shrink-0">Vector[N]</span> 
-         <ArrowRight className="w-3 h-3 shrink-0" />
-         <span className="text-indigo-400 shrink-0">Conv1D</span>
-         <ArrowRight className="w-3 h-3 shrink-0" />
+         <ArrowRight className="w-4 h-4 shrink-0 text-indigo-500" />
+         <span className="text-indigo-400 font-bold shrink-0">Conv1D</span>
+         <ArrowRight className="w-4 h-4 shrink-0 text-indigo-500" />
          <span className="text-white/40 shrink-0">MaxPool</span>
-         <ArrowRight className="w-3 h-3 shrink-0" />
-         <span className="text-violet-400 shrink-0">Phase_Prob</span>
+         <ArrowRight className="w-4 h-4 shrink-0 text-indigo-500" />
+         <span className="text-fuchsia-400 font-bold shrink-0">Phase_Prob</span>
        </div>
     )
   },
@@ -253,7 +269,7 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; tag: 
     color: "from-indigo-500 to-rose-500",
     description: "Models and corrects systematic peak intensity anomalies caused by non-random crystallite spatial orientation using the March-Dollase distribution function.",
     formulas: (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormulaContainer label="March-Dollase Equation">
           <M>P</M>(<M>α</M>) = [ <M>r</M>² <F>cos</F>²(<M>α</M>) + <M>r</M><sup>−1</sup> <F>sin</F>²(<M>α</M>) ]<sup>−3/2</sup>
         </FormulaContainer>
@@ -276,93 +292,101 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
   };
 
   const containerVariants: any = {
-    hidden: { opacity: 0, y: 30 },
+    hidden: { opacity: 0, scale: 0.95, y: 30 },
     visible: { 
       opacity: 1, 
+      scale: 1,
       y: 0,
       transition: { 
-        duration: 0.6, 
+        duration: 0.7, 
         ease: [0.22, 1, 0.36, 1],
-        staggerChildren: 0.1 
+        staggerChildren: 0.15 
       } 
     }
   };
 
   const itemVariants: any = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-6">
+    <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6">
       <motion.div 
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="bg-white dark:bg-slate-900 rounded-[3.5rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+        className="bg-slate-950 rounded-[3.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 overflow-hidden relative"
       >
+        {/* Abstract Dark Matter & Math Background Elements */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-[30%] -left-[10%] w-[60%] h-[60%] bg-indigo-600/20 rounded-full blur-[140px]" />
+          <div className="absolute top-[50%] -right-[20%] w-[50%] h-[70%] bg-teal-600/15 rounded-full blur-[140px]" />
+          <div className="absolute bottom-[0%] left-[20%] w-[40%] h-[60%] bg-rose-600/10 rounded-full blur-[120px]" />
+          
+          {/* Geometric Grid Graphic */}
+          <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(rgba(255,255,255,1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,1)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_0%,black_10%,transparent_80%)]" />
+          
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+        </div>
+        
         {/* Header Section */}
-        <div className={`p-16 relative overflow-hidden bg-slate-950 text-white`}>
-           <div className="absolute inset-0 opacity-20 pointer-events-none">
-             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_30%,rgba(99,102,241,0.5),transparent)]"></div>
-             <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_70%,rgba(244,63,94,0.3),transparent)]"></div>
-           </div>
-           
+        <div className={`p-16 md:p-20 relative overflow-hidden bg-black/40 backdrop-blur-3xl border-b border-white/5 text-white`}>
            <div className="relative z-10 flex flex-col items-center text-center">
-              <motion.div variants={itemVariants} className="mb-6">
-                 <span className="px-5 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300 font-sans">
+              <motion.div variants={itemVariants} className="mb-8">
+                 <span className="px-6 py-2 bg-indigo-500/10 backdrop-blur-md rounded-full border border-indigo-500/30 text-[10px] font-black uppercase tracking-[0.4em] text-indigo-300 font-sans shadow-[0_0_20px_rgba(99,102,241,0.2)]">
                     {content.tag}
                  </span>
               </motion.div>
               
-              <motion.h1 variants={itemVariants} className="text-6xl font-black tracking-tighter leading-none mb-8 italic uppercase font-sans">
+              <motion.h1 variants={itemVariants} className="text-5xl md:text-7xl font-black tracking-tighter leading-none mb-8 uppercase font-sans text-transparent bg-clip-text bg-gradient-to-br from-white via-indigo-100 to-indigo-400 drop-shadow-sm">
                  {content.title}
               </motion.h1>
 
-              <motion.div variants={itemVariants} className="w-24 h-1 bg-gradient-to-r from-indigo-500 to-rose-500 rounded-full mb-8" />
+              <motion.div variants={itemVariants} className="w-32 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 rounded-full mb-10 shadow-[0_0_20px_rgba(99,102,241,0.5)]" />
               
-              <motion.p variants={itemVariants} className="text-xl text-slate-400 font-medium max-w-2xl leading-relaxed font-sans">
+              <motion.p variants={itemVariants} className="text-lg md:text-xl text-indigo-100/70 font-medium max-w-3xl leading-relaxed font-sans">
                  {content.description}
               </motion.p>
            </div>
         </div>
 
         {/* Knowledge & Call to Action */}
-        <div className="p-16 space-y-16">
+        <div className="p-16 md:p-20 space-y-20 relative z-10 bg-slate-950/50 backdrop-blur-sm">
           {content.formulas && (
             <motion.div variants={itemVariants}>
-               <div className="flex items-center gap-6 mb-10">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 whitespace-nowrap font-sans">Mathematical Basis // 01</h3>
-                  <div className="h-px w-full bg-slate-100 dark:bg-slate-800" />
+               <div className="flex items-center gap-6 mb-12">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400/80 whitespace-nowrap font-sans">Mathematical Basis</h3>
+                  <div className="h-px w-full bg-gradient-to-r from-white/10 to-transparent" />
                </div>
-               <div className="animate-in fade-in slide-in-from-bottom-5 duration-700 delay-300">
+               <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
                   {content.formulas}
                </div>
             </motion.div>
           )}
 
-          <motion.div variants={itemVariants} className="flex flex-col md:flex-row items-center justify-between gap-12 pt-12 border-t border-slate-50 dark:border-slate-800">
-             <div className="flex items-start gap-6 max-w-md">
-                <div className="p-4 bg-indigo-500/10 rounded-[1.5rem] shrink-0">
-                   <Info className="w-6 h-6 text-indigo-500" />
+          <motion.div variants={itemVariants} className="flex flex-col lg:flex-row items-center justify-between gap-12 pt-16 border-t border-white/5">
+             <div className="flex items-start gap-6 max-w-xl">
+                <div className="p-5 bg-indigo-500/10 rounded-[1.5rem] shrink-0 border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.15)]">
+                   <Info className="w-7 h-7 text-indigo-400" />
                 </div>
                 <div>
-                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white mb-2 font-sans">Operation Protocol</h4>
-                   <p className="text-xs text-slate-500 dark:text-slate-400 font-bold leading-relaxed font-sans">
-                      All calculations are performed with double-precision floating point accuracy. Ensure your input values are calibrated for instrumental broadening.
+                   <h4 className="text-[11px] font-black uppercase tracking-widest text-indigo-300 mb-3 font-sans">Operation Protocol</h4>
+                   <p className="text-[13px] text-slate-400 font-bold leading-relaxed font-sans">
+                      All analytical models execute with 64-bit floating point precision. Verify that raw instrument metrics are appropriately calibrated before deploying to the central processing matrix.
                    </p>
                 </div>
              </div>
 
              <button
                onClick={onUnderstand}
-               className="group relative flex items-center justify-center px-12 py-6 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.3em] overflow-hidden transition-all shadow-xl hover:scale-105 active:scale-95 font-sans"
+               className="group relative flex items-center justify-center px-12 py-6 bg-white text-slate-950 rounded-[2rem] text-[12px] font-black uppercase tracking-[0.3em] overflow-hidden transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] hover:scale-105 active:scale-95 font-sans shrink-0"
              >
                <span className="relative z-10 flex items-center gap-3">
-                 Initialize Calculations
-                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                 Initialize Suite
+                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
                </span>
-               <div className="absolute inset-0 bg-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+               <div className="absolute inset-0 bg-gradient-to-r from-indigo-200 to-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
              </button>
           </motion.div>
         </div>

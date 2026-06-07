@@ -98,49 +98,52 @@ export const SignalProcessingModule: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
-        <div className="p-6 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400">
-              <Activity className="w-5 h-5" />
+      <div className="bg-slate-950/80 backdrop-blur-md rounded-[2rem] shadow-2xl border border-orange-500/10 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-orange-500/10 rounded-full blur-[80px] pointer-events-none translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none -translate-x-1/2 translate-y-1/2" />
+        
+        <div className="p-6 border-b border-orange-500/10 flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400 border border-orange-500/20 shadow-inner">
+              <Activity className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Signal Pre-processing</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Apply Savitzky-Golay filtering to reduce noise in raw diffractograms</p>
+              <h2 className="text-lg font-black text-white uppercase tracking-widest leading-none">Signal Pre-processing</h2>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-1.5">Apply Savitzky-Golay filtering to reduce noise in raw diffractograms</p>
             </div>
           </div>
         </div>
 
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 relative z-10">
           <div className="lg:col-span-1 space-y-6">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Raw Data Input</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 bg-black/40 px-2 py-0.5 rounded border border-white/5">Raw Data Input</label>
                 <button
                   onClick={loadExample}
-                  className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 hover:underline"
+                  className="text-[10px] font-bold text-orange-400 hover:text-orange-300 uppercase tracking-widest px-2 py-1 bg-orange-500/10 rounded-lg border border-transparent hover:border-orange-500/30 transition-all flex items-center gap-1.5"
                 >
-                  Load Example
+                  <Zap className="w-3.5 h-3.5" /> Load Example
                 </button>
               </div>
               <textarea
                 value={rawDataStr}
                 onChange={(e) => setRawDataStr(e.target.value)}
                 placeholder="Paste X,Y data here...&#10;20.0, 1500&#10;20.1, 1550&#10;..."
-                className="w-full h-48 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-xs font-mono text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                className="w-full h-48 bg-black/40 border border-orange-500/20 shadow-inner rounded-xl p-4 text-[11px] font-mono text-slate-300 focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/20 outline-none resize-none custom-scrollbar"
               />
             </div>
 
-            <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-white/10">
-              <div className="flex items-center gap-2 mb-2">
-                <SlidersHorizontal className="w-4 h-4 text-slate-500" />
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Filter Settings</h3>
+            <div className="space-y-5 p-5 bg-black/40 shadow-inner rounded-2xl border border-orange-500/20 backdrop-blur-sm">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-white/5">
+                <SlidersHorizontal className="w-4 h-4 text-orange-400" />
+                <h3 className="text-[10px] font-black uppercase text-slate-300 tracking-widest">Filter Settings</h3>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Window Size (odd)</label>
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{windowSize} pts</span>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Window Size (odd)</label>
+                  <span className="text-[10px] font-mono font-bold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20">{windowSize} pts</span>
                 </div>
                 <input
                   type="range"
@@ -149,14 +152,14 @@ export const SignalProcessingModule: React.FC = () => {
                   step="2"
                   value={windowSize}
                   onChange={(e) => setWindowSize(parseInt(e.target.value))}
-                  className="w-full accent-indigo-600"
+                  className="w-full accent-orange-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                 />
               </div>
 
-              <div className="space-y-2 mt-4">
-                <div className="flex justify-between">
-                  <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Polynomial Degree</label>
-                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{degree}</span>
+              <div className="space-y-3 pt-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Polynomial Degree</label>
+                  <span className="text-[10px] font-mono font-bold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20">{degree}</span>
                 </div>
                 <input
                   type="range"
@@ -168,7 +171,7 @@ export const SignalProcessingModule: React.FC = () => {
                     const nextVal = parseInt(e.target.value);
                     if (nextVal < windowSize) setDegree(nextVal);
                   }}
-                  className="w-full accent-indigo-600"
+                  className="w-full accent-orange-500 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                 />
               </div>
             </div>
@@ -176,36 +179,36 @@ export const SignalProcessingModule: React.FC = () => {
             <button
               onClick={handleProcess}
               disabled={isProcessing || !rawDataStr.trim()}
-              className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold shadow-lg shadow-orange-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-4 text-[11px] uppercase tracking-widest bg-orange-500/20 border border-orange-500/40 text-orange-400 hover:bg-orange-500/30 rounded-xl font-black shadow-[0_0_20px_rgba(249,115,22,0.1)] hover:shadow-[0_0_25px_rgba(249,115,22,0.2)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isProcessing ? (
-                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-orange-400/50 border-t-orange-400 rounded-full animate-spin" />
               ) : (
-                <Zap className="w-5 h-5" />
+                <Zap className="w-4 h-4" />
               )}
-              {isProcessing ? 'Processing...' : 'Apply Filter'}
+              {isProcessing ? 'Processing Algorithm...' : 'Execute Filter'}
             </button>
           </div>
 
           <div className="lg:col-span-3">
             {processedData.length > 0 ? (
               <div className="space-y-4 h-full flex flex-col">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                <div className="flex justify-between items-center bg-black/20 p-3 rounded-xl border border-white/5">
+                  <h3 className="text-[10px] uppercase font-black tracking-widest text-slate-300 flex items-center gap-2">
                     <Activity className="w-4 h-4 text-orange-500" />
                     Smoothing Results
                   </h3>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleCopy}
-                      className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors"
+                      className="px-3.5 py-1.5 bg-black/40 border border-white/5 hover:bg-black/60 hover:border-orange-500/30 text-slate-300 rounded-lg text-[9px] uppercase tracking-widest font-black flex items-center gap-1.5 transition-all"
                     >
-                      {copied ? <CheckCircle className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copied ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-orange-400/70" />}
                       {copied ? 'Copied' : 'Copy CSV'}
                     </button>
                     <button
                       onClick={handleDownload}
-                      className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors"
+                      className="px-3.5 py-1.5 bg-orange-500/10 text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 rounded-lg text-[9px] uppercase tracking-widest font-black flex items-center gap-1.5 transition-all shadow-inner"
                     >
                       <Download className="w-3.5 h-3.5" />
                       Export
@@ -213,63 +216,72 @@ export const SignalProcessingModule: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-slate-50 dark:bg-[#0B1121] rounded-xl border border-slate-200 dark:border-white/10 p-4 h-[400px] relative w-full flex-1">
+                <div className="bg-black/40 rounded-2xl border border-orange-500/10 shadow-inner p-4 h-[400px] relative w-full flex-1">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={processedData} margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                    <ComposedChart data={processedData} margin={{ top: 15, right: 15, bottom: 20, left: 15 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f97316" opacity={0.15} />
                       <XAxis 
                         dataKey="twoTheta" 
                         type="number"
                         domain={['auto', 'auto']}
-                        tick={{ fill: '#64748b', fontSize: 11 }}
+                        tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }}
                         tickFormatter={(v) => v.toFixed(1)}
                         tickCount={10}
+                        axisLine={{ stroke: '#f97316', strokeOpacity: 0.3 }}
+                        tickLine={{ stroke: '#f97316', strokeOpacity: 0.3 }}
                       />
                       <YAxis 
-                        tick={{ fill: '#64748b', fontSize: 11 }}
+                        tick={{ fill: '#94a3b8', fontSize: 10, fontFamily: 'monospace' }}
                         tickFormatter={(v) => Math.round(v).toString()}
                         domain={['auto', 'auto']}
                         width={40}
+                        axisLine={{ stroke: '#f97316', strokeOpacity: 0.3 }}
+                        tickLine={{ stroke: '#f97316', strokeOpacity: 0.3 }}
                       />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '8px',
+                          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                          border: '1px solid rgba(249, 115, 22, 0.3)',
+                          borderRadius: '12px',
                           color: '#f8fafc',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+                          backdropFilter: 'blur(8px)',
+                          fontSize: '11px',
+                          fontFamily: 'monospace'
                         }}
-                        itemStyle={{ color: '#e2e8f0' }}
-                        labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+                        itemStyle={{ color: '#fed7aa', fontWeight: 'bold' }}
+                        labelStyle={{ color: '#fdba74', marginBottom: '8px', borderBottom: '1px solid rgba(249,115,22,0.2)', paddingBottom: '4px' }}
                         labelFormatter={(v) => `2θ: ${Number(v).toFixed(3)}°`}
                       />
                       <Area 
                         type="monotone" 
                         dataKey="intensity" 
-                        stroke="#94a3b8" 
-                        fill="#94a3b8" 
-                        fillOpacity={0.1}
-                        strokeWidth={1}
-                        strokeOpacity={0.5}
-                        name="Raw Data" 
+                        stroke="#475569" 
+                        fill="#f97316" 
+                        fillOpacity={0.05}
+                        strokeWidth={1.5}
+                        strokeDasharray="4 4"
+                        strokeOpacity={0.6}
+                        name="Raw Signal" 
                       />
                       <Line 
                         type="monotone" 
                         dataKey="smoothed" 
                         stroke="#f97316" 
                         dot={false}
-                        strokeWidth={2}
-                        name="Smoothed Data" 
+                        strokeWidth={2.5}
+                        name="Smoothed Response"
+                        style={{ filter: 'drop-shadow(0 0 8px rgba(249,115,22,0.5))' }}
                       />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
               </div>
             ) : (
-              <div className="h-full border-2 border-dashed border-slate-200 dark:border-slate-700/50 rounded-2xl flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 min-h-[450px]">
-                <Activity className="w-12 h-12 mb-4 opacity-20" />
-                <p className="font-medium text-slate-600 dark:text-slate-300">No Data Processed</p>
-                <p className="text-sm mt-1 max-w-sm text-center">Paste raw XY diffraction data on the left and apply the Savitzky-Golay filter to visualize the smoothed results.</p>
+              <div className="h-full bg-black/20 border-2 border-dashed border-orange-500/20 rounded-2xl flex flex-col items-center justify-center text-slate-500 min-h-[450px]">
+                <Activity className="w-16 h-16 mb-5 text-orange-500/20" />
+                <p className="font-black text-slate-400 uppercase tracking-widest text-sm">Awaiting Signal Data</p>
+                <p className="text-[11px] mt-2 max-w-xs text-center text-slate-500/80 leading-relaxed font-sans">Provide raw XY diffraction parameters and initialize algorithm to visualize regression responses.</p>
               </div>
             )}
           </div>

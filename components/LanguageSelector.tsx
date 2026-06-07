@@ -49,6 +49,8 @@ export const languagesList: Language[] = [
   { code: 'sr', name: 'Serbian', nativeName: 'Српски (SR)', flag: '🇷🇸', region: 'Europe' },
   { code: 'sl', name: 'Slovenian', nativeName: 'Slovenščina (SL)', flag: '🇸🇮', region: 'Europe' },
   { code: 'ca', name: 'Catalan', nativeName: 'Català (CA)', flag: '🇪🇸', region: 'Europe' },
+  { code: 'eo', name: 'Esperanto', nativeName: 'Esperanto (EO)', flag: '🟢', region: 'Global' },
+  { code: 'la', name: 'Latin', nativeName: 'Latina (LA)', flag: '🏛️', region: 'Europe/Global' },
 ];
 
 interface LanguageSelectorProps {
