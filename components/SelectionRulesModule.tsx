@@ -6,7 +6,8 @@ import {
   CheckCircle2, XCircle, Info, RefreshCw, Filter, BookOpen, 
   Layers, Zap, ChevronDown, Check, Maximize, RotateCw, 
   Split, CircleDot, ShieldQuestion, Loader2, Atom, Binary, Beaker,
-  Network, Hexagon, Component, Box, Cuboid, Pyramid, Download, X
+  Network, Hexagon, Component, Box, Cuboid, Pyramid, Download, X,
+  Play, Pause, Activity
 } from 'lucide-react';
 
 const Symmetry3DVisualizer = ({ system, showLatticeOutline, showMirrorPlanes, showSymmetryAxes, showInversionCenter, currentSymmetry }: any) => {
@@ -288,6 +289,33 @@ const Symmetry3DVisualizer = ({ system, showLatticeOutline, showMirrorPlanes, sh
   );
 };
 
+const calculateDSpacingForProbe = (h: number, k: number, l: number, system: string, a: number) => {
+  if (h === 0 && k === 0 && l === 0) return 0;
+  
+  // Set representative cell constants based on the system to showcase realistic non-cubic physics
+  let b = a;
+  let c = a;
+  
+  if (system.startsWith('Tetragonal')) {
+    c = a * 1.35; // realistic Tetragonal c/a ratio
+    const dInvSq = (h * h + k * k) / (a * a) + (l * l) / (c * c);
+    return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
+  } else if (system.startsWith('Orthorhombic')) {
+    b = a * 1.15;
+    c = a * 1.45;
+    const dInvSq = (h * h) / (a * a) + (k * k) / (b * b) + (l * l) / (c * c);
+    return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
+  } else if (system === 'Hexagonal') {
+    c = a * 1.633; // ideal HCP c/a packing ratio
+    const dInvSq = (4 / 3) * (h * h + k * k + h * k) / (a * a) + (l * l) / (c * c);
+    return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
+  } else {
+    // Cubic systems: SC, BCC, FCC, Diamond, etc.
+    const dInvSq = (h * h + k * k + l * l) / (a * a);
+    return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
+  }
+};
+
 export const SelectionRulesModule: React.FC = () => {
   const [system, setSystem] = useState<CrystalSystem>('FCC');
   const [isSystemMenuOpen, setIsSystemMenuOpen] = useState(false);
@@ -314,6 +342,13 @@ export const SelectionRulesModule: React.FC = () => {
   const recipCanvasRef = useRef<HTMLCanvasElement>(null);
   const clickStartPos = useRef({ x: 0, y: 0 });
   const [hoveredNode, setHoveredNode] = useState<[number, number, number] | null>(null);
+
+  // Custom states to improve 3D Reciprocal Space Probe
+  const [isOrbiting, setIsOrbiting] = useState<boolean>(false);
+  const [projectionMode, setProjectionMode] = useState<'ortho' | 'perspective'>('perspective');
+  const [showEwaldSphere, setShowEwaldSphere] = useState<boolean>(true);
+  const [wavelength, setWavelength] = useState<number>(1.5406); // Cu-Ka wavelength in Angstroms
+  const [latticeParameter, setLatticeParameter] = useState<number>(4.07); // Custom lattice constant 'a' in Angstroms
 
   // Quick addition indices state
   const [quickH, setQuickH] = useState(1);
@@ -356,6 +391,18 @@ export const SelectionRulesModule: React.FC = () => {
     setHklInput('1 0 0, 1 1 0, 1 1 1, 2 0 0, 2 1 0, 2 1 1, 2 2 0, 3 1 1');
   };
 
+  // Orbit animation loop
+  useEffect(() => {
+    if (!isOrbiting) return;
+    let animId: number;
+    const animate = () => {
+      setRecipRotation(prev => ({ ...prev, y: (prev.y + 0.4) % 360 }));
+      animId = requestAnimationFrame(animate);
+    };
+    animId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animId);
+  }, [isOrbiting]);
+
   // 3D Reciprocal visualizer event handlers
   const handleRecipMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setIsRecipDragging(true);
@@ -388,7 +435,7 @@ export const SelectionRulesModule: React.FC = () => {
     const cx = rect.width / 2;
     const cy = rect.height / 2;
     const maxBound = Math.min(Math.max(1, maxIndex), 3);
-    const scaleBase = Math.min(rect.width, rect.height) * 0.4;
+    const scaleBase = Math.min(rect.width, rect.height) * 0.42;
     const scale = scaleBase / (maxBound + 0.5);
     const rx = recipRotation.x * Math.PI / 180;
     const ry = recipRotation.y * Math.PI / 180;
@@ -401,9 +448,17 @@ export const SelectionRulesModule: React.FC = () => {
           const x1 = h * Math.cos(ry) - l * Math.sin(ry);
           const z1 = h * Math.sin(ry) + l * Math.cos(ry);
           const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
+          const z2 = k * Math.sin(rx) + z1 * Math.cos(rx);
 
-          const projX = cx + x1 * scale;
-          const projY = cy + y2 * scale;
+          let projX = cx + x1 * scale;
+          let projY = cy + y2 * scale;
+
+          if (projectionMode === 'perspective') {
+            const cameraDistance = (maxBound + 1.2) * 1.5;
+            const depthFactor = Math.max(0.1, 1 - (z2 / cameraDistance));
+            projX = cx + x1 * scale / depthFactor;
+            projY = cy + y2 * scale / depthFactor;
+          }
 
           const dist = Math.sqrt((mouseX - projX) ** 2 + (mouseY - projY) ** 2);
           if (dist < mindist) {
@@ -430,7 +485,7 @@ export const SelectionRulesModule: React.FC = () => {
       const cx = rect.width / 2;
       const cy = rect.height / 2;
       const maxBound = Math.min(Math.max(1, maxIndex), 3);
-      const scaleBase = Math.min(rect.width, rect.height) * 0.4;
+      const scaleBase = Math.min(rect.width, rect.height) * 0.42;
       const scale = scaleBase / (maxBound + 0.5);
       const rx = recipRotation.x * Math.PI / 180;
       const ry = recipRotation.y * Math.PI / 180;
@@ -443,9 +498,17 @@ export const SelectionRulesModule: React.FC = () => {
             const x1 = h * Math.cos(ry) - l * Math.sin(ry);
             const z1 = h * Math.sin(ry) + l * Math.cos(ry);
             const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
+            const z2 = k * Math.sin(rx) + z1 * Math.cos(rx);
 
-            const projX = cx + x1 * scale;
-            const projY = cy + y2 * scale;
+            let projX = cx + x1 * scale;
+            let projY = cy + y2 * scale;
+
+            if (projectionMode === 'perspective') {
+              const cameraDistance = (maxBound + 1.2) * 1.5;
+              const depthFactor = Math.max(0.1, 1 - (z2 / cameraDistance));
+              projX = cx + x1 * scale / depthFactor;
+              projY = cy + y2 * scale / depthFactor;
+            }
 
             const dist = Math.sqrt((clickX - projX) ** 2 + (clickY - projY) ** 2);
             if (dist < 15) {
@@ -491,13 +554,20 @@ export const SelectionRulesModule: React.FC = () => {
 
     const project = (h: number, k: number, l: number) => {
       // Dynamic scale based on extent
-      const scaleBase = Math.min(width, height) * 0.4;
+      const scaleBase = Math.min(width, height) * 0.42;
       const scale = scaleBase / (maxBound + 0.5);
       const x1 = h * Math.cos(ry) - l * Math.sin(ry);
       const z1 = h * Math.sin(ry) + l * Math.cos(ry);
       const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
       const z2 = k * Math.sin(rx) + z1 * Math.cos(rx);
-      return { x: cx + x1 * scale, y: cy + y2 * scale, z: z2 };
+
+      if (projectionMode === 'perspective') {
+        const cameraDistance = (maxBound + 1.2) * 1.5;
+        const depthFactor = Math.max(0.1, 1 - (z2 / cameraDistance));
+        return { x: cx + x1 * scale / depthFactor, y: cy + y2 * scale / depthFactor, z: z2 };
+      } else {
+        return { x: cx + x1 * scale, y: cy + y2 * scale, z: z2 };
+      }
     };
 
     const parsedHKLs = parseHKLString(hklInput);
@@ -541,6 +611,12 @@ export const SelectionRulesModule: React.FC = () => {
             reason = val.reason;
           }
 
+          // Ewald Sphere intersection check inside dimensionless space
+          const xc_val = -latticeParameter / wavelength;
+          const r_val = latticeParameter / wavelength;
+          const distToCenter = Math.sqrt((h - xc_val) ** 2 + k * k + l * l);
+          const isEwaldIntersecting = showEwaldSphere && Math.abs(distToCenter - r_val) < 0.25;
+
           elements.push({
             type: 'node',
             h, k, l,
@@ -548,16 +624,76 @@ export const SelectionRulesModule: React.FC = () => {
             isSelected,
             status,
             reason,
+            isEwaldIntersecting,
             z: p1.z
           });
         }
       }
     }
 
+    // Add Ewald Sphere wireframe
+    if (showEwaldSphere) {
+      const xc_val = -latticeParameter / wavelength;
+      const yc_val = 0;
+      const zc_val = 0;
+      const r_val = latticeParameter / wavelength;
+
+      // Draw wireframes
+      const rings = [
+        { plane: 'xy', color: 'rgba(56, 189, 248, 0.22)' },
+        { plane: 'xz', color: 'rgba(56, 189, 248, 0.22)' },
+        { plane: 'yz', color: 'rgba(56, 189, 248, 0.22)' }
+      ];
+
+      rings.forEach(ring => {
+        const ringPoints: any[] = [];
+        const divisions = 48; // smoother rings
+        for (let i = 0; i <= divisions; i++) {
+          const phi = (i / divisions) * 2 * Math.PI;
+          let x = xc_val, y = yc_val, z = zc_val;
+          if (ring.plane === 'xy') {
+            x = xc_val + r_val * Math.cos(phi);
+            y = yc_val + r_val * Math.sin(phi);
+          } else if (ring.plane === 'xz') {
+            x = xc_val + r_val * Math.cos(phi);
+            z = zc_val + r_val * Math.sin(phi);
+          } else if (ring.plane === 'yz') {
+            y = yc_val + r_val * Math.cos(phi);
+            z = zc_val + r_val * Math.sin(phi);
+          }
+          ringPoints.push(project(x, y, z));
+        }
+
+        for (let i = 0; i < divisions; i++) {
+          const p1 = ringPoints[i];
+          const p2 = ringPoints[i + 1];
+          elements.push({
+            type: 'sphere-wire',
+            p1,
+            p2,
+            color: ring.color,
+            z: (p1.z + p2.z) / 2
+          });
+        }
+      });
+    }
+
     elements.push({ type: 'axis', p1: origin, p2: axH, label: 'h* (a*)', color: '#ff4d4d', z: origin.z + 0.1 });
     elements.push({ type: 'axis', p1: origin, p2: axK, label: 'k* (b*)', color: '#10b981', z: origin.z + 0.1 });
     elements.push({ type: 'axis', p1: origin, p2: axL, label: 'l* (c*)', color: '#0fbcf9', z: origin.z + 0.1 });
     elements.push({ type: 'origin', p: origin, z: origin.z });
+
+    // Draw reciprocal vector for hovered node from origin (0,0,0) to node
+    if (hoveredNode) {
+      const p_hover = project(hoveredNode[0], hoveredNode[1], hoveredNode[2]);
+      elements.push({
+        type: 'recip-vector',
+        p1: origin,
+        p2: p_hover,
+        color: '#fbbf24', // golden yellow
+        z: (origin.z + p_hover.z) / 2 + 0.2
+      });
+    }
 
     elements.sort((a, b) => b.z - a.z);
 
@@ -573,6 +709,33 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.strokeStyle = isHoveredEdge ? 'rgba(52, 211, 153, 0.5)' : 'rgba(148, 163, 184, 0.1)';
         ctx.lineWidth = isHoveredEdge ? 1.5 : 0.8;
         ctx.stroke();
+      } else if (el.type === 'sphere-wire') {
+        ctx.beginPath();
+        ctx.moveTo(el.p1.x, el.p1.y);
+        ctx.lineTo(el.p2.x, el.p2.y);
+        ctx.strokeStyle = el.color;
+        ctx.lineWidth = 1.0;
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else if (el.type === 'recip-vector') {
+        // Draw standard vector
+        ctx.beginPath();
+        ctx.moveTo(el.p1.x, el.p1.y);
+        ctx.lineTo(el.p2.x, el.p2.y);
+        ctx.strokeStyle = el.color;
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        // Draw arrow head
+        const angle = Math.atan2(el.p2.y - el.p1.y, el.p2.x - el.p1.x);
+        ctx.beginPath();
+        ctx.moveTo(el.p2.x, el.p2.y);
+        ctx.lineTo(el.p2.x - 6 * Math.cos(angle - Math.PI / 6), el.p2.y - 6 * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(el.p2.x - 6 * Math.cos(angle + Math.PI / 6), el.p2.y - 6 * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fillStyle = el.color;
+        ctx.fill();
       } else if (el.type === 'axis') {
         ctx.beginPath();
         ctx.moveTo(el.p1.x, el.p1.y);
@@ -600,6 +763,15 @@ export const SelectionRulesModule: React.FC = () => {
         const isHovered = hoveredNode && hoveredNode[0] === el.h && hoveredNode[1] === el.k && hoveredNode[2] === el.l;
         const radius = el.isSelected ? (isHovered ? 8 : 6.5) : (isHovered ? 5.5 : 3.5);
         
+        // If node satisfies Ewald Sphere reflection, add a glowing aura
+        if (el.isEwaldIntersecting) {
+          ctx.beginPath();
+          ctx.arc(el.p.x, el.p.y, radius + (isHovered ? 5 : 3.5), 0, 2 * Math.PI);
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.45)'; // golden glow
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+
         ctx.beginPath();
         ctx.arc(el.p.x, el.p.y, radius, 0, 2 * Math.PI);
 
@@ -635,7 +807,12 @@ export const SelectionRulesModule: React.FC = () => {
           ctx.stroke();
           ctx.shadowBlur = 0;
         } else {
-          ctx.fillStyle = isHovered ? 'rgba(255, 255, 255, 0.8)' : 'rgba(148, 163, 184, 0.22)';
+          // Unselected node styling
+          if (el.isEwaldIntersecting) {
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.85)'; // diffracting inactive point is bright orange/amber
+          } else {
+            ctx.fillStyle = isHovered ? 'rgba(255, 255, 255, 0.8)' : 'rgba(148, 163, 184, 0.22)';
+          }
           ctx.fill();
         }
 
@@ -654,7 +831,7 @@ export const SelectionRulesModule: React.FC = () => {
     ctx.textAlign = 'left';
     ctx.fillText(`ROTATION X: ${Math.round(recipRotation.x)}° Y: ${Math.round(recipRotation.y)}°`, 10, 15);
     ctx.fillText('DRAG ORBIT / CLICK NODE TO TOGGLE ARRAY', 10, 26);
-  }, [hklInput, recipRotation, system, hoveredNode, maxIndex]);
+  }, [hklInput, recipRotation, system, hoveredNode, maxIndex, projectionMode, showEwaldSphere, wavelength, latticeParameter]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1218,31 +1395,268 @@ export const SelectionRulesModule: React.FC = () => {
             </div>
 
             {/* Reciprocal Space 3D interactive grid */}
-            <div className="space-y-2 p-4 bg-[#050B14] rounded-2xl border border-[#1e293b]">
+            <div className="space-y-4 p-4 bg-[#050B14] rounded-2xl border border-[#1e293b]">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black font-mono text-emerald-400 uppercase tracking-widest">3D Reciprocal Space Probe</span>
-                <button
-                  type="button"
-                  onClick={() => setRecipRotation({ x: 25, y: -45 })}
-                  className="px-2 py-0.5 bg-black rounded border border-[#1e293b] text-[8px] text-slate-400 font-mono flex items-center hover:text-white transition-colors uppercase tracking-widest"
-                >
-                  <RotateCw className="w-2.5 h-2.5 mr-1 text-emerald-500" /> Reset View
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black font-mono text-emerald-400 uppercase tracking-widest flex items-center">
+                    <Activity className="w-3.5 h-3.5 text-emerald-500 mr-1 animate-pulse" />
+                    3D Reciprocal Space Probe
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsOrbiting(!isOrbiting)}
+                    className={`px-2 py-1 rounded border font-mono text-[9px] flex items-center transition-all uppercase tracking-wider ${
+                      isOrbiting 
+                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400' 
+                        : 'bg-black border-[#1e293b] text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {isOrbiting ? <Pause className="w-2.5 h-2.5 mr-1" /> : <Play className="w-2.5 h-2.5 mr-1" />}
+                    {isOrbiting ? 'Orbiting' : 'Auto-Orbit'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRecipRotation({ x: 25, y: -45 })}
+                    className="px-2 py-1 bg-black rounded border border-[#1e293b] text-[9px] text-slate-400 font-mono flex items-center hover:text-white hover:border-slate-700 transition-colors uppercase tracking-wider font-semibold"
+                  >
+                    <RotateCw className="w-2.5 h-2.5 mr-1 text-emerald-500" /> Reset View
+                  </button>
+                </div>
               </div>
-              <div className="relative rounded-xl border border-[#1e293b]/80 overflow-hidden cursor-grab active:cursor-grabbing bg-[#010308]">
+
+              {/* 3D Canvas Box */}
+              <div className="relative rounded-xl border border-[#1e293b]/80 overflow-hidden cursor-grab active:cursor-grabbing bg-[#010308] group">
                 <canvas
                   ref={recipCanvasRef}
                   onMouseDown={handleRecipMouseDown}
                   onMouseMove={handleRecipMouseMove}
                   onMouseUp={handleRecipMouseUp}
                   onMouseLeave={() => { setIsRecipDragging(false); setHoveredNode(null); }}
-                  className="w-full h-[180px] block"
+                  className="w-full h-[210px] block"
                 />
+                <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="px-1.5 py-0.5 bg-black/80 text-[7px] text-slate-500 font-mono rounded border border-[#1e293b]">
+                    DRAG TO ROTATE
+                  </span>
+                  <span className="px-1.5 py-0.5 bg-black/80 text-[7px] text-slate-500 font-mono rounded border border-[#1e293b]">
+                    CLICK TO TOGGLE HKL
+                  </span>
+                </div>
                 {hoveredNode && (
-                  <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/90 border border-emerald-500/30 rounded-lg text-[9px] font-mono text-emerald-400 animate-pulse">
+                  <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/90 border border-emerald-500/30 rounded-lg text-[9px] font-mono text-emerald-400 animate-pulse flex items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-ping" />
                     Point ({hoveredNode.join(' ')}) • Click to Toggle
                   </div>
                 )}
+              </div>
+
+              {/* Probe Calibration Panel */}
+              <div className="p-3 bg-black/40 rounded-xl border border-[#1e293b]/50 space-y-3.5">
+                <div className="text-[10px] uppercase font-black tracking-wider text-slate-400 border-b border-[#1e293b]/50 pb-1.5 flex items-center justify-between">
+                  <span>PROBE CONTROLS</span>
+                  <span className="text-[9px] font-mono font-bold text-sky-400 uppercase bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded">EWALD CORE</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Left Column Controls */}
+                  <div className="space-y-3">
+                    {/* Projection Mode */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">Projection:</span>
+                      <div className="flex rounded-lg border border-[#1e293b] p-0.5 bg-black/50">
+                        <button
+                          type="button"
+                          onClick={() => setProjectionMode('ortho')}
+                          className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all ${
+                            projectionMode === 'ortho'
+                              ? 'bg-emerald-500/15 text-emerald-400 font-black'
+                              : 'text-slate-500 hover:text-slate-300'
+                          }`}
+                        >
+                          Ortho
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setProjectionMode('perspective')}
+                          className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all ${
+                            projectionMode === 'perspective'
+                              ? 'bg-emerald-500/15 text-emerald-400 font-black'
+                              : 'text-slate-500 hover:text-slate-300'
+                          }`}
+                        >
+                          Perspective
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Ewald Sphere Toggle */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">Ewald Sphere:</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowEwaldSphere(!showEwaldSphere)}
+                        className={`px-2.5 py-0.5 rounded border text-[9px] font-mono font-bold transition-all ${
+                          showEwaldSphere
+                            ? 'bg-sky-500/15 border-sky-500/30 text-sky-400'
+                            : 'bg-black/50 border-[#1e293b] text-slate-500'
+                        }`}
+                      >
+                        {showEwaldSphere ? 'VISIBLE' : 'HIDDEN'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Column Sliders */}
+                  <div className="space-y-3">
+                    {/* Wavelength */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[9px] font-mono">
+                        <span className="text-slate-500 uppercase tracking-wider">Wavelength (λ):</span>
+                        <span className="text-sky-400 font-bold">{wavelength.toFixed(4)} Å</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="3.0"
+                        step="0.05"
+                        value={wavelength}
+                        onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                        className="w-full h-1 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-sky-500 transition-all hover:bg-slate-600"
+                      />
+                    </div>
+
+                    {/* Lattice constant a */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[9px] font-mono">
+                        <span className="text-slate-500 uppercase tracking-wider">Lattice Parameter (a):</span>
+                        <span className="text-emerald-400 font-bold">{latticeParameter.toFixed(3)} Å</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="2.5"
+                        max="8.0"
+                        step="0.05"
+                        value={latticeParameter}
+                        onChange={(e) => setLatticeParameter(parseFloat(e.target.value))}
+                        className="w-full h-1 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all hover:bg-slate-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Crystallographic Investigator (Real-time Bragg Equation Solver) */}
+              <div className="p-3 bg-[#0A1221] rounded-xl border border-emerald-500/15">
+                {(() => {
+                  const activeNode = hoveredNode;
+                  const [h, k, l] = activeNode || [0, 0, 0];
+                  const hasSelection = activeNode && (h !== 0 || k !== 0 || l !== 0);
+
+                  if (!hasSelection) {
+                    return (
+                      <div className="flex items-start gap-2.5 text-left text-xs text-slate-400">
+                        <Info className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <span className="leading-normal font-medium text-[11px] text-slate-400">
+                          Hover over any crystallographic node (h, k, l) in the interactive 3D reciprocal canvas above to calculate d-spacing, Bragg angle, and Ewald sphere intersection state.
+                        </span>
+                      </div>
+                    );
+                  }
+
+                  // 1. Calculate d-spacing based on selected crystal system
+                  const dSpacing = calculateDSpacingForProbe(h, k, l, system, latticeParameter);
+                  
+                  // 2. Calculate theta Bragg angle
+                  let sinTheta = dSpacing > 0 ? wavelength / (2 * dSpacing) : 0;
+                  const hasThetaSolution = sinTheta <= 1 && dSpacing > 0;
+                  const thetaDeg = hasThetaSolution ? Math.asin(sinTheta) * (180 / Math.PI) : 0;
+                  const twoThetaDeg = thetaDeg * 2;
+
+                  // 3. Extinction check
+                  const ruleResult = validateSelectionRule(system, [h, k, l]);
+                  const isAllowed = ruleResult.status === 'Allowed';
+
+                  // 4. Ewald Sphere distance check
+                  const xc_val = -latticeParameter / wavelength;
+                  const r_val = latticeParameter / wavelength;
+                  const distToCenter = Math.sqrt((h - xc_val) ** 2 + k * k + l * l);
+                  const isEwaldIntersecting = Math.abs(distToCenter - r_val) < 0.25;
+                  const isWithinLimitingSphere = distToCenter <= r_val * 2.0;
+
+                  return (
+                    <div className="space-y-2 text-left font-mono">
+                      <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <span className="font-extrabold text-[11px] text-white shrink-0">INSPECTOR: ({h} {k} {l})</span>
+                          <span className={`text-[8px] font-bold px-1 py-0.5 rounded border truncate ${
+                            isAllowed 
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                              : 'bg-red-500/10 border-red-500/20 text-red-400'
+                          }`}>
+                            {isAllowed ? 'ALLOWED' : 'FORBIDDEN'}
+                          </span>
+                        </div>
+                        <div className="text-[9px] text-slate-400 shrink-0">
+                          System: <span className="text-slate-300 font-bold">{system}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] pt-1">
+                        {/* d-spacing */}
+                        <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b]">
+                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">Interplanar d</div>
+                          <div className="text-emerald-400 font-extrabold text-[11px]">{dSpacing > 0 ? `${dSpacing.toFixed(4)} Å` : 'N/A'}</div>
+                        </div>
+
+                        {/* Reciprocal vector length */}
+                        <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b]">
+                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">Recip Vector |g*|</div>
+                          <div className="text-teal-400 font-extrabold text-[11px]">{dSpacing > 0 ? `${(1/dSpacing).toFixed(4)} Å⁻¹` : 'N/A'}</div>
+                        </div>
+
+                        {/* Bragg angle 2theta */}
+                        <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b]">
+                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">Bragg 2θ</div>
+                          <div className="text-sky-400 font-extrabold text-[11px]">
+                            {hasThetaSolution ? `${twoThetaDeg.toFixed(2)}°` : 'No solution'}
+                          </div>
+                        </div>
+
+                        {/* Ewald Sphere Status */}
+                        <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b] col-span-1">
+                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">Diffraction</div>
+                          <div className={`font-extrabold text-[10px] uppercase truncate ${
+                            isEwaldIntersecting && isAllowed
+                              ? 'text-yellow-400' 
+                              : isWithinLimitingSphere
+                              ? 'text-sky-400' 
+                              : 'text-slate-500'
+                          }`}>
+                            {isEwaldIntersecting && isAllowed
+                              ? '⚡ ACTIVE!' 
+                              : isAllowed 
+                              ? 'Measurable' 
+                              : 'Extinguished'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Descriptive status or explanation text */}
+                      <div className="text-[10px] text-slate-400 bg-black/25 px-2.5 py-1.5 rounded border border-[#1e293b]/50 leading-relaxed font-sans mt-2">
+                        <strong className="text-slate-300 font-semibold">Rule Context:</strong> {ruleResult.reason}.{' '}
+                        {isEwaldIntersecting && isAllowed ? (
+                          <span className="text-yellow-400 font-medium">Node lies exactly on the Ewald Sphere boundary! Bragg diffraction condition is mathematically satisfied, meaning this index generates strong physical diffracted beams.</span>
+                        ) : isAllowed ? (
+                          <span className="text-slate-400 font-medium font-sans">Point can diffract if the crystal is rotated. It sits inside the limiting sphere ($d \ge \lambda/2$).</span>
+                        ) : (
+                          <span className="text-red-400/80 font-medium font-sans">Destructive interference completely extinguishes intensity for this point.</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

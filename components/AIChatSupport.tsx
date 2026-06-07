@@ -27,6 +27,70 @@ export const AIChatSupport: React.FC = () => {
   const chatSession = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // States for user dragging/pulling the chat panel height
+  const [chatHeight, setChatHeight] = useState(500);
+  const [isResizing, setIsResizing] = useState(false);
+  const startYRef = useRef(0);
+  const startHeightRef = useRef(500);
+
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    startYRef.current = e.clientY;
+    startHeightRef.current = chatHeight;
+  };
+
+  const handleResizeTouchStart = (e: React.TouchEvent) => {
+    setIsResizing(true);
+    startYRef.current = e.touches[0].clientY;
+    startHeightRef.current = chatHeight;
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const deltaY = e.clientY - startYRef.current;
+      // Dragging up (deltaY is negative) increases height, dragging down decreases it
+      const newHeight = Math.max(300, Math.min(850, startHeightRef.current - deltaY));
+      setChatHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  useEffect(() => {
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isResizing) return;
+      const deltaY = e.touches[0].clientY - startYRef.current;
+      const newHeight = Math.max(300, Math.min(850, startHeightRef.current - deltaY));
+      setChatHeight(newHeight);
+    };
+
+    const handleTouchEnd = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      window.addEventListener('touchmove', handleTouchMove, { passive: true });
+      window.addEventListener('touchend', handleTouchEnd);
+    }
+    return () => {
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isResizing]);
+
   useEffect(() => {
     // Initialize chat session on mount or when smart mode changes
     chatSession.current = createSupportChat(isSmart);
@@ -88,7 +152,19 @@ export const AIChatSupport: React.FC = () => {
       
       {/* Chat Window */}
       {isOpen && (
-        <div className="bg-white w-[350px] h-[500px] rounded-2xl shadow-2xl border border-slate-200 mb-4 flex flex-col overflow-hidden pointer-events-auto animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div 
+          style={{ height: `${chatHeight}px` }}
+          className="bg-white w-[350px] sm:w-[380px] rounded-2xl shadow-2xl border border-slate-200 mb-4 flex flex-col overflow-hidden pointer-events-auto animate-in slide-in-from-bottom-5 fade-in duration-300 relative transition-[width] duration-300"
+        >
+          {/* Draggable Pull Handle "Pill" Bar */}
+          <div 
+            onMouseDown={handleResizeMouseDown}
+            onTouchStart={handleResizeTouchStart}
+            className="h-5 bg-slate-50 hover:bg-slate-100 border-b border-slate-150 flex items-center justify-center cursor-ns-resize shrink-0 select-none touch-none group/drag transition-colors"
+            title="Drag up or down to adjust support panel height"
+          >
+            <div className="w-14 h-1 bg-slate-300 group-hover/drag:bg-indigo-400 rounded-full transition-colors" />
+          </div>
           
           {/* Header */}
           <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-4 flex justify-between items-center text-white shrink-0">

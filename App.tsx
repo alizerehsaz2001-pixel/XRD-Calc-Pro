@@ -21,8 +21,6 @@ import { ImageAnalysisModule } from './components/ImageAnalysisModule';
 import { ImageGenerationModule } from './components/ImageGenerationModule';
 import { PythonExportModule } from './components/PythonExportModule';
 
-import { CrystalinLifecycleModule } from './components/CrystalinLifecycleModule';
-import { SignalProcessingModule } from './components/SignalProcessingModule';
 import { SettingsModule } from './components/SettingsModule';
 import { ProfilePage } from './components/ProfilePage';
 import { LearnModule } from './components/LearnModule';
@@ -42,7 +40,7 @@ import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Sett
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'signal_processing' | 'crystalin_timeline';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -177,6 +175,18 @@ const App: React.FC = () => {
       setIsExplained(true); // Auto-explain profile/learn/settings
     }
   }, [activeModule]);
+
+  // Support programmatic module switching via custom events
+  useEffect(() => {
+    const handleModuleChange = (e: Event) => {
+      const customEvent = e as CustomEvent<Module>;
+      if (customEvent.detail) {
+        setActiveModule(customEvent.detail);
+      }
+    };
+    window.addEventListener('xrd-change-module', handleModuleChange);
+    return () => window.removeEventListener('xrd-change-module', handleModuleChange);
+  }, []);
 
   // Apply theme classes to document element
   useEffect(() => {
@@ -384,11 +394,9 @@ const App: React.FC = () => {
     { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
     { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
     { id: 'dl', label: t('PhaseID Neural Net'), group: t('AI Tools') },
-    { id: 'signal_processing', label: t('Signal Pre-processing'), group: t('AI Tools') },
     { id: 'image_analysis', label: t('Image Analysis'), group: t('AI Tools') },
     { id: 'image_gen', label: t('Scientific Illustrator'), group: t('AI Tools') },
     { id: 'python_export', label: t('Python Generator'), group: t('Advanced Sim') },
-    { id: 'crystalin_timeline', label: t('Crystalin Timeline'), group: t('Advanced Sim') },
     { id: 'learn', label: t('Protocol Guide'), group: t('Intelligence') },
     { id: 'profile', label: t('Laboratory Director'), group: t('Intelligence') },
     { id: 'settings', label: t('Settings'), group: t('Intelligence') },
@@ -601,11 +609,9 @@ const App: React.FC = () => {
                   {activeModule === 'neutron' && <NeutronModule />}
                   {activeModule === 'magnetic' && <MagneticNeutronModule />}
                   {activeModule === 'dl' && <DeepLearningModule />}
-                  {activeModule === 'signal_processing' && <SignalProcessingModule />}
                   {activeModule === 'image_analysis' && <ImageAnalysisModule />}
                   {activeModule === 'image_gen' && <ImageGenerationModule />}
                   {activeModule === 'python_export' && <PythonExportModule />}
-                  {activeModule === 'crystalin_timeline' && <CrystalinLifecycleModule />}
                   {activeModule === 'learn' && <LearnModule />}
                   {activeModule === 'profile' && <ProfilePage />}
                   {activeModule === 'settings' && (
