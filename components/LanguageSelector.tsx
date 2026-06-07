@@ -51,6 +51,12 @@ export const languagesList: Language[] = [
   { code: 'ca', name: 'Catalan', nativeName: 'Català (CA)', flag: '🇪🇸', region: 'Europe' },
   { code: 'eo', name: 'Esperanto', nativeName: 'Esperanto (EO)', flag: '🟢', region: 'Global' },
   { code: 'la', name: 'Latin', nativeName: 'Latina (LA)', flag: '🏛️', region: 'Europe/Global' },
+  { code: 'ga', name: 'Irish', nativeName: 'Gaeilge (GA)', flag: '🇮🇪', region: 'Europe' },
+  { code: 'is', name: 'Icelandic', nativeName: 'Íslenska (IS)', flag: '🇮🇸', region: 'Europe' },
+  { code: 'cy', name: 'Welsh', nativeName: 'Cymraeg (CY)', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿', region: 'Europe' },
+  { code: 'mt', name: 'Maltese', nativeName: 'Malti (MT)', flag: '🇲🇹', region: 'Europe' },
+  { code: 'gd', name: 'Scottish Gaelic', nativeName: 'Gàidhlig (GD)', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', region: 'Europe' },
+  { code: 'eu', name: 'Basque', nativeName: 'Euskara (EU)', flag: '🏳️', region: 'Europe' },
 ];
 
 interface LanguageSelectorProps {
