@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import { DLPhaseResult, DLPhaseCandidate } from "../types";
-import { identifyPhasesDL, parseXYData } from "../utils/physics";
+import { identifyPhasesDL, parseXYData, applySavitzkyGolay } from "../utils/physics";
+import { playSynthTone } from "../utils/sound";
 import {
   ComposedChart,
   Bar,
@@ -416,6 +417,15 @@ export const DeepLearningModule: React.FC = () => {
     "argon" | "nitrogen" | "oxygen" | "air"
   >("air");
 
+  // Enhanced Diffraction Pattern Input controls states
+  const [activeInputTool, setActiveInputTool] = useState<"none" | "presets" | "preview" | "denoise" | "noise">("presets");
+  const [inputSgWindow, setInputSgWindow] = useState<number>(11);
+  const [inputSgDegree, setInputSgDegree] = useState<number>(2);
+  const [inputNoiseLevel, setInputNoiseLevel] = useState<number>(15);
+  const [inputBroadening, setInputBroadening] = useState<number>(0.25);
+  const [inputBgAmorphous, setInputBgAmorphous] = useState<number>(10);
+  const [formatErrorLog, setFormatErrorLog] = useState<string | null>(null);
+
   const auditItems = [
     {
       label: "Lattice Alignment",
@@ -667,6 +677,42 @@ export const DeepLearningModule: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Real-time input custom format validator
+  useEffect(() => {
+    if (!inputData.trim()) {
+      setFormatErrorLog(null);
+      return;
+    }
+    const lines = inputData.split("\n");
+    let firstError: string | null = null;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      if (line.startsWith("#")) continue;
+
+      const parts = line.split(/[\s,]+/).filter((v) => v !== "");
+      if (parts.length < 2) {
+        firstError = `Line ${i + 1}: "${line}" is missing Intensity. Format needs to be: 2θ, Intensity`;
+        break;
+      }
+      const twoTheta = parseFloat(parts[0]);
+      const intensity = parseFloat(parts[1]);
+      if (isNaN(twoTheta) || isNaN(intensity)) {
+        firstError = `Line ${i + 1}: Could not parse values in "${line}". Expected "2θ, Intensity" as numbers`;
+        break;
+      }
+      if (twoTheta < 2 || twoTheta > 165) {
+        firstError = `Line ${i + 1}: Sub-optimal 2θ value (${twoTheta}°). Recommended standard range is 5° to 150°`;
+        break;
+      }
+      if (intensity < 0) {
+        firstError = `Line ${i + 1}: Intensity value cannot be negative (${intensity})`;
+        break;
+      }
+    }
+    setFormatErrorLog(firstError);
+  }, [inputData]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -2626,6 +2672,99 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
   const parsedPoints = parseXYData(inputData);
 
+  // Continuous simulated spectrum for the live preview plot
+  const liveChartData = React.useMemo(() => {
+    const pts = parseXYData(inputData);
+    if (pts.length === 0) return [];
+    
+    // Sort points by 2θ for clean plotting
+    const sorted = [...pts].sort((a, b) => a.twoTheta - b.twoTheta);
+    let minT = sorted[0].twoTheta;
+    let maxT = sorted[sorted.length - 1].twoTheta;
+    
+    // Expand bounds by a margin
+    minT = Math.max(2, minT - 5);
+    maxT = Math.min(150, maxT + 5);
+    
+    const chartPoints = [];
+    const pointsCount = 125; // balance resolution vs. speed
+    const step = (maxT - minT) / pointsCount;
+    
+    for (let x = minT; x <= maxT; x += step) {
+      let calcInt = 0;
+      for (const p of sorted) {
+        // Gaussian peak shape model
+        const s = 0.45 / 2.355; // simulated FWHM of 0.45
+        const val = p.intensity * Math.exp(-Math.pow(x - p.twoTheta, 2) / (2 * Math.pow(s, 2)));
+        calcInt += val;
+      }
+      chartPoints.push({
+        twoTheta: Number(x.toFixed(2)),
+        intensity: Number(calcInt.toFixed(2)),
+      });
+    }
+    return chartPoints;
+  }, [inputData]);
+
+  // Savitzky-Golay compared preview data
+  const sgPreviewData = React.useMemo(() => {
+    const pts = parseXYData(inputData);
+    if (pts.length === 0) return [];
+    
+    const sorted = [...pts].sort((a, b) => a.twoTheta - b.twoTheta);
+    const smoothed = applySavitzkyGolay(sorted, inputSgWindow, inputSgDegree);
+    
+    return sorted.map((p, i) => ({
+      twoTheta: p.twoTheta,
+      raw: p.intensity,
+      smoothed: smoothed[i] ? smoothed[i].intensity : p.intensity,
+    }));
+  }, [inputData, inputSgWindow, inputSgDegree]);
+
+  const handleCommitSmoothing = () => {
+    const pts = parseXYData(inputData);
+    if (pts.length === 0) return;
+    const sorted = [...pts].sort((a, b) => a.twoTheta - b.twoTheta);
+    const smoothed = applySavitzkyGolay(sorted, inputSgWindow, inputSgDegree);
+    const text = smoothed.map(p => `${p.twoTheta.toFixed(3)}, ${p.intensity.toFixed(1)}`).join("\n");
+    setInputData(text);
+    playSynthTone("success");
+  };
+
+  const handleSynthesizeNoisyPattern = () => {
+    const pts = parseXYData(inputData);
+    if (pts.length === 0) return;
+    
+    let minT = Math.min(...pts.map(p => p.twoTheta));
+    let maxT = Math.max(...pts.map(p => p.twoTheta));
+    minT = Math.max(5, minT - 8);
+    maxT = Math.min(145, maxT + 8);
+    
+    let textOut = "";
+    // Generate high resolution 0.1 degree spacing
+    for (let x = minT; x <= maxT; x += 0.1) {
+      let calcInt = 0;
+      for (const p of pts) {
+        // Gaussian profile
+        const s = inputBroadening / 2.355;
+        const val = p.intensity * Math.exp(-Math.pow(x - p.twoTheta, 2) / (2 * Math.pow(s, 2)));
+        calcInt += val;
+      }
+      // Amorphous background halo centered at 28.0 deg
+      const bg = inputBgAmorphous * 3 * Math.exp(-Math.pow(x - 28.0, 2) / (2 * Math.pow(15.0, 2)));
+      
+      // Poisson-like noise modeling
+      const baseSignal = calcInt + bg + 5; // offset
+      const randScatter = (Math.random() - 0.5) * inputNoiseLevel * Math.sqrt(baseSignal) * 0.15;
+      const finalIntensity = Math.max(0, baseSignal + randScatter);
+      
+      textOut += `${x.toFixed(2)}, ${finalIntensity.toFixed(1)}\n`;
+    }
+    
+    setInputData(textOut.trim());
+    playSynthTone("success");
+  };
+
   // Prepare Chart Data
   const getPhononFrequency = (candidate: DLPhaseCandidate | null): number => {
     if (!candidate) return 12.4;
@@ -3308,10 +3447,13 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     accept=".xy,.txt,.csv"
                   />
                   <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-xs flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-bold transition-all hover:shadow-sm active:scale-95"
+                    onClick={() => {
+                      fileInputRef.current?.click();
+                      playSynthTone("tick");
+                    }}
+                    className="text-xs flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg font-bold transition-all hover:shadow-sm active:scale-95"
                   >
-                    <Upload className="w-3.5 h-3.5" /> Upload .xy
+                    <Upload className="w-3.5 h-3.5" /> Upload File
                   </button>
                   <button
                     onClick={() => {
@@ -3320,13 +3462,330 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       setSelectedCandidate(null);
                       setProgressStep(0);
                       setSearchTerm("");
+                      playSynthTone("tick");
                     }}
-                    className="text-xs flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-100 text-rose-600 px-3 py-1.5 rounded-lg font-bold transition-all hover:shadow-sm active:scale-95"
+                    className="text-xs flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-600 px-3 py-1.5 rounded-lg font-bold transition-all hover:shadow-sm active:scale-95"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Clear
                   </button>
                 </div>
               </div>
+
+              {/* Enhanced Diffraction Input Sub-Tools Control Deck */}
+              <div className="bg-slate-100 dark:bg-slate-900/40 p-1 rounded-xl flex gap-1 mb-3 border border-slate-200/50 dark:border-white/5">
+                {[
+                  { id: "presets", label: "Presets", icon: Sparkles },
+                  { id: "preview", label: "Live Plot", icon: Activity },
+                  { id: "denoise", label: "SG Denoise", icon: SlidersHorizontal },
+                  { id: "noise", label: "Simulate Noise", icon: Cpu },
+                ].map((tool) => {
+                  const ToolIcon = tool.icon;
+                  const isActive = activeInputTool === tool.id;
+                  return (
+                    <button
+                      key={tool.id}
+                      onClick={() => {
+                        setActiveInputTool(tool.id as any);
+                        playSynthTone("tick");
+                      }}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5
+                        ${isActive 
+                          ? "bg-white dark:bg-slate-800 text-violet-600 dark:text-violet-400 shadow-sm border border-slate-200/40 dark:border-white/5" 
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/40 dark:hover:bg-slate-850"
+                        }
+                      `}
+                    >
+                      <ToolIcon className="w-3.5 h-3.5" />
+                      <span>{tool.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sub-tool panels */}
+              <div className="mb-4">
+                {activeInputTool === "presets" && (
+                  <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" /> Fast Demo Presets
+                      </span>
+                      <span className="text-[8px] font-mono text-slate-400">Loads key material references</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {[
+                        {
+                          name: "Lithium Cobalt Oxide (LCO)",
+                          formula: "LiCoO₂",
+                          desc: "Batteries standard layered cathode structure",
+                          pattern: "18.9, 100\n37.6, 20\n38.4, 30\n39.0, 25\n45.0, 48\n49.3, 35\n59.5, 22\n65.3, 15",
+                        },
+                        {
+                          name: "Silicon NIST Standard",
+                          formula: "Si (NIST 640)",
+                          desc: "Profile calibration polycrystalline reference",
+                          pattern: "28.44, 100\n47.30, 55\n56.12, 35\n69.13, 40\n76.38, 25\n88.03, 30\n94.95, 20",
+                        },
+                        {
+                          name: "Hydroxyapatite (HAP)",
+                          formula: "Ca₁₀(PO₄)₆(OH)₂",
+                          desc: "Calcium phosphate bioactive crystal matrix",
+                          pattern: "25.8, 40\n31.8, 100\n32.2, 70\n32.9, 65\n34.1, 30\n39.8, 25\n46.7, 45\n49.5, 50",
+                        },
+                        {
+                          name: "Rutile TiO₂ Standard",
+                          formula: "TiO₂ Rutile",
+                          desc: "Tetragonal titanium dioxide polymorph peaks",
+                          pattern: "27.4, 100\n36.1, 52\n41.2, 28\n54.3, 62\n56.6, 22\n69.0, 18\n69.8, 12",
+                        },
+                      ].map((preset) => (
+                        <button
+                          key={preset.name}
+                          onClick={() => {
+                            setInputData(preset.pattern);
+                            setSearchTerm(preset.name);
+                            setActiveInputTool("preview");
+                            playSynthTone("success");
+                          }}
+                          className="p-2.5 text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl hover:border-violet-500 dark:hover:border-violet-500 hover:shadow-sm transition-all focus:outline-none"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">{preset.name}</span>
+                            <span className="text-[9px] font-mono bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-400 px-1 py-0.5 rounded font-bold">{preset.formula}</span>
+                          </div>
+                          <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1 leading-normal">{preset.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {activeInputTool === "preview" && (
+                  <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1">
+                        <Activity className="w-3.5 h-3.5" /> Real-time Diffraction Plot
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-bold font-mono">
+                        Simulated {parsedPoints.length} Peaks
+                      </span>
+                    </div>
+
+                    {parsedPoints.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="h-36 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg p-2 relative w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart
+                              data={liveChartData}
+                              margin={{ top: 5, right: 5, bottom: 5, left: 1 }}
+                            >
+                              <XAxis
+                                dataKey="twoTheta"
+                                type="number"
+                                domain={['auto', 'auto']}
+                                tick={{ fill: '#94a3b8', fontSize: 9 }}
+                                tickLine={false}
+                              />
+                              <YAxis hide domain={[0, 'auto']} />
+                              <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                              <Area
+                                type="monotone"
+                                dataKey="intensity"
+                                stroke="#8b5cf6"
+                                fill="#c084fc"
+                                fillOpacity={0.15}
+                                strokeWidth={1.5}
+                              />
+                            </ComposedChart>
+                          </ResponsiveContainer>
+                        </div>
+
+                        {/* Analytic Peak spacing registry */}
+                        <div className="max-h-24 overflow-y-auto custom-scrollbar border border-slate-200 dark:border-white/5 rounded-lg bg-white dark:bg-slate-950 p-2 text-[10px] font-mono">
+                          <table className="w-full text-left">
+                            <thead>
+                              <tr className="border-b border-slate-100 dark:border-white/5 text-slate-400">
+                                <th className="p-1">2θ Angle</th>
+                                <th className="p-1">d-spacing (Å)</th>
+                                <th className="p-1 text-right">Rel. Int. (%)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="text-slate-650 dark:text-slate-300">
+                              {[...parsedPoints]
+                                .sort((a, b) => a.twoTheta - b.twoTheta)
+                                .map((pk, idx) => {
+                                  const rad = (pk.twoTheta / 2) * (Math.PI / 180);
+                                  const d = 1.5406 / (2 * Math.sin(rad));
+                                  return (
+                                    <tr key={idx} className="border-b border-slate-50 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5">
+                                      <td className="p-1 font-bold text-indigo-600 dark:text-indigo-400">{pk.twoTheta.toFixed(3)}°</td>
+                                      <td className="p-1">{isNaN(d) ? 'N/A' : d.toFixed(4)}</td>
+                                      <td className="p-1 text-right text-purple-600 dark:text-purple-400 font-bold">{(pk.intensity).toFixed(0)}</td>
+                                    </tr>
+                                  );
+                                })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-36 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-4">
+                        <Activity className="w-8 h-8 text-slate-300 dark:text-slate-700 animate-pulse mb-1" />
+                        <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Diffractogram is Empty</p>
+                        <p className="text-[9px] text-slate-400 mt-1 max-w-[200px]">Paste 2θ intensity patterns or click standard presets to plot real-time spectra</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeInputTool === "denoise" && (
+                  <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
+                        <SlidersHorizontal className="w-3.5 h-3.5" /> Savitzky-Golay Filter Panel
+                      </span>
+                      <button
+                        disabled={parsedPoints.length < 5}
+                        onClick={handleCommitSmoothing}
+                        className="text-[9px] bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded font-bold transition-all hover:shadow-xs active:scale-95 disabled:opacity-40"
+                      >
+                        Apply In-Place
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 bg-white dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-white/5">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[9px] font-semibold text-slate-550">
+                          <span>Window Size (Odd)</span>
+                          <span className="text-emerald-500 font-bold">{inputSgWindow} pts</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="3"
+                          max="29"
+                          step="2"
+                          value={inputSgWindow}
+                          onChange={(e) => setInputSgWindow(parseInt(e.target.value))}
+                          className="w-full accent-emerald-600 my-1"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[9px] font-semibold text-slate-550">
+                          <span>Polynomial Degree</span>
+                          <span className="text-emerald-500 font-bold">{inputSgDegree}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="1"
+                          max="5"
+                          step="1"
+                          value={inputSgDegree}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (val < inputSgWindow) setInputSgDegree(val);
+                          }}
+                          className="w-full accent-emerald-600 my-1"
+                        />
+                      </div>
+                    </div>
+
+                    {parsedPoints.length > 3 ? (
+                      <div className="h-28 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg p-2.5">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ComposedChart
+                            data={sgPreviewData}
+                            margin={{ top: 2, right: 2, bottom: 2, left: 1 }}
+                          >
+                            <XAxis dataKey="twoTheta" type="number" hide />
+                            <YAxis hide />
+                            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+                            <Line type="monotone" dataKey="raw" stroke="#94a3b8" dot={false} strokeOpacity={0.5} strokeWidth={1} name="Raw" />
+                            <Line type="monotone" dataKey="smoothed" stroke="#10b981" dot={false} strokeWidth={2} name="Smoothed" />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <p className="text-[9px] text-slate-400 text-center py-2">Need at least 4 raw points to preview S-G smoothing.</p>
+                    )}
+                  </div>
+                )}
+
+                {activeInputTool === "noise" && (
+                  <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-1">
+                        <Cpu className="w-3.5 h-3.5" /> Diffractogram Noise Synthesizer
+                      </span>
+                      <button
+                        disabled={parsedPoints.length === 0}
+                        onClick={handleSynthesizeNoisyPattern}
+                        className="text-[9px] bg-purple-600 hover:bg-purple-500 text-white px-2.5 py-1 rounded font-bold transition-all hover:shadow-xs active:scale-95 disabled:opacity-40"
+                      >
+                        Synthesize pattern
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 bg-white dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-white/5">
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[9px] font-semibold">
+                          <span>Thermal Broadening (FWHM)</span>
+                          <span className="text-purple-500 font-bold">{inputBroadening.toFixed(2)}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.08"
+                          max="1.2"
+                          step="0.05"
+                          value={inputBroadening}
+                          onChange={(e) => setInputBroadening(parseFloat(e.target.value))}
+                          className="w-full accent-purple-600"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[9px] font-semibold">
+                            <span>Statistical Noise</span>
+                            <span className="text-purple-500 font-bold">{inputNoiseLevel}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="50"
+                            step="2"
+                            value={inputNoiseLevel}
+                            onChange={(e) => setInputNoiseLevel(parseInt(e.target.value))}
+                            className="w-full accent-purple-600"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[9px] font-semibold">
+                            <span>Amorphous Baseline</span>
+                            <span className="text-purple-500 font-bold">{inputBgAmorphous}</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="80"
+                            step="5"
+                            value={inputBgAmorphous}
+                            onChange={(e) => setInputBgAmorphous(parseInt(e.target.value))}
+                            className="w-full accent-purple-600"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Warning/Error validation banner */}
+              {formatErrorLog && (
+                <div className="mb-3 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-lg text-[9px] font-mono text-amber-700 dark:text-amber-400 flex items-start gap-1.5 animate-bounce">
+                  <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1 shrink-0" />
+                  <span>{formatErrorLog}</span>
+                </div>
+              )}
 
               <div
                 className={`relative border-2 border-dashed rounded-xl transition-all duration-300 overflow-hidden group
@@ -3363,19 +3822,20 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       if (content) setInputData(content);
                     };
                     reader.readAsText(file);
+                    playSynthTone("success");
                   }
                 }}
               >
                 {!inputData && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-400 group-hover:text-violet-500 transition-colors">
-                    <div className="p-3 bg-white rounded-full shadow-sm border border-slate-100 mb-3 group-hover:scale-110 group-hover:shadow-md transition-all">
-                      <Upload className="w-6 h-6 text-slate-400 group-hover:text-violet-500" />
+                    <div className="p-3 bg-white rounded-full shadow-sm border border-slate-100 mb-2 group-hover:scale-110 group-hover:shadow-md transition-all">
+                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-violet-500" />
                     </div>
-                    <p className="text-sm font-bold text-slate-600">
-                      Drag & drop raw data
+                    <p className="text-xs font-bold text-slate-600">
+                      Drag & drop raw XY pattern data
                     </p>
-                    <p className="text-xs font-semibold text-slate-400 mt-2">
-                      or paste below (2θ, Intensity format)
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      or paste table entries here
                     </p>
                   </div>
                 )}
@@ -3385,7 +3845,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   placeholder={
                     inputData ? "" : "\n\n\n\n\n\n28.44, 100\n47.30, 55"
                   }
-                  className={`w-full h-52 px-5 py-4 bg-transparent text-slate-800 focus:ring-0 outline-none transition-colors font-mono text-[13px] leading-relaxed resize-none z-10 relative
+                  className={`w-full h-44 px-5 py-4 bg-transparent text-slate-800 focus:ring-0 outline-none transition-colors font-mono text-[13px] leading-relaxed resize-none z-10 relative
                     ${!inputData ? "placeholder:text-transparent" : ""}
                   `}
                   spellCheck={false}
@@ -3396,11 +3856,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <div className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider font-black">
                   <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
                   Format:{" "}
-                  <span className="text-cyan-500 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded ml-0.5">
+                  <span className="text-cyan-500 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded ml-0.5 font-bold">
                     2θ (deg)
                   </span>{" "}
                   ,{" "}
-                  <span className="text-purple-500 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded">
+                  <span className="text-purple-500 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded font-bold">
                     Intensity (a.u.)
                   </span>
                 </div>
