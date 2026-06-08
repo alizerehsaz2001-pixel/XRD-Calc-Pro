@@ -533,12 +533,12 @@ const App: React.FC = () => {
           </div>
 
           {/* Desktop Top Header Bar containing context-aware tools, help and theme guides */}
-          <header className={`hidden md:flex items-center justify-between px-10 py-4 border-b ${
+          <header className={`hidden md:flex flex-wrap items-center justify-between px-6 lg:px-10 py-3 lg:py-4 border-b ${
             theme === 'cyberpunk'
               ? 'bg-black border-cyber-accent/30 text-cyber-accent'
               : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'
-          } z-20 shrink-0 font-sans transition-colors`}>
-            <div className="flex items-center gap-4">
+          } z-20 gap-4 shrink-0 font-sans transition-colors`}>
+            <div className="flex items-center gap-4 shrink-0">
               <span className={`text-base font-black uppercase tracking-[0.15em] shrink-0 ${
                 theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'
               }`}>
@@ -551,7 +551,7 @@ const App: React.FC = () => {
               </span>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center flex-wrap gap-2 lg:gap-4 ml-auto">
               {/* Skip Intros Quick Toggle */}
               {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
                 <button
@@ -561,7 +561,7 @@ const App: React.FC = () => {
                     localStorage.setItem('xrd_skip_intros', nextVal.toString());
                     playSynthTone('switch');
                   }}
-                  className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-2 ${
+                  className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-2 shrink-0 ${
                     skipIntros 
                       ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500 hover:text-slate-700'
                       : 'bg-indigo-600/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600/20'
@@ -569,7 +569,7 @@ const App: React.FC = () => {
                   title="Toggle whether module explanations are shown automatically when switching tabs"
                 >
                   <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                  {skipIntros ? t('Auto-Skip Intros: Active', 'Auto-Skip: On') : t('Auto-Skip Intros: Disabled', 'Auto-Skip: Off')}
+                  {skipIntros ? t('Auto-Skip: On', 'Auto-Skip: On') : t('Auto-Skip: Off', 'Auto-Skip: Off')}
                 </button>
               )}
 
@@ -580,14 +580,14 @@ const App: React.FC = () => {
                     setIsExplained(false);
                     playSynthTone('switch');
                   }}
-                  className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-2 ${
+                  className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-2 shrink-0 ${
                     theme === 'cyberpunk'
                       ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10 bg-black'
                       : 'border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm'
                   }`}
                   title="Open the mathematical and theoretical introduction for this module"
                 >
-                  {t('Theoretical Basis', 'Theoretical Guide')}
+                  {t('Theoretical Guide', 'Theoretical Guide')}
                 </button>
               )}
 

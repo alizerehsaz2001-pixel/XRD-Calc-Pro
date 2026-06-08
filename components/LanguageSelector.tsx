@@ -146,11 +146,11 @@ export default function LanguageSelector({ onLanguageChange, panelPosition = 'do
   };
 
   return (
-    <div id="language-selector-root" ref={containerRef} className="relative inline-block text-left w-full max-w-[280px]">
+    <div id="language-selector-root" ref={containerRef} className={`relative inline-block text-left w-full ${compact ? 'max-w-[110px]' : 'max-w-[280px]'}`}>
       <button
         id="language-selector-trigger"
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full px-4 py-3 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 rounded-[1.2rem] text-sm font-bold text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-indigo-500/50 shadow-sm transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+        className={`flex items-center justify-between w-full px-3 py-1.5 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-indigo-500/50 shadow-sm transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
       >
         <div className="flex items-center gap-2.5 truncate">
           <span className="text-lg leading-none filter drop-shadow-sm select-none" id="current-language-flag">
