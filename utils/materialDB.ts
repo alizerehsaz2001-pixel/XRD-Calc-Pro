@@ -1,7 +1,7 @@
 export const MATERIAL_DB = [
   {
     name: "Beta-Quartz (High Quartz, SiO2)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern:
       "20.6, 30\n25.8, 100\n36.4, 20\n38.8, 15\n42.3, 10\n45.5, 12\n50.0, 18",
     description:
@@ -21,7 +21,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alpha-Cristobalite (Low Cristobalite, SiO2)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "21.9, 100\n31.4, 15\n36.1, 10\n42.7, 8\n44.8, 5\n48.6, 6",
     description:
       "A low-temperature, tetragonal polymorph of cristobalite. Often occurs as a metastable phase in volcanic rocks and opal.",
@@ -40,7 +40,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Beta-Cristobalite (High Cristobalite, SiO2)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "21.5, 100\n35.8, 20\n44.3, 10\n48.2, 5",
     description:
       "The high-temperature cubic polymorph of cristobalite, stable above ~267 °C and sometimes found stabilized at room temperature in glasses.",
@@ -59,7 +59,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alpha-Tridymite (Low Tridymite, SiO2)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "20.5, 80\n21.6, 100\n23.2, 60\n28.8, 30\n35.9, 25\n43.1, 15",
     description:
       "A complex, low-symmetry polymorph of tridymite found in terrestrial volcanic rocks and meteorites as a metastable phase.",
@@ -74,7 +74,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Beta-Tridymite (High Tridymite, SiO2)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "21.2, 100\n35.6, 30\n42.5, 15",
     description:
       "The high-temperature hexagonal polymorph of tridymite. Forms typically between 870 °C and 1470 °C.",
@@ -89,7 +89,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Stishovite (SiO2 High-Pressure Polymorph)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "28.5, 100\n33.2, 40\n41.2, 20\n43.8, 15\n47.2, 35\n53.8, 25",
     description:
       "An extremely dense, high-pressure polymorph of silica with octahedrally coordinated silicon (rutile structure). Forms during meteorite impacts.",
@@ -108,7 +108,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Keatite (SiO2 Synthetic Polymorph)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "23.8, 100\n27.5, 80\n33.5, 45\n38.4, 30\n45.6, 20",
     description:
       "A synthetic tetragonal polymorph of silica. Rarely found in nature, but can form hydrothermally in ultra-high-pressure environments or as intermediate phases.",
@@ -123,7 +123,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Moganite (SiO2 Monoclinic Polymorph)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "20.1, 30\n26.6, 100\n36.4, 15\n39.5, 10\n42.3, 8",
     description:
       "A monoclinic polymorph of silica occurring widely in microcrystalline silica such as chalcedony, chert, and flint.",
@@ -142,7 +142,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Seifertite (SiO2 Ultra-High-Pressure)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "30.1, 100\n31.5, 80\n34.2, 60\n42.1, 40\n48.5, 30",
     description:
       "An ultra-high-pressure polymorph of silica found in Martian and Lunar meteorites, with an alpha-PbO2-type structure.",
@@ -161,7 +161,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "NIST SRM 1976 (Corundum / α-Al2O3)",
-    type: "Reference Material",
+    type: "Calibration & Standards",
     pattern:
       "25.58, 60, 0, 1, 2\n35.15, 100, 1, 0, 4\n37.78, 45, 1, 1, 0\n43.36, 100, 1, 1, 3\n52.55, 45, 0, 2, 4\n57.50, 80, 1, 1, 6\n61.30, 15, 2, 1, 4\n66.52, 25, 3, 0, 0\n68.21, 35, 1, 2, 4\n76.88, 20, 1, 0, 10",
     description:
@@ -181,7 +181,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "NIST SRM 640 (Silicon Profile Standard)",
-    type: "Reference Material",
+    type: "Calibration & Standards",
     pattern:
       "28.44, 100, 1, 1, 1\n47.30, 55, 2, 2, 0\n56.12, 30, 3, 1, 1\n69.13, 6, 4, 0, 0\n76.38, 11, 3, 3, 1\n88.03, 12, 4, 2, 2\n94.95, 6, 5, 1, 1\n106.71, 4, 4, 4, 0\n114.09, 6, 5, 3, 1\n127.54, 4, 6, 2, 0",
     description:
@@ -201,7 +201,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "NIST SRM 660 (Lanthanum Hexaboride, LaB6)",
-    type: "Reference Material",
+    type: "Calibration & Standards",
     pattern:
       "21.35, 100, 1, 0, 0\n30.38, 80, 1, 1, 0\n37.44, 60, 1, 1, 1\n43.50, 40, 2, 0, 0\n48.83, 30, 2, 1, 0\n53.71, 25, 2, 1, 1\n63.22, 15, 2, 2, 0\n67.54, 12, 3, 0, 0\n71.65, 10, 3, 1, 0\n75.60, 8, 3, 1, 1",
     description:
@@ -221,7 +221,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "NIST SRM 676 (Alumina Phase Quant Standard)",
-    type: "Reference Material",
+    type: "Calibration & Standards",
     pattern:
       "25.58, 60, 0, 1, 2\n35.15, 100, 1, 0, 4\n37.78, 45, 1, 1, 0\n43.36, 100, 1, 1, 3\n52.55, 45, 0, 2, 4\n57.50, 80, 1, 1, 6\n61.30, 15, 2, 1, 4\n66.52, 25, 3, 0, 0",
     description:
@@ -241,7 +241,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "NIST SRM 674b (TiO2/ZnO/Cr2O3/CeO2)",
-    type: "Reference Material",
+    type: "Calibration & Standards",
     pattern:
       "27.44, 100, 1, 1, 0\n36.08, 60, 1, 0, 1\n41.22, 25, 1, 1, 1\n54.32, 40, 2, 1, 1\n28.56, 100, 1, 1, 1\n47.47, 45, 2, 2, 0\n56.33, 40, 3, 1, 1\n31.76, 100, 1, 0, 0\n34.42, 60, 0, 0, 2\n36.25, 80, 1, 0, 1\n47.53, 30, 1, 0, 2\n56.60, 45, 1, 1, 0",
     description:
@@ -260,7 +260,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silicon (Si)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "28.44, 100, 1, 1, 1\n47.30, 55, 2, 2, 0\n56.12, 30, 3, 1, 1\n69.13, 6, 4, 0, 0\n76.38, 11, 3, 3, 1\n88.03, 12, 4, 2, 2",
     description:
@@ -279,7 +279,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconia (ZrO2)",
-    type: "Ceramic",
+    type: "Ceramics & Refractories",
     pattern:
       "30.27, 100, 1, 0, 1\n35.25, 25, 1, 1, 0\n50.37, 60, 1, 1, 2\n60.20, 30, 2, 1, 1",
     description: "Zirconium dioxide is a white crystalline oxide of zirconium.",
@@ -297,7 +297,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hydroxyapatite (Sintered)",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.87, 45, 0, 0, 2\n31.77, 100, 2, 1, 1\n32.19, 98, 1, 1, 2\n32.90, 65, 3, 0, 0\n34.04, 50, 2, 0, 2\n39.81, 30, 3, 1, 0\n46.71, 40, 2, 2, 2\n49.46, 35, 2, 1, 3\n50.49, 30, 3, 2, 1",
     description:
@@ -313,7 +313,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hydroxyapatite (Nano)",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.9, 30, 0, 0, 2\n31.8, 100, 2, 1, 1\n32.2, 90, 1, 1, 2\n32.9, 50, 3, 0, 0\n34.0, 40, 2, 0, 2\n39.8, 20, 3, 1, 0",
     description:
@@ -330,7 +330,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carbonated Hydroxyapatite",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.75, 40\n31.65, 100\n32.08, 95\n32.75, 60\n33.85, 45\n39.65, 25",
     description:
@@ -345,7 +345,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Fluorapatite",
-    type: "Bioceramic/Mineral",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.81, 40\n31.85, 100\n32.12, 95\n32.95, 60\n34.12, 45\n40.05, 25",
     description:
@@ -360,7 +360,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Strontium-Apatite",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.21, 35\n30.95, 100\n31.32, 90\n32.05, 55\n33.15, 40\n38.85, 20",
     description:
@@ -375,7 +375,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chlorapatite",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern:
       "25.68, 30\n31.55, 100\n31.92, 85\n32.78, 55\n33.95, 50\n40.15, 20",
     description:
@@ -390,7 +390,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hydroxyapatite (Dental Enamel)",
-    type: "Biological",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.8, 40\n31.7, 100\n32.2, 95\n32.9, 60\n34.0, 50\n39.8, 30",
     description:
       "Human dental enamel, primarily composed of carbonated hydroxyapatite with specific orientation and crystallite size. Key to tooth structure.",
@@ -405,7 +405,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium-Doped HAp",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.95, 35\n31.85, 100\n32.30, 90\n33.05, 55\n34.15, 45\n39.95, 20",
     description:
@@ -420,7 +420,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silicon-substituted HAp",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.82, 40\n31.68, 100\n32.05, 95\n32.85, 60\n33.95, 50\n39.75, 25",
     description:
@@ -435,7 +435,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Amorphous Calcium Phosphate",
-    type: "Precursor",
+    type: "Advanced Materials",
     pattern: "30.0, 100 (broad)",
     description:
       'A non-crystalline precursor to hydroxyapatite. XRD pattern shows a broad "halo" rather than sharp peaks, characteristic of amorphous states.',
@@ -449,7 +449,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hydroxyapatite (Human Dentin)",
-    type: "Biological",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.85, 35\n31.75, 100\n32.25, 92\n32.95, 58\n34.10, 48\n39.90, 25",
     description:
@@ -464,7 +464,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead-doped HAp",
-    type: "Environmental/Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "25.2, 35\n31.1, 100\n31.5, 95\n32.2, 60\n33.4, 50\n39.2, 25",
     description:
       "Hydroxyapatite used for heavy metal remediation. Lead ions substitute for calcium, significantly shifting lattice parameters.",
@@ -478,7 +478,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cadmium-doped HAp",
-    type: "Environmental",
+    type: "Advanced Materials",
     pattern: "26.1, 35\n32.0, 100\n32.4, 90\n33.1, 55\n34.2, 45\n40.1, 20",
     description:
       "Apatite structure containing cadmium, often studied in the context of toxic metal uptake from the environment.",
@@ -492,7 +492,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnetite (Hyperthermia)",
-    type: "Magnetic Ceramic",
+    type: "Magnetic & Ferroelectric",
     pattern: "30.1, 40\n35.4, 100\n43.1, 20\n53.4, 15\n57.0, 30\n62.6, 40",
     description:
       "Superparamagnetic iron oxide nanoparticles (SPIONs) used for magnetic fluid hyperthermia.",
@@ -510,7 +510,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cobalt Ferrite",
-    type: "Magnetic Ceramic",
+    type: "Magnetic & Ferroelectric",
     pattern:
       "30.3, 35\n35.6, 100\n37.3, 15\n43.3, 25\n53.8, 12\n57.4, 28\n63.1, 38",
     description:
@@ -525,7 +525,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Maghemite",
-    type: "Magnetic Ceramic",
+    type: "Magnetic & Ferroelectric",
     pattern: "30.2, 35\n35.7, 100\n43.2, 22\n53.5, 18\n57.2, 25\n62.8, 35",
     description:
       "The fully oxidized form of magnetite, often the active phase in clinical hyperthermia agents.",
@@ -539,7 +539,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zinc-doped Ferrite",
-    type: "Magnetic Ceramic",
+    type: "Magnetic & Ferroelectric",
     pattern: "29.9, 45\n35.2, 100\n42.9, 25\n53.1, 15\n56.7, 28\n62.3, 42",
     description:
       "Zinc-substituted magnetite used to tune the Curie temperature for self-regulated hyperthermia.",
@@ -553,7 +553,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zinc Oxide (ZnO)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "31.77, 57\n34.42, 44\n36.25, 100\n47.54, 23\n56.60, 32\n62.86, 29",
     description:
@@ -567,7 +567,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polytetrafluoroethylene (PTFE)",
-    type: "Polymer",
+    type: "Polymers & Frameworks",
     pattern: "18.07, 100\n31.55, 25\n36.60, 10\n41.20, 5",
     description: "A synthetic fluoropolymer of tetrafluoroethylene.",
     formula: "(C2F4)n",
@@ -579,7 +579,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polyethylene (HDPE)",
-    type: "Polymer",
+    type: "Polymers & Frameworks",
     pattern: "21.5, 100\n24.0, 45\n30.1, 12\n36.3, 8",
     description:
       "High-density polyethylene, a versatile thermoplastic polymer.",
@@ -592,7 +592,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polypropylene (iPP)",
-    type: "Polymer",
+    type: "Polymers & Frameworks",
     pattern: "14.1, 100\n16.9, 85\n18.6, 75\n21.2, 40\n21.8, 45",
     description:
       "Isotactic polypropylene, alpha-form semi-crystalline structure.",
@@ -605,7 +605,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nylon 6 (Polyamide)",
-    type: "Polymer",
+    type: "Polymers & Frameworks",
     pattern: "20.3, 100\n23.7, 90",
     description:
       "A semi-crystalline polyamide synthesized via ring-opening polymerization.",
@@ -618,7 +618,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Quartz (SiO2)",
-    type: "Ceramic/Mineral",
+    type: "Ceramics & Refractories",
     pattern:
       "20.86, 35\n26.64, 100\n36.54, 12\n39.47, 9\n40.29, 8\n42.45, 8\n45.79, 9\n50.14, 14\n59.95, 9\n67.74, 7\n68.14, 8",
     description:
@@ -638,7 +638,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Halite (NaCl)",
-    type: "Salt/Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "27.37, 10\n31.69, 100\n45.43, 55\n56.45, 15\n66.20, 5\n75.26, 10",
     description:
       "Commonly known as rock salt, it is the mineral form of sodium chloride.",
@@ -651,7 +651,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sylvite (KCl)",
-    type: "Salt/Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "28.35, 100\n40.50, 50\n50.15, 15\n58.60, 5\n66.35, 10\n73.70, 5",
     description:
       "Potassium chloride is a metal halide salt composed of potassium and chlorine.",
@@ -664,7 +664,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hematite (Fe2O3)",
-    type: "Mineral/Ore",
+    type: "Minerals, Ores & Geology",
     pattern:
       "24.14, 30\n33.15, 100\n35.61, 70\n40.85, 20\n49.48, 40\n54.09, 45\n62.45, 30\n64.02, 30",
     description:
@@ -678,7 +678,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aluminum (Al)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "38.47, 100\n44.74, 47\n65.13, 22\n78.23, 24\n82.44, 7",
     description: "A silvery-white, soft, non-magnetic and ductile metal.",
     formula: "Al",
@@ -690,7 +690,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Copper (Cu)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "43.30, 100\n50.43, 46\n74.13, 20\n89.93, 17\n95.14, 5",
     description:
       "A soft, malleable, and ductile metal with very high thermal and electrical conductivity.",
@@ -703,7 +703,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium Oxide (MgO)",
-    type: "Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "36.94, 10\n42.91, 100\n62.30, 52\n74.65, 4\n78.61, 12",
     description:
       "A white hygroscopic solid mineral that occurs naturally as periclase.",
@@ -716,7 +716,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium (Ti)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern:
       "35.09, 30\n38.42, 30\n40.17, 100\n53.00, 15\n62.94, 15\n70.66, 15",
     description:
@@ -730,7 +730,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cerium Oxide (CeO2)",
-    type: "Ceramic/Catalyst",
+    type: "Ceramics & Refractories",
     pattern:
       "28.55, 100\n33.08, 30\n47.48, 55\n56.34, 45\n59.09, 10\n69.41, 20",
     description:
@@ -744,7 +744,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcite (CaCO3)",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern:
       "23.06, 15\n29.40, 100\n35.96, 15\n39.40, 20\n43.16, 20\n47.50, 25\n48.50, 25\n57.40, 10",
     description:
@@ -758,7 +758,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tungsten (W)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "40.26, 100\n58.27, 20\n73.19, 30\n87.01, 15",
     description:
       "A rare metal known for its robustness and the highest melting point of all elements.",
@@ -771,7 +771,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Diamond (C)",
-    type: "Mineral/Gemstone",
+    type: "Minerals, Ores & Geology",
     pattern: "43.92, 100\n75.30, 25\n91.50, 16\n119.52, 7",
     description:
       "The hardest natural material known, a metastable allotrope of carbon.",
@@ -784,7 +784,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Corundum (Al2O3)",
-    type: "Ceramic/Mineral",
+    type: "Ceramics & Refractories",
     pattern:
       "25.58, 45\n35.15, 100\n37.78, 40\n43.36, 85\n52.55, 45\n57.50, 90\n61.30, 10\n66.52, 45\n68.21, 60",
     description:
@@ -798,7 +798,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Rutile (TiO2)",
-    type: "Ceramic/Oxide",
+    type: "Ceramics & Refractories",
     pattern:
       "27.44, 100\n36.08, 50\n39.18, 8\n41.22, 25\n44.05, 10\n54.31, 60\n56.62, 20\n62.73, 10\n64.03, 10\n68.99, 20",
     description:
@@ -812,7 +812,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Anatase (TiO2)",
-    type: "Ceramic/Oxide",
+    type: "Ceramics & Refractories",
     pattern:
       "25.28, 100\n37.80, 20\n48.05, 35\n53.89, 20\n55.06, 20\n62.69, 15",
     description: "A metastable mineral form of titanium dioxide.",
@@ -825,7 +825,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Titanate (BaTiO3)",
-    type: "Ferroelectric Ceramic",
+    type: "Magnetic & Ferroelectric",
     pattern:
       "22.20, 25\n31.50, 100\n38.90, 22\n45.30, 42\n50.90, 18\n56.20, 15\n65.80, 22",
     description:
@@ -839,7 +839,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Molybdenum Disulfide (MoS2)",
-    type: "2D Material/Lubricant",
+    type: "Carbon & 2D Materials",
     pattern:
       "14.38, 100\n32.67, 12\n33.51, 10\n39.54, 7\n44.15, 6\n49.79, 12\n58.34, 15",
     description:
@@ -853,7 +853,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead Titanate (PbTiO3)",
-    type: "Ferroelectric Ceramic",
+    type: "Magnetic & Ferroelectric",
     pattern:
       "21.5, 20\n22.8, 25\n31.5, 100\n32.5, 95\n39.0, 15\n44.3, 35\n45.2, 40",
     description:
@@ -867,7 +867,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zeolite A (LTA)",
-    type: "Zeolite/Microporous",
+    type: "Ceramics & Refractories",
     pattern:
       "7.2, 100\n10.2, 50\n12.5, 60\n16.1, 20\n21.7, 35\n24.0, 45\n27.1, 30\n29.9, 40\n34.2, 25",
     description: "A synthetic zeolite with a pore size of about 4 Ångströms.",
@@ -880,7 +880,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silver (Ag)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "38.12, 100\n44.30, 40\n64.44, 25\n77.40, 26\n81.54, 15",
     description:
       "A lustrous, white, soft, very ductile, and malleable transition metal.",
@@ -893,7 +893,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Yttrium Aluminum Garnet (YAG)",
-    type: "Ceramic/Laser Host",
+    type: "Semiconductors & Photonics",
     pattern:
       "18.1, 15\n27.8, 30\n29.8, 35\n33.3, 100\n36.6, 25\n41.1, 40\n46.6, 35\n55.2, 45\n57.5, 20",
     description: "A synthetic crystalline material of the garnet group.",
@@ -906,7 +906,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Strontium Titanate (SrTiO3)",
-    type: "Perovskite Ceramic",
+    type: "Semiconductors & Photonics",
     pattern:
       "22.8, 25\n32.4, 100\n39.9, 20\n46.5, 45\n52.4, 10\n57.8, 30\n67.8, 30",
     description:
@@ -920,7 +920,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Iron Phosphate (LiFePO4)",
-    type: "Battery Material",
+    type: "Energy & Battery Materials",
     pattern:
       "17.1, 40\n20.8, 35\n25.6, 100\n29.7, 45\n32.1, 30\n35.6, 75\n42.1, 15",
     description:
@@ -934,7 +934,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gallium Nitride (GaN)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "32.39, 100\n34.56, 95\n36.84, 85\n48.12, 20\n57.78, 45\n63.45, 30\n67.82, 35",
     description:
@@ -948,7 +948,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gold (Au)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "38.18, 100\n44.39, 52\n64.57, 32\n77.54, 36\n81.72, 10",
     description:
       "A transition metal and a group 11 element. It is one of the least reactive chemical elements.",
@@ -961,7 +961,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Iron - Alpha (Fe)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "44.67, 100\n65.02, 20\n82.33, 30\n98.94, 10",
     description: "The BCC allotrope of iron, stable at room temperature.",
     formula: "Fe",
@@ -973,7 +973,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconia (ZrO2)",
-    type: "Ceramic",
+    type: "Ceramics & Refractories",
     pattern:
       "28.17, 100\n31.47, 65\n34.15, 25\n50.12, 35\n50.55, 30\n60.05, 20",
     description:
@@ -987,7 +987,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Graphite",
-    type: "Carbon Allotrope",
+    type: "Carbon & 2D Materials",
     pattern: "26.54, 100\n42.39, 5\n44.59, 15\n54.67, 10\n77.54, 5",
     description:
       "A crystalline form of the element carbon with its atoms arranged in a hexagonal structure.",
@@ -1000,7 +1000,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Fluoride (CaF2)",
-    type: "Haliide Ceramic",
+    type: "Ceramics & Refractories",
     pattern:
       "28.27, 100\n46.68, 85\n55.35, 35\n68.17, 15\n75.64, 10\n87.35, 12",
     description:
@@ -1014,7 +1014,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nickel (Ni)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "44.51, 100\n51.85, 45\n76.38, 25\n92.95, 20\n98.45, 10",
     description:
       "A silvery-white lustrous metal with a slight golden tinge. It is hard and ductile.",
@@ -1027,7 +1027,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tungsten Carbide (WC)",
-    type: "Hard Ceramic",
+    type: "Ceramics & Refractories",
     pattern:
       "31.51, 100\n35.64, 90\n48.30, 80\n64.06, 35\n73.11, 40\n75.48, 25\n77.16, 20",
     description:
@@ -1041,7 +1041,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnetite (Fe3O4)",
-    type: "Iron Oxide / Magnetic",
+    type: "Magnetic & Ferroelectric",
     pattern: "30.1, 40\n35.4, 100\n43.1, 25\n53.4, 20\n57.0, 35\n62.6, 45",
     description:
       "A rock-forming mineral and one of the main iron ores, one of the oxides of iron.",
@@ -1054,7 +1054,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Methylammonium Lead Iodide (MAPbI3)",
-    type: "Solar Perovskite",
+    type: "Semiconductors & Photonics",
     pattern: "14.1, 100\n24.5, 45\n28.4, 55\n31.8, 30\n40.6, 20\n43.2, 15",
     description:
       "A primary material used in high-efficiency perovskite solar cells.",
@@ -1067,7 +1067,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silicon Carbide (SiC)",
-    type: "Semiconductor/Hard Ceramic",
+    type: "Semiconductors & Photonics",
     pattern:
       "33.6, 20\n35.6, 100\n38.1, 5\n41.4, 25\n54.5, 10\n60.0, 45\n65.6, 15\n71.8, 35",
     description:
@@ -1081,7 +1081,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gallium Arsenide (GaAs)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "27.3, 100\n45.3, 45\n53.7, 30\n66.0, 10\n72.8, 15\n83.6, 5",
     description:
       "A III-V direct bandgap semiconductor used in integrated circuits and solar cells.",
@@ -1094,7 +1094,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth Ferrite (BiFeO3)",
-    type: "Multiferroic Ceramic",
+    type: "Magnetic & Ferroelectric",
     pattern:
       "22.4, 20\n31.8, 100\n32.1, 95\n39.0, 15\n39.5, 15\n45.8, 40\n46.2, 35\n51.4, 10\n51.7, 10\n56.5, 20\n57.1, 20",
     description:
@@ -1108,7 +1108,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Indium Tin Oxide (ITO)",
-    type: "Transparent Conductor",
+    type: "Advanced Materials",
     pattern:
       "21.5, 15\n30.6, 100\n35.4, 30\n37.7, 10\n41.8, 15\n45.7, 15\n51.0, 45\n60.7, 35",
     description:
@@ -1122,7 +1122,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Pyrite (FeS2)",
-    type: "Mineral/Sulfide",
+    type: "Minerals, Ores & Geology",
     pattern:
       "28.5, 35\n33.0, 100\n37.1, 55\n40.8, 45\n47.4, 45\n56.3, 65\n59.0, 20\n64.3, 25",
     description: "Known as fool's gold, it is an iron sulfide mineral.",
@@ -1135,7 +1135,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chromium (Cr)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "44.39, 100\n64.58, 18\n81.72, 25\n98.05, 10",
     description: "A steely-gray, lustrous, hard and brittle transition metal.",
     formula: "Cr",
@@ -1147,7 +1147,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gallium Oxide (Ga2O3)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "18.9, 35\n30.1, 45\n31.7, 55\n35.2, 100\n38.4, 60\n45.8, 30\n59.1, 25",
     description: "An inorganic compound and ultra-wide-bandgap semiconductor.",
@@ -1160,7 +1160,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cadmium Telluride (CdTe)",
-    type: "Solar Material",
+    type: "Semiconductors & Photonics",
     pattern: "23.8, 100\n39.3, 60\n46.4, 45\n56.8, 15\n62.4, 20\n71.2, 15",
     description:
       "A crystalline compound used as an infrared optical window and a solar cell material.",
@@ -1173,7 +1173,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth Telluride (Bi2Te3)",
-    type: "Thermoelectric",
+    type: "Energy & Battery Materials",
     pattern:
       "17.4, 45\n27.6, 100\n38.2, 40\n41.1, 35\n44.6, 25\n50.3, 15\n54.1, 15",
     description:
@@ -1187,7 +1187,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tin Oxide (SnO2)",
-    type: "Ceramic/Sensor",
+    type: "Ceramics & Refractories",
     pattern:
       "26.6, 100\n33.9, 75\n37.9, 25\n38.9, 20\n51.8, 65\n54.7, 15\n61.9, 20",
     description:
@@ -1201,7 +1201,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Cobalt Oxide (LiCoO2)",
-    type: "Battery Material",
+    type: "Energy & Battery Materials",
     pattern:
       "18.9, 100\n36.7, 45\n37.3, 50\n38.4, 35\n45.2, 40\n49.3, 10\n59.2, 25",
     description:
@@ -1215,7 +1215,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silicon Nitride (Si3N4)",
-    type: "Hard Ceramic",
+    type: "Ceramics & Refractories",
     pattern:
       "20.6, 25\n23.4, 45\n26.5, 35\n30.9, 100\n34.6, 65\n35.3, 60\n38.8, 30\n41.5, 20",
     description:
@@ -1229,7 +1229,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aluminum Nitride (AlN)",
-    type: "Ceramic/Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "33.2, 100\n36.0, 95\n37.9, 85\n49.8, 25\n59.3, 50\n66.0, 35\n69.7, 30",
     description:
@@ -1243,7 +1243,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Boron Nitride (h-BN)",
-    type: "Hexagonal Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "26.7, 100\n41.6, 12\n43.8, 15\n50.1, 10\n55.1, 25\n75.9, 5",
     description:
       'Often referred to as "white graphite" because of its lubricity and hexagonal structure.',
@@ -1256,7 +1256,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gallium Phosphide (GaP)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "28.3, 100\n32.8, 10\n47.1, 60\n55.8, 45\n68.8, 15\n76.0, 15\n88.0, 10",
     description:
@@ -1270,7 +1270,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zinc Selenide (ZnSe)",
-    type: "Optical Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "27.2, 100\n31.5, 10\n45.3, 85\n53.6, 45\n66.0, 20\n72.7, 25\n83.4, 15",
     description:
@@ -1284,7 +1284,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tantalum (Ta)",
-    type: "Refractory Metal",
+    type: "Ceramics & Refractories",
     pattern: "38.4, 100\n55.5, 15\n69.6, 25\n82.4, 10\n94.9, 15",
     description:
       "A rare, hard, blue-gray, lustrous transition metal that is highly corrosion-resistant.",
@@ -1297,7 +1297,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Vanadium Pentoxide (V2O5)",
-    type: "Metal Oxide/Catalyst",
+    type: "Metals & Alloys",
     pattern:
       "15.3, 100\n20.3, 90\n21.7, 45\n26.1, 75\n31.0, 40\n32.4, 35\n34.3, 30\n47.3, 25",
     description:
@@ -1311,7 +1311,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silver Chloride (AgCl)",
-    type: "Haliide Mineral",
+    type: "Minerals, Ores & Geology",
     pattern:
       "27.8, 45\n32.2, 100\n46.2, 65\n54.8, 15\n57.5, 10\n67.5, 15\n74.5, 10\n76.8, 12",
     description:
@@ -1325,7 +1325,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Manganese Oxide (MnO2)",
-    type: "Mineral/Battery",
+    type: "Energy & Battery Materials",
     pattern: "28.6, 100\n37.3, 90\n42.8, 35\n56.7, 65\n67.3, 25\n72.3, 15",
     description:
       "The inorganic compound with the formula MnO2, also known as pyrolusite.",
@@ -1338,7 +1338,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nickel Oxide (NiO)",
-    type: "Metal Oxide/Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "37.3, 85\n43.3, 100\n62.9, 65\n75.4, 15\n79.4, 10",
     description: "The mineral bunsenite, an antiferromagnetic semiconductor.",
     formula: "NiO",
@@ -1350,7 +1350,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cobalt(II,III) Oxide (Co3O4)",
-    type: "Spinel Ceramic",
+    type: "Ceramics & Refractories",
     pattern:
       "19.0, 20\n31.3, 45\n36.9, 100\n38.6, 15\n44.9, 25\n55.7, 10\n59.4, 30\n65.3, 55",
     description:
@@ -1364,7 +1364,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead Zirconate Titanate (PZT)",
-    type: "Piezoelectric Ceramic",
+    type: "Magnetic & Ferroelectric",
     pattern:
       "21.6, 25\n31.1, 100\n38.3, 20\n44.5, 40\n45.3, 40\n50.3, 15\n55.3, 15\n65.6, 20",
     description:
@@ -1378,7 +1378,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Ferrite (BaFe12O19)",
-    type: "Permanent Magnet",
+    type: "Advanced Materials",
     pattern:
       "30.3, 35\n32.2, 55\n34.1, 100\n37.1, 40\n40.4, 25\n55.1, 20\n63.1, 25",
     description: "A highly magnetic material, also called barium hexaferrite.",
@@ -1395,7 +1395,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Vanadium Dioxide (VO2)",
-    type: "Phase Change Material",
+    type: "Advanced Materials",
     pattern: "27.9, 100\n37.1, 35\n42.3, 25\n55.6, 45\n57.7, 30",
     description: "Known for its reversible metal-insulator transition at 68°C.",
     formula: "VO2",
@@ -1407,7 +1407,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tungsten Trioxide (WO3)",
-    type: "Metal Oxide/Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "23.1, 100\n23.6, 95\n24.4, 95\n26.6, 25\n28.9, 20\n33.3, 45\n34.1, 50\n41.8, 15\n50.0, 15",
     description:
@@ -1421,7 +1421,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Austenite (γ-Fe)",
-    type: "High-Temp Metal",
+    type: "Advanced Materials",
     pattern: "43.6, 100\n50.7, 45\n74.7, 25\n90.7, 20",
     description:
       "The FCC allotrope of iron, typically stable above 912°C or in stainless steels.",
@@ -1434,7 +1434,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silver(I) Oxide (Ag2O)",
-    type: "Oxide Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "32.8, 100\n38.1, 40\n55.0, 55\n65.5, 15\n68.8, 18",
     description: "A chemical compound used in silver-oxide batteries.",
     formula: "Ag2O",
@@ -1450,7 +1450,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Copper(II) Oxide (CuO)",
-    type: "Semiconductor/Mineral",
+    type: "Semiconductors & Photonics",
     pattern:
       "32.5, 30\n35.5, 95\n38.7, 100\n48.7, 35\n53.5, 15\n58.3, 20\n61.5, 25\n66.2, 20\n68.1, 20",
     description:
@@ -1464,7 +1464,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zinc Sulfide (ZnS)",
-    type: "Semiconductor/Phosphor",
+    type: "Semiconductors & Photonics",
     pattern: "28.5, 100\n47.5, 60\n56.4, 45\n69.4, 15\n76.8, 18",
     description:
       "A versatile material used as a white pigment and in electroluminescence.",
@@ -1477,7 +1477,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "beta-Tricalcium Phosphate (beta-TCP)",
-    type: "Biomaterial/Ceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.8, 15\n27.8, 45\n29.6, 65\n31.0, 100\n34.3, 55\n46.9, 15",
     description:
       "A biodegradable ceramic used in bone grafting and tissue engineering.",
@@ -1490,7 +1490,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bioactive Glass (45S5)",
-    type: "Biomaterial/Glass-Ceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.0, 30\n30.0, 40\n32.0, 100\n34.0, 60\n47.0, 20",
     description:
       "A glass-ceramic material that bonds to both bone and soft tissue.",
@@ -1503,7 +1503,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bioactive Glass (13-93)",
-    type: "Biomaterial/Glass",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.5, 35\n30.5, 45\n32.5, 100\n34.5, 55\n47.5, 25",
     description:
       "A more silicate-rich bioactive glass compared to 45S5, often used for scaffolds and slow-resorption implants.",
@@ -1516,7 +1516,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bioactive Glass (S53P4)",
-    type: "Biomaterial/Glass",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "24.8, 30\n29.8, 40\n31.8, 100\n33.8, 60\n46.8, 20",
     description:
       "A dedicated clinical grade bioglass with potent antibacterial properties.",
@@ -1529,7 +1529,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Brushite (DCPD)",
-    type: "Biomaterial/Mineral",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.6, 100\n20.9, 60\n23.4, 25\n29.3, 75\n31.2, 45\n34.1, 40",
     description:
       "Dicalcium phosphate dihydrate, a precursor to hydroxyapatite in biological systems.",
@@ -1542,7 +1542,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Monetite (DCP)",
-    type: "Biomaterial/Mineral",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "26.4, 100\n30.2, 85\n32.7, 45\n47.2, 15\n52.1, 10",
     description:
       "Anhydrous dicalcium phosphate, used in calcium phosphate cements.",
@@ -1555,7 +1555,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bio-Aragonite",
-    type: "Biomaterial/Mineral",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "26.2, 100\n33.1, 45\n36.1, 20\n37.8, 30\n38.4, 30\n45.8, 35\n48.4, 25",
     description:
@@ -1569,7 +1569,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tetracalcium Phosphate (TTCP)",
-    type: "Biomaterial/Ceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.4, 35\n29.2, 60\n29.8, 100\n31.1, 95\n32.4, 80\n34.5, 40",
     description:
       "The most basic calcium phosphate, often used in self-setting cements.",
@@ -1582,7 +1582,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "alpha-Tricalcium Phosphate (alpha-TCP)",
-    type: "Biomaterial/Ceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "22.8, 40\n24.2, 35\n30.6, 100\n32.2, 85\n34.1, 55\n46.5, 20",
     description:
       "High-temperature polymorph of TCP, highly reactive in water to form HAp.",
@@ -1595,7 +1595,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Titanate (Li4Ti5O12)",
-    type: "Battery/Anode",
+    type: "Energy & Battery Materials",
     pattern: "18.4, 100\n35.6, 55\n43.3, 45\n47.4, 15\n57.2, 35\n62.8, 30",
     description:
       'An "extremely safe" anode material for lithium-ion batteries with zero-strain characteristics.',
@@ -1608,7 +1608,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "YBCO Superconductor (YBa2Cu3O7)",
-    type: "Superconductor",
+    type: "Advanced Materials",
     pattern:
       "22.8, 35\n32.5, 100\n32.8, 95\n38.5, 20\n40.3, 15\n46.7, 45\n58.1, 35",
     description:
@@ -1622,7 +1622,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zeolite ZSM-5",
-    type: "Microporous Catalyst",
+    type: "Advanced Materials",
     pattern: "7.9, 100\n8.8, 70\n23.1, 95\n23.3, 85\n23.9, 75\n24.4, 55",
     description:
       "A high-silica zeolite used extensively in the petroleum industry as a heterogeneous catalyst.",
@@ -1635,7 +1635,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Metal-Organic Framework-5 (MOF-5)",
-    type: "MOF/Gas Storage",
+    type: "Polymers & Frameworks",
     pattern: "6.8, 100\n9.7, 45\n13.8, 35\n15.4, 20\n23.8, 15",
     description:
       "A prototypical metal-organic framework with exceptionally high surface area for gas storage.",
@@ -1648,7 +1648,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Platinum (Pt)",
-    type: "Noble Metal",
+    type: "Metals & Alloys",
     pattern: "39.8, 100\n46.2, 55\n67.5, 35\n81.3, 40\n85.7, 10",
     description:
       "A dense, malleable, ductile, highly unreactive precious metal.",
@@ -1661,7 +1661,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Palladium (Pd)",
-    type: "Noble Metal",
+    type: "Metals & Alloys",
     pattern: "40.1, 100\n46.7, 45\n68.2, 25\n82.1, 30\n86.7, 8",
     description:
       "A shiny, silvery-white metal that has the lowest melting point and is the least dense of the PGMs.",
@@ -1674,7 +1674,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "NMC-111 (LiNi1/3Mn1/3Co1/3O2)",
-    type: "Battery Material",
+    type: "Energy & Battery Materials",
     pattern:
       "18.7, 100\n36.6, 35\n37.2, 40\n38.3, 30\n44.4, 45\n48.6, 12\n58.5, 25",
     description:
@@ -1688,7 +1688,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Yttria-Stabilized Zirconia (YSZ)",
-    type: "Fast-Ion Conductor",
+    type: "Energy & Battery Materials",
     pattern: "30.1, 100\n34.8, 25\n50.2, 60\n59.7, 35\n62.8, 15",
     description:
       "Zirconium dioxide stabilized with 8 mol% yttria, an ideal electrolyte for solid oxide fuel cells.",
@@ -1705,7 +1705,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Strontium Ruthenate (SrRuO3)",
-    type: "Conductive Oxide",
+    type: "Ceramics & Refractories",
     pattern: "22.4, 25\n31.8, 100\n39.3, 20\n45.8, 45\n57.2, 30\n67.1, 35",
     description:
       "A metallic ferromagnet with high chemical stability and excellent lattice match for perovskite oxides.",
@@ -1718,7 +1718,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Graphene Oxide (GO)",
-    type: "2D Material",
+    type: "Carbon & 2D Materials",
     pattern: "10.5, 100\n22.0, 15\n26.6, 10\n42.6, 5",
     description:
       "A carbon material derived from graphite with hydrophilic oxygen-containing groups.",
@@ -1731,7 +1731,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Octacalcium Phosphate (OCP)",
-    type: "Biomaterial/Mineral",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.7, 100\n9.4, 30\n22.8, 15\n26.0, 60\n31.6, 50\n33.6, 40",
     description:
       "A transient intermediate in bone and tooth formation, structurally similar to hydroxyapatite.",
@@ -1744,7 +1744,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cellulose (Type Ib)",
-    type: "Biomaterial/Polymer",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.8, 60\n16.3, 70\n20.5, 30\n22.6, 100\n34.5, 20",
     description:
       "The most abundant natural polymer, forming structural components of plant cell walls.",
@@ -1757,7 +1757,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chitosan",
-    type: "Biomaterial/Polymer",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.5, 75\n20.1, 100\n21.8, 40",
     description:
       "A linear polysaccharide derived from chitin, exhibiting excellent biocompatibility and antimicrobial properties.",
@@ -1770,7 +1770,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silk Fibroin (Beta-Sheet)",
-    type: "Biomaterial/Protein",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.1, 30\n18.9, 35\n20.7, 100\n24.3, 40\n28.6, 20",
     description:
       "The structural protein in silk, forming crystalline beta-sheet regions responsible for its high tensile strength.",
@@ -1783,7 +1783,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Oxalate Monohydrate",
-    type: "Biomaterial/Pathological Mineral",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.9, 100\n24.4, 45\n30.1, 30\n35.8, 20\n38.2, 25",
     description:
       "Whewellite, the primary crystalline component found in most human kidney stones.",
@@ -1796,7 +1796,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Amorphous Calcium Phosphate (ACP)",
-    type: "Biomaterial/Precursor",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "30.0, 100", // Typically very broad peak
     description:
       "A non-crystalline phase of calcium phosphate, the initial solid phase that precipitates from high supersaturation.",
@@ -1809,7 +1809,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polylactic Acid (PLA)",
-    type: "Biomaterial/Polymer",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "16.7, 100\n19.1, 80\n22.3, 30",
     description:
       "A biodegradable and bioactive thermoplastic aliphatic polyester derived from renewable resources.",
@@ -1826,7 +1826,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polyether ether ketone (PEEK)",
-    type: "Biomaterial/Polymer",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "18.8, 100\n20.7, 85\n22.8, 90\n28.9, 60",
     description:
       "A versatile high-performance semicrystalline engineering thermoplastic used extensively in medical and space applications.",
@@ -1839,7 +1839,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Collagen Type I",
-    type: "Biomaterial/Protein",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.0, 30\n20.5, 100", // Typical d~1.1 nm and ~0.45 nm halos
     description:
       "The most abundant collagen of the human body, serving as a key structural fiber in tendons, bone, and skin.",
@@ -1856,7 +1856,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Uranium Dioxide (UO2)",
-    type: "Nuclear/Fuel",
+    type: "Nuclear & Shielding",
     pattern: "28.2, 100\n32.7, 45\n47.0, 50\n55.8, 40\n58.5, 30",
     description:
       "An oxide of uranium utilized as the primary nuclear fuel in light water reactors.",
@@ -1875,7 +1875,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Thorium Dioxide (ThO2)",
-    type: "Nuclear/Fertile Material",
+    type: "Nuclear & Shielding",
     pattern: "27.6, 100\n31.9, 40\n45.8, 55\n54.4, 45\n57.0, 35",
     description:
       "A crystalline fertile powder that can be bred into fissile U-233; possesses the highest melting point of all oxides.",
@@ -1893,7 +1893,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Boron Carbide (B4C)",
-    type: "Nuclear/Control Material",
+    type: "Nuclear & Shielding",
     pattern: "23.5, 20\n34.9, 80\n37.8, 100\n39.1, 15\n44.8, 25\n53.4, 30",
     description:
       "An extremely hard boron-carbon ceramic used in tank armor, bulletproof vests, and notably as control rods in nuclear reactors for neutron absorption.",
@@ -1909,7 +1909,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gadolinium Oxide (Gd2O3)",
-    type: "Nuclear/Burnable Poison",
+    type: "Nuclear & Shielding",
     pattern: "28.6, 100\n33.1, 35\n47.5, 45\n56.4, 40\n59.1, 15\n69.5, 20",
     description:
       'A chemical compound used as a neutron-absorbing "burnable poison" in nuclear fuel to manage reactivity over time.',
@@ -1925,7 +1925,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Plutonium Dioxide (PuO2)",
-    type: "Nuclear/Fuel",
+    type: "Nuclear & Shielding",
     pattern: "28.6, 100\n33.1, 40\n47.5, 55\n56.4, 45\n59.1, 10\n69.5, 20",
     description:
       "A stable ceramic form of plutonium used in MOX fuel and radioisotope thermoelectric generators (RTGs).",
@@ -1940,7 +1940,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead (Pb)",
-    type: "Metal/Shielding",
+    type: "Nuclear & Shielding",
     pattern: "31.3, 100\n36.3, 40\n52.2, 35\n62.1, 45\n65.2, 10\n77.0, 15",
     description:
       "A dense, soft, malleable post-transition metal used extensively for radiation shielding due to its high atomic number and density.",
@@ -1955,7 +1955,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconium Hydride (ZrH2)",
-    type: "Nuclear/Moderator",
+    type: "Nuclear & Shielding",
     pattern: "28.5, 30\n33.0, 100\n47.5, 40\n56.5, 45\n59.2, 15",
     description:
       "A metallic hydride used as a moderator and fuel component in specialty reactors like TRIGA.",
@@ -1969,7 +1969,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Beryllium Oxide (BeO)",
-    type: "Nuclear/Reflector",
+    type: "Nuclear & Shielding",
     pattern: "38.5, 100\n41.2, 45\n44.0, 40\n59.3, 20\n69.8, 15",
     description:
       "An inorganic compound with high thermal conductivity and low neutron capture cross-section, used as a neutron reflector.",
@@ -1984,7 +1984,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Austenite (γ-Fe)",
-    type: "Metallurgy/Phase",
+    type: "Metals & Alloys",
     pattern: "43.6, 100\n50.8, 45\n74.7, 30\n90.7, 25\n95.9, 10",
     description:
       "The face-centered cubic (FCC) phase of iron. High temperature stable phase often retained in stainless steels.",
@@ -1998,7 +1998,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Martensite (α'-Fe)",
-    type: "Metallurgy/Phase",
+    type: "Metals & Alloys",
     pattern: "44.7, 100\n65.0, 15\n82.3, 25\n98.9, 10",
     description:
       "A very hard, supersaturated solid solution of carbon in iron. Characterized by a body-centered tetragonal (BCT) structure formed by rapid quenching.",
@@ -2011,7 +2011,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cementite (Fe3C)",
-    type: "Metallurgy/Carbide",
+    type: "Metals & Alloys",
     pattern:
       "37.7, 60\n39.8, 80\n40.6, 100\n42.9, 70\n43.7, 90\n44.5, 85\n44.9, 95",
     description:
@@ -2026,7 +2026,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium-6Al-4V (α+β)",
-    type: "Metallurgy/Alloy",
+    type: "Metals & Alloys",
     pattern: "35.1, 40\n38.4, 100\n40.2, 80\n53.0, 30\n63.2, 25\n70.6, 20",
     description:
       "The most common titanium alloy. Consists of a dual-phase microstructure of alpha and beta phases, offering high strength and corrosion resistance.",
@@ -2041,7 +2041,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zircaloy-4",
-    type: "Nuclear/Cladding",
+    type: "Nuclear & Shielding",
     pattern: "31.9, 30\n34.8, 100\n36.5, 90\n47.9, 20\n63.4, 15\n68.1, 10",
     description:
       "A zirconium alloy characterized by very low absorption cross-section of thermal neutrons, used for nuclear fuel cladding.",
@@ -2058,7 +2058,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nuclear Graphite",
-    type: "Nuclear/Moderator",
+    type: "Nuclear & Shielding",
     pattern: "26.6, 100\n42.4, 15\n44.6, 25\n54.7, 30\n77.5, 10",
     description:
       "Highly purified graphite optimized for its high moderating ratio and structural stability under intense radiation.",
@@ -2071,7 +2071,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Neodymium Magnet (Nd2Fe14B)",
-    type: "Magnetic Material",
+    type: "Magnetic & Ferroelectric",
     pattern:
       "29.3, 25\n38.4, 40\n41.0, 100\n41.8, 60\n43.7, 45\n49.1, 30\n53.2, 20",
     description:
@@ -2090,7 +2090,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium Carbide (TiC)",
-    type: "Ultra-hard Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "35.9, 100\n41.7, 85\n60.4, 60\n72.3, 45\n76.0, 15\n89.8, 20",
     description:
       "An extremely hard refractory ceramic material, similar to tungsten carbide.",
@@ -2105,7 +2105,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chromium(III) Oxide (Cr2O3)",
-    type: "Oxide Ceramic/Mineral",
+    type: "Ceramics & Refractories",
     pattern:
       "24.5, 40\n33.6, 100\n36.2, 75\n41.5, 25\n50.2, 40\n54.8, 90\n63.4, 20\n65.1, 35",
     description:
@@ -2121,7 +2121,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cobalt Ferrite (CoFe2O4)",
-    type: "Magnetic Ceramic",
+    type: "Magnetic & Ferroelectric",
     pattern:
       "30.1, 40\n35.4, 100\n37.1, 15\n43.1, 30\n53.4, 25\n57.0, 45\n62.6, 60",
     description:
@@ -2141,7 +2141,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth Oxychloride (BiOCl)",
-    type: "Photocatalyst/Pigment",
+    type: "Semiconductors & Photonics",
     pattern:
       "12.0, 100\n24.2, 35\n25.8, 85\n32.5, 75\n33.4, 80\n40.7, 45\n46.6, 60\n49.3, 55",
     description:
@@ -2157,7 +2157,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cesium Lead Iodide (CsPbI3)",
-    type: "Perovskite/Photovoltaic",
+    type: "Semiconductors & Photonics",
     pattern:
       "14.2, 100\n20.1, 45\n24.6, 35\n28.6, 90\n32.1, 25\n35.3, 30\n40.8, 55",
     description:
@@ -2173,7 +2173,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium MXene (Ti3C2Tx)",
-    type: "2D Material",
+    type: "Carbon & 2D Materials",
     pattern:
       "9.2, 100\n18.4, 15\n27.6, 10\n34.2, 5\n38.9, 12\n42.1, 8\n60.5, 10",
     description:
@@ -2188,7 +2188,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "UiO-66 (Zr-MOF)",
-    type: "Metal-Organic Framework",
+    type: "Polymers & Frameworks",
     pattern:
       "7.4, 100\n8.5, 95\n12.1, 45\n14.1, 15\n14.8, 20\n17.1, 25\n25.7, 10",
     description:
@@ -2203,7 +2203,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "HKUST-1 (Cu-MOF)",
-    type: "Metal-Organic Framework",
+    type: "Polymers & Frameworks",
     pattern:
       "6.7, 100\n9.5, 65\n11.6, 85\n13.4, 25\n14.7, 20\n17.5, 40\n19.0, 35\n26.0, 15",
     description:
@@ -2218,7 +2218,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Molybdenum Trioxide (MoO3)",
-    type: "Semiconductor/Oxide",
+    type: "Semiconductors & Photonics",
     pattern:
       "12.8, 100\n23.3, 85\n25.7, 95\n27.3, 75\n33.7, 45\n39.0, 35\n49.3, 40",
     description:
@@ -2234,7 +2234,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Vanadium(III) Oxide (V2O3)",
-    type: "Oxide/Mott Insulator",
+    type: "Ceramics & Refractories",
     pattern:
       "24.3, 35\n33.0, 100\n36.2, 80\n41.2, 20\n49.7, 30\n54.0, 95\n62.9, 15\n64.1, 25",
     description:
@@ -2249,7 +2249,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hematite (Fe2O3)",
-    type: "Oxide Mineral",
+    type: "Ceramics & Refractories",
     pattern:
       "24.1, 40\n33.2, 100\n35.6, 75\n40.9, 25\n49.5, 40\n54.1, 85\n62.5, 30\n64.0, 35",
     description:
@@ -2264,7 +2264,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Perovskite (CaTiO3)",
-    type: "Definitive Perovskite",
+    type: "Semiconductors & Photonics",
     pattern:
       "23.2, 25\n33.1, 100\n40.3, 15\n47.5, 45\n53.8, 10\n59.2, 35\n69.6, 30",
     description:
@@ -2278,7 +2278,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Feldspar (Orthoclase)",
-    type: "Silicate Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "13.1, 30\n21.0, 25\n23.6, 100\n26.5, 80\n27.8, 45\n29.9, 15",
     description: "A common rock-forming tectosilicate mineral.",
     formula: "KAlSi3O8",
@@ -2290,7 +2290,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Stainless Steel 316L",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.6, 100\n50.8, 45\n74.7, 25\n90.7, 20\n95.9, 10",
     description:
       "Low-carbon FCC austenitic steel with excellent corrosion resistance containing Mo.",
@@ -2307,7 +2307,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Stainless Steel 304",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.5, 100\n50.7, 45\n74.5, 25\n90.5, 20\n95.7, 10",
     description:
       "The most common austenitic stainless steel, widely used in various industries.",
@@ -2320,7 +2320,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Stainless Steel 310",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.4, 100\n50.5, 40\n74.2, 20\n90.2, 15\n95.4, 8",
     description:
       "Heat-resistant austenitic stainless steel with high chromium and nickel content.",
@@ -2333,7 +2333,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Stainless Steel 430",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.5, 100\n64.8, 15\n82.1, 20\n98.7, 10",
     description:
       "Ferritic stainless steel (BCC) with good corrosion resistance and formability.",
@@ -2346,7 +2346,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ti-6Al-4V (Grade 5)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern:
       "35.1, 30\n38.4, 30\n40.2, 100\n53.0, 20\n63.3, 25\n70.6, 20\n76.2, 15",
     description:
@@ -2364,7 +2364,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Brass (C26000)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "42.6, 100\n49.6, 45\n72.8, 20\n88.1, 15",
     description:
       "A copper-zinc alloy (70-30), exhibiting good strength and corrosion resistance.",
@@ -2377,7 +2377,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Inconel 718",
-    type: "Superalloy",
+    type: "Metals & Alloys",
     pattern: "43.8, 100\n51.0, 48\n75.1, 22\n91.2, 18",
     description:
       "Nickel-chromium-based superalloy used for high-temperature applications.",
@@ -2390,7 +2390,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Stainless Steel 17-4PH",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.6, 100\n65.0, 15\n82.3, 20\n99.0, 10",
     description:
       "Precipitation-hardening martensitic stainless steel with high strength and high corrosion resistance.",
@@ -2403,7 +2403,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Duplex Stainless Steel 2205",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern:
       "43.5, 100\n44.6, 95\n50.7, 45\n65.0, 15\n74.5, 25\n82.3, 20\n90.5, 20\n95.7, 10\n99.0, 10",
     description:
@@ -2421,7 +2421,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hastelloy C-276",
-    type: "Superalloy",
+    type: "Metals & Alloys",
     pattern: "43.1, 100\n50.1, 50\n73.7, 25\n89.2, 20",
     description:
       "Nickel-molybdenum-chromium-tungsten superalloy with outstanding pitting and crevice corrosion resistance.",
@@ -2438,7 +2438,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tool Steel H13",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.7, 100\n65.1, 15\n82.4, 20\n99.1, 10",
     description:
       "Chromium-molybdenum hot work tool steel exhibiting outstanding resistance to thermal fatigue cracking.",
@@ -2451,7 +2451,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "FeCrAl Alloy (Kanthal APM)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.8, 100\n65.2, 15\n82.5, 20\n99.2, 10",
     description:
       "An advanced powder metallurgically produced FeCrAl alloy with excellent form-stability and high-temperature oxidation resistance.",
@@ -2464,7 +2464,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "High-Entropy Alloy (AlCoCrFeNi)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern:
       "43.8, 100\n44.8, 40\n51.0, 45\n65.2, 10\n75.1, 25\n82.5, 15\n91.2, 18\n99.2, 8",
     description:
@@ -2482,7 +2482,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "SBA-15 (Mesoporous Silica)",
-    type: "Drug Delivery",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "0.9, 100\n1.6, 30\n1.8, 25",
     description:
       "Hexagonal mesoporous silica with high surface area and thick walls.",
@@ -2495,7 +2495,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "MCM-41 (Mesoporous Silica)",
-    type: "Drug Delivery",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "2.1, 100\n3.6, 15\n4.2, 10",
     description:
       "Ordered mesoporous material with high pore volume and surface area.",
@@ -2508,7 +2508,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "MOF-5 (Zinc Tera-terephthalate)",
-    type: "Framework",
+    type: "Polymers & Frameworks",
     pattern: "6.8, 100\n9.7, 45\n13.8, 35\n14.1, 20",
     description:
       "Classic Metal-Organic Framework with high porosity for gas storage and drug delivery.",
@@ -2521,7 +2521,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "ZIF-8 (Zeolitic Imidazolate Framework)",
-    type: "Framework",
+    type: "Polymers & Frameworks",
     pattern: "7.3, 100\n10.3, 40\n12.7, 30\n14.7, 15\n16.4, 25\n18.0, 10",
     description: "Chemically stable MOF used for pH-responsive drug delivery.",
     formula: "Zn(mIm)2",
@@ -2533,7 +2533,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Caffeine (Anhydrous)",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.8, 100\n13.9, 30\n25.8, 80\n26.5, 90\n27.6, 95",
     description:
       "A commonly used CNS stimulant. The anhydrous form is mostly used in pharmaceuticals. It exists in two polymorphs, alpha (high temp) and beta (room temp).",
@@ -2548,7 +2548,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ascorbic Acid (Vitamin C)",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.3, 100\n14.1, 45\n17.5, 60\n25.3, 30\n27.8, 25",
     description:
       "L-ascorbic acid. A water-soluble vitamin and powerful antioxidant. Used conventionally as a dietary supplement and in cosmetic formulations.",
@@ -2563,7 +2563,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sucrose (Sugar)",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.6, 50\n18.8, 100\n24.7, 70\n25.2, 85\n30.5, 20",
     description:
       "Common table sugar. Widely used as a pharmaceutical excipient (filler, binder, or coating agent) and in food industries.",
@@ -2578,7 +2578,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cholesterol",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.2, 100\n10.5, 20\n15.8, 55\n17.0, 30\n20.2, 10",
     description:
       "A major structural component of the cell membranes and a precursor to steroid hormones. Often found in gallstones forming characteristic platelike crystals.",
@@ -2597,7 +2597,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carbamazepine (Form III)",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.1, 30\n15.2, 100\n15.8, 60\n24.9, 50\n27.5, 80",
     description:
       "An anticonvulsant and mood-stabilizing drug. Form III is the most stable polymorph at room temperature.",
@@ -2616,7 +2616,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Theophylline (Anhydrous)",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.2, 100\n14.4, 50\n24.1, 40\n25.8, 60\n27.2, 35",
     description:
       "A methylxanthine drug used in therapy for respiratory diseases. Highly prone to form hydrates, so anhydrous phase verification is critical.",
@@ -2635,7 +2635,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Naproxen (S-Naproxen)",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.6, 50\n12.5, 100\n16.6, 40\n18.9, 65\n22.3, 70",
     description:
       "A widely used NSAID (nonsteroidal anti-inflammatory drug). Typically the pure S-enantiomer is supplied.",
@@ -2650,7 +2650,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ibuprofen (Crystalline)",
-    type: "Pharmaceutical",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "6.1, 80\n12.2, 50\n16.6, 100\n17.7, 45\n18.9, 60\n20.2, 70\n22.3, 90",
     description:
@@ -2664,7 +2664,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Paracetamol (Acetaminophen)",
-    type: "Pharmaceutical",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "12.1, 40\n15.5, 60\n18.2, 100\n20.4, 35\n23.5, 45\n24.4, 80\n32.8, 20",
     description:
@@ -2678,7 +2678,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnetite (Fe3O4)",
-    type: "Magnetic Oxide",
+    type: "Magnetic & Ferroelectric",
     pattern: "30.1, 30\n35.4, 100\n43.1, 20\n53.4, 10\n57.0, 30\n62.6, 40",
     description:
       "A common ferrimagnetic iron oxide mineral with an inverse spinel structure.",
@@ -2691,7 +2691,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polyethylene (PE)",
-    type: "Polymer",
+    type: "Polymers & Frameworks",
     pattern: "21.5, 100\n24.0, 45\n36.3, 10",
     description:
       "Semicrystalline thermoplastic showing characteristic orthorhombic crystalline peaks.",
@@ -2704,7 +2704,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "YBCO Superconductor",
-    type: "Superconductor",
+    type: "Advanced Materials",
     pattern: "32.5, 80\n32.8, 100\n38.5, 20\n46.7, 45\n58.1, 30",
     description:
       "High-temperature superconducting ceramic material (Yttrium Barium Copper Oxide).",
@@ -2717,7 +2717,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Portland Cement (Alite)",
-    type: "Construction material",
+    type: "Ceramics & Refractories",
     pattern: "29.4, 100\n32.2, 80\n32.6, 85\n34.4, 40\n41.2, 35\n51.7, 30",
     description:
       "The primary active phase (Tricalcium Silicate) in Portland cement clinker.",
@@ -2730,7 +2730,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Graphene (C)",
-    type: "2D Material",
+    type: "Carbon & 2D Materials",
     pattern: "26.3, 100\n42.4, 15\n44.6, 20\n54.7, 10\n77.6, 5",
     description:
       "A single layer of carbon atoms arranged in a two-dimensional honeycomb lattice.",
@@ -2743,7 +2743,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Manganese Oxide (LiMn2O4)",
-    type: "Battery Cathode",
+    type: "Energy & Battery Materials",
     pattern: "18.6, 100\n36.1, 40\n43.8, 30\n58.0, 25\n63.9, 15\n76.5, 10",
     description:
       "Spinel-structured oxide used as a cathode material in lithium-ion batteries.",
@@ -2756,7 +2756,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth (Bi)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "22.5, 20\n27.1, 100\n37.9, 30\n39.6, 35\n48.7, 15\n62.2, 10",
     description:
       "A brittle metal with a pinkish tinge, known for its remarkably low thermal conductivity and high diamagnetism.",
@@ -2769,7 +2769,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Germanium (Ge)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "27.3, 100\n45.3, 55\n53.7, 35\n66.0, 10\n72.8, 15\n83.7, 5",
     description:
       "A lustrous, hard, grayish-white metalloid in the carbon group, used historically in early transistors.",
@@ -2782,7 +2782,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium Nitride (TiN)",
-    type: "Hard Coating",
+    type: "Advanced Materials",
     pattern: "36.6, 40\n42.6, 100\n61.8, 45\n74.1, 20\n77.9, 15",
     description:
       "An extremely hard ceramic material, often used as a coating to improve surface properties.",
@@ -2795,7 +2795,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Molybdenum (Mo)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "40.5, 100\n58.6, 30\n73.7, 18\n87.6, 8\n101.4, 5",
     description:
       "A refractory metal used in high-strength alloys and high-temperature applications.",
@@ -2808,7 +2808,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Iridium (Ir)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "40.7, 100\n47.3, 45\n69.3, 28\n83.6, 32\n88.4, 10",
     description:
       "A very hard, brittle, silvery-white transition metal of the platinum group.",
@@ -2821,7 +2821,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Osmium (Os)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "41.6, 30\n43.7, 100\n45.8, 40\n60.4, 25\n72.3, 15\n85.4, 18",
     description:
       "The densest naturally occurring element, a hard, brittle, bluish-white transition metal.",
@@ -2834,7 +2834,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Rhodium (Rh)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "41.1, 100\n47.8, 45\n70.2, 25\n84.7, 30\n89.6, 12",
     description:
       "A rare, silvery-white, hard, corrosion-resistant transition metal.",
@@ -2847,7 +2847,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Tantalate (LiTaO3)",
-    type: "Ferroelectric",
+    type: "Magnetic & Ferroelectric",
     pattern: "23.7, 100\n32.6, 50\n34.8, 40\n46.5, 30\n53.2, 25\n56.7, 20",
     description:
       "A piezoelectric and ferroelectric material highly useful in nonlinear optics and surface acoustic wave devices.",
@@ -2860,7 +2860,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Niobate (LiNbO3)",
-    type: "Ferroelectric",
+    type: "Magnetic & Ferroelectric",
     pattern: "23.7, 100\n32.7, 55\n34.8, 45\n46.1, 35\n52.8, 25\n56.3, 20",
     description:
       "A colorless solid, known for its optical properties including the linear electro-optic effect.",
@@ -2873,7 +2873,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead Sulphide (PbS)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "26.0, 100\n30.1, 80\n43.1, 60\n51.0, 40\n53.4, 25\n62.5, 20\n68.9, 15\n71.0, 10\n79.0, 8",
     description:
@@ -2887,7 +2887,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zinc Telluride (ZnTe)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "25.3, 100\n41.9, 60\n49.6, 40\n60.4, 15\n67.1, 20\n76.5, 10",
     description:
       "A binary chemical compound with a direct band gap, used in optoelectronic devices.",
@@ -2900,7 +2900,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lanthanum Aluminate (LaAlO3)",
-    type: "Substrate / Oxide",
+    type: "Ceramics & Refractories",
     pattern: "23.4, 50\n33.1, 100\n41.2, 12\n47.5, 60\n54.2, 18\n58.9, 45",
     description:
       "A synthetic ceramic oxide that is widely used as a high-quality substrate for epitaxial growth of thin films.",
@@ -2913,7 +2913,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cuprite (Cu2O)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "29.5, 35\n36.4, 100\n42.3, 40\n61.3, 25\n73.5, 20\n77.3, 15",
     description:
       "A copper oxide mineral that naturally crystallizes as an octahedral cubic structure and acts as a p-type semiconductor.",
@@ -2926,7 +2926,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cadmium Selenide (CdSe)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "25.4, 100\n27.1, 70\n28.2, 85\n35.1, 35\n42.2, 50\n45.8, 40\n49.7, 30",
     description:
@@ -2940,7 +2940,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silicon Monoxide (SiO)",
-    type: "Amorphous / Anode",
+    type: "Energy & Battery Materials",
     pattern: "24.0, 100\n40.0, 15",
     description:
       "An amorphous Silicon compound favored for lithium battery anodes due to high capacity and minimized swelling compared to pure Silicon.",
@@ -2953,7 +2953,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Yttrium Oxide (Y2O3)",
-    type: "Refractory Oxide",
+    type: "Ceramics & Refractories",
     pattern: "29.1, 100\n33.7, 45\n48.5, 55\n57.6, 35\n78.4, 20",
     description:
       "An air-stable white solid refractory substance, widely used in optics and host materials for phosphors.",
@@ -2970,7 +2970,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Zirconate (BaZrO3)",
-    type: "Cubic Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "21.2, 10\n30.1, 100\n37.1, 35\n43.1, 60\n53.5, 45\n62.6, 50",
     description:
       "A high melting point ceramic possessing high protonic conductivity, ideal for solid oxide fuel cell membranes.",
@@ -2987,7 +2987,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "NASICON (Na3Zr2Si2PO12)",
-    type: "Solid Electrolyte",
+    type: "Advanced Materials",
     pattern: "19.2, 100\n22.8, 70\n27.5, 55\n30.4, 85\n34.2, 40\n47.8, 30",
     description:
       "Sodium Super Ionic Conductor with high ionic conductivity at room temperature, crucial for standard solid state Sodium battering systems.",
@@ -3004,7 +3004,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium Disulfide (TiS2)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "15.5, 100\n34.1, 80\n44.2, 45\n53.9, 50\n60.4, 25",
     description:
       "A layered transition metal dichalcogenide compound with a high electrical conductivity and excellent intercalation chemistry.",
@@ -3021,7 +3021,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hafnium Oxide (HfO2)",
-    type: "High-k Dielectric",
+    type: "Advanced Materials",
     pattern: "28.2, 100\n31.5, 75\n34.2, 35\n41.2, 20\n50.2, 30",
     description:
       "A high-k dielectric material used as gate oxides in modern computer processors and dynamic random-access memory (DRAM).",
@@ -3034,7 +3034,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead-Free Solder (SAC305)",
-    type: "PCB Interconnect",
+    type: "Advanced Materials",
     pattern: "30.6, 100\n32.0, 90\n43.9, 70\n44.9, 60\n55.3, 30\n62.5, 30",
     description:
       "An alloy composed of Tin, Silver, and Copper (Sn-Ag-Cu), widely used as solder for computer hardware printed circuit boards.",
@@ -3047,7 +3047,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tantalum Pentoxide (Ta2O5)",
-    type: "Dielectric Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "22.9, 100\n28.3, 40\n36.7, 50\n46.8, 30\n55.6, 25",
     description:
       "A high refractive index and high dielectric constant material used in motherboard decoupler capacitors.",
@@ -3064,7 +3064,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Single-Walled Carbon Nanotubes (SWCNTs)",
-    type: "1D Nanoelectronics",
+    type: "Advanced Materials",
     pattern: "26.1, 100\n42.8, 35\n44.4, 25\n53.8, 12\n77.9, 8",
     description:
       "Seamless cylinders of graphene sheets demonstrating ballistical electron conductivity, studied as channels for sub-3nm transistors.",
@@ -3081,7 +3081,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Black Phosphorus (Phosphorene)",
-    type: "2D Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "16.9, 100\n34.2, 85\n52.3, 40\n62.1, 20\n65.9, 15",
     description:
       "An anisotropic layered elemental 2D semiconductor possessing a direct bandgap and exceptionally high charge-carrier mobility.",
@@ -3094,7 +3094,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Indium Gallium Zinc Oxide (IGZO)",
-    type: "Thin-Film Transistor",
+    type: "Advanced Materials",
     pattern: "30.2, 45\n35.5, 100\n55.4, 30\n60.8, 25",
     description:
       "An amorphous or highly textured oxide semiconductor used primarily as the active channel material of thin-film transistors (TFTs) in OLED/LCD displays.",
@@ -3111,7 +3111,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Superparamagnetic Iron Oxide Nanoparticles (SPIONs)",
-    type: "Nanomedicine",
+    type: "Advanced Materials",
     pattern: "30.1, 30\n35.5, 100\n43.1, 20\n53.4, 10\n57.0, 30\n62.6, 40",
     description:
       "Biocompatible magnetite/maghemite core nanoparticles used as T2 MRI contrast enhancement agents and in target-guided magnetic hyperthermia cancer therapy.",
@@ -3128,7 +3128,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Mesoporous Silica Nanoparticles (MSN / MCM-41)",
-    type: "Nanomedicine Carrier",
+    type: "Advanced Materials",
     pattern: "2.3, 100\n4.0, 20\n4.6, 15\n22.0, 8",
     description:
       "A solid silicate framework featuring highly organized hexagonal arrays of mesopores, ideal for high-capacity drug loading and controlled release.",
@@ -3141,7 +3141,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silver Nanoparticles (AgNPs)",
-    type: "Antimicrobial Nanomedicine",
+    type: "Advanced Materials",
     pattern: "38.1, 100\n44.3, 40\n64.4, 25\n77.4, 26\n81.5, 8",
     description:
       "Ultrafine silver crystals with extremely high surface-to-volume ratio, demonstrating potent oligodynamic antimicrobic/antiviral effects.",
@@ -3154,7 +3154,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alpha-Uranium Metal",
-    type: "Nuclear Metal",
+    type: "Nuclear & Shielding",
     pattern:
       "35.08, 100\n36.25, 40\n38.74, 55\n39.24, 60\n50.15, 30\n50.21, 28",
     description:
@@ -3170,7 +3170,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Uranium Dioxide",
-    type: "Nuclear Ceramic",
+    type: "Nuclear & Shielding",
     pattern:
       "28.25, 100\n32.74, 35\n47.01, 55\n55.78, 45\n58.55, 15\n68.62, 25",
     description:
@@ -3186,7 +3186,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Triuranium Octoxide",
-    type: "Nuclear Mineral",
+    type: "Nuclear & Shielding",
     pattern:
       "21.44, 45\n25.95, 100\n26.45, 95\n34.32, 60\n43.15, 25\n44.50, 20",
     description:
@@ -3202,7 +3202,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Uranium Trioxide",
-    type: "Nuclear Intermediate",
+    type: "Nuclear & Shielding",
     pattern: "15.20, 100\n26.10, 85\n33.40, 40\n46.50, 20\n52.80, 15",
     description:
       "Orange-colored oxide, a critical intermediate in the conversion of uranium to fuel.",
@@ -3217,7 +3217,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gallium Nitride (GaN)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "32.39, 65\n34.56, 100\n36.84, 90\n48.08, 15\n57.78, 25\n63.45, 18\n67.89, 22",
     description:
@@ -3233,7 +3233,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silicon Carbide (6H-SiC)",
-    type: "Ceramic/Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "34.15, 60\n35.65, 100\n38.15, 45\n41.42, 22\n45.35, 18\n60.05, 35\n71.85, 25",
     description:
@@ -3249,7 +3249,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Titanate (Tetragonal)",
-    type: "Ferroelectric",
+    type: "Magnetic & Ferroelectric",
     pattern:
       "22.25, 45\n31.55, 100\n38.89, 25\n45.32, 60\n51.05, 18\n56.12, 35",
     description:
@@ -3265,7 +3265,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Strontium Titanate (SrTiO3)",
-    type: "Perovskite Standard",
+    type: "Semiconductors & Photonics",
     pattern:
       "22.84, 40\n32.42, 100\n40.01, 35\n46.52, 65\n57.85, 22\n67.88, 30",
     description:
@@ -3281,7 +3281,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium (Grade 2 CP)",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "35.1, 100\n38.4, 45\n40.1, 30\n53.0, 15\n70.6, 20",
     description:
       "Commercially pure titanium (HCP structure). Excellent corrosion resistance and biocompatibility.",
@@ -3296,7 +3296,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium Alloy (AZ31B)",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "32.2, 40\n34.4, 50\n36.6, 100\n47.8, 15\n57.4, 20\n63.2, 10",
     description:
       "Lightweight magnesium-aluminum-zinc alloy. Wrought form widely used in aerospace applications.",
@@ -3310,7 +3310,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cobalt-Chrome (CoCrMo)",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "41.1, 100\n44.3, 30\n47.6, 80\n75.0, 15",
     description:
       "High-strength, highly wear-resistant alloy favored for joint replacement implants.",
@@ -3324,7 +3324,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nitinol (NiTi Shape Memory)",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "42.4, 100\n61.5, 10\n77.8, 15",
     description:
       "Equiatomic nickel-titanium alloy known for shape memory and superelastic phenomena at low temps (martensite) and elevated temps (austenite).",
@@ -3337,7 +3337,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aluminum Alloy (7075-T6)",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "38.5, 100\n44.7, 45\n65.1, 20\n78.2, 25\n82.4, 8",
     description:
       "Zinc-alloyed aluminum. Excellent strength-to-weight ratio, commonly used in aircraft structural parts.",
@@ -3351,7 +3351,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zircaloy-2",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "31.8, 100\n34.8, 50\n36.4, 25\n47.5, 15\n62.7, 10",
     description:
       "Zirconium alloy favored for nuclear applications due to low neutron absorption and excellent corrosion resistance in water.",
@@ -3365,7 +3365,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hastelloy X",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "43.2, 100\n50.3, 40\n74.0, 25\n89.9, 15",
     description:
       "Nickel-chromium-iron-molybdenum superalloy. Outstanding high-temperature strength and oxidation resistance.",
@@ -3382,7 +3382,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Monel 400",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "43.8, 100\n51.0, 45\n75.2, 25\n91.2, 12",
     description:
       "Nickel-copper alloy resistive to sea water and high-velocity brackish waters.",
@@ -3399,7 +3399,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Maraging Steel (Grade 300)",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "44.5, 100\n64.8, 20\n82.1, 30",
     description:
       "Ultra-high-strength steel that is iron-based, highly alloyed with nickel. Low carbon, derives strength from intermetallic precipitates.",
@@ -3412,7 +3412,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Beryllium (Be)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "45.8, 100\n50.9, 40\n52.8, 25\n66.9, 15\n72.2, 10",
     description:
       "Extremely lightweight, stiff metal with exceptional specific heat and thermal conductivity.",
@@ -3430,7 +3430,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Vanadium (V)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "41.6, 100\n60.4, 25\n76.5, 15\n92.8, 10",
     description:
       "Hard, silvery-grey, malleable transition metal. Form stable oxides and is widely used for creating specialty steel alloys (high-speed tool steels).",
@@ -3448,7 +3448,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Niobium (Nb)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "38.5, 100\n55.6, 25\n69.6, 15\n82.5, 10",
     description:
       "Light grey, crystalline, and ductile transition metal. Crucial for superconducting materials and high-temp jet-engine superalloys.",
@@ -3466,7 +3466,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconium (Zr)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "32.1, 100\n34.9, 45\n36.6, 25\n47.6, 15\n57.4, 10",
     description:
       "Lustrous, grey-white transition metal that closely resembles hafnium and titanium. Highly resistant to corrosion by alkalis, acids, and salt water.",
@@ -3484,7 +3484,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium (Mg)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "32.2, 35\n34.4, 45\n36.6, 100\n47.8, 15\n57.4, 10",
     description:
       "Shiny gray solid and the lightest structural metal. Highly reactive but forms passivating oxide surface layer.",
@@ -3498,7 +3498,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tin (Sn)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "30.6, 100\n32.0, 80\n43.9, 40\n44.9, 50\n55.3, 20",
     description:
       "Silvery metal that characteristically has a faint yellow hue. The beta (white tin) phase is stable at room temperature.",
@@ -3512,7 +3512,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead (Pb)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "31.3, 100\n36.3, 40\n52.3, 30\n62.2, 25\n65.3, 15",
     description:
       "Heavy metal that is denser than most common materials. Soft and malleable with relatively low melting point.",
@@ -3526,7 +3526,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zinc (Zn)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "36.3, 50\n39.0, 45\n43.2, 100\n54.3, 15\n70.1, 20\n70.6, 10",
     description:
       "Slightly brittle metal at room temperature, it has a blue-silvery appearance. First major application is galvanization of steel.",
@@ -3540,7 +3540,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Electrical Steel (Fe-Si)",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "44.8, 100\n65.2, 20\n82.6, 30",
     description:
       "Iron alloy containing up to 6.5% silicon. Tailored for specific magnetic properties like small hysteresis area and high permeability.",
@@ -3553,7 +3553,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Permalloy (Ni-Fe)",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "44.0, 100\n51.2, 45\n75.3, 25",
     description:
       "Nickel-iron magnetic alloy (approx. 80% Ni, 20% Fe) with remarkably high magnetic permeability.",
@@ -3570,7 +3570,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bronze (Phosphor Bronze)",
-    type: "Alloy",
+    type: "Metals & Alloys",
     pattern: "42.9, 100\n49.9, 45\n73.2, 25\n88.8, 15",
     description:
       "Copper alloy with 0.5-11% tin and 0.01-0.35% phosphorus. Notable for toughness, high strength and low coefficient of friction.",
@@ -3583,7 +3583,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconia Toughened Alumina (ZTA)",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.6, 30\n28.2, 20\n30.2, 85\n31.8, 100\n35.2, 60\n43.4, 55\n57.5, 45\n60.2, 25",
     description:
@@ -3597,7 +3597,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Y-TZP (Yttria-stabilized Zirconia)",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "30.2, 100\n34.6, 25\n35.3, 30\n50.2, 45\n59.8, 30\n62.8, 20",
     description:
       "Tetragonal zirconia polycrystals stabilized with yttria. High flexural strength and fracture toughness, standard for dental crowns.",
@@ -3611,7 +3611,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alginate",
-    type: "Biopolymer",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.5, 60\n21.5, 100\n25.8, 40",
     description:
       "Natural biopolymer derived from brown seaweed. Widely used for hydrogel formulations and dental impressions.",
@@ -3628,7 +3628,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hyaluronic Acid (HA)",
-    type: "Biopolymer",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.8, 100\n18.5, 45\n21.2, 60\n24.0, 30",
     description:
       "Glycosaminoglycan present in connective tissue, highly hydrating and used in osteoarthritis injections and cosmetics.",
@@ -3641,7 +3641,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Diclofenac Sodium",
-    type: "Pharmaceutical",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "6.5, 60\n8.4, 45\n11.1, 75\n15.1, 100\n17.0, 50\n19.2, 30\n23.4, 65\n26.8, 40\n27.6, 80",
     description:
@@ -3655,7 +3655,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aspirin (Acetylsalicylic Acid)",
-    type: "Pharmaceutical",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "7.8, 100\n15.5, 75\n20.6, 40\n22.6, 50\n23.4, 25\n26.9, 30\n32.8, 15",
     description:
@@ -3670,7 +3670,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Amoxicillin Trihydrate",
-    type: "Pharmaceutical",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "12.1, 65\n15.3, 40\n16.2, 55\n18.0, 100\n19.4, 75\n22.8, 45\n26.6, 50\n28.4, 30",
     description:
@@ -3685,7 +3685,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Mg-Substituted beta-TCP (Mg-TCP)",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "27.7, 65\n31.0, 100\n34.3, 50\n46.8, 15\n52.9, 10",
     description:
       "Beta tricalcium phosphate doped with magnesium. Enhances osteogenesis and delays the rapid resorption rate of pure beta-TCP.",
@@ -3699,7 +3699,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sr-Substituted beta-TCP (Sr-TCP)",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "27.2, 60\n30.5, 100\n33.8, 45\n46.2, 20\n52.1, 15",
     description:
       "Strontium substitution shifts the lattice peaks slightly and greatly promotes osteoblast proliferation while inhibiting osteoclasts.",
@@ -3713,7 +3713,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zn-Substituted HAp (Zn-HAp)",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.9, 45\n31.8, 100\n32.2, 70\n33.0, 55\n39.8, 25\n46.7, 35",
     description:
       "Zinc doping introduces antibacterial properties into the hydroxyapatite lattice and promotes bone formation.",
@@ -3726,7 +3726,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Sulfate",
-    type: "Radiocontrast Agent",
+    type: "Advanced Materials",
     pattern:
       "20.6, 60\n22.8, 55\n25.8, 80\n26.8, 100\n28.8, 55\n31.5, 90\n32.8, 65\n42.6, 50",
     description:
@@ -3741,7 +3741,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polymethyl Methacrylate (PMMA)",
-    type: "Biopolymer",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.5, 100\n30.0, 30\n42.0, 15",
     description:
       "Also known as bone cement. Wide amorphous halos in XRD. Used to affix implants or remodel lost bone in orthopedics.",
@@ -3754,7 +3754,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polycaprolactone (PCL)",
-    type: "Biopolymer",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "21.4, 100\n22.1, 40\n23.7, 60\n29.5, 15",
     description:
       "Biodegradable polyester with a low melting point (~60 C). Widely used for 3D printed tissue engineering scaffolds and long-term implantable drug delivery devices.",
@@ -3767,7 +3767,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Poly(lactic-co-glycolic acid) (PLGA)",
-    type: "Biopolymer",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.5, 45\n16.8, 100\n19.5, 40\n22.5, 30",
     description:
       "A co-polymer synthesized by ring-opening co-polymerization. Tunable degradation rates make it ideal for biodegradable sutures and nano-particle drug carriers.",
@@ -3780,7 +3780,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "TiO2 Nanotubes (Biomedical)",
-    type: "Bioceramic / Nanomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.3, 100\n37.8, 25\n48.0, 35\n53.9, 20\n55.0, 20",
     description:
       "Formed via anodization on titanium implants. Enhances osteoblast adhesion, allows localized drug delivery, and provides antibacterial properties.",
@@ -3793,7 +3793,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Sulfate Hemihydrate",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.6, 35\n14.7, 100\n25.7, 45\n29.7, 85\n31.9, 65\n49.3, 30",
     description:
       "Plaster of Paris. Hardens upon wetting, resorbs relatively quickly in vivo. Used as an inexpensive bone void filler or binder.",
@@ -3806,7 +3806,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Sulfate Dihydrate",
-    type: "Bioceramic",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.6, 100\n20.7, 75\n23.4, 30\n29.1, 45\n31.1, 25\n33.3, 20",
     description: "Gypsum. The set phase of calcium sulfate void fillers.",
     formula: "CaSO4 · 2H2O",
@@ -3819,7 +3819,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Whitlockite",
-    type: "Bioceramic / Mineral",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "27.8, 60\n31.1, 100\n34.4, 55\n46.9, 20\n53.0, 15",
     description:
       "Second most abundant mineral in human bone. Magnesium-incorporated calcium phosphate. Shows superior osteogenic properties vs HAp in some studies.",
@@ -3832,7 +3832,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Meloxicam",
-    type: "Pharmaceutical",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.0, 100\n14.9, 60\n18.5, 45\n19.2, 35\n25.8, 55\n26.3, 25",
     description:
       "NSAID used to relieve pain and inflammation in rheumatic diseases and osteoarthritis.",
@@ -3844,7 +3844,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Curcumin",
-    type: "Pharmaceutical/Botanical",
+    type: "Biomaterials & Pharmaceuticals",
     pattern:
       "8.9, 85\n12.2, 30\n14.5, 50\n17.3, 100\n21.1, 40\n23.6, 30\n24.5, 60\n25.5, 30",
     description:
@@ -3858,7 +3858,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Olivine (Forsterite)",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "22.8, 45\n32.2, 90\n35.6, 100\n39.7, 40\n52.1, 30",
     description:
       "Magnesium-rich solid solution series. Common in Earth's mantle and meteorites.",
@@ -3875,7 +3875,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Pyroxene (Enstatite)",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "28.1, 80\n29.4, 60\n31.0, 100\n35.3, 40\n44.5, 20",
     description:
       "Common rock-forming inosilicate mineral in igneous and metamorphic rocks.",
@@ -3888,7 +3888,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Biotite",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "8.8, 100\n26.6, 80\n35.8, 30\n45.4, 25\n60.2, 20",
     description:
       "Dark-colored mica mineral, rich in iron and magnesium. Characterized by perfect basal cleavage.",
@@ -3901,7 +3901,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Muscovite",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "8.9, 100\n17.8, 30\n26.7, 95\n35.9, 20\n45.5, 40",
     description:
       "Light-colored, potassium-rich mica. Excellent thermal and electrical insulator.",
@@ -3914,7 +3914,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Kaolinite",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "12.3, 100\n24.9, 85\n35.0, 40\n38.4, 30\n45.6, 25\n62.3, 30",
     description:
       "A clay mineral, part of the group of industrial minerals. Widely used in paper and ceramic industries.",
@@ -3927,7 +3927,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Montmorillonite",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "5.8, 100\n19.8, 60\n28.4, 20\n35.0, 30\n61.8, 15",
     description:
       "Very soft phyllosilicate group of minerals that form when they precipitate from water solution as microscopic crystals, known as clay.",
@@ -3940,7 +3940,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Illite",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "8.8, 100\n17.7, 40\n26.6, 90\n35.0, 20\n61.8, 30",
     description:
       "Non-expanding, clay-sized, micaceous mineral. Common in sedimentary rocks and soils.",
@@ -3953,7 +3953,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Dolomite",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "30.9, 100\n33.5, 30\n41.1, 20\n50.5, 45\n51.1, 15",
     description:
       "An anhydrous carbonate mineral composed of calcium magnesium carbonate.",
@@ -3970,7 +3970,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aragonite",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "26.2, 100\n27.2, 50\n33.1, 60\n38.4, 20\n45.8, 40",
     description:
       "A carbonate mineral, one of the three most common naturally occurring crystal forms of calcium carbonate. Biogenic marine origin.",
@@ -3983,7 +3983,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ilmenite",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "32.6, 100\n35.3, 40\n41.2, 20\n53.0, 45\n62.4, 30",
     description:
       "A titanium-iron oxide mineral, heavily magnetic. It is the most important ore of titanium.",
@@ -3996,7 +3996,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Apatite (Fluorapatite)",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "25.8, 40\n31.8, 100\n32.2, 60\n33.0, 55\n39.8, 25",
     description:
       "A group of phosphate minerals. Fluorapatite is the most common variety and the primary source of phosphorus.",
@@ -4009,7 +4009,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zircon",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "20.0, 40\n26.9, 100\n35.6, 60\n43.8, 20\n53.5, 45",
     description:
       "A nesosilicate mineral. Plays an important part in radiometric dating (U-Pb).",
@@ -4022,7 +4022,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tourmaline (Schorl)",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "21.0, 40\n22.2, 100\n28.9, 60\n34.8, 70\n55.0, 30",
     description:
       "A crystalline boron silicate mineral compounded with elements such as aluminium, iron, magnesium, sodium, lithium, or potassium.",
@@ -4035,7 +4035,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Beryl",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "10.5, 100\n21.1, 40\n27.5, 80\n28.9, 60\n39.2, 20",
     description:
       "A mineral composed of beryllium aluminium cyclosilicate. Includes emerald and aquamarine.",
@@ -4048,7 +4048,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Almandine (Garnet)",
-    type: "Mineral",
+    type: "Minerals, Ores & Geology",
     pattern: "34.7, 100\n36.6, 60\n43.1, 40\n44.1, 40\n53.8, 20",
     description:
       "The most common kind of garnet. Deep red, transparent to translucent.",
@@ -4061,7 +4061,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Fullerene (C60)",
-    type: "Carbon Allotrope",
+    type: "Carbon & 2D Materials",
     pattern: "10.8, 100\n17.7, 60\n20.8, 85\n21.7, 30\n28.1, 40",
     description:
       "Carbon allotrope whose molecule consists of carbon atoms connected by single and double bonds so as to form a closed or partially closed mesh.",
@@ -4074,7 +4074,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Multi-walled Carbon Nanotubes (MWCNT)",
-    type: "Carbon Nanomaterial",
+    type: "Carbon & 2D Materials",
     pattern: "26.0, 100\n43.0, 40\n53.5, 10",
     description:
       "Multiple layers of graphite superimposed and rolled in on themselves to form a tubular shape. Shows characteristic prominent 002 peak.",
@@ -4086,7 +4086,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hard Carbon",
-    type: "Carbon Material",
+    type: "Carbon & 2D Materials",
     pattern: "23.5, 100\n43.8, 30",
     description:
       "Non-graphitizable carbon with a disordered, porous structure. Often used as sodium-ion or lithium-ion battery anodes.",
@@ -4098,7 +4098,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Glassy Carbon",
-    type: "Carbon Material",
+    type: "Carbon & 2D Materials",
     pattern: "23.0, 100\n43.5, 40",
     description:
       "Non-graphitizing, non-graphitizable carbon which combines glassy and ceramic properties with those of graphite.",
@@ -4110,7 +4110,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Anthracite",
-    type: "Coal/Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "25.0, 100\n43.2, 20",
     description:
       "Hard, compact variety of coal that has a submetallic luster. It has the highest carbon content.",
@@ -4122,7 +4122,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Boron Carbide (B4C)",
-    type: "Ceramic / Armor",
+    type: "Ceramics & Refractories",
     pattern: "23.5, 50\n34.9, 100\n37.8, 80\n71.8, 30",
     description:
       "Extremely hard ceramic, used in tank armor, bulletproof vests, and as a neutron absorber in nuclear reactors.",
@@ -4136,7 +4136,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconium Diboride (ZrB2)",
-    type: "Ultra-High-Temperature Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "25.3, 100\n32.6, 50\n41.5, 45\n53.8, 30\n62.9, 25",
     description:
       "Highly covalent refractory ceramic material with a hexagonal crystal structure. Used in hypersonic flight vehicles.",
@@ -4150,7 +4150,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hafnium Diboride (HfB2)",
-    type: "Ultra-High-Temperature Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "26.1, 100\n33.5, 45\n42.6, 40\n55.3, 35\n64.1, 20",
     description:
       "Ultra-high temperature ceramic with excellent resistance to thermal shock and oxidation. Used in ICBM reentry vehicles.",
@@ -4164,7 +4164,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium Diboride (TiB2)",
-    type: "Ceramic / Armor",
+    type: "Ceramics & Refractories",
     pattern: "27.6, 100\n34.2, 50\n44.5, 45\n61.2, 30\n68.4, 25",
     description:
       "Extremely hard ceramic with excellent heat conductivity and electrically conductive properties, used in impact-resistant armor.",
@@ -4178,7 +4178,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Uranium Silicide (U3Si2)",
-    type: "Nuclear Fuel",
+    type: "Nuclear & Shielding",
     pattern: "34.5, 100\n36.8, 60\n42.1, 80\n54.2, 40\n65.3, 30",
     description:
       "High-density advanced accident-tolerant nuclear fuel, considered as a replacement for UO2 for better thermal conductivity.",
@@ -4192,7 +4192,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gadolinium Oxide (Gd2O3)",
-    type: "Neutron Poison",
+    type: "Advanced Materials",
     pattern: "28.5, 100\n33.1, 30\n47.5, 60\n56.5, 50\n59.2, 20",
     description:
       "Burnable neutron poison mixed into UO2 fuels to control reactivity at the beginning of the core cycle. High neutron absorption cross-section.",
@@ -4206,7 +4206,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Erbium Oxide (Er2O3)",
-    type: "Neutron Poison",
+    type: "Advanced Materials",
     pattern: "29.3, 100\n34.0, 35\n48.6, 65\n57.8, 55\n60.5, 25",
     description:
       "Utilized as a burnable absorber in light water reactors. Its neutron absorption properties deplete smoothly.",
@@ -4220,7 +4220,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ag-In-Cd Alloy (80-15-5)",
-    type: "Control Rod Alloy",
+    type: "Metals & Alloys",
     pattern: "38.5, 100\n44.8, 45\n65.1, 25\n78.1, 30",
     description:
       "Silver-indium-cadmium alloy widely used for control rods in pressurized water reactors (PWRs).",
@@ -4234,7 +4234,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Kevlar (PPTA)",
-    type: "Polymer Armor",
+    type: "Polymers & Frameworks",
     pattern: "20.5, 100\n23.0, 80\n28.5, 15",
     description:
       "Semicrystalline aramid fiber. Exhibits high tensile strength-to-weight ratio. Used in soft body armor and helmets.",
@@ -4247,7 +4247,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "UHMWPE (Dyneema/Spectra)",
-    type: "Polymer Armor",
+    type: "Polymers & Frameworks",
     pattern: "21.4, 100\n23.8, 60\n36.2, 10",
     description:
       "Ultra-high-molecular-weight polyethylene. Yields the highest impact strength of any thermoplastic. Highly effective against ballistic threats.",
@@ -4261,7 +4261,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aluminum Oxynitride (ALON)",
-    type: "Transparent Armor",
+    type: "Advanced Materials",
     pattern: "31.5, 100\n36.5, 30\n45.0, 45\n59.5, 35\n65.2, 20",
     description:
       "Optically transparent polycrystalline ceramic. Highly impact-resistant substitute for bulletproof glass.",
@@ -4275,7 +4275,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium Aluminate Spinel",
-    type: "Transparent Armor / Inert Matrix",
+    type: "Advanced Materials",
     pattern: "31.2, 100\n36.8, 35\n44.8, 50\n59.3, 40\n65.2, 25",
     description:
       "Transparent ceramic used for armor windows and as an inert matrix for actinide transmutation fuels.",
@@ -4289,7 +4289,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Samarium Oxide (Sm2O3)",
-    type: "Neutron Poison",
+    type: "Advanced Materials",
     pattern: "28.1, 100\n32.5, 35\n46.8, 60\n55.5, 50\n58.2, 20",
     description:
       "Rare earth oxide. Samarium has a high cross-section for thermal neutrons, making it useful in reactor control rods.",
@@ -4303,7 +4303,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead Tungstate (PbWO4)",
-    type: "Radiation Detector",
+    type: "Advanced Materials",
     pattern: "27.4, 100\n29.2, 50\n32.8, 40\n45.6, 30\n54.2, 25",
     description:
       "Dense crystal scintillator. Excellent for detecting gamma rays and is widely used in high-energy physics calorimeters.",
@@ -4317,7 +4317,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cadmium Tungstate (CdWO4)",
-    type: "Radiation Detector",
+    type: "Advanced Materials",
     pattern: "28.5, 100\n29.8, 55\n34.1, 45\n47.2, 35\n53.8, 20",
     description:
       "High-density, highly transparent scintillator crystal used for CT and security screening systems.",
@@ -4331,7 +4331,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Beryllium Oxide (BeO)",
-    type: "Neutron Moderator",
+    type: "Nuclear & Shielding",
     pattern: "38.5, 45\n41.5, 100\n43.8, 70\n62.4, 30",
     description:
       "High thermal conductivity ceramic. Acts as a neutron moderator and reflector in specialty nuclear reactors.",
@@ -4345,7 +4345,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconium Carbide (ZrC)",
-    type: "TRISO Fuel Coating",
+    type: "Advanced Materials",
     pattern: "33.1, 100\n38.2, 85\n55.4, 60\n66.1, 40\n69.5, 30",
     description:
       "Refractory metal carbide. Sometimes used as a coating material to encapsulate TRISO nuclear fuel particles.",
@@ -4359,7 +4359,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth Germanate (BGO)",
-    type: "Radiation Detector",
+    type: "Advanced Materials",
     pattern: "27.5, 50\n31.0, 100\n48.0, 40\n54.5, 30\n57.1, 20",
     description:
       "Intrinsic scintillator. Used to detect gamma radiation in high-energy physics, aerospace, and medical imaging.",
@@ -4372,7 +4372,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sodium Iodide doped with Thallium (NaI:Tl)",
-    type: "Radiation Detector",
+    type: "Advanced Materials",
     pattern: "26.8, 100\n38.5, 50\n47.5, 40\n56.2, 30\n63.8, 20",
     description:
       "The most widely used scintillator material. High light yield for detecting gamma rays and X-rays.",
@@ -4385,7 +4385,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconium Hydride (ZrH2)",
-    type: "Neutron Moderator",
+    type: "Nuclear & Shielding",
     pattern: "34.2, 100\n39.5, 75\n57.1, 40\n68.2, 30",
     description:
       "Solid hydrogen-rich material used as a neutron moderator in TRIGA training and research reactors.",
@@ -4398,7 +4398,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polonium (Po)",
-    type: "Radioactive Element",
+    type: "Advanced Materials",
     pattern: "30.1, 100\n35.2, 80\n45.3, 60\n55.4, 40\n60.5, 30",
     description:
       "Rare and highly radioactive metal with no stable isotopes. Discovered by Marie and Pierre Curie. Intense alpha emitter used in static eliminators and heat sources.",
@@ -4415,7 +4415,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polonium Dioxide (PoO2)",
-    type: "Radioactive Oxide",
+    type: "Ceramics & Refractories",
     pattern: "28.5, 100\n33.1, 75\n47.2, 50\n56.3, 40\n59.1, 30",
     description:
       "A chemical compound of polonium and oxygen. One of the few characterized compounds of polonium. Exists in face-centered cubic and tetragonal forms.",
@@ -4428,7 +4428,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polonium-Beryllium (Po-Be)",
-    type: "Neutron Source",
+    type: "Advanced Materials",
     pattern: "29.5, 100\n34.2, 40\n45.5, 45\n57.2, 35\n65.1, 25",
     description:
       "Alloy or mixture used as a portable neutron source. The alpha particles from Polonium induce neutron emission from Beryllium via the (alpha,n) reaction.",
@@ -4444,7 +4444,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Plutonium (Delta Phase)",
-    type: "Actinide",
+    type: "Advanced Materials",
     pattern: "31.5, 100\n36.5, 45\n52.8, 60\n62.5, 20",
     description:
       "Face-centered cubic phase of plutonium, typically stabilized at room temperature by alloying with small amounts of gallium or aluminum. Features anomalous density expansion.",
@@ -4457,7 +4457,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Plutonium Dioxide (PuO2)",
-    type: "Actinide Oxide",
+    type: "Ceramics & Refractories",
     pattern: "28.6, 100\n33.1, 80\n47.5, 60\n56.4, 40\n59.2, 30",
     description:
       "Stable ceramic oxide form of plutonium. Extremely insoluble. Commonly utilized in mixed oxide (MOX) commercial nuclear reactor fuels and radioisotope thermoelectric generators (RTGs).",
@@ -4470,7 +4470,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Plutonium (Alpha Phase)",
-    type: "Actinide",
+    type: "Advanced Materials",
     pattern: "20.1, 40\n25.5, 60\n30.2, 100\n32.5, 80\n40.1, 45",
     description:
       "The standard room-temperature phase of pure, unalloyed plutonium. Features a highly complex monoclinic crystal structure and is exceptionally dense and brittle.",
@@ -4483,7 +4483,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead(II) Oxide (Litharge)",
-    type: "Oxide",
+    type: "Ceramics & Refractories",
     pattern: "28.6, 100\n31.8, 55\n48.6, 25\n54.2, 10",
     description:
       "Tetragonal form of lead(II) oxide. Important industrial compound in lead-acid batteries and glass.",
@@ -4495,7 +4495,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth(III) Oxide",
-    type: "Oxide",
+    type: "Ceramics & Refractories",
     pattern: "27.4, 100\n33.2, 80\n46.5, 40\n55.4, 30",
     description:
       "Important bismuth compound used to produce bismuth glass and as an oxygen ion conductor.",
@@ -4511,7 +4511,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Antimony Trioxide",
-    type: "Oxide",
+    type: "Ceramics & Refractories",
     pattern: "13.7, 100\n27.6, 85\n32.1, 40\n45.5, 30",
     description:
       "Most important commercial compound of antimony. Widely used as a flame retardant synergist.",
@@ -4523,7 +4523,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tellurium Dioxide",
-    type: "Oxide",
+    type: "Ceramics & Refractories",
     pattern: "26.8, 100\n31.5, 60\n46.7, 40\n55.0, 20",
     description:
       "Crucial oxide of tellurium, showing excellent acousto-optic properties.",
@@ -4535,7 +4535,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Germanium Dioxide",
-    type: "Oxide",
+    type: "Ceramics & Refractories",
     pattern: "20.6, 100\n25.8, 45\n35.2, 35\n47.1, 20",
     description:
       "An oxide of germanium, used as a precursor for metallic germanium and in wide-angle camera lenses.",
@@ -4547,7 +4547,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Scandium(III) Oxide",
-    type: "Rare Earth Oxide",
+    type: "Ceramics & Refractories",
     pattern: "30.8, 100\n35.1, 30\n50.5, 45\n60.4, 25",
     description:
       "Rare-earth oxide with high melting point. Used in high-intensity discharge lamps and aerospace alloys.",
@@ -4559,7 +4559,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lutetium(III) Oxide",
-    type: "Rare Earth Oxide",
+    type: "Ceramics & Refractories",
     pattern: "29.7, 100\n34.5, 35\n49.3, 50\n58.6, 30",
     description:
       "Dense, white rare-earth oxide. Used to make transparent ceramics and in specialty glass.",
@@ -4571,7 +4571,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Niobium Pentoxide",
-    type: "Oxide",
+    type: "Ceramics & Refractories",
     pattern: "22.6, 100\n28.3, 80\n36.6, 50\n46.1, 40",
     description:
       "Colorless insoluble solid that is the main precursor to all other materials made of niobium.",
@@ -4583,7 +4583,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Wüstite (FeO)",
-    type: "Oxide / Mineral",
+    type: "Ceramics & Refractories",
     pattern: "36.1, 55\n41.9, 100\n60.6, 45\n72.5, 20",
     description:
       "Mineral form of iron(II) oxide found with meteorites and native iron. It is non-stoichiometric.",
@@ -4595,7 +4595,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Fluoride",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "38.7, 100\n45.0, 50\n65.5, 30\n78.8, 15",
     description:
       "Inorganic compound with the highest UV transmission of any material. Also used in molten salt reactors.",
@@ -4607,7 +4607,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sodium Fluoride",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "38.8, 100\n45.0, 50\n65.6, 30\n78.8, 15",
     description:
       "Colorless solid highly distinct from NaCl. Used widely in dental applications for cavity prevention.",
@@ -4619,7 +4619,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium Fluoride",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "27.3, 100\n41.2, 50\n54.3, 30\n68.3, 20",
     description:
       "White crystalline salt. Transparent over a wide range of wavelengths, useful as anti-reflective coating.",
@@ -4631,7 +4631,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aluminum Fluoride",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "17.3, 50\n25.3, 100\n43.5, 40\n52.4, 25",
     description:
       "Primarily used in the production of aluminum. Also used in glass and as a fermentation inhibitor.",
@@ -4643,7 +4643,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Potassium Bromide",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "23.4, 100\n27.1, 55\n39.0, 30\n46.1, 20",
     description:
       "Typical ionic salt, widely used as an anticonvulsant and a sedative in the late 19th century. Now used in FTIR spectroscopy.",
@@ -4659,7 +4659,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Potassium Iodide",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "21.5, 100\n24.9, 50\n35.7, 30\n42.1, 20",
     description:
       "Used in photography and medicinally as an iodine supplement or blocking agent against radioactive iodine.",
@@ -4671,7 +4671,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cesium Iodide",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "24.9, 100\n35.7, 40\n44.2, 30\n51.5, 20",
     description:
       "Ionic compound used frequently as the input phosphor of an x-ray image multiplier tube.",
@@ -4683,7 +4683,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cesium Chloride",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "21.4, 100\n31.0, 45\n38.4, 30\n44.8, 20",
     description:
       "The archetype for the simple cubic crystal structure. Widely used in ultracentrifugation.",
@@ -4695,7 +4695,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silver Bromide",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "26.7, 100\n31.0, 50\n44.3, 30\n52.5, 25",
     description:
       "Soft, pale-yellow, water-insoluble salt well known for unusual sensitivity to light. Foundation of photographic materials.",
@@ -4707,7 +4707,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Copper(I) Iodide",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "25.5, 100\n29.5, 55\n42.3, 30\n50.0, 25",
     description:
       "Dense, white, crystalline substance, serving as an important starting material for fine chemicals and p-type semiconductor.",
@@ -4719,7 +4719,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead(II) Iodide",
-    type: "Halide",
+    type: "Minerals, Ores & Geology",
     pattern: "12.8, 100\n25.7, 60\n38.6, 40\n51.9, 25",
     description:
       "Bright yellow solid at room temperature, it precipitates out of solution in the Golden Rain experiment.",
@@ -4734,7 +4734,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "LLZO (Li7La3Zr2O12)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "16.8, 100\n27.4, 45\n30.8, 85\n43.5, 40\n51.2, 50\n57.5, 30",
     description:
       "Lithium Lanthanum Zirconium Oxide (LLZO), a promising garnet-type solid electrolyte with high ionic conductivity for solid-state batteries.",
@@ -4750,7 +4750,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "LGPS (Li10GeP2S12)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "14.5, 60\n17.1, 100\n19.8, 45\n28.4, 80\n29.9, 70\n32.2, 35",
     description:
       "Lithium Germanium Phosphorus Sulfide (LGPS), showing extremely high lithium ionic conductivity of 12 mS/cm at room temperature.",
@@ -4763,7 +4763,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "LATP (Li1.3Al0.3Ti1.7(PO4)3)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "20.8, 100\n24.5, 60\n29.4, 40\n33.2, 75\n36.5, 30\n47.6, 50",
     description:
       "Lithium Aluminum Titanium Phosphate (LATP), a NASICON-type solid electrolyte with high air stability and high lithium ionic conductivity.",
@@ -4779,7 +4779,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "FAPbI3 Perovskite",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "11.8, 100\n13.9, 35\n24.2, 80\n28.0, 75\n31.5, 40\n42.6, 30",
     description:
       "Formamidinium Lead Iodide, an outstanding organic-inorganic halide perovskite with a narrow bandgap ideal for high-efficiency solar cells.",
@@ -4792,7 +4792,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Prussian Blue Na-Cathode",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "17.4, 100\n24.7, 85\n35.1, 60\n39.4, 40\n49.9, 50",
     description:
       "Sodium iron hexacyanoferrate, a high-rate coordination framework compound used as a low-cost cathode in sodium-ion energy storage.",
@@ -4805,7 +4805,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium Hydride",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "27.9, 100\n35.7, 75\n39.8, 25\n54.5, 65\n66.7, 30",
     description:
       "Magnesium hydride, an excellent solid-state medium for reversible hydrogen gas storage with high theoretical capacity (7.6 wt%).",
@@ -4818,7 +4818,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "BNNT (Boron Nitride Nanotubes)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "26.5, 100\n42.8, 45\n43.8, 60\n50.1, 20\n59.8, 30",
     description:
       "Ultralight crystalline nanotubes of BN with incredible high-temperature stability, tensile strength, and neutron shielding performance due to Boron-10 content.",
@@ -4835,7 +4835,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gd-YSZ (Gadolinia-doped Zirconia)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "30.2, 100\n35.0, 45\n50.3, 75\n59.8, 60\n62.7, 30",
     description:
       "Gadolinium-stabilized zirconia used as an advanced burnable absorber/poison in high-power reactors and highly robust thermal barrier coatings.",
@@ -4852,7 +4852,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "U3Si5 Fuel",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "25.8, 80\n34.2, 100\n39.5, 60\n44.8, 35\n48.2, 40",
     description:
       "Uranium silicide (U3Si5) phase, investigated as a potential accident-tolerant nuclear fuel (ATF) with remarkable high-temperature thermal conductivity.",
@@ -4868,7 +4868,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "SiC-SiC Composite",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "35.6, 100\n60.0, 80\n71.8, 90\n75.4, 30",
     description:
       "Silicon Carbide continuous fiber-reinforced Silicon Carbide matrix composite. Exhibiting exceptional resistance to irradiation and high temperatures.",
@@ -4885,7 +4885,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "LaBr3:Ce Scintillator",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "14.2, 45\n23.8, 100\n27.5, 65\n39.2, 50\n41.5, 30",
     description:
       "Lanthanum Bromide doped with Cerium, a state-of-the-art scintillator detector material providing exceptionally high light output and energy resolution.",
@@ -4902,7 +4902,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "TiCN Defensive Armor",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "36.8, 100\n42.6, 95\n61.8, 55\n74.0, 40\n78.1, 20",
     description:
       "Titanium Carbonitride is an extremely hard ceramic material widely used in premium defensive laminate armors, anti-ballistic plating, and extreme wear coatings.",
@@ -4919,7 +4919,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "LYSO:Ce Scintillator Detector",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "29.1, 100\n30.7, 85\n33.8, 50\n42.4, 35\n49.6, 40",
     description:
       "Cerium-doped Lutetium Yttrium Orthosilicate. An outstanding, high-density scintillation crystal featuring high light yield, exceptionally fast decay time, and superior radiation hardness for defense-grade gamma recorders and electromagnetic calorimeters.",
@@ -4939,7 +4939,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "DU-0.75Ti Structural Shielding",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "35.1, 100\n36.3, 45\n38.7, 65\n39.2, 60\n50.2, 35",
     description:
       "High-density depleted uranium alloyed with 0.75 wt% Titanium. Heat-treated to a high-strength martensitic structure, optimizing both extraordinary yield strength and ballistics performance for heavy composite defense shielding.",
@@ -4958,7 +4958,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barite Heavy Concrete (Protection)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "22.8, 100\n24.9, 80\n28.7, 95\n32.8, 75\n42.9, 40",
     description:
       "Radiation-proof heavy aggregate concrete enriched with barite (BaSO4) crystals. Specifically engineered for extreme gamma-ray and neutron attenuation in defensive vaults, secondary biological shielding structures, and nuclear reactor containment.",
@@ -4977,7 +4977,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cubic 3C-SiC Semiconductor",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "35.6, 100\n41.4, 25\n60.0, 70\n71.8, 45\n75.5, 30",
     description:
       "Beta phase cubic Silicon Carbide (3C-SiC). Possesses peerless radiation hardness, broad bandgap, and extremely high thermal stability, fitting it perfectly for defense microcircuits, nuclear core in-situ detectors, and space-grade sensors.",
@@ -4997,7 +4997,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Coral Aragonite Scaffold",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "26.2, 100\n33.1, 75\n37.9, 45\n45.8, 60\n52.5, 30",
     description:
       "Primary biocomponent scaffold derived from marine aragonite structures, offering superior porosity and biocompatibility as extreme bone graft materials.",
@@ -5014,7 +5014,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Pyrolytic Carbon",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "24.5, 100\n43.8, 40\n78.2, 15",
     description:
       "Isotropic turbostratic pyrolytic carbon featuring extreme fatigue and thromboresistance, used at all joints and leaflets in prosthetic heart valves.",
@@ -5031,7 +5031,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Akermanite Ceramic",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "31.3, 100\n24.0, 35\n28.9, 50\n36.1, 80\n51.9, 25",
     description:
       "A calcium magnesium silicate bioceramic exhibiting an optimal degradation rate match with bone growth and very low local alkalinity release.",
@@ -5048,7 +5048,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "A-W Glass-ceramic",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "31.8, 100\n32.2, 95\n25.3, 50\n30.0, 75\n49.5, 40",
     description:
       "High mechanical strength glass-ceramic containing crystalline osteoconductive oxyapatite (Ca10(PO4)6O) and wollastonite (CaSiO3) phases.",
@@ -5065,7 +5065,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Atorvastatin Calcium",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.4, 100\n9.2, 85\n11.9, 60\n17.0, 70\n19.5, 80\n21.6, 50",
     description:
       "High-purity crystalline form of atorvastatin calcium trihydrate, a cholesterol lowering statin. Solubilities and stabilities are monitored highly via crystallinity shifts.",
@@ -5082,7 +5082,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "ZTA Femoral Joint",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "35.1, 100\n43.3, 90\n57.5, 85\n30.2, 45\n50.3, 30",
     description:
       "Zirconia-toughened alumina specifically tailored for hip replacements, using stress-induced tetragonal ZrO2 transformation to interrupt crack growth in Corundum matrix.",
@@ -5099,7 +5099,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Biphasic Calcium Phosphate (HAp/beta-TCP)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.8, 45\n31.0, 100\n31.8, 90\n32.2, 85\n34.1, 40\n49.5, 35",
     description:
       "An engineered bioceramic mixture consisting of stable Hydroxyapatite (HAp) and soluble beta-Tricalcium Phosphate (beta-TCP) in an optimized osseoconductive 60/40 ratio.",
@@ -5119,7 +5119,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Paclitaxel Crystalline Form I (Taxol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.2, 100\n9.8, 80\n11.1, 65\n12.5, 45\n15.4, 55\n20.2, 70",
     description:
       "A key complex microtubule-stabilizing chemotherapeutic drug. Crystallinity monitoring is key during drug processing, formulation development, and shelf-stability validation.",
@@ -5138,7 +5138,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gelatin Methacryloyl (GelMA) Bio-Ink",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.2, 30\n20.5, 100\n40.1, 15",
     description:
       "A photosensitive bio-compatible crosslinkable hydrogel matrix synthesized from porcine gelatin and methacrylic anhydride. The benchmark matrix for complex extrusion bioprinting.",
@@ -5157,7 +5157,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Beta-Chitin Diatomaceous Biomaterial",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.5, 100\n19.8, 65\n26.4, 25",
     description:
       "Parallel-chain beta polymer form of N-acetylglucosamine extracted from marine squid pen, displaying accelerated swelling capacity and superior wound integration.",
@@ -5176,7 +5176,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "AlSb Semiconductor",
-    type: "Semiconductors & Electronics",
+    type: "Semiconductors & Photonics",
     pattern: "25.1, 100\n41.5, 80\n49.1, 75\n59.5, 45\n69.4, 25",
     description:
       "Aluminum antimonide (AlSb) is an indirect bandgap III-V semiconductor showing significant potential for high-temperature and high-power optoelectronic devices.",
@@ -5193,7 +5193,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "MoTe2 monolayer",
-    type: "Semiconductors & Electronics",
+    type: "Semiconductors & Photonics",
     pattern: "13.2, 100\n26.6, 45\n39.8, 65\n47.5, 20\n55.3, 35",
     description:
       "Molybdenum ditelluride (MoTe2) is an emergent transition metal dichalcogenide (TMD) showing dynamic phase-transition (2H to 1T') behaviour for next-generation nanoelectronics and valleyspin devices.",
@@ -5210,7 +5210,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Stannate Perovskite",
-    type: "Semiconductors & Electronics",
+    type: "Semiconductors & Photonics",
     pattern: "21.8, 45\n31.1, 100\n38.4, 30\n44.6, 50\n55.3, 40",
     description:
       "Barium stannate (BaSnO3) is a wide-bandgap alkaline-earth stannate perovskite exhibiting extremely high room-temperature electron mobility upon La-doping.",
@@ -5227,7 +5227,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sb2Se3 Photovoltaic absorber",
-    type: "Semiconductors & Electronics",
+    type: "Semiconductors & Photonics",
     pattern: "15.2, 45\n28.2, 100\n31.1, 80\n40.5, 55\n45.3, 30",
     description:
       "Antimony selenide (Sb2Se3) is a promising earth-abundant, non-toxic, quasi-one-dimensional metal chalcogenide solar absorber with an optimal 1.2 eV direct bandgap.",
@@ -5244,7 +5244,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "CZTS Kesterite",
-    type: "Semiconductors & Electronics",
+    type: "Semiconductors & Photonics",
     pattern: "28.5, 100\n33.0, 15\n47.3, 75\n56.1, 45",
     description:
       "Copper zinc tin sulfide (CZTS) is an eco-friendly kesterite mineral semiconductor targeted as a low-cost, exceptionally high-absorption coefficient solar cell absorber.",
@@ -5261,7 +5261,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Fe3GeTe2 layered Ferromagnet",
-    type: "Semiconductors & Electronics",
+    type: "Semiconductors & Photonics",
     pattern: "14.8, 100\n29.8, 40\n42.1, 55\n45.5, 30\n60.2, 25",
     description:
       "Iron germanium telluride (Fe3GeTe2) is a highly prominent layered van de Waals metallic ferromagnet with near-room-temperature Curie temperatures, extremely key for 2D spintronic devices.",
@@ -5278,7 +5278,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Portlandite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "18.1, 100\n34.1, 80\n47.1, 50",
     description:
       "Pure crystalline Calcium Hydroxide,Ca(OH)2. A key biological cement hydration phase critical for concrete stabilization and alkali alkali-silica resistance studies.",
@@ -5297,7 +5297,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ettringite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "9.1, 100\n15.8, 60\n22.9, 40",
     description:
       "Hydrated calcium aluminum sulfate mineral. Formed during cement hydration. Crystalline needle-like growths provide high initial strength but may cause concrete scaling and deterioration when expansive.",
@@ -5316,7 +5316,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Orthorhombic Sulfur (S8)",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "23.1, 100\n25.8, 40\n27.7, 35",
     description:
       "Alpha-sulfur (cyclo-octasulfur). The most stable allotrope of sulfur at room temperature, monitored operando for phase conversion studies in solid-state and liquid-electrolyte Li-S battery systems.",
@@ -5335,7 +5335,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Sulfide (Li2S)",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "27.0, 100\n44.8, 60\n53.1, 45",
     description:
       "Antifluorite crystal structure of lithium sulfide. Highly relevant as the fully discharged compound in advanced high-energy-density sulfur-based electrochemical cells.",
@@ -5355,7 +5355,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ruthenium Dioxide (RuO2)",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "28.0, 100\n35.1, 85\n54.3, 65",
     description:
       "Rutile-structured conductive metal oxide of ruthenium. Demonstrates spectacular metallic conductivity and pseudocapacitive charge storage in hybrid MXene-graphene pseudocapacitors.",
@@ -5374,7 +5374,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chlorite (Metamorphic)",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "6.3, 80\n12.6, 100\n18.9, 45\n25.2, 60",
     description:
       "Sheet silicate mineral of the chlorite group. A hallmark index mineral representing low-grade low-temperature metamorphic greenschist facies.",
@@ -5393,7 +5393,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Actinolite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "10.5, 70\n28.1, 90\n31.4, 50",
     description:
       "Green-colored monoclinic amphibole silicate mineral. Forms characteristic fibrous or needle-like crystals in mafic greenschist systems.",
@@ -5412,7 +5412,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Epidote",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "23.3, 50\n28.0, 100\n34.2, 75",
     description:
       "Sorosilicate mineral featuring mixed calcium and aluminum-iron complexes. Widely found in subduction zone greenschist and epidote-amphibolite suites.",
@@ -5431,7 +5431,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Stainless Steel 904L",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.4, 100\n50.5, 45\n74.2, 25\n90.2, 20",
     description:
       "A highly alloyed low-carbon austenitic stainless steel containing copper. Provides extreme defense against stress corrosion cracking and localized crevice attacks.",
@@ -5450,7 +5450,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ti-15Mo High-Beta Alloy",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "38.2, 100\n55.4, 40\n69.1, 55\n82.3, 30",
     description:
       "High-performance metastable beta Titanium alloy containing 15 wt% Molybdenum. Exhibits exceptional biocompatibility, superior corrosion resistance, and a famously lowered elastic modulus to minimize stress-shielding in implants.",
@@ -5469,7 +5469,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Invar 36 Low-Expansion Alloy",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.5, 100\n50.7, 42\n74.6, 22",
     description:
       "A unique 36% nickel-iron alloy celebrated for its uniquely near-zero thermal expansion coefficient over room and cryogenic temperature ranges, originating from negative volume changes of the Invar effect.",
@@ -5488,7 +5488,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Stellite 6 Cobalt-Base Alloy",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "41.2, 100\n43.8, 85\n47.1, 40\n75.8, 25",
     description:
       "Cobalt-chromium-tungsten alloy optimized for severe mechanical wear, sliding contact, and high-temperature oxidation. High carbide density within cobalt solid solution ensures outstanding hot hardness.",
@@ -5507,7 +5507,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chalcocite (Cu2S)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "37.6, 100\n46.1, 65\n48.6, 45\n54.4, 30",
     description:
       "Copper(I) Sulfide. A crucial superionic conductor and thermoelectric material that exhibits very low thermal conductivity due to liquid-like copper ion hopping/diffusion.",
@@ -5527,7 +5527,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cartridge Brass C2600",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "42.1, 100\n49.0, 40\n71.9, 25\n87.1, 20",
     description:
       "Classic 70-30 single-phase alpha Brass (Copper-Zinc alloy) showing excellent ductility, easy cold working, and excellent corrosion resistance in non-acidic environments.",
@@ -5546,7 +5546,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cupronickel 70-30",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.1, 100\n50.2, 45\n73.9, 20\n89.6, 15",
     description:
       "Copper-Nickel alloy possessing 30% Nickel. Highly resilient to seawater biocorrosion, turbulence, and stress cracking, making it premier for marine heat exchanges.",
@@ -5565,7 +5565,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Indium(III) Oxide (In2O3)",
-    type: "Oxide Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "30.5, 100\n35.4, 45\n51.0, 35\n60.6, 25",
     description:
       "A transparent conducting n-type semiconductor oxide. Forms the base material for ITO (Indium Tin Oxide), dominating the global transparent electrode market.",
@@ -5585,7 +5585,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead(II) Fluoride (PbF2)",
-    type: "Halide Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "26.8, 100\n44.1, 55\n52.2, 35\n65.0, 25",
     description:
       "A dense fluoride material with high superionic conductivity at high temperatures. Used extensively in infrared-transmitting glasses and dense scintillators.",
@@ -5604,7 +5604,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Thallium(I) Bromide (TlBr)",
-    type: "Halide Ceramic",
+    type: "Ceramics & Refractories",
     pattern: "27.4, 100\n45.6, 60\n54.2, 35\n67.1, 20",
     description:
       "A heavy metal halide semiconductor characterized by high atomic number and density, making it exceptional for room-temperature x-ray and gamma-ray radiation detectors.",
@@ -5624,7 +5624,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Moissanite (SiC)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "35.6, 100\n41.4, 75\n60.0, 50\n71.8, 30",
     description:
       "Naturally occurring Silicon Carbide (SiC) discovered in meteoric craters. An extremely rare geological mineral with brilliant dispersion and hardness close to diamond.",
@@ -5643,7 +5643,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Diopside",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "29.8, 100\n35.5, 60\n41.0, 45\n42.3, 35",
     description:
       "A monoclinic pyroxene mineral frequently found in igneous and metamorphic rocks. Serves as a vital indicator mineral for tracing kimberlite pipes and deep mantle conditions.",
@@ -5662,7 +5662,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lonsdaleite (Hex. Diamond)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "41.1, 100\n43.8, 85\n75.3, 40\n91.5, 20",
     description:
       "A rare hexagonal polymorph of Carbon, famously created when meteors containing graphite strike the Earth, triggering shock-phase transformations to extreme hardness.",
@@ -5681,7 +5681,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Shungite",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "25.0, 100\n43.5, 30\n78.0, 15",
     description:
       "A unique Precambrian carbonaceous rock composed mostly of non-crystalline mineraloid carbon, containing trace amounts of natural fullerenes.",
@@ -5700,7 +5700,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Beryllium Copper (C17200)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.2, 100\n50.4, 45\n74.0, 20",
     description:
       "A copper alloy with 1.8-2% Beryllium. Combines high strength with non-magnetic and non-sparking qualities, making it ideal for hazardous environments and aerospace.",
@@ -5719,7 +5719,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium Alloy WE43",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "32.2, 100\n34.4, 40\n36.6, 35\n47.8, 25",
     description:
       "A high-strength Magnesium alloy containing Yttrium and Rare Earths (Nd). Offers excellent high-temperature performance up to 300°C and inherent biodegradability.",
@@ -5738,7 +5738,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tantalum-10W Alloy",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "38.5, 100\n55.6, 35\n69.6, 50\n82.5, 20",
     description:
       "Tantalum alloyed with 10% Tungsten. Provides excellent corrosion resistance coupled with extreme high-temperature strength, widely used in caustic chemical reactors.",
@@ -5757,7 +5757,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Niobium-Tin (Nb3Sn)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "35.1, 100\n50.5, 45\n63.4, 30\n75.0, 25",
     description:
       "An intermetallic, type-II superconductor alloy widely used to generate extremely powerful magnetic fields in MRI systems and particle accelerators.",
@@ -5776,7 +5776,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Baghdadite Ceramic",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "30.1, 100\n31.2, 85\n34.8, 50\n49.9, 30",
     description:
       "A state-of-the-art zirconium-calcium-silicate bioceramic showing outstanding osteogenic activity, high fracture toughness, and excellent bone scaffold integration.",
@@ -5795,7 +5795,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Struvite Bone Cement (MgNH4PO4·6H2O)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "15.8, 100\n16.5, 75\n20.8, 60\n31.9, 45",
     description:
       "A rapid-setting, high-early-strength magnesium phosphate bone cement alternative to conventional calcium phosphate cements, providing ultra-fast stabilization.",
@@ -5814,7 +5814,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Piroxicam Crystalline Form I",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.6, 100\n11.8, 80\n14.5, 65\n21.2, 55\n27.8, 40",
     description:
       "Form I is the thermodynamic polymorph of piroxicam, a nonsteroidal anti-inflammatory drug. Rigorous powder XRD phase identification prevents dangerous polymorph conversion.",
@@ -5833,7 +5833,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Graphene Oxide Bio-Nanosheet",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.2, 100\n24.5, 30\n43.1, 15",
     description:
       "A functionalized carbonaceous biomarker carrier designed for targeted drug delivery, photothermal cancer therapies, and advanced biosensing platforms.",
@@ -5852,7 +5852,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cannabidiol Crystalline Polymorph",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.5, 100\n11.9, 85\n13.1, 70\n17.8, 50\n22.3, 40",
     description:
       "High-purity crystalline form of cannabidiol (CBD) extracted and recrystallized. Crystallographic monitoring controls the purity of active phytocannabinoid formulations.",
@@ -5871,7 +5871,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Andradite Garnet (Ca3Fe2(SiO4)3)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "28.1, 100\n31.8, 85\n34.2, 50\n47.5, 30",
     description:
       "A calcium-iron species of the silicate garnet group frequent in metamorphic skarns. Its high refractive index and dispersion have made it prized in mineralogy.",
@@ -5890,7 +5890,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Coesite (SiO2 High-Pressure Polymorph)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "14.1, 100\n19.2, 75\n28.4, 60\n34.5, 45",
     description:
       "A high-pressure, high-density polymorph of silicon dioxide (silica). Crucial index mineral used to verify high-pressure metamorphic zones and meteorite impact sites.",
@@ -5909,7 +5909,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chaoite (White Carbon Allotrope)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "18.9, 100\n25.4, 80\n41.5, 40\n73.2, 20",
     description:
       "A shock-induced hexagonal polymorph of carbon intermediate between graphite and diamond. Found specifically in meteoritic shock-altered graphite gneiss.",
@@ -5928,7 +5928,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Wurtzite (Hexagonal ZnS)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "26.9, 100\n28.5, 85\n30.5, 75\n47.6, 50\n51.8, 40",
     description:
       "The hexagonal, high-temperature crystalline polymorph of zinc sulfide. Forms in localized hydrothermal veins and is a key structural prototype.",
@@ -5947,7 +5947,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Crocidolite (Blue Asbestos Amphibole)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "10.5, 100\n27.8, 80\n29.1, 65\n34.2, 50",
     description:
       "An asbestiform monoclinic amphibole silicate also known as blue asbestos. Highly prized historically for its immense tensile strength, now monitored for geological hazards.",
@@ -5966,7 +5966,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Uranyl Fluoride (UO2F2)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "15.6, 100\n21.8, 80\n31.2, 60\n38.4, 40",
     description:
       "An inorganic compound of uranium and fluorine, formed as an intermediate in the hydrolysis of uranium hexafluoride. It is highly soluble and crystallized as rhombohedral sheets.",
@@ -5985,7 +5985,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silver Subfluoride (Ag2F)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "22.1, 100\n32.4, 70\n39.8, 55\n45.6, 35",
     description:
       "An unusual subhalide of silver forming bronze-colored crystals with metallic electrical conductivity. Composed of alternating layers of silver atoms and fluorine atoms.",
@@ -6004,7 +6004,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ytterbium(III) Oxyfluoride (YbOF)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "28.5, 100\n33.1, 85\n47.8, 50\n56.3, 30",
     description:
       "A mixed-anion rare-earth oxyhalide demonstrating excellent thermal stability and upconversion luminescence host matrix potential. Extremely resistant to fluorine plasma.",
@@ -6023,7 +6023,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth Oxyiodide (BiOI)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "29.6, 100\n31.7, 75\n45.5, 60\n55.2, 40",
     description:
       "A layer-structured semiconductor with a narrow band gap of 1.7-1.9 eV. Its strong visible-light absorption makes it a premier photocatalytic material and solar absorber.",
@@ -6042,7 +6042,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Rhenium Trioxide (ReO3)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "23.4, 100\n33.2, 75\n41.1, 50\n48.2, 35",
     description:
       "The only metal oxide exhibiting metallic-like electrical resistivity comparable to copper. Crystallizes in a corner-sharing octahedral framework, serving as a structural prototype.",
@@ -6061,7 +6061,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sodium Bromide (NaBr)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "29.7, 100\n42.5, 65\n53.2, 30\n62.4, 15",
     description:
       "An inorganic compound widely used as an anticonvulsant and a sedative in the late 19th and early 20th centuries. Similar in structure to NaCl.",
@@ -6076,7 +6076,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sodium Iodide (NaI)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "27.4, 100\n39.1, 55\n48.7, 35\n57.1, 20",
     description:
       "A white, crystalline salt, used in radiation detection (NaI(Tl) scintillators), as well as in the treatment of iodine deficiency.",
@@ -6095,7 +6095,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Chloride (LiCl)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "30.1, 100\n43.4, 60\n54.2, 35\n63.8, 25",
     description:
       "A highly hygroscopic compound. It is mainly used for the production of lithium metal by electrolysis of a LiCl/KCl melt.",
@@ -6114,7 +6114,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Copper(I) Chloride (CuCl)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "28.5, 100\n47.4, 65\n56.3, 40\n69.6, 25",
     description:
       "A white solid that is almost insoluble in water but soluble in concentrated hydrochloric acid. It crystallizes in the zincblende structure.",
@@ -6129,7 +6129,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium Chloride (MgCl2)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "15.2, 100\n30.5, 50\n34.8, 30\n50.5, 45",
     description:
       "A typical ionic halide, being highly soluble in water. Often extracted from brine or sea water.",
@@ -6144,7 +6144,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Chloride (CaCl2)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "14.8, 100\n29.7, 45\n34.1, 35\n49.2, 40",
     description:
       "An inorganic compound, a salt with the formula CaCl2. Highly soluble in water, releasing heat due to high hydration enthalpy.",
@@ -6159,7 +6159,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Strontium Oxide (SrO)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "30.0, 100\n43.0, 55\n53.6, 40\n62.9, 25",
     description:
       "A basic rare-earth-like oxide that forms when strontium reacts with oxygen.",
@@ -6174,7 +6174,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Oxide (BaO)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "27.7, 100\n39.8, 55\n49.5, 40\n58.0, 25",
     description:
       "A white, hygroscopic non-flammable compound. It has a cubic structure and is used in cathode ray tubes and catalyst supports.",
@@ -6189,7 +6189,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cast Iron (Grey)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.8, 100\n65.2, 20\n82.5, 10\n44.1, 5",
     description:
       "An iron-carbon alloy with a carbon content greater than 2%. Grey cast iron contains graphitic microstructure.",
@@ -6204,7 +6204,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "A36 Structural Steel",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.7, 100\n65.0, 20\n82.3, 10\n98.9, 5",
     description: "A common structural carbon steel in the US. Mostly ferritic.",
     formula: "Fe-C (Low Carbon)",
@@ -6218,7 +6218,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "O1 Tool Steel",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.5, 100\n64.8, 15\n82.0, 5\n43.8, 10",
     description:
       "An oil-hardening cold-work tool steel. High hardness, strength, and wear resistance.",
@@ -6233,7 +6233,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Constantan",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.9, 100\n51.1, 45\n75.2, 20\n91.4, 15",
     description:
       "A copper-nickel alloy (usually 55% Cu, 45% Ni) characterized by a constant electrical resistivity over a wide temperature range.",
@@ -6248,7 +6248,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Kovar",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.3, 100\n51.6, 40\n76.0, 25\n92.1, 10",
     description:
       "An iron-nickel-cobalt alloy designed to have the same thermal expansion characteristics as borosilicate glass.",
@@ -6267,7 +6267,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nichrome",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.1, 100\n51.4, 50\n75.7, 25\n91.9, 20",
     description:
       "A nickel-chromium alloy typically used for resistance parts, with good oxidation resistance at high temperatures.",
@@ -6282,7 +6282,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Babbitt Metal",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "30.5, 100\n31.8, 90\n43.8, 60\n44.6, 55\n62.3, 40",
     description:
       "A white metal alloy used in bearings. Commonly heavily based on Tin, Copper, and Antimony.",
@@ -6297,7 +6297,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Duralumin",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "38.5, 100\n44.7, 45\n65.1, 25\n78.2, 20",
     description:
       "An early age-hardenable aluminum alloy primarily containing copper.",
@@ -6312,7 +6312,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tritium Scavenger (ZrCo)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "35.1, 100\n42.8, 60\n54.2, 45\n62.9, 25",
     description:
       "Zirconium cobalt alloy used for safe, reversible storage and handling of tritium gas in fusion reactors.",
@@ -6327,7 +6327,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hypersonic Ablator (HfB2)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "27.4, 45\n31.8, 100\n38.2, 60\n44.1, 35\n51.6, 20",
     description:
       "Ultra-high temperature ceramic (UHTC) used in leading edges of hypersonic vehicles and reentry systems.",
@@ -6346,7 +6346,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Vitrified Nuclear Waste (Borosilicate)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "22.0, 100\n28.5, 60\n35.2, 30\n41.0, 15",
     description:
       "Amorphous borosilicate glass matrix incorporating high-level radioactive waste (HLW) for long-term geological disposal.",
@@ -6365,7 +6365,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aramid Body Armor (Kevlar)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "16.5, 30\n20.4, 100\n22.8, 80\n28.1, 40",
     description:
       "High-strength para-aramid synthetic fiber, characterized by high tensile strength and used extensively in ballistic protection.",
@@ -6380,7 +6380,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Reactive Armor Explosive (RDX)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "13.1, 40\n17.4, 100\n21.8, 70\n24.5, 60\n28.9, 35",
     description:
       "Cyclotrimethylenetrinitramine (RDX), often mixed with plasticizers, used in explosive reactive armor (ERA) tiles to defeat shaped charges.",
@@ -6395,7 +6395,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Depleted Uranium Alloy (DU-0.75Ti)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "35.4, 100\n36.6, 65\n39.1, 80\n44.2, 35\n51.9, 40",
     description:
       "Depleted uranium alloyed with 0.75% titanium for increased hardness. Used in kinetic energy penetrators and heavy armor.",
@@ -6414,7 +6414,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Dexamethasone",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.8, 100\n15.5, 65\n17.1, 40\n18.6, 25\n21.8, 30",
     description:
       "A corticosteroid used to treat rheumatic problems, skin diseases, severe allergies, and asthma.",
@@ -6429,7 +6429,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Metformin Hydrochloride",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.5, 50\n17.6, 100\n22.4, 80\n23.2, 70\n27.4, 60",
     description:
       "The first-line medication for the treatment of type 2 diabetes.",
@@ -6444,7 +6444,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Omeprazole",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.4, 100\n9.6, 50\n11.9, 75\n15.1, 40\n20.4, 60",
     description:
       "A proton-pump inhibitor used in the treatment of dyspepsia, peptic ulcer disease, and gastroesophageal reflux disease.",
@@ -6459,7 +6459,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ciprofloxacin",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.2, 55\n9.1, 100\n14.5, 40\n20.6, 85\n26.6, 45",
     description:
       "A fluoroquinolone antibiotic used to treat a number of bacterial infections.",
@@ -6474,7 +6474,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Azithromycin (Dihydrate)",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.4, 60\n9.8, 100\n11.2, 50\n17.1, 75\n19.2, 45",
     description:
       "A macrolide antibiotic used for the treatment of a number of bacterial infections.",
@@ -6489,7 +6489,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Amlodipine Besylate",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.8, 100\n11.8, 80\n23.4, 90\n25.2, 50\n26.7, 45",
     description:
       "A calcium channel blocker used to treat high blood pressure and coronary artery disease.",
@@ -6504,7 +6504,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Simvastatin",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.3, 100\n10.9, 70\n17.4, 85\n18.8, 60\n22.6, 50",
     description:
       "A lipid-lowering medication used along with exercise, diet, and weight loss to decrease elevated lipid levels.",
@@ -6519,7 +6519,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Losartan Potassium",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.3, 75\n10.8, 100\n13.9, 60\n22.4, 50\n25.1, 80",
     description:
       "An angiotensin II receptor antagonist drug used mainly to treat high blood pressure.",
@@ -6534,7 +6534,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cetirizine Hydrochloride",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.2, 50\n14.4, 70\n18.6, 100\n22.0, 60\n24.1, 80",
     description:
       "A second-generation antihistamine used to treat allergic rhinitis, dermatitis, and urticaria.",
@@ -6549,7 +6549,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Fluconazole",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.5, 100\n16.2, 80\n17.4, 60\n20.1, 55\n26.3, 40",
     description:
       "An antifungal medication used for a number of fungal infections.",
@@ -6564,7 +6564,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ampicillin Trihydrate",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.1, 80\n15.6, 100\n19.2, 70\n23.4, 50\n27.2, 60",
     description:
       "A beta-lactam antibiotic that has been used extensively to treat bacterial infections.",
@@ -6579,7 +6579,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Pantoprazole Sodium",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.4, 100\n13.2, 60\n15.5, 80\n23.7, 50\n28.1, 40",
     description:
       "A proton pump inhibitor used for the treatment of stomach ulcers, GERD, and Zollinger-Ellison syndrome.",
@@ -6594,7 +6594,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Valsartan",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.2, 80\n10.8, 100\n15.4, 60\n21.1, 70\n23.8, 50",
     description:
       "An angiotensin II receptor blocker used to treat high blood pressure, heart failure, and diabetic kidney disease.",
@@ -6609,7 +6609,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Loratadine",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.5, 50\n13.9, 100\n17.1, 60\n20.4, 80\n24.6, 40",
     description:
       "A medication used to treat allergies, including allergic rhinitis and hives.",
@@ -6624,7 +6624,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Glipizide",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.5, 100\n12.2, 60\n16.7, 80\n21.5, 50\n25.8, 45",
     description:
       "An anti-diabetic medication of the sulfonylurea class used to treat type 2 diabetes.",
@@ -6639,7 +6639,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Erythromycin",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.8, 100\n11.2, 80\n15.4, 60\n18.2, 50\n22.8, 40",
     description:
       "A macrolide antibiotic used for a variety of bacterial infections.",
@@ -6654,7 +6654,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tetracycline Hydrochloride",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.6, 90\n13.5, 100\n16.2, 60\n22.4, 70\n26.8, 40",
     description:
       "A broad-spectrum polyketide antibiotic produced by the Streptomyces genus of Actinobacteria.",
@@ -6669,7 +6669,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Rosuvastatin Calcium",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.8, 100\n10.2, 60\n14.5, 80\n17.3, 50\n22.1, 40",
     description:
       "A statin medication used to prevent cardiovascular disease in those at high risk and treat abnormal lipids.",
@@ -6684,7 +6684,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ranitidine Hydrochloride",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.5, 70\n15.8, 100\n20.3, 60\n22.8, 80\n25.7, 40",
     description:
       "An antacid drug (H2 receptor antagonist) used to decrease stomach acid production.",
@@ -6699,7 +6699,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Prednisolone",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.1, 100\n15.2, 50\n17.8, 80\n21.4, 40\n25.5, 60",
     description:
       "A steroid medication used to treat certain types of allergies, inflammatory conditions, autoimmune disorders.",
@@ -6714,7 +6714,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hydrocortisone",
-    type: "Biomaterial/Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.6, 90\n15.1, 100\n17.3, 60\n20.9, 70\n24.2, 40",
     description:
       "The name for the hormone cortisol when supplied as a medication.",
@@ -6729,7 +6729,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gallium Antimonide (GaSb)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "25.26, 100, 1, 1, 1\n41.92, 40, 2, 2, 0\n49.65, 30, 3, 1, 1\n60.83, 10, 4, 0, 0\n68.21, 15, 3, 3, 1\n77.12, 5, 4, 2, 2",
     description:
@@ -6749,7 +6749,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Indium Phosphide (InP)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "26.31, 100, 1, 1, 1\n43.64, 45, 2, 2, 0\n51.68, 35, 3, 1, 1\n63.39, 12, 4, 0, 0\n71.12, 18, 3, 3, 1\n80.45, 8, 4, 2, 2",
     description:
@@ -6769,7 +6769,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cadmium Zinc Telluride (CZT)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "23.82, 100, 1, 1, 1\n39.42, 50, 2, 2, 0\n46.54, 40, 3, 1, 1\n56.91, 15, 4, 0, 0\n64.32, 20, 3, 3, 1\n72.43, 10, 4, 2, 2",
     description:
@@ -6789,7 +6789,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aluminium Gallium Arsenide (AlGaAs)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "27.18, 100, 1, 1, 1\n45.12, 48, 2, 2, 0\n53.45, 32, 3, 1, 1\n65.52, 8, 4, 0, 0\n73.71, 14, 3, 3, 1\n83.21, 6, 4, 2, 2",
     description:
@@ -6809,7 +6809,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Trigonal Selenium (t-Se)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "23.51, 100, 1, 0, 0\n29.72, 80, 1, 0, 1\n41.35, 40, 1, 1, 0\n43.68, 55, 1, 0, 2\n45.42, 25, 1, 1, 1\n51.78, 30, 2, 0, 1",
     description:
@@ -6825,7 +6825,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth Antimonide (BiSb)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "22.54, 75, 0, 1, 2\n27.28, 100, 1, 0, 4\n39.81, 45, 1, 1, 0\n45.23, 30, 0, 1, 8\n48.45, 50, 2, 0, 2\n52.12, 25, 0, 2, 4",
     description:
@@ -6845,7 +6845,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silicon Nitride (Beta-Si3N4)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "23.41, 60, 1, 1, 0\n26.92, 100, 2, 0, 0\n30.95, 75, 1, 0, 1\n32.81, 45, 2, 1, 0\n35.25, 90, 1, 1, 1\n38.83, 50, 2, 0, 1",
     description:
@@ -6865,7 +6865,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead Selenide (PbSe)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "25.12, 100, 1, 1, 1\n29.15, 80, 2, 0, 0\n41.68, 95, 2, 2, 0\n49.32, 40, 3, 1, 1\n51.52, 35, 2, 2, 2\n60.45, 60, 4, 0, 0",
     description:
@@ -6885,7 +6885,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tin Disulfide (SnS2)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "15.02, 100, 0, 0, 1\n28.23, 60, 1, 0, 0\n32.14, 85, 1, 0, 1\n41.91, 30, 0, 0, 3\n50.02, 45, 1, 1, 0\n52.48, 55, 1, 1, 1",
     description:
@@ -6905,7 +6905,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Germanium Selenide (GeSe)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "15.11, 40, 0, 2, 0\n25.56, 100, 1, 1, 1\n31.25, 75, 1, 2, 1\n33.28, 60, 2, 1, 0\n37.21, 30, 0, 4, 0\n44.52, 45, 2, 3, 0",
     description:
@@ -6925,7 +6925,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cuprous Oxide (Cu2O)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "29.62, 50, 1, 1, 0\n36.48, 100, 1, 1, 1\n42.35, 45, 2, 0, 0\n61.42, 30, 2, 2, 0\n73.61, 20, 3, 1, 1\n77.45, 15, 2, 2, 2",
     description:
@@ -6945,7 +6945,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Antimony Trisulfide (Sb2S3)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "15.65, 50, 0, 2, 0\n17.52, 65, 1, 2, 0\n24.95, 80, 1, 3, 0\n28.56, 100, 2, 1, 1\n32.25, 45, 2, 2, 1\n35.68, 70, 2, 3, 1",
     description:
@@ -6965,7 +6965,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Indium Arsenide (InAs)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "25.45, 100, 1, 1, 1\n42.12, 42, 2, 2, 0\n49.85, 32, 3, 1, 1\n61.12, 10, 4, 0, 0\n68.52, 16, 3, 3, 1\n77.41, 6, 4, 2, 2",
     description:
@@ -6985,7 +6985,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nickel Silicide (NiSi)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "31.52, 50, 1, 0, 1\n34.35, 100, 1, 1, 1\n35.81, 75, 2, 0, 0\n45.62, 80, 2, 1, 1\n47.35, 30, 2, 2, 0\n56.12, 45, 3, 1, 1",
     description:
@@ -7005,7 +7005,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cobalt Disilicide (CoSi2)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "28.62, 100, 1, 1, 1\n47.65, 45, 2, 2, 0\n56.54, 30, 3, 1, 1\n69.75, 8, 4, 0, 0\n77.12, 14, 3, 3, 1\n88.54, 12, 4, 2, 2",
     description:
@@ -7024,7 +7024,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Manganese Antimonide (MnSb)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "29.45, 55, 1, 0, 0\n31.82, 100, 1, 0, 1\n42.63, 85, 1, 0, 2\n51.35, 35, 1, 1, 0\n54.21, 40, 1, 1, 1\n62.56, 50, 2, 0, 1",
     description:
@@ -7044,7 +7044,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth Selenide (Bi2Se3)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "18.52, 40, 0, 0, 3\n25.11, 75, 0, 1, 2\n29.35, 100, 1, 0, 1\n40.32, 60, 1, 1, 0\n43.61, 35, 1, 0, 10\n47.85, 55, 2, 0, 5",
     description:
@@ -7064,7 +7064,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Platinum Silicide (PtSi)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "28.21, 45, 1, 1, 0\n32.15, 100, 1, 1, 1\n34.62, 70, 2, 0, 1\n42.31, 80, 2, 1, 1\n44.15, 35, 3, 0, 0\n55.23, 50, 2, 3, 1",
     description:
@@ -7083,7 +7083,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Germanium Telluride (GeTe)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "25.95, 100, 1, 1, 1\n29.85, 90, 2, 0, 0\n42.54, 75, 2, 2, 0\n50.51, 30, 3, 1, 1\n52.75, 25, 2, 2, 2\n61.92, 45, 4, 0, 0",
     description:
@@ -7102,7 +7102,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zinc Phosphide (Zn3P2)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "16.21, 35, 1, 0, 1\n25.43, 60, 2, 0, 0\n31.12, 100, 2, 1, 1\n36.15, 80, 2, 2, 0\n42.45, 40, 2, 0, 4\n46.52, 50, 3, 2, 1",
     description:
@@ -7121,7 +7121,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cadmium Arsenide (Cd3As2)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern:
       "14.52, 30, 1, 0, 1\n24.11, 45, 2, 0, 0\n31.32, 100, 2, 2, 0\n36.42, 60, 3, 1, 1\n42.52, 40, 4, 0, 0\n47.12, 55, 3, 3, 1",
     description:
@@ -7142,7 +7142,7 @@ export const MATERIAL_DB = [
   // --- NEW SEMICONDUCTORS & ELECTRONICS ---
   {
     name: "Gallium Selenide (Ga2Se3)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "15.40, 40, 0, 0, 2\n28.10, 100, 1, 1, 1\n32.80, 60, 2, 0, 0\n46.90, 75, 2, 2, 0\n55.60, 50, 3, 1, 1",
     description: "An orthorhombic-like vacancy-ordered III-VI chalcogenide semiconductor for solar absorption and non-linear optics.",
     formula: "Ga2Se3",
@@ -7156,7 +7156,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silver Indium Selenide (AgInSe2)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "13.50, 30, 1, 0, 1\n26.80, 100, 1, 1, 2\n38.40, 45, 2, 0, 4\n47.50, 60, 3, 1, 2\n55.20, 35, 4, 0, 0",
     description: "A chalcopyrite structure semiconductor valued for its direct bandgap and thin-film photovoltaic applications.",
     formula: "AgInSe2",
@@ -7170,7 +7170,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Zirconium Sulfide (BaZrS3)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "15.60, 35, 1, 0, 1\n25.40, 100, 1, 1, 2\n31.30, 70, 2, 0, 0\n36.40, 45, 2, 1, 1\n44.20, 55, 2, 2, 0",
     description: "A chalcogenide perovskite semiconductor exhibiting strong light absorption, great chemical stability, and non-toxicity.",
     formula: "BaZrS3",
@@ -7184,7 +7184,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cesium Silver Bismuth Bromide (Cs2AgBiBr6)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "15.10, 40, 1, 1, 1\n21.40, 85, 2, 0, 0\n26.20, 100, 2, 2, 0\n30.40, 90, 3, 1, 1\n31.80, 30, 2, 2, 2\n37.40, 60, 4, 0, 0",
     description: "Lead-free double halide perovskite semiconductor demonstrating exceptional stability and long carrier lifetime.",
     formula: "Cs2AgBiBr6",
@@ -7198,7 +7198,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth Oxyselenide (Bi2O2Se)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "11.80, 50, 0, 0, 2\n21.90, 40, 1, 0, 1\n29.40, 100, 1, 1, 0\n32.10, 80, 1, 0, 3\n42.30, 65, 1, 1, 2",
     description: "A layered oxygen-incorporated oxyselenide with high electron mobility and ultra-low thermal conductivity.",
     formula: "Bi2O2Se",
@@ -7212,7 +7212,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Orthorhombic Tin Selenide (SnSe)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "15.30, 35, 1, 0, 1\n28.40, 100, 1, 1, 1\n31.10, 85, 0, 2, 0\n37.80, 40, 1, 2, 1\n47.50, 65, 2, 0, 2",
     description: "An anisotropic layered semiconductor offering record-breaking thermoelectric figure of merit.",
     formula: "SnSe",
@@ -7226,7 +7226,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Germanium Selenide (GeSe)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "15.80, 40, 1, 0, 1\n29.10, 100, 1, 1, 1\n32.40, 75, 0, 2, 0\n39.20, 35, 1, 2, 1\n48.60, 60, 2, 0, 2",
     description: "A layered monocalcogenide semiconductor featuring strong polarization-sensitive optical response.",
     formula: "GeSe",
@@ -7240,7 +7240,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nickel Phosphorus Trisulfide (NiPS3)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "13.80, 100, 0, 0, 1\n27.80, 45, 0, 0, 2\n34.20, 60, 1, 3, 0\n41.90, 30, 2, 0, 1\n54.50, 50, 2, 0, 3",
     description: "A layered van der Waals antiferromagnetic semiconductor investigated for 2D spintronics.",
     formula: "NiPS3",
@@ -7254,7 +7254,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Iron Phosphorus Trisulfide (FePS3)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "13.90, 100, 0, 0, 1\n28.10, 50, 0, 0, 2\n34.50, 65, 1, 3, 0\n42.10, 35, 2, 0, 1\n54.90, 45, 2, 0, 3",
     description: "A highly correlated 2D antiferromagnetic semiconductor exhibiting critical 2D Ising transitions.",
     formula: "FePS3",
@@ -7268,7 +7268,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Manganese Phosphide (MnP)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "32.10, 100, 1, 1, 1\n34.30, 85, 2, 0, 0\n39.90, 45, 1, 0, 2\n46.20, 70, 2, 1, 1\n56.10, 55, 3, 0, 1",
     description: "An iron-phosphide crystal showing magneto-structural transitions and helimagnetic phases.",
     formula: "MnP",
@@ -7282,7 +7282,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chromium Triiodide (CrI3)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "12.40, 100, 0, 0, 3\n24.90, 40, 0, 0, 6\n28.80, 35, 1, 1, 0\n38.40, 50, 1, 1, 3\n49.10, 30, 2, 2, 0",
     description: "The classic monolayer-capable 2D ferromagnetic van der Waals semiconductor.",
     formula: "CrI3",
@@ -7296,7 +7296,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tungsten Diselenide (WSe2)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "13.60, 100, 0, 0, 2\n27.50, 40, 0, 0, 4\n38.10, 65, 1, 0, 1\n47.30, 55, 1, 0, 5\n55.80, 30, 1, 1, 0",
     description: "An iconic 2D transition metal dichalcogenide semiconductor with high hole mobility.",
     formula: "WSe2",
@@ -7310,7 +7310,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Rhenium Disulfide (ReS2)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "14.20, 100, 0, 0, 1\n28.70, 30, 0, 0, 2\n33.80, 55, 1, 1, 1\n44.20, 40, 2, 0, 0\n58.90, 25, 2, 2, 0",
     description: "An anisotropic TMD semiconductor exhibiting decouple-layer behavior and polarized optics.",
     formula: "ReS2",
@@ -7324,7 +7324,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Molybdenum Disulfide (2H-MoS2)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "14.40, 100, 0, 0, 2\n29.00, 35, 0, 0, 4\n39.60, 60, 1, 0, 0\n49.80, 45, 1, 0, 5\n58.80, 35, 1, 1, 0",
     description: "The classic direct-gap 2H monolayer semiconductor featuring stable hydrogen evolution catalysis.",
     formula: "MoS2",
@@ -7338,7 +7338,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Orthorhombic Tin Sulfide (SnS)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "22.00, 45, 1, 1, 0\n26.10, 35, 1, 2, 0\n31.50, 100, 1, 1, 1\n31.90, 90, 0, 4, 0\n39.00, 40, 1, 4, 0\n45.50, 45, 1, 5, 1",
     description: "An earth-abundant p-type binary semiconductor suitable for high-efficiency thin-film cells.",
     formula: "SnS",
@@ -7352,7 +7352,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "High-Efficiency Cuprous Oxide (Cu2O)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "29.60, 35, 1, 1, 0\n36.40, 100, 1, 1, 1\n42.30, 40, 2, 0, 0\n61.40, 25, 2, 2, 0\n73.50, 20, 3, 1, 1",
     description: "High-stability, high-mobility cubic semiconductor for green energy conversion.",
     formula: "Cu2O",
@@ -7366,7 +7366,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tantalum Arsenide (TaAs)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "24.50, 50, 1, 0, 1\n32.80, 100, 1, 1, 2\n38.90, 45, 2, 0, 0\n48.20, 60, 2, 1, 1\n55.30, 35, 2, 2, 0",
     description: "Discovery weyl semimetal demonstrating zero-mass Weyl fermion excitations and chiral anomaly.",
     formula: "TaAs",
@@ -7380,7 +7380,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Niobium Arsenide (NbAs)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "24.90, 45, 1, 0, 1\n33.20, 100, 1, 1, 2\n39.40, 40, 2, 0, 0\n48.80, 65, 2, 1, 1\n55.90, 30, 2, 2, 0",
     description: "Symmetric Weyl semimetal relative of TaAs showing robust surface Fermi arcs.",
     formula: "NbAs",
@@ -7394,7 +7394,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconium Pentatelluride (ZrTe5)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "12.10, 100, 0, 1, 0\n24.30, 40, 0, 2, 0\n36.80, 50, 0, 3, 0\n42.50, 30, 1, 1, 1\n49.20, 55, 1, 3, 0",
     description: "Topological insulator and quantum spin Hall material showing dramatic magnetoresistance anomalies.",
     formula: "ZrTe5",
@@ -7408,7 +7408,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Antimony Telluride (Sb2Te3)",
-    type: "Semiconductor",
+    type: "Semiconductors & Photonics",
     pattern: "17.40, 40, 0, 1, 2\n28.20, 100, 0, 1, 5\n38.30, 35, 1, 0, 10\n42.30, 60, 1, 1, 0\n50.10, 45, 2, 0, 5",
     description: "Prototypical topological semimetal and elite p-type room-temperature thermoelectric material.",
     formula: "Sb2Te3",
@@ -7424,7 +7424,7 @@ export const MATERIAL_DB = [
   // --- NEW BIOCERAMICS, BIOMATERIALS & PHARMA ---
   {
     name: "Alendronate Sodium Trihydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.40, 60, 1, 0, 0\n18.20, 100, 1, 1, 0\n22.50, 75, 1, 1, 1\n28.40, 45, 2, 0, 0\n33.80, 30, 2, 2, 0",
     description: "Osteoporosis bisphosphonate therapy compound that retards bone resorption and dissolution.",
     formula: "C4H12NNaO7P2·3H2O",
@@ -7438,7 +7438,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Atorvastatin Trihydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.20, 40, 0, 0, 1\n19.40, 100, 1, 1, 0\n21.60, 85, 2, 0, 0\n23.40, 60, 2, 1, 0\n29.20, 30, 3, 0, 0",
     description: "Cardiovascular blockbuster drug that inhibits HMG-CoA reductase for cholesterol mitigation.",
     formula: "C33H35FN2O5·3H2O",
@@ -7452,7 +7452,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Clopidogrel Bisulfate Form I",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.40, 55, 0, 1, 0\n18.10, 100, 1, 1, 0\n20.50, 80, 2, 0, 0\n23.20, 65, 2, 1, 0\n25.80, 45, 2, 2, 0",
     description: "Antiplatelet therapy formulation crystal polymorph Form I for high stability drug delivery.",
     formula: "C16H18ClNO6S2",
@@ -7466,7 +7466,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Clopidogrel Bisulfate Form II",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.80, 45, 0, 1, 0\n12.30, 35, 1, 0, 0\n19.10, 100, 1, 1, 0\n21.50, 75, 2, 0, 0\n23.90, 60, 2, 1, 0",
     description: "Thermodynamically preferred crystal polymorphic Form II of clopidogrel bisulfate.",
     formula: "C16H18ClNO6S2",
@@ -7480,7 +7480,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Esomeprazole Magnesium",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.10, 70, 0, 0, 1\n13.40, 45, 1, 0, 0\n18.80, 100, 1, 1, 0\n21.20, 80, 2, 0, 0\n24.00, 50, 2, 1, 0",
     description: "Proton pump-inhibitor molecule complexed with magnesium for gastric relief medication.",
     formula: "C34H36MgN6O6S2",
@@ -7494,7 +7494,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sildenafil Citrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.20, 55, 0, 0, 1\n14.80, 100, 1, 1, 0\n18.50, 80, 2, 0, 0\n22.10, 65, 2, 1, 0\n24.80, 45, 3, 0, 0",
     description: "Cardiovascular vasodilator and smooth muscle relaxant inhibiting phosphodiesterase-5.",
     formula: "C28H38N6O11S",
@@ -7508,7 +7508,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Montelukast Sodium Crystalline",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.40, 30, 0, 0, 1\n17.50, 100, 1, 1, 0\n22.00, 65, 2, 0, 0\n24.30, 35, 2, 1, 0\n28.10, 20, 3, 0, 0",
     description: "Leukotriene receptor antagonist prescribed to suppress asthma-induced bronchoconstriction.",
     formula: "C35H35ClNNaO3S",
@@ -7522,7 +7522,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Rosiglitazone Maleate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "15.20, 40, 1, 0, 0\n18.10, 100, 1, 1, 0\n22.40, 75, 1, 1, 1\n24.80, 50, 2, 0, 0\n31.10, 35, 2, 2, 0",
     description: "Sensitizer of peroxisome proliferator-activated receptors (PPAR-gamma) for antidiabetic care.",
     formula: "C22H27N3O7S",
@@ -7536,7 +7536,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Metformin HCl Form II",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.20, 50, 0, 1, 0\n17.60, 100, 1, 0, 0\n23.10, 85, 1, 1, 0\n29.40, 65, 2, 0, 0\n35.20, 40, 2, 1, 0",
     description: "Polymorph form of metformin hydrochloride, stable for high-volume diabetic pill milling.",
     formula: "C4H12ClN5",
@@ -7550,7 +7550,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sitagliptin Phosphate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.20, 60, 0, 1, 0\n18.10, 100, 1, 1, 0\n21.40, 80, 2, 0, 0\n24.10, 70, 2, 1, 0\n28.80, 35, 3, 0, 0",
     description: "Highly selective DPP-4 enzyme inhibitor promoting physiological insulin secretion.",
     formula: "C16H18F6N5O5P",
@@ -7564,7 +7564,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "L-Arginine Phosphate Crystalline",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "15.10, 40, 1, 0, 0\n20.20, 100, 1, 1, 0\n24.60, 75, 1, 1, 1\n31.20, 55, 2, 0, 0\n38.40, 30, 2, 2, 0",
     description: "Important organic non-linear optical biopolymer with outstanding biological transport utility.",
     formula: "C6H17N4O6P",
@@ -7578,7 +7578,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium L-Threonate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.20, 50, 0, 1, 0\n15.40, 100, 1, 0, 0\n19.80, 85, 1, 1, 0\n22.60, 65, 1, 1, 1\n28.20, 40, 2, 1, 0",
     description: "High brain-bioavailability magnesium compound designed to cross the blood-brain barrier.",
     formula: "C8H14MgO10",
@@ -7592,7 +7592,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chondroitin Sulfate Bio-Matrix",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.40, 100, 1, 0, 0\n21.80, 60, 1, 1, 0\n31.20, 25, 2, 0, 0\n41.50, 15, 2, 1, 1",
     description: "Natural structural component of joint cartilage analyzed for molecular integrity matrix.",
     formula: "C13H21NO15S",
@@ -7606,7 +7606,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "L-Glutamine Crystalline",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.80, 55, 1, 0, 0\n18.40, 100, 1, 1, 0\n22.10, 80, 1, 1, 1\n25.20, 65, 2, 0, 0\n29.10, 40, 2, 1, 1",
     description: "Crystalline alpha-amino acid used as fuel for immune cells and gut wall cells.",
     formula: "C5H10N2O3",
@@ -7620,7 +7620,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alpha-Chitin Honeycomb Matrix",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.20, 100, 0, 2, 0\n12.60, 30, 0, 1, 1\n19.30, 85, 1, 1, 0\n22.40, 45, 1, 3, 0\n26.10, 25, 1, 1, 2",
     description: "Crystalline chitin component extracted from marine shells for tissue-scaffold fabrication.",
     formula: "C8H13NO5",
@@ -7634,7 +7634,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silk Sericin Matrix",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.50, 30, 1, 0, 0\n19.20, 100, 1, 1, 0\n22.40, 65, 1, 1, 1\n28.10, 35, 2, 0, 0\n38.60, 15, 2, 2, 0",
     description: "Highly biocompatible water-soluble glycoprotein matrix harvested from domestic silkworms.",
     formula: "C30H40N10O16",
@@ -7648,7 +7648,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Collagen Type II Fibrillar Matrix",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.00, 45, 0, 0, 1\n11.90, 25, 1, 0, 0\n20.50, 100, 1, 1, 0\n31.40, 15, 2, 0, 0",
     description: "The primary fibrillar protein structure of articular cartilage analyzed for regenerative therapies.",
     formula: "Collagen-II",
@@ -7662,7 +7662,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Silicate Bio-Hydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "21.40, 45, 1, 1, 0\n29.20, 100, 1, 2, 2\n31.80, 85, 2, 0, 0\n38.20, 40, 2, 0, 4\n49.50, 55, 3, 1, 1",
     description: "Bioactive component of mineral trioxide aggregate (MTA) cements used for root canal therapy.",
     formula: "CaSiO3·0.5H2O",
@@ -7676,7 +7676,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Amorphous Calcium Phosphate (ACP)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "30.50, 100, 1, 0, 0\n44.20, 25, 2, 0, 0",
     description: "Metastable non-crystalline phosphate mineral that undergoes fast conversion to bone-like HAp.",
     formula: "Ca3(PO4)2·H2O",
@@ -7690,7 +7690,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bioactive Wollastonite-2M",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "23.20, 40, 1, 0, 1\n30.00, 100, 2, 0, 0\n30.10, 95, 1, 2, 1\n36.10, 50, 1, 0, 2\n51.20, 45, 2, 2, 2",
     description: "Elite bioactive calcium silicate mineral that rapidly induces hydroxyl carbonate apatite growth.",
     formula: "CaSiO3",
@@ -7704,7 +7704,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Iohexol Crystalline Form A",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.15, 65, 0, 1, 1\n14.20, 100, 1, 0, 0\n18.52, 45, 1, 1, 0\n21.80, 80, 1, 1, 1\n25.30, 35, 2, 0, 0",
     description: "Iodine-based non-ionic radiocontrast agent for X-ray imaging, crystallized to determine purity prior to solubilization.",
     formula: "C19H26I3N3O9",
@@ -7718,7 +7718,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gadoterate Meglumine Solid",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.05, 55, 1, 0, 0\n16.80, 100, 1, 1, 0\n20.25, 75, 1, 1, 1\n24.40, 45, 2, 0, 0\n28.90, 30, 2, 1, 0",
     description: "Macocyclic gadolinium-based MRI contrast agent formulated as a meglumine salt. Solid state mapping isolates salt stability.",
     formula: "C16H25GdN4O8·C7H17NO5",
@@ -7732,7 +7732,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Pyrophosphate Dihydrate (CPPD)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.20, 45, 0, 1, 1\n21.10, 100, 1, 1, 0\n27.50, 85, 2, 0, 0\n29.80, 60, 2, 1, 0\n33.20, 35, 0, 2, 2",
     description: "Crystalline joint deposit responsible for pseudogout (chondrocalcinosis), identified diagnostically in synovial fluid.",
     formula: "Ca2P2O7·2H2O",
@@ -7746,7 +7746,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Monosodium Urate Monohydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.60, 100, 1, 0, 0\n23.40, 65, 2, 0, 0\n26.80, 45, 2, 1, 0\n29.10, 80, 0, 2, 1\n32.50, 30, 2, 2, 0",
     description: "Needle-like urate crystals that precipitate in joints causing gout, typically analyzed pathologically via birefringence and XRD.",
     formula: "NaC5H3N4O3·H2O",
@@ -7760,7 +7760,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zoledronic Acid Monohydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.50, 45, 0, 1, 1\n15.80, 100, 1, 1, 0\n21.50, 80, 2, 0, 0\n24.90, 60, 2, 1, 0\n28.40, 35, 2, 2, 0",
     description: "Potent bisphosphonate used for osteoporosis and myeloma, crystallized as a monohydrate to ensure long-term shelf stability.",
     formula: "C5H10N2O7P2·H2O",
@@ -7774,7 +7774,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Polycarbophil",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.50, 100, 1, 0, 0\n18.20, 60, 1, 1, 0\n22.80, 40, 2, 0, 0\n28.50, 25, 2, 1, 0",
     description: "Synthetic cross-linked acrylic acid polymer calcium salt acting as a highly hydrophilic bulk laxative.",
     formula: "(C3H4O2)n·xCa",
@@ -7788,7 +7788,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polyglactin 910 Segment crystalline",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "16.80, 100, 1, 1, 0\n21.50, 80, 2, 0, 0\n25.20, 45, 2, 1, 0\n30.10, 25, 3, 0, 0",
     description: "Semi-crystalline copolymer of glycolide and lactide, widely utilized to manufacture Vicryl absorbable surgical sutures.",
     formula: "(C2H2O2)m(C3H4O2)n",
@@ -7802,7 +7802,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Poliglecaprone 25 Phase",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "15.40, 100, 1, 0, 0\n19.80, 75, 1, 1, 0\n23.60, 50, 2, 0, 0\n28.20, 30, 2, 1, 0",
     description: "A block copolymer of glycolide and epsilon-caprolactone, forming soft, pliable, and absorbable surgical monofilaments.",
     formula: "(C2H2O2)m(C6H10O2)n",
@@ -7816,7 +7816,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silver Sulfadiazine Crystalline",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.50, 65, 0, 1, 0\n11.20, 100, 1, 0, 0\n18.60, 85, 1, 1, 1\n22.40, 55, 2, 0, 0\n27.80, 35, 2, 1, 0",
     description: "Topical antibacterial cream API forming distinct silver-chelating crystalline chains highly effectively against burn infections.",
     formula: "AgC10H9N4O2S",
@@ -7830,7 +7830,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Mupirocin Calcium",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.80, 100, 0, 0, 1\n12.50, 70, 1, 0, 0\n17.40, 85, 1, 1, 0\n20.20, 55, 1, 1, 1\n24.80, 40, 2, 0, 0",
     description: "Topical antibiotic structured as a crystalline calcium salt, selectively inhibiting bacterial isoleucyl-tRNA synthetase.",
     formula: "C52H86CaO18",
@@ -7844,7 +7844,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chlorhexidine Gluconate Salt",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.10, 50, 1, 0, 0\n14.80, 100, 1, 1, 0\n19.20, 80, 2, 0, 0\n23.50, 60, 2, 1, 0\n28.40, 35, 2, 2, 0",
     description: "Cationic polybiguanide complexed with gluconate for skin disinfection, dental plaque stripping, and surgical prep.",
     formula: "C22H30Cl2N10·2C6H12O7",
@@ -7858,7 +7858,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Povidone-Iodine Complex Form",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.20, 100, 1, 0, 0\n16.50, 50, 1, 1, 0\n21.80, 35, 2, 0, 0\n28.40, 20, 2, 1, 0",
     description: "Polyvinylpyrrolidone polymer chemically complexed with triiodide forming broad-spectrum surgical skin antiseptics.",
     formula: "(C6H9NO)n·xI",
@@ -7872,7 +7872,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tranexamic Acid Form II",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.60, 50, 0, 1, 1\n18.40, 100, 1, 1, 0\n22.10, 80, 1, 1, 1\n26.50, 60, 2, 0, 0\n31.20, 45, 2, 1, 0",
     description: "Synthetic lysine analog serving as an antifibrinolytic to prevent severe blood loss by inhibiting plasminogen activation.",
     formula: "C8H15NO2",
@@ -7886,7 +7886,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Methotrexate Hydrate Form",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.50, 85, 0, 0, 1\n12.20, 60, 1, 0, 0\n16.80, 100, 1, 1, 0\n21.50, 75, 1, 1, 1\n25.40, 45, 2, 0, 0",
     description: "Chemotherapy agent and immune-system suppressant structurally mimicking folic acid, crystallized for oncological purity.",
     formula: "C20H22N8O5·xH2O",
@@ -7900,7 +7900,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Folic Acid Dihydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.40, 75, 1, 0, 0\n15.20, 100, 1, 1, 0\n20.80, 65, 2, 0, 0\n25.30, 45, 2, 1, 0\n28.60, 30, 2, 2, 0",
     description: "Vitamin B9 molecular dihydrate analyzed to ensure physiological absorption and fetal development supplements.",
     formula: "C19H19N7O6·2H2O",
@@ -7914,7 +7914,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cholecalciferol Form Alpha",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.80, 100, 0, 0, 1\n11.40, 50, 1, 0, 0\n16.20, 80, 1, 1, 0\n19.50, 60, 1, 1, 1\n23.40, 40, 2, 0, 0",
     description: "Crystalline Vitamin D3, synthesized pathologically in skin and extracted into purified formulations for bone mineralization therapies.",
     formula: "C27H44O",
@@ -7928,7 +7928,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Levothyroxine Sodium Hydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.50, 85, 0, 0, 1\n13.20, 60, 1, 0, 0\n18.60, 100, 1, 1, 0\n22.40, 65, 1, 1, 1\n26.80, 45, 2, 0, 0",
     description: "Synthetic standard of endogenous thyroid hormone T4 exhibiting tight microcrystalline specifications for bio-equivalence.",
     formula: "C15H10I4NNaO4·xH2O",
@@ -7942,7 +7942,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Propofol crystalline (Low Temp)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.40, 100, 1, 0, 0\n17.80, 75, 1, 1, 0\n21.50, 60, 2, 0, 0\n25.60, 40, 2, 1, 0\n29.20, 25, 2, 2, 0",
     description: "Short-acting anesthetic agent studied below room temperature to determine solid-state molecular packing and emulsion lipid stability.",
     formula: "C12H18O",
@@ -7956,7 +7956,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bupivacaine Hydrochloride Monohydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.20, 60, 0, 1, 0\n13.50, 100, 1, 0, 0\n18.20, 80, 1, 1, 0\n22.40, 65, 2, 0, 0\n26.80, 45, 2, 1, 0",
     description: "Potent amino-amide local anesthetic crystallized to ensure maximum aqueous solubility and prolonged epidural duration.",
     formula: "C18H28N2O·HCl·H2O",
@@ -7970,7 +7970,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lidocaine Hydrochloride Monohydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.20, 70, 0, 1, 1\n15.60, 100, 1, 0, 0\n20.40, 85, 1, 1, 0\n24.20, 60, 2, 0, 0\n28.80, 40, 2, 1, 0",
     description: "The most universally applied amide fast-acting local anesthetic and class-1b anti-arrhythmic agent.",
     formula: "C14H22N2O·HCl·H2O",
@@ -7986,7 +7986,7 @@ export const MATERIAL_DB = [
   // --- NEW NUCLEAR & DEFENSIVE ---
   {
     name: "Gadolinium Zirconate Pyrochlore (Gd2Zr2O7)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "28.12, 100, 2, 2, 2\n32.45, 60, 4, 0, 0\n46.51, 75, 4, 4, 0\n55.22, 55, 6, 2, 2\n57.85, 25, 4, 4, 4",
     description: "Highly research-intensive pyrochlore phase featuring peerless neutron absorption and high solubility for actinides.",
     formula: "Gd2Zr2O7",
@@ -8000,7 +8000,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Samarium Zirconate Pyrochlore (Sm2Zr2O7)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "27.95, 100, 2, 2, 2\n32.22, 55, 4, 0, 0\n46.12, 80, 4, 4, 0\n54.85, 60, 6, 2, 2\n57.44, 20, 4, 4, 4",
     description: "Radiation-resistant complex oxide with extremely low thermal conductivity and intense thermal neutron capture cross-section.",
     formula: "Sm2Zr2O7",
@@ -8014,7 +8014,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Iron Boride Defensive Shield (FeB)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "34.20, 45, 1, 1, 0\n38.45, 100, 1, 0, 2\n42.30, 85, 1, 1, 2\n56.12, 50, 2, 0, 2\n62.51, 35, 2, 1, 1",
     description: "Super-stiff iron monoboride used as highly optimized combined armor penetrator shielding and neutron absorption.",
     formula: "FeB",
@@ -8028,7 +8028,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tungsten Semicarbide Hard-Core (W2C)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "34.40, 100, 1, 0, 0\n38.10, 85, 0, 0, 2\n39.80, 95, 1, 0, 1\n52.20, 40, 1, 0, 2\n69.50, 45, 1, 1, 0",
     description: "An ultra-hard and refractory subcarbide phase demonstrating superior impact and abrasion resistance.",
     formula: "W2C",
@@ -8042,7 +8042,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Metatitanate Breeding Core (Li2TiO3)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "18.52, 100, 0, 0, 2\n35.85, 75, 1, 1, 0\n43.20, 60, 2, 0, 0\n54.12, 45, 2, 1, 1\n62.85, 30, 2, 2, 0",
     description: "Monoclinic ceramic candidate for in-situ tritium extraction breeding blankets in D-T fusion reactors.",
     formula: "Li2TiO3",
@@ -8056,7 +8056,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Orthosilicate Breeding Core (Li4SiO4)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "19.10, 100, 1, 1, 0\n22.45, 65, 0, 2, 0\n33.20, 85, 2, 0, 0\n38.85, 55, 2, 1, 1\n48.12, 40, 2, 2, 0",
     description: "Advanced orthosilicate breeding material showing very fast tritium desorption kinetics under low temperature.",
     formula: "Li4SiO4",
@@ -8070,7 +8070,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Reinforced Boron Carbide Defense Armor (B4C)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "23.51, 75, 1, 0, 1\n34.90, 85, 0, 2, 1\n37.81, 100, 1, 0, 4\n53.40, 45, 1, 1, 6\n65.85, 30, 3, 0, 0",
     description: "High-integrity titanium-reinforced structural boron carbide for advanced defense applications.",
     formula: "B4C",
@@ -8084,7 +8084,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Antimony Lead Ballistic Shielder (Pb-Sb)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "31.35, 100, 1, 1, 1\n36.25, 45, 2, 0, 0\n52.20, 35, 2, 2, 0\n62.15, 25, 3, 1, 1\n85.22, 15, 4, 0, 0",
     description: "Deformation-resistant antimony-hardened lead alloy for structural safety in hot nuclear zones.",
     formula: "Pb-Sb (8%)",
@@ -8098,7 +8098,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconium Aluminide Cladding (Zr3Al)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "26.22, 45, 1, 0, 0\n35.85, 100, 1, 1, 0\n44.12, 60, 1, 1, 1\n53.45, 40, 2, 0, 0\n62.85, 50, 2, 1, 0",
     description: "Ordered intermetallic compound exhibiting low thermal neutron absorption and extremely low irradiation swelling.",
     formula: "Zr3Al",
@@ -8112,7 +8112,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Erbium Zirconium scavenger (Er6I10Zr)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "21.20, 60, 1, 1, 1\n28.45, 100, 2, 2, 0\n34.22, 45, 2, 2, 2\n41.52, 75, 4, 0, 0\n49.85, 30, 4, 2, 0",
     description: "Highly structural halide cluster with heavy elements designed for capturing nuclear decay iodine isotopes.",
     formula: "Er6ZrI10",
@@ -8128,7 +8128,7 @@ export const MATERIAL_DB = [
   // --- NEW METALS, ALLOYS & STEEL ---
   {
     name: "High-Nitrogen Austenitic Steel (HN-Steel)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.51, 100, 1, 1, 1\n50.62, 45, 2, 0, 0\n74.54, 25, 2, 2, 0\n90.42, 20, 3, 1, 1",
     description: "Corrosion-resistant and ultra-strong steel where Nitrogen completely stabilizes the FCC austenite lattice.",
     formula: "Fe-Cr-Mn-Mo-N",
@@ -8142,7 +8142,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hadfield High-Manganese Steel (Hadfield-Steel)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.32, 100, 1, 1, 1\n50.45, 40, 2, 0, 0\n74.15, 22, 2, 2, 0\n90.15, 18, 3, 1, 1",
     description: "Impact work-hardening masterpiece containing 13% manganese for heavy deformation applications.",
     formula: "Fe-Mn13-C1",
@@ -8156,7 +8156,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Maraging Steel 350 (Maraging-350)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.62, 100, 1, 1, 0\n64.95, 15, 2, 0, 0\n82.20, 25, 2, 1, 1\n98.85, 8, 2, 2, 0",
     description: "Virtually carbon-free iron-nickel martensitic steel hardened by cobalt-molybdenum intermetallic needles.",
     formula: "Fe-Ni18-Co12-Mo5-Ti",
@@ -8170,7 +8170,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ultra-High Strength Aerospace Alloy (Aermet-100)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.51, 100, 1, 1, 0\n64.85, 18, 2, 0, 0\n82.12, 22, 2, 1, 1\n98.70, 10, 2, 2, 0",
     description: "Exceptional fracture-toughness and strength alloy developed for airframe structure landings.",
     formula: "Fe-Co13-Ni11-Cr3-Mo1.2",
@@ -8184,7 +8184,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium Near-Beta Forging Alloy (Ti-1023)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "35.15, 30, 1, 0, 0\n38.42, 40, 0, 0, 2\n40.12, 100, 1, 0, 1\n53.00, 20, 1, 0, 2\n70.52, 25, 1, 1, 0",
     description: "Near-beta microalloy providing peerless forging response and weight reduction over structural steel.",
     formula: "Ti-10V-2Fe-3Al",
@@ -8198,7 +8198,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "U71Mn Pearlitic Railway Steel (U71Mn)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "44.68, 100, 1, 1, 0\n65.02, 15, 2, 0, 0\n82.33, 20, 2, 1, 1\n99.02, 10, 2, 2, 0",
     description: "Premium wear-resistant high-carbon pearlitic steel engineered for high-axle heavy-load railways.",
     formula: "Fe-Si-Mn-C (U71Mn)",
@@ -8212,7 +8212,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Platinit Sealing Alloy (Fe-Ni46)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.40, 100, 1, 1, 1\n50.50, 42, 2, 0, 0\n74.22, 24, 2, 2, 0\n90.22, 19, 3, 1, 1",
     description: "Controlled-expansion nickel-iron alloy matching standard glass expansion rates.",
     formula: "Fe-Ni46",
@@ -8226,7 +8226,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Copper Beryllium Spring Alloy (Cu-Be C17200)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "42.15, 100, 1, 1, 1\n49.12, 35, 2, 0, 0\n72.10, 25, 2, 2, 0\n87.35, 20, 3, 1, 1",
     description: "Ultra-elastic non-magnetic copper alloy that hardens up to steel levels without sparking.",
     formula: "Cu-Be2",
@@ -8240,7 +8240,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hastelloy C22 Corrosion Superalloy (C22)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.60, 100, 1, 1, 1\n50.72, 45, 2, 0, 0\n74.65, 26, 2, 2, 0\n90.62, 21, 3, 1, 1",
     description: "Superb nickel-chromium-molybdenum alloy with stellar defense against wet chlorine and acid mixes.",
     formula: "Ni-Cr22-Mo13-W3-Fe3",
@@ -8254,7 +8254,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Haynes 25 Cobalt Superalloy (L605)",
-    type: "Metal Alloy",
+    type: "Metals & Alloys",
     pattern: "43.55, 100, 1, 1, 1\n50.68, 44, 2, 0, 0\n74.61, 23, 2, 2, 0\n90.55, 18, 3, 1, 1",
     description: "Cobalt-base refractory alloy with exceptional high-temperature strength, gas wear resistance, and oxidation protection.",
     formula: "Co-Cr20-W15-Ni10-Fe3",
@@ -8270,7 +8270,7 @@ export const MATERIAL_DB = [
   // --- NEW SUITES & MIXTURES ---
   {
     name: "Pharma Solid Dispersion Suite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "9.20, 40\n15.40, 20\n17.60, 100\n19.40, 75\n23.10, 45",
     description: "Eutectic mixture of active ingredient Metformin and highly soluble amorphous PVP excipient carrier.",
     formula: "Metformin + PVP Matrix",
@@ -8284,7 +8284,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Solid State Sodium Battery Suite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "16.82, 100\n25.80, 45\n27.80, 50\n31.85, 30\n34.20, 65",
     description: "A fast ion conducting battery assembly containing Na3PS4 sulfide electrolyte and hard carbon anodes.",
     formula: "Na3PS4 + Hard Carbon",
@@ -8298,7 +8298,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "High Temperature HTS Superconducting Tape (Bi2223)",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "11.10, 50\n21.92, 45\n27.42, 100\n32.85, 75\n47.50, 40",
     description: "Flexible multi-filament matrix composite of high-Tc bismuth ceramic sealed inside silver cladding.",
     formula: "Bi2Sr2Ca2Cu3O10 + Ag",
@@ -8312,7 +8312,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carbonated Concrete Swelling Suite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "24.90, 40\n26.64, 100\n27.12, 65\n29.40, 85\n32.80, 35",
     description: "Cement carbonation products testing suite containing calcite, vaterite, and quartz sand fillers.",
     formula: "CaCO3 (Calcite + Vaterite) + SiO2",
@@ -8326,7 +8326,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ancient Bronze Disease Patina Suite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "14.80, 100\n17.52, 35\n24.12, 60\n32.22, 50\n35.61, 45",
     description: "Corrosion crust containing active copper chloride and stable malachite copper carbonate.",
     formula: "Cu2Cl(OH)3 + Cu2CO3(OH)2",
@@ -8340,7 +8340,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Mars JSC-1 Regolith Simulant",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "22.02, 35\n27.85, 100\n32.22, 70\n35.62, 85\n42.12, 30",
     description: "Volcanic ash-derived simulant mimicking true Martian soil plagioclase feldspar and iron magnetite.",
     formula: "JSC-1 (Plagioclase + Magnetite)",
@@ -8354,7 +8354,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aviation Gas Turbine Blade Scale",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "28.22, 50\n30.12, 100\n43.80, 85\n50.32, 60\n54.22, 45",
     description: "Fired thermal barrier scale showing ZrO2 yttria-stabilized coating thermal degradation.",
     formula: "YSZ Scale + Al2O3 Scale",
@@ -8368,7 +8368,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Heavy Metal Contaminated Soil Suite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "13.82, 35\n26.64, 100\n31.82, 90\n32.85, 60\n49.52, 25",
     description: "Mine trailing silt remediation suite containing quartz sand, lead phosphate, and calcium HAp.",
     formula: "SiO2 + Pb5(PO4)3Cl",
@@ -8382,7 +8382,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Biomedical Titanium Bone Interfacial Scale",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "25.28, 40\n27.52, 100\n31.77, 85\n32.19, 70\n40.17, 60",
     description: "Interfacial bio-layer of hydroxyapatite tissue growing on anodized titanium orthopedic implant surface.",
     formula: "Ti-6Al-4V + TiO2 + HAp",
@@ -8396,7 +8396,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ultra-High Temperature Ceramic Ablator",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "28.25, 45\n30.12, 100\n35.62, 80\n43.12, 35\n50.51, 65",
     description: "Aerospace composite of ultra-hard zirconium diboride, silicon carbide, and hafnium carbide.",
     formula: "ZrB2 + SiC + HfC",
@@ -8412,7 +8412,7 @@ export const MATERIAL_DB = [
   // --- NEW METALS, ALLOYS & STEEL ---
   {
     name: "Alnico 5 Magnetic Alloy",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "44.50, 100, 1, 1, 0\n64.80, 45, 2, 0, 0\n82.10, 60, 2, 1, 1\n98.50, 20, 2, 2, 0",
     description: "A permanent magnet alloy based on iron, adding aluminum, nickel, and cobalt. Features highly directional dendritic grain structures.",
     formula: "Fe-Al-Ni-Co-Cu",
@@ -8426,7 +8426,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Mischmetal (Rare Earth Blend)",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "28.50, 100, 1, 1, 1\n33.20, 45, 2, 0, 0\n47.50, 60, 2, 2, 0\n56.10, 30, 3, 1, 1\n59.20, 25, 2, 2, 2",
     description: "An alloy of rare-earth elements, predominantly cerium, lanthanum, and neodymium. Commonly used for sparking mechanism flints and vacuum gettering.",
     formula: "Ce-La-Nd-Pr",
@@ -8440,7 +8440,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nickel Silver (German Silver)",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "43.20, 100, 1, 1, 1\n50.40, 45, 2, 0, 0\n74.10, 55, 2, 2, 0\n89.80, 40, 3, 1, 1\n95.10, 15, 2, 2, 2",
     description: "A copper alloy augmented with nickel and zinc, producing a lustrous, silver-like appearance without containing any actual elemental silver.",
     formula: "Cu-Ni-Zn",
@@ -8454,7 +8454,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gunmetal (Red Brass)",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "43.10, 100, 1, 1, 1\n50.20, 40, 2, 0, 0\n73.80, 60, 2, 2, 0\n89.50, 35, 3, 1, 1\n94.50, 15, 2, 2, 2",
     description: "Also known as red brass in America, an alloy of copper, tin, and zinc known for its ease of casting and good resistance to steam and salt water.",
     formula: "Cu-Sn-Zn",
@@ -8468,7 +8468,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnalium Alloy",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "38.50, 100, 1, 1, 1\n44.70, 50, 2, 0, 0\n65.10, 45, 2, 2, 0\n78.20, 30, 3, 1, 1\n82.40, 20, 2, 2, 2",
     description: "An aluminum alloy with variable proportions of magnesium, providing immense improvements in strength and corrosion resistance over pure aluminum.",
     formula: "Al-Mg",
@@ -8482,7 +8482,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Electrum Alloy",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "38.30, 100, 1, 1, 1\n44.50, 45, 2, 0, 0\n64.60, 55, 2, 2, 0\n77.50, 30, 3, 1, 1\n81.60, 20, 2, 2, 2",
     description: "A naturally occurring alloy of gold and silver, sometimes containing trace amounts of copper. Valued historically in early coinage.",
     formula: "Au-Ag",
@@ -8496,7 +8496,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zamak 3 (Zinc Alloy)",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "36.50, 45, 0, 0, 2\n38.80, 100, 1, 0, 0\n43.20, 80, 1, 0, 1\n54.50, 40, 1, 0, 2\n70.80, 30, 1, 1, 0",
     description: "The most widely used zinc-aluminum die casting alloy, prized for its phenomenal balance of flow characteristics and mechanical strength.",
     formula: "Zn-Al-Mg-Cu",
@@ -8510,7 +8510,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sterling Silver",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "38.10, 100, 1, 1, 1\n44.20, 50, 2, 0, 0\n64.40, 55, 2, 2, 0\n77.30, 35, 3, 1, 1\n81.40, 25, 2, 2, 2",
     description: "An alloy of 92.5% silver and typically 7.5% copper. The copper drastically increases hardness and structural durability while preserving pristine reflectivity.",
     formula: "Ag-Cu",
@@ -8524,7 +8524,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Rose's Metal (Fusible Alloy)",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "27.50, 80, 1, 0, 2\n31.80, 100, 0, 1, 4\n38.20, 60, 1, 1, 0\n45.50, 40, 2, 0, 2\n58.40, 30, 1, 2, 2",
     description: "A profound fusible eutectic alloy composed of roughly 50% bismuth, 25% lead, and 25% tin, melting just below the boiling point of water.",
     formula: "Bi-Pb-Sn",
@@ -8538,7 +8538,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Wood's Metal (Fusible Alloy)",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "28.10, 85, 1, 0, 2\n32.40, 100, 0, 1, 4\n38.50, 65, 1, 1, 0\n41.50, 45, 1, 0, 1\n59.20, 30, 1, 2, 2",
     description: "An ultra-low melting point eutectic alloy combining bismuth, lead, tin, and cadmium. Melts at just 70 degrees Celsius, extremely useful for low-temp castings.",
     formula: "Bi-Pb-Sn-Cd",
@@ -8552,7 +8552,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Pewter Alloy",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "30.50, 100, 2, 0, 0\n32.00, 80, 1, 0, 1\n43.80, 60, 2, 2, 0\n44.80, 50, 2, 1, 1\n55.40, 40, 3, 0, 1",
     description: "A malleable metal alloy consisting mostly of tin, hardened with antimony, copper, and historically lead. Known for its bluish-grey sheen.",
     formula: "Sn-Sb-Cu",
@@ -8566,7 +8566,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ferrocerium (Flint Alloy)",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "28.80, 100, 1, 1, 1\n33.50, 40, 2, 0, 0\n47.90, 55, 2, 2, 0\n56.50, 35, 3, 1, 1\n59.80, 20, 2, 2, 2",
     description: "A synthetic pyrophoric alloy combining iron with rare-earth mischmetal. Creates extremely hot localized sparks when subjected to abrasive friction.",
     formula: "Fe-Ce-La-Nd",
@@ -8580,7 +8580,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alumel Thermocouple Alloy",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "44.10, 100, 1, 1, 1\n51.50, 45, 2, 0, 0\n75.80, 55, 2, 2, 0\n92.20, 35, 3, 1, 1\n97.80, 15, 2, 2, 2",
     description: "A nickel-based magnetic alloy doped with manganese, aluminum, and silicon. Constitutes the negative leg of widely ubiquitous Type K thermocouples.",
     formula: "Ni-Mn-Al-Si",
@@ -8594,7 +8594,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chromel Thermocouple Alloy",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "44.00, 100, 1, 1, 1\n51.40, 45, 2, 0, 0\n75.50, 55, 2, 2, 0\n91.90, 35, 3, 1, 1\n97.40, 15, 2, 2, 2",
     description: "An alloy of roughly 90% nickel and 10% chromium. Used ubiquitously as the positive voltage-generating leg of Type K thermocouples.",
     formula: "Ni-Cr",
@@ -8608,7 +8608,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Manganin Resistance Alloy",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "43.30, 100, 1, 1, 1\n50.50, 40, 2, 0, 0\n74.20, 55, 2, 2, 0\n90.00, 35, 3, 1, 1\n95.20, 15, 2, 2, 2",
     description: "A ternary alloy of copper, manganese, and nickel. Features an extremely low temperature coefficient of resistance and high long-term resistance stability.",
     formula: "Cu-Mn-Ni",
@@ -8622,7 +8622,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nimonic 90 Superalloy",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "44.20, 100, 1, 1, 1\n51.60, 45, 2, 0, 0\n76.00, 55, 2, 2, 0\n92.50, 40, 3, 1, 1\n98.10, 15, 2, 2, 2",
     description: "A precipitation-hardenable nickel-chromium-cobalt alloy. Highly resistant to creep and high-temperature deformation due to gamma prime precipitates.",
     formula: "Ni-Cr-Co-Ti-Al",
@@ -8636,7 +8636,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silumin (Al-Si Alloy)",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "28.50, 45, 1, 1, 1 (Si)\n38.50, 100, 1, 1, 1 (Al)\n44.70, 50, 2, 0, 0 (Al)\n47.30, 30, 2, 2, 0 (Si)\n65.10, 45, 2, 2, 0 (Al)",
     description: "A diverse group of lightweight, high-strength aluminum-silicon casting alloys. Features low shrinkage, excellent fluidity, and low thermal expansion.",
     formula: "Al-Si",
@@ -8650,7 +8650,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cunife Magnetic Alloy",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "43.50, 100, 1, 1, 1\n50.80, 45, 2, 0, 0\n74.60, 55, 2, 2, 0\n90.40, 35, 3, 1, 1\n95.80, 15, 2, 2, 2",
     description: "A copper-nickel-iron, spinodally decomposing alloy. Distinctive among permanent magnets as it is extremely ductile and can be easily stamped, drawn, and machined.",
     formula: "Cu-Ni-Fe",
@@ -8664,7 +8664,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Waspaloy Nickel Superalloy",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "44.10, 100, 1, 1, 1\n51.50, 45, 2, 0, 0\n75.80, 60, 2, 2, 0\n92.20, 35, 3, 1, 1\n97.80, 15, 2, 2, 2",
     description: "A highly complex solid-solution and precipitation-strengthened nickel superalloy, offering astonishing fatigue resilience at blistering jet exhaust temperatures.",
     formula: "Ni-Cr-Co-Mo-Ti-Al",
@@ -8678,7 +8678,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Elgiloy (Cobalt-Chromium Alloy)",
-    type: "Metals, Alloys & Steel",
+    type: "Metals & Alloys",
     pattern: "43.80, 100, 1, 1, 1\n51.20, 45, 2, 0, 0\n75.10, 55, 2, 2, 0\n91.20, 35, 3, 1, 1\n96.50, 15, 2, 2, 2",
     description: "A non-magnetic cobalt-chromium-nickel alloy initially conceived for watch springs. Displays practically endless fatigue life, total corrosion resistance, and superb mechanical strength.",
     formula: "Co-Cr-Ni-Mo-Mn-Fe",
@@ -8694,7 +8694,7 @@ export const MATERIAL_DB = [
   // --- NEW OXIDES & HALIDES ---
   {
     name: "Yttrium Iron Garnet (YIG)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "28.50, 100, 4, 0, 0\n32.20, 45, 4, 2, 0\n35.40, 60, 4, 2, 2\n47.50, 20, 6, 2, 0\n50.80, 40, 4, 4, 0",
     description: "A synthetic garnet with fascinating magnetic behavior, famously utilized in microwave, acoustic, and magneto-optical applications due to extremely low loss.",
     formula: "Y3Fe5O12",
@@ -8708,7 +8708,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Terbium(III,IV) Oxide",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "28.60, 100, 2, 2, 2\n33.10, 40, 4, 0, 0\n47.40, 50, 4, 4, 0\n56.30, 30, 6, 2, 2\n59.10, 25, 4, 4, 4",
     description: "A dark brown rare-earth oxide that frequently serves as a precursor for terbium metal and as an activator for green phosphors.",
     formula: "Tb4O7",
@@ -8722,7 +8722,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Dysprosium(III) Oxide",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "20.50, 40, 2, 1, 1\n29.10, 100, 2, 2, 2\n33.80, 30, 4, 0, 0\n48.40, 45, 4, 4, 0\n57.50, 25, 6, 2, 2",
     description: "A highly magnetic rare-earth oxide used to cool nuclear reactors and in manufacturing neodymium-iron-boron magnets to increase coercivity.",
     formula: "Dy2O3",
@@ -8736,7 +8736,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Holmium(III) Oxide",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "29.40, 100, 2, 2, 2\n34.20, 35, 4, 0, 0\n49.10, 50, 4, 4, 0\n58.30, 25, 6, 2, 2\n61.50, 20, 4, 4, 4",
     description: "A light yellow rare earth oxide featuring one of the highest known magnetic moments, utilized in specialty glasses and calibration standards.",
     formula: "Ho2O3",
@@ -8750,7 +8750,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Thulium(III) Oxide",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "30.10, 100, 2, 2, 2\n34.80, 30, 4, 0, 0\n50.20, 55, 4, 4, 0\n59.60, 20, 6, 2, 2\n62.90, 15, 4, 4, 4",
     description: "A pale green-tinted oxide used in portable X-ray devices after irradiation, and to dope solid-state lasers.",
     formula: "Tm2O3",
@@ -8764,7 +8764,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lutetium(III) Oxide",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "30.40, 100, 2, 2, 2\n35.20, 35, 4, 0, 0\n50.80, 60, 4, 4, 0\n60.40, 25, 6, 2, 2\n63.80, 20, 4, 4, 4",
     description: "A dense, white rare earth oxide used aggressively in scintillation crystals, specialized glass formulations, and as a catalyst.",
     formula: "Lu2O3",
@@ -8778,7 +8778,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Scandium(III) Oxide",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "31.50, 100, 2, 2, 2\n36.40, 30, 4, 0, 0\n52.40, 50, 4, 4, 0\n62.50, 20, 6, 2, 2\n66.10, 15, 4, 4, 4",
     description: "A high melting-point light rare-earth-like oxide, frequently deposited as a high-index optical coating or utilized in synthesizing solid-state lasers.",
     formula: "Sc2O3",
@@ -8792,7 +8792,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconium Tungstate",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "16.80, 45, 1, 1, 1\n21.50, 100, 2, 1, 0\n27.80, 60, 2, 1, 1\n32.40, 40, 2, 2, 1\n38.10, 25, 3, 1, 0",
     description: "A fascinating ceramic oxide famous for exhibiting isotropic negative thermal expansion over an enormously wide temperature range.",
     formula: "ZrW2O8",
@@ -8806,7 +8806,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Manganese(II) Tungstate",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "15.40, 30, 0, 1, 0\n18.80, 60, 1, 0, 0\n23.60, 100, 1, 1, 0\n29.40, 80, 1, 1, -1\n35.20, 40, 0, 2, 0",
     description: "A monoclinic wolframite-type crystal known for demonstrating multiferroic properties, drawing interest in advanced spintronic applications.",
     formula: "MnWO4",
@@ -8820,7 +8820,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Thallium Bromoiodide (KRS-5)",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "20.10, 100, 1, 1, 0\n28.60, 60, 2, 0, 0\n35.40, 40, 2, 1, 1\n40.80, 25, 2, 2, 0\n46.20, 15, 3, 1, 0",
     description: "A unique deep red halide crystal exceptionally transparent to infrared radiation, routinely used for ATR prisms in FTIR spectroscopy.",
     formula: "Tl(Br,I)",
@@ -8834,7 +8834,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Mercuric Iodide",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "12.50, 40, 0, 0, 2\n25.80, 100, 1, 0, 2\n38.40, 60, 1, 1, 2\n45.10, 35, 2, 0, 0\n52.60, 25, 2, 0, 2",
     description: "A bright red semi-conducting halide that finds highly specialized use in room-temperature X-ray and gamma-ray detection.",
     formula: "HgI2",
@@ -8848,7 +8848,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Fluoride",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "24.60, 100, 1, 1, 1\n28.50, 40, 2, 0, 0\n40.50, 60, 2, 2, 0\n47.80, 35, 3, 1, 1\n50.10, 20, 2, 2, 2",
     description: "A highly resilient transparent fluorite-structured crystal with exceptional transmission capability spanning from the ultraviolet through into the infrared.",
     formula: "BaF2",
@@ -8862,7 +8862,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Strontium Fluoride",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "26.50, 100, 1, 1, 1\n30.80, 45, 2, 0, 0\n44.20, 65, 2, 2, 0\n52.40, 35, 3, 1, 1\n55.10, 20, 2, 2, 2",
     description: "An optical window material slightly harder than Barium Fluoride. Typically utilized in specialty optical coatings and laser host matrixes.",
     formula: "SrF2",
@@ -8876,7 +8876,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Yttrium(III) Fluoride",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "25.10, 60, 0, 2, 0\n27.80, 100, 1, 1, 1\n34.50, 40, 2, 0, 0\n38.40, 50, 1, 2, 1\n45.20, 30, 2, 2, 0",
     description: "An insoluble crystalline halide frequently synthesized via precipitation to formulate specialty metallic yttrium precursors or upconverting phosphors.",
     formula: "YF3",
@@ -8890,7 +8890,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lanthanum(III) Fluoride",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "24.50, 100, 1, 1, 0\n27.60, 80, 1, 1, 1\n35.20, 45, 2, 1, 0\n43.80, 60, 3, 0, 0\n50.10, 30, 2, 1, 2",
     description: "A high-density tysonite-structure crystal employed broadly in fluoride glass manufacturing and explicitly as a fluoride-selective electrode membrane.",
     formula: "LaF3",
@@ -8904,7 +8904,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cerium(III) Fluoride",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "24.80, 100, 1, 1, 0\n28.10, 85, 1, 1, 1\n35.60, 50, 2, 1, 0\n44.20, 65, 3, 0, 0\n50.80, 35, 2, 1, 2",
     description: "A dense tysonite halide frequently utilized in fast-response scintillating materials and arc carbon lamps to improve brightness.",
     formula: "CeF3",
@@ -8918,7 +8918,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Praseodymium(III) Fluoride",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "25.20, 100, 1, 1, 0\n28.50, 85, 1, 1, 1\n36.10, 45, 2, 1, 0\n44.80, 60, 3, 0, 0\n51.40, 30, 2, 1, 2",
     description: "A green-colored tysonite rare-earth halide typically generated as a refractory precursor to produce pure praseodymium metal via metallothermic reduction.",
     formula: "PrF3",
@@ -8932,7 +8932,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Neodymium(III) Fluoride",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "25.50, 100, 1, 1, 0\n28.80, 85, 1, 1, 1\n36.60, 40, 2, 1, 0\n45.40, 65, 3, 0, 0\n52.10, 30, 2, 1, 2",
     description: "A pinkish powder forming extremely stable trigonal crystals, crucial for refining exceptionally pure neodymium for permanent magnets.",
     formula: "NdF3",
@@ -8946,7 +8946,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Samarium(III) Fluoride",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "26.10, 100, 1, 1, 1\n29.40, 50, 2, 0, 0\n40.20, 40, 1, 2, 1\n46.80, 60, 2, 2, 0\n54.20, 25, 3, 1, 1",
     description: "A faintly yellow crystal that transitions between an orthorhombic low-temperature phase and a trigonal high-temperature tysonite phase.",
     formula: "SmF3",
@@ -8960,7 +8960,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead Molybdate",
-    type: "Oxides & Halides",
+    type: "Ceramics & Refractories",
     pattern: "27.50, 100, 1, 1, 2\n29.80, 45, 0, 0, 4\n33.80, 25, 2, 0, 0\n47.10, 55, 2, 0, 4\n51.60, 30, 2, 2, 0",
     description: "An acousto-optic tetragonal crystal synthesized meticulously for deflecting and modulating high-energy visible laser light rapidly.",
     formula: "PbMoO4",
@@ -8976,7 +8976,7 @@ export const MATERIAL_DB = [
   // --- NEW METALS ---
   {
     name: "Cobalt (Co)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "41.56, 20, 1, 0, 0\n44.48, 60, 0, 0, 2\n47.41, 100, 1, 0, 1\n62.51, 15, 1, 0, 2\n75.80, 12, 1, 1, 0",
     description: "A hard, lustrous, silver-gray hexagonal close-packed (hcp) ferromagnetic metal. It serves as an essential wear-resistant binder in cemented carbides and a major constituent in lithium-ion battery cathodes.",
     formula: "Co",
@@ -8990,7 +8990,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Manganese (Mn)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "37.75, 15, 3, 2, 1\n40.43, 30, 4, 0, 0\n42.98, 100, 3, 3, 0\n45.47, 25, 4, 2, 0\n50.12, 40, 4, 2, 2",
     description: "A hard, brittle, silvery-gray transition metal belonging to the alpha-manganese cubic allotrope structure. Widely used to increase tensile strength and wear resistance in iron and steel alloys.",
     formula: "Mn",
@@ -9004,7 +9004,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hafnium (Hf)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "32.55, 35, 1, 0, 0\n35.53, 32, 0, 0, 2\n38.45, 100, 1, 0, 1\n53.03, 18, 1, 0, 2\n57.65, 14, 1, 1, 0",
     description: "A dense, silvery-grey hexagonal close-packed metal with an exceptional cross-section for neutron absorption. Excellent corrosion resistance makes it a gold standard for nuclear reactor control rods and superalloy micro-additions.",
     formula: "Hf",
@@ -9018,7 +9018,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Rhenium (Re)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "37.89, 30, 1, 0, 0\n40.51, 45, 0, 0, 2\n42.92, 100, 1, 0, 1\n56.63, 20, 1, 0, 2\n68.32, 15, 1, 1, 0",
     description: "One of the rarest, densest elements in the Earth's crust, exhibiting a high hexagonal close-packed melting point second only to tungsten. Critically deployed in single-crystal nickel-based superalloys for aerospace engines.",
     formula: "Re",
@@ -9032,7 +9032,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ruthenium (Ru)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "38.38, 35, 1, 0, 0\n42.18, 40, 0, 0, 2\n44.02, 100, 1, 0, 1\n58.41, 22, 1, 0, 2\n69.45, 18, 1, 1, 0",
     description: "A hard, silver-white hexagonal transition metal belonging to the platinum group metals. Widely appreciated for extraordinary chemical inertness and utilized in ultra-durable micro-resistor contacts and water-splitting electrocatalysts.",
     formula: "Ru",
@@ -9046,7 +9046,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Indium (In)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "32.96, 100, 1, 0, 1\n36.29, 35, 0, 0, 2\n39.14, 40, 1, 1, 0\n54.43, 25, 1, 1, 2\n56.55, 20, 2, 0, 0",
     description: "An exceptionally soft, malleable, and low-melting tetragonal post-transition metal. Features supreme cold-welding properties making it excellent for cryogenic high-vacuum airtight hermetic gaskets and heat interface pads.",
     formula: "In",
@@ -9060,7 +9060,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gallium (Ga)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "29.28, 100, 1, 1, 1\n30.22, 45, 0, 2, 1\n47.38, 25, 0, 4, 0\n48.71, 30, 2, 2, 0\n52.12, 35, 1, 4, 1",
     description: "A soft, silvery Orthorhombic post-transition metal that melts close to room temperature (29.76 °C). Forms the basis for high-performance liquid metal alloys used in computing heat dissipation.",
     formula: "Ga",
@@ -9074,7 +9074,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Scandium (Sc)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "31.52, 30, 1, 0, 0\n33.99, 35, 0, 0, 2\n35.88, 100, 1, 0, 1\n49.32, 22, 1, 0, 2\n55.48, 18, 1, 1, 0",
     description: "A lightweight, silvery hexagonal transition metal. Though classified as a rare-earth-like element, it radically increases the grain refinement and weldability of high-strength structural aluminum components in aerospace design.",
     formula: "Sc",
@@ -9088,7 +9088,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Yttrium (Y)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "28.53, 30, 1, 0, 0\n31.21, 35, 0, 0, 2\n32.61, 100, 1, 0, 1\n46.12, 25, 1, 0, 2\n50.15, 20, 1, 1, 0",
     description: "A soft, silvery-metallic hexagonal transition metal. Chemically comparable to lanthanides, it is added to heat-resistant alloys to fortify oxidation resistance and acts as the structural foundation for garnet microwave materials.",
     formula: "Y",
@@ -9102,7 +9102,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lanthanum (La)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "27.52, 25, 1, 0, 0\n29.13, 30, 1, 0, 1\n29.35, 45, 0, 0, 4\n30.12, 100, 1, 0, 2\n48.15, 20, 1, 1, 0",
     description: "A hyper-reactive, soft, silvery-white metallic element crystallizing in a double hexagonal close-packed lattice. Major element in mischmetal, catalytic converters, and NiMH advanced rechargeable battery alloys.",
     formula: "La",
@@ -9116,7 +9116,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium (Li)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "36.16, 100, 1, 1, 0\n52.06, 40, 2, 0, 0\n64.99, 50, 2, 1, 1\n76.81, 20, 2, 2, 0\n87.97, 10, 3, 1, 0",
     description: "The lightest of all metals and the least dense solid element. It crystallizes in a body-centered cubic (bcc) structure at room temperature. Highly responsive and central to rechargeable battery anodes.",
     formula: "Li",
@@ -9130,7 +9130,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sodium (Na)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "29.41, 100, 1, 1, 0\n42.08, 25, 2, 0, 0\n52.19, 45, 2, 1, 1\n61.03, 15, 2, 2, 0\n69.15, 10, 3, 1, 0",
     description: "A very soft, silvery-white, highly reactive alkali metal that crystallizes in a body-centered cubic (bcc) crystal system. Frequently processed as a liquid thermal transfer fluid in modern sodium-cooled fast reactors.",
     formula: "Na",
@@ -9144,7 +9144,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Potassium (K)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "24.04, 100, 1, 1, 0\n34.25, 30, 2, 0, 0\n42.29, 40, 2, 1, 1\n49.24, 18, 2, 2, 0",
     description: "An extremely soft alkali metal that easily shears with a knife. Crystallizes in a body-centered cubic (bcc) lattice. Highly reactive with water, oxidizes within seconds when exposed to open atmosphere.",
     formula: "K",
@@ -9158,7 +9158,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium (Ca)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "27.67, 100, 1, 1, 1\n32.06, 45, 2, 0, 0\n46.00, 35, 2, 2, 0\n54.49, 32, 3, 1, 1\n57.14, 12, 2, 2, 2",
     description: "An alkaline earth metal with an FCC crystal system. It is moderately soft and oxidizes to a dark oxide-nitride layer. Commonly applied as an deoxidizing agent and alloy component in metallurgy.",
     formula: "Ca",
@@ -9172,7 +9172,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Neodymium (Nd)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "28.14, 25, 1, 0, 0\n28.52, 30, 1, 0, 1\n29.15, 60, 1, 0, 2\n30.12, 100, 1, 0, 3\n49.30, 45, 1, 1, 0",
     description: "A moderately reactive, silvery lanthanide metal. Exhibiting a double hexagonal close-packed (dhcp) crystal structure at standard conditions. Predominantly alloyed with Iron and Boron to construct ultra-strong permanent magnets.",
     formula: "Nd",
@@ -9186,7 +9186,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Samarium (Sm)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "28.45, 40, 1, 0, 0\n31.12, 35, 1, 0, 5\n32.40, 100, 1, 0, 1\n32.95, 80, 1, 0, 8\n49.80, 50, 1, 1, 0",
     description: "A hard, moderately lustrous rare-earth lanthenoid metal. Unique rhombohedral structure consisting of an intricate 9-layer stacking sequence. Extensively leveraged in Samarium-Cobalt permanent high-temperature magnets.",
     formula: "Sm",
@@ -9200,7 +9200,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gadolinium (Gd)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "28.32, 30, 1, 0, 0\n30.90, 35, 0, 0, 2\n32.33, 100, 1, 0, 1\n42.40, 22, 1, 0, 2\n50.15, 25, 1, 1, 0",
     description: "A silvery-white, malleable, and ductile rare-earth metal that is ferromagnetic below 20 °C. Crystallizes with a standard hexagonal close-packed (hcp) symmetry. Renowned for its enormous thermal neutron capture parameters.",
     formula: "Gd",
@@ -9214,7 +9214,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cadmium (Cd)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "31.83, 40, 0, 0, 2\n34.74, 30, 1, 0, 0\n38.35, 100, 1, 0, 1\n47.90, 25, 1, 0, 2\n62.25, 20, 1, 1, 0",
     description: "A soft, bluish-white transition metal matching the Hexagonal Close-Packed (hcp) crystal group. Highly toxic and corrosion-resistant. Chemically relative to Zinc and Mercury.",
     formula: "Cd",
@@ -9228,7 +9228,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Antimony (Sb)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "28.72, 100, 0, 1, 2\n40.11, 35, 1, 0, 4\n41.95, 40, 1, 1, 0\n48.42, 12, 0, 1, 5\n51.55, 18, 2, 0, 2",
     description: "A lustrous, gray, brittle metalloid, occurring as a stable rhombohedral structure. Significantly hardens Lead and Tin alloys utilized in energy-storage battery grids.",
     formula: "Sb",
@@ -9242,7 +9242,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tellurium (Te)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "27.56, 100, 1, 0, 1\n38.28, 40, 1, 0, 2\n40.45, 25, 1, 1, 0\n47.05, 20, 2, 0, 1\n55.45, 15, 2, 0, 2",
     description: "A brittle, mildly toxic, silver-white metalloid. Follows a trigonal helical chain structural layout. Highly sought as a sensitizing compound for high efficiency thin-film solar photovoltaics.",
     formula: "Te",
@@ -9256,7 +9256,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Thorium Metal (Th-232)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "31.42, 100, 1, 1, 1\n36.43, 40, 2, 0, 0\n52.48, 45, 2, 2, 0\n62.35, 35, 3, 1, 1\n65.41, 12, 2, 2, 2",
     description: "A naturally occurring, weakly radioactive actinide metal crystallizing in a face-centered cubic structure. High priority for breeder reactor fuel cycles.",
     formula: "Th",
@@ -9270,7 +9270,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alpha-Uranium Metal (U-238)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "34.82, 100, 1, 1, 0\n36.12, 60, 0, 0, 2\n38.95, 80, 1, 1, 1\n43.20, 35, 0, 2, 1\n48.45, 45, 1, 1, 2",
     description: "Highly research-intensive base actinide metal displaying an orthorhombic alpha crystal system. Frequently characterized for shielding and nuclear containment applications.",
     formula: "U",
@@ -9284,7 +9284,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Technetium Metal (Tc-99)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "37.56, 45, 1, 0, 0\n40.12, 50, 0, 0, 2\n42.61, 100, 1, 0, 1\n56.12, 22, 1, 0, 2\n67.85, 18, 1, 1, 0",
     description: "A highly radioactive hexagonal close-packed transition metal. Primarily studied as a synthetic fission product element for high-stability nuclear transmutation.",
     formula: "Tc",
@@ -9298,7 +9298,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Neptunium Metal (Np-237)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "29.45, 100, 1, 1, 0\n33.20, 55, 0, 2, 0\n38.45, 75, 1, 1, 1\n44.12, 35, 2, 0, 0\n51.95, 45, 2, 1, 1",
     description: "Synthetic actinide transuranic metallic phase forming a highly complex orthorhombic lattice under standard test conditions.",
     formula: "Np",
@@ -9312,7 +9312,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alpha-Plutonium Metal (Pu-244)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "25.12, 100, 1, 1, -1\n28.45, 75, 0, 2, 0\n32.20, 60, 2, 0, 0\n36.45, 40, 1, 2, 1\n45.85, 30, 2, 2, 0",
     description: "Unstable transuranic actinide element possessing a unique low-symmetry monoclinic alpha configuration. Researched for radiothermal energy decay cycles.",
     formula: "Pu",
@@ -9326,7 +9326,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Uranium Zirconium Fuel Lattice (U-10Zr)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "35.12, 100, 1, 1, 0\n50.45, 30, 2, 0, 0\n62.33, 40, 2, 1, 1\n73.15, 15, 2, 2, 0\n83.42, 10, 3, 1, 0",
     description: "Cubic gamma-phase solid solution intermetallic alloy displaying superior resistance to early swelling in advanced fast spectrum breeder environments.",
     formula: "U-10Zr",
@@ -9340,7 +9340,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead-Bismuth Eutectic Metal (LBE)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "31.25, 100, 1, 1, 1\n36.15, 35, 2, 0, 0\n51.95, 45, 2, 2, 0\n61.85, 20, 3, 1, 1\n84.95, 15, 4, 0, 0",
     description: "Low melting heavy metal eutectic alloy designed for critical heat extraction and intense spallation neutron generation.",
     formula: "Pb-Bi (44.5/55.5)",
@@ -9354,7 +9354,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Erbium Deuteride Moderating Phase (ErD2)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "29.85, 100, 1, 1, 1\n34.56, 45, 2, 0, 0\n49.78, 60, 2, 2, 0\n59.12, 50, 3, 1, 1\n62.15, 15, 2, 2, 2",
     description: "Durable rare-earth deuteride matrix displaying a face-centered cubic structure with extreme hydrogen isotopic inventory retention.",
     formula: "ErD2",
@@ -9368,7 +9368,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth-210 Shielding Alloy (Bi-Metal)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "27.35, 100, 0, 1, 2\n37.95, 35, 1, 0, 4\n39.65, 45, 1, 1, 0\n48.85, 15, 0, 1, 5\n56.12, 20, 2, 0, 2",
     description: "High-purity rhombohedral Bismuth elemental metal phase used directly in severe gamma-ray shielding interlayers.",
     formula: "Bi",
@@ -9382,7 +9382,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Curium Oxide Fuel Substitute (Cm2O3)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "28.56, 100, 2, 2, 2\n32.95, 50, 4, 0, 0\n47.12, 70, 4, 4, 0\n56.35, 40, 6, 2, 2\n59.12, 15, 4, 4, 4",
     description: "Cubic sesquioxide of curium used as a thermal benchmark substitute representing intense transuranic decay profiles.",
     formula: "Cm2O3",
@@ -9396,7 +9396,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lunar Mare Basalt Simulant (JSC-1A)",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "27.8, 100\n30.1, 85\n35.2, 70\n41.5, 40\n50.3, 35",
     description: "Geological simulant mimicking lunar mare soils containing plagioclase, pyroxene, and olivine.",
     formula: "Mixed Silicates",
@@ -9410,7 +9410,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Advanced Battery Cathode Blend (NMC 811)",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "18.7, 100\n36.4, 40\n38.2, 35\n44.5, 80\n58.3, 30",
     description: "Multicomponent lithium nickel manganese cobalt oxide cathode layered structure representing cycled states.",
     formula: "LiNi0.8Mn0.1Co0.1O2",
@@ -9424,7 +9424,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Volcanic Ash Deposits Matrix",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "26.6, 100\n27.8, 60\n30.5, 40\n35.1, 20\n50.1, 15",
     description: "Heterogeneous mixture of volcanic glass, quartz, and feldspar representing eruption fallout.",
     formula: "Amorphous+Silicates",
@@ -9438,7 +9438,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Meteorite Chondrite Mineral Suite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "31.5, 100\n32.8, 80\n35.5, 60\n44.3, 50\n51.2, 30",
     description: "Carbonaceous and ordinary chondrite profile showing olivine, pyroxene, and metallic iron-nickel phases.",
     formula: "Silicates+FeNi",
@@ -9452,7 +9452,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Concrete Alkali-Silica Reaction (ASR) Gel",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "15.2, 100\n28.6, 60\n32.1, 40\n45.5, 20",
     description: "Expansive gel phase formed from the reaction of alkalis in cement with reactive silica in aggregates.",
     formula: "Na-K-Ca-Si-O-H2O",
@@ -9466,7 +9466,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Geothermal Pipe Scaling Mix",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "29.4, 100\n39.4, 70\n43.1, 60\n47.5, 50\n48.5, 45",
     description: "Calcite, aragonite, and amorphous silica scale formed on geothermal power plant heat exchangers.",
     formula: "CaCO3+SiO2",
@@ -9480,7 +9480,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Dental Enamel Resorbable Composite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "25.9, 80\n31.8, 100\n32.2, 90\n32.9, 70\n39.8, 40",
     description: "Biomimetic mixture of hydroxyapatite and bio-glass polymers for dental restorations.",
     formula: "Ca10(PO4)6(OH)2+Polymer",
@@ -9494,7 +9494,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ocean Floor Manganese Nodule",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "12.3, 100\n24.5, 60\n37.2, 50\n41.5, 40\n55.4, 30",
     description: "Polymetallic nodule profile containing birnessite, todorokite, and iron oxyhydroxides.",
     formula: "MnO2+Fe(OH)3",
@@ -9508,7 +9508,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Roman Cement Historic Blend",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "26.6, 100\n29.4, 80\n31.2, 60\n42.1, 30\n50.3, 20",
     description: "Ancient pozzolana and lime mixture displaying crystalline phases resistant to millennia of weathering.",
     formula: "Calcium Alumino-Silicates",
@@ -9522,7 +9522,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Solid Oxide Fuel Cell Core Component",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "30.1, 100\n34.9, 80\n50.2, 60\n59.7, 45\n62.3, 30",
     description: "Interfacial layer mixture of Yttria-Stabilized Zirconia (YSZ) and Nickel Oxide for SOFC anodes.",
     formula: "YSZ+NiO",
@@ -9536,7 +9536,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bauxite Ore Residual Mud (Red Mud)",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "24.2, 100\n33.1, 80\n35.6, 60\n49.5, 50\n54.1, 40",
     description: "Highly alkaline waste material from aluminum extraction, rich in hematite, goethite, and sodalite.",
     formula: "Fe2O3+Al(OH)3+SiO2",
@@ -9550,7 +9550,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcined Clay Metakaolin Suite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "12.3, 40\n20.1, 60\n24.9, 80\n26.6, 100\n60.5, 30",
     description: "Dehydroxylated kaolinite mixed with quartz impurities used as a supplementary cementitious material.",
     formula: "Al2Si2O7+SiO2",
@@ -9564,7 +9564,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead-Acid Battery Sulfated Paste",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "20.9, 80\n25.3, 100\n27.6, 90\n31.8, 60\n43.2, 50",
     description: "Degraded active material showing irreversible accumulation of lead sulfate crystallites.",
     formula: "PbSO4+PbO2",
@@ -9578,7 +9578,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Thermoelectric Bismuth Telluride Doped Alloy",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "15.2, 40\n27.6, 100\n37.8, 80\n41.1, 50\n50.3, 40",
     description: "Nanostructured Bi2Te3 doped with selenium and antimony for enhanced Seebeck coefficient.",
     formula: "(Bi,Sb)2(Te,Se)3",
@@ -9592,7 +9592,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Architectural Terracotta Weathering Suite",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "11.6, 100\n20.8, 60\n26.6, 90\n29.4, 50\n35.1, 30",
     description: "Historic terracotta showing gypsum efflorescence and illite expansion deep within the glaze interface.",
     formula: "Silicates+CaSO4·2H2O",
@@ -9606,7 +9606,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Industrial Slag Glassy Matrix",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "29.5, 100\n31.2, 80\n34.5, 60\n41.2, 40\n50.6, 20",
     description: "Metallurgical by-product featuring mostly amorphous aluminosilicates with minor spinel formations.",
     formula: "Ca-Mg-Al-Silicate",
@@ -9620,7 +9620,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Smelter Dust Heavy Metal Residue",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "27.5, 100\n31.8, 80\n35.1, 70\n42.2, 50\n52.4, 40",
     description: "Flue-gas capture particulate rich in zincite, anglesite, and complex copper-iron spinels.",
     formula: "ZnO+PbSO4+Fe3O4",
@@ -9634,7 +9634,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Solid Electrolyte Interphase (SEI) Lithium Mix",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "21.5, 100\n25.3, 80\n32.1, 60\n45.4, 40\n52.2, 30",
     description: "Complex protective layer on Li-ion anodes composed of lithium carbonate, fluoride, and organic salts.",
     formula: "Li2CO3+LiF+ROCO2Li",
@@ -9648,7 +9648,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "High-Entropy Alloy Master Mix",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "43.5, 100\n50.6, 40\n74.5, 20\n90.2, 15",
     description: "Equiatomic Cantor alloy multiphase representation containing CoCrFeMnNi showing dual FCC/BCC segregation.",
     formula: "CoCrFeMnNi",
@@ -9662,7 +9662,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Shale Gas Fracking Proppant Recovery",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "20.8, 60\n26.6, 100\n36.5, 40\n39.4, 30\n50.1, 20",
     description: "Used well-stimulation ceramic sand contaminated with barite drilling mud and native shale illite.",
     formula: "SiO2+BaSO4+Clays",
@@ -9676,7 +9676,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Asteroid Bennu Surface Simulant",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "12.5, 60\n24.5, 100\n35.2, 80\n42.1, 40\n60.3, 30",
     description: "Hydrated carbonaceous regolith containing serpentine, magnetite, and organic presolar grains.",
     formula: "Hydrated Mg-Fe Silicates",
@@ -9690,7 +9690,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Deep Space Solar Sail Degradation Film",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "15.3, 100\n22.8, 80\n38.4, 40\n44.5, 30",
     description: "Polyimide film surface showing aluminized reflective layer micro-cracking and radiation-induced amorphization.",
     formula: "Polymer+Al+Al2O3",
@@ -9704,7 +9704,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Geopolymer Cement Reaction Alkali Paste",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "25.2, 50\n26.6, 60\n29.1, 100\n35.5, 40\n50.1, 30",
     description: "Aluminosilicate precursor activated with sodium silicate forming a continuous zeolitic amorphous network.",
     formula: "Na2O-Al2O3-SiO2-H2O",
@@ -9718,7 +9718,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hydrothermal Vent Chimney Sulfide Mix",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "28.5, 100\n33.2, 80\n47.5, 70\n56.3, 50\n64.1, 30",
     description: "Deep sea 'black smoker' mineral precipitate composing mainly chalcopyrite, sphalerite, and pyrite.",
     formula: "CuFeS2+ZnS+FeS2",
@@ -9732,7 +9732,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Perovskite Solar Cell Degradation Products",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "12.6, 100\n14.1, 80\n28.4, 60\n31.8, 50\n40.5, 30",
     description: "Aged methylammonium lead iodide active layer breaking down into crystalline lead iodide and amorphous organics.",
     formula: "PbI2+MAPbI3(residual)",
@@ -9746,7 +9746,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lunar Highlands Anorthosite Simulant",
-    type: "Suites & Mixtures",
+    type: "Advanced Materials",
     pattern: "22.1, 60\n27.8, 100\n29.5, 80\n35.6, 50\n50.2, 40",
     description: "Calcium-rich plagioclase feldspar matrix representing the ancient reflective crust of the Moon.",
     formula: "CaAl2Si2O8",
@@ -9760,7 +9760,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silk Fibroin Scaffold",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "20.7, 100\n24.3, 60\n9.1, 40\n28.5, 20",
     description: "Insoluble protein from Bombyx mori silkworm, showing characteristic Beta-sheet crystalline peaks (Silk II).",
     formula: "Protein Polymer",
@@ -9774,7 +9774,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sodium Hyaluronate (Hyaluronic Acid)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.2, 100\n20.4, 80\n26.5, 50\n32.1, 20",
     description: "Glycosaminoglycan polymer crucial for tissue lubrication and extracellular matrix structural support.",
     formula: "(C14H20NNaO11)n",
@@ -9788,7 +9788,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sodium Alginate Fiber",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.6, 100\n21.5, 70\n30.2, 30",
     description: "Marine-derived polysaccharide exhibiting crystalline domains induced by calcium cross-linking.",
     formula: "(C6H7NaO6)n",
@@ -9802,7 +9802,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alpha-Keratin (Human Hair/Nail)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.8, 100\n20.1, 80\n24.5, 40",
     description: "Structural fibrous protein demonstrating alpha-helix coiled-coil crystalline regions.",
     formula: "Protein Polymer",
@@ -9816,7 +9816,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Fibrinogen Network",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.5, 100\n18.2, 70\n24.1, 40",
     description: "Glycoprotein complex that polymerizes to form the structural matrix of blood clots.",
     formula: "Glycoprotein",
@@ -9829,7 +9829,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Elastin Bio-polymer",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.0, 100\n20.5, 60\n30.1, 20",
     description: "Highly elastic protein found in connective tissue, exhibiting a distinct broad amorphous halo.",
     formula: "Protein Polymer",
@@ -9843,7 +9843,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cellulose Nanocrystals (CNC)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "15.1, 70\n16.2, 80\n22.6, 100\n34.5, 30",
     description: "Highly crystalline cellulose Type I beta regions extracted via acid hydrolysis.",
     formula: "(C6H10O5)n",
@@ -9857,7 +9857,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chitosan (Degree of Deacetylation 85%)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.5, 80\n20.1, 100\n30.2, 20",
     description: "Linear polysaccharide derived from chitin, showing crystalline domains depending on specific hydration state.",
     formula: "(C6H11NO4)n",
@@ -9871,7 +9871,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polycaprolactone (PCL) Medical Grade",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "21.4, 100\n22.0, 50\n23.7, 70\n29.6, 20",
     description: "Biodegradable synthetic polyester with high crystallinity and a low melting point.",
     formula: "(C6H10O2)n",
@@ -9885,7 +9885,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polyglycolic Acid (PGA) Suture Material",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "22.5, 100\n28.9, 70\n35.1, 30",
     description: "Rapidly degrading aliphatic polyester known for its high tensile strength and crystallinity.",
     formula: "(C2H2O2)n",
@@ -9899,7 +9899,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polyhydroxybutyrate (PHB)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.5, 100\n16.9, 80\n25.5, 60\n27.1, 50",
     description: "Biosynthesized biodegradable plastic produced by microorganisms under stress conditions.",
     formula: "(C4H6O2)n",
@@ -9913,7 +9913,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polyhydroxyvalerate (PHV) Copolymer",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.2, 100\n17.5, 70\n26.1, 50\n28.0, 40",
     description: "A more flexible microbial polyester copolymer commonly combined with PHB as PHBV.",
     formula: "(C5H8O2)n",
@@ -9927,7 +9927,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ti-6Al-4V Grade 23 (ELI)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "35.1, 30\n38.4, 100\n40.1, 90\n53.0, 40\n70.6, 30",
     description: "Extra Low Interstitial (ELI) titanium alloy, the gold standard for structural orthopedic implants featuring alpha and beta phases.",
     formula: "Ti6Al4V",
@@ -9941,7 +9941,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Co-Cr-Mo Alloy (ASTM F75)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "43.5, 100\n44.2, 50\n50.6, 70\n74.5, 40",
     description: "Highly wear-resistant bio-alloy used in articular joints, composed of an FCC/HCP dual-phase matrix.",
     formula: "Co28Cr6Mo",
@@ -9955,7 +9955,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nitinol Medical Shape Memory Alloy",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "42.5, 100\n61.5, 30\n77.8, 40",
     description: "Equiatomic Nickel-Titanium alloy capable of superelasticity and thermal shape recovery (Austenite phase peak shown).",
     formula: "NiTi",
@@ -9969,7 +9969,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bioglass 45S5",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.0, 10\n30.0, 100\n35.0, 20\n (mostly amorphous hump)",
     description: "Bioactive glass forming strong interfacial bonds with bone tissue via a hydroxyapatite-like surface layer.",
     formula: "45SiO2-24.5Na2O-24.5CaO-6P2O5",
@@ -9983,7 +9983,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Synthetic Nano-Hydroxyapatite",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.9, 40\n31.8, 100\n32.2, 60\n32.9, 50\n34.0, 30",
     description: "Phase-pure nanocrystalline calcium phosphate replicating the mineral phase of human bone.",
     formula: "Ca10(PO4)6(OH)2",
@@ -9997,7 +9997,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bone Carbonated Apatite (Dahllite)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.8, 30\n31.9, 100\n32.5, 50\n33.0, 40",
     description: "B-type carbonated apatite directly extracted from or mimicked for actual bone tissue.",
     formula: "Ca10(PO4)6-x(CO3)x(OH)2-y",
@@ -10011,7 +10011,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polymethylmethacrylate (PMMA) Bone Cement",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.5, 100\n21.0, 40\n30.1, 20",
     description: "Amorphous structural acrylic polymer showing a very broad halo, used for implant fixation.",
     formula: "(C5H8O2)n",
@@ -10025,7 +10025,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Medical Grade UHMWPE",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "21.4, 100\n23.8, 50",
     description: "Ultra-high molecular weight polyethylene, possessing exceptional wear and impact resistance for bearing applications.",
     formula: "(C2H4)n",
@@ -10039,7 +10039,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Medical Calcium Sulfate Hemihydrate",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.7, 100\n25.6, 50\n29.7, 80\n31.9, 60",
     description: "Plaster of Paris grade used for rapidly resorbable bone void fill and local drug delivery.",
     formula: "CaSO4·0.5H2O",
@@ -10053,7 +10053,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Octacalcium Phosphate (OCP)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.7, 100\n9.4, 40\n26.0, 60\n31.6, 80",
     description: "A crucial intermediate precursor phase in the biomineralization of bone hydroxyapatite.",
     formula: "Ca8H2(PO4)6·5H2O",
@@ -10067,7 +10067,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Dicalcium Phosphate Dihydrate (Brushite)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.6, 100\n20.9, 70\n23.4, 40\n29.2, 80\n34.1, 50",
     description: "A highly soluble early-stage biomineralization crystal used in rapid-setting calcium phosphate cements.",
     formula: "CaHPO4·2H2O",
@@ -10081,7 +10081,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tricalcium Phosphate (alpha-TCP)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "22.8, 50\n24.1, 60\n30.7, 100\n31.2, 90\n34.4, 70",
     description: "High-temperature polymorph of TCP, forming the reactive component of modern bio-cements via hydrolysis.",
     formula: "alpha-Ca3(PO4)2",
@@ -10095,7 +10095,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tetracalcium Phosphate (TTCP)",
-    type: "Biomaterial",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "29.2, 80\n29.8, 100\n31.0, 70\n32.4, 60",
     description: "The most basic calcium phosphate phase, exhibiting high solubility and reactivity to form apatite in cements.",
     formula: "Ca4(PO4)2O",
@@ -10530,7 +10530,7 @@ export const MATERIAL_DB = [
 ,
   {
     name: "Lithium Nickel Manganese Cobalt Oxide (NMC 811)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "18.7, 100\n38.4, 40\n44.5, 60\n48.6, 25\n58.5, 30",
     description: "High-nickel cathode material for high energy density lithium-ion batteries.",
     formula: "LiNi0.8Mn0.1Co0.1O2",
@@ -10542,7 +10542,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Nickel Cobalt Aluminum Oxide (NCA)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "18.8, 100\n38.2, 45\n44.4, 55\n48.8, 20\n58.3, 35",
     description: "High-capacity lithium-ion cathode material known for strong performance in electric vehicles.",
     formula: "LiNi0.84Co0.12Al0.04O2",
@@ -10554,7 +10554,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Manganese Oxide (Spinel)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "18.6, 100\n36.1, 40\n43.8, 50\n58.1, 60\n64.2, 35",
     description: "Spinel-structured cathode material offering high power capability, excellent thermal stability, and low cost.",
     formula: "LiMn2O4",
@@ -10566,7 +10566,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sodium Vanadium Phosphate (NVP)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "14.2, 100\n20.1, 40\n23.4, 70\n29.3, 50\n32.8, 45",
     description: "NASICON-structured cathode material for highly stable and fast-charging sodium-ion batteries.",
     formula: "Na3V2(PO4)3",
@@ -10578,7 +10578,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "NASICON (Sodium Super Ionic Conductor)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "13.8, 60\n19.2, 100\n24.5, 45\n28.1, 30",
     description: "A highly conductive solid electrolyte material for advanced solid-state sodium batteries.",
     formula: "Na3Zr2Si2PO12",
@@ -10590,7 +10590,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "LISICON (Lithium Super Ionic Conductor)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "17.4, 100\n22.1, 40\n26.8, 30\n33.2, 55",
     description: "Solid-state electrolyte with high ionic conductivity for next-generation lithium batteries.",
     formula: "Li14Zn(GeO4)4",
@@ -10602,7 +10602,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Garnet Solid Electrolyte (LLZO)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "16.8, 40\n27.5, 30\n29.2, 100\n34.1, 50\n51.2, 60",
     description: "Lithium lanthanum zirconate with a garnet structure; a highly stable solid electrolyte against lithium metal.",
     formula: "Li7La3Zr2O12",
@@ -10614,7 +10614,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Perovskite Solid Electrolyte (LLTO)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "23.1, 100\n32.8, 80\n40.5, 60\n47.1, 40\n58.3, 35",
     description: "Lithium lanthanum titanate exhibiting high bulk lithium-ion conductivity.",
     formula: "Li0.5La0.5TiO3",
@@ -10626,7 +10626,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sulfide Solid Electrolyte (LPS)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "15.3, 40\n18.6, 100\n20.2, 50\n29.5, 60\n31.1, 45",
     description: "Highly conductive sulfide-based inorganic solid electrolyte for solid-state batteries.",
     formula: "Li7P3S11",
@@ -10638,7 +10638,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Argyrodite Solid Electrolyte (LPSCl)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "15.5, 80\n25.4, 100\n30.1, 90\n31.3, 60\n44.8, 50\n52.3, 40",
     description: "Halogen-doped sulfide solid electrolyte with argyrodite structure offering extremely high ionic conductivity and better stability.",
     formula: "Li6PS5Cl",
@@ -10650,7 +10650,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth Telluride",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "15.2, 20\n27.6, 100\n37.8, 40\n41.1, 60\n44.6, 30",
     description: "A premier thermoelectric material utilized in solid-state cooling and low-temperature power generation.",
     formula: "Bi2Te3",
@@ -10662,7 +10662,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead Telluride",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "27.5, 100\n39.4, 80\n48.6, 50\n57.2, 40",
     description: "A widely studied mid-temperature thermoelectric material employed in deep space probes and power generators.",
     formula: "PbTe",
@@ -10674,7 +10674,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Antimony Telluride",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "14.5, 10\n28.3, 100\n38.2, 35\n42.1, 55\n45.0, 25",
     description: "A p-type thermoelectric alloy that is commonly alloyed with Bismuth Telluride for enhanced performance near room temperature.",
     formula: "Sb2Te3",
@@ -10686,7 +10686,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zinc Antimonide",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "24.1, 50\n40.6, 100\n42.3, 80\n48.9, 40",
     description: "A complex-structured thermoelectric material noted for its intrinsically low thermal conductivity.",
     formula: "Zn4Sb3",
@@ -10698,7 +10698,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tin Selenide",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "15.6, 40\n30.5, 100\n31.8, 80\n39.1, 50\n44.2, 60",
     description: "A high-performance layered thermoelectric material exhibiting ultralow thermal conductivity along specific crystallographic axes.",
     formula: "SnSe",
@@ -10710,7 +10710,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Half-Heusler (ZrNiSn)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "25.1, 40\n29.4, 100\n42.1, 60\n49.8, 50\n52.4, 45",
     description: "A robust intermetallic compound with high thermal stability and very promising high-temperature thermoelectric properties.",
     formula: "ZrNiSn",
@@ -10722,7 +10722,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium Silicide",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "24.2, 60\n40.1, 100\n47.5, 50\n58.3, 40",
     description: "Eco-friendly, lightweight thermoelectric material with competitive figure-of-merit for medium-temperature power generation.",
     formula: "Mg2Si",
@@ -10734,7 +10734,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Skutterudite (CoSb3)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "17.4, 30\n31.2, 100\n38.4, 60\n44.1, 50\n51.6, 40",
     description: "A cage-like crystal structure that allows atoms to 'rattle', thereby inherently lowering its thermal conductivity for efficient thermoelectrics.",
     formula: "CoSb3",
@@ -10746,7 +10746,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Copper Indium Gallium Selenide (CIGS)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "26.8, 100\n44.4, 60\n52.6, 50",
     description: "A prominent thin-film semiconductor employed in scalable, flexible, and high-efficiency photovoltaic solar cells.",
     formula: "CuIn0.7Ga0.3Se2",
@@ -10758,7 +10758,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cadmium Telluride",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "23.8, 100\n39.3, 60\n46.4, 40\n56.8, 30",
     description: "A highly utilized II-VI semiconductor used in cost-effective commercial thin-film solar photovoltaics.",
     formula: "CdTe",
@@ -10770,7 +10770,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Formamidinium Lead Iodide (FAPbI3)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "13.9, 100\n19.8, 40\n24.3, 60\n28.1, 80\n31.6, 50",
     description: "A highly efficient perovskite material with a near-optimal bandgap for single-junction solar cells.",
     formula: "CH(NH2)2PbI3",
@@ -10782,7 +10782,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Methylammonium Lead Bromide",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "15.1, 100\n21.4, 50\n30.4, 80\n34.1, 40\n43.5, 30",
     description: "A wider-bandgap hybrid organic-inorganic perovskite, utilized for solar cells and light-emitting applications.",
     formula: "CH3NH3PbBr3",
@@ -10794,7 +10794,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Zirconate",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "30.1, 100\n43.1, 50\n53.4, 40\n62.5, 30",
     description: "A highly stable protonic conductor and refractory ceramic used as an electrolyte in proton-conducting solid oxide fuel cells (H-SOFCs).",
     formula: "BaZrO3",
@@ -10806,7 +10806,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "LSCF Cathode",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "23.2, 30\n32.9, 100\n40.6, 40\n47.3, 50",
     description: "Lanthanum strontium cobalt ferrite, a premier mixed ionic-electronic conductor (MIEC) serving as a cathode in solid oxide fuel cells.",
     formula: "La0.6Sr0.4Co0.2Fe0.8O3",
@@ -10818,7 +10818,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Samarium Doped Ceria (SDC)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "28.3, 100\n32.8, 30\n47.1, 80\n55.9, 50",
     description: "A high-performance solid electrolyte possessing significant oxygen-ion conductivity at intermediate temperatures.",
     formula: "Sm0.2Ce0.8O1.9",
@@ -10830,7 +10830,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gadolinium Doped Ceria (GDC)",
-    type: "Energy Devices",
+    type: "Energy & Battery Materials",
     pattern: "28.5, 100\n33.0, 30\n47.4, 75\n56.3, 50",
     description: "An advanced oxygen-ion conductor demonstrating exceptional performance in intermediate-temperature solid oxide fuel cell devices.",
     formula: "Gd0.1Ce0.9O1.95",
@@ -10843,7 +10843,7 @@ export const MATERIAL_DB = [
 ,
   {
     name: "Hydroxyapatite (HAP)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.8, 40\n31.8, 100\n32.2, 60\n32.9, 55\n39.8, 20\n49.5, 30",
     description: "A naturally occurring mineral form of calcium apatite. It is the main inorganic constituent of tooth enamel and bone, extensively used for bone grafts and dental implants.",
     formula: "Ca10(PO4)6(OH)2",
@@ -10855,7 +10855,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Beta-Tricalcium Phosphate (B-TCP)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.8, 20\n27.8, 80\n31.0, 100\n34.3, 50\n47.1, 40",
     description: "A highly resorbable bioceramic widely used in synthetic bone void fillers. It is gradually replaced by natural bone after implantation.",
     formula: "Ca3(PO4)2",
@@ -10867,7 +10867,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alpha-Tricalcium Phosphate (A-TCP)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "22.8, 40\n24.1, 50\n29.1, 80\n30.7, 100\n31.3, 70",
     description: "A high-temperature polymorph of TCP, significantly more soluble than the beta phase. Used widely as a reactive component in self-setting calcium phosphate cements.",
     formula: "Ca3(PO4)2",
@@ -10879,7 +10879,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Fluorapatite",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.8, 40\n31.9, 100\n32.2, 50\n33.1, 60\n46.9, 30",
     description: "A highly stable, acid-resistant calcium phosphate mineral formed when fluoride ions replace hydroxyl groups in hydroxyapatite, famously enhancing tooth decay resistance.",
     formula: "Ca10(PO4)6F2",
@@ -10891,7 +10891,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bioglass 45S5",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "22.5, 40\n29.1, 100\n33.8, 80\n48.3, 50",
     description: "A highly bioactive synthetic silica-based glass composition that bonds rapidly to hard and soft tissues. Exhibits characteristic amorphous broad halos combined with crystalline nucleated domains.",
     formula: "SiO2-Na2O-CaO-P2O5",
@@ -10903,7 +10903,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconia (Tetragonal Y-TZP)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "30.2, 100\n34.6, 20\n35.3, 30\n50.2, 50\n59.8, 40",
     description: "Yttria-stabilized tetragonal zirconia polycrystal. A highly inert, extremely fracture-tough bioceramic utilized for robust dental crowns and joint arthroplasty components.",
     formula: "ZrO2",
@@ -10915,7 +10915,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alumina (Bio-Grade)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.6, 40\n35.1, 100\n37.8, 50\n43.3, 80\n52.5, 50\n57.5, 60",
     description: "High-purity sapphire-like aluminum oxide used in biomedicine due to its exceptional wear resistance and bioinert nature. Popular for femoral heads in total hip replacements.",
     formula: "Al2O3",
@@ -10927,7 +10927,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium Dioxide (Rutile)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "27.4, 100\n36.1, 50\n41.2, 25\n54.3, 60\n56.6, 20",
     description: "A highly biocompatible and photochemically stable polymorph of TiO2. Often formed as a passivating surface oxide layer on medical-grade titanium implants.",
     formula: "TiO2",
@@ -10939,7 +10939,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Carbonate (Calcite)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "23.0, 20\n29.4, 100\n36.0, 15\n39.4, 30\n43.1, 20\n47.5, 25",
     description: "The most stable polymorph of calcium carbonate. Extensively used in pharmaceutical formulations as antacids and basic dietary calcium supplements.",
     formula: "CaCO3",
@@ -10951,7 +10951,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carbonated Apatite (Dahllite)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.8, 30\n31.8, 100\n32.1, 50\n32.9, 45\n46.7, 25",
     description: "Biological apatite found in human bones and teeth, which features carbonate substitution replacing phosphate or hydroxyl groups, making it more soluble than pure HAP.",
     formula: "Ca10(PO4,CO3)6(OH,CO3)2",
@@ -10963,7 +10963,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Barium Sulfate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "20.5, 40\n25.8, 60\n26.8, 100\n28.7, 50\n31.5, 45\n42.6, 50",
     description: "A dense, completely radiopaque inorganic compound used frequently as an X-ray contrast agent for gastrointestinal tract clinical imaging.",
     formula: "BaSO4",
@@ -10975,7 +10975,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium Hydroxide (Brucite)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "18.6, 100\n32.8, 40\n37.9, 60\n50.8, 50\n58.6, 30",
     description: "The main functional ingredient in Milk of Magnesia. Medically utilized as a gentle antacid and osmotic laxative.",
     formula: "Mg(OH)2",
@@ -10987,7 +10987,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silver Sulfadiazine",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.2, 100\n11.9, 80\n20.4, 50\n25.1, 60\n28.8, 40",
     description: "A topical sulfonamide antibacterial agent complexed with silver. Heavily utilized in clinical settings to prevent burn wound infections.",
     formula: "C10H9AgN4O2S",
@@ -10999,7 +10999,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zinc Oxide (Medical Grade)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "31.7, 60\n34.4, 45\n36.2, 100\n47.5, 25\n56.6, 35\n62.8, 30",
     description: "A vital multi-functional inorganic compound showing local astringent, soothing, and protective properties. It is a fundamental component of calamine lotion and sunscreens.",
     formula: "ZnO",
@@ -11011,7 +11011,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Poly(L-Lactic Acid) (PLLA)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.8, 50\n16.6, 100\n18.9, 80\n22.3, 40",
     description: "A semi-crystalline, highly biocompatible and biodegradable synthetic polymer used thoroughly in resorbable sutures, orthopedic pins, and soft tissue scaffolds.",
     formula: "(C3H4O2)n",
@@ -11023,7 +11023,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Polyglycolic acid (PGA)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "21.6, 100\n28.8, 60\n32.1, 20",
     description: "The simplest linear aliphatic polyester, possessing high crystallinity and rapid degradation. Widely leveraged in early synthetic absorbable sutures.",
     formula: "(C2H2O2)n",
@@ -11035,7 +11035,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ibuprofen (Form I)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.1, 50\n12.2, 60\n16.6, 100\n17.6, 40\n20.1, 70\n22.3, 80",
     description: "The stable, most commonly crystallized and marketed form of the pervasive non-steroidal anti-inflammatory drug (NSAID) Ibuprofen.",
     formula: "C13H18O2",
@@ -11047,7 +11047,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Paracetamol (Acetaminophen Form I)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.1, 25\n15.5, 40\n18.1, 50\n23.4, 60\n24.3, 100\n26.5, 80",
     description: "The highly stable monoclinic polymorph and standard market formulation of the ubiquitous pain-relieving and fever-reducing medication.",
     formula: "C8H9NO2",
@@ -11059,7 +11059,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aspirin (Acetylsalicylic Acid Form I)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.8, 80\n15.6, 100\n20.5, 40\n22.6, 50\n26.8, 60",
     description: "A widely utilized medication to treat pain, fever, and inflammation, famously acting as an antiplatelet to reduce risks of heart attacks.",
     formula: "C9H8O4",
@@ -11071,7 +11071,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Vitamin C (L-Ascorbic Acid)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.4, 60\n17.5, 100\n25.2, 80\n27.8, 50\n40.1, 25",
     description: "A strictly essential dietary vitamin acting as a potent antioxidant, playing a pivotal physiological role in collagen synthesis and immune responses.",
     formula: "C6H8O6",
@@ -11083,7 +11083,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bismuth Subsalicylate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.2, 100\n15.4, 40\n27.6, 80\n31.8, 60\n40.5, 30",
     description: "A bismuth-based medication and generic antacid used meticulously to treat temporary discomforts of the stomach and gastrointestinal tract.",
     formula: "C7H5BiO4",
@@ -11095,7 +11095,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Dicalcium Phosphate Dihydrate (Brushite)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.6, 100\n20.9, 80\n29.2, 50\n30.5, 40\n34.2, 60",
     description: "A natural calcium phosphate mineral highly biologically relevant as a precursor in bone mineralization and an active component in some specialized toothpastes.",
     formula: "CaHPO4.2H2O",
@@ -11107,7 +11107,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Octacalcium Phosphate (OCP)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.7, 100\n9.4, 60\n26.0, 50\n31.5, 80\n32.0, 40",
     description: "A fascinating bioceramic believed to be a vital transient precursor phase in the complex biological mineralization cascade of human bones and teeth.",
     formula: "Ca8H2(PO4)6.5H2O",
@@ -11119,7 +11119,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Sulfate Hemihydrate (Plaster of Paris)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.7, 100\n25.6, 40\n29.7, 80\n31.9, 60",
     description: "An incredibly fast-setting clinical bioceramic historically ubiquitous for external orthopaedic casts and acting as a degradable internal bone void filler.",
     formula: "CaSO4.0.5H2O",
@@ -11131,7 +11131,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bacterial Cellulose (Type I)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.4, 80\n16.8, 60\n22.5, 100\n34.5, 20",
     description: "A remarkably pure nanofibrillar organic material synthesized by bacteria. Cultivated for severe wound dressings due to its soothing hydrophilic properties.",
     formula: "(C6H10O5)n",
@@ -11143,7 +11143,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ciprofloxacin Hydrochloride (Monohydrate)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.2, 50\n10.8, 40\n15.6, 60\n19.2, 100\n26.5, 80\n29.4, 30",
     description: "A highly prescribed, broad-spectrum second-generation fluoroquinolone antibiotic targeting various severe bacterial infections.",
     formula: "C17H18FN3O3.HCl.H2O",
@@ -11156,7 +11156,7 @@ export const MATERIAL_DB = [
 ,
   {
     name: "Lithium (Metal)",
-    type: "Metal",
+    type: "Metals & Alloys",
     pattern: "36.2, 100\n52.4, 40\n65.1, 30",
     description: "Pure lithium metal, the lightest crystalline solid element. Essential for high-energy density batteries and fusion materials.",
     formula: "Li",
@@ -11169,7 +11169,7 @@ export const MATERIAL_DB = [
 ,
   {
     name: "Lithium Cobalt Oxide (LCO)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "18.9, 100\n37.6, 20\n38.4, 25\n39.0, 30\n45.0, 45\n49.3, 30\n59.5, 20",
     description: "A widely used cathode material for lithium-ion batteries in portable electronics, characterized by high energy density but moderate stability.",
     formula: "LiCoO2",
@@ -11181,7 +11181,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Iron Phosphate (LFP)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "17.0, 40\n20.7, 30\n25.5, 40\n29.7, 80\n35.6, 100\n37.8, 40\n42.3, 30",
     description: "A robust, highly safe cathode material for lithium-ion batteries. Known for excellent thermal stability and long cycle life.",
     formula: "LiFePO4",
@@ -11193,7 +11193,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Manganese Oxide (LMO)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "18.6, 100\n36.1, 40\n44.1, 50\n48.1, 20\n58.3, 25",
     description: "Spinel-type cathode material. Offers lower cost and high rate capability but can suffer from capacity fading at high temperatures.",
     formula: "LiMn2O4",
@@ -11205,7 +11205,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Nickel Manganese Cobalt Oxide (NMC 111)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "18.7, 100\n36.7, 20\n37.9, 25\n44.3, 40\n48.5, 30\n58.8, 20",
     description: "An optimization of LCO where Nickel, Manganese, and Cobalt are mixed. Provides an excellent balance of energy density, power, and safety.",
     formula: "LiNi0.33Mn0.33Co0.33O2",
@@ -11217,7 +11217,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Nickel Cobalt Aluminum Oxide (NCA)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "18.6, 100\n36.5, 25\n37.8, 20\n44.2, 45\n48.4, 30",
     description: "A high-energy-density cathode material primarily adopted by leading EV manufacturers. Minor aluminum addition improves thermal stability.",
     formula: "LiNi0.8Co0.15Al0.05O2",
@@ -11229,7 +11229,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Titanate (LTO)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "18.3, 100\n35.5, 40\n43.2, 45\n47.3, 20\n57.1, 25\n62.7, 30\n66.0, 15",
     description: "A specialized anode material. Despite lower voltage, it offers extraordinary cycle life, rapid charging, and high safety.",
     formula: "Li4Ti5O12",
@@ -11241,7 +11241,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Carbonate",
-    type: "Mineral/Precursor",
+    type: "Minerals, Ores & Geology",
     pattern: "21.2, 80\n29.3, 100\n30.5, 60\n31.7, 70\n34.2, 30\n36.9, 40",
     description: "An essential precursor inorganic compound used heavily in the production of lithium-ion batteries and as a pharmaceutical treatment for bipolar disorder.",
     formula: "Li2CO3",
@@ -11253,7 +11253,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lithium Hydroxide Monohydrate",
-    type: "Mineral/Precursor",
+    type: "Minerals, Ores & Geology",
     pattern: "15.2, 40\n20.4, 100\n21.8, 30\n29.1, 80\n33.6, 60",
     description: "Another vital precursor material, particularly preferred for synthesizing nickel-rich cathode materials (like NMC and NCA) due to its lower melting point.",
     formula: "LiOH.H2O",
@@ -11265,7 +11265,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sodium-Sulfur Solid State Cell (Na-S Beta''-Alumina)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "11.8, 100\n16.1, 40\n21.1, 60\n27.8, 35\n33.2, 50\n46.1, 30",
     description: "A high-performance sodium ion-conducting ceramic solid-state electrolyte critical for high-temperature sodium-sulfur grid energy storage systems.",
     formula: "Na1.67Al10.33O17",
@@ -11277,7 +11277,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Antimony-Zintl Phase Thermoelectric Module (Yb14MnSb11)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "23.5, 30\n25.8, 100\n31.2, 60\n35.6, 45\n42.3, 35\n47.1, 20",
     description: "State-of-the-art p-type high-temperature Zintl thermoelectric device capable of converting deep-space radioisotope decay heat into high-efficiency electricity.",
     formula: "Yb14MnSb11",
@@ -11289,7 +11289,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Solid Oxide Fuel Cell Anode (Ni-SrTiO3)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "32.4, 100\n40.0, 30\n46.5, 45\n57.8, 35\n67.8, 20\n77.2, 15",
     description: "A redox-stable lanthanum-doped strontium titanate backboned solid oxide fuel cell (SOFC) anode co-catalyzed with metallic nickel nanoparticles.",
     formula: "SrTiO3",
@@ -11301,7 +11301,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Protonic Ceramic Electrochemical Cell Electrolyte (BCZY)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "28.8, 100\n41.2, 45\n51.1, 25\n59.5, 30\n67.2, 20",
     description: "A leading proton-conducting ceramic perovskite designed for intermediate-temperature solid oxide electrolyzers and high-power protonic fuel cells.",
     formula: "BaCe0.7Zr0.1Y0.2O3",
@@ -11313,7 +11313,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silver Bismuth Iodide Solar Cell Absorber",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "12.8, 40\n25.2, 100\n29.5, 45\n41.5, 60\n49.1, 25",
     description: "Lead-free, non-toxic, and stable silver-bismuth rudorffite perovskite-inspired solar absorber showing promising indoor and outdoor solar energy conversion.",
     formula: "Ag3BiI6",
@@ -11325,7 +11325,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "All-Solid-State Argyrodite Superionic Conductor",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "15.3, 40\n17.7, 30\n25.2, 100\n29.8, 85\n31.1, 75\n44.8, 20\n47.6, 35",
     description: "A lithium sulfidic argyrodite ceramic superionic driver allowing fast solid-state lithium-ion battery transport with superb flame safety.",
     formula: "Li6PS5Cl",
@@ -11337,7 +11337,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zinc-Air Battery Porous Gas Diffusion Catalyst",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "22.9, 40\n32.6, 100\n40.1, 35\n46.7, 50\n58.0, 45\n68.2, 25",
     description: "An outstanding oxygen-reduction and oxygen-evolution (ORR/OER) perovskite oxide catalyst applied in high-capacity rechargeable zinc-air accumulator systems.",
     formula: "La0.6Sr0.4Co0.2Fe0.8O3",
@@ -11349,7 +11349,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Direct Methanol Fuel Cell Catalyst Core-Shell",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "39.9, 100\n46.4, 45\n67.7, 35\n81.6, 30\n86.1, 20",
     description: "Platinum-cobalt ordered core-shell alloy nanocatalysts designed with high chemical durability and poisoning resistance for liquid alcohol chemical-to-electricity cells.",
     formula: "Pt3Co",
@@ -11361,7 +11361,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesium Metal Battery Cathode (Chevrel Phase)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "13.5, 45\n28.4, 100\n32.8, 30\n38.2, 60\n44.1, 20\n55.0, 15",
     description: "The quintessential divalent-ion intercalation-stable Chevrel phase framework enabling highly reversible divalent Mg-ion insertion and long cycle lifespans.",
     formula: "Mo6S8",
@@ -11373,7 +11373,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aqueous Zinc-Ion Battery Cathode (Vanadium Bronze)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "8.8, 100\n17.6, 30\n26.5, 45\n35.3, 20\n44.5, 10",
     description: "Layered bilayer hydrated vanadium bronze electrode offering rapid water-shielded Zn-ion transport suited for highly sustainable aqueous power cells.",
     formula: "V2O5.H2O",
@@ -11385,7 +11385,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Halide-Based All-State Solid Electrolyte",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "16.2, 45\n31.5, 100\n33.8, 70\n38.9, 30\n45.5, 40\n52.1, 15",
     description: "A modern ternary metal halide superionic electrolyte showing extreme anodic stability against 4.5V+ high-voltage oxide cathodes without interface matching coatings.",
     formula: "Li3YCl6",
@@ -11397,7 +11397,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sodium-Ion Layered Oxide Cathode (O3-type)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "16.1, 100\n32.4, 25\n35.8, 30\n41.2, 50\n49.1, 35\n57.5, 20",
     description: "Standard layered sodium transition metal oxide displaying high volumetric density and stable performance configurations as a grid accumulator cathode.",
     formula: "Na0.9Ni0.5Mn0.5O2",
@@ -11409,7 +11409,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Li-S Battery Polysulfide Anchor Host (Titanium Nitride)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "36.8, 75\n42.6, 100\n61.8, 55\n74.1, 20\n77.9, 15",
     description: "A highly polar interstitial titanium nitride matrix possessing excellent electrical conductivity and intense binding energy to trap soluble lithium polysulfides.",
     formula: "TiN",
@@ -11421,7 +11421,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Perovskite Tandem Solar Cell SAM Contact",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "5.4, 100\n10.8, 40\n16.2, 20\n21.6, 10",
     description: "A self-assembled monolayer (SAM) carbazole-derivative organic spacer layer used as an ultrathin hole-selective interface designed for tandem photovoltaics.",
     formula: "C12H13NOPCl",
@@ -11433,7 +11433,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Organic Radical Battery Cathode (PTMA Polymer)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "14.2, 100\n21.8, 60\n28.5, 15",
     description: "A plastic-active organic nitroxide radical polymer acting as a metal-free, fast charged cathode framework relying on ultra-reversible radical redox kinetics.",
     formula: "C9H16NO2",
@@ -11445,7 +11445,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "MXene Supercapacitor High-Rate Electrode",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "8.9, 100\n18.2, 20\n27.5, 15\n36.4, 45\n42.1, 25\n60.9, 35",
     description: "A state-of-the-art carbon-carbide MXene paper with ultra-high conductivity powering multi-directional fast ion storage supercapacitors.",
     formula: "Ti3C2O2",
@@ -11457,7 +11457,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "High-Voltage Spinel Cathode Core (LNMO)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "18.8, 100\n36.4, 40\n38.4, 15\n44.4, 55\n48.6, 20\n58.7, 25\n64.1, 10",
     description: "Cobalt-free, high-voltage disordered spinel operating at 4.7 V vs Li/Li+ for compact EV battery packs requiring extraordinary power density rates.",
     formula: "LiNi0.5Mn1.5O4",
@@ -11469,7 +11469,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Anion-Exchange Fuel Cell Catalyst (Nickel-Nitride)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "38.2, 45\n41.5, 100\n44.2, 35\n58.4, 60\n70.1, 25",
     description: "An electrocatalytic nickel nitride anode showing exceptional hydrogen oxidation reactions (HOR) stable inside high-current alkaline electrolyte packs.",
     formula: "Ni3N",
@@ -11481,7 +11481,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "All-Solid-State Hydride Electrolyte (BH4-Cl)",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "19.8, 45\n22.4, 100\n25.1, 80\n28.6, 50\n32.2, 35\n41.1, 40",
     description: "A highly deformable borohydride halide composite solid electrolyte establishing excellent electrochemical interfaces with ductile metal foils.",
     formula: "Li4B3H12Cl",
@@ -11493,7 +11493,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Formamidinium Perovskite Photovoltaic Alpha-Phase",
-    type: "Energy Materials",
+    type: "Energy & Battery Materials",
     pattern: "14.1, 100\n20.0, 25\n24.5, 30\n28.2, 60\n31.8, 45\n40.5, 20\n43.1, 35",
     description: "The ideal low bandgap black alpha-phase polytype of formamidinium lead iodide critical for high-limit single and multi-junction PV cells.",
     formula: "CH6N2PbI3",
@@ -11505,7 +11505,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Andalusite (Aluminium Silicate Polymorph)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "15.6, 100\n21.8, 85\n22.8, 40\n27.6, 55\n31.2, 45\n34.9, 30",
     description: "An aluminium-silicate polymorph key in metamorphic petrology, indicative of low-pressure, high-temperature recrystallization facies in pelitic schists.",
     formula: "Al2SiO5",
@@ -11517,7 +11517,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Kyanite (Aluminium Silicate Polymorph)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "18.2, 50\n21.0, 65\n23.4, 100\n26.2, 40\n31.1, 70\n39.5, 30",
     description: "A high-pressure aluminium-silicate polymorph characterized by high hardness anisotropy, forming sky-blue bladed habits in regional metamorphic schists.",
     formula: "Al2SiO5",
@@ -11529,7 +11529,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sillimanite (Aluminium Silicate Polymorph)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "16.4, 35\n21.1, 100\n26.1, 80\n33.2, 45\n35.8, 50\n46.2, 25",
     description: "The high-temperature aluminium-silicate polymorph typical of high-grade pelitic gneisses, often forming acicular fibrolite aggregates.",
     formula: "Al2SiO5",
@@ -11541,7 +11541,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Fayalite (Iron Olivine Endmember)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "17.4, 30\n25.1, 80\n31.8, 100\n35.2, 90\n51.5, 25\n60.8, 20",
     description: "The iron-rich endmember of the olivine solid-solution series, commonly found in iron-rich igneous rocks, acidic slags, and metamorphosed iron formations.",
     formula: "Fe2SiO4",
@@ -11553,7 +11553,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Labradorite (Iridescent Plagioclase Feldspar)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "13.9, 30\n22.0, 100\n24.2, 75\n27.8, 85\n28.1, 90\n42.1, 20",
     description: "A calcium-sodium plagioclase feldspar showing striking iridescent labradorescence arising from sub-solidus lamellar exsolution within Bøggild intergrowths.",
     formula: "(Ca,Na)(Al,Si)4O8",
@@ -11565,7 +11565,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Anorthite (Calcium Feldspar Endmember)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "22.0, 100\n24.0, 55\n27.7, 95\n28.1, 90\n35.6, 30\n50.1, 15",
     description: "The calcium-rich extreme member of the plagioclase feldspar group. A principal rock-forming mineral of the lunar highlands crust and basic terrestrial basalts.",
     formula: "CaAl2Si2O8",
@@ -11577,7 +11577,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Albite (Sodium Feldspar Endmember)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "13.8, 30\n21.9, 85\n23.5, 50\n27.8, 100\n28.1, 95\n35.4, 25",
     description: "The sodium-rich endmember of the plagioclase feldspar mineral series, constituting a major mineral phase in granites, pegmatites, and greenschists.",
     formula: "NaAlSi3O8",
@@ -11589,7 +11589,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sanidine (Volcanic K-Feldspar Polymorph)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "13.6, 25\n21.1, 35\n23.6, 80\n25.7, 60\n27.1, 100\n41.2, 15",
     description: "The disordered high-temperature potassium feldspar polymorph, stable above 800 °C, commonly preserved in rapidly quenched felsic volcanic tuffs and rhyolites.",
     formula: "KAlSi3O8",
@@ -11601,7 +11601,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Grossular (Calcium-Aluminum Garnet)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "27.1, 30\n29.8, 100\n32.3, 80\n34.6, 25\n39.8, 35\n41.2, 40\n46.7, 45",
     description: "A calcium-aluminum garnet common in contact metamorphosed carbonate systems (skarns and calc-silicate rocks). Commonly forms elegant dodecahedra.",
     formula: "Ca3Al2Si3O12",
@@ -11613,7 +11613,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Celestine (Geode Strontium Ore)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "20.2, 100\n22.8, 50\n25.9, 75\n27.4, 45\n31.2, 80\n43.1, 25",
     description: "A strontium sulfate mineral named for its delicate fibrous sky-blue crystalline geode voids, forming principally in evaporitic sedimentary strata.",
     formula: "SrSO4",
@@ -11625,7 +11625,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Siderite (Iron Carbonate Ore)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "24.8, 40\n32.2, 100\n38.3, 25\n42.6, 30\n46.2, 15\n52.8, 35",
     description: "An iron carbonate mineral forming valuable brown sedimentary ore beds. Serves as a key indicator of sub-oxic, low-sulfate ancient depositional soils.",
     formula: "FeCO3",
@@ -11637,7 +11637,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Magnesite (Magnesium Carbonate Ore)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "25.4, 35\n32.9, 100\n39.1, 15\n43.5, 20\n47.3, 12\n53.8, 30",
     description: "Magnesium carbonate mineral forming cryptocrystalline masses, highly prized as an industrial precursor for producing high-temperature refractory linings.",
     formula: "MgCO3",
@@ -11649,7 +11649,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Glaucophane (Sodic Blueschist Amphibole)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "8.6, 100\n10.5, 25\n19.3, 30\n27.2, 65\n28.8, 50\n34.1, 35",
     description: "The diagnostic sodic amphibole indicative of cold subduction zones under extreme high-pressure, low-temperature metamorphic paths, giving blueschist its rich hue.",
     formula: "Na2Mg3Al2Si8O22(OH)2",
@@ -11661,7 +11661,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Staurolite (Cruciform Metamorphic Index Mineral)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "14.1, 30\n21.5, 100\n23.9, 60\n26.8, 45\n33.1, 40\n38.5, 20",
     description: "A complex iron-aluminum silicate that serves as a medium-to-high grade regional metamorphic marker, noted mineralogically for structural penetrative twin habits.",
     formula: "Fe2Al9Si4O22(OH)2",
@@ -11673,7 +11673,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Prehnite (Cavity Silicate Specimen)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "13.1, 40\n19.2, 30\n23.9, 100\n26.0, 65\n31.4, 80\n48.3, 20",
     description: "An elegant light green hydrous silicate typically crystallizing as botryoidal crusts in basaltic cavern cavities, defining the sub-greenschist prehnite-pumpellyite facies.",
     formula: "Ca2Al2Si3O10(OH)2",
@@ -11685,7 +11685,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zoisite (Tanzanite Parent Mineral)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "14.2, 25\n24.3, 60\n26.5, 100\n28.1, 85\n31.9, 45\n39.5, 30",
     description: "An calcium-aluminum sorosilicate mineral. The vanadium-rich crystalline variety represents tanzanite, a highly valuable trichroic blue-violet gemstone.",
     formula: "Ca2Al3(SiO4)3(OH)",
@@ -11697,7 +11697,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Clinozoisite (Monoclinic Sorosilicate)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "14.5, 30\n23.8, 100\n25.1, 45\n28.0, 85\n28.8, 55\n31.1, 40",
     description: "The monoclinic polymorph of zoisite, forming the endmember of the epidote solid-solution series with iron, key in low-to-medium grade metamorphic facies.",
     formula: "Ca2Al3(SiO4)3(OH)",
@@ -11709,7 +11709,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chrysoberyl (Alexandrite Parent Mineral)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "20.1, 45\n28.4, 100\n33.2, 35\n37.5, 70\n42.1, 55\n48.9, 30",
     description: "An exceptionally hard beryllium aluminate mineral. Chromium-substituted varieties exhibit intense color shifting (Alexandrite Effect) between sunlight and incandescent light.",
     formula: "BeAl2O4",
@@ -11721,7 +11721,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Graphite (3R Polytype, Trigonal)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "26.4, 100\n42.5, 15\n43.4, 30\n44.4, 20\n46.5, 12\n54.3, 25",
     description: "The trigonal (rhombohedral) polytype of carbon, thermodynamically metastable at standard temperature, commonly induced via ductile shearing of pre-existing hexagonal graphite.",
     formula: "C",
@@ -11733,7 +11733,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Glassy Carbon (Polymeric sp2 Graphite)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "23.5, 100\n43.9, 35\n80.2, 10",
     description: "An advanced, isotropic polymeric carbon exhibiting glassy conchoidal fractures, consisting of randomized curved graphene sheets producing heavily broadened, turbostratic XRD reflections.",
     formula: "C",
@@ -11745,7 +11745,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carbon Onions (Concentric Nested Fullerenes)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "25.2, 100\n43.1, 40\n78.5, 15",
     description: "Spherical closed-shell multi-walled graphitic nanoparticles resembling nested onions, showing shifted d-spacing and broad diffraction rings due to extreme shell radii curvature.",
     formula: "C",
@@ -11757,7 +11757,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carbon Nanofibers (Herringbone Stacked CNF)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "25.9, 100\n42.8, 25\n44.5, 20\n53.8, 15\n77.8, 12",
     description: "Vapor-grown filamentous carbons displaying herringbone cone stacking segments. Extremely conductive fibers showing unique split graphitic basal peak shapes.",
     formula: "C",
@@ -11769,7 +11769,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Uranium Mononitride High-Density Fuel (UN)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "31.4, 100\n36.4, 80\n52.4, 60\n62.3, 40\n65.4, 30",
     description: "A high-density refractory fuel showing exceptional thermal conductivity and licensing potential for gas-cooled space reactors and fast breeder cores.",
     formula: "UN",
@@ -11781,7 +11781,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Plutonium Monocarbide Fast-Breeder Fuel (PuC)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "32.1, 100\n37.2, 75\n53.6, 55\n63.8, 35\n66.9, 25",
     description: "An advanced ceramic breeder fuel facilitating swift breeding cycles in helium or sodium-cooled fast nuclear reactors.",
     formula: "PuC",
@@ -11793,7 +11793,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Thorium Monocarbide Advanced Reactor Fuel (ThC)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "29.8, 100\n34.6, 85\n49.8, 50\n59.2, 40\n62.1, 30",
     description: "A highly stable, non-proliferation thorium-based fertile material designed for use in gas-cooled pebble bed or prismatic breeder reactors.",
     formula: "ThC",
@@ -11805,7 +11805,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Dysprosium Titanate Control Rod Ceramic (Dy2TiO5)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "28.5, 100\n31.2, 60\n33.8, 45\n43.1, 35\n52.4, 50",
     description: "A thermal-neutron absorbing ceramic showing high degradation resistance under heavy radiation fluxes in control assembly hardware.",
     formula: "Dy2TiO5",
@@ -11817,7 +11817,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gadolinium Aluminate Burnable Poison (GdAlO3)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "32.8, 100\n40.5, 30\n47.1, 45\n58.4, 35\n68.5, 20\n78.1, 15",
     description: "A burnable poison with highly efficient neutron absorption characteristics, aiding reactivity management during long-cycle power production runs.",
     formula: "GdAlO3",
@@ -11829,7 +11829,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Europium Hexaboride Control Rod Phase (EuB6)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "21.6, 40\n30.8, 100\n38.1, 35\n44.5, 50\n55.0, 45\n64.2, 25",
     description: "A highly resilient control absorber containing twin capture isotopes (Eu and B) allowing extended lifetimes in high-flux nuclear cores.",
     formula: "EuB6",
@@ -11841,7 +11841,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Samarium Cobalt Radiation-Hard Magnet (Sm2Co17)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "35.2, 30\n37.8, 100\n41.5, 60\n43.9, 45\n58.1, 35\n65.4, 20",
     description: "An exceptional radiation-hard, high-temperature permanent magnet critical for actuators, navigation units, and weapons guidance systems.",
     formula: "Sm2Co17",
@@ -11853,7 +11853,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Heavy Metal Borotellurite Glass Gamma Ray Shielder (B-Te-Pb-O)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "13.2, 45\n26.5, 100\n29.8, 70\n43.4, 30\n48.8, 40\n54.2, 15",
     description: "A highly dense lead-bismuth borotellurite glass matrix demonstrating immense gamma and X-ray attenuation coefficients with high optical transparency.",
     formula: "Pb2BiBO5",
@@ -11865,7 +11865,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "MAX Phase High-Radiation Resilient Ceramic (Ti3AlC2)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "9.5, 100\n19.1, 20\n34.2, 45\n39.5, 80\n41.8, 70\n60.2, 25",
     description: "A damage-tolerant metallic-ceramic MAX phase offering superb shock resistance and structural integrity under gas bubble nucleation and heavy neutron damage.",
     formula: "Ti3AlC2",
@@ -11877,7 +11877,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Boric Acid-Polyethylene Neutron Shield Composite (Borated-PE)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "15.4, 100\n21.2, 50\n23.8, 15",
     description: "A lightweight composite shielding material combining low-Z hydrogenous polymer moderators with high-absorbency boron partners.",
     formula: "H3BO3.PE",
@@ -11889,7 +11889,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tungsten Heavy Alloy High-Density Ballistic Core (W-Ni-Fe)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "40.2, 100\n58.3, 40\n73.2, 20\n86.9, 10",
     description: "An ultra-high-density kinetic energy penetrator alloy containing cobalt-free transition stabilizers to provide high impact toughness.",
     formula: "W0.9Ni0.07Fe0.03",
@@ -11901,7 +11901,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "COB Cobalt Monoboride Extreme Hard-Facing (CoB)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "23.4, 30\n32.8, 100\n40.1, 45\n46.5, 60\n58.2, 35\n68.1, 20",
     description: "An exceptionally hard transition-metal monoboride coating material tailored to protect heavy defense equipment against dynamic wear, abrasion, and intense friction.",
     formula: "CoB",
@@ -11913,7 +11913,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Zirconium Oxycarbide Ablative Shielding (ZrO0.5C0.5)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "33.5, 100\n38.8, 80\n56.1, 60\n67.1, 45\n70.2, 30",
     description: "A highly resilient subcarbide interstitial solid solution providing high thermal shock margins for missile cones and reentry shield plates.",
     formula: "Zr2OC",
@@ -11925,7 +11925,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Americium Oxide Alpha Ionizing Core (AmO2)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "28.3, 100\n32.8, 45\n47.2, 60\n55.9, 40\n58.6, 20\n68.9, 30",
     description: "An actinide oxide serving as a highly stable source of high-energy alpha particles for industrial sensing and specialized space batteries.",
     formula: "AmO2",
@@ -11937,7 +11937,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Yttrium Hydride Ultra-High Temperature Shielding (YH2)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "29.2, 100\n33.8, 30\n48.6, 45\n57.8, 35\n60.5, 15\n71.2, 25",
     description: "A highly stable interstitial hydrogen moderator designed to operate at extreme temperatures where conventional hydrides undergo decomposition.",
     formula: "YH2",
@@ -11949,7 +11949,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Titanium Carbonitride Ballistic Facing Plate (TiC0.5N0.5)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "36.2, 100\n42.1, 85\n61.1, 60\n73.1, 45\n76.9, 30",
     description: "An advanced ceramic cermet phase boasting supreme hardness values and friction resistance for strike-face components in multi-hit protection vests.",
     formula: "Ti2CN",
@@ -11961,7 +11961,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tantalum Diboride Defensive Hard-Facing (TaB2)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "28.1, 65\n34.2, 100\n44.3, 40\n60.8, 55\n68.9, 30\n81.4, 20",
     description: "An ultra-high temperature transition metal diboride designed with exceptional chemical and mechanical stability for hot ballistic nosecones.",
     formula: "TaB2",
@@ -11973,7 +11973,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lead Metaniobate Radiation Resilient Piezo Transducer (PbNb2O6)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "20.8, 40\n28.2, 100\n31.1, 75\n32.8, 60\n47.1, 45\n53.8, 25",
     description: "A high-Curie point ferroelectric oxide optimized for continuous ultrasonic inspection systems in high-radiation environments inside reactor pressure vessels.",
     formula: "PbNb2O6",
@@ -11985,7 +11985,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nuclear Grade Silicon Carbide Sintered Cladding Monolayer (3C-SiC)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "35.6, 100\n60.0, 40\n71.8, 35\n90.1, 15",
     description: "Beta-phase cubic silicon carbide possessing superior high-flux stability, low activation profiles, and high fission product retention rates.",
     formula: "SiC",
@@ -11997,7 +11997,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tantalum-Hafnium Carbide Extreme Thermal Armor (Ta4HfC5)",
-    type: "Nuclear & Defensive",
+    type: "Nuclear & Shielding",
     pattern: "34.1, 100\n39.5, 85\n57.2, 65\n68.4, 40\n71.5, 30",
     description: "An exceptional ultra-high-temperature intermetallic ceramic possessing one of the highest melting points known to materials science, suited for thermal strike wings.",
     formula: "Ta4HfC5",
@@ -12009,7 +12009,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Furosemide Form I Crystalline (Loop Diuretic)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.0, 45, 0, 0, 1\n12.1, 100, 1, 1, 0\n18.2, 75, 2, 0, 0\n23.0, 60, 2, 1, 0\n24.8, 50, 3, 0, 0",
     description: "The stable polymorph Form I of Furosemide, a loop diuretic extensively prescribed for edema and congestive heart failure therapy.",
     formula: "C12H11ClN2O5S",
@@ -12021,7 +12021,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Prednisone Form I (Anti-inflammatory Glucocorticoid)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.5, 60\n14.3, 100\n16.2, 70\n18.6, 55\n21.2, 45\n28.4, 30",
     description: "Thermodynamically stable polymorph Form I of Prednisone, a widely active synthetic corticosteroid used to manage broad inflammatory reactions.",
     formula: "C21H26O5",
@@ -12033,7 +12033,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Diazepam Form I (Anxiolytic Benzodiazepine)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.2, 40\n14.1, 100\n18.5, 80\n23.1, 65\n26.5, 45",
     description: "The preferred pharmaceutical crystal phase of Diazepam, demonstrating robust physical stability against solid crushing and hot humid conditions.",
     formula: "C16H13ClN2O",
@@ -12045,7 +12045,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gabapentin Monohydrate (GABA Analog)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.8, 55\n12.5, 100\n16.8, 85\n19.2, 70\n23.5, 60\n28.1, 40",
     description: "The crystalline monohydrate form of Gabapentin, a GABA analogue critical for tracking moisture-dependent polymorphic transformation during wet tableting.",
     formula: "C9H17NO2 · H2O",
@@ -12057,7 +12057,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Atenolol Form A (Cardiovascular Beta-Blocker)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.8, 50\n17.4, 100\n19.6, 85\n21.8, 70\n24.2, 60\n29.1, 35",
     description: "Form A polymorph of Atenolol, a selective beta-1 receptor antagonist with strict crystalline control requirements during hot micronization processes.",
     formula: "C14H22N2O3",
@@ -12069,7 +12069,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Simvastatin Component Form I (Statin)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.3, 100\n15.1, 45\n17.2, 80\n18.8, 65\n22.0, 50\n25.5, 30",
     description: "The anhydrous crystalline Form I of Simvastatin, a lipid-lowering HMG-CoA reductase inhibitor susceptible to solvate rearrangement.",
     formula: "C25H38O5",
@@ -12081,7 +12081,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carbamazepine Form III (Anticonvulsant)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.0, 100\n15.3, 40\n18.6, 65\n20.3, 85\n24.9, 75\n27.2, 50",
     description: "The monoclinic Form III pseudopolymorph of Carbamazepine, exhibiting rapid conversion to toxic dihydrates in wet environments.",
     formula: "C15H12N2O",
@@ -12093,7 +12093,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Spironolactone Form II (Aldosterone Antagonist)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.1, 45\n13.9, 100\n16.1, 80\n17.8, 60\n21.2, 40",
     description: "The high-solubility polymorph Form II of Spironolactone, ideal for rapid-acting oral liquid suspensions and micro-particle suspensions.",
     formula: "C24H32O4S",
@@ -12105,7 +12105,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sulfamethoxazole Form I (Antibacterial)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.6, 50\n15.2, 100\n18.8, 70\n20.5, 60\n22.8, 85\n26.1, 35",
     description: "Form I polymorph of Sulfamethoxazole, a classic sulfonamide co-formulated with trimethoprim for synergistic bacterial inhibition.",
     formula: "C10H11N3O3S",
@@ -12117,7 +12117,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Theophylline Monohydrate Form I (Bronchodilator)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.9, 100\n11.6, 45\n13.3, 30\n14.9, 65\n23.8, 40\n26.5, 20",
     description: "The crystalline monohydrate structure of Theophylline, representing the hydrated resting state of the bronchodilator in humid storage vaults.",
     formula: "C7H8N4O2 · H2O",
@@ -12129,7 +12129,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Terbinafine Hydrochloride Crystalline (Antifungal)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.3, 60\n10.5, 45\n15.6, 100\n19.8, 75\n22.2, 85\n26.8, 30",
     description: "Crystalline salt of Terbinafine hydrochloride, a highly hydrophobic allylamine antifungal studied for inclusion in transdermal carrier systems.",
     formula: "C21H25N · HCl",
@@ -12141,7 +12141,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gliclazide Form I (Type-2 Antidiabetic)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.5, 35\n15.0, 100\n16.8, 85\n18.2, 60\n21.0, 75\n25.1, 40",
     description: "Form I crystal structure of Gliclazide, a sulfonylurea antidiabetic agent under research for developing slow-release biological tablets.",
     formula: "C15H21N3O3S",
@@ -12153,7 +12153,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ketoconazole Form I (Imidazole Antifungal)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.2, 40\n10.4, 60\n17.1, 100\n19.5, 80\n21.2, 70\n23.5, 50",
     description: "Highly stable crystalline Form I of Ketoconazole, used in medicated anti-dandruff creams and broad-spectrum systemic antifungal formulations.",
     formula: "C26H28Cl2N4O4",
@@ -12165,7 +12165,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Procaine Hydrochloride Crystalline (Local Anesthetic)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.2, 50\n18.1, 100\n21.5, 75\n24.0, 60\n27.2, 45",
     description: "The water-soluble local anesthetic salt of Procaine, providing narrow diffraction peaks used to study fast phase degradation in veterinary injection kits.",
     formula: "C13H20N2O2 · HCl",
@@ -12177,7 +12177,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Metoprolol Succinate Form I (Beta-Blocker)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.8, 100\n13.6, 35\n18.1, 65\n20.2, 85\n23.4, 50\n27.1, 30",
     description: "Form I crystals of Metoprolol succinate, highly valued for extended release multi-particulate systems due to its robust elastic parameters under compaction.",
     formula: "(C15H25NO3)2 · C4H6O4",
@@ -12189,7 +12189,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Levothyroxine Sodium Primary Polymorph (T4 Hormone)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.2, 100\n10.4, 45\n15.6, 25\n20.8, 60\n26.1, 35",
     description: "The synthetic crystalline sodium salt of the thyroid hormone Levothyroxine, monitored comprehensively via crystal lattice changes to evaluate micro-gram dosing stability.",
     formula: "C15H10I4NNaO4",
@@ -12201,7 +12201,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Amlodipine Besylate Form I (Calcium Channel Blocker)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.0, 45\n11.9, 100\n19.1, 80\n22.8, 65\n24.2, 50",
     description: "Standard pharmaceutical Form I of Amlodipine besylate, showing outstanding chemical stability and low hygroscopical degradation properties.",
     formula: "C20H25ClN2O5 · C6H6O3S",
@@ -12213,7 +12213,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Losartan Potassium Form I (Angiotensin Antagonist)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.1, 100\n10.8, 30\n14.2, 60\n18.5, 45\n21.8, 35\n28.4, 25",
     description: "The preferred anhydrous crystalline Form I of Losartan potassium, displaying dynamic high water absorption kinetics and phase rearrangements under humid processing.",
     formula: "C22H22ClKN6O",
@@ -12225,7 +12225,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Valsartan Form I (Angiotensin II Blocker)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.4, 100\n10.8, 25\n16.2, 35\n21.6, 50\n27.0, 15",
     description: "Form I form of Valsartan, exhibiting heavy structural amorphization upon high mechanical shear milling, tracked precisely to prevent variable biological absorption rates.",
     formula: "C24H29N5O3",
@@ -12237,7 +12237,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cimetidine Form A (Histamine H2 Antagonist)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.3, 100\n12.1, 40\n15.5, 75\n18.8, 60\n22.1, 85\n26.5, 30",
     description: "Crystalline Form A of Cimetidine, designed to prevent toxic transitions to metastable non-active polymorphic forms during high pressure wet granulations.",
     formula: "C10H16N6S",
@@ -12249,7 +12249,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Naproxen Sodium Form I (Analgesic NSAID)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.7, 100\n11.4, 30\n18.2, 65\n20.1, 80\n22.8, 60\n26.5, 25",
     description: "The fast-acting crystalline sodium salt Form I of Naproxen, offering rapid systemic absorption kinetics crucial for pain relief products.",
     formula: "C14H13NaO3",
@@ -12261,7 +12261,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cisplatin Crystalline Phase (Platinol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.8, 100\n16.2, 45\n26.5, 30\n28.2, 55\n31.8, 70\n34.1, 20",
     description: "The seminal square-planar platinum coordinate complex. Highly crystalline yellow needles active as an alkylating-like agent by forming intrastrand DNA crosslinks.",
     formula: "Pt(NH3)2Cl2",
@@ -12273,7 +12273,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carboplatin Crystalline Form I (Paraplatin)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.5, 100\n15.8, 60\n19.2, 45\n22.8, 75\n30.5, 30",
     description: "Second-generation organoplatinum antineoplastic drug featuring a cyclobutane-dicarboxylate bidentate ligand, showing significantly reduced nephrotoxicity relative to Cisplatin.",
     formula: "C6H14N2O4Pt",
@@ -12285,7 +12285,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Oxaliplatin Form I (Eloxatin)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.6, 100\n15.4, 40\n17.2, 65\n21.1, 80\n24.5, 50\n28.8, 30",
     description: "A third-generation platinum-based chemotherapeutic containing a 1,2-diaminocyclohexane carrier ligand, highly effective in colorectal cancer regimes.",
     formula: "C8H14N2O4Pt",
@@ -12297,7 +12297,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Fluorouracil Form I (5-FU Crystalline)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "16.1, 100\n19.5, 40\n22.3, 30\n28.6, 75\n32.4, 15",
     description: "The crystalline thymidylate synthase pyrimidine antagonist antimetabolite. Primarily implemented in solid tumor combinational regimens.",
     formula: "C4H3FN2O2",
@@ -12309,7 +12309,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Doxorubicin Hydrochloride Form I (Adriamycin)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.5, 100\n7.8, 45\n11.1, 30\n16.8, 55\n22.4, 60\n25.2, 40",
     description: "A cytotoxic anthracycline antibiotic that intercalates DNA and blocks topoisomerase II, monitored precisely via XRD to prevent unstable salt phase transformations.",
     formula: "C27H29NO11 · HCl",
@@ -12321,7 +12321,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Imatinib Mesylate Form Beta (Gleevec)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.4, 45\n12.1, 35\n15.0, 100\n18.6, 80\n23.4, 60\n25.1, 70",
     description: "The highly stable Form Beta polymorph of the breakthrough tyrosine kinase inhibitor Imatinib, targeting BCR-ABL to treat chronic myelogenous leukemia.",
     formula: "C29H31N7O · CH4O3S",
@@ -12333,7 +12333,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gemcitabine Hydrochloride Form I (Gemzar)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.8, 100\n13.9, 45\n19.6, 65\n23.2, 85\n27.8, 50\n34.5, 25",
     description: "An nucleoside analog antimetabolite that halts DNA replication by replacing cytidine residues during active synthesis.",
     formula: "C9H11F2N3O4 · HCl",
@@ -12345,7 +12345,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Temozolomide Form I Crystalline (Temodar)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.2, 100\n14.5, 45\n18.1, 75\n21.8, 60\n26.2, 80\n28.5, 35",
     description: "An oral alkylating agent used under rapid scheduling to treat glioblastoma multiforme, displaying robust anhydrous polymorph configurations.",
     formula: "C6H6N6O2",
@@ -12357,7 +12357,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Capecitabine Form I Crystalline (Xeloda)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.8, 100\n11.2, 45\n16.1, 30\n19.8, 60\n22.4, 75\n26.1, 40",
     description: "A systematically absorbed prodrug that enzymatically converts to 5-fluorouracil inside tumor cells, preventing systemic healthy tissue toxicity.",
     formula: "C15H22FN3O6",
@@ -12369,7 +12369,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cyclophosphamide Monohydrate (Cytoxan)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.1, 100\n12.2, 40\n17.6, 60\n19.8, 85\n24.5, 55\n28.9, 30",
     description: "The hydrated crystalline nitrogen mustard alkylating agent. Converts in the liver to active aldophosphamide to halt tumor replication loops.",
     formula: "C7H15Cl2N2O2P · H2O",
@@ -12381,7 +12381,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Methotrexate Anhydrous Phase (Trexall)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.8, 100\n11.9, 50\n14.1, 60\n18.2, 85\n22.8, 70\n26.5, 45",
     description: "Anhydrous crystalline methotrexate. Inhibits dihydrofolate reductase to deplete key tetrahydrofolates required for purine nucleotide synthesis.",
     formula: "C20H22N8O5",
@@ -12393,7 +12393,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tamoxifen Citrate Crystalline Phase (Nolvadex)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.8, 100\n11.6, 35\n15.4, 55\n20.2, 85\n23.1, 70\n26.8, 40",
     description: "The estrogen receptor antagonist salt of Tamoxifen, utilized extensively in adjuvant hormone therapies for breast cancer management.",
     formula: "C26H29NO · C6H8O7",
@@ -12405,7 +12405,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gefitinib Form I Crystalline (Iressa)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.2, 100\n14.4, 45\n18.6, 75\n21.1, 60\n24.8, 80\n27.5, 35",
     description: "The highly pure Form I of Gefitinib, an EGFR tyrosine kinase inhibitor blocking signal transduction pathways in non-small cell lung cancer.",
     formula: "C22H24ClFN4O3",
@@ -12417,7 +12417,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bortezomib Form I Crystalline (Velcade)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.9, 100\n11.8, 40\n15.6, 60\n19.5, 80\n23.4, 45",
     description: "The therapeutic proteasome inhibitor Bortezomib containing a boron atom that binds reversibly to the 26S proteasome core, treating multiple myeloma.",
     formula: "C19H25BN4O4",
@@ -12429,7 +12429,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Recombinant Human Bone Morphogenetic Protein-2 Crystalline (rhBMP-2)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.6, 100\n11.2, 55\n16.8, 30\n22.4, 45\n28.0, 15",
     description: "Crystalline Recombinant Human Bone Morphogenetic Protein-2, widely used to induce osteogenesis and bone graft healing. Crystal structures are stabilized using sodium/calcium salt matrices.",
     formula: "rhBMP-2 (C840H1322N242O262S12)",
@@ -12441,7 +12441,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Recombinant Human Epidermal Growth Factor (rhEGF Crystalline Form)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.1, 40\n12.2, 100\n18.3, 70\n24.4, 50\n30.5, 25",
     description: "High-purity crystalline Recombinant Human Epidermal Growth Factor, aiding in cellular proliferation, wound healing, and epidermal reconstruction formulations.",
     formula: "rhEGF (C257H384N72O77S6)",
@@ -12453,7 +12453,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Recombinant Human Insulin-like Growth Factor 1 (rhIGF-1 Microcrystalline Phase)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.8, 100\n11.6, 45\n17.4, 60\n23.2, 75\n29.0, 20",
     description: "Crystalline Recombinant Human Insulin-like Growth Factor 1, a single-chain polypeptide containing 70 amino acids. Resilient phase utilized to study sustained-release muscular and skeletal therapeutics.",
     formula: "rhIGF-1 (C333H520N94O101S6)",
@@ -12465,7 +12465,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Recombinant Human Fibroblast Growth Factor 2 (bFGF / rhFGF-2 Crystalline Salt)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.4, 50\n14.8, 100\n22.2, 85\n29.6, 60\n37.0, 30",
     description: "Basic Fibroblast Growth Factor in crystalline phase. Critical for angiogenetic signaling, neural stem cell maintenance, and advanced cosmetic tissue repair matrices.",
     formula: "rhFGF-2 (C758H1211N221O221S6)",
@@ -12477,7 +12477,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Recombinant Human Transforming Growth Factor-Beta 1 (rhTGF-β1 Crystalline Phase)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.9, 100\n9.8, 45\n14.7, 30\n19.6, 75\n24.5, 60\n29.4, 25",
     description: "Transforming Growth Factor-Beta 1 homodimeric protein in stable monoclinic crystalline form. Master regulator of extracellular matrix synthesis and cell differentiation.",
     formula: "rhTGF-B1 (C554H862N164O165S16)",
@@ -12489,7 +12489,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Recombinant Human Platelet-Derived Growth Factor-BB (rhPDGF-BB Crystalline Complex)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.7, 100\n13.4, 50\n20.1, 80\n26.8, 65\n33.5, 40",
     description: "Crystalline Recombinant Human Platelet-Derived Growth Factor-BB, promoting cell migration and angiogenesis for surgical bone grafting and advanced diabetic wound healing.",
     formula: "rhPDGF-BB (C561H891N159O162S14)",
@@ -12501,7 +12501,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Recombinant Human Vascular Endothelial Growth Factor (rhVEGF-165 Microcrystalline Form)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.2, 100\n10.4, 40\n15.6, 65\n20.8, 80\n26.0, 35",
     description: "Recombinant Human Vascular Endothelial Growth Factor-165 crystalline phase. Essential for vasculogenesis, angiogenesis, and vascular endothelial proliferation studies.",
     formula: "rhVEGF-165 (C817H1283N241O247S22)",
@@ -12513,7 +12513,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Recombinant Human Nerve Growth Factor Crystalline Phase (rhNGF)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.1, 100\n16.2, 45\n24.3, 75\n32.4, 60\n40.5, 25",
     description: "Crystalline form of Recombinant Human Nerve Growth Factor, a neurotrophic protein crucial for the survival, maintenance, and growth of sensory and sympathetic neurons.",
     formula: "rhNGF (C582H901N165O170S8)",
@@ -12525,7 +12525,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "A-DNA Decamer Crystalline Phase (d(CCGGATCCGG))",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.2, 100\n12.4, 50\n18.6, 65\n24.8, 40\n31.0, 20",
     description: "Crystalline decamer forming a right-handed A-DNA double helix. Stabilized under low humidity/water activity conditions, exhibiting the characteristic deep and narrow major groove.",
     formula: "d(CCGGATCCGG) (C98H122N38O58P9)",
@@ -12537,7 +12537,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "B-DNA Drew-Dickerson Dodecamer Crystalline Phase (d(CGCGAATTCGCG))",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.4, 100\n10.8, 45\n16.2, 70\n21.6, 60\n27.0, 35\n32.4, 15",
     description: "The classic Drew-Dickerson dodecamer modeling B-form DNA double helix. Highly crystalline phase displaying standard physiological hydration shells, wide major grooves, and narrow minor grooves.",
     formula: "d(CGCGAATTCGCG) (C116H148N46O70P11)",
@@ -12549,7 +12549,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Z-DNA Hexamer Crystalline Complex (d(CGCGCG)2)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.1, 100\n14.2, 55\n21.3, 80\n28.4, 45\n35.5, 30",
     description: "Left-handed double-helical Z-DNA hexamer complex, crystallized in high-salt conditions. Exhibits a zigzag phosphodiester backbone and alternating syn/anti glycosidic bond conformations.",
     formula: "d(CGCGCG)2 (C116H146N46O70P11)",
@@ -12561,7 +12561,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Yeast Phenylalanine Transfer RNA Crystalline Complex (tRNA-Phe)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.8, 100\n9.6, 40\n14.4, 65\n19.2, 50\n24.0, 75\n28.8, 20",
     description: "Crystalline Saccharomyces cerevisiae phenylalanine tRNA. Exhibits the classic L-shaped tertiary fold stabilized by intricate non-canonical base pairs and coordinated magnesium cations.",
     formula: "tRNA-Phe (C727H925N275O499P72Mg12)",
@@ -12573,7 +12573,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Human Telomeric G-Quadruplex Crystalline Phase (d[AGGG(TTAGGG)3])",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.8, 100\n11.6, 45\n17.4, 75\n23.2, 55\n29.0, 30",
     description: "G-quadruplex tertiary DNA fold, crystallized in the presence of potassium ions. Features stacked planar G-tetrads coordinated by central dehydrating monovalent cations.",
     formula: "d(AGGG(TTAGGG)3) (C218H272N86O130P21K3)",
@@ -12585,7 +12585,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Synthetic DNA Holliday Junction Crystalline Complex",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.5, 100\n13.0, 40\n19.5, 60\n26.0, 80\n32.5, 30",
     description: "Four-way DNA Holliday junction complex frozen in a crystalline lattice to study homologous genetic recombination mechanisms and junction branch migration dynamics.",
     formula: "Holliday-Junction (C310H392N118O188P30)",
@@ -12597,7 +12597,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Purine Riboswitch Aptamer Domain Crystalline Phase (Guanine-Binding)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.1, 100\n10.2, 55\n15.3, 70\n20.4, 45\n25.5, 60\n30.6, 25",
     description: "Guanine-binding riboswitch aptamer domain in stable crystalline form, holding its bound metabolite purine ligand inside a highly conserved three-way junction RNA fold.",
     formula: "Purine-Riboswitch (C645H810N235O435P65)",
@@ -12609,7 +12609,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Double-Stranded RNA Hexamer Crystalline Phase (r(CGCGCG)2)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.8, 100\n15.6, 45\n23.4, 60\n31.2, 75\n39.0, 20",
     description: "Double-stranded RNA hexamer forming a stable A-form RNA helix. Displayed as highly distinct crystalline fibers stable against rapid biological hydrolysis.",
     formula: "r(CGCGCG)2 (C116H146N46O82P11)",
@@ -12621,7 +12621,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Caffeine Monohydrate Crystalline Needle Phase (Coffee Alkaloid)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.4, 100\n12.8, 45\n18.1, 30\n21.5, 65\n26.8, 80",
     description: "The crystalline hydrate of caffeine. Forms elegant needle-like structures from aqueous solutions, representing the hydrated resting state of key xanthine stimulants.",
     formula: "C8H10N4O2 · H2O",
@@ -12633,7 +12633,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Caffeine Anhydrous Form II (Metastable Ambient Polymorph)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.6, 100\n13.1, 40\n17.5, 30\n26.2, 85\n27.0, 75",
     description: "The metastable anhydrous polymorph of caffeine at room temperature. Transforms reversibly to the stable Form I polymorph upon heating to approximately 141°C.",
     formula: "C8H10N4O2",
@@ -12645,7 +12645,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Chlorogenic Acid Crystalline Phase (5-Caffeoylquinic Acid)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.8, 100\n14.2, 50\n18.6, 75\n21.5, 60\n25.4, 40\n29.1, 20",
     description: "The primary ester of caffeic acid and quinic acid, acting as the dominant polyphenolic antioxidant component in green coffee beans.",
     formula: "C16H18O9",
@@ -12657,7 +12657,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Caffeic Acid Crystalline Phase (Roasted Coffee Phenol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.2, 100\n16.8, 40\n25.3, 85\n27.1, 70\n29.5, 30",
     description: "3,4-Dihydroxycinnamic acid, a highly active dietary cinnamic acid derivative generated during coffee roasting via thermal scission of chlorogenic polymers.",
     formula: "C9H8O4",
@@ -12669,7 +12669,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Quinic Acid Crystalline Phase (Coffee Acidity Regulator)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.5, 60\n15.8, 100\n19.2, 85\n21.4, 70\n24.8, 55\n29.2, 40",
     description: "A major organic sugar acid providing typical crisp acidity to coffee infusions. Liberated in significant amounts from chlorogenic acid breakdown during roasting.",
     formula: "C7H12O6",
@@ -12681,7 +12681,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Trigonelline Zwitterionic Coffee Alkaloid",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.3, 50\n16.5, 100\n19.8, 80\n22.4, 75\n25.2, 60",
     description: "A key niacin derivative alkaloid present in green coffee. Undergoes dramatic pyrolysis during roasting, generating important sensory molecules.",
     formula: "C7H7NO2",
@@ -12693,7 +12693,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nicotinic Acid Crystalline Phase (Roast-Generated Vitamin B2/B3)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "15.2, 100\n18.6, 55\n22.5, 75\n25.8, 90\n29.1, 45",
     description: "Naturally formed niacin inside coffee beans via high-temperature thermal transformation of its major precursor alkaloid trigonelline.",
     formula: "C6H5NO2",
@@ -12705,7 +12705,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cafestol Free Diterpene (Coffee Oil Active Fraction)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.6, 100\n11.4, 45\n15.2, 60\n19.0, 75\n22.8, 30",
     description: "An active coffee-lipoprotein modulating diterpene. Concentrates inside unfiltered coffee brews (such as French press or Turkish style preparations).",
     formula: "C20H28O3",
@@ -12717,7 +12717,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Kahweol Active Diterpene (Arabica Lipid Core)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.8, 100\n11.7, 50\n15.6, 65\n19.5, 80\n23.4, 35",
     description: "An anti-inflammatory arabica-specific coffee diterpene structurally related to cafestol, investigated for liver lipid protective configurations.",
     formula: "C20H26O3",
@@ -12729,7 +12729,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ferulic Acid Crystalline Phase (Choleretic Coffee Phenol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.8, 40\n12.9, 100\n15.6, 65\n19.2, 50\n23.8, 80\n26.6, 45",
     description: "Prominent cinnamic acid derivative in coffee beans. Developed via thermal scission of minor chlorogenic complexes during darker roasts.",
     formula: "C10H10O4",
@@ -12741,7 +12741,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sucrose Crystalline Phase (Primary Green Bean Sugar)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.6, 45\n13.2, 100\n17.1, 60\n18.8, 85\n20.5, 75\n24.9, 50",
     description: "The baseline caramelized sugar precursor in high-grade green coffee arabica, driving roasting color transformations.",
     formula: "C12H22O11",
@@ -12753,7 +12753,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Caffeine-Oxalic Acid Co-crystal (2:1 Xanthine Heterosynthon)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.2, 100\n13.5, 40\n18.4, 55\n23.1, 70\n26.6, 85\n28.4, 25",
     description: "A model multi-component organic structure used to demonstrate robust hydrogen-bonded supramolecular networks between xanthine cores and simple diacids.",
     formula: "(C8H10N4O2)2 · C2H2O4",
@@ -12765,7 +12765,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Caffeine-Glutamic Acid Co-crystal (Enhanced Active Delivery)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.2, 100\n14.1, 50\n17.8, 65\n20.4, 80\n24.1, 45\n28.5, 30",
     description: "An engineered pharmaceutical-grade co-crystal modifying the delivery rate and compaction elastic behaviors of standard pure caffeine stimulants.",
     formula: "C8H10N4O2 · C5H9NO4",
@@ -12777,7 +12777,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Trigonelline Hydrochloride Standard Crystalline Salt",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.8, 100\n15.4, 60\n19.2, 85\n23.8, 70\n26.5, 50\n31.2, 35",
     description: "A stable crystalline salt form of coffee's core alkaloid trigonelline, serving as high-purity analytical library profiles.",
     formula: "C7H7NO2 · HCl",
@@ -12789,7 +12789,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "N-Methylpyridinium Iodide (Pyrolysis Roast Marker)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.5, 100\n20.3, 45\n24.8, 75\n28.9, 60\n33.2, 40\n38.4, 25",
     description: "A prominent pyridine tracker developed synchronously with niacin as coffee undergoes thermal degradation.",
     formula: "C6H8N · I",
@@ -12801,7 +12801,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "L-Theanine Crystalline Phase (Tea Amino Acid)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.3, 100\n16.6, 50\n21.1, 75\n24.9, 60\n33.2, 40",
     description: "The unique, relaxation-inducing non-protein amino acid characteristic of Camellia sinensis leaves, crystallized to map tranquilizing cognitive synergies.",
     formula: "C7H14N2O3",
@@ -12813,7 +12813,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Epigallocatechin Gallate Crystalline Phase (EGCG - Green Tea Catechin)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.2, 100\n10.5, 45\n15.4, 60\n18.8, 80\n22.3, 50\n26.1, 35",
     description: "The most abundant and highly researched polyphenolic catechin in green tea, representing an extremely potent natural antioxidant and mitochondrial tonic.",
     formula: "C22H18O11",
@@ -12825,7 +12825,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Theobromine Crystalline Phase (Tea & Cocoa Methylxanthine)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.1, 100\n14.8, 30\n25.5, 85\n26.9, 90\n27.8, 70",
     description: "A key bitter alkaloid and xanthine stimulant structurally allied with caffeine, found in high concentrations in mature black tea cultivars.",
     formula: "C7H8N4O2",
@@ -12837,7 +12837,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Epicatechin Gallate Crystalline Phase (ECG - Tea Polyphenol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.5, 100\n11.1, 50\n16.2, 65\n19.4, 75\n23.1, 40",
     description: "A prominent green tea catechin fraction under therapeutic investigation for lowering LDL-cholesterol oxidation rates.",
     formula: "C22H18O10",
@@ -12849,7 +12849,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Theaflavin Crystalline Phase (Polyphenolic Black Tea Pigment)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.8, 100\n13.6, 45\n20.4, 80\n27.2, 60\n34.0, 25",
     description: "A prominent reddish-brown dimer formed by enzymatically driven oxidation of simpler catechins during the custom roasting and fermentation of black tea leaves.",
     formula: "C29H24O12",
@@ -12861,7 +12861,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Epicatechin Crystalline Phase (EC - Green Tea Flavanol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.6, 100\n12.9, 40\n15.6, 65\n19.2, 50\n23.8, 80",
     description: "A fundamental monomeric tea catechin serving as a crucial structural scaffold for condensed dimeric proanthocyanidins.",
     formula: "C15H14O6",
@@ -12873,7 +12873,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Epigallocatechin Crystalline Phase (EGC - Green Tea Monomer)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.1, 100\n11.8, 55\n15.3, 70\n20.4, 45\n25.5, 60",
     description: "A primary active trihydroxy flavan-3-ol monomeric catechin native to unoxygenated steaming green tea leaves.",
     formula: "C15H14O7",
@@ -12885,7 +12885,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gallic Acid Monohydrate Crystalline Phase (Tea Hydroxybenzoic Acid)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.5, 100\n16.1, 40\n19.0, 65\n25.1, 75\n28.6, 50",
     description: "A naturally occurring trihydroxybenzoic acid found widely in tea leaves, serving as the essential building block of gallated catechins.",
     formula: "C7H6O5 · H2O",
@@ -12897,7 +12897,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "L-Theanine-Caffeine Co-crystal (Synergistic Cognitive Focus Synthon)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.1, 100\n13.8, 50\n17.5, 65\n20.2, 80\n24.0, 45\n28.1, 30",
     description: "An engineered supramolecular co-crystal pairing caffeine and L-Theanine in a 1:1 ratio, designed to prolong mental alert states while reducing side-channel neurotransmitter jitters.",
     formula: "C7H14N2O3 · C8H10N4O2",
@@ -12909,7 +12909,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Theophylline Anhydrous Crystalline Phase (Tea Methylxanthine)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.8, 100\n13.6, 35\n18.1, 65\n20.2, 85\n23.4, 50",
     description: "A natural bronchodilator xanthine present in minor quantities in tea leaves, displaying key therapeutic qualities for managing asthma.",
     formula: "C7H8N4O2",
@@ -12921,7 +12921,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gallocatechin Gallate Crystalline Phase (GCG - Heat-Induced Epimer)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.4, 100\n10.8, 45\n15.6, 60\n19.1, 75\n22.6, 50",
     description: "The heat-induced epimeric product of EGCG, generated during high-temperature pasteurization or canning of commercial tea beverages.",
     formula: "C22H18O11",
@@ -12933,7 +12933,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Theaflavin-3-gallate Crystalline Phase (Black Tea Dimeric Phenol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.5, 100\n13.2, 50\n19.8, 80\n26.4, 65\n33.0, 40",
     description: "A major active black tea pigment and radical scavenger contributing to the rich golden-orange color of fermented black tea infusions.",
     formula: "C36H28O16",
@@ -12945,7 +12945,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ice Ih Crystalline Phase (Hexagonal Standard Ice)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "22.8, 100\n24.3, 85\n25.9, 90\n33.5, 40\n40.3, 30",
     description: "The standard hexagonal crystalline form of solid water, constituting almost all natural ice on Earth with a highly open, tetrahedral hydrogen-bonded structure.",
     formula: "H2O",
@@ -12957,7 +12957,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ice Ic Crystalline Phase (Metastable Cubic Ice)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "24.2, 100\n40.1, 45\n47.5, 35\n69.5, 20",
     description: "Metastable cubic polymorph of ice, formed by condensation of water vapor at extremely low temperatures or via phase transition of high-pressure polymorphs.",
     formula: "H2O",
@@ -12969,7 +12969,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ice II Rhombohedral Crystalline Phase",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "20.1, 100\n23.4, 75\n27.8, 90\n31.2, 50\n34.6, 40",
     description: "A highly ordered rhombohedral crystalline form of ice, formed by compressing hexagonal ice to 300 MPa at low temperatures (~200 K).",
     formula: "H2O",
@@ -12981,7 +12981,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ice III Tetragonal Crystalline Phase",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "19.5, 80\n21.8, 100\n26.2, 60\n31.5, 45",
     description: "A proton-disordered tetragonal high-pressure crystalline ice form, stable from 240 K to 260 K under ~300 MPa of pressure.",
     formula: "H2O",
@@ -12993,7 +12993,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ice VI Tetragonal High-Pressure Phase",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "18.9, 100\n22.4, 85\n25.6, 70\n30.8, 55\n35.2, 30",
     description: "A high-pressure tetragonal ice form, stable at room temperature under gigapascal-scale pressures. Comprises interpenetrating non-bonded hydrogen networks.",
     formula: "H2O",
@@ -13005,7 +13005,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ice VII Cubic Ultra-High-Pressure Phase",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "25.1, 100\n35.8, 60\n44.2, 80\n51.5, 40\n58.2, 55",
     description: "A cubic, highly stable crystalline phase of ice, surviving up to extreme megapascals and temperatures. Can be preserved as pressurized mineral inclusions inside deep diamonds.",
     formula: "H2O",
@@ -13017,7 +13017,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ice VIII Tetragonal Ordered Phase",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "21.6, 100\n24.2, 70\n31.8, 55\n38.4, 85\n42.6, 45",
     description: "The hydrogen-ordered, low-temperature counterpart of cubic Ice VII. Exhibits a highly structured, parallel-aligned dipole sublattice.",
     formula: "H2O",
@@ -13029,7 +13029,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ice XI Orthorhombic Ordered Low-Temperature Phase",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "22.6, 100\n24.0, 90\n26.1, 80\n33.8, 45\n40.1, 35",
     description: "The ferroelectrically ordered, thermodynamically stable low-temperature phase of hexagonal ice (Ice Ih) below 72 Kelvin.",
     formula: "H2O",
@@ -13041,7 +13041,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Methane Clathrate Hydrate (Structure I Crystalline Gas Hydrate)",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "14.2, 100\n18.5, 65\n22.8, 50\n26.1, 80\n30.4, 45",
     description: "A crystalline host-guest water ice lattice enclosing guest methane atoms under high pressure, stable in continental slope and permafrost zones.",
     formula: "CH4 · 5.75H2O",
@@ -13053,7 +13053,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carbon Dioxide Clathrate Hydrate Crystalline Phase",
-    type: "Geology, Minerals & Carbon",
+    type: "Carbon & 2D Materials",
     pattern: "13.8, 100\n18.1, 60\n22.4, 45\n25.8, 85\n29.9, 40",
     description: "A crystalline host-guest gas hydrate incorporating carbon dioxide molecules. Known to exist naturally on extraterrestrial bodies and Martian polar caps.",
     formula: "CO2 · 5.75H2O",
@@ -13065,7 +13065,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nicotine Hydrogen Tartrate Crystalline Salt (Tobacco Alkaloid Standard)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.6, 100\n12.4, 40\n15.8, 65\n19.2, 75\n24.6, 50\n28.8, 30",
     description: "The stable, highly crystalline bitartrate salt of nicotine. Used widely as a high-purity analytical standard for calibrating alkaloid extraction and detection workflows.",
     formula: "C10H14N2 · 2C4H6O6",
@@ -13077,7 +13077,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Nicotine Salicylate Crystalline Phase (Stable Protonated Alkaloid)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.2, 100\n13.5, 45\n18.4, 80\n22.1, 65\n25.8, 55\n30.4, 25",
     description: "A stable crystalline salt of nicotine formed with salicylic acid. In contrast to volatile liquid free-base nicotine, this salt exhibits excellent solid-state stability.",
     formula: "C10H14N2 · C7H6O3",
@@ -13089,7 +13089,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cotinine Crystalline Phase (Primary Tobacco Metabolite)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.2, 100\n14.6, 35\n18.8, 60\n23.4, 85\n27.8, 50",
     description: "The primary oxidative metabolite of nicotine and an indicator alkaloid in Nicotiana tabacum, crystallized to enable trace biochemical exposure tracking.",
     formula: "C10H12N2O",
@@ -13101,7 +13101,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Solanesol Crystalline Fraction (Tobacco Polyprenol Core)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.5, 100\n9.0, 50\n13.5, 75\n18.0, 60\n22.5, 40",
     description: "A nonoxacyclic trisesquiterpenoid alcohol accumulated in tobacco leaves. Serves as an essential industrial synthon for producing Coenzyme Q10 and Vitamin K2 derivatives.",
     formula: "C45H74O",
@@ -13113,7 +13113,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Anabasine Hydrochloride Crystalline Salt (Tobacco Marker Alkaloid)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.4, 100\n15.1, 55\n20.2, 70\n25.6, 85\n30.1, 40",
     description: "The crystalline salt form of anabasine, an accessory tobacco alkaloid of diagnostic importance inside urinary screens to differentiate between active smoking and replacement therapy.",
     formula: "C10H14N2 · HCl",
@@ -13125,7 +13125,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Anatabine Hydrogen Sulfate Crystalline Salt",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.8, 100\n13.9, 45\n18.6, 60\n22.8, 75\n27.4, 50",
     description: "Salt phase of the minor tobacco alkaloid anatabine, crystallized to explore its therapeutic role as a non-steroidal anti-inflammatory and cholinergic tracker.",
     formula: "C10H12N2 · H2SO4",
@@ -13137,7 +13137,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Crystalline Solanesyl Acetate (Chemically Modified Lipophilic Standard)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.2, 100\n8.4, 45\n12.6, 60\n16.8, 80\n21.0, 35",
     description: "Acetylated solanesol exhibiting enhanced lipophilic packing density. Investigated as an alternative bio-marker for identifying industrial organic solvent extract efficiencies.",
     formula: "C47H76O2",
@@ -13149,7 +13149,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Potassium Hydrogen Tartrate Crystalline Phase (Wine Diamonds / Cream of Tartar)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.4, 100\n16.1, 40\n18.8, 65\n24.6, 80\n29.2, 50\n33.8, 30",
     description: "Commonly referred to as 'wine diamonds' when they spontaneously crystallize in wine casks and bottles. It is a monoclinic crystalline precipitate of tartaric acid and potassium in grape fermentation products.",
     formula: "KHC4H4O6",
@@ -13161,7 +13161,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Trans-Resveratrol Crystalline Phase (Red Wine Polyphenol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.8, 100\n13.2, 45\n17.6, 60\n22.0, 75\n26.4, 30",
     description: "A highly active stilbenoid polyphenol found in grape skins, cocoa, and red wines. Known for its potent antioxidant, longevity research interest, and sirtuin-activation potential.",
     formula: "C14H12O3",
@@ -13173,7 +13173,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium Tartrate Tetrahydrate (White Wine Crystalline Precipitate)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.2, 100\n14.5, 55\n19.8, 80\n23.4, 70\n28.6, 40",
     description: "A problematic crystalline precipitate that can form slowly in bottled white wines, mimicking glass shards but completely harmless.",
     formula: "CaC4H4O6 · 4H2O",
@@ -13185,7 +13185,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ellagic Acid Crystalline Phase (Oak-Aged Spirits Phenol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.4, 100\n13.8, 50\n18.6, 75\n23.2, 60\n28.0, 35",
     description: "A natural dilactone of gallic acid extracted from oak barrels during maturation of whiskeys, brandies, and aged wines, contributing to dry mouthfeel and oxidative stability.",
     formula: "C14H6O8",
@@ -13197,7 +13197,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Tyrosol Crystalline Phase (Fermented Yeast Phenol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.1, 100\n15.6, 45\n19.2, 60\n24.0, 80\n28.5, 30",
     description: "An antioxidant phenolic compound produced by yeast fermentation during wine and beer production. Highly stable in crystalline phase, exhibiting cardiovascular protective actions.",
     formula: "C8H10O2",
@@ -13209,7 +13209,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Vanillin Form I Crystalline Phase (Oak Barrel Maturation Flavor)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.2, 100\n17.4, 40\n22.6, 85\n26.1, 70\n29.8, 30",
     description: "The stable room-temperature polymorph of vanillin. Extracted in significant amounts from cooperage charring during long-term wooden barrel maturation of bourbon and dark rums.",
     formula: "C8H8O3",
@@ -13221,7 +13221,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ethyl Carbamate Standard Crystalline Phase (Urethane Contaminant)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.6, 100\n20.2, 50\n25.8, 75\n31.2, 60\n36.4, 25",
     description: "A crystalline compound naturally formed as a trace byproduct in stone fruit brandies and fermented drinks. Kept as a critical high-precision safety reference standard due to regulatory limits.",
     formula: "C3H7NO2",
@@ -13233,7 +13233,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Quercetin Dihydrate Crystalline Phase (Grape Skin Flavanol Marker)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.1, 100\n12.2, 45\n18.3, 70\n24.4, 60\n30.5, 35",
     description: "An abundant flavonol found in grape skins. Red wines aged in light or exposed to direct solar radiation can precipitate crystalline quercetin, forming a fine sediment.",
     formula: "C15H10O7 · 2H2O",
@@ -13245,7 +13245,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Creatine Monohydrate Crystalline Phase (Skeletal Muscle Energy Store)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.5, 100\n13.0, 45\n19.5, 60\n26.0, 80\n32.5, 30",
     description: "The primary crystalline form of creatine, an essential amino-derived organic compound supplying high-energy phosphate groups during vertebrate muscle contraction. High concentrations in red meat and poultry.",
     formula: "C4H9N3O2 · H2O",
@@ -13257,7 +13257,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "L-Carnosine Crystalline Phase (Red Meat Muscle Dipeptide)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.8, 100\n11.4, 50\n15.6, 65\n19.2, 80\n23.4, 40",
     description: "A highly concentrated dipeptide (beta-alanyl-L-histidine) found abundantly in skeletal muscles of mammals (bovine and porcine), acting as a powerful intracellular pH buffer.",
     formula: "C9H14N4O3",
@@ -13269,7 +13269,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "L-Anserine Crystalline Phase (Poultry Muscle Dipeptide)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.1, 100\n12.2, 40\n16.3, 75\n20.4, 60\n24.5, 35\n28.6, 20",
     description: "A methylated carnosine derivative (beta-alanyl-3-methyl-L-histidine) native to avian skeletal muscle systems (chicken, turkey). Exhibits robust anti-inflammatory and radical-scavenging stability.",
     formula: "C10H16N4O3",
@@ -13281,7 +13281,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Trimethylamine N-oxide Dihydrate (Marine Fish Osmolyte - TMAO)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.2, 100\n14.5, 55\n19.8, 80\n23.4, 70\n28.6, 45",
     description: "An abundant zwitterionic osmolyte accumulated in marine invertebrates and saltwater fish to counter high hydrostatic and osmotic deep-sea pressures, degrading into smelling trimethylamine upon thawing or decay.",
     formula: "C3H9NO · 2H2O",
@@ -13293,7 +13293,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hypoxanthine Crystalline Phase (Seafood & Meat Freshness Indicator)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.1, 100\n15.6, 45\n19.2, 60\n24.0, 80\n28.5, 30",
     description: "A purine reaction product developed via post-mortem ATP dephosphorylation in avian, mammal, and fish muscle cells. Critical global marker used to calculate muscle tissue preservation freshness grades (K-value).",
     formula: "C5H4N4O",
@@ -13305,7 +13305,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Taurine Crystalline Phase (Red Meat & Marine Fish Active Organosulfur)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "13.5, 100\n17.4, 40\n19.2, 65\n21.8, 85\n25.4, 30\n29.1, 20",
     description: "A prominent amino sulfonic acid distributed widely throughout animal tissues (particularly heart, brain, and fish muscles), critical for cardiovascular and bile salt biogenesis.",
     formula: "C2H7NO3S",
@@ -13317,7 +13317,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Urea Crystalline Phase (Elasmobranch Fish Osmoprotectant)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "22.3, 100\n29.3, 30\n35.5, 45\n38.8, 20",
     description: "An ancient nitrogenous waste compound held at incredibly high osmoregulating concentrations in cartilaginous fish (sharks, skates, and rays) to prevent seawater dehydration.",
     formula: "CH4N2O",
@@ -13329,7 +13329,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "L-Carnitine Crystalline Phase (Muscle Lipid Transport Factor)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.2, 100\n13.8, 45\n18.4, 70\n23.0, 60\n27.6, 35",
     description: "An ammonium zwitterion concentrated overwhelmingly inside red meats and dynamic muscle fibers, vital for transporting long-chain fatty acids into mitochondria during beta-oxidation power cycles.",
     formula: "C7H15NO3",
@@ -13341,7 +13341,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "L-Ascorbic Acid Crystalline Phase (Vitamin C)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.4, 100\n14.1, 45\n17.6, 75\n20.2, 60\n25.2, 85\n28.1, 30",
     description: "The primary crystalline form of L-ascorbic acid, an essential water-soluble vitamin and dietary antioxidant. Serves as a cofactor in numerous enzymatic reactions, notably collagen biosynthesis.",
     formula: "C6H8O6",
@@ -13353,7 +13353,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Thiamine Hydrochloride (Vitamin B1 Active Salt)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.5, 100\n12.8, 55\n15.1, 80\n19.4, 65\n24.2, 70\n28.6, 40",
     description: "An essential B-vitamin, thiamine hydrochloride behaves as a key coenzyme in decarboxylation metabolic pathways of sugars and amino acids. Highly crystalline needle-like particles.",
     formula: "C12H17ClN4OS · HCl",
@@ -13365,7 +13365,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Riboflavin Form I Crystalline Phase (Vitamin B2)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.2, 100\n11.5, 45\n15.8, 70\n19.2, 60\n22.4, 85",
     description: "The stable polymorph of free riboflavin. Functions as the core unit of FAD and FMN electron-carrier cofactors across respiratory chains and biochemical oxidations.",
     formula: "C17H20N4O6",
@@ -13377,7 +13377,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Pyridoxine Hydrochloride (Vitamin B6 Crystalline Standard)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.2, 100\n13.6, 50\n20.2, 80\n24.8, 75\n27.1, 65\n31.4, 30",
     description: "An essential precursor to pyridoxal phosphate, the versatile coenzyme driving transamination, decarboxylation, and racemization reactions among all dietary amino acids.",
     formula: "C8H11NO3 · HCl",
@@ -13389,7 +13389,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Folic Acid Dihydrate (Vitamin B9 Crystalline Phase)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.1, 100\n10.2, 45\n12.8, 60\n18.6, 75\n22.4, 85\n26.8, 50",
     description: "The dihydrate form of folic acid. Acts as an indispensable carbon-donor carrier involved directly in nucleic acid biosynthesis and homocysteinic pathways.",
     formula: "C19H19N7O6 · 2H2O",
@@ -13401,7 +13401,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cyanocobalamin Hydrated Phase (Vitamin B12)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.8, 100\n7.2, 60\n9.6, 85\n12.4, 55\n15.5, 40",
     description: "A highly complex, cobalt-coordinated corrin-ring system. Functioning as a cofactor for methionine synthase and methylmalonyl-CoA mutase in vertebrates.",
     formula: "C63H88CoN14O14P · 10H2O",
@@ -13413,7 +13413,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cholecalciferol Crystalline Phase (Vitamin D3)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.4, 100\n10.8, 50\n14.2, 65\n16.1, 80\n21.4, 45",
     description: "The crystalline form of seco-steroid Vitamin D3. Crucial for modulating calcium homeostatic levels, intestinal absorption, and robust osseous mineralization cycles.",
     formula: "C27H44O",
@@ -13425,7 +13425,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "alpha-Tocopheryl Succinate Crystalline Phase (Dry Vitamin E Formulation)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.1, 100\n11.2, 45\n15.4, 60\n19.5, 75\n23.2, 50",
     description: "A solid ester derivative of alpha-tocopherol that crystallizes into stable, high-purity structures. Unlike free-base tocopherol oil, this phase provides oxygen immunity.",
     formula: "C33H54O5",
@@ -13437,7 +13437,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "D-Biotin Crystalline Phase (Vitamin B7 / Vitamin H)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "9.8, 100\n12.5, 40\n15.6, 65\n19.2, 80\n24.1, 55\n28.8, 20",
     description: "An essential sulfur-containing ureido tetrahydrothiophene vitamin working as an indispensable carboxylase coenzyme in fatty acid syntheses.",
     formula: "C10H16N2O3S",
@@ -13449,7 +13449,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Calcium D-Pantothenate Class A Form (Vitamin B5)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.5, 100\n11.1, 50\n15.0, 65\n18.8, 85\n22.5, 40",
     description: "The highly stable calcium salt of pantothenic acid. Acts as a core chemical precursor inside Coenzyme A synthesis pathways.",
     formula: "Ca(C9H16NO5)2",
@@ -13461,7 +13461,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Stem Cell Crystallin Protein (Human Recombinant)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.6, 100\n11.4, 60\n16.2, 75\n20.5, 90\n24.8, 35\n29.1, 15",
     description: "Recombinant human stem cell crystallin protein featuring ordered, highly repeating beta-sheet molecular motifs. Celebrated for high-accuracy lattice matching in tissue scaffolding, organic-interface engineering and regenerative bone-marrow analysis.",
     formula: "C72H112N20O22S2",
@@ -13473,7 +13473,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Gamma-Crystallin Protein (Eye Lens Crystalline)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.5, 100\n6.8, 65\n9.1, 80\n13.6, 70\n18.2, 50\n22.8, 45",
     description: "High-purity vertebrate eye lens gamma-crystallin protein. Features a highly persistent structural beta-barrel fold configured for maintaining optical transparency and high refractive indexes in ophthalmic bio-medical studies.",
     formula: "C82H134N24O26S4",
@@ -13485,7 +13485,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Alpha-A-Crystallin Protein Subunit",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.2, 100\n10.8, 75\n14.4, 60\n18.0, 85\n21.6, 50\n25.2, 35",
     description: "Vertebrate core molecular heat shock alpha-A-crystallin protein complex structure, vital for maintaining cellular refraction stability and thermal chaperone responses.",
     formula: "C58H96N16O18S",
@@ -13497,7 +13497,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Beta-B2-Crystallin Dimeric Assembly",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.1, 100\n8.2, 70\n12.3, 80\n15.4, 90\n20.6, 60\n24.7, 45",
     description: "Major vertebrate lens structural beta-B2-crystallin protein. Shows stable dimeric assemblies preserving low-scattering characteristics inside ocular media.",
     formula: "C74H122N22O24",
@@ -13509,7 +13509,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Delta-Crystallin Lyase Homolog",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.2, 100\n9.3, 65\n12.4, 85\n15.5, 75\n18.6, 55\n21.7, 40",
     description: "Avian and reptile eye-lens specific delta-crystallin, structurally related to argininosuccinate lyase with prominent alpha-helical arrays.",
     formula: "C92H150N26O30S2",
@@ -13521,7 +13521,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Collagen Triple-Helix Fibril",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "2.89, 100\n5.78, 80\n8.67, 70\n11.56, 90\n14.45, 60\n17.34, 45",
     description: "Fibrillar collagen microcrystalline matrix containing highly repeating glycine-proline-hydroxyproline triple helices.",
     formula: "C45H75N15O15",
@@ -13533,7 +13533,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Keratin-Alpha Coiled-Coil Filament",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "1.85, 100\n3.7, 85\n5.55, 60\n9.25, 75\n12.95, 50\n18.5, 40",
     description: "Fibrous alpha-helical structural keratin protein intermediate filament showing highly organized coiled-coil structures.",
     formula: "C62H102N18O21S4",
@@ -13545,7 +13545,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Silk Fibroin Beta-Sheet Polymorph",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.2, 100\n14.8, 65\n18.9, 80\n20.3, 90\n24.2, 55\n28.5, 30",
     description: "Ordered beta-sheet structure of Bombyx mori silk protein, characterized by recurrent glycine-alanine-serine hexapeptides.",
     formula: "C30H48N10O12",
@@ -13557,7 +13557,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Human Insulin Hexamer Crystal",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "3.15, 100\n5.46, 75\n6.3, 95\n9.54, 80\n11.2, 60\n15.8, 50",
     description: "Recombinant human insulin hexameric crystal stabilized with zinc coordinates and phenolic ligands.",
     formula: "C257H383N65O77S6",
@@ -13569,7 +13569,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Bovine Serum Albumin Phase Standard",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "2.8, 100\n4.2, 85\n5.6, 70\n8.4, 90\n11.2, 60\n14.0, 50",
     description: "Polycrystalline bovine serum albumin transport protein specimen used as a reference point in biological small-angle scattering (SAXS) and high-resolution XRD.",
     formula: "C293H461N81O89S4",
@@ -13581,7 +13581,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Hen Egg White Lysozyme Crystal",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.8, 100\n8.12, 80\n10.2, 90\n12.3, 75\n16.4, 60\n20.5, 45",
     description: "Tetragonal hen egg-white lysozyme crystal. Used as the global benchmark protein crystal for calibrating biological XRD detectors and analyzing macromolecules.",
     formula: "C124H192N38O38S3",
@@ -13593,7 +13593,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Sperm Whale Myoglobin Crystal",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "3.8, 100\n7.6, 85\n11.4, 75\n15.2, 95\n19.0, 60\n22.8, 40",
     description: "Crystalline sperm whale myoglobin protein featuring the historic eight alpha-helix fold and a core active heme prosthetic coordination complex.",
     formula: "C134H212N38O39S1",
@@ -13605,7 +13605,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Extracellular Matrix Laminin Crystallin",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "3.2, 100\n6.4, 80\n9.6, 70\n12.8, 90\n16.0, 50\n19.2, 40",
     description: "Recombinant extracellular matrix laminin-crystallin hybrid protein. Organizes into a highly structured sheet-like hexagonal network for tissue engineering scaffolds, cell adhesion, and basement membrane modeling.",
     formula: "C112H184N32O36S4",
@@ -13617,7 +13617,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "DPPC Membrane Lipid Bilayer (Crystalline Phase)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.2, 100\n6.3, 75\n8.4, 60\n12.6, 45\n16.8, 30",
     description: "Fully crystallized dipalmitoylphosphatidylcholine (DPPC) lipid bilayer lattice structure. Shows solid-crystalline gel phase traits widely used to study liquid-disordered or ordered transitions in synthetic liposome coatings.",
     formula: "C40H80NO8P",
@@ -13629,7 +13629,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cholesteryl Palmitate Crystallin Phase",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "3.8, 100\n5.7, 70\n7.6, 85\n11.4, 55\n15.2, 40",
     description: "Highly stable crystallized cholesteryl palmitate ester structure. Useful for modeling lipid-droplet storage boundaries, vascular atherosclerotic calcifications, and bio-lipid phase boundary conditions.",
     formula: "C43H76O2",
@@ -13641,7 +13641,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ice-Binding Glycoprotein (Water-Orderer Cryo-Crystallin)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.8, 100\n11.7, 80\n15.6, 65\n23.4, 45\n31.2, 25",
     description: "Water-structuring polypeptide template derived from polar organisms. Forces adjacent water molecules into an ordered, highly periodic non-freezing crystallin film to prevent cell lysis.",
     formula: "C36H60N10O15",
@@ -13653,7 +13653,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Crystalline Ice-Clathrate Water Cage (Structure H Hexagonal)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.8, 100\n16.2, 75\n21.5, 90\n24.8, 50\n28.4, 35",
     description: "High-stability hexagonal clathrate hydrate presenting an elaborate framework of 34 water molecules per unit cell forming cages for bulkier bio-organic target molecules.",
     formula: "34H2O · (Guest)",
@@ -13665,7 +13665,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Deuterated Ice (Heavy Water Crystalline Polymorph)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "23.1, 100\n24.6, 85\n26.2, 90\n33.9, 40\n40.8, 30",
     description: "Crystalline heavy water (D2O) ice form (Ih-equivalent). Offers significantly modified lattice coordinates and proton-tunneling behaviors from standard light water ice.",
     formula: "D2O",
@@ -13677,7 +13677,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Dry Ice Phase I (Crystalline CO2 Standard)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "27.42, 100\n31.80, 75\n45.61, 85\n54.10, 45\n56.62, 30",
     description: "Solid carbon dioxide Phase I (dry ice) crystallized at low temperatures. Exhibits elegant cubic symmetrical arrangement of linear CO2 molecular motifs.",
     formula: "CO2",
@@ -13689,7 +13689,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Crystalline Carbon Dioxide Clathrate Hydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.72, 100\n17.95, 80\n22.04, 90\n25.48, 60\n28.53, 40",
     description: "Structure I carbon dioxide clathrate hydrate containing linear guest CO2 molecules enclosed within polyhedral water cages under moderate pressures.",
     formula: "CO2 · 5.75H2O",
@@ -13701,7 +13701,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Solid Alpha-Nitrogen (Low-Temperature Crystalline N2)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "27.32, 100\n31.68, 70\n45.44, 80\n53.89, 50\n56.40, 35",
     description: "Alpha-phase solid nitrogen, stable below 35.6 Kelvin. Highly ordered molecular N2 axis array aligned along cubic body diagonals.",
     formula: "N2",
@@ -13713,7 +13713,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Solid Beta-Nitrogen (Hexagonal Crystalline N2)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "25.37, 100\n27.00, 85\n37.13, 75\n44.52, 45\n52.88, 30",
     description: "Beta-phase hexagonal solid nitrogen stable between 35.6 K and 63.1 K. Displays rotational disorder inside close-packed crystal layers.",
     formula: "N2",
@@ -13725,7 +13725,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cubic Single-Bonded Poly-Nitrogen (cg-N)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "39.46, 100\n48.78, 80\n56.90, 90\n71.39, 60\n84.62, 45",
     description: "Cubic gauche single-bonded polymeric nitrogen (cg-N) synthesized at extreme pressures. All nitrogen atoms are shared via three covalent single bonds.",
     formula: "N",
@@ -13737,7 +13737,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carbon Dioxide - Nitrogen Mixed Clathrate Hydrate",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.75, 100\n17.98, 75\n22.08, 90\n25.52, 55\n28.58, 40",
     description: "Co-occupied mixed carbon dioxide and nitrogen clathrate hydrate. Classic model for deep undersea sediment and planetary gas storage configurations.",
     formula: "(CO2)0.7(N2)0.3 · 5.75H2O",
@@ -13749,7 +13749,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Crystalline Cyanuric Acid (s-Triazine-2,4,6-triol)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "14.92, 100\n19.85, 75\n24.31, 85\n28.50, 65\n31.25, 40",
     description: "Symmetric high-nitrogen heterocyclic organic covalent crystal. Organizes into exceptionally robust planar hydrogen-bonded organic networks.",
     formula: "C3H3N3O3",
@@ -13761,7 +13761,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Crystalline Melamine Standard",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "17.65, 100\n21.43, 80\n26.24, 95\n28.91, 70\n33.40, 50",
     description: "High-nitrogen amine derivative of s-triazine. Displays an extensive network of hydrogen-bonded multi-planar assemblies widely used in forensic chemistry.",
     formula: "C3H6N6",
@@ -13773,7 +13773,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Urea Crystalline Reference",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "22.25, 100\n29.31, 85\n35.48, 75\n37.81, 90\n41.60, 55",
     description: "Highly pure organic crystalline urea reference material. Superb diagnostic template for examining guest-host organic tube networks and opto-electronic effects.",
     formula: "CH4N2O",
@@ -13785,7 +13785,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Superhard Beta-Carbon Nitride Phase",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "15.90, 100\n27.75, 80\n31.95, 90\n39.80, 65\n48.20, 50",
     description: "Incompressible hexagonal covalent carbon nitride (Beta-C3N4) structure designed to mimic or exceed diamond lattice structural strength parameters.",
     formula: "C3N4",
@@ -13797,7 +13797,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Cholesterol Monohydrate Crystal",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.18, 100\n10.36, 60\n15.54, 45\n17.10, 80\n21.80, 55",
     description: "Crystalline form of cholesterol monohydrate. Found as a key plaque constituent in cardiovascular deposits and used as a calibration standard for biological lipid structures.",
     formula: "C27H46O · H2O",
@@ -13809,7 +13809,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Crystalline Sphingomyelin Membrane Phase",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.12, 100\n6.18, 70\n8.24, 55\n12.36, 40\n20.50, 80",
     description: "Highly ordered solid gel crystalline phase of milk-derived sphingomyelin. Essential for examining lipid-raft domain boundaries and membrane microdomain physics.",
     formula: "C39H79N2O6P",
@@ -13821,7 +13821,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Palmitic Acid Organic Crystal",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.10, 100\n12.20, 65\n18.30, 45\n21.50, 90\n24.10, 40",
     description: "Monoclinic B-form crystal structure of hexadecimal palmitic acid. Shows classic aliphatic chain packing with tilted dimer layers.",
     formula: "C16H32O2",
@@ -13833,7 +13833,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Stearic Acid Crystalline Polymorph B",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.45, 100\n10.90, 75\n16.35, 50\n21.70, 85\n24.20, 35",
     description: "Crystallized octadecanoic fatty acid (Stearic Acid) form B. Exhibits tight subcell packing used in thermal storage materials and pharmaceutical lubricant benchmarking.",
     formula: "C18H36O2",
@@ -13845,7 +13845,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lauric Acid Crystalline Phase",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.15, 100\n12.10, 80\n16.30, 60\n21.12, 90\n23.40, 45",
     description: "Fully crystallized dodecanoic acid (Lauric Acid) structure. Features clean hydrogen-bonded carboxyl dimers providing extremely stable low-temperature melting curves.",
     formula: "C12H24O2",
@@ -13857,7 +13857,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "DOPC Liposome Crystalline Subphase",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "3.75, 100\n5.62, 80\n7.50, 65\n11.25, 45\n15.00, 30",
     description: "Low-temperature crystalline subphase of dioleoylphosphatidylcholine (DOPC). Key tool for researching liquid-crystalline ripple phases and trans-membrane peptide interactions.",
     formula: "C44H84NO8P",
@@ -13869,7 +13869,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "POPE Phospholipid Crystalline System",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "4.05, 100\n6.08, 75\n8.10, 60\n12.15, 50\n16.20, 35",
     description: "Crystallized palmitoyloleoylphosphatidylethanolamine (POPE) phospholipid arrangement. Used for resolving structural curvatures and lipid-protein matching parameters under high-resolution conditions.",
     formula: "C37H72NO8P",
@@ -13881,7 +13881,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Acetaminophen Form I (Paracetamol Standard)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "12.12, 100\n15.54, 75\n18.23, 90\n20.40, 60\n23.45, 45",
     description: "Crystalline Form I of acetaminophen (paracetamol). The thermodynamically stable monoclinic polymorph under room temperature used globally in analgesics.",
     formula: "C8H9NO2",
@@ -13893,7 +13893,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Ibuprofen Form I (NSAID Crystalline Form)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.08, 100\n12.18, 70\n16.55, 85\n18.78, 55\n22.25, 40",
     description: "Monoclinic crystalline form of Ibuprofen. Prevalent active pharmaceutical ingredient for treating inflammatory pain, showing highly distinct dimerized chains.",
     formula: "C13H18O2",
@@ -13905,7 +13905,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Aspirin Form I (Acetylsalicylic Acid Reference)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.85, 100\n15.63, 80\n19.12, 95\n22.45, 65\n27.15, 50",
     description: "Foundational Form I crystalline build of acetylsalicylic acid. Relies on structured salicylate dimer bonds to achieve highly predictable solid-state thermal expansion.",
     formula: "C9H8O4",
@@ -13917,7 +13917,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Carbamazepine Form III (Anticonvulsant Polymorph)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.92, 100\n12.10, 85\n15.15, 75\n18.64, 90\n24.90, 55",
     description: "Crystalline monoclinic Form III carbamazepine. Serves as a standard pharmaceutical model for solid-state characterization of polymorphic transformation dynamics.",
     formula: "C15H12N2O",
@@ -13929,7 +13929,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Penicillin V Potassium Salt",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.15, 100\n10.30, 80\n15.45, 70\n18.20, 90\n20.80, 45",
     description: "Crystalline oral penicillin salt standard. Beautifully reveals rigid beta-lactam backbones layered between electro-statically linked potassium counterion pockets.",
     formula: "C16H17KN2O5S",
@@ -13941,7 +13941,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Indomethacin Gamma-Polymorph",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.38, 100\n11.62, 85\n16.65, 90\n21.82, 60\n26.60, 40",
     description: "Highly stable gamma crystalline form of indomethacin. A core benchmark model in drug-delivery science for comparing amorphous solid dispersions against crystalline matrices.",
     formula: "C19H16ClNO4",
@@ -13953,7 +13953,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Caffeine Anhydrous Beta-Phase",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "11.85, 100\n13.20, 75\n24.10, 85\n26.85, 60\n28.15, 50",
     description: "Beta-form anhydrous caffeine crystal. Demonstrates regular stacked purine rings bonded via weak planar CH...O hydrogen-bonding bridges.",
     formula: "C8H10N4O2",
@@ -13965,7 +13965,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Naloxone Hydrochloride Dihydrate (Emergency Antagonist)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "7.15, 100\n11.35, 70\n14.30, 85\n18.12, 90\n21.85, 60\n25.40, 45",
     description: "Crystalline hydrochloride dihydrate form of Naloxone. An essential, life-saving competitive opioid receptor antagonist used globally in emergency medicine to reverse respiratory depression.",
     formula: "C19H21NO4 · HCl · 2H2O",
@@ -13977,7 +13977,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Codeine Phosphate Hemihydrate (Clinical Analgesic)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "5.82, 100\n9.45, 75\n11.64, 80\n16.85, 95\n20.32, 60\n23.90, 50",
     description: "Crystalline clinical codeine phosphate salt. Widely prescribed medical analgesic and antitussive featuring a rigid morphine-type ring coordinate network.",
     formula: "C18H21NO3 · H3PO4 · 0.5H2O",
@@ -13989,7 +13989,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Lidocaine Hydrochloride Monohydrate (Local Anesthetic)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "8.42, 100\n12.60, 65\n15.15, 80\n19.22, 90\n23.85, 55\n28.10, 40",
     description: "Crystalline lidocaine hydrochloride monohydrate. Globally utilized local anesthetic and class Ib antiarrhythmic working via fast sodium channel blockade.",
     formula: "C14H22N2O · HCl · H2O",
@@ -14001,7 +14001,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "Atropine Sulfate Monohydrate (Emergency Cholinolytic)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "6.12, 100\n10.45, 80\n12.24, 70\n15.65, 95\n19.80, 60\n24.12, 45",
     description: "Crystalline atropine sulfate monohydrate. Life-saving competitive muscarinic acetylcholine receptor antagonist used to treat bradycardia and organophosphate poisoning.",
     formula: "(C17H23NO3)2 · H2SO4 · H2O",
@@ -14013,7 +14013,7 @@ export const MATERIAL_DB = [
   },
   {
     name: "L-Ascorbic Acid (Vitamin C Standard)",
-    type: "Bioceramics, Biomaterials & Pharma",
+    type: "Biomaterials & Pharmaceuticals",
     pattern: "10.45, 100\n14.22, 85\n17.60, 95\n20.28, 70\n25.32, 60\n28.15, 50",
     description: "Crystalline L-ascorbic acid (Vitamin C). Celebrated natural antioxidant and essential clinical nutrient with elegant monoclinic hydrogen-bonded sheet features.",
     formula: "C6H8O6",
@@ -14022,6 +14022,487 @@ export const MATERIAL_DB = [
     spaceGroup: "P21",
     density: 1.65,
     applications: ["Nutraceutical Validation Quality", "Biological Antioxidant Modeling", "High-Resolution Solid Standardizing"]
+  },
+  {
+    name: "Diacetylmorphine Hydrochloride (Heroin)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern: "10.4, 100\n14.2, 80\n18.6, 65\n22.8, 90\n25.4, 50",
+    description: "Crystalline diacetylmorphine hydrochloride. A semi-synthetic opioid analgesic reference standard used extensively in forensic testing and illicit substance identification.",
+    formula: "C21H23NO5 · HCl",
+    elements: ["C", "H", "Cl", "N", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21",
+    density: 1.35,
+    applications: ["Forensic Narcotics Identification", "Illicit Drug Profiling", "Crystallographic Calibration"]
+  },
+  {
+    name: "Cocaine Hydrochloride",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern: "11.2, 100\n15.8, 75\n18.4, 85\n21.1, 60\n24.6, 50",
+    description: "Crystalline cocaine hydrochloride standard. A tropane alkaloid ester commonly acting as a strong stimulant and local anesthetic. Used as a forensic reference.",
+    formula: "C17H21NO4 · HCl",
+    elements: ["C", "H", "Cl", "N", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c",
+    density: 1.22,
+    applications: ["Forensic Toxicology", "Reference Standards", "Spectroscopic Benchmarking"]
+  },
+  {
+    name: "Morphine Sulfate Pentahydrate",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern: "9.5, 100\n12.1, 70\n14.8, 95\n18.3, 50\n23.4, 65",
+    description: "Crystalline morphine sulfate pentahydrate. Major opiate analgesic whose crystal structure features extensive hydrogen bonding involving the water of hydration.",
+    formula: "(C17H19NO3)2 · H2SO4 · 5H2O",
+    elements: ["C", "H", "N", "O", "S"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "P212121",
+    density: 1.32,
+    applications: ["Pain Management Pharmaceuticals", "Opioid Alkaloid Characterization", "Forensic Diagnostics"]
+  },
+  {
+    name: "Fentanyl Citrate",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern: "8.6, 100\n13.2, 85\n16.8, 60\n20.4, 90\n25.5, 45",
+    description: "Synthetic piperidine-derivative opioid crystal. An extremely potent analgesic standard used for calibrating forensic trace detection systems.",
+    formula: "C22H28N2O · C6H8O7",
+    elements: ["C", "H", "N", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c",
+    density: 1.25,
+    applications: ["Trace Narcotics Detection", "Forensic Formulation Testing", "Molecular Precursor Profiling"]
+  },
+  {
+    name: "Diazepam (Valium) Form I",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern: "11.1, 100\n15.2, 75\n19.3, 80\n22.5, 60\n26.8, 55",
+    description: "Crystalline benzodiazepine standard. Widely tracked psychoactive drug exhibiting characteristic monoclinic crystal geometries.",
+    formula: "C16H13ClN2O",
+    elements: ["C", "H", "Cl", "N", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/a",
+    density: 1.34,
+    applications: ["Forensic Psychoactive Tracking", "Pharmaceutical Formulation", "Benzodiazepine Diagnostics"]
+  },
+  {
+    name: "Austenitic Stainless Steel 316L (Fe-Cr-Ni-Mo)",
+    type: "Metals & Alloys",
+    pattern: "43.6, 100\n50.8, 40\n74.7, 20\n90.6, 25\n96.0, 10",
+    description: "Low-carbon molybdenum-bearing austenitic stainless steel. Highly resistant to pitting and crevice corrosion in chloride environments. Extensively used in marine, chemical, and medical implant applications.",
+    formula: "Fe0.68Cr0.17Ni0.12Mo0.02Mn0.01",
+    elements: ["Fe", "Cr", "Ni", "Mo", "Mn"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 8.0,
+    applications: ["Marine Engineering", "Chemical Containers", "Biomedical Implants", "High-Vacuum Systems"],
+    molecularWeight: 55.45,
+    elasticModulus: 195
+  },
+  {
+    name: "Martensitic Steel 410 (BCT phase)",
+    type: "Metals & Alloys",
+    pattern: "44.5, 100\n64.6, 5\n64.9, 15\n82.2, 30",
+    description: "A basic, general-purpose martensitic stainless steel that can be heat-treated to obtain high mechanical properties. It offers good corrosion resistance combined with high strength and hardness.",
+    formula: "Fe0.87Cr0.12Si0.01",
+    elements: ["Fe", "Cr", "Si"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I4/mmm",
+    density: 7.75,
+    applications: ["Cutlery & Utensils", "Petrochemical Equipment", "Steam & Gas Turbine Parts", "Fasteners"],
+    molecularWeight: 55.22,
+    elasticModulus: 200
+  },
+  {
+    name: "Nickel-Chromium Superalloy Inconel 718",
+    type: "Metals & Alloys",
+    pattern: "43.5, 100\n50.6, 42\n74.4, 22\n90.3, 23",
+    description: "Precipitation-hardenable nickel-chromium-iron superalloy. Key phases are FCC gamma matrix (Ni-Cr-Fe) and body-centered tetragonal (BCT) gamma-prime and gamma-double-prime precipitates. Known for its exceptional yield, tensile, and creep-rupture properties up to 700 °C.",
+    formula: "Ni0.53Cr0.19Fe0.18Nb0.05Mo0.03Al0.01Ti0.01",
+    elements: ["Ni", "Cr", "Fe", "Nb", "Mo", "Al", "Ti"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 8.19,
+    applications: ["Liquid Fuel Rocketry", "Gas Turbine Engines", "Cryogenic Storage Tanks", "High-Strength Springs"],
+    molecularWeight: 58.91,
+    elasticModulus: 205
+  },
+  {
+    name: "Metastable Beta Titanium Alloy Ti-15V-3Cr-3Sn-3Al",
+    type: "Metals & Alloys",
+    pattern: "39.2, 100\n56.7, 15\n71.1, 35\n84.4, 10",
+    description: "Metastable beta titanium alloy used for high-strength aerospace fasteners and components. Solute-rich BCC structure remains stabilized at room conditions through vanadium and chromium additions.",
+    formula: "Ti0.76V0.15Cr0.03Sn0.03Al0.03",
+    elements: ["Ti", "V", "Cr", "Sn", "Al"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m",
+    density: 4.9,
+    applications: ["Aerospace Fasteners", "Hydraulic Tubing", "High-Stress Brackets", "Aircraft Structural Skins"],
+    molecularWeight: 48.3,
+    elasticModulus: 102
+  },
+  {
+    name: "Widia Cemented Carbide (WC-Co Hardmetal)",
+    type: "Metals & Alloys",
+    pattern: "31.5, 40\n35.6, 100\n48.3, 85\n64.1, 35\n73.1, 45\n75.5, 15\n84.1, 25",
+    description: "Widely referred to as Widia (from German 'wie Diamant' - like diamond). Sintered WC-Co composite material combining ultra-high hardness of hexagonal tungsten carbide with the ductility of cobalt matrix.",
+    formula: "WC0.90Co0.10",
+    elements: ["W", "C", "Co"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P-6m2",
+    density: 14.5,
+    applications: ["High-Velocity Metal Cutting Tools", "Armor-Piercing Ammunition Core", "Mining Drill Bits", "Precision Wear Parts"],
+    molecularWeight: 201.8,
+    elasticModulus: 600
+  },
+  {
+    name: "Activated Raney Nickel Alloy Precursor (Ni2Al3)",
+    type: "Metals & Alloys",
+    pattern: "25.0, 40\n30.5, 100\n43.8, 90\n47.9, 55\n57.1, 70",
+    description: "A fine-grained solid nickel-aluminum alloy catalyst precursor. Precursor alloy is rich in hexagonal Ni2Al3 and orthorhombic NiAl3. After selective leaching of aluminum with NaOH, it leaves a highly porous sponge nickel framework.",
+    formula: "Ni2Al3",
+    elements: ["Ni", "Al"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P-3m1",
+    density: 4.88,
+    applications: ["Hydrogenation Catalyst Synthesis", "Organic Synthesis Reactors", "Biofuel Processing", "Fuel Cell Electrode Research"],
+    molecularWeight: 198.32,
+    elasticModulus: 130
+  },
+  {
+    name: "Shape Memory Alloy Nitinol (Martensitic B19' Phase)",
+    type: "Metals & Alloys",
+    pattern: "25.4, 30\n38.8, 100\n41.5, 95\n43.9, 80\n45.4, 60",
+    description: "The monoclinic martensitic B19' phase of Nickel-Titanium (Nitinol), which is stable at low temperatures. Undergoing thermal or stress-induced transition to cubic austenite (B2 phase) drives its shape memory effect.",
+    formula: "NiTi",
+    elements: ["Ni", "Ti"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/m",
+    density: 6.45,
+    applications: ["Self-Expanding Medical Stents", "Orthodontic Archwires", "Robotic Solid-State Actuators", "Aerospace Wing-Morphing Systems"],
+    molecularWeight: 106.56,
+    elasticModulus: 48
+  },
+  {
+    name: "High-Strength Nickel-Aluminum Bronze C95800",
+    type: "Metals & Alloys",
+    pattern: "43.0, 100\n50.1, 45\n73.6, 25\n89.2, 28",
+    description: "High-strength, copper-based industrial alloy with copper-rich alpha FCC phase. Addition of Al, Fe, and Ni facilitates the formation of hard kappa (Fe-Al or Ni-Al-Fe based) precipitates, improving cavitation-erosion resistance.",
+    formula: "Cu0.79Al0.09Fe0.05Ni0.05Mn0.02",
+    elements: ["Cu", "Al", "Fe", "Ni", "Mn"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 7.64,
+    applications: ["Marine Propellers", "Heavy-Duty Bearings", "Undersea Valve Bodies", "Corrosive-Acid Piping"],
+    molecularWeight: 60.1,
+    elasticModulus: 117
+  },
+  {
+    name: "Ultra-Lightweight Magnesium-Lithium Alloy LA141",
+    type: "Metals & Alloys",
+    pattern: "36.3, 100\n52.1, 15\n65.0, 33\n76.9, 12",
+    description: "Ultra-lightweight aerospace alloy. While pure Mg crystallizes in hexagonal system, alloying with over 11 wt% Lithium shifts the crystal system into a highly ductile and lightweight BCC beta phase stable at room temp.",
+    formula: "Mg0.60Li0.40",
+    elements: ["Mg", "Li"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m",
+    density: 1.35,
+    applications: ["Satellite Structural Boxes", "Portable Military Hardware", "Aerospace Electronic Chassis", "Deep-Space Probe Shielding"],
+    molecularWeight: 17.36,
+    elasticModulus: 45
+  },
+  {
+    name: "Tungsten-Sintered Heavy Alloy (93W-5Ni-2Fe)",
+    type: "Metals & Alloys",
+    pattern: "40.3, 100\n58.3, 15\n73.2, 38\n87.0, 11",
+    description: "Heavy alloy consisting of BCC tungsten grains held in a ductile FCC Ni-Fe binder matrix. Possesses extremely high density (17-18.5 g/cm³), excellent mechanical strength, and superior radiation shielding characteristics.",
+    formula: "W0.93Ni0.05Fe0.02",
+    elements: ["W", "Ni", "Fe"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m",
+    density: 17.6,
+    applications: ["High-Density Ballast Weights", "Nuclear Medical Radiation Shielding", "X-ray Tube Target Components", "Gyroscope Rotor Inertial Wheels"],
+    molecularWeight: 175.25,
+    elasticModulus: 345
+  },
+  {
+    name: "Hadfield Steel (Austenitic High-Manganese Steel)",
+    type: "Metals & Alloys",
+    pattern: "43.4, 100\n50.5, 40\n74.2, 21\n90.0, 24",
+    description: "The original work-hardening steel. It contains 12-14% Mn and 1% Carbon. High manganese content stabilizes the FCC austenite phase down to room temperature. Shows unmatched strain-hardening under impact.",
+    formula: "Fe0.86Mn0.13C0.01",
+    elements: ["Fe", "Mn", "C"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 7.9,
+    applications: ["Railway Crossings & Frogs", "Rock Crusher Jaws", "Caterpillar Track Shoes", "Power Shovel Buckets"],
+    molecularWeight: 55.6,
+    elasticModulus: 190
+  },
+  {
+    name: "Aerospace Aluminum-Lithium Alloy Al-Cu-Li 2195",
+    type: "Metals & Alloys",
+    pattern: "38.5, 100\n44.8, 48\n65.2, 24\n78.4, 25\n82.4, 8",
+    description: "Third-generation aluminum-copper-lithium aerospace alloy designed for cryogenic propellant tanks (e.g., Space Shuttle and SLS). Possesses low density, high elastic modulus, and excellent weldability.",
+    formula: "Al0.94Cu0.04Li0.02",
+    elements: ["Al", "Cu", "Li"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 2.71,
+    applications: ["Cryogenic Fuel Tanks", "Launch Vehicle Structural Panels", "Lower Wing Skins", "High-Payload Spacecraft Structural Frames"],
+    molecularWeight: 28.08,
+    elasticModulus: 76
+  },
+  {
+    name: "Zircaloy-4 (Nuclear-Grade Fuel Cladding Alloy)",
+    type: "Metals & Alloys",
+    pattern: "32.0, 34\n34.8, 33\n36.6, 100\n47.9, 20\n56.6, 18\n63.3, 17",
+    description: "Zirconium-tin alloy widely utilized as nuclear fuel cladding in light water reactors due to its exceptionally low neutron absorption cross-section, excellent corrosion resistance in high-temp water, and mechanical stability.",
+    formula: "Zr0.985Sn0.012Fe0.002Cr0.001",
+    elements: ["Zr", "Sn", "Fe", "Cr"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc",
+    density: 6.56,
+    applications: ["Nuclear Reactor Fuel Cladding", "Spacer Grids in PWR Core", "Water Reactor Pressure Tubes", "Chemical Autoclave Lining"],
+    molecularWeight: 91.54,
+    elasticModulus: 99
+  },
+  {
+    name: "Resistive FeCrAl Alloy (Kanthal A-1)",
+    type: "Metals & Alloys",
+    pattern: "44.2, 100\n64.4, 15\n81.5, 30",
+    description: "Known commercially as Kanthal A-1. An iron-chromium-aluminum alloy used for high-temperature electrical heating elements operating up to 1400 °C. Forms a protective alumina (Al2O3) surface layer.",
+    formula: "Fe0.72Cr0.22Al0.06",
+    elements: ["Fe", "Cr", "Al"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m",
+    density: 7.1,
+    applications: ["Industrial Furnace Heaters", "Toaster Heating Elements", "Vaporizer Coil Elements", "Laboratory Kiln Windings"],
+    molecularWeight: 53.2,
+    elasticModulus: 160
+  },
+  {
+    name: "Nickel-Molybdenum Superalloy Hastelloy C-276",
+    type: "Metals & Alloys",
+    pattern: "43.3, 100\n50.4, 41\n74.0, 21\n89.8, 23",
+    description: "A nickel-molybdenum-chromium superalloy with the addition of tungsten, designed to have excellent corrosion resistance in a wide range of severe environments. Resists wet chlorine and oxidizing salts.",
+    formula: "Ni0.57Mo0.16Cr0.16Fe0.05W0.04Co0.02",
+    elements: ["Ni", "Mo", "Cr", "Fe", "W", "Co"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 8.89,
+    applications: ["Flue Gas Desulfurization Scrubbers", "Sour Gas Well Equipment", "Cellulose Bleaching Digesters", "Waste Acid Reboilers"],
+    molecularWeight: 72.3,
+    elasticModulus: 205
+  },
+  {
+    name: "Uranium Dioxide (UO2 Nuclear Fuel)",
+    type: "Nuclear & Shielding",
+    pattern: "28.3, 100\n32.8, 45\n47.1, 55\n55.9, 50\n58.6, 12\n68.8, 25\n76.0, 22\n78.4, 8\n87.9, 15",
+    description: "Standard commercial pressurized/boiling water reactor fuel (LWR fuel). Features a highly stable fluorite matrix that retains volatile and gaseous fission products within its ceramic lattice up to ultra-high temperatures.",
+    formula: "UO2",
+    elements: ["U", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 10.97,
+    applications: ["Commercial Light Water Reactors", "Liquid Metal Fast Breeder Core", "Advanced Gas-Cooled Power Generation"],
+    molecularWeight: 270.03,
+    elasticModulus: 220
+  },
+  {
+    name: "Nuclear-Grade Thorium Dioxide (ThO2 Fuel Precursor)",
+    type: "Nuclear & Shielding",
+    pattern: "27.6, 100\n32.0, 42\n45.9, 52\n54.4, 48\n57.0, 10\n66.9, 23\n73.8, 20\n76.1, 7\n85.1, 14",
+    description: "Also known as Thoria. Precursor oxide for the thorium fuel cycle. Upon irradiation with thermal neutrons, Th-232 transmutes to fissile U-233. Exhibits outstanding thermal conductivity and a higher melting point than UO2.",
+    formula: "ThO2",
+    elements: ["Th", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 10.0,
+    applications: ["Thorium-Based Breeder Reactors", "High-Temperature Gas-Cooled Fuel", "Hybrid Fusion-Fission Blankets"],
+    molecularWeight: 264.04,
+    elasticModulus: 250
+  },
+  {
+    name: "Plutonium Dioxide (PuO2 MOX Fuel Component)",
+    type: "Nuclear & Shielding",
+    pattern: "28.5, 100\n33.0, 44\n47.4, 53\n56.2, 49\n58.9, 11\n69.2, 24\n76.4, 21\n78.8, 8\n88.4, 15",
+    description: "Crystalline plutonium dioxide primarily used in Mixed Oxide (MOX) fuel bundles. Allows the reuse of plutonium recovered from spent fuel reprocessing as well as decommissioned military stockpiles.",
+    formula: "PuO2",
+    elements: ["Pu", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 11.46,
+    applications: ["Mixed Oxide (MOX) Actinide Fuels", "Radioisotope Thermoelectric Generators (RTGs)", "Space Exploration Power Modules"],
+    molecularWeight: 276.0,
+    elasticModulus: 210
+  },
+  {
+    name: "Uranium Monocarbide (UC Fast Reactor Fuel)",
+    type: "Nuclear & Shielding",
+    pattern: "31.2, 100\n36.2, 48\n52.2, 58\n62.1, 52\n65.2, 14\n76.8, 27\n85.3, 23\n88.2, 9\n99.8, 16",
+    description: "Uranium monocarbide featuring a halite-type crystal system. Candidate for high-temperature service due to superior thermal conductivities (up to five times greater than conventional UO2 oxide fuels).",
+    formula: "UC",
+    elements: ["U", "C"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 13.63,
+    applications: ["Generation IV Fast Breeder Fuel", "Advanced High-Temperature Core Designs", "Nuclear Thermal Propulsion Systems"],
+    molecularWeight: 250.04,
+    elasticModulus: 225
+  },
+  {
+    name: "Uranium Nitride (UN Space Nuclear Fuel)",
+    type: "Nuclear & Shielding",
+    pattern: "32.4, 100\n37.6, 50\n54.3, 60\n64.6, 54\n67.9, 15\n80.2, 28\n89.2, 24\n92.3, 10\n105.1, 17",
+    description: "High-density space reactor fuel matrix featuring a face-centered cubic sodium chloride structure. Combines high uranium density with exceptional thermodynamic stability and ultra-high thermal transport performance.",
+    formula: "UN",
+    elements: ["U", "N"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 14.32,
+    applications: ["Space Nuclear Auxiliary Power (SNAP)", "Liquid Metal Cooled Fast Core", "Spacecraft Micro-Reactor Propulsion"],
+    molecularWeight: 252.04,
+    elasticModulus: 265
+  },
+  {
+    name: "Uranium Silicide (U3Si2 Accident-Tolerant Fuel)",
+    type: "Nuclear & Shielding",
+    pattern: "29.1, 45\n30.5, 100\n34.1, 75\n35.8, 48\n41.5, 62\n43.2, 38\n48.4, 52",
+    description: "An accident-tolerant fuel (ATF) solution for light water reactors. Boasts a tetragonal system (a 10-atom unit cell) and provides enhanced safety metrics under loss-of-coolant-accident (LOCA) regimes.",
+    formula: "U3Si2",
+    elements: ["U", "Si"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "P4/mbm",
+    density: 12.2,
+    applications: ["Accident-Tolerant Fuel (ATF) Cladding Inserts", "Research Reactor Core Conversion", "Enhanced Fission Density Fuel Arrays"],
+    molecularWeight: 770.26,
+    elasticModulus: 145
+  },
+  {
+    name: "Boron Carbide (B4C Neutron Absorber)",
+    type: "Nuclear & Shielding",
+    pattern: "23.5, 30\n34.9, 100\n37.8, 85\n53.1, 40\n61.8, 46\n72.2, 35",
+    description: "Sintered boron carbide characterized by structural carbon-boron networks. Serves as a standard thermal neutron poison / regulating control blade core owing to boron-10's phenomenal neutron absorbency profile.",
+    formula: "B4C",
+    elements: ["B", "C"],
+    crystalSystem: "Rhombohedral",
+    spaceGroup: "R-3m",
+    density: 2.52,
+    applications: ["Emergency Control Rod Shutoff Plugs", "Spent Nuclear Fuel Dry Cask Storage Shields", "Radiation Absorption Panels"],
+    molecularWeight: 55.25,
+    elasticModulus: 450
+  },
+  {
+    name: "Burnable Poison Gadolinia (Cubic-Gd2O3)",
+    type: "Nuclear & Shielding",
+    pattern: "20.1, 28\n28.6, 100\n33.2, 45\n47.7, 50\n56.5, 42\n69.6, 22\n76.9, 18",
+    description: "C-type cubic gadolinium sesquioxide. Mixed intimately into LWR UO2 fuels to suppress initial peak excess reactivity, evening out power generation curves throughout extended fuel cylinder lifespans.",
+    formula: "Gd2O3",
+    elements: ["Gd", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Ia-3",
+    density: 7.41,
+    applications: ["Integral Burnable Poison Pellets", "LWR Reactivity Regulation", "High-Neutron-Exposure Fuel Formulations"],
+    molecularWeight: 362.5,
+    elasticModulus: 140
+  },
+  {
+    name: "Erbium Oxide Burnable Poison (Cubic-Er2O3)",
+    type: "Nuclear & Shielding",
+    pattern: "20.5, 30\n29.1, 100\n33.7, 42\n48.5, 55\n57.5, 46\n71.0, 24\n78.4, 20",
+    description: "Cubic C-type Erbia. Like Gadolinia, Erbia provides high neutron absorption cross-sections. Useful as an operational burnable poison dispersion inside specialized light water reactor assemblies.",
+    formula: "Er2O3",
+    elements: ["Er", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Ia-3",
+    density: 8.64,
+    applications: ["Reactivity Control Fuel Dopants", "Pressurized Water Reactor Pellets", "Heavy Water System Moderators"],
+    molecularWeight: 382.52,
+    elasticModulus: 165
+  },
+  {
+    name: "Monoclinic Samarium Oxide (B-Type Sm2O3 Poison)",
+    type: "Nuclear & Shielding",
+    pattern: "27.5, 75\n28.9, 100\n29.8, 65\n30.5, 80\n31.8, 55\n41.2, 42\n46.5, 48",
+    description: "High-temperature monoclinic phase of Samarium Oxide. Highly active burnable poison utilized in specific naval atomic and fast propulsion cores where stable thermal neutron captures are critical.",
+    formula: "Sm2O3",
+    elements: ["Sm", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/m",
+    density: 7.74,
+    applications: ["Naval Propulsion Core Poisoning", "Thermal Control Rods", "Emergency Absorber Dispersions"],
+    molecularWeight: 348.72,
+    elasticModulus: 135
+  },
+  {
+    name: "Beryllium Oxide Reflector (Crystalline Bromelite)",
+    type: "Nuclear & Shielding",
+    pattern: "32.6, 100\n35.8, 85\n38.5, 60\n57.0, 48\n69.6, 52\n72.2, 38\n83.4, 32",
+    description: "Hexagonal alpha-BeO crystal, chemically distinct bromelite. High thermal conductivity, high melting point, and incredibly low absorption cross-section make it an exceptional neutron reflector and moderator matrix.",
+    formula: "BeO",
+    elements: ["Be", "O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63mc",
+    density: 3.01,
+    applications: ["Aerospace Micro-Reactor Core Liners", "Neutron Reflectors for High-Flux Reactors", "Thermoluminescent Environmental Dosimetry"],
+    molecularWeight: 25.01,
+    elasticModulus: 380
+  },
+  {
+    name: "Zirconium Hydride Moderator (Tetragonal-ZrH2)",
+    type: "Nuclear & Shielding",
+    pattern: "32.3, 35\n34.8, 100\n38.1, 48\n48.6, 25\n57.2, 28\n63.9, 22\n72.5, 18",
+    description: "Tetragonal delta-phase titanium-zirconium-hydride system. Employed in TRIGAs (Training, Research, Isotopes, General Atomics) for its prompt negative temperature coefficient of reactivity.",
+    formula: "ZrH2",
+    elements: ["Zr", "H"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I4/mmm",
+    density: 5.56,
+    applications: ["TRIGA Pulsing Research Reactors", "Space Reactor Critical Shields", "Homogeneous Hydride-Fuel Dispersions"],
+    molecularWeight: 93.24,
+    elasticModulus: 120
+  },
+  {
+    name: "Yttrium Hydride High-Temperature Moderator (YH2)",
+    type: "Nuclear & Shielding",
+    pattern: "31.3, 100\n36.3, 42\n52.3, 52\n62.2, 48\n65.3, 10\n76.9, 23\n85.4, 20\n88.3, 7",
+    description: "Highly stable fluorite-type yttrium dihydride. Suitable for elevated temperature reactor regulation beyond the thermal decay thresholds of traditional zirconium hydrides.",
+    formula: "YH2",
+    elements: ["Y", "H"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 4.29,
+    applications: ["Generation IV Gas-Cooled Moderators", "Molten Salt Reactor Thermal Shielding", "High-Temperature Core Core-Insulators"],
+    molecularWeight: 90.92,
+    elasticModulus: 110
+  },
+  {
+    name: "Glassy Shielding Alloy (SAM-2X6M0 Fe-Cr-Mo-C-B-Y)",
+    type: "Nuclear & Shielding",
+    pattern: "44.5, 100\n64.6, 12\n82.1, 28",
+    description: "Splat-quenched amorphous/nanocrystalline structural magnetic shielding alloy. The rich presence of Boron (neutron-absorbing) and dense heavy elements produces premier shielding ratios against hot neutron cascades.",
+    formula: "Fe0.49Cr0.15Mo0.14C0.12B0.06Y0.04",
+    elements: ["Fe", "Cr", "Mo", "C", "B", "Y"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m",
+    density: 7.95,
+    applications: ["Nuclear Containment Structural Armor", "Spent Fuel Dry Cask Storage Liners", "Advanced Robotic Radiation Shields"],
+    molecularWeight: 68.3,
+    elasticModulus: 220
+  },
+  {
+    name: "High-Density Bismuth Oxide Gamma Shield (alpha-Bi2O3)",
+    type: "Nuclear & Shielding",
+    pattern: "26.9, 45\n27.4, 100\n28.1, 75\n33.3, 62\n37.4, 48\n46.3, 50\n52.2, 38",
+    description: "Monoclinic alpha-bismuth-trioxide. Known as a heavy non-toxic replacement for lead-based diagnostic shielding panels. Possesses dense photoelectron matrices for outstanding attenuation of gamma and X-ray emission lines.",
+    formula: "Bi2O3",
+    elements: ["Bi", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c",
+    density: 8.9,
+    applications: ["Heavy Polymer-Shield Attenuation Claddings", "Bismuth Glass X-ray Barrier Windows", "Lead-Free Radiotherapy Protective Garments"],
+    molecularWeight: 465.96,
+    elasticModulus: 98
   }
 ];
+
 

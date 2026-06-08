@@ -29,7 +29,7 @@ interface MaterialPreset {
   peaks: number[];
   hkls: string[];
   description: string;
-  category: 'Standard' | 'Metal' | 'Ceramic' | 'Perovskite' | 'Biomaterial' | 'Nuclear' | 'Thermoelectric' | 'Metallurgy' | 'Polymer' | 'Semiconductor' | 'Historical' | 'Custom';
+  category: string;
   crystalSystem?: string;
   spaceGroup?: string;
   latticeParams?: string;
@@ -44,13 +44,16 @@ const mappedPresets: MaterialPreset[] = MATERIAL_DB.map(m => {
   const peaks = m.pattern.split('\n').filter(p=>p.trim() !== '').map(l => parseFloat(l.split(',')[0]));
   const hkls = Array(peaks.length).fill('?');
   
-  let category: MaterialPreset['category'] = 'Ceramic';
-  const typeLower = (m.type || '').toLowerCase();
-  if (typeLower.includes('metal') || typeLower.includes('alloy')) category = 'Metal';
-  else if (typeLower.includes('polymer') || typeLower.includes('organic') || typeLower.includes('carbon')) category = 'Polymer';
-  else if (typeLower.includes('semiconductor')) category = 'Semiconductor';
-  else if (typeLower.includes('standard') || m.name.toLowerCase().includes('standard')) category = 'Standard';
-  else if (typeLower.includes('bio') || typeLower.includes('biomaterial') || typeLower.includes('protein') || typeLower.includes('pharma')) category = 'Biomaterial';
+  const mappingTypes = [
+    'Metals & Alloys', 'Ceramics & Refractories', 'Polymers & Frameworks', 'Semiconductors & Photonics',
+    'Biomaterials & Pharmaceuticals', 'Minerals, Ores & Geology', 'Energy & Battery Materials',
+    'Nuclear & Shielding', 'Magnetic & Ferroelectric', 'Carbon & 2D Materials', 'Calibration & Standards',
+    'Advanced Materials', 'Custom'
+  ];
+  let category: MaterialPreset['category'] = 'Advanced Materials';
+  if (mappingTypes.includes(m.type)) {
+    category = m.type as MaterialPreset['category'];
+  }
   
   return {
     name: m.name,
@@ -1144,6 +1147,76 @@ const PRESETS: MaterialPreset[] = [
     latticeParams: 'a = 5.33 Å, b = 4.80 Å, c = 12.92 Å, β = 102.5°',
     database: 'CSD',
     databaseId: 'ASCRBD01'
+  },
+  {
+    name: 'Diacetylmorphine HCl (Heroin)',
+    formula: 'C21H23NO5 · HCl',
+    wavelength: 1.5406,
+    peaks: [10.40, 14.20, 18.60, 22.80, 25.40],
+    hkls: ['100', '110', '020', '111', '210'],
+    description: 'Crystalline diacetylmorphine hydrochloride. A semi-synthetic opioid analgesic reference standard used extensively in forensic testing and illicit substance identification.',
+    category: 'Biomaterial',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21 (No. 4)',
+    latticeParams: 'a = 15.20 Å, b = 9.80 Å, c = 12.10 Å, β = 95.5°',
+    database: 'CSD',
+    databaseId: 'HEROIN01'
+  },
+  {
+    name: 'Cocaine Hydrochloride',
+    formula: 'C17H21NO4 · HCl',
+    wavelength: 1.5406,
+    peaks: [11.20, 15.80, 18.40, 21.10, 24.60],
+    hkls: ['011', '100', '111', '020', '211'],
+    description: 'Crystalline cocaine hydrochloride standard. A tropane alkaloid ester commonly acting as a strong stimulant and local anesthetic. Used as a forensic reference.',
+    category: 'Biomaterial',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/c (No. 14)',
+    latticeParams: 'a = 12.80 Å, b = 10.50 Å, c = 14.10 Å, β = 98.2°',
+    database: 'CSD',
+    databaseId: 'COCAIN01'
+  },
+  {
+    name: 'Morphine Sulfate Pentahydrate',
+    formula: '(C17H19NO3)2 · H2SO4 · 5H2O',
+    wavelength: 1.5406,
+    peaks: [9.50, 12.10, 14.80, 18.30, 23.40],
+    hkls: ['110', '020', '111', '200', '211'],
+    description: 'Crystalline morphine sulfate pentahydrate. Major opiate analgesic whose crystal structure features extensive hydrogen bonding involving the water of hydration.',
+    category: 'Biomaterial',
+    crystalSystem: 'Orthorhombic',
+    spaceGroup: 'P212121 (No. 19)',
+    latticeParams: 'a = 13.50 Å, b = 15.80 Å, c = 18.60 Å',
+    database: 'CSD',
+    databaseId: 'MORPHN01'
+  },
+  {
+    name: 'Fentanyl Citrate',
+    formula: 'C22H28N2O · C6H8O7',
+    wavelength: 1.5406,
+    peaks: [8.60, 13.20, 16.80, 20.40, 25.50],
+    hkls: ['100', '110', '020', '111', '211'],
+    description: 'Synthetic piperidine-derivative opioid crystal. An extremely potent analgesic standard used for calibrating forensic trace detection systems.',
+    category: 'Biomaterial',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/c (No. 14)',
+    latticeParams: 'a = 17.50 Å, b = 9.80 Å, c = 12.40 Å, β = 104.5°',
+    database: 'CSD',
+    databaseId: 'FENTYL01'
+  },
+  {
+    name: 'Diazepam (Valium) Form I',
+    formula: 'C16H13ClN2O',
+    wavelength: 1.5406,
+    peaks: [11.10, 15.20, 19.30, 22.50, 26.80],
+    hkls: ['110', '011', '200', '120', '211'],
+    description: 'Crystalline benzodiazepine standard. Widely tracked psychoactive drug exhibiting characteristic monoclinic crystal geometries.',
+    category: 'Biomaterial',
+    crystalSystem: 'Monoclinic',
+    spaceGroup: 'P21/a (No. 14)',
+    latticeParams: 'a = 13.25 Å, b = 8.50 Å, c = 11.20 Å, β = 95.8°',
+    database: 'CSD',
+    databaseId: 'DIAZPM01'
   },
   {
     name: 'Ice-Binding Glycoprotein',
@@ -2369,7 +2442,7 @@ interface TestMaterialsModuleProps {
   onLoadMaterial: (peaks: number[], wavelength: number, hkls: string[], name: string) => void;
 }
 
-type TabGroup = 'All' | 'Standards' | 'Metals' | 'Ceramics' | 'Polymers' | 'Semiconductors' | 'Historical' | 'Custom';
+type TabGroup = 'All' | 'Metals & Alloys' | 'Ceramics & Refractories' | 'Polymers & Frameworks' | 'Semiconductors & Photonics' | 'Biomaterials & Pharmaceuticals' | 'Minerals, Ores & Geology' | 'Energy & Battery Materials' | 'Nuclear & Shielding' | 'Magnetic & Ferroelectric' | 'Carbon & 2D Materials' | 'Calibration & Standards' | 'Advanced Materials' | 'Custom';
 type DatabaseRef = 'All' | 'ICDD' | 'COD' | 'RRUFF' | 'ICSD' | 'CSD';
 
 export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoadMaterial }) => {
@@ -2387,7 +2460,7 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
   const [newPeaks, setNewPeaks] = useState('');
   const [newHkls, setNewHkls] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [newCategory, setNewCategory] = useState<'Standard' | 'Metal' | 'Ceramic' | 'Polymer' | 'Semiconductor'>('Standard');
+  const [newCategory, setNewCategory] = useState<MaterialPreset['category']>('Advanced Materials');
   const [newCrystalSystem, setNewCrystalSystem] = useState('');
   const [newSpaceGroup, setNewSpaceGroup] = useState('');
   const [newLattice, setNewLattice] = useState('');
@@ -2456,14 +2529,7 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
 
   // Convert categories into TabGroups
   const getTabOfPreset = (preset: MaterialPreset): TabGroup => {
-    if (preset.category === 'Custom') return 'Custom';
-    if (['Standard'].includes(preset.category)) return 'Standards';
-    if (['Metal', 'Metallurgy'].includes(preset.category)) return 'Metals';
-    if (['Ceramic', 'Perovskite', 'Thermoelectric', 'Biomaterial'].includes(preset.category)) return 'Ceramics';
-    if (['Polymer'].includes(preset.category)) return 'Polymers';
-    if (['Semiconductor'].includes(preset.category)) return 'Semiconductors';
-    if (['Historical'].includes(preset.category)) return 'Historical';
-    return 'All';
+    return preset.category as TabGroup;
   };
 
   const handleAddCustomPreset = (e: React.FormEvent) => {
@@ -2911,7 +2977,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
       {/* Pill Filters */}
       <div className="relative z-10 flex gap-3 mb-6 overflow-x-auto pb-4 scrollbar-none select-none max-w-full items-center">
-        {(['All', 'Standards', 'Metals', 'Ceramics', 'Polymers', 'Semiconductors', 'Historical', 'Custom'] as TabGroup[]).map(tab => {
+        {(['All', 'Metals & Alloys', 'Ceramics & Refractories', 'Polymers & Frameworks', 'Semiconductors & Photonics', 'Biomaterials & Pharmaceuticals', 'Minerals, Ores & Geology', 'Energy & Battery Materials', 'Nuclear & Shielding', 'Magnetic & Ferroelectric', 'Carbon & 2D Materials', 'Calibration & Standards', 'Advanced Materials', 'Custom'] as TabGroup[]).map(tab => {
           const count = getCountForTab(tab);
           return (
             <button
@@ -3040,7 +3106,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
             let lineHover = 'bg-emerald-500/30';
             let formulaBg = 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
             
-            if (material.category === 'Metal') {
+            if (material.category === 'Metals & Alloys') {
               bgStyle = 'bg-amber-950/5 hover:bg-amber-950/10 shadow-sm backdrop-blur-md border-white/5';
               activeBorder = 'border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/20';
               hoverBorder = 'hover:border-amber-500/30 hover:shadow-[0_4_20px_rgba(245,158,11,0.05)] hover:bg-amber-500/5';
@@ -3048,7 +3114,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               lineAccent = 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]';
               lineHover = 'bg-amber-500/30';
               formulaBg = 'bg-amber-500/10 text-amber-300 border-amber-500/20';
-            } else if (material.category === 'Ceramic') {
+            } else if (material.category === 'Ceramics & Refractories') {
               bgStyle = 'bg-blue-950/5 hover:bg-blue-950/10 shadow-sm backdrop-blur-md border-white/5';
               activeBorder = 'border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/20';
               hoverBorder = 'hover:border-blue-500/30 hover:shadow-[0_4_20px_rgba(59,130,246,0.05)] hover:bg-blue-500/5';
@@ -3056,7 +3122,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               lineAccent = 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]';
               lineHover = 'bg-blue-500/30';
               formulaBg = 'bg-blue-500/10 text-blue-300 border-blue-500/20';
-            } else if (material.category === 'Biomaterial') {
+            } else if (material.category === 'Biomaterials & Pharmaceuticals') {
               bgStyle = 'bg-rose-950/5 hover:bg-rose-950/10 shadow-sm backdrop-blur-md border-white/5';
               activeBorder = 'border-rose-500/50 shadow-[0_0_30px_rgba(244,63,94,0.15)] ring-1 ring-rose-500/20';
               hoverBorder = 'hover:border-rose-500/30 hover:shadow-[0_4_20px_rgba(244,63,94,0.05)] hover:bg-rose-500/5';
@@ -3064,7 +3130,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               lineAccent = 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]';
               lineHover = 'bg-rose-500/30';
               formulaBg = 'bg-rose-500/10 text-rose-300 border-rose-500/20';
-            } else if (material.category === 'Polymer') {
+            } else if (material.category === 'Polymers & Frameworks') {
               bgStyle = 'bg-fuchsia-950/5 hover:bg-fuchsia-950/10 shadow-sm backdrop-blur-md border-white/5';
               activeBorder = 'border-fuchsia-500/50 shadow-[0_0_30px_rgba(217,70,239,0.15)] ring-1 ring-fuchsia-500/20';
               hoverBorder = 'hover:border-fuchsia-500/30 hover:shadow-[0_4_20px_rgba(217,70,239,0.05)] hover:bg-fuchsia-500/5';
@@ -3072,7 +3138,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
               lineAccent = 'bg-fuchsia-500 shadow-[0_0_10px_rgba(217,70,239,0.5)]';
               lineHover = 'bg-fuchsia-500/30';
               formulaBg = 'bg-fuchsia-500/10 text-fuchsia-300 border-fuchsia-500/20';
-            } else if (material.category === 'Historical') {
+            } else if (material.category === 'Minerals, Ores & Geology') {
               bgStyle = 'bg-yellow-950/5 hover:bg-yellow-950/10 shadow-sm backdrop-blur-md border-white/5';
               activeBorder = 'border-yellow-500/50 shadow-[0_0_30px_rgba(234,179,8,0.15)] ring-1 ring-yellow-500/20';
               hoverBorder = 'hover:border-yellow-500/30 hover:shadow-[0_4_20px_rgba(234,179,8,0.05)] hover:bg-yellow-500/5';
@@ -3098,11 +3164,11 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                 <div className="flex justify-between items-start mb-3 gap-3">
                   <div className="flex items-start gap-4">
                     <div className={`mt-1 bg-white/5 p-2 rounded-xl border border-white/5 shrink-0 transition-transform duration-300 ${isExpanded ? 'scale-110 shadow-lg' : 'group-hover:scale-105 group-hover:bg-white/10'}`}>
-                      {material.category === 'Metal' ? <Sparkles className={`w-5 h-5 ${iconColor} transition-colors`}/> :
-                       material.category === 'Historical' ? <Landmark className={`w-5 h-5 ${iconColor} transition-colors`}/> :
-                       material.category === 'Biomaterial' ? <FlaskConical className={`w-5 h-5 ${iconColor} transition-colors`}/> :
-                       material.category === 'Polymer' ? <Layers className={`w-5 h-5 ${iconColor} transition-colors`}/> :
-                       material.category === 'Ceramic' ? <Database className={`w-5 h-5 ${iconColor} transition-colors`}/> :
+                      {material.category === 'Metals & Alloys' ? <Sparkles className={`w-5 h-5 ${iconColor} transition-colors`}/> :
+                       material.category === 'Minerals, Ores & Geology' ? <Landmark className={`w-5 h-5 ${iconColor} transition-colors`}/> :
+                       material.category === 'Biomaterials & Pharmaceuticals' ? <FlaskConical className={`w-5 h-5 ${iconColor} transition-colors`}/> :
+                       material.category === 'Polymers & Frameworks' ? <Layers className={`w-5 h-5 ${iconColor} transition-colors`}/> :
+                       material.category === 'Ceramics & Refractories' ? <Database className={`w-5 h-5 ${iconColor} transition-colors`}/> :
                        <Database className={`w-5 h-5 ${iconColor} transition-colors`}/>}
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -3128,15 +3194,15 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                       </span>
                     )}
                     <span className={`text-[8px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm backdrop-blur-md ${
-                      material.category === 'Standard' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' :
-                      material.category === 'Historical' ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/20' :
-                      material.category === 'Metal' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' :
-                      material.category === 'Ceramic' ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20' :
-                      material.category === 'Perovskite' ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20' :
-                      material.category === 'Biomaterial' ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20' :
-                      material.category === 'Nuclear' ? 'bg-orange-500/10 text-orange-300 border border-orange-500/20' :
-                      material.category === 'Polymer' ? 'bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/20' :
-                      material.category === 'Semiconductor' ? 'bg-teal-500/15 text-teal-300 border border-teal-500/30' :
+                      material.category === 'Calibration & Standards' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' :
+                      material.category === 'Minerals, Ores & Geology' ? 'bg-yellow-500/10 text-yellow-300 border border-yellow-500/20' :
+                      material.category === 'Metals & Alloys' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' :
+                      material.category === 'Ceramics & Refractories' ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20' :
+                      material.category === 'Semiconductors & Photonics' ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20' :
+                      material.category === 'Biomaterials & Pharmaceuticals' ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20' :
+                      material.category === 'Nuclear & Shielding' ? 'bg-orange-500/10 text-orange-300 border border-orange-500/20' :
+                      material.category === 'Polymers & Frameworks' ? 'bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/20' :
+                      material.category === 'Semiconductors & Photonics' ? 'bg-teal-500/15 text-teal-300 border border-teal-500/30' :
                       material.category === 'Custom' ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30' :
                       'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20'
                     }`}>

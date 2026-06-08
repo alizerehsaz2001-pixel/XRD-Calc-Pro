@@ -319,6 +319,38 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
   }
 };
 
+export const analyzePhaseID = async (xrdDataText: string): Promise<string> => {
+  try {
+    const model = 'gemini-3.5-pro';
+    const response = await ai.models.generateContent({
+      model,
+      contents: `You are an expert Crystallographer and Materials Science AI. Your task is to analyze the provided X-ray Diffraction (XRD) data (2-theta positions, d-spacing, and relative intensities) to identify the material phase and distinguish between closely related crystal structures.
+
+When evaluating the data, you must strictly apply the following crystallographic rules:
+1. **Peak Positions & Lattice Parameters:** Calculate or infer the lattice constant (a) using Bragg's Law. Even minor shifts in 2-theta positions (e.g., between GaAs and ZnSe) must be used to differentiate isostructural materials.
+2. **Extinction Rules & Space Groups:** Identify the Bravais lattice and space group based on allowed and forbidden reflections (hkl indices).
+3. **Atomic Structure Factor ($F_{hkl}$) & Peak Intensities:** Pay critical attention to relative intensities caused by differences in atomic number (Z). For isostructural materials (like Zincblende GaAs vs. ZnSe), evaluate specific weak or anomalous peaks (e.g., the (200) reflection) where the intensity depends on |f_anion - f_cation|.
+
+Input Data:
+${xrdDataText}
+
+Provide a structured analysis including:
+- Identified Material Phase(s) and Space Group.
+- Lattice Parameter estimation.
+- Step-by-step reasoning explaining how peak intensities (especially anomalous or weak peaks) ruled out similar candidate materials.`,
+      config: {
+        systemInstruction: "You are an expert Crystallographer and Materials Science AI.",
+        tools: [{ googleSearch: {} }] // Allow grounding
+      }
+    });
+    return response.text || "Analysis unavailable.";
+  } catch (error: any) {
+    if (isQuotaError(error)) return "Analysis unavailable: Quota exceeded.";
+    if (isPermissionError(error)) return "Analysis unavailable: Permission denied.";
+    return "Analysis unavailable: Error communicating with AI.";
+  }
+};
+
 export const enhanceScientificPrompt = async (
   prompt: string, 
   style: string, 

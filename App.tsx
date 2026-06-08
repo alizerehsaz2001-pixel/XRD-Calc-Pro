@@ -20,6 +20,7 @@ import { PreferredOrientationModule } from './components/PreferredOrientationMod
 import { ImageAnalysisModule } from './components/ImageAnalysisModule';
 import { ImageGenerationModule } from './components/ImageGenerationModule';
 import { PythonExportModule } from './components/PythonExportModule';
+import { MaterialDatabaseExplorer } from './components/MaterialDatabaseExplorer';
 
 import { SettingsModule } from './components/SettingsModule';
 import { ProfilePage } from './components/ProfilePage';
@@ -40,7 +41,7 @@ import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Sett
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -398,6 +399,7 @@ const App: React.FC = () => {
     { id: 'image_gen', label: t('Scientific Illustrator'), group: t('AI Tools') },
     { id: 'python_export', label: t('Python Generator'), group: t('Advanced Sim') },
     { id: 'learn', label: t('Protocol Guide'), group: t('Intelligence') },
+    { id: 'database', label: t('Material Registry'), group: t('Intelligence') },
     { id: 'profile', label: t('Laboratory Director'), group: t('Intelligence') },
     { id: 'settings', label: t('Settings'), group: t('Intelligence') },
   ];
@@ -613,6 +615,7 @@ const App: React.FC = () => {
                   {activeModule === 'image_gen' && <ImageGenerationModule />}
                   {activeModule === 'python_export' && <PythonExportModule />}
                   {activeModule === 'learn' && <LearnModule />}
+                  {activeModule === 'database' && <MaterialDatabaseExplorer />}
                   {activeModule === 'profile' && <ProfilePage />}
                   {activeModule === 'settings' && (
                     <SettingsModule 

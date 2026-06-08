@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
+import ReactMarkdown from 'react-markdown';
 import { DLPhaseResult, DLPhaseCandidate } from "../types";
 import { identifyPhasesDL, parseXYData, applySavitzkyGolay } from "../utils/physics";
 import { playSynthTone } from "../utils/sound";
+import { analyzePhaseID } from "../services/geminiService";
 import {
   ComposedChart,
   Bar,
@@ -417,6 +419,11 @@ export const DeepLearningModule: React.FC = () => {
     "argon" | "nitrogen" | "oxygen" | "air"
   >("air");
 
+  // AI Phase ID states
+  const [aiAnalysisResult, setAiAnalysisResult] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+
   // Enhanced Diffraction Pattern Input controls states
   const [activeInputTool, setActiveInputTool] = useState<"none" | "presets" | "preview" | "denoise" | "noise">("presets");
   const [inputSgWindow, setInputSgWindow] = useState<number>(11);
@@ -806,6 +813,20 @@ export const DeepLearningModule: React.FC = () => {
 
     setInputData(combinedStr);
     setSearchTerm("Custom Mixture");
+  };
+
+  const handleRunExpertAI = async () => {
+    if (!inputData) return;
+    setIsAiLoading(true);
+    setShowAiModal(true);
+    try {
+      const result = await analyzePhaseID(inputData);
+      setAiAnalysisResult(result);
+    } catch (err: any) {
+      setAiAnalysisResult("Failed to perform expert analysis: " + err.message);
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const handleLatticeEstimation = () => {
@@ -6202,6 +6223,19 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         </span>
                       </div>
                     </button>
+                    <button
+                      onClick={handleRunExpertAI}
+                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-cyan-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                      <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
+                        <Brain className="w-5 h-5 text-cyan-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
+                        <span className="text-[10px] font-black text-slate-300 group-hover:text-cyan-50 uppercase tracking-[0.2em] whitespace-nowrap">
+                          {t("AI Phase Analysis", "AI Phase Analysis")}
+                        </span>
+                      </div>
+                    </button>
                   </div>
                 </div>
 
@@ -8762,6 +8796,74 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
           </div>
         </div>
       )}
+
+      {/* AI Expert Analysis Modal */}
+      <AnimatePresence>
+        {showAiModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] border border-slate-200 overflow-hidden flex flex-col"
+            >
+              <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-5 text-white flex items-center justify-between shadow-md relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center border border-white/30 backdrop-blur-sm shadow-inner">
+                    <Brain className="w-5 h-5 text-cyan-50" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg leading-tight text-white tracking-tighter">
+                      AI Phase ID Analysis
+                    </h3>
+                    <p className="text-[10px] text-cyan-100 font-mono font-bold tracking-widest uppercase mt-0.5">
+                      Expert Crystallography Engine
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAiModal(false)}
+                  className="text-cyan-100 hover:text-white transition-colors p-1"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto flex-1 bg-slate-50 relative">
+                {isAiLoading ? (
+                  <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-cyan-400 blur-xl opacity-20 rounded-full animate-pulse" />
+                      <Activity className="w-10 h-10 text-cyan-500 animate-spin relative z-10" />
+                    </div>
+                    <p className="font-bold text-slate-500 font-mono text-xs uppercase tracking-widest animate-pulse">
+                      Processing Diffraction Data...
+                    </p>
+                  </div>
+                ) : (
+                  <div className="prose prose-sm sm:prose-base max-w-none text-slate-700 prose-headings:text-slate-900 prose-headings:font-black prose-p:leading-relaxed prose-a:text-cyan-600">
+                    <ReactMarkdown>{aiAnalysisResult || ""}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 bg-white border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={() => setShowAiModal(false)}
+                  className="px-6 py-2.5 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-slate-800 transition-colors shadow-md"
+                >
+                  Close Analysis
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
