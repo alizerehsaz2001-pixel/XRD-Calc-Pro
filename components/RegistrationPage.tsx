@@ -199,6 +199,43 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
         <div className="bg-[#0B1221]/80 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500" />
           
+          {/* Fast-Track Guest Access Banner */}
+          <div className="mb-6 p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-center relative overflow-hidden">
+            <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-indigo-500/10 rounded-full blur-lg" />
+            <p className="text-xs text-slate-300 font-bold mb-2">
+              ⚡ Short on time? Launch instantly!
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                const guestUser = {
+                  name: "Amelia Vance (Guest Scientist)",
+                  email: "amelia.vance@quantumlab.org",
+                  organization: "Global Materials Institute",
+                  nationality: "American"
+                };
+                setName(guestUser.name);
+                setEmail(guestUser.email);
+                setOrganization(guestUser.organization);
+                setNationality(guestUser.nationality);
+                setSelectedNation({ name: 'American', code: 'US', langCode: 'en', langName: 'English (US)', flag: '🇺🇸' });
+                
+                // Automatically register after a subtle feedback delay
+                setTimeout(() => {
+                  localStorage.setItem('xrd_user_registration', JSON.stringify({
+                    ...guestUser,
+                    registeredAt: new Date().toISOString()
+                  }));
+                  onRegister();
+                }, 400);
+              }}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-wider text-[10px] py-2.5 px-4 rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-cyan-300 animate-pulse" />
+              One-Click Guest Researcher Access
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">

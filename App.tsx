@@ -50,6 +50,9 @@ const App: React.FC = () => {
   });
   const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [activeModule, setActiveModule] = useState<Module>('bragg');
+  const [skipIntros, setSkipIntros] = useState<boolean>(() => {
+    return localStorage.getItem('xrd_skip_intros') === 'true';
+  });
   const [isExplained, setIsExplained] = useState<boolean>(false);
 
   // Load persistent configurations from localStorage with robust safety fallbacks
@@ -171,11 +174,11 @@ const App: React.FC = () => {
   // Reset explanation state when module changes (except for profile/learn/settings)
   useEffect(() => {
     if (activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings') {
-      setIsExplained(false);
+      setIsExplained(skipIntros);
     } else {
       setIsExplained(true); // Auto-explain profile/learn/settings
     }
-  }, [activeModule]);
+  }, [activeModule, skipIntros]);
 
   // Support programmatic module switching via custom events
   useEffect(() => {
@@ -528,6 +531,87 @@ const App: React.FC = () => {
               </select>
             </div>
           </div>
+
+          {/* Desktop Top Header Bar containing context-aware tools, help and theme guides */}
+          <header className={`hidden md:flex items-center justify-between px-10 py-4 border-b ${
+            theme === 'cyberpunk'
+              ? 'bg-black border-cyber-accent/30 text-cyber-accent'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'
+          } z-20 shrink-0 font-sans transition-colors`}>
+            <div className="flex items-center gap-4">
+              <span className={`text-base font-black uppercase tracking-[0.15em] shrink-0 ${
+                theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'
+              }`}>
+                {modules.find(m => m.id === activeModule)?.label || activeModule}
+              </span>
+              <span className={`text-[10px] uppercase tracking-wider font-mono px-2.5 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 ${
+                theme === 'cyberpunk' ? 'text-cyber-pink bg-black border-cyber-pink/30' : 'text-slate-400'
+              }`}>
+                {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' ? t('Computational Module', 'Computational Suite') : t('System Console', 'System Console')}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              {/* Skip Intros Quick Toggle */}
+              {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
+                <button
+                  onClick={() => {
+                    const nextVal = !skipIntros;
+                    setSkipIntros(nextVal);
+                    localStorage.setItem('xrd_skip_intros', nextVal.toString());
+                    playSynthTone('switch');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-2 ${
+                    skipIntros 
+                      ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500 hover:text-slate-700'
+                      : 'bg-indigo-600/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600/20'
+                  }`}
+                  title="Toggle whether module explanations are shown automatically when switching tabs"
+                >
+                  <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                  {skipIntros ? t('Auto-Skip Intros: Active', 'Auto-Skip: On') : t('Auto-Skip Intros: Disabled', 'Auto-Skip: Off')}
+                </button>
+              )}
+
+              {/* Show Theory/Intro manual button */}
+              {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
+                <button
+                  onClick={() => {
+                    setIsExplained(false);
+                    playSynthTone('switch');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-2 ${
+                    theme === 'cyberpunk'
+                      ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10 bg-black'
+                      : 'border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm'
+                  }`}
+                  title="Open the mathematical and theoretical introduction for this module"
+                >
+                  {t('Theoretical Basis', 'Theoretical Guide')}
+                </button>
+              )}
+
+              <LanguageSelector compact={true} />
+
+              {/* Theme Dropdown Selection */}
+              <div className="flex items-center gap-1">
+                <select
+                  value={theme}
+                  onChange={(e) => {
+                    setTheme(e.target.value as any);
+                    playSynthTone('switch');
+                  }}
+                  className={`block rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-2 pr-2 text-[10px] outline-none font-bold uppercase tracking-wider cursor-pointer`}
+                >
+                  <option value="light">☀️ Light theme</option>
+                  <option value="dark">🌙 Dark theme</option>
+                  <option value="cyberpunk">⚡ Cyber Theme</option>
+                  <option value="terminal">📟 Terminal Theme</option>
+                  <option value="synthwave">🌆 Synth Theme</option>
+                </select>
+              </div>
+            </div>
+          </header>
 
           <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar relative">
             <div className="max-w-7xl mx-auto">

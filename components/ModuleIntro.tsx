@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, ChevronRight, Info, Zap, Layers, Cpu, Database, Brain, ArrowRight } from 'lucide-react';
+import { BookOpen, ChevronRight, Info, Zap, Layers, Cpu, Database, Brain, ArrowRight, Check } from 'lucide-react';
 
 interface ModuleIntroProps {
   module: string;
@@ -282,6 +282,10 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; tag: 
 };
 
 export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }) => {
+  const [skipNext, setSkipNext] = useState<boolean>(() => {
+    return localStorage.getItem('xrd_skip_intros') === 'true';
+  });
+
   const content = MODULE_CONTENT[module] || {
     title: "Specialized Analysis Core",
     tag: "Laboratory Operation",
@@ -289,6 +293,15 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
     color: "from-slate-700 to-slate-900",
     description: "Deploying specialized algorithms for custom crystallographic investigations.",
     formulas: null
+  };
+
+  const handleUnderstandClick = () => {
+    if (skipNext) {
+      localStorage.setItem('xrd_skip_intros', 'true');
+    } else {
+      localStorage.setItem('xrd_skip_intros', 'false');
+    }
+    onUnderstand();
   };
 
   const containerVariants: any = {
@@ -311,13 +324,54 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6">
+    <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 relative">
       <motion.div 
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="bg-slate-950 rounded-[3.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 overflow-hidden relative"
+        className="bg-slate-950 rounded-[3.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 overflow-hidden relative pt-6"
       >
+        {/* Top Quick Utility Bar */}
+        <div className="absolute top-6 left-6 right-6 z-25 flex flex-col sm:flex-row gap-3 justify-between items-center bg-black/40 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/5">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+            <div className="text-[10px] uppercase font-mono tracking-widest text-slate-400 font-bold">
+              Computational Theory & Method
+            </div>
+          </div>
+          <div className="flex items-center gap-5">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-400 hover:text-white transition-colors group">
+              <input
+                type="checkbox"
+                checked={skipNext}
+                onChange={(e) => {
+                  const val = e.target.checked;
+                  setSkipNext(val);
+                  if (val) {
+                    localStorage.setItem('xrd_skip_intros', 'true');
+                  } else {
+                    localStorage.setItem('xrd_skip_intros', 'false');
+                  }
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-4 h-4 rounded border border-slate-700 bg-slate-900 flex items-center justify-center peer-checked:bg-white peer-checked:border-white transition-all">
+                <Check className="w-2.5 h-2.5 text-slate-950 opacity-0 peer-checked:opacity-100 transition-opacity" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-wider">
+                Auto-Skip Intros
+              </span>
+            </label>
+
+            <button
+              onClick={handleUnderstandClick}
+              className="px-4 py-1.5 bg-white/10 hover:bg-white text-white hover:text-slate-950 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer border border-white/10 hover:border-white"
+            >
+              Skip directly to tool
+            </button>
+          </div>
+        </div>
+
         {/* Abstract Dark Matter & Math Background Elements */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute -top-[30%] -left-[10%] w-[60%] h-[60%] bg-indigo-600/20 rounded-full blur-[140px]" />
@@ -331,7 +385,7 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
         </div>
         
         {/* Header Section */}
-        <div className={`p-16 md:p-20 relative overflow-hidden bg-black/40 backdrop-blur-3xl border-b border-white/5 text-white`}>
+        <div className={`p-16 md:p-20 pt-24 md:pt-28 relative overflow-hidden bg-black/40 backdrop-blur-3xl border-b border-white/5 text-white`}>
            <div className="relative z-10 flex flex-col items-center text-center">
               <motion.div variants={itemVariants} className="mb-8">
                  <span className="px-6 py-2 bg-indigo-500/10 backdrop-blur-md rounded-full border border-indigo-500/30 text-[10px] font-black uppercase tracking-[0.4em] text-indigo-300 font-sans shadow-[0_0_20px_rgba(99,102,241,0.2)]">
@@ -378,16 +432,18 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
                 </div>
              </div>
 
-             <button
-               onClick={onUnderstand}
-               className="group relative flex items-center justify-center px-12 py-6 bg-white text-slate-950 rounded-[2rem] text-[12px] font-black uppercase tracking-[0.3em] overflow-hidden transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] hover:scale-105 active:scale-95 font-sans shrink-0"
-             >
-               <span className="relative z-10 flex items-center gap-3">
-                 Initialize Suite
-                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
-               </span>
-               <div className="absolute inset-0 bg-gradient-to-r from-indigo-200 to-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-             </button>
+             <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0">
+               <button
+                 onClick={handleUnderstandClick}
+                 className="group relative flex items-center justify-center px-12 py-6 bg-white text-slate-950 rounded-[2rem] text-[12px] font-black uppercase tracking-[0.3em] overflow-hidden transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_40px_rgba(99,102,241,0.4)] hover:scale-105 active:scale-95 font-sans cursor-pointer"
+               >
+                 <span className="relative z-10 flex items-center gap-3">
+                   Initialize Suite
+                   <ChevronRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
+                 </span>
+                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-200 to-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+               </button>
+             </div>
           </motion.div>
         </div>
       </motion.div>

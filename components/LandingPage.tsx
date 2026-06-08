@@ -171,6 +171,315 @@ const PlatformIcon = ({ icon: Icon, label, desc }: { icon: any, label: string, d
   </div>
 );
 
+// --- Interactive Bragg Sandbox Component ---
+const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
+  const [lambda, setLambda] = useState(1.5406); // Cu-Ka default
+  const [dSpace, setDSpace] = useState(2.82);   // NaCl default
+  const [order, setOrder] = useState(1);
+  const [activeAnode, setActiveAnode] = useState('Cu');
+
+  const presets = [
+    { name: 'Copper (Cu)', symbol: 'Cu', val: 1.5406, color: 'bg-amber-500/10 border-amber-500/30 text-amber-300' },
+    { name: 'Molybdenum (Mo)', symbol: 'Mo', val: 0.7107, color: 'bg-blue-500/10 border-blue-500/30 text-blue-300' },
+    { name: 'Chromium (Cr)', symbol: 'Cr', val: 2.290, color: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' },
+    { name: 'Cobalt (Co)', symbol: 'Co', val: 1.789, color: 'bg-pink-500/10 border-pink-500/30 text-pink-300' },
+  ];
+
+  // Bragg's Law calculation: 2d sin(theta) = n * lambda
+  const sinTheta = (order * lambda) / (2 * dSpace);
+  const isValid = sinTheta >= 0 && sinTheta <= 1;
+
+  const thetaRad = isValid ? Math.asin(sinTheta) : 0;
+  const thetaDeg = (thetaRad * 180) / Math.PI;
+  const twoThetaDeg = thetaDeg * 2;
+
+  // SVG dimensions for diffraction trace
+  const svgW = 420;
+  const svgH = 220;
+  const cx = 210;
+  const cy = 110;
+
+  // Spacing helper
+  const scaleD = Math.max(25, dSpace * 22);
+
+  // Plane Y values
+  const y1 = cy - scaleD;
+  const y2 = cy;
+  const y3 = cy + scaleD;
+
+  const displayAngleRad = thetaRad > 0.05 ? thetaRad : Math.PI / 6; // fallback visual representation
+  const beamLen = 160;
+  const dx = Math.cos(displayAngleRad) * beamLen;
+  const dy = Math.sin(displayAngleRad) * beamLen;
+
+  // Intersection coordinates at central atom (y2)
+  const rxInX = cx - dx;
+  const rxInY = y2 - dy;
+  const rxOutX = cx + dx;
+  const rxOutY = y2 - dy;
+
+  // Underneath atomic plane 3 reflection trigger
+  const xOffset = Math.tan(displayAngleRad) > 0.05 ? scaleD / Math.tan(displayAngleRad) : 0;
+  const rx3X = cx - xOffset;
+  const rx3OutX = cx + xOffset;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center bg-slate-900/30 backdrop-blur-3xl border border-slate-800/80 p-8 md:p-12 rounded-[3rem] shadow-2xl">
+      {/* Settings Panel */}
+      <div className="lg:col-span-5 space-y-8">
+        <div>
+          <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+            Diffraction Parameter Sandbox
+          </h3>
+          <p className="text-xs text-slate-400 font-medium leading-relaxed">
+            Adjust physical values to see Bragg's Law <span className="text-slate-200 font-mono">2d sin(θ) = nλ</span> converge live.
+          </p>
+        </div>
+
+        {/* PRESSETS ANODE selection */}
+        <div className="space-y-3">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">
+            Select X-Ray Target Tube (Anode Pre-sets)
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {presets.map((p) => (
+              <button
+                key={p.symbol}
+                onClick={() => {
+                  setLambda(p.val);
+                  setActiveAnode(p.symbol);
+                }}
+                className={`px-3 py-2 border rounded-xl text-left transition-all font-sans cursor-pointer flex flex-col justify-between ${
+                  activeAnode === p.symbol
+                    ? 'border-cyan-500 bg-cyan-500/10 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.15)]'
+                    : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                }`}
+              >
+                <span className="text-[11px] font-black tracking-wider block">{p.symbol}-Kα</span>
+                <span className="text-[10px] font-mono opacity-80">{p.val.toFixed(4)} Å</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* SLIDER FOR LAMBDA */}
+        <div className="space-y-3">
+          <div className="flex justify-between items-baseline">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+              Wavelength (λ)
+            </label>
+            <span className="text-xs font-mono font-bold text-violet-300">
+              {lambda.toFixed(4)} Å (Custom)
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0.5"
+            max="3.0"
+            step="0.001"
+            value={lambda}
+            onChange={(e) => {
+              setLambda(parseFloat(e.target.value));
+              setActiveAnode('custom');
+            }}
+            className="w-full accent-violet-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg outline-none"
+          />
+        </div>
+
+        {/* SLIDER FOR D_SPACING */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-baseline">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+              Lattice Spacing (d)
+            </label>
+            <span className="text-xs font-mono font-bold text-cyan-300">
+              {dSpace.toFixed(3)} Å
+            </span>
+          </div>
+          <input
+            type="range"
+            min="1.00"
+            max="6.00"
+            step="0.01"
+            value={dSpace}
+            onChange={(e) => setDSpace(parseFloat(e.target.value))}
+            className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg outline-none"
+          />
+        </div>
+
+        {/* ORDER PICKER */}
+        <div className="space-y-3">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block">
+            Diffraction Reflection Order (n)
+          </label>
+          <div className="flex gap-4">
+            {[1, 2, 3].map((num) => (
+              <button
+                key={num}
+                onClick={() => setOrder(num)}
+                className={`flex-1 py-2 rounded-xl border text-xs font-mono tracking-widest font-black uppercase transition-all cursor-pointer ${
+                  order === num
+                    ? 'bg-violet-600/10 border-violet-500 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.15)]'
+                    : 'bg-slate-950/40 border-slate-800 text-slate-500 hover:border-slate-700/50 hover:text-slate-300'
+                }`}
+              >
+                n = {num}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Visual Workspace */}
+      <div className="lg:col-span-7 flex flex-col items-center bg-[#050A14] border border-slate-800/60 p-8 rounded-[2.5rem] relative overflow-hidden self-stretch justify-between">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none" />
+        
+        {/* Real-time Math Outputs Header */}
+        <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6 relative z-10 text-center">
+          <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/40">
+            <span className="block text-[9px] font-mono text-slate-500 uppercase tracking-widest">Bragg angle (θ)</span>
+            <span className="text-xl font-black font-mono text-white">
+              {isValid ? `${thetaDeg.toFixed(2)}°` : '🚫 Limit'}
+            </span>
+          </div>
+          <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/40">
+            <span className="block text-[9px] font-mono text-slate-500 uppercase tracking-widest">Peak Position (2θ)</span>
+            <span className="text-xl font-black font-mono text-cyan-400">
+              {isValid ? `${twoThetaDeg.toFixed(2)}°` : '🚫 Invalid'}
+            </span>
+          </div>
+          <div className="col-span-2 sm:col-span-1 bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/40 flex items-center justify-center">
+            {isValid ? (
+              <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400 flex items-center gap-1.5 justify-center">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                Diffraction OK
+              </span>
+            ) : (
+              <span className="text-[10px] uppercase font-black tracking-wide text-rose-400 leading-tight">
+                🚫 Limit: nλ &gt; 2d
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Simulated Ray Tracing Canvas SVG */}
+        <div className="w-full flex-1 flex items-center justify-center relative min-h-[220px]">
+          <svg width={svgW} height={svgH} className="max-w-full drop-shadow-2xl">
+            {/* Plane horizontal grid lines of atom rows */}
+            <line x1="30" y1={y1} x2={svgW - 30} y2={y1} stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="5 3" />
+            <line x1="10" y1={y2} x2={svgW - 10} y2={y2} stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
+            <line x1="30" y1={y3} x2={svgW - 30} y2={y3} stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="5 3" />
+
+            {/* Atomic Rows */}
+            {/* Plane 1 atoms */}
+            {[-3, -2, -1, 0, 1, 2, 3].map((pos) => (
+              <circle key={`atom1-${pos}`} cx={cx + pos * 50} cy={y1} r="4" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.05)" />
+            ))}
+            {/* Plane 2 atoms (center reflecting plane) */}
+            {[-3, -2, -1, 0, 1, 2, 3].map((pos) => (
+              <circle 
+                key={`atom2-${pos}`} 
+                cx={cx + pos * 50} 
+                cy={y2} 
+                r={pos === 0 ? "8" : "5"} 
+                fill={pos === 0 ? "#22d3ee" : "rgba(255,255,255,0.3)"} 
+                className={pos === 0 ? "animate-pulse" : ""}
+                style={{ filter: pos === 0 ? 'shadow(0 0 10px rgba(34,211,238,0.5))' : 'none' }}
+              />
+            ))}
+            {/* Plane 3 atoms */}
+            {[-3, -2, -1, 0, 1, 2, 3].map((pos) => (
+              <circle 
+                key={`atom3-${pos}`} 
+                cx={cx + pos * 50} 
+                cy={y3} 
+                r={pos === 0 ? "7" : "4"} 
+                fill={pos === 0 ? "#8b5cf6" : "rgba(255,255,255,0.15)"} 
+              />
+            ))}
+
+            {isValid && (
+              <>
+                {/* Ray 1 Reflection paths - Upper reflection plane */}
+                {/* Incoming incident beam wave */}
+                <line 
+                  x1={rxInX} y1={rxInY} x2={cx} y2={y2} 
+                  stroke="url(#incGrad)" strokeWidth="3" 
+                  strokeDasharray="4 2"
+                />
+                {/* Outgoing diffracted beam wave */}
+                <line 
+                  x1={cx} y1={y2} x2={rxOutX} y2={rxOutY} 
+                  stroke="url(#difGrad)" strokeWidth="3" 
+                  strokeDasharray="4 2"
+                />
+
+                {/* Sub-surface Ray 2 reflection to demonstrate constructive path difference */}
+                <line 
+                  x1={cx - dx - xOffset} y1={y2 - dy} x2={rx3X} y2={y3} 
+                  stroke="rgba(139, 92, 246, 0.3)" strokeWidth="1.5" 
+                />
+                <line 
+                  x1={rx3X} y1={y3} x2={rx3OutX} y2={y3} 
+                  stroke="rgba(139, 92, 246, 0.4)" strokeWidth="1.5" strokeDasharray="3 3"
+                />
+                <line 
+                  x1={rx3OutX} y1={y3} x2={cx + dx + xOffset} y2={y2 - dy} 
+                  stroke="rgba(139, 92, 246, 0.3)" strokeWidth="1.5" 
+                />
+
+                {/* Bragg Angle Indicator arc text */}
+                <path 
+                  d={`M ${cx - 35} ${y2} A 35 35 0 0 1 ${cx - 35 * Math.cos(displayAngleRad)} ${y2 - 35 * Math.sin(displayAngleRad)}`} 
+                  fill="none" stroke="#22d3ee" strokeWidth="1.5" 
+                />
+                <text x={cx - 52} y={y2 - 8} fill="#22d3ee" fontSize="10" fontWeight="bold" fontFamily="monospace">θ</text>
+              </>
+            )}
+
+            {/* Definitions gradients support */}
+            <defs>
+              <linearGradient id="incGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="rgba(244,63,94,0)" />
+                <stop offset="100%" stopColor="#22d3ee" />
+              </linearGradient>
+              <linearGradient id="difGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#22d3ee" />
+                <stop offset="100%" stopColor="rgba(139,92,246,0)" />
+              </linearGradient>
+            </defs>
+          </svg>
+
+          {/* Atomic description overlay marker */}
+          <div className="absolute left-6 bottom-4 flex flex-col gap-1 z-10 text-[9px] uppercase font-mono tracking-wider text-slate-500">
+            <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />Atomic Spacing Plane</div>
+            <div>Plane Interdistance d = {dSpace.toFixed(2)} Å</div>
+          </div>
+        </div>
+
+        {/* User Sandbox Call-to-Action to unlock whole suite */}
+        <div className="w-full mt-6 pt-5 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
+          <div className="space-y-1">
+            <p className="text-xs font-black text-slate-300 uppercase tracking-widest leading-none">
+              Diffracted! Unlock high-tier simulations
+            </p>
+            <p className="text-[10px] text-slate-500">
+              Unlock Rietveld Refinements, Phase ID neural networks, and raw data loaders.
+            </p>
+          </div>
+          <button
+            onClick={onEnter}
+            className="px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black uppercase tracking-wider text-[10px] rounded-xl transition-all shadow-lg hover:shadow-cyan-400/25 active:scale-95 cursor-pointer flex items-center gap-2"
+          >
+            Launch Core Studio <ArrowRight className="w-3.5 h-3.5 text-slate-950" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- Main Page Component ---
 export const LandingPage = ({ onEnter, setTheme, theme }: { 
   onEnter: () => void, 
@@ -263,6 +572,7 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
 
           <div className="hidden md:flex items-center gap-10 text-xs font-semibold uppercase tracking-wider text-slate-300">
             <LanguageSelector compact={true} />
+            <a href="#sandbox" className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 font-black"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />Interactive Lab</a>
             <a href="#features" className="hover:text-white transition-colors">Framework</a>
             <a href="#platform" className="hover:text-white transition-colors">Methods</a>
             <a href="#about" className="hover:text-white transition-colors">Documentation</a>
@@ -432,6 +742,25 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
                  <span key={logo} className="text-2xl font-bold tracking-tight text-white uppercase select-none">{logo}</span>
                ))}
             </div>
+          </div>
+        </section>
+
+        {/* --- Interactive Bragg's Law Sandbox Lab --- */}
+        <section id="sandbox" className="py-24 px-6 bg-slate-950 relative z-10 border-b border-slate-900">
+          <div className="max-w-7xl mx-auto relative z-10">
+            <div className="text-center max-w-3xl mx-auto mb-16">
+              <span className="px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-widest text-cyan-300">
+                Interactive Lab Sandbox
+              </span>
+              <h2 className="text-4xl md:text-5xl font-black text-white mt-4 mb-4 tracking-tight">
+                Simulate Diffraction Instantly
+              </h2>
+              <p className="text-slate-400 font-medium leading-relaxed">
+                No setup required. Experience how Bragg's Law controls structural diffraction. Drag the atomic lattice spacing <span className="font-mono text-cyan-400">(d)</span>, tune the X-ray wavelength <span className="font-mono text-violet-400">(λ)</span>, and observe the diffraction peak emerge.
+              </p>
+            </div>
+
+            <BraggSandboxWrapper onEnter={onEnter} />
           </div>
         </section>
 

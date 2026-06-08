@@ -51,12 +51,24 @@ export const MaterialDatabaseExplorer: React.FC = () => {
   const [materials, setMaterials] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      let list = MATERIAL_DB;
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          // Merge any newly introduced materials from MATERIAL_DB that are missing by name
+          const parsedNames = new Set(parsed.map(m => m?.name).filter(Boolean));
+          const missing = MATERIAL_DB.filter(m => !parsedNames.has(m.name));
+          list = [...parsed, ...missing];
         }
       }
+      // Guarantee absolute uniqueness by name
+      const uniqueMap = new Map<string, any>();
+      list.forEach(m => {
+        if (m && m.name && !uniqueMap.has(m.name)) {
+          uniqueMap.set(m.name, m);
+        }
+      });
+      return Array.from(uniqueMap.values());
     } catch (e) {
       console.error('Failed to load material overrides', e);
     }
@@ -88,12 +100,19 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
   // Edit Mode state
   const [isEditing, setIsEditing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showCurationTools, setShowCurationTools] = useState(false);
+  const [densityRange, setDensityRange] = useState<string>('All');
+  const [elasticRange, setElasticRange] = useState<string>('All');
+
   const [editName, setEditName] = useState('');
   const [editFormula, setEditFormula] = useState('');
   const [editCrystalSystem, setEditCrystalSystem] = useState('');
   const [editSpaceGroup, setEditSpaceGroup] = useState('');
   const [editDensity, setEditDensity] = useState('');
   const [editElasticModulus, setEditElasticModulus] = useState('');
+  const [editMolecularWeight, setEditMolecularWeight] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editPattern, setEditPattern] = useState('');
   const [editApplications, setEditApplications] = useState<string[]>([]);
@@ -254,6 +273,32 @@ export const MaterialDatabaseExplorer: React.FC = () => {
       });
     }
 
+    // Apply Density Range Filter
+    if (densityRange !== 'All') {
+      list = list.filter(m => {
+        const d = m.density;
+        if (!d || typeof d !== 'number') return false;
+        if (densityRange === 'Ultra-Light') return d < 1.5;
+        if (densityRange === 'Light') return d >= 1.5 && d < 4.0;
+        if (densityRange === 'Medium-Heavy') return d >= 4.0 && d < 8.0;
+        if (densityRange === 'Ultra-Heavy') return d >= 8.0;
+        return true;
+      });
+    }
+
+    // Apply Elastic Modulus Range Filter
+    if (elasticRange !== 'All') {
+      list = list.filter(m => {
+        const e = m.elasticModulus;
+        if (!e || typeof e !== 'number') return false;
+        if (elasticRange === 'Ultra-Soft') return e < 5;
+        if (elasticRange === 'Soft') return e >= 5 && e < 30;
+        if (elasticRange === 'Medium') return e >= 30 && e < 120;
+        if (elasticRange === 'Ultra-Infinitely-Rigid') return e >= 120;
+        return true;
+      });
+    }
+
     // Apply Sorting
     list = [...list].sort((a, b) => {
       let aVal: any = a[sortBy];
@@ -275,7 +320,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     });
 
     return list;
-  }, [materials, searchQuery, selectedCategory, selectedCrystalSystem, sortBy, sortOrder]);
+  }, [materials, searchQuery, selectedCategory, selectedCrystalSystem, densityRange, elasticRange, sortBy, sortOrder]);
 
   // Current page records
   const paginatedMaterials = useMemo(() => {
@@ -288,7 +333,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
   // Reset page when queries change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedCategory, selectedCrystalSystem, sortBy, sortOrder]);
+  }, [searchQuery, selectedCategory, selectedCrystalSystem, densityRange, elasticRange, sortBy, sortOrder]);
 
   // Toggle Sorting
   const triggerSort = (field: typeof sortBy) => {
@@ -359,21 +404,41 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     if (!selectedMaterial) return;
     setEditName(selectedMaterial.name);
     setEditFormula(selectedMaterial.formula || '');
-    setEditCrystalSystem(selectedMaterial.crystalSystem || '');
+    setEditCrystalSystem(selectedMaterial.crystalSystem || 'Cubic');
     setEditSpaceGroup(selectedMaterial.spaceGroup || '');
     setEditDensity(selectedMaterial.density?.toString() || '');
     setEditElasticModulus(selectedMaterial.elasticModulus?.toString() || '');
+    setEditMolecularWeight(selectedMaterial.molecularWeight?.toString() || '');
     setEditDescription(selectedMaterial.description || '');
     setEditPattern(selectedMaterial.pattern || '');
     setEditApplications(selectedMaterial.applications || []);
     setNewAppText('');
     setEditError('');
+    setIsCreating(false);
     setIsEditing(true);
   };
 
-  // Save changes to active material
+  // Set up value for custom creation mode
+  const handleStartCreate = () => {
+    setEditName('');
+    setEditFormula('');
+    setEditCrystalSystem('Cubic');
+    setEditSpaceGroup('');
+    setEditDensity('');
+    setEditElasticModulus('');
+    setEditMolecularWeight('');
+    setEditDescription('');
+    setEditPattern('');
+    setEditApplications([]);
+    setNewAppText('');
+    setEditError('');
+    setIsEditing(false);
+    setIsCreating(true);
+  };
+
+  // Save changes to active material or create a new one
   const handleSaveEdit = () => {
-    if (!selectedMaterial) return;
+    if (!isCreating && !selectedMaterial) return;
 
     if (!editName.trim()) {
       setEditError(t('Material name is required', 'Material name is required'));
@@ -394,23 +459,107 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     const formulaElements = Array.from(new Set(editFormula.match(elementsRegex) || []));
 
     const updated: any = {
-      ...selectedMaterial,
       name: editName.trim(),
+      type: isCreating ? 'Custom Standard' : (selectedMaterial?.type || 'Custom Standard'),
       formula: editFormula.trim(),
       crystalSystem: editCrystalSystem.trim(),
       spaceGroup: editSpaceGroup.trim(),
       density: editDensity.trim() ? parseFloat(editDensity) : undefined,
       elasticModulus: editElasticModulus.trim() ? parseFloat(editElasticModulus) : undefined,
+      molecularWeight: editMolecularWeight.trim() ? parseFloat(editMolecularWeight) : undefined,
       description: editDescription.trim(),
       pattern: editPattern.trim(),
       applications: editApplications,
-      elements: formulaElements.length > 0 ? formulaElements : selectedMaterial.elements
+      elements: formulaElements.length > 0 ? formulaElements : (selectedMaterial?.elements || [])
     };
 
-    const next = materials.map(m => m.name === selectedMaterial.name ? updated : m);
+    let next: any[];
+    if (isCreating) {
+      // Check for duplicate name
+      if (materials.some(m => m.name.toLowerCase() === editName.trim().toLowerCase())) {
+        setEditError(t('A material standard with this name already exists.', 'A material standard with this name already exists.'));
+        return;
+      }
+      next = [updated, ...materials];
+      setIsCreating(false);
+    } else {
+      next = materials.map(m => m.name === selectedMaterial?.name ? updated : m);
+      setIsEditing(false);
+    }
+
     saveMaterials(next);
     setSelectedMaterialName(updated.name);
-    setIsEditing(false);
+  };
+
+  // Delete a material with confirmation support
+  const handleDeleteMaterial = (nameToDelete: string) => {
+    if (window.confirm(t('Are you sure you want to delete this material standard from the database? This action is reversible by clicking "Reset DB Overrides & Restore standards".', 'Are you sure you want to delete this material standard from the database? This action is reversible by clicking "Reset DB Overrides & Restore standards".'))) {
+      const remaining = materials.filter(m => m.name !== nameToDelete);
+      saveMaterials(remaining);
+      
+      // Select another material
+      if (selectedMaterialName === nameToDelete) {
+        if (remaining.length > 0) {
+          setSelectedMaterialName(remaining[0].name);
+        } else {
+          setSelectedMaterialName('');
+        }
+      }
+      setIsEditing(false);
+      setIsCreating(false);
+    }
+  };
+
+  // Export full DB to custom local JSON file
+  const handleExportJSON = () => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(materials, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `all_materials_db_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } catch (e) {
+      console.error('Failed to export DB', e);
+    }
+  };
+
+  // Import custom JSON standards list
+  const handleImportJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const isValid = parsed.every(m => typeof m === 'object' && m !== null && 'name' in m && 'pattern' in m && 'formula' in m);
+          if (isValid) {
+            const merged = [...parsed];
+            const importedNames = new Set(parsed.map(m => m.name.toLowerCase()));
+            materials.forEach(m => {
+              if (!importedNames.has(m.name.toLowerCase())) {
+                merged.push(m);
+              }
+            });
+            saveMaterials(merged);
+            setSelectedMaterialName(parsed[0].name);
+            alert(t('Database imported and merged successfully!', 'Database imported and merged successfully!'));
+          } else {
+            alert(t('Invalid database schema. Make sure every material has name, formula, and pattern fields.', 'Invalid database schema. Make sure every material has name, formula, and pattern fields.'));
+          }
+        } else {
+          alert(t('Uploaded file is not a valid JSON array of materials.', 'Uploaded file is not a valid JSON array of materials.'));
+        }
+      } catch (err) {
+        alert(t('Failed to parse the uploaded file as JSON.', 'Failed to parse the uploaded file as JSON.'));
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
   };
 
   // Tag helper functions
@@ -591,25 +740,36 @@ export const MaterialDatabaseExplorer: React.FC = () => {
           {/* Controls Bar */}
           <div className="bg-[#050B14]/80 p-5 rounded-3xl border border-slate-800 flex flex-col gap-4 relative z-20">
             
-            {/* Direct Search Input */}
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-500" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder={t("Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...", "Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...")}
-                className="w-full pl-12 pr-10 py-3 bg-black/60 backdrop-blur border border-indigo-500/20 text-indigo-100 outline-none rounded-xl focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 placeholder:text-slate-500 transition-all text-xs font-mono shadow-inner select-none"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors"
-                  title="Clear query"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+            {/* Direct Search Input with Custom Standard Add option */}
+            <div className="flex gap-3 items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-500" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder={t("Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...", "Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...")}
+                  className="w-full pl-12 pr-10 py-3 bg-black/60 backdrop-blur border border-indigo-500/20 text-indigo-100 outline-none rounded-xl focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 placeholder:text-slate-500 transition-all text-xs font-mono shadow-inner select-none"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors"
+                    title="Clear query"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={handleStartCreate}
+                className="flex items-center justify-center gap-1.5 px-4 py-3 bg-indigo-600/95 hover:bg-indigo-500 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 border border-indigo-500/40 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[42px] select-none"
+                title={t('Create a novel custom standard to index in the database', 'Create a novel custom standard to index in the database')}
+              >
+                <Plus className="w-4 h-4 text-white" />
+                <span>Custom Standard</span>
+              </button>
             </div>
 
             {/* Dropdown Filters */}
@@ -668,6 +828,179 @@ export const MaterialDatabaseExplorer: React.FC = () => {
               </div>
 
             </div>
+
+            {/* Advanced Filters Toggles */}
+            <div className="flex gap-2.5 items-center flex-wrap pt-1 border-t border-slate-900">
+              <button 
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="flex items-center gap-1 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 hover:border-indigo-500/30 text-indigo-300 font-bold rounded-lg transition-colors cursor-pointer text-[9px] font-mono leading-none"
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                <span>{showAdvancedFilters ? t('Hide Advanced Limits', 'Hide Advanced Limits') : t('Advanced Range Filters', 'Advanced Range Filters')}</span>
+              </button>
+
+              <button 
+                onClick={() => {
+                  setShowCurationTools(!showCurationTools);
+                }}
+                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/30 text-emerald-300 font-bold rounded-lg transition-colors cursor-pointer text-[9px] font-mono leading-none"
+              >
+                <FlaskConical className="w-3.5 h-3.5 animate-pulse" />
+                <span>{showCurationTools ? t('Hide DB Curation Tools', 'Hide DB Curation Tools') : t('Audit & Refine Database', 'Audit & Refine Database')}</span>
+              </button>
+            </div>
+
+            {/* Advanced Range Filters Sub-Drawer */}
+            {showAdvancedFilters && (
+              <div className="grid grid-cols-2 gap-3 p-3.5 bg-black/40 rounded-xl border border-slate-900/60 animate-in fade-in slide-in-from-top-1.5 duration-200">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[8px] font-black uppercase tracking-wider text-slate-500 ml-1">Density Threshold</label>
+                  <select
+                    value={densityRange}
+                    onChange={e => setDensityRange(e.target.value)}
+                    className="w-full px-2.5 py-2 bg-black/50 border border-slate-800 text-slate-300 outline-none rounded-lg text-[10px] font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                  >
+                    <option value="All">All Densities (No limit)</option>
+                    <option value="Ultra-Light">Ultra-Light (&lt; 1.5 g/cm³)</option>
+                    <option value="Light">Light (1.5 to 4.0 g/cm³)</option>
+                    <option value="Medium-Heavy">Medium-Heavy (4.0 to 8.0 g/cm³)</option>
+                    <option value="Ultra-Heavy">Ultra-Heavy (≥ 8.0 g/cm³)</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[8px] font-black uppercase tracking-wider text-slate-500 ml-1">Mechanical Stiffness</label>
+                  <select
+                    value={elasticRange}
+                    onChange={e => setElasticRange(e.target.value)}
+                    className="w-full px-2.5 py-2 bg-black/50 border border-slate-800 text-slate-300 outline-none rounded-lg text-[10px] font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                  >
+                    <option value="All">All Stiffness Levels</option>
+                    <option value="Ultra-Soft">Ultra-Soft (&lt; 5 GPa)</option>
+                    <option value="Soft">Soft (5 to 30 GPa)</option>
+                    <option value="Medium">Medium (30 to 120 GPa)</option>
+                    <option value="Ultra-Infinitely-Rigid">Ultra-Rigid (≥ 120 GPa)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Curation & Database Refiner Area */}
+            {showCurationTools && (
+              <div className="p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-1.5 duration-200">
+                <div className="flex justify-between items-center flex-wrap gap-2">
+                  <span className="text-[10px] uppercase font-black tracking-widest text-[#10b981] flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    Database Refiner & Curation Panel
+                  </span>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleExportJSON}
+                      className="px-2 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 hover:border-indigo-500/40 text-[9px] font-mono text-indigo-300 font-bold rounded-lg cursor-pointer transition-all"
+                      title={t('Export whole database as a custom JSON standard deck', 'Export whole database as a custom JSON standard deck')}
+                    >
+                      Export DB JSON
+                    </button>
+                    
+                    <label className="px-2 py-1 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 hover:border-cyan-500/40 text-[9px] font-mono text-cyan-300 font-bold rounded-lg cursor-pointer transition-all text-center">
+                      <span>Import JSON</span>
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportJSON}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <p className="text-[10px] font-sans text-slate-300 leading-relaxed">
+                  Analyze inconsistencies across all <strong>{materials.length}</strong> loaded materials. Run one-click refinery cycles to synchronize elements, repair formatting, and align parameters:
+                </p>
+
+                {/* Audit Health Cards */}
+                <div className="grid grid-cols-2 gap-3 font-mono text-[9px] text-slate-400">
+                  <div className="p-2.5 rounded-lg bg-black/40 border border-slate-900">
+                    <span className="block font-bold text-slate-500 uppercase text-[8px]">Elements Mismatches</span>
+                    <span className="text-white font-extrabold mt-0.5 block text-xs">
+                      {materials.filter(m => {
+                        const regex = /[A-Z][a-z]?/g;
+                        const formulaElements = m.formula ? Array.from(new Set(m.formula.match(regex) || [])) : [];
+                        const elementsList = m.elements || [];
+                        return formulaElements.some(el => !elementsList.includes(el)) || elementsList.some(el => !formulaElements.includes(el));
+                      }).length} Units
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-black/40 border border-slate-900">
+                    <span className="block font-bold text-slate-500 uppercase text-[8px]">Missing Stiffness Index</span>
+                    <span className="text-white font-extrabold mt-0.5 block text-xs">
+                      {materials.filter(m => !m.elasticModulus || m.elasticModulus <= 0).length} Sheets
+                    </span>
+                  </div>
+                </div>
+
+                {/* One click Curation action buttons */}
+                <div className="flex gap-2 flex-wrap pt-0.5">
+                  <button
+                    onClick={() => {
+                      const regex = /[A-Z][a-z]?/g;
+                      const next = materials.map(m => {
+                        const formulaElements = m.formula ? Array.from(new Set(m.formula.match(regex) || [])) : [];
+                        return {
+                          ...m,
+                          elements: formulaElements.length > 0 ? formulaElements : m.elements
+                        };
+                      });
+                      saveMaterials(next);
+                      alert(t('Chemical Elements have been auto-synchronized for all materials based on their formulas!', 'Chemical Elements have been auto-synchronized for all materials based on their formulas!'));
+                    }}
+                    className="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[9px] font-sans font-bold text-emerald-300 rounded-lg cursor-pointer transition-colors"
+                  >
+                    Sync Elements to Formula
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const next = materials.map(m => {
+                        if (!m.elasticModulus || m.elasticModulus <= 0) {
+                          const cat = (m.type || '').toLowerCase();
+                          let est = 45; // Default ceramic
+                          if (cat.includes('metal') || cat.includes('alloy')) est = 140;
+                          if (cat.includes('polymer') || cat.includes('chitosan') || cat.includes('silk') || cat.includes('elastomer')) est = 2.5;
+                          if (cat.includes('perovskite') || cat.includes('conductor')) est = 30;
+                          if (cat.includes('biological') || cat.includes('protein') || cat.includes('crystallin')) est = 12;
+                          return { ...m, elasticModulus: est };
+                        }
+                        return m;
+                      });
+                      saveMaterials(next);
+                      alert(t('Missing mechanical stiffness data has been auto-imputed using taxonomy averages!', 'Missing mechanical stiffness data has been auto-imputed using taxonomy averages!'));
+                    }}
+                    className="px-2.5 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-[9px] font-sans font-bold text-cyan-300 rounded-lg cursor-pointer transition-colors"
+                  >
+                    Impute Missing Stiffness
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const next = materials.map(m => {
+                        if (!m.spaceGroup || m.spaceGroup.trim() === '') {
+                          return { ...m, spaceGroup: 'P-1' };
+                        }
+                        return { ...m, spaceGroup: m.spaceGroup.trim().replace(/\s+/g, '') };
+                      });
+                      saveMaterials(next);
+                      alert(t('Missing space groups have been normalized and cleaned!', 'Missing space groups have been normalized and cleaned!'));
+                    }}
+                    className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[9px] font-sans font-bold text-amber-300 rounded-lg cursor-pointer transition-colors"
+                  >
+                    Normalize Space Groups
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Sort order Toggle details */}
             <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono mt-1">
@@ -816,7 +1149,230 @@ export const MaterialDatabaseExplorer: React.FC = () => {
             <div className="bg-[#050B14]/90 rounded-[2rem] border border-indigo-500/30 p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
               
-              {!selectedMaterial ? (
+              {isCreating ? (
+                
+                /* ================= CREATE NOVEL STANDARD MODE ================= */
+                <div className="space-y-5 relative z-10 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Plus className="w-4 h-4 text-indigo-400" />
+                      <h3 className="font-extrabold text-white text-sm tracking-tight">
+                        {t('Create Novel Material Standard', 'Create Novel Material Standard')}
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => setIsCreating(false)}
+                      className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                      title={t('Cancel creation', 'Cancel creation')}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {editError && (
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[10px] rounded-xl font-mono leading-relaxed font-bold">
+                      {editError}
+                    </div>
+                  )}
+
+                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                    
+                    {/* Material Name input */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Material Registry Name</label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={e => setEditName(e.target.value)}
+                        className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors"
+                        placeholder="e.g. Cobalt Antimonide (CoSb3 Skutterudite)"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Chemical Formula */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Formula</label>
+                        <input
+                          type="text"
+                          value={editFormula}
+                          onChange={e => setEditFormula(e.target.value)}
+                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                          placeholder="e.g. CoSb3"
+                        />
+                      </div>
+
+                      {/* Space group */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Space Group</label>
+                        <input
+                          type="text"
+                          value={editSpaceGroup}
+                          onChange={e => setEditSpaceGroup(e.target.value)}
+                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                          placeholder="e.g. Im-3"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Crystal System */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Crystal System</label>
+                        <select
+                          value={editCrystalSystem}
+                          onChange={e => setEditCrystalSystem(e.target.value)}
+                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors cursor-pointer"
+                        >
+                          <option value="Cubic">Cubic</option>
+                          <option value="Hexagonal">Hexagonal</option>
+                          <option value="Tetragonal">Tetragonal</option>
+                          <option value="Orthorhombic">Orthorhombic</option>
+                          <option value="Monoclinic">Monoclinic</option>
+                          <option value="Triclinic">Triclinic</option>
+                          <option value="Trigonal">Trigonal</option>
+                          <option value="Rhombohedral">Rhombohedral</option>
+                          <option value="Amorphous">Amorphous</option>
+                          <option value="Other">Other / Mixed</option>
+                        </select>
+                      </div>
+
+                      {/* Density (g/cm3) */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Density (g/cm³)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={editDensity}
+                          onChange={e => setEditDensity(e.target.value)}
+                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                          placeholder="e.g. 7.64"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Elastic Modulus (GPa) */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Elastic Modulus (GPa)</label>
+                        <input
+                          type="number"
+                          step="1"
+                          min="0"
+                          value={editElasticModulus}
+                          onChange={e => setEditElasticModulus(e.target.value)}
+                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                          placeholder="e.g. 138"
+                        />
+                      </div>
+
+                      {/* Molecular Weight */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Molecular Weight (g/mol)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={editMolecularWeight}
+                          onChange={e => setEditMolecularWeight(e.target.value)}
+                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                          placeholder="e.g. 424.18"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Description Textarea */}
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Chemical Description</label>
+                      <textarea
+                        value={editDescription}
+                        onChange={e => setEditDescription(e.target.value)}
+                        className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors h-16 resize-none"
+                        placeholder="Description of structure and properties..."
+                      />
+                    </div>
+
+                    {/* XRD Peak settings (2θ, intensity) */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-baseline">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">XRD Diffraction Pattern Peaks (2θ, Intensity)</label>
+                        <span className="text-[8px] font-mono text-slate-500 font-bold">One pair per line</span>
+                      </div>
+                      <textarea
+                        value={editPattern}
+                        onChange={e => setEditPattern(e.target.value)}
+                        className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors h-24 font-mono resize-y"
+                        placeholder="Format: 2theta, Intensity&#10;e.g.&#10;15.2, 50&#10;24.8, 100&#10;36.1, 75"
+                      />
+                    </div>
+
+                    {/* Applications Tag Selector */}
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Key Industrial Applications</label>
+                      
+                      <div className="flex gap-1.5 flex-wrap">
+                        {editApplications.map(tag => (
+                          <span key={tag} className="flex items-center gap-1 text-[9px] font-sans font-bold px-2.5 py-1 rounded-lg bg-indigo-500/10 text-slate-100 border border-indigo-500/20">
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAppTag(tag)}
+                              className="text-slate-400 hover:text-rose-400 focus:outline-none cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newAppText}
+                          onChange={e => setNewAppText(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddAppTag();
+                            }
+                          }}
+                          className="flex-1 bg-black/60 border border-slate-800 text-xs px-3 py-1.5 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors"
+                          placeholder="Add custom application role..."
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddAppTag}
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs cursor-pointer transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add</span>
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Form Trigger Actions */}
+                  <div className="flex gap-3 pt-3 border-t border-slate-800">
+                    <button
+                      onClick={handleSaveEdit}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/10 hover:shadow-indigo-600/20 active:scale-98 transition-all cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Create Standard</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setIsCreating(false)}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+
+              ) : !selectedMaterial ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center text-slate-500 space-y-4">
                   <Database className="w-12 h-12 text-slate-600 animate-pulse" />
                   <div>
@@ -942,9 +1498,18 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                         />
                       </div>
 
-                      {/* Info block */}
-                      <div className="flex items-center justify-center p-2 bg-indigo-500/5 rounded-xl border border-indigo-500/10 text-[9px] text-indigo-300 leading-snug font-mono">
-                        Elements will auto-derive from the chemical formula format.
+                      {/* Molecular Weight */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Molecular Weight (g/mol)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={editMolecularWeight}
+                          onChange={e => setEditMolecularWeight(e.target.value)}
+                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                          placeholder="e.g. 270.03"
+                        />
                       </div>
                     </div>
 
@@ -1049,7 +1614,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                       {selectedMaterial.type || 'Custom Standard'}
                     </span>
                     
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap justify-end">
                       <button
                         onClick={handleStartEdit}
                         className="flex items-center gap-1 px-2.5 py-1 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all duration-200"
@@ -1069,6 +1634,15 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                           <span>Reset Defaults</span>
                         </button>
                       )}
+
+                      <button
+                        onClick={() => handleDeleteMaterial(selectedMaterial.name)}
+                        className="flex items-center gap-1 px-2.5 py-1 bg-rose-600/10 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all duration-200"
+                        title={t('Delete this standard sheet', 'Delete this standard sheet')}
+                      >
+                        <Trash2 className="w-3 h-3 text-rose-400" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   </div>
 
