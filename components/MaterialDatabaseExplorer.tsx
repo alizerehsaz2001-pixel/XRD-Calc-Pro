@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -26,11 +26,71 @@ import {
   Check,
   Plus,
   Trash2,
-  Undo
+  Undo,
+  Atom
 } from 'lucide-react';
 import { MATERIAL_DB } from '../utils/materialDB';
 
 const LOCAL_STORAGE_KEY = 'crystal_suite_materials_v1';
+
+// Chemical element lookup for scientific detail overlays
+const ELEMENT_DETAILS: Record<string, { name: string; z: number; weight: number; category: string; color: string }> = {
+  "H": { name: "Hydrogen", z: 1, weight: 1.008, category: "Nonmetal", color: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
+  "Li": { name: "Lithium", z: 3, weight: 6.94, category: "Alkali Metal", color: "bg-red-500/10 text-red-400 border-red-500/20" },
+  "Be": { name: "Beryllium", z: 4, weight: 9.012, category: "Alkaline Earth", color: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+  "B": { name: "Boron", z: 5, weight: 10.81, category: "Metalloid", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  "C": { name: "Carbon", z: 6, weight: 12.011, category: "Nonmetal", color: "bg-green-500/10 text-green-400 border-green-500/20" },
+  "N": { name: "Nitrogen", z: 7, weight: 14.007, category: "Nonmetal", color: "bg-green-500/10 text-green-400 border-green-500/20" },
+  "O": { name: "Oxygen", z: 8, weight: 15.999, category: "Nonmetal", color: "bg-green-500/10 text-green-400 border-green-500/20" },
+  "F": { name: "Fluorine", z: 9, weight: 18.998, category: "Halogen", color: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
+  "Na": { name: "Sodium", z: 11, weight: 22.990, category: "Alkali Metal", color: "bg-red-500/10 text-red-400 border-red-500/20" },
+  "Mg": { name: "Magnesium", z: 12, weight: 24.305, category: "Alkaline Earth", color: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+  "Al": { name: "Aluminium", z: 13, weight: 26.982, category: "Post-Transition Metal", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
+  "Si": { name: "Silicon", z: 14, weight: 28.085, category: "Metalloid", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  "P": { name: "Phosphorus", z: 15, weight: 30.974, category: "Nonmetal", color: "bg-green-500/10 text-green-400 border-green-500/20" },
+  "S": { name: "Sulfur", z: 16, weight: 32.065, category: "Nonmetal", color: "bg-green-500/10 text-green-400 border-green-500/20" },
+  "Cl": { name: "Chlorine", z: 17, weight: 35.453, category: "Halogen", color: "bg-teal-500/10 text-teal-400 border-teal-500/20" },
+  "K": { name: "Potassium", z: 19, weight: 39.098, category: "Alkali Metal", color: "bg-red-500/10 text-red-400 border-red-500/20" },
+  "Ca": { name: "Calcium", z: 20, weight: 40.078, category: "Alkaline Earth", color: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+  "Sc": { name: "Scandium", z: 21, weight: 44.956, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Ti": { name: "Titanium", z: 22, weight: 47.867, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "V": { name: "Vanadium", z: 23, weight: 50.942, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Cr": { name: "Chromium", z: 24, weight: 51.996, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Mn": { name: "Manganese", z: 25, weight: 54.938, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Fe": { name: "Iron", z: 26, weight: 55.845, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Co": { name: "Cobalt", z: 27, weight: 58.933, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Ni": { name: "Nickel", z: 28, weight: 58.693, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Cu": { name: "Copper", z: 29, weight: 63.546, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Zn": { name: "Zinc", z: 30, weight: 65.38, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Ga": { name: "Gallium", z: 31, weight: 69.723, category: "Post-Transition Metal", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
+  "Ge": { name: "Germanium", z: 32, weight: 72.63, category: "Metalloid", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  "As": { name: "Arsenic", z: 33, weight: 74.922, category: "Metalloid", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  "Se": { name: "Selenium", z: 34, weight: 78.971, category: "Nonmetal", color: "bg-green-500/10 text-green-400 border-green-500/20" },
+  "Sr": { name: "Strontium", z: 38, weight: 87.62, category: "Alkaline Earth", color: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+  "Y": { name: "Yttrium", z: 39, weight: 88.906, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Zr": { name: "Zirconium", z: 40, weight: 91.224, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Nb": { name: "Niobium", z: 41, weight: 92.906, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Mo": { name: "Molybdenum", z: 42, weight: 95.95, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Ru": { name: "Ruthenium", z: 44, weight: 101.07, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Rh": { name: "Rhodium", z: 45, weight: 102.91, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Pd": { name: "Palladium", z: 46, weight: 106.42, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Ag": { name: "Silver", z: 47, weight: 107.87, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Cd": { name: "Cadmium", z: 48, weight: 112.41, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "In": { name: "Indium", z: 49, weight: 114.82, category: "Post-Transition Metal", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
+  "Sn": { name: "Tin", z: 50, weight: 118.71, category: "Post-Transition Metal", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
+  "Sb": { name: "Antimony", z: 51, weight: 121.76, category: "Metalloid", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  "Te": { name: "Tellurium", z: 52, weight: 127.60, category: "Metalloid", color: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  "Ba": { name: "Barium", z: 56, weight: 137.33, category: "Alkaline Earth", color: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+  "La": { name: "Lanthanum", z: 57, weight: 138.91, category: "Lanthanide", color: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
+  "Ce": { name: "Cerium", z: 58, weight: 140.12, category: "Lanthanide", color: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
+  "Ta": { name: "Tantalum", z: 73, weight: 180.95, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "W": { name: "Tungsten", z: 74, weight: 183.84, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Pt": { name: "Platinum", z: 78, weight: 195.08, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Au": { name: "Gold", z: 79, weight: 196.97, category: "Transition Metal", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Pb": { name: "Lead", z: 82, weight: 207.2, category: "Post-Transition Metal", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
+  "Bi": { name: "Bismuth", z: 83, weight: 208.98, category: "Post-Transition Metal", color: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
+  "U": { name: "Uranium", z: 92, weight: 238.03, category: "Actinide", color: "bg-rose-500/10 text-rose-400 border-rose-500/20" },
+};
 
 // Define layout groupings for Crystal Systems
 const NORMALIZED_SYSTEMS = [
@@ -98,6 +158,23 @@ export const MaterialDatabaseExplorer: React.FC = () => {
   // View style
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
+  // Scientific XRD properties
+  const [xrdWavelength, setXrdWavelength] = useState<number>(1.54059);
+  const [xrdFwhm, setXrdFwhm] = useState<number>(0.3);
+  const [activeDetailTab, setActiveDetailTab] = useState<'spectrum' | 'lattice' | 'composition'>('spectrum');
+
+  // Smooth continuous spin duration for 3D crystal lattice visualizer
+  const [spinTime, setSpinTime] = useState<number>(0);
+  useEffect(() => {
+    let frameId: number;
+    const tick = () => {
+      setSpinTime(prev => (prev + 0.008) % (Math.PI * 2));
+      frameId = requestAnimationFrame(tick);
+    };
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
   // Edit Mode state
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -118,6 +195,240 @@ export const MaterialDatabaseExplorer: React.FC = () => {
   const [editApplications, setEditApplications] = useState<string[]>([]);
   const [newAppText, setNewAppText] = useState('');
   const [editError, setEditError] = useState('');
+
+  // Database multi-stage automated refinement pipeline states
+  const [isRefiningAll, setIsRefiningAll] = useState(false);
+  const [refineProgress, setRefineProgress] = useState(0);
+  const [refineStageMsg, setRefineStageMsg] = useState('');
+  const [refineSummary, setRefineSummary] = useState<{
+    totalProcessed: number;
+    elementsSynced: number;
+    stiffnessImputed: number;
+    spaceGroupsNormalized: number;
+    mwComputed: number;
+    patternsNormalized: number;
+    densitiesCalibrated: number;
+  } | null>(null);
+
+  const computeFormulaWeight = (formula: string): number => {
+    if (!formula) return 0;
+    const cleanFormula = formula.replace(/\s+/g, '');
+    const elementRegex = /([A-Z][a-z]*)(\d*\.?\d*)?/g;
+    let match;
+    let weight = 0;
+    elementRegex.lastIndex = 0;
+    let hasMatched = false;
+    while ((match = elementRegex.exec(cleanFormula)) !== null) {
+      hasMatched = true;
+      const element = match[1];
+      const countStr = match[2];
+      const count = countStr ? parseFloat(countStr) : 1;
+      const details = ELEMENT_DETAILS[element];
+      if (details) {
+        weight += details.weight * count;
+      } else {
+        const otherElWeights: Record<string, number> = {
+          "He": 4.0026, "Ne": 20.180, "Ar": 39.948, "Kr": 83.798, "Xe": 131.29,
+          "Rb": 85.468, "Cs": 132.91, "Fr": 223, "Ra": 226, "Ac": 227, "Th": 232.04,
+          "Pa": 231.04, "Np": 237, "Pu": 244, "Am": 243, "Cm": 247, "Bk": 247, "Cf": 251,
+          "Es": 252, "Fm": 257, "Md": 258, "No": 259, "Lr": 262, "Rf": 267, "Db": 268,
+          "Sg": 271, "Bh": 272, "Hs": 270, "Mt": 276, "Ds": 281, "Rg": 280, "Cn": 285,
+          "Nh": 284, "Fl": 289, "Mc": 288, "Lv": 293, "Ts": 294, "Og": 294,
+          "Pm": 145, "Sm": 150.36, "Eu": 151.96, "Gd": 157.25, "Tb": 158.93,
+          "Dy": 162.50, "Ho": 164.93, "Er": 167.26, "Tm": 168.93, "Yb": 173.05, "Lu": 174.97,
+          "Hf": 178.49, "Re": 186.21, "Os": 190.23, "Ir": 192.22, "Tl": 204.38, "Po": 209, "At": 210, "Rn": 222
+        };
+        const guessedWeight = otherElWeights[element] || 40.0;
+        weight += guessedWeight * count;
+      }
+    }
+    return hasMatched ? Number(weight.toFixed(3)) : 0;
+  };
+
+  const normalizePatternPeaks = (patternStr: string): string => {
+    if (!patternStr) return '';
+    const lines = patternStr.split('\n').map(l => l.trim()).filter(Boolean);
+    const peaks: { angle: number; intensity: number }[] = [];
+    let maxIntensity = 0;
+    for (const line of lines) {
+      const parts = line.split(',').map(p => p.trim());
+      if (parts.length >= 2) {
+        const angle = parseFloat(parts[0]);
+        const intensity = parseFloat(parts[1]);
+        if (!isNaN(angle) && !isNaN(intensity)) {
+          peaks.push({ angle, intensity });
+          if (intensity > maxIntensity) {
+            maxIntensity = intensity;
+          }
+        }
+      }
+    }
+    if (peaks.length === 0 || maxIntensity <= 0) return patternStr;
+    const scaleFactor = 100 / maxIntensity;
+    const normalizedLines = peaks.map(p => {
+      const normInt = Math.round(p.intensity * scaleFactor * 10) / 10;
+      return `${p.angle}, ${normInt}`;
+    });
+    return normalizedLines.join('\n');
+  };
+
+  const handleRunAllRefinements = () => {
+    setIsRefiningAll(true);
+    setRefineProgress(0);
+    setRefineSummary(null);
+    
+    let currentData = [...materials];
+    
+    // Stage counts
+    let elementsSynced = 0;
+    let stiffnessImputed = 0;
+    let spaceGroupsNormalized = 0;
+    let mwComputed = 0;
+    let patternsNormalized = 0;
+    let densitiesCalibrated = 0;
+
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const runPipeline = async () => {
+      // Step 1: Initialize
+      setRefineStageMsg("Initializing database connection & loading records...");
+      setRefineProgress(10);
+      await delay(600);
+
+      // Step 2: Sync Chemical Elements to formula
+      setRefineStageMsg("Stage 1: Scanning chemical formulas and synchronizing element arrays...");
+      setRefineProgress(25);
+      await delay(800);
+      const regex = /[A-Z][a-z]?/g;
+      currentData = currentData.map(m => {
+        const formulaElements = m.formula ? Array.from(new Set(m.formula.match(regex) || [])) : [];
+        const elementsList = m.elements || [];
+        const needsSync = formulaElements.some(el => !elementsList.includes(el)) || elementsList.some(el => !formulaElements.includes(el));
+        if (needsSync && formulaElements.length > 0) {
+          elementsSynced++;
+          return { ...m, elements: formulaElements };
+        }
+        return m;
+      });
+
+      // Step 3: Compute Molecular Weights
+      setRefineStageMsg("Stage 2: Calculating precise molecular weights from empirical compositions...");
+      setRefineProgress(45);
+      await delay(800);
+      currentData = currentData.map(m => {
+        const computed = computeFormulaWeight(m.formula);
+        const diff = Math.abs((m.molecularWeight || 0) - computed);
+        if (computed > 0 && (!m.molecularWeight || m.molecularWeight <= 0 || diff > 0.5)) {
+          mwComputed++;
+          return { ...m, molecularWeight: computed };
+        }
+        return m;
+      });
+
+      // Step 4: Impute Mechanical Stiffness
+      setRefineStageMsg("Stage 3: Classifying materials and imputing missing mechanical elastic modulus values...");
+      setRefineProgress(60);
+      await delay(800);
+      currentData = currentData.map(m => {
+        if (!m.elasticModulus || m.elasticModulus <= 0) {
+          stiffnessImputed++;
+          const cat = (m.type || '').toLowerCase();
+          let est = 45; // Default ceramic
+          if (cat.includes('metal') || cat.includes('alloy')) est = 140;
+          if (cat.includes('polymer') || cat.includes('chitosan') || cat.includes('silk') || cat.includes('elastomer')) est = 2.5;
+          if (cat.includes('perovskite') || cat.includes('conductor')) est = 30;
+          if (cat.includes('biological') || cat.includes('protein') || cat.includes('crystallin')) est = 12;
+          return { ...m, elasticModulus: est };
+        }
+        return m;
+      });
+
+      // Step 5: Normalize Space Groups & clean formatting
+      setRefineStageMsg("Stage 4: Cleansing crystallographic space group syntax and symmetries...");
+      setRefineProgress(75);
+      await delay(700);
+      currentData = currentData.map(m => {
+        const rawGroup = m.spaceGroup || '';
+        const trimmed = rawGroup.trim();
+        const cleaned = trimmed.replace(/\s+/g, '');
+        if (!trimmed) {
+          spaceGroupsNormalized++;
+          return { ...m, spaceGroup: 'P-1' };
+        } else if (trimmed !== rawGroup || cleaned !== rawGroup) {
+          spaceGroupsNormalized++;
+          return { ...m, spaceGroup: cleaned };
+        }
+        return m;
+      });
+
+      // Step 6: Normalize pattern peaks to 100 relative standard
+      setRefineStageMsg("Stage 5: Standardizing relative intensities for all XRD diffraction patterns...");
+      setRefineProgress(85);
+      await delay(900);
+      currentData = currentData.map(m => {
+        if (m.pattern) {
+          const normPattern = normalizePatternPeaks(m.pattern);
+          if (normPattern !== m.pattern) {
+            patternsNormalized++;
+            return { ...m, pattern: normPattern };
+          }
+        }
+        return m;
+      });
+
+      // Step 7: Calibrate missing or anomalous densities
+      setRefineStageMsg("Stage 6: Verifying structural density constraints and calibrating physical limits...");
+      setRefineProgress(95);
+      await delay(800);
+      currentData = currentData.map(m => {
+        const dens = m.density || 0;
+        if (dens <= 0 || dens > 22.6) {
+          densitiesCalibrated++;
+          // High-grade estimation of physical density
+          const mw = m.molecularWeight || computeFormulaWeight(m.formula) || 50;
+          let atomicVolumeSum = 0;
+          const cleanF = (m.formula || '').replace(/\s+/g, '');
+          const elementRegex = /([A-Z][a-z]*)(\d*\.?\d*)?/g;
+          let match;
+          elementRegex.lastIndex = 0;
+          while ((match = elementRegex.exec(cleanF)) !== null) {
+            const el = match[1];
+            const cnt = match[2] ? parseFloat(match[2]) : 1;
+            const elWeight = ELEMENT_DETAILS[el]?.weight || 40;
+            const singleAtomVol = elWeight > 100 ? 15 : elWeight > 50 ? 12 : 9;
+            atomicVolumeSum += singleAtomVol * cnt;
+          }
+          if (atomicVolumeSum <= 0) atomicVolumeSum = 25;
+          const estDensity = Number((mw / atomicVolumeSum * 1.3).toFixed(2));
+          return { ...m, density: estDensity > 0 ? (estDensity > 22.5 ? 22.5 : estDensity) : 3.0 };
+        }
+        return m;
+      });
+
+      // Save Data
+      setRefineStageMsg("Finalizing... Saving synchronized metadata package to the local warehouse...");
+      setRefineProgress(100);
+      await delay(600);
+      saveMaterials(currentData);
+      
+      setRefineSummary({
+        totalProcessed: currentData.length,
+        elementsSynced,
+        stiffnessImputed,
+        spaceGroupsNormalized,
+        mwComputed,
+        patternsNormalized,
+        densitiesCalibrated
+      });
+      setIsRefiningAll(false);
+    };
+
+    runPipeline().catch(err => {
+      console.error(err);
+      setIsRefiningAll(false);
+      setRefineStageMsg("Error occurred during database refinement.");
+    });
+  };
 
   // Persists the materials array
   const saveMaterials = (newMaterials: typeof MATERIAL_DB) => {
@@ -382,6 +693,26 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     }
   }, [selectedMaterial]);
 
+  // Intrinsically calculate d-spacings and shifted peak positions based on radiation source
+  const shiftedPeaks = useMemo(() => {
+    const defaultLambda = 1.54059; // Reference wavelength of Cu-Ka (standard DB peaks)
+    return parsedPeaks.map(p => {
+      const thetaRefRad = (p.twoTheta / 2) * (Math.PI / 180);
+      if (thetaRefRad <= 0) return null;
+      const dSpacing = defaultLambda / (2 * Math.sin(thetaRefRad));
+      
+      const sinThetaNew = xrdWavelength / (2 * dSpacing);
+      if (sinThetaNew > 1) return null; // Peak extinguishes
+      const thetaNewRad = Math.asin(sinThetaNew);
+      const twoThetaNew = (thetaNewRad * 180 / Math.PI) * 2;
+      return {
+        twoTheta: twoThetaNew,
+        intensity: p.intensity,
+        dSpacing
+      };
+    }).filter((p): p is {twoTheta: number; intensity: number; dSpacing: number} => p !== null);
+  }, [parsedPeaks, xrdWavelength]);
+
   // Validation function for XRD peak lines
   const validatePatternString = (patternStr: string): boolean => {
     const lines = patternStr.split('\n').filter(l => l.trim());
@@ -574,6 +905,243 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     setEditApplications(editApplications.filter(t => t !== tag));
   };
 
+  // Mathematically projects and renders the 3D rotating Crystal Lattice system wireframe
+  const renderCrystalLattice = (system: string) => {
+    const norm = (system || '').toLowerCase();
+    
+    // Euler rotation angles based on spinTime
+    const rotX = 0.40; // Fixed tilt on X to get standard isometric-like angle
+    const rotY = spinTime; // Continuous rotation on Y
+    
+    // Helper projection function
+    const project = (x: number, y: number, z: number) => {
+      const cosY = Math.cos(rotY);
+      const sinY = Math.sin(rotY);
+      const x1 = x * cosY - z * sinY;
+      const z1 = x * sinY + z * cosY;
+      
+      const cosX = Math.cos(rotX);
+      const sinX = Math.sin(rotX);
+      const y2 = y * cosX - z1 * sinX;
+      const z2 = y * sinX + z1 * cosX;
+      
+      const scale = 52;
+      return {
+        x: 100 + x1 * scale,
+        y: 100 + y2 * scale,
+        z: z2
+      };
+    };
+
+    let vertices: Array<[number, number, number]> = [];
+    let edges: Array<[number, number]> = [];
+    let title = "Standard Cubic";
+    let desc = "a = b = c (α = β = γ = 90°)";
+
+    if (norm.includes('cubic')) {
+      title = "Cubic Lattice";
+      desc = "a = b = c (α = β = γ = 90°)";
+      vertices = [
+        [-0.5, -0.5, -0.5], [0.5, -0.5, -0.5], [0.5, 0.5, -0.5], [-0.5, 0.5, -0.5],
+        [-0.5, -0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5]
+      ];
+      edges = [
+        [0,1], [1,2], [2,3], [3,0],
+        [4,5], [5,6], [6,7], [7,4],
+        [0,4], [1,5], [2,6], [3,7]
+      ];
+    } else if (norm.includes('tetragonal')) {
+      title = "Tetragonal Lattice";
+      desc = "a = b ≠ c (α = β = γ = 90°)";
+      vertices = [
+        [-0.4, -0.7, -0.4], [0.4, -0.7, -0.4], [0.4, 0.7, -0.4], [-0.4, 0.7, -0.4],
+        [-0.4, -0.7, 0.4], [0.4, -0.7, 0.4], [0.4, 0.7, 0.4], [-0.4, 0.7, 0.4]
+      ];
+      edges = [
+        [0,1], [1,2], [2,3], [3,0],
+        [4,5], [5,6], [6,7], [7,4],
+        [0,4], [1,5], [2,6], [3,7]
+      ];
+    } else if (norm.includes('orthorhombic')) {
+      title = "Orthorhombic Lattice";
+      desc = "a ≠ b ≠ c (α = β = γ = 90°)";
+      vertices = [
+        [-0.3, -0.65, -0.48], [0.3, -0.65, -0.48], [0.3, 0.65, -0.48], [-0.3, 0.65, -0.48],
+        [-0.3, -0.65, 0.48], [0.3, -0.65, 0.48], [0.3, 0.65, 0.48], [-0.3, 0.65, 0.48]
+      ];
+      edges = [
+        [0,1], [1,2], [2,3], [3,0],
+        [4,5], [5,6], [6,7], [7,4],
+        [0,4], [1,5], [2,6], [3,7]
+      ];
+    } else if (norm.includes('hexagonal')) {
+      title = "Hexagonal Polytype";
+      desc = "a = b ≠ c (α = β = 90°, γ = 120°)";
+      const topY = -0.65;
+      const botY = 0.65;
+      const r = 0.52;
+      for (let i = 0; i < 6; i++) {
+        const rad = (i * 60) * (Math.PI / 180);
+        vertices.push([r * Math.cos(rad), topY, r * Math.sin(rad)]);
+      }
+      for (let i = 0; i < 6; i++) {
+        const rad = (i * 60) * (Math.PI / 180);
+        vertices.push([r * Math.cos(rad), botY, r * Math.sin(rad)]);
+      }
+      edges = [
+        [0,1], [1,2], [2,3], [3,4], [4,5], [5,0],
+        [6,7], [7,8], [8,9], [9,10], [10,11], [11,6],
+        [0,6], [1,7], [2,8], [3,9], [4,10], [5,11]
+      ];
+    } else if (norm.includes('monoclinic')) {
+      title = "Monoclinic Lattice";
+      desc = "a ≠ b ≠ c (α = γ = 90°, β ≠ 120°)";
+      const skew = 0.28;
+      vertices = [
+        [-0.32 - skew, -0.5, -0.42], [0.32 - skew, -0.5, -0.42], [0.32 + skew, 0.5, -0.42], [-0.32 + skew, 0.5, -0.42],
+        [-0.32 - skew, -0.5, 0.42], [0.32 - skew, -0.5, 0.42], [0.32 + skew, 0.5, 0.42], [-0.32 + skew, 0.5, 0.42]
+      ];
+      edges = [
+        [0,1], [1,2], [2,3], [3,0],
+        [4,5], [5,6], [6,7], [7,4],
+        [0,4], [1,5], [2,6], [3,7]
+      ];
+    } else if (norm.includes('triclinic')) {
+      title = "Triclinic Lattice";
+      desc = "a ≠ b ≠ c (α ≠ β ≠ γ ≠ 90°)";
+      const hSkew = 0.25;
+      const dSkew = 0.20;
+      vertices = [
+        [-0.3 - hSkew, -0.45, -0.4 - dSkew], [0.3 - hSkew, -0.45, -0.4 - dSkew], [0.3 + hSkew, 0.45, -0.4 + dSkew], [-0.3 + hSkew, 0.45, -0.4 + dSkew],
+        [-0.3 - hSkew, -0.45, 0.4 - dSkew], [0.3 - hSkew, -0.45, 0.4 - dSkew], [0.3 + hSkew, 0.45, 0.4 + dSkew], [-0.3 + hSkew, 0.45, 0.4 + dSkew]
+      ];
+      edges = [
+        [0,1], [1,2], [2,3], [3,0],
+        [4,5], [5,6], [6,7], [7,4],
+        [0,4], [1,5], [2,6], [3,7]
+      ];
+    } else if (norm.includes('trigonal') || norm.includes('rhombohedral')) {
+      title = "Rhombohedral System";
+      desc = "a = b = c (α = β = γ ≠ 90°)";
+      const shear = 0.2;
+      vertices = [
+        [-0.4 - shear, -0.4 - shear, -0.4], [0.4 - shear, -0.4 - shear, -0.4], [0.4 + shear, 0.4 + shear, -0.4], [-0.4 + shear, 0.4 + shear, -0.4],
+        [-0.4 - shear, -0.4 - shear, 0.4], [0.4 - shear, -0.4 - shear, 0.4], [0.4 + shear, 0.4 + shear, 0.4], [-0.4 + shear, 0.4 + shear, 0.4]
+      ];
+      edges = [
+        [0,1], [1,2], [2,3], [3,0],
+        [4,5], [5,6], [6,7], [7,4],
+        [0,4], [1,5], [2,6], [3,7]
+      ];
+    } else {
+      title = "Amorphous / Short-Range";
+      desc = "Non-crystalline topology (Short range order)";
+      const seedPoints = [
+        [-0.32, -0.15, 0.22], [0.12, 0.38, -0.32], [-0.42, 0.28, -0.12], [0.32, -0.28, 0.12],
+        [-0.08, -0.48, -0.18], [0.38, 0.18, 0.32], [-0.18, 0.08, 0.42], [0.18, -0.08, -0.32],
+        [-0.42, -0.28, -0.38], [0.02, 0.12, -0.08], [0.28, 0.42, -0.08], [-0.15, -0.25, -0.25]
+      ];
+      vertices = seedPoints.map(([x,y,z], idx) => {
+        const jiggle = Math.sin(rotY * 4.5 + idx) * 0.035;
+        return [x + jiggle, y + jiggle, z + jiggle];
+      });
+      edges = [];
+      for (let i = 0; i < vertices.length; i++) {
+        for (let j = i + 1; j < vertices.length; j++) {
+          const dx = vertices[i][0] - vertices[j][0];
+          const dy = vertices[i][1] - vertices[j][1];
+          const dz = vertices[i][2] - vertices[j][2];
+          const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+          if (dist < 0.62) {
+            edges.push([i, j]);
+          }
+        }
+      }
+    }
+
+    const projected = vertices.map(v => project(v[0], v[1], v[2]));
+
+    return (
+      <div className="flex flex-col items-center justify-center p-5 bg-slate-950/70 rounded-2xl border border-slate-800/80 aspect-square relative max-w-[280px] mx-auto overflow-hidden">
+        <div className="absolute top-3 left-3 flex flex-col gap-0.5">
+          <span className="text-[10px] font-black uppercase text-indigo-400 font-mono tracking-tight">{title}</span>
+          <span className="text-[8px] text-slate-500 font-mono tracking-wide">{desc}</span>
+        </div>
+
+        <svg className="w-48 h-48 mt-4" viewBox="0 0 200 200">
+          <circle cx="100" cy="100" r="82" fill="none" stroke="rgba(99,102,241,0.06)" strokeDasharray="3,5" />
+
+          {/* Core definitions */}
+          <defs>
+            <radialGradient id="standardAtomGrad" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#A5F3FC" />
+              <stop offset="70%" stopColor="#0891B2" />
+              <stop offset="100%" stopColor="#155E75" />
+            </radialGradient>
+            <radialGradient id="anchorAtomGrad" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#FDE68A" />
+              <stop offset="70%" stopColor="#D97706" />
+              <stop offset="100%" stopColor="#78350F" />
+            </radialGradient>
+          </defs>
+
+          {/* Draw Edges */}
+          {edges.map(([p1, p2], idx) => {
+            const v1 = projected[p1];
+            const v2 = projected[p2];
+            if (!v1 || !v2) return null;
+            const avgZ = (v1.z + v2.z) / 2;
+            const opacity = Math.max(0.15, Math.min(0.85, (avgZ + 1.2) / 2));
+            return (
+              <line
+                key={`e-${idx}`}
+                x1={v1.x.toFixed(1)}
+                y1={v1.y.toFixed(1)}
+                x2={v2.x.toFixed(1)}
+                y2={v2.y.toFixed(1)}
+                stroke="#6366f1"
+                strokeWidth="1.5"
+                strokeOpacity={opacity}
+                strokeLinecap="round"
+              />
+            );
+          })}
+
+          {/* Draw Atoms */}
+          {projected.map((v, idx) => {
+            const radius = Math.max(4.5, Math.min(9, 7.5 + v.z * 3));
+            const opacity = Math.max(0.3, Math.min(1, (v.z + 1.2) / 2));
+            const isAnchor = idx === 0;
+            return (
+              <g key={`v-${idx}`}>
+                <circle
+                  cx={v.x.toFixed(1)}
+                  cy={v.y.toFixed(1)}
+                  r={radius.toFixed(1)}
+                  fill={isAnchor ? "url(#anchorAtomGrad)" : "url(#standardAtomGrad)"}
+                  fillOpacity={opacity}
+                />
+                <circle
+                  cx={v.x.toFixed(1)}
+                  cy={v.y.toFixed(1)}
+                  r={(radius + 1.5).toFixed(1)}
+                  fill="none"
+                  stroke={isAnchor ? "#F59E0B" : "#22D3EE"}
+                  strokeOpacity={opacity * 0.4}
+                  strokeWidth="0.8"
+                />
+              </g>
+            );
+          })}
+        </svg>
+
+        <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/60 border border-slate-900/60 text-[7px] text-slate-500 font-mono uppercase tracking-widest select-none pointer-events-none">
+          Rot X/Y: 23° / {(rotY * 180 / Math.PI).toFixed(1)}°
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-slate-100">
       
@@ -741,48 +1309,48 @@ export const MaterialDatabaseExplorer: React.FC = () => {
           <div className="bg-[#050B14]/80 p-5 rounded-3xl border border-slate-800 flex flex-col gap-4 relative z-20">
             
             {/* Direct Search Input with Custom Standard Add option */}
-            <div className="flex gap-3 items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-500" />
+            <div className="flex gap-2 items-center">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder={t("Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...", "Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...")}
-                  className="w-full pl-12 pr-10 py-3 bg-black/60 backdrop-blur border border-indigo-500/20 text-indigo-100 outline-none rounded-xl focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/30 placeholder:text-slate-500 transition-all text-xs font-mono shadow-inner select-none"
+                  className="w-full pl-10 pr-10 py-2.5 bg-black/40 backdrop-blur border border-slate-800 text-indigo-100 outline-none rounded-xl focus:border-indigo-500/50 focus:bg-black/60 focus:ring-1 focus:ring-indigo-500/30 placeholder:text-slate-600 transition-all text-[11px] font-mono shadow-inner select-none"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors"
                     title="Clear query"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
 
               <button
                 onClick={handleStartCreate}
-                className="flex items-center justify-center gap-1.5 px-4 py-3 bg-indigo-600/95 hover:bg-indigo-500 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 border border-indigo-500/40 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[42px] select-none"
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] font-bold shadow shadow-indigo-600/10 border border-indigo-500/30 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[38px] select-none"
                 title={t('Create a novel custom standard to index in the database', 'Create a novel custom standard to index in the database')}
               >
-                <Plus className="w-4 h-4 text-white" />
+                <Plus className="w-3.5 h-3.5 text-white" />
                 <span>Custom Standard</span>
               </button>
             </div>
 
             {/* Dropdown Filters */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               
               {/* Category selector */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[8px] font-black uppercase tracking-wider text-slate-500 ml-1">Taxonomy Category</label>
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[7.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Taxonomy Category</label>
                 <div className="relative">
                   <select
                     value={selectedCategory}
                     onChange={e => setSelectedCategory(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-black/50 border border-slate-800 text-slate-300 outline-none rounded-lg text-[10px] font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                    className="w-full px-2.5 py-1.5 bg-black/40 border border-slate-800/80 text-slate-300 outline-none rounded-lg text-[10px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
                   >
                     <option value="All">All Categories</option>
                     {categories.map(cat => (
@@ -793,12 +1361,12 @@ export const MaterialDatabaseExplorer: React.FC = () => {
               </div>
 
               {/* Crystal System Selector */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[8px] font-black uppercase tracking-wider text-slate-500 ml-1">Crystal Lattice System</label>
+              <div className="flex flex-col gap-0.5">
+                <label className="text-[7.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Crystal Lattice System</label>
                 <select
                   value={selectedCrystalSystem}
                   onChange={e => setSelectedCrystalSystem(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-black/50 border border-slate-800 text-slate-300 outline-none rounded-lg text-[10px] font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                  className="w-full px-2.5 py-1.5 bg-black/40 border border-slate-800/80 text-slate-300 outline-none rounded-lg text-[10px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
                 >
                   <option value="All">All Lattice Systems</option>
                   <option value="Cubic">Cubic</option>
@@ -813,12 +1381,12 @@ export const MaterialDatabaseExplorer: React.FC = () => {
               </div>
 
               {/* Sort selector */}
-              <div className="col-span-2 md:col-span-1 flex flex-col gap-1">
-                <label className="text-[8px] font-black uppercase tracking-wider text-slate-500 ml-1">Sort Metric</label>
+              <div className="col-span-2 md:col-span-1 flex flex-col gap-0.5">
+                <label className="text-[7.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Sort Metric</label>
                 <select
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value as any)}
-                  className="w-full px-3 py-2.5 bg-black/50 border border-slate-800 text-slate-300 outline-none rounded-lg text-[10px] font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                  className="w-full px-2.5 py-1.5 bg-black/40 border border-slate-800/80 text-slate-300 outline-none rounded-lg text-[10px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
                 >
                   <option value="name">Chemical Name</option>
                   <option value="density">Density</option>
@@ -830,10 +1398,10 @@ export const MaterialDatabaseExplorer: React.FC = () => {
             </div>
 
             {/* Advanced Filters Toggles */}
-            <div className="flex gap-2.5 items-center flex-wrap pt-1 border-t border-slate-900">
+            <div className="flex gap-2 items-center flex-wrap pt-0.5 border-t border-slate-900">
               <button 
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 hover:border-indigo-500/30 text-indigo-300 font-bold rounded-lg transition-colors cursor-pointer text-[9px] font-mono leading-none"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 hover:border-indigo-500/30 text-indigo-300 font-bold rounded-lg transition-colors cursor-pointer text-[9px] font-mono leading-none"
               >
                 <Sliders className="w-3.5 h-3.5" />
                 <span>{showAdvancedFilters ? t('Hide Advanced Limits', 'Hide Advanced Limits') : t('Advanced Range Filters', 'Advanced Range Filters')}</span>
@@ -843,22 +1411,22 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 onClick={() => {
                   setShowCurationTools(!showCurationTools);
                 }}
-                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/30 text-emerald-300 font-bold rounded-lg transition-colors cursor-pointer text-[9px] font-mono leading-none"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/30 text-emerald-300 font-bold rounded-lg transition-colors cursor-pointer text-[9px] font-mono leading-none"
               >
                 <FlaskConical className="w-3.5 h-3.5 animate-pulse" />
-                <span>{showCurationTools ? t('Hide DB Curation Tools', 'Hide DB Curation Tools') : t('Audit & Refine Database', 'Audit & Refine Database')}</span>
+                <span>{showCurationTools ? t('Hide DB Curation', 'Hide DB Curation') : t('Audit & Refine DB', 'Audit & Refine DB')}</span>
               </button>
             </div>
 
             {/* Advanced Range Filters Sub-Drawer */}
             {showAdvancedFilters && (
-              <div className="grid grid-cols-2 gap-3 p-3.5 bg-black/40 rounded-xl border border-slate-900/60 animate-in fade-in slide-in-from-top-1.5 duration-200">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[8px] font-black uppercase tracking-wider text-slate-500 ml-1">Density Threshold</label>
+              <div className="grid grid-cols-2 gap-2 p-3 bg-black/40 rounded-xl border border-slate-900/60 animate-in fade-in slide-in-from-top-1.5 duration-200">
+                <div className="flex flex-col gap-0.5">
+                  <label className="text-[7.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Density Threshold</label>
                   <select
                     value={densityRange}
                     onChange={e => setDensityRange(e.target.value)}
-                    className="w-full px-2.5 py-2 bg-black/50 border border-slate-800 text-slate-300 outline-none rounded-lg text-[10px] font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                    className="w-full px-2.5 py-1.5 bg-black/40 border border-slate-800/80 text-slate-300 outline-none rounded-lg text-[10px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
                   >
                     <option value="All">All Densities (No limit)</option>
                     <option value="Ultra-Light">Ultra-Light (&lt; 1.5 g/cm³)</option>
@@ -868,12 +1436,12 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-[8px] font-black uppercase tracking-wider text-slate-500 ml-1">Mechanical Stiffness</label>
+                <div className="flex flex-col gap-0.5">
+                  <label className="text-[7.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Mechanical Stiffness</label>
                   <select
                     value={elasticRange}
                     onChange={e => setElasticRange(e.target.value)}
-                    className="w-full px-2.5 py-2 bg-black/50 border border-slate-800 text-slate-300 outline-none rounded-lg text-[10px] font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                    className="w-full px-2.5 py-1.5 bg-black/40 border border-slate-800/80 text-slate-300 outline-none rounded-lg text-[10px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
                   >
                     <option value="All">All Stiffness Levels</option>
                     <option value="Ultra-Soft">Ultra-Soft (&lt; 5 GPa)</option>
@@ -916,202 +1484,380 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 </div>
 
                 <p className="text-[10px] font-sans text-slate-300 leading-relaxed">
-                  Analyze inconsistencies across all <strong>{materials.length}</strong> loaded materials. Run one-click refinery cycles to synchronize elements, repair formatting, and align parameters:
+                  Analyze inconsistencies across all <strong>{materials.length}</strong> loaded materials. Run a multi-stage refinery cycle to automatically calculate missing parameters, synchronize elements, scale intensities, and align space groups.
                 </p>
 
-                {/* Audit Health Cards */}
-                <div className="grid grid-cols-2 gap-3 font-mono text-[9px] text-slate-400">
-                  <div className="p-2.5 rounded-lg bg-black/40 border border-slate-900">
-                    <span className="block font-bold text-slate-500 uppercase text-[8px]">Elements Mismatches</span>
-                    <span className="text-white font-extrabold mt-0.5 block text-xs">
-                      {materials.filter(m => {
-                        const regex = /[A-Z][a-z]?/g;
-                        const formulaElements = m.formula ? Array.from(new Set(m.formula.match(regex) || [])) : [];
-                        const elementsList = m.elements || [];
-                        return formulaElements.some(el => !elementsList.includes(el)) || elementsList.some(el => !formulaElements.includes(el));
-                      }).length} Units
-                    </span>
+                {/* Database Refinement Centerpiece */}
+                {isRefiningAll ? (
+                  <div className="p-4 bg-black/45 border border-emerald-500/30 rounded-xl space-y-3.5 text-center animate-pulse">
+                    <div className="flex justify-center items-center gap-2">
+                      <Atom className="w-5 h-5 text-emerald-400 animate-spin" />
+                      <span className="font-mono text-[10px] font-extrabold text-white tracking-widest uppercase">
+                        Running Database Refinement ({refineProgress}%)
+                      </span>
+                    </div>
+
+                    {/* Progress Bar Container */}
+                    <div className="w-full bg-slate-900/90 h-2.5 rounded-full overflow-hidden border border-white/5">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${refineProgress}%` }}
+                        transition={{ ease: "easeInOut" }}
+                        className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-indigo-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]"
+                      />
+                    </div>
+                    
+                    <p className="text-[9px] font-mono font-bold text-slate-300 tracking-wide">
+                      ⚡ {refineStageMsg}
+                    </p>
                   </div>
+                ) : refineSummary ? (
+                  <div className="p-4 bg-emerald-950/40 border border-emerald-500/40 rounded-xl space-y-3 animate-in zoom-in-95 duration-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-black text-emerald-400 tracking-wider flex items-center gap-1.5">
+                        <Check className="w-4 h-4 bg-emerald-500 text-slate-950 p-0.5 rounded-full" />
+                        Refinement Cycle Completed Successfully
+                      </span>
+                      <button 
+                        onClick={() => setRefineSummary(null)} 
+                        className="text-slate-500 hover:text-slate-300 transition-colors text-[9px] font-mono font-bold"
+                      >
+                        [Dismiss]
+                      </button>
+                    </div>
 
-                  <div className="p-2.5 rounded-lg bg-black/40 border border-slate-900">
-                    <span className="block font-bold text-slate-500 uppercase text-[8px]">Missing Stiffness Index</span>
-                    <span className="text-white font-extrabold mt-0.5 block text-xs">
-                      {materials.filter(m => !m.elasticModulus || m.elasticModulus <= 0).length} Sheets
-                    </span>
+                    <div className="grid grid-cols-2 xs:grid-cols-3 gap-2 font-mono text-[9px] text-slate-300 pt-1">
+                      <div className="p-2 bg-black/40 border border-emerald-950 rounded-lg">
+                        <span className="block text-[7.5px] font-bold text-slate-500 uppercase">Processed</span>
+                        <span className="font-extrabold text-white text-xs">{refineSummary.totalProcessed} units</span>
+                      </div>
+                      <div className="p-2 bg-black/40 border border-emerald-950 rounded-lg">
+                        <span className="block text-[7.5px] font-bold text-slate-500 uppercase">Atomic Synced</span>
+                        <span className="font-extrabold text-emerald-400 text-xs">+{refineSummary.elementsSynced}</span>
+                      </div>
+                      <div className="p-2 bg-black/40 border border-emerald-950 rounded-lg">
+                        <span className="block text-[7.5px] font-bold text-slate-500 uppercase">Weight Derived</span>
+                        <span className="font-extrabold text-indigo-400 text-xs">+{refineSummary.mwComputed}</span>
+                      </div>
+                      <div className="p-2 bg-black/40 border border-emerald-950 rounded-lg">
+                        <span className="block text-[7.5px] font-bold text-slate-500 uppercase">Stiffness Imputed</span>
+                        <span className="font-extrabold text-cyan-400 text-xs">+{refineSummary.stiffnessImputed}</span>
+                      </div>
+                      <div className="p-2 bg-black/40 border border-emerald-950 rounded-lg">
+                        <span className="block text-[7.5px] font-bold text-slate-500 uppercase">Symmetries Cleaned</span>
+                        <span className="font-extrabold text-amber-400 text-xs">+{refineSummary.spaceGroupsNormalized}</span>
+                      </div>
+                      <div className="p-2 bg-black/40 border border-emerald-950 rounded-lg">
+                        <span className="block text-[7.5px] font-bold text-slate-500 uppercase">XRD Normalized</span>
+                        <span className="font-extrabold text-pink-400 text-xs">+{refineSummary.patternsNormalized}</span>
+                      </div>
+                      <div className="p-2 col-span-2 xs:col-span-3 bg-black/40 border border-emerald-950 rounded-lg flex justify-between items-center">
+                        <span className="text-[7.5px] text-slate-500 font-bold uppercase">Theoretical Density Calibration</span>
+                        <span className="font-extrabold text-teal-400 text-[10px]">+{refineSummary.densitiesCalibrated} bounds fixed</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {/* Full Stage Refinement Launch Button */}
+                    <button
+                      onClick={handleRunAllRefinements}
+                      className="w-full py-3 bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 border border-emerald-500/30 hover:border-emerald-500/50 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-[0_4px_20px_rgba(16,185,129,0.15)] cursor-pointer transition-all flex items-center justify-center gap-2 group transform active:scale-[0.98]"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-300 animate-pulse group-hover:scale-110 transition-transform" />
+                      Run Multi-Stage Database Refinement Cycle
+                    </button>
 
-                {/* One click Curation action buttons */}
-                <div className="flex gap-2 flex-wrap pt-0.5">
-                  <button
-                    onClick={() => {
-                      const regex = /[A-Z][a-z]?/g;
-                      const next = materials.map(m => {
-                        const formulaElements = m.formula ? Array.from(new Set(m.formula.match(regex) || [])) : [];
-                        return {
-                          ...m,
-                          elements: formulaElements.length > 0 ? formulaElements : m.elements
-                        };
-                      });
-                      saveMaterials(next);
-                      alert(t('Chemical Elements have been auto-synchronized for all materials based on their formulas!', 'Chemical Elements have been auto-synchronized for all materials based on their formulas!'));
-                    }}
-                    className="px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[9px] font-sans font-bold text-emerald-300 rounded-lg cursor-pointer transition-colors"
-                  >
-                    Sync Elements to Formula
-                  </button>
+                    {/* Audit Health Cards */}
+                    <div className="grid grid-cols-2 gap-3 font-mono text-[9px] text-slate-400">
+                      <div className="p-2.5 rounded-lg bg-black/40 border border-slate-900">
+                        <span className="block font-bold text-slate-500 uppercase text-[8px]">Elements Mismatches</span>
+                        <span className="text-white font-extrabold mt-0.5 block text-xs">
+                          {materials.filter(m => {
+                            const regex = /[A-Z][a-z]?/g;
+                            const formulaElements = m.formula ? Array.from(new Set(m.formula.match(regex) || [])) : [];
+                            const elementsList = m.elements || [];
+                            return formulaElements.some(el => !elementsList.includes(el)) || elementsList.some(el => !formulaElements.includes(el));
+                          }).length} Units
+                        </span>
+                      </div>
 
-                  <button
-                    onClick={() => {
-                      const next = materials.map(m => {
-                        if (!m.elasticModulus || m.elasticModulus <= 0) {
-                          const cat = (m.type || '').toLowerCase();
-                          let est = 45; // Default ceramic
-                          if (cat.includes('metal') || cat.includes('alloy')) est = 140;
-                          if (cat.includes('polymer') || cat.includes('chitosan') || cat.includes('silk') || cat.includes('elastomer')) est = 2.5;
-                          if (cat.includes('perovskite') || cat.includes('conductor')) est = 30;
-                          if (cat.includes('biological') || cat.includes('protein') || cat.includes('crystallin')) est = 12;
-                          return { ...m, elasticModulus: est };
-                        }
-                        return m;
-                      });
-                      saveMaterials(next);
-                      alert(t('Missing mechanical stiffness data has been auto-imputed using taxonomy averages!', 'Missing mechanical stiffness data has been auto-imputed using taxonomy averages!'));
-                    }}
-                    className="px-2.5 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-[9px] font-sans font-bold text-cyan-300 rounded-lg cursor-pointer transition-colors"
-                  >
-                    Impute Missing Stiffness
-                  </button>
+                      <div className="p-2.5 rounded-lg bg-black/40 border border-slate-900">
+                        <span className="block font-bold text-slate-500 uppercase text-[8px]">Missing Stiffness Index</span>
+                        <span className="text-white font-extrabold mt-0.5 block text-xs">
+                          {materials.filter(m => !m.elasticModulus || m.elasticModulus <= 0).length} Sheets
+                        </span>
+                      </div>
+                    </div>
 
-                  <button
-                    onClick={() => {
-                      const next = materials.map(m => {
-                        if (!m.spaceGroup || m.spaceGroup.trim() === '') {
-                          return { ...m, spaceGroup: 'P-1' };
-                        }
-                        return { ...m, spaceGroup: m.spaceGroup.trim().replace(/\s+/g, '') };
-                      });
-                      saveMaterials(next);
-                      alert(t('Missing space groups have been normalized and cleaned!', 'Missing space groups have been normalized and cleaned!'));
-                    }}
-                    className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[9px] font-sans font-bold text-amber-300 rounded-lg cursor-pointer transition-colors"
-                  >
-                    Normalize Space Groups
-                  </button>
-                </div>
+                    {/* Granular Manual Tools Header */}
+                    <div className="pt-2 border-t border-slate-900/50 flex flex-col gap-1.5">
+                      <span className="block text-[8px] uppercase tracking-wider font-bold text-slate-400 text-center">Or Apply Granular Manual Corrections</span>
+                      
+                      <div className="flex gap-2 flex-wrap justify-between">
+                        <button
+                          onClick={() => {
+                            const regex = /[A-Z][a-z]?/g;
+                            const next = materials.map(m => {
+                              const formulaElements = m.formula ? Array.from(new Set(m.formula.match(regex) || [])) : [];
+                              return {
+                                ...m,
+                                elements: formulaElements.length > 0 ? formulaElements : m.elements
+                              };
+                            });
+                            saveMaterials(next);
+                            alert(t('Chemical Elements have been auto-synchronized for all materials based on their formulas!', 'Chemical Elements have been auto-synchronized for all materials based on their formulas!'));
+                          }}
+                          className="flex-1 px-2.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-[9px] font-sans font-bold text-emerald-300 rounded-lg cursor-pointer transition-colors text-center"
+                        >
+                          Sync Elements
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const next = materials.map(m => {
+                              if (!m.elasticModulus || m.elasticModulus <= 0) {
+                                const cat = (m.type || '').toLowerCase();
+                                let est = 45; // Default ceramic
+                                if (cat.includes('metal') || cat.includes('alloy')) est = 140;
+                                if (cat.includes('polymer') || cat.includes('chitosan') || cat.includes('silk') || cat.includes('elastomer')) est = 2.5;
+                                if (cat.includes('perovskite') || cat.includes('conductor')) est = 30;
+                                if (cat.includes('biological') || cat.includes('protein') || cat.includes('crystallin')) est = 12;
+                                return { ...m, elasticModulus: est };
+                              }
+                              return m;
+                            });
+                            saveMaterials(next);
+                            alert(t('Missing mechanical stiffness data has been auto-imputed using taxonomy averages!', 'Missing mechanical stiffness data has been auto-imputed using taxonomy averages!'));
+                          }}
+                          className="flex-1 px-2.5 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-[9px] font-sans font-bold text-cyan-300 rounded-lg cursor-pointer transition-colors text-center"
+                        >
+                          Impute Stiffness
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const next = materials.map(m => {
+                              if (!m.spaceGroup || m.spaceGroup.trim() === '') {
+                                return { ...m, spaceGroup: 'P-1' };
+                              }
+                              return { ...m, spaceGroup: m.spaceGroup.trim().replace(/\s+/g, '') };
+                            });
+                            saveMaterials(next);
+                            alert(t('Missing space groups have been normalized and cleaned!', 'Missing space groups have been normalized and cleaned!'));
+                          }}
+                          className="flex-1 px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-[9px] font-sans font-bold text-amber-300 rounded-lg cursor-pointer transition-colors text-center"
+                        >
+                          Clean Space Groups
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Sort order Toggle details */}
+            {/* Sort order Toggle details & Grid/Table Switch */}
             <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono mt-1">
-              <span>Found <span className="font-bold text-indigo-400 font-mono">{filteredAndSortedMaterials.length}</span> matching materials found</span>
-              <button 
-                onClick={() => setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}
-                className="hover:text-indigo-400 font-bold transition-all underline decoration-dotted capitalize"
-              >
-                Order: {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-              </button>
+              <span>Found <span className="font-bold text-indigo-400 font-mono">{filteredAndSortedMaterials.length}</span> matching materials</span>
+              
+              <div className="flex items-center gap-3">
+                {/* View Mode Segmented Control */}
+                <div className="flex bg-black/60 p-0.5 rounded-lg border border-slate-800/80">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-indigo-600/95 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}
+                    title="Grid View Cards"
+                  >
+                    <Grid className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-1 rounded-md transition-colors ${viewMode === 'table' ? 'bg-indigo-600/95 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}
+                    title="Crystallographic Table View"
+                  >
+                    <Columns className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <button 
+                  onClick={() => setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}
+                  className="hover:text-indigo-400 font-bold transition-all underline decoration-dotted capitalize"
+                >
+                  Order: {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Directory Materials List Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {paginatedMaterials.map((material) => {
-              const themeColor = getCategoryThemeColor(material.type || '');
-              const isSelected = selectedMaterialName === material.name;
+          {/* Directory Materials List Container */}
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {paginatedMaterials.map((material) => {
+                const themeColor = getCategoryThemeColor(material.type || '');
+                const isSelected = selectedMaterialName === material.name;
 
-              // Check if actual item is modified compared to standard db
-              const standardItem = MATERIAL_DB.find(m => m.name === material.name);
-              const isItemModified = standardItem ? (
-                standardItem.formula !== material.formula ||
-                standardItem.crystalSystem !== material.crystalSystem ||
-                standardItem.spaceGroup !== material.spaceGroup ||
-                standardItem.density !== material.density ||
-                standardItem.elasticModulus !== material.elasticModulus ||
-                standardItem.description !== material.description ||
-                standardItem.pattern !== material.pattern ||
-                JSON.stringify(standardItem.applications) !== JSON.stringify(material.applications)
-              ) : false;
+                // Check if actual item is modified compared to standard db
+                const standardItem = MATERIAL_DB.find(m => m.name === material.name);
+                const isItemModified = standardItem ? (
+                  standardItem.formula !== material.formula ||
+                  standardItem.crystalSystem !== material.crystalSystem ||
+                  standardItem.spaceGroup !== material.spaceGroup ||
+                  standardItem.density !== material.density ||
+                  standardItem.elasticModulus !== material.elasticModulus ||
+                  standardItem.description !== material.description ||
+                  standardItem.pattern !== material.pattern ||
+                  JSON.stringify(standardItem.applications) !== JSON.stringify(material.applications)
+                ) : false;
 
-              // Color classes
-              const activeBorderColor = isSelected 
-                ? 'border-indigo-500/80 shadow-[0_0_20px_rgba(99,102,241,0.15)] bg-slate-900/60' 
-                : 'border-slate-800/80 hover:border-indigo-500/20 bg-black/30 hover:bg-black/50';
+                // Color classes
+                const activeBorderColor = isSelected 
+                  ? 'border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)] bg-[#050B14]' 
+                  : 'border-slate-800/80 hover:border-slate-600 bg-[#020617] hover:bg-[#030914]';
 
-              const indicatorBadgeTheme: any = {
-                amber: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
-                blue: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
-                cyan: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20',
-                fuchsia: 'bg-fuchsia-500/10 text-fuchsia-300 border-fuchsia-500/20',
-                rose: 'bg-rose-500/10 text-rose-300 border-rose-500/20',
-                orange: 'bg-orange-500/10 text-orange-300 border-orange-500/20',
-                yellow: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/20',
-                emerald: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-                violet: 'bg-violet-500/10 text-violet-300 border-violet-500/20',
-                purple: 'bg-purple-500/10 text-purple-300 border-purple-500/20',
-                teal: 'bg-teal-500/10 text-teal-300 border-teal-500/20',
-                slate: 'bg-slate-500/10 text-slate-300 border border-slate-500/20'
-              };
+                const indicatorBadgeTheme: any = {
+                  amber: 'text-amber-400 bg-amber-400/10',
+                  blue: 'text-blue-400 bg-blue-400/10',
+                  cyan: 'text-cyan-400 bg-cyan-400/10',
+                  fuchsia: 'text-fuchsia-400 bg-fuchsia-400/10',
+                  rose: 'text-rose-400 bg-rose-400/10',
+                  orange: 'text-orange-400 bg-orange-400/10',
+                  yellow: 'text-yellow-400 bg-yellow-400/10',
+                  emerald: 'text-emerald-400 bg-emerald-400/10',
+                  violet: 'text-violet-400 bg-violet-400/10',
+                  purple: 'text-purple-400 bg-purple-400/10',
+                  teal: 'text-teal-400 bg-teal-400/10',
+                  slate: 'text-slate-400 bg-slate-800/50'
+                };
 
-              const countOfPeaks = material.pattern.split('\n').filter(p=>p.trim()).length;
+                const countOfPeaks = material.pattern.split('\n').filter(p=>p.trim()).length;
 
-              return (
-                <div
-                  key={material.name}
-                  onClick={() => {
-                    setSelectedMaterialName(material.name);
-                    setIsEditing(false); // Close edit mode on change
-                  }}
-                  className={`p-4 border rounded-2xl cursor-pointer transition-all duration-300 flex flex-col justify-between ${activeBorderColor}`}
-                >
-                  <div>
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="text-xs font-black text-white/95 leading-tight truncate max-w-[150px] flex items-center gap-1.5" title={material.name}>
-                        {isItemModified && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping inline-block" title="Has manual overrides" />
-                        )}
-                        {material.name}
-                      </span>
-                      <span className={`text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${indicatorBadgeTheme[themeColor] || indicatorBadgeTheme.slate}`}>
-                        {material.type || 'Custom'}
-                      </span>
+                return (
+                  <div
+                    key={material.name}
+                    onClick={() => {
+                      setSelectedMaterialName(material.name);
+                      setIsEditing(false); // Close edit mode on change
+                    }}
+                    className={`group relative p-3 border rounded-xl cursor-pointer transition-all duration-300 flex flex-col justify-between ${activeBorderColor}`}
+                  >
+                    {/* Top decoration line for selected */}
+                    {isSelected && <div className="absolute top-0 inset-x-0 h-[2px] bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />}
+
+                    <div>
+                      <div className="flex justify-between items-start gap-2 mb-2">
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded inline-block w-fit ${indicatorBadgeTheme[themeColor] || indicatorBadgeTheme.slate}`}>
+                            {material.type || 'Custom'}
+                          </span>
+                          <span className="text-sm font-black text-slate-100 flex items-center gap-1.5 mt-1 truncate" title={material.name}>
+                            {isItemModified && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping inline-block" title="Has manual overrides" />
+                            )}
+                            {material.name}
+                          </span>
+                        </div>
+                        <div className="text-right flex flex-col items-end gap-1 font-mono">
+                          <span className="text-[11px] text-cyan-400 font-bold bg-cyan-950/30 px-1.5 py-0.5 rounded border border-cyan-500/20 shadow-sm">
+                            {material.formula}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mt-3 font-mono">
+                        <div className="flex flex-col">
+                          <span className="text-[7px] text-slate-500 uppercase font-bold tracking-wider">Crystal System</span>
+                          <span className="text-[10px] text-slate-300 truncate">{material.crystalSystem || 'Crystalline'}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[7px] text-slate-500 uppercase font-bold tracking-wider">Space Group</span>
+                          <span className="text-[10px] text-slate-300 font-bold">{material.spaceGroup || 'Unknown'}</span>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Formula standard design */}
-                    <div className="flex justify-between items-baseline mt-2 font-mono">
-                      <span className="text-[10px] text-cyan-400 font-bold bg-cyan-500/5 px-2 py-0.5 rounded-md border border-cyan-500/10 font-mono">
-                        {material.formula}
+                    <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500">
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-block w-1 h-1 rounded-full bg-emerald-500" />
+                        ρ: <span className="text-emerald-400 font-bold">{material.density ? material.density.toFixed(2) : '-'}</span>
                       </span>
-                      <span className="text-[9px] text-slate-500 font-bold">
-                        {material.crystalSystem || 'Crystalline'}
+                      <span className="flex items-center gap-1.5">
+                        <Activity className="w-3 h-3 text-slate-600 group-hover:text-indigo-400 transition-colors" /> 
+                        <span className="text-indigo-400 font-bold">{countOfPeaks}</span> <span className="text-[8px] uppercase tracking-wider text-slate-600">Peaks</span>
                       </span>
                     </div>
-
-                    <p className="text-[9px] text-slate-400/80 mt-2.5 truncate-2-lines line-clamp-2 leading-relaxed h-8">
-                      {material.description}
-                    </p>
                   </div>
+                );
+              })}
 
-                  <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-slate-950/20 text-[9px] font-mono text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Compass className="w-3" /> SG: <span className="text-slate-300 font-bold">{material.spaceGroup || 'Unknown'}</span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Activity className="w-3" /> Peaks: <span className="text-indigo-400 font-bold">{countOfPeaks}</span>
-                    </span>
-                  </div>
+              {filteredAndSortedMaterials.length === 0 && (
+                <div className="col-span-2 py-16 text-center text-slate-500 space-y-2 border border-dashed border-slate-800 rounded-3xl">
+                  <ShieldAlert className="w-8 h-8 text-slate-600 mx-auto" />
+                  <p className="text-sm font-bold uppercase tracking-wider font-mono">No matching standards found</p>
+                  <p className="text-[10px] text-slate-600 font-mono">Try adjusting your filtration criteria or spellings.</p>
                 </div>
-              );
-            })}
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto bg-[#050B14]/60 border border-slate-800/80 rounded-2xl shadow-xl">
+              <table className="w-full text-left border-collapse text-[10px] font-mono">
+                <thead>
+                  <tr className="border-b border-slate-800/85 bg-indigo-950/15 text-slate-400 select-none">
+                    <th className="py-3 px-4 font-black uppercase tracking-wider text-[8px]">Formula & Name</th>
+                    <th className="py-3 px-3 font-black uppercase tracking-wider text-[8px]">Lattice System</th>
+                    <th className="py-3 px-3 font-black uppercase tracking-wider text-[8px] text-right">Density (g/cm³)</th>
+                    <th className="py-3 px-3 font-black uppercase tracking-wider text-[8px] text-right">Modulus (GPa)</th>
+                    <th className="py-3 px-3 font-black uppercase tracking-wider text-[8px] text-center">XRD Peaks</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-900/50">
+                  {paginatedMaterials.map((material) => {
+                    const isSelected = selectedMaterialName === material.name;
+                    const countOfPeaks = material.pattern.split('\n').filter(p=>p.trim()).length;
+                    return (
+                      <tr
+                        key={material.name}
+                        onClick={() => {
+                          setSelectedMaterialName(material.name);
+                          setIsEditing(false);
+                        }}
+                        className={`cursor-pointer transition-colors duration-150 group hover:bg-indigo-500/5 text-slate-350 ${isSelected ? 'bg-indigo-500/10 text-indigo-200 font-bold' : 'bg-transparent'}`}
+                      >
+                        <td className="py-3 px-4">
+                          <div className="font-extrabold text-white flex items-center gap-2 font-sans text-xs">
+                            <span className="text-[9px] text-cyan-400 font-mono font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                              {material.formula}
+                            </span>
+                            <span className="truncate max-w-[150px]" title={material.name}>{material.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <div className="text-slate-300 font-sans text-[10px] font-bold">{material.crystalSystem || 'N/A'}</div>
+                          <div className="text-[8px] text-slate-500 font-mono tracking-tight mt-0.5">{material.spaceGroup || 'N/A'}</div>
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono text-emerald-450 font-bold text-xs">
+                          {material.density ? material.density.toFixed(2) : '-'}
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono text-amber-450 font-bold text-xs">
+                          {material.elasticModulus || '-'}
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono font-black text-indigo-400 text-xs">
+                          {countOfPeaks}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
 
-            {filteredAndSortedMaterials.length === 0 && (
-              <div className="col-span-2 py-16 text-center text-slate-500 space-y-2 border border-dashed border-slate-800 rounded-3xl">
-                <ShieldAlert className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="text-sm font-bold uppercase tracking-wider font-mono">No matching standards found</p>
-                <p className="text-[10px] text-slate-600 font-mono">Try adjusting your filtration criteria or spellings.</p>
-              </div>
-            )}
-          </div>
+              {filteredAndSortedMaterials.length === 0 && (
+                <div className="py-16 text-center text-slate-600 space-y-2">
+                  <ShieldAlert className="w-8 h-8 text-slate-755 mx-auto" />
+                  <p className="text-xs font-black uppercase tracking-wider font-mono">No matching standards found</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
@@ -1667,135 +2413,340 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                     {selectedMaterial.description}
                   </p>
 
-                  {/* Quantitative Profile Grid */}
-                  <div className="grid grid-cols-2 gap-3 font-mono">
-                    
-                    <div className="p-3 bg-black/40 border border-slate-800/60 rounded-xl">
-                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Crystal System</span>
-                      <span className="text-xs block text-slate-200 mt-1 truncate" title={selectedMaterial.crystalSystem}>
-                        {selectedMaterial.crystalSystem || 'N/A'}
-                      </span>
-                    </div>
-
-                    <div className="p-3 bg-black/40 border border-slate-800/60 rounded-xl">
-                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Space Group</span>
-                      <span className="text-xs block text-slate-200 mt-1 uppercase font-bold">
+                  {/* Core Telemetry Grid (Always Visible) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 font-mono">
+                    <div className="p-2.5 bg-black/45 border border-slate-800/60 rounded-xl">
+                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold leading-none">Space Group</span>
+                      <span className="text-[11px] block text-indigo-300 font-black mt-1 uppercase truncate">
                         {selectedMaterial.spaceGroup || 'N/A'}
                       </span>
                     </div>
 
-                    <div className="p-3 bg-black/40 border border-slate-800/60 rounded-xl">
-                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Density</span>
-                      <span className="text-xs block text-emerald-400 font-extrabold mt-1">
+                    <div className="p-2.5 bg-black/45 border border-slate-800/60 rounded-xl">
+                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold leading-none">Crystal System</span>
+                      <span className="text-[11px] block text-slate-200 mt-1 uppercase font-extrabold truncate" title={selectedMaterial.crystalSystem}>
+                        {selectedMaterial.crystalSystem || 'N/A'}
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 bg-black/45 border border-slate-800/60 rounded-xl">
+                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold leading-none">Density</span>
+                      <span className="text-[11px] block text-emerald-400 font-extrabold mt-1">
                         {selectedMaterial.density ? `${selectedMaterial.density} g/cm³` : 'N/A'}
                       </span>
                     </div>
 
-                    <div className="p-3 bg-black/40 border border-slate-800/60 rounded-xl">
-                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Elastic Modulus</span>
-                      <span className="text-xs block text-amber-400 font-extrabold mt-1">
+                    <div className="p-2.5 bg-black/45 border border-slate-800/60 rounded-xl">
+                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-bold leading-none">Elastic Modulus</span>
+                      <span className="text-[11px] block text-amber-500 font-extrabold mt-1">
                         {selectedMaterial.elasticModulus ? `${selectedMaterial.elasticModulus} GPa` : 'N/A'}
                       </span>
                     </div>
-
-                    <div className="p-3 bg-black/40 border border-slate-800/60 rounded-xl">
-                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Mol. Weight</span>
-                      <span className="text-xs block text-indigo-400 font-extrabold mt-1">
-                        {selectedMaterial.molecularWeight ? `${selectedMaterial.molecularWeight} g/mol` : 'N/A'}
-                      </span>
-                    </div>
-
-                    <div className="p-3 bg-black/40 border border-slate-800/60 rounded-xl">
-                      <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Elements Involved</span>
-                      <div className="flex gap-1 flex-wrap mt-1">
-                        {selectedMaterial.elements?.map(el => (
-                          <span key={el} className="text-[8px] bg-slate-800 border border-slate-700 font-black px-1.5 py-0.5 rounded text-white antialiased">
-                            {el}
-                          </span>
-                        )) || '-'}
-                      </div>
-                    </div>
-
                   </div>
 
-                  {/* Scientific Applications list */}
-                  {selectedMaterial.applications && selectedMaterial.applications.length > 0 && (
-                    <div className="space-y-2">
-                      <h4 className="text-[10px] tracking-widest font-black uppercase text-slate-400 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                        Key Applications & Roles
-                      </h4>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {selectedMaterial.applications.map(app => (
-                          <span key={app} className="text-[9px] font-sans font-bold px-2.5 py-1 rounded-lg bg-indigo-500/5 text-slate-300 border border-indigo-500/10 animate-in fade-in zoom-in-95 duration-250">
-                            {app}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Scientific Tabs Switcher */}
+                  <div className="border-b border-slate-800/80 flex gap-2">
+                    <button
+                      onClick={() => setActiveDetailTab('spectrum')}
+                      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${activeDetailTab === 'spectrum' ? 'border-cyan-500 text-cyan-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                    >
+                      📊 Analyzed XRD Spectrum
+                    </button>
+                    <button
+                      onClick={() => setActiveDetailTab('lattice')}
+                      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${activeDetailTab === 'lattice' ? 'border-indigo-500 text-indigo-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                    >
+                      💎 Lattice Unit Cell
+                    </button>
+                    <button
+                      onClick={() => setActiveDetailTab('composition')}
+                      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${activeDetailTab === 'composition' ? 'border-amber-500 text-amber-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                    >
+                      🧪 Composition & Roles
+                    </button>
+                  </div>
 
-                  {/* LIVE DIFFRACTION SIMULATED projection bar */}
-                  <div className="space-y-2 pt-2 border-t border-slate-800">
-                    <h4 className="text-[10px] tracking-widest font-black uppercase text-slate-400 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <Activity className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-                        Simulated Diffraction projection (2-Theta)
-                      </span>
-                      <span className="text-[8px] font-mono text-slate-500 uppercase tracking-wider">Cu-Kα (1.5406 Å)</span>
-                    </h4>
-                    
-                    {/* Simulated Spectrum chart peaks */}
-                    <div className="relative h-28 w-full bg-slate-950/80 rounded-xl border border-slate-900/80 overflow-hidden px-4">
-                      {/* Grid background markers */}
-                      <div className="absolute inset-x-0 bottom-0 top-[20%] flex justify-between px-2 text-[8px] font-mono text-slate-800 opacity-60 pointer-events-none">
-                        <span>20°</span>
-                        <span>40°</span>
-                        <span>60°</span>
-                        <span>85°</span>
-                      </div>
-                      
-                      {/* Interactive Peak render */}
-                      <div className="absolute inset-0 flex items-end justify-center pb-6">
-                        {parsedPeaks.map((p, idx) => {
-                          // Scale 2-theta to percent. Typical sweep is 10° to 90° for XRD
-                          const minTheta = 10;
-                          const maxTheta = 90;
-                          const percentX = Math.max(0, Math.min(100, ((p.twoTheta - minTheta) / (maxTheta - minTheta)) * 100));
-                          const heightPct = Math.max(10, p.intensity); // Intensity is 0 to 100
-
-                          return (
-                            <div 
-                              key={idx}
-                              className="absolute top-0 bottom-6 group/peak flex items-end animate-in slide-in-from-bottom-2 duration-300"
-                              style={{ left: `${percentX}%` }}
+                  {/* Tab Contents */}
+                  <div className="space-y-4">
+                    {activeDetailTab === 'spectrum' && (
+                      <div className="space-y-4 animate-in fade-in duration-300">
+                        {/* Parameter Controls Panel */}
+                        <div className="p-3 bg-black/35 border border-slate-800/50 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Anode select */}
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Diffractometer Source (Anode)</label>
+                            <select
+                              value={xrdWavelength}
+                              onChange={e => setXrdWavelength(parseFloat(e.target.value))}
+                              className="w-full bg-[#050B14]/80 px-2 py-1.5 border border-slate-800 text-[10px] font-bold text-slate-300 outline-none rounded-lg cursor-pointer"
                             >
-                              {/* Peak vertical line */}
-                              <div className="relative w-0.5 h-full bg-cyan-500/40 group-hover/peak:bg-indigo-400 transition-colors">
-                                <div 
-                                  className="absolute bottom-0 w-[2px] bg-gradient-to-t from-cyan-400 to-indigo-500 transition-all shadow-[0_0_8px_rgba(34,211,238,0.5)]"
-                                  style={{ height: `${heightPct}%`, left: '-0.5px' }}
-                                />
-                                
-                                {/* Live peak badge tooltip hovering */}
-                                <div className="absolute bottom-[calc(100%+4px)] left-1/2 -translate-x-1/2 px-2 py-1 rounded bg-[#0B1221] border border-cyan-500/30 text-[8px] font-mono whitespace-nowrap opacity-0 pointer-events-none group-hover/peak:opacity-100 transition-opacity z-50 shadow-2xl">
-                                  2θ: {p.twoTheta.toFixed(2)}° | Int: {p.intensity}%
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                              <option value={1.54059}>Cu-Kα (λ = 1.5406 Å)</option>
+                              <option value={0.71073}>Mo-Kα (λ = 0.7107 Å)</option>
+                              <option value={1.78896}>Co-Kα (λ = 1.7890 Å)</option>
+                              <option value={1.93604}>Fe-Kα (λ = 1.9360 Å)</option>
+                            </select>
+                          </div>
 
-                      {/* Tick axis description */}
-                      <div className="absolute bottom-0 inset-x-0 h-5 bg-black/60 border-t border-slate-900/60 flex justify-between px-4 items-center text-[8px] font-mono text-slate-500">
-                        <span>10°</span>
-                        <span>30°</span>
-                        <span>50°</span>
-                        <span>70°</span>
-                        <span>90° 2θ</span>
+                          {/* Broadening slider */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-baseline">
+                              <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Grain Broadening (FWHM)</label>
+                              <span className="text-[8px] text-cyan-400 font-mono font-bold">{xrdFwhm.toFixed(2)}° 2θ</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={0.15}
+                              max={1.0}
+                              step={0.05}
+                              value={xrdFwhm}
+                              onChange={e => setXrdFwhm(parseFloat(e.target.value))}
+                              className="w-full h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Interactive Continuous Diffractogram Plot */}
+                        <div className="space-y-1.5">
+                          <div className="flex justify-between items-center text-[9px] font-mono font-bold text-slate-400">
+                            <span>Intensity Trace</span>
+                            <span className="text-[8px] text-slate-500">Min 2θ: 10° | Max 2θ: 90°</span>
+                          </div>
+
+                          <div className="relative h-44 w-full bg-[#030712] rounded-xl border border-slate-900 overflow-hidden">
+                            {/* Grid markers */}
+                            <svg className="absolute inset-0 w-full h-full pointer-events-none text-slate-900">
+                              <line x1="0%" y1="20%" x2="100%" y2="20%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                              <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                              <line x1="0%" y1="80%" x2="100%" y2="80%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                              <line x1="25%" y1="0" x2="25%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                              <line x1="50%" y1="0" x2="50%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                              <line x1="75%" y1="0" x2="75%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                            </svg>
+
+                            {/* Spectrum curve paths */}
+                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 180" preserveAspectRatio="none">
+                              <defs>
+                                <linearGradient id="xrdSpectrumGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                  <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.38" />
+                                  <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.00" />
+                                </linearGradient>
+                              </defs>
+                              
+                              {/* Filled continuous curve area */}
+                              <path 
+                                d={(() => {
+                                  // Live compute continuous Area path inside SVG bounds
+                                  const steps = 240;
+                                  const min2Theta = 10;
+                                  const max2Theta = 90;
+                                  const sigma = xrdFwhm / 2.35482;
+                                  let path = "M 0,180 ";
+                                  for (let i = 0; i <= steps; i++) {
+                                    const twoTheta = min2Theta + (i / steps) * (max2Theta - min2Theta);
+                                    let intensity = 0;
+                                    shiftedPeaks.forEach(p => {
+                                      const diff = twoTheta - p.twoTheta;
+                                      intensity += p.intensity * Math.exp(-(diff * diff) / (2 * sigma * sigma));
+                                    });
+                                    const baseline = 2 * Math.exp(-twoTheta / 35);
+                                    const pseudoNoise = (Math.sin(twoTheta * 5) * 0.4 + Math.sin(twoTheta * 17) * 0.2 + (Math.sin(twoTheta * 97) * 0.1));
+                                    const finalVal = Math.min(100, Math.max(0, intensity + baseline + pseudoNoise + 1));
+                                    const x = (i / steps) * 100;
+                                    const y = 180 - (finalVal / 100) * 145;
+                                    path += `L ${x.toFixed(1)},${y.toFixed(1)} `;
+                                  }
+                                  path += "L 100,180 Z";
+                                  return path;
+                                })()} 
+                                fill="url(#xrdSpectrumGradient)" 
+                              />
+
+                              {/* Crisp glowing line path */}
+                              <path 
+                                d={(() => {
+                                  const steps = 240;
+                                  const min2Theta = 10;
+                                  const max2Theta = 90;
+                                  const sigma = xrdFwhm / 2.35482;
+                                  let path = "";
+                                  for (let i = 0; i <= steps; i++) {
+                                    const twoTheta = min2Theta + (i / steps) * (max2Theta - min2Theta);
+                                    let intensity = 0;
+                                    shiftedPeaks.forEach(p => {
+                                      const diff = twoTheta - p.twoTheta;
+                                      intensity += p.intensity * Math.exp(-(diff * diff) / (2 * sigma * sigma));
+                                    });
+                                    const baseline = 2 * Math.exp(-twoTheta / 35);
+                                    const pseudoNoise = (Math.sin(twoTheta * 5) * 0.4 + Math.sin(twoTheta * 17) * 0.2 + (Math.sin(twoTheta * 97) * 0.1));
+                                    const finalVal = Math.min(100, Math.max(0, intensity + baseline + pseudoNoise + 1));
+                                    const x = (i / steps) * 100;
+                                    const y = 180 - (finalVal / 100) * 145;
+                                    path += (i === 0 ? "M " : "L ") + `${x.toFixed(1)},${y.toFixed(1)} `;
+                                  }
+                                  return path;
+                                })()} 
+                                fill="none" 
+                                stroke="#22d3ee" 
+                                strokeWidth="2" 
+                              />
+                            </svg>
+
+                            {/* Individual peak reference points */}
+                            <div className="absolute inset-0 flex items-end justify-center pointer-events-none">
+                              {shiftedPeaks.map((p, idx) => {
+                                const minTheta = 10;
+                                const maxTheta = 90;
+                                const percentX = Math.max(0, Math.min(100, ((p.twoTheta - minTheta) / (maxTheta - minTheta)) * 100));
+                                return (
+                                  <div 
+                                    key={idx}
+                                    style={{ left: `${percentX}%` }}
+                                    className="absolute bottom-6 top-0 group/pmark w-0 rounded-full"
+                                  >
+                                    {/* Vertical dashed line marking structural peak position */}
+                                    <div className="absolute inset-y-0 w-[1px] border-l border-dashed border-cyan-500/10 group-hover/pmark:border-cyan-500/50" />
+                                    
+                                    {/* Live Peak metadata flag */}
+                                    <div className="absolute bottom-[20%] left-0 -translate-x-1/2 p-1.5 rounded-md bg-[#020617]/90 border border-indigo-500/20 text-[7px] font-mono whitespace-nowrap opacity-0 group-hover/pmark:opacity-100 transition-opacity z-10 shadow-xl">
+                                      {p.twoTheta.toFixed(3)}° (Int: {p.intensity.toFixed(1)}%)
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Tick values */}
+                            <div className="absolute bottom-0 inset-x-0 h-5 bg-black/85 border-t border-slate-900 flex justify-between px-3 items-center text-[8px] font-mono text-slate-500 select-none">
+                              <span>10° 2θ</span>
+                              <span>30°</span>
+                              <span>50°</span>
+                              <span>70°</span>
+                              <span>90° 2θ</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Peak Bragg Spacing Table */}
+                        <div className="space-y-1.5 font-mono">
+                          <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Simulated Multi-Plane Reflections & spacings</span>
+                          <div className="max-h-32 overflow-y-auto border border-slate-900 rounded-xl bg-black/25 custom-scrollbar text-[10px] font-mono">
+                            <table className="w-full text-left">
+                              <thead>
+                                <tr className="border-b border-slate-900 bg-slate-950/20 text-slate-400 sticky top-0">
+                                  <th className="py-2 px-3 text-[9px] uppercase font-bold text-slate-500">2-Theta Angle</th>
+                                  <th className="py-2 px-3 text-right text-[9px] uppercase font-bold text-slate-500">d-Spacing (Å)</th>
+                                  <th className="py-2 px-3 text-right text-[9px] uppercase font-bold text-slate-500">Relative Int.</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-900/60 font-mono">
+                                {shiftedPeaks.map((p, idx) => (
+                                  <tr key={idx} className="hover:bg-slate-900/20 text-slate-350">
+                                    <td className="py-1.5 px-3 font-semibold">{p.twoTheta.toFixed(3)}°</td>
+                                    <td className="py-1.5 px-3 text-right text-cyan-400 font-bold">{p.dSpacing.toFixed(5)} Å</td>
+                                    <td className="py-1.5 px-3 text-right font-semibold text-indigo-400">{p.intensity.toFixed(1)}%</td>
+                                  </tr>
+                                ))}
+                                {shiftedPeaks.length === 0 && (
+                                  <tr>
+                                    <td colSpan={3} className="py-4 text-center text-slate-500">All Bragg planes extinguished at this wavelength</td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                    {activeDetailTab === 'lattice' && (
+                      <div className="space-y-4 animate-in fade-in duration-300">
+                        {renderCrystalLattice(selectedMaterial.crystalSystem)}
+                        
+                        <div className="p-3.5 bg-black/35 border border-slate-900 rounded-xl text-[10px] space-y-2">
+                          <h4 className="font-bold text-white uppercase tracking-wider flex items-center gap-1.5 leading-none">
+                            <Box className="w-3.5 h-3.5 text-indigo-400" />
+                            Unit Cell Lattice Parameters
+                          </h4>
+                          <p className="text-slate-400 leading-relaxed font-sans text-[11px]">
+                            Lattice systems govern a material's intrinsic mechanical resilience, packing density, and crystallographic symmetries. The visual wireframe rotating above represents the ideal unit cell projected on a continuous 3D axis.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {activeDetailTab === 'composition' && (
+                      <div className="space-y-4 animate-in fade-in duration-300">
+                        {/* Chemical Detail row */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-black/40 border border-slate-800/60 rounded-xl font-mono">
+                            <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Molecular Weight</span>
+                            <span className="text-xs block text-slate-200 mt-1 uppercase font-bold">
+                              {selectedMaterial.molecularWeight ? `${selectedMaterial.molecularWeight.toFixed(3)} g/mol` : 'N/A'}
+                            </span>
+                          </div>
+
+                          <div className="p-3 bg-black/40 border border-slate-800/60 rounded-xl font-mono">
+                            <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Formula Unit</span>
+                            <span className="text-xs block text-cyan-400 mt-1 font-bold">
+                              {selectedMaterial.formula || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Element Cards Block */}
+                        <div className="space-y-2">
+                          <span className="block text-[8px] uppercase tracking-wider text-slate-400 font-bold">Constituent Element Profiles</span>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            {selectedMaterial.elements?.map(el => {
+                              const detail = ELEMENT_DETAILS[el] || {
+                                name: "Unknown Element",
+                                z: "?",
+                                weight: "?",
+                                category: "Unclassified",
+                                color: "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                              };
+                              return (
+                                <div key={el} className={`p-2.5 border rounded-xl flex items-center justify-between ${detail.color}`}>
+                                  <div>
+                                    <div className="flex items-baseline gap-1.5">
+                                      <span className="text-sm font-bold uppercase font-mono tracking-tight text-white">{el}</span>
+                                      <span className="text-[9px] font-sans text-slate-400 truncate max-w-[80px]">{detail.name}</span>
+                                    </div>
+                                    <div className="text-[7px] uppercase font-bold text-slate-500 tracking-wider mt-0.5">{detail.category}</div>
+                                  </div>
+                                  <div className="text-right font-mono">
+                                    <div className="text-xs font-black text-white leading-none">Z {detail.z}</div>
+                                    <div className="text-[7px] text-slate-500 font-bold mt-1">
+                                      {typeof detail.weight === 'number' ? `${detail.weight.toFixed(2)} u` : detail.weight}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {(!selectedMaterial.elements || selectedMaterial.elements.length === 0) && (
+                              <div className="col-span-2 py-3 text-center text-slate-600 font-mono text-[9px]">No elemental constituents specified</div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Scientific Applications list */}
+                        {selectedMaterial.applications && selectedMaterial.applications.length > 0 && (
+                          <div className="space-y-2 pt-2.5 border-t border-slate-900">
+                            <h4 className="text-[8px] tracking-widest font-black uppercase text-slate-400 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                              Key Applications & Roles
+                            </h4>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {selectedMaterial.applications.map(app => (
+                                <span key={app} className="text-[9px] font-sans font-bold px-2.5 py-1 rounded-lg bg-indigo-500/5 text-slate-300 border border-indigo-500/10 animate-in fade-in zoom-in-95 duration-250">
+                                  {app}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                 </div>

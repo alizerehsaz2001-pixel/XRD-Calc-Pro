@@ -424,6 +424,68 @@ export const DeepLearningModule: React.FC = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
 
+  // AI Synthesis formulation states
+  const [synthAiResult, setSynthAiResult] = useState<string | null>(null);
+  const [synthAiLoading, setSynthAiLoading] = useState<boolean>(false);
+  const [synthAiFocus, setSynthAiFocus] = useState<"purity" | "defects" | "confinement">("purity");
+  const [synthAiStep, setSynthAiStep] = useState<string>("");
+  const [recipeCopied, setRecipeCopied] = useState<boolean>(false);
+
+  const handleRunSynthesisAI = async () => {
+    if (!selectedCandidate) return;
+    setSynthAiResult(null);
+    setSynthAiLoading(true);
+    
+    const steps = [
+      "Calibrating thermodynamic boundaries...",
+      "Resolving Arrhenius diffusion kinetics...",
+      "Simulating crystal growth constraints...",
+      "Generating dynamic stoichiometric formulation..."
+    ];
+    
+    let currentStepIdx = 0;
+    setSynthAiStep(steps[currentStepIdx]);
+    
+    const interval = setInterval(() => {
+      if (currentStepIdx < steps.length - 1) {
+        currentStepIdx++;
+        setSynthAiStep(steps[currentStepIdx]);
+      }
+    }, 1800);
+
+    try {
+      const response = await fetch("/api/gemini/synthesis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phaseName: selectedCandidate.phase_name,
+          formula: selectedCandidate.formula,
+          morphology: synthMorphology,
+          size: synthSize,
+          temp: synthTemp,
+          time: synthTime,
+          doping: synthDoping,
+          pH: synthPH,
+          atmosphere: synthAtmosphere,
+          focus: synthAiFocus
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setSynthAiResult(data.text);
+      } else {
+        setSynthAiResult(`### Synthesis Generation Error\n\n${data.error || "Could not retrieve the formulation route."}`);
+      }
+    } catch (err: any) {
+      setSynthAiResult(`### Network Interface Failure\n\nFailed to establish connection to Synthesis Intelligence engine: ${err.message}`);
+    } finally {
+      clearInterval(interval);
+      setSynthAiLoading(false);
+      setSynthAiStep("");
+    }
+  };
+
   // Enhanced Diffraction Pattern Input controls states
   const [activeInputTool, setActiveInputTool] = useState<"none" | "presets" | "preview" | "denoise" | "noise">("presets");
   const [inputSgWindow, setInputSgWindow] = useState<number>(11);
@@ -8013,6 +8075,147 @@ ${
                         </button>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* AI Synthesis Route Intelligence & Recipe Optimizer */}
+                <div className="mt-8 p-8 bg-gradient-to-b from-[#080F1D]/90 to-[#040913]/90 border border-slate-800/80 rounded-3xl relative overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.015),0_10px_40px_rgba(0,0,0,0.6)]">
+                  <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
+                  
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800/60 pb-6 mb-6 gap-4 relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                        <FlaskConical className="w-6 h-6 animate-pulse" />
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-black text-slate-200 uppercase tracking-wider">
+                          Synthesis Route Intelligence Advisor
+                        </h4>
+                        <p className="text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em] mt-0.5">
+                          Stoichiometric Precursor Synthesis & Morphological Capping Assistant
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Focus parameters */}
+                    <div className="flex flex-wrap gap-2">
+                      {(["purity", "defects", "confinement"] as const).map((focus) => (
+                        <button
+                          key={focus}
+                          onClick={() => setSynthAiFocus(focus)}
+                          disabled={synthAiLoading}
+                          className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+                            synthAiFocus === focus
+                              ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+                              : "bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
+                          }`}
+                        >
+                          {focus === "purity" && "Phase Purity"}
+                          {focus === "defects" && "Defect Mechanics"}
+                          {focus === "confinement" && "Quantum Confinement"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="relative z-10">
+                    {synthAiLoading ? (
+                      <div className="py-14 flex flex-col items-center justify-center text-center">
+                        <div className="relative w-24 h-24 mb-6">
+                            <div className="absolute inset-x-0 inset-y-0 rounded-full border-2 border-cyan-500/20" />
+                            <div className="absolute inset-x-0 inset-y-0 rounded-full border-t-2 border-cyan-400 animate-spin" />
+                            <div className="absolute inset-3 rounded-full border border-indigo-500/20" />
+                            <div className="absolute inset-3 rounded-full border-b border-indigo-400 animate-spin" />
+                            <div className="absolute inset-x-0 inset-y-0 flex items-center justify-center text-cyan-400 font-mono text-[9px] font-bold uppercase tracking-widest animate-pulse">
+                              AI Core
+                            </div>
+                        </div>
+                        <h5 className="text-sm font-bold text-slate-200 uppercase tracking-widest mb-1.5 font-mono">
+                          {synthAiStep}
+                        </h5>
+                        <p className="text-[10px] text-slate-500 max-w-sm leading-relaxed uppercase tracking-wider font-mono">
+                          Modeling nucleostatic phase matrices for {selectedCandidate.phase_name}
+                        </p>
+                        
+                        <div className="w-48 h-1 bg-slate-950 rounded-full overflow-hidden mt-6 border border-slate-800/80">
+                          <motion.div 
+                            className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500"
+                            animate={{ x: ["-100%", "100%"] }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                          />
+                        </div>
+                      </div>
+                    ) : synthAiResult ? (
+                      <div className="space-y-6">
+                        {/* Actions rail */}
+                        <div className="flex flex-wrap gap-2.5 items-center justify-end bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60">
+                          <span className="text-[9px] font-mono font-bold text-slate-555 uppercase mr-auto pl-2 tracking-widest hidden sm:inline">
+                            Tuned for: {synthAiFocus === "purity" ? "High Stoichiometry Purity" : synthAiFocus === "defects" ? "Induced Lattice Dislocation Controls" : "Quantum Dot Confinement Boundary"}
+                          </span>
+                          
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(synthAiResult || "");
+                              setRecipeCopied(true);
+                              setTimeout(() => setRecipeCopied(false), 2000);
+                            }}
+                            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 hover:text-white border border-slate-800 text-[10px] font-black text-slate-300 uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
+                          >
+                            {recipeCopied ? (
+                              <>
+                                <CheckCircle size={12} className="text-emerald-400" />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <FileText size={12} className="text-cyan-400" />
+                                Copy Full Recipe Markdown
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              const blob = new Blob([synthAiResult || ""], { type: "text/markdown" });
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = `AI_Synthesis_Recipe_${selectedCandidate.phase_name.replace(/\s+/g, "_")}.md`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                            className="px-4 py-2 bg-cyan-950 hover:bg-cyan-900 hover:text-white border border-cyan-800/60 text-[10px] font-black text-cyan-300 uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
+                          >
+                            <Sparkles size={12} className="text-cyan-400 animate-pulse" />
+                            Download Markdown File
+                          </button>
+                        </div>
+
+                        {/* Interactive result presentation */}
+                        <div className="bg-slate-950/80 p-6 sm:p-8 rounded-2xl border border-slate-800/80 overflow-y-auto max-h-[500px] custom-scrollbar text-slate-300 font-sans shadow-inner selection:bg-cyan-500/20 leading-relaxed font-sans prose prose-invert prose-headings:text-slate-100 prose-strong:text-cyan-200">
+                          <ReactMarkdown>{synthAiResult}</ReactMarkdown>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-10 px-6 bg-slate-950/40 border border-slate-800/60 rounded-2xl text-center flex flex-col items-center justify-center">
+                        <Database className="w-10 h-10 text-slate-600 mb-4 stroke-[1.5]" />
+                        <h5 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-1.5">
+                          Adaptive Hydrothermal Solid-Solution Route Optimizer
+                        </h5>
+                        <p className="text-[11px] text-slate-500 max-w-xl leading-relaxed mb-6">
+                           Formulate custom synthetic precursor concentrations, stoichiometric ratios, surfactant/capping ligands, hydrothermal pressure profiles, and calcination parameters tailored specifically for {selectedCandidate.phase_name} ({selectedCandidate.formula}) under a {synthTemp}°C, pH {synthPH.toFixed(1)} calcination environment.
+                        </p>
+                        <button
+                          onClick={handleRunSynthesisAI}
+                          className="px-6 py-4 bg-gradient-to-r from-cyan-600/20 to-indigo-600/20 hover:from-cyan-500/20 hover:to-indigo-500/20 text-cyan-300 hover:text-cyan-200 font-black text-[10px] uppercase tracking-widest rounded-2xl border border-cyan-500/40 hover:border-cyan-400/60 shadow-[0_4px_20px_rgba(6,182,212,0.15)] hover:shadow-[0_4px_30px_rgba(6,182,212,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2.5"
+                        >
+                          <Sparkles className="w-4 h-4 animate-spin-slow" />
+                          Initialize Recipe Optimization Engine
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 

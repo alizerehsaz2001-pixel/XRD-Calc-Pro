@@ -100,6 +100,18 @@ export const languagesList: Language[] = [
   { code: 'jv', name: 'Javanese', nativeName: 'Basa Jawa (JV)', flag: '🇮🇩', region: 'Asia' },
   { code: 'su', name: 'Sundanese', nativeName: 'Basa Sunda (SU)', flag: '🇮🇩', region: 'Asia' },
   { code: 'haw', name: 'Hawaiian', nativeName: 'ʻŌlelo Hawaiʻi (HAW)', flag: '🇺🇸', region: 'Americas' },
+  { code: 'sa', name: 'Sanskrit', nativeName: 'संस्कृतम् (SA)', flag: '🕉️', region: 'Asia' },
+  { code: 'bo', name: 'Tibetan', nativeName: 'བོད་སྐད་ (BO)', flag: '🏔️', region: 'Asia' },
+  { code: 'mi', name: 'Māori', nativeName: 'Te Reo Māori (MI)', flag: '🇳🇿', region: 'Oceania' },
+  { code: 'yi', name: 'Yiddish', nativeName: 'ייִדיש (YI)', flag: '🕎', region: 'Europe' },
+  { code: 'gl', name: 'Galician', nativeName: 'Galego (GL)', flag: '🇪🇸', region: 'Europe' },
+  { code: 'lb', name: 'Luxembourgish', nativeName: 'Lëtzebuergesch (LB)', flag: '🇱🇺', region: 'Europe' },
+  { code: 'fy', name: 'Frisian', nativeName: 'Frysk (FY)', flag: '🇳🇱', region: 'Europe' },
+  { code: 'br', name: 'Breton', nativeName: 'Brezhoneg (BR)', flag: '🇫🇷', region: 'Europe' },
+  { code: 'tt', name: 'Tatar', nativeName: 'Татарча (TT)', flag: '🇷🇺', region: 'Europe/Asia' },
+  { code: 'ug', name: 'Uyghur', nativeName: 'ئۇيغۇرچە (UG)', flag: '🇨🇳', region: 'Asia' },
+  { code: 'fo', name: 'Faroese', nativeName: 'Føroyskt (FO)', flag: '🇫🇴', region: 'Europe' },
+  { code: 'kl', name: 'Greenlandic', nativeName: 'Kalaallisut (KL)', flag: '🇬🇱', region: 'Americas' },
 ];
 
 interface LanguageSelectorProps {

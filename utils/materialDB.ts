@@ -15357,6 +15357,2664 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 379.32,
     elasticModulus: 0.15
   }
+,
+  {
+    "name": "Egyptian Blue (Cuprorivaite)",
+    "type": "Historical & Pigments",
+    "pattern": "20.6, 20\n23.4, 40\n24.0, 100\n26.5, 30\n29.1, 80\n31.8, 50\n34.5, 25\n39.2, 15",
+    "description": "One of the first synthetic pigments, created in ancient Egypt by heating silica, copper, calcium, and soda. Extremely stable and still bright blue today.",
+    "formula": "CaCuSi4O10",
+    "elements": [
+      "Ca",
+      "Cu",
+      "Si",
+      "O"
+    ],
+    "crystalSystem": "Tetragonal",
+    "spaceGroup": "P4/ncc",
+    "density": 3.08,
+    "applications": [
+      "Ancient Pigments",
+      "Archaeometry",
+      "Cultural Heritage",
+      "Near-IR Luminescence"
+    ],
+    "molecularWeight": 375.8,
+    "elasticModulus": 45
+  },
+  {
+    "name": "Han Purple",
+    "type": "Historical & Pigments",
+    "pattern": "22.1, 45\n24.3, 100\n26.6, 80\n29.4, 30\n31.5, 50\n35.2, 20\n38.7, 10",
+    "description": "A synthetic barium copper silicate pigment developed in ancient China. Used to paint the Terracotta Army. Notably, it exhibits unique quantum magnetic properties at ultralow temperatures.",
+    "formula": "BaCuSi2O6",
+    "elements": [
+      "Ba",
+      "Cu",
+      "Si",
+      "O"
+    ],
+    "crystalSystem": "Tetragonal",
+    "spaceGroup": "I41/acd",
+    "density": 4.88,
+    "applications": [
+      "Ancient Chinese Pigments",
+      "Quantum Materials",
+      "Terracotta Warriors"
+    ],
+    "molecularWeight": 400.9,
+    "elasticModulus": 52
+  },
+  {
+    "name": "Lead White (Hydrocerussite)",
+    "type": "Historical & Pigments",
+    "pattern": "24.6, 100\n27.2, 60\n34.1, 55\n36.4, 25\n43.8, 30\n47.1, 15",
+    "description": "A toxic but highly opaque white pigment used globally from Antiquity until the 20th century. Prepared by exposing lead to vinegar and horse manure vapors.",
+    "formula": "2PbCO3·Pb(OH)2",
+    "elements": [
+      "Pb",
+      "C",
+      "O",
+      "H"
+    ],
+    "crystalSystem": "Trigonal",
+    "spaceGroup": "P-3m1",
+    "density": 6.8,
+    "applications": [
+      "Renaissance Painting",
+      "Historical Cosmetics",
+      "Archaeometry"
+    ],
+    "molecularWeight": 775.6,
+    "elasticModulus": 30
+  },
+  {
+    "name": "Cinnabar (Vermilion)",
+    "type": "Historical & Pigments",
+    "pattern": "26.5, 100\n28.2, 35\n31.2, 80\n37.4, 25\n43.5, 40\n45.9, 15",
+    "description": "The bright scarlet to brick-red ore of mercury. Used since antiquity as the pigment vermilion for murals, illuminated manuscripts, and lacquerware.",
+    "formula": "HgS",
+    "elements": [
+      "Hg",
+      "S"
+    ],
+    "crystalSystem": "Trigonal",
+    "spaceGroup": "P3121",
+    "density": 8.1,
+    "applications": [
+      "Classical Pigments",
+      "Red Lacquer",
+      "Alchemical Studies"
+    ],
+    "molecularWeight": 232.7,
+    "elasticModulus": 40
+  },
+  {
+    "name": "Lapis Lazuli (Lazurite)",
+    "type": "Historical & Pigments",
+    "pattern": "13.8, 20\n24.1, 70\n28.3, 100\n34.8, 40\n42.1, 25\n47.5, 15",
+    "description": "A complex feldspathoid mineral responsible for the deep celestial blue of Lapis Lazuli. Ground to produce authentic ultramarine, Europe's most expensive Renaissance pigment.",
+    "formula": "Na6Ca2(Al6Si6O24)(S,SO4,Cl)2",
+    "elements": [
+      "Na",
+      "Ca",
+      "Al",
+      "Si",
+      "O",
+      "S",
+      "Cl"
+    ],
+    "crystalSystem": "Cubic",
+    "spaceGroup": "P43n",
+    "density": 2.4,
+    "applications": [
+      "Illuminated Manuscripts",
+      "Renaissance Art",
+      "Gemology"
+    ],
+    "molecularWeight": 950,
+    "elasticModulus": 65
+  },
+  {
+    "name": "Malachite (Green Copper Carbonate)",
+    "type": "Historical & Pigments",
+    "pattern": "11.1, 20\n16.2, 55\n24.0, 100\n31.3, 85\n35.4, 40\n39.8, 30",
+    "description": "A green copper carbonate hydroxide mineral. Extremely popular in antiquity as a pigment and for ornamental carving in Egypt and Russia.",
+    "formula": "Cu2CO3(OH)2",
+    "elements": [
+      "Cu",
+      "C",
+      "O",
+      "H"
+    ],
+    "crystalSystem": "Monoclinic",
+    "spaceGroup": "P21/a",
+    "density": 4,
+    "applications": [
+      "Green Pigment",
+      "Smelting Copper Ore",
+      "Ornamental Stone"
+    ],
+    "molecularWeight": 221.1,
+    "elasticModulus": 50
+  },
+  {
+    "name": "Azurite",
+    "type": "Historical & Pigments",
+    "pattern": "15.7, 40\n22.8, 60\n25.3, 100\n30.8, 45\n35.3, 55\n38.3, 20",
+    "description": "A soft, deep-blue copper mineral. It was the most important blue pigment in European painting from the Middle Ages to the Renaissance, often shifting green (to malachite) over centuries.",
+    "formula": "Cu3(CO3)2(OH)2",
+    "elements": [
+      "Cu",
+      "C",
+      "O",
+      "H"
+    ],
+    "crystalSystem": "Monoclinic",
+    "spaceGroup": "P21/c",
+    "density": 3.77,
+    "applications": [
+      "Historical Painting",
+      "Fresco Pigment",
+      "Mineralogy"
+    ],
+    "molecularWeight": 344.7,
+    "elasticModulus": 45
+  },
+  {
+    "name": "Orpiment",
+    "type": "Historical & Pigments",
+    "pattern": "14.3, 100\n17.8, 60\n28.6, 40\n32.2, 35\n36.4, 25\n41.0, 15",
+    "description": "A golden-yellow arsenic sulfide mineral. Used worldwide as a vibrant yellow pigment despite its high toxicity, and prominently in alchemy.",
+    "formula": "As2S3",
+    "elements": [
+      "As",
+      "S"
+    ],
+    "crystalSystem": "Monoclinic",
+    "spaceGroup": "P21/n",
+    "density": 3.49,
+    "applications": [
+      "Yellow Pigment",
+      "Alchemy"
+    ],
+    "molecularWeight": 246,
+    "elasticModulus": 20
+  },
+  {
+    "name": "Realgar",
+    "type": "Historical & Pigments",
+    "pattern": "16.1, 100\n18.3, 50\n24.9, 40\n29.5, 60\n34.2, 30",
+    "description": "A ruby-red arsenic sulfide. Known as 'sandaracha' in ancient Rome, used as a red pigment and poison, though it degrades to yellow pararealgar under light.",
+    "formula": "As4S4",
+    "elements": [
+      "As",
+      "S"
+    ],
+    "crystalSystem": "Monoclinic",
+    "spaceGroup": "P21/n",
+    "density": 3.56,
+    "applications": [
+      "Red Pigment",
+      "Fireworks (Historical)",
+      "Poisons"
+    ],
+    "molecularWeight": 427.9,
+    "elasticModulus": 15
+  },
+  {
+    "name": "Mayan Blue (Palygorskite base)",
+    "type": "Historical & Pigments",
+    "pattern": "8.4, 100\n13.7, 40\n16.4, 15\n19.8, 55\n27.5, 25\n34.2, 10",
+    "description": "A remarkably resilient azure pigment synthesized by pre-Columbian Mesoamerican cultures. It consists of the organic dye indigo trapped within the crystalline lattice of palygorskite clay.",
+    "formula": "(Mg,Al)2Si4O10(OH)·4H2O",
+    "elements": [
+      "Mg",
+      "Al",
+      "Si",
+      "O",
+      "H",
+      "C",
+      "N"
+    ],
+    "crystalSystem": "Monoclinic",
+    "spaceGroup": "P2/a",
+    "density": 2.1,
+    "applications": [
+      "Mesoamerican Murals",
+      "Pottery",
+      "Nanocomposite Precursor"
+    ],
+    "molecularWeight": 450,
+    "elasticModulus": 10
+  },
+  {
+    "name": "Wootz Steel (Cementite Phase in Iron)",
+    "type": "Historical & Metallurgical",
+    "pattern": "37.8, 40\n40.1, 50\n42.8, 80\n43.7, 100\n45.8, 70\n48.2, 30",
+    "description": "Crucible steel characterized by a pattern of bands. The bands are formed by sheets of microscopic cementite (Fe3C) particles in a pearlite matrix. The origins of legendary Damascus swords.",
+    "formula": "Fe3C",
+    "elements": [
+      "Fe",
+      "C"
+    ],
+    "crystalSystem": "Orthorhombic",
+    "spaceGroup": "Pnma",
+    "density": 7.69,
+    "applications": [
+      "Advanced Weaponry (Historic)",
+      "Archaeometallurgy",
+      "Nanotube Research"
+    ],
+    "molecularWeight": 179.5,
+    "elasticModulus": 200
+  },
+  {
+    "name": "Kamacite (Meteoric Iron)",
+    "type": "Historical & Metallurgical",
+    "pattern": "44.6, 100\n64.9, 20\n82.2, 35\n98.7, 10\n116.1, 15",
+    "description": "An alloy of iron and nickel (typically up to 7% Ni) found almost exclusively in meteorites. The earliest iron tools crafted by humanity were cold-forged from kamacite.",
+    "formula": "Fe0.9Ni0.1",
+    "elements": [
+      "Fe",
+      "Ni"
+    ],
+    "crystalSystem": "Cubic",
+    "spaceGroup": "Im-3m",
+    "density": 7.9,
+    "applications": [
+      "Meteoritics",
+      "Pre-Bronze Age Artifacts"
+    ],
+    "molecularWeight": 56.1,
+    "elasticModulus": 210
+  },
+  {
+    "name": "Historical Bronze (Cu-Sn Alpha solid solution)",
+    "type": "Historical & Metallurgical",
+    "pattern": "42.5, 100\n49.5, 45\n72.2, 25\n87.3, 20",
+    "description": "Characteristic XRD profile of ancient cast bronze (approx. 10% tin). The peak positions are slightly shifted from pure copper due to lattice expansion by tin atoms.",
+    "formula": "Cu0.9Sn0.1",
+    "elements": [
+      "Cu",
+      "Sn"
+    ],
+    "crystalSystem": "Cubic",
+    "spaceGroup": "Fm-3m",
+    "density": 8.8,
+    "applications": [
+      "Bronze Age Weaponry",
+      "Statuary",
+      "Numismatics"
+    ],
+    "molecularWeight": 69.1,
+    "elasticModulus": 110
+  },
+  {
+    "name": "Electrum (Gold-Silver Alloy)",
+    "type": "Historical & Metallurgical",
+    "pattern": "38.1, 100\n44.3, 40\n64.5, 30\n77.5, 35",
+    "description": "A naturally occurring or artificially mixed alloy of gold and silver. Used for the earliest known metal coins in Lydia and ancient Egyptian obelisk coatings.",
+    "formula": "Au0.5Ag0.5",
+    "elements": [
+      "Au",
+      "Ag"
+    ],
+    "crystalSystem": "Cubic",
+    "spaceGroup": "Fm-3m",
+    "density": 14.5,
+    "applications": [
+      "Ancient Coinage",
+      "Jewelry"
+    ],
+    "molecularWeight": 152.4,
+    "elasticModulus": 80
+  },
+  {
+    "name": "Alum (Potassium Alum)",
+    "type": "Historical & Pigments",
+    "pattern": "10.4, 20\n21.1, 100\n30.2, 70\n35.4, 40\n48.2, 30",
+    "description": "Used widely in antiquity as a mordant to fix organic dyes (like Tyrian Purple or Madder) onto fabrics, making the colors fast and bright.",
+    "formula": "KAl(SO4)2·12H2O",
+    "elements": [
+      "K",
+      "Al",
+      "S",
+      "O",
+      "H"
+    ],
+    "crystalSystem": "Cubic",
+    "spaceGroup": "Pa-3",
+    "density": 1.72,
+    "applications": [
+      "Dye Mordanting",
+      "Tanning",
+      "Water Purification"
+    ],
+    "molecularWeight": 474.4,
+    "elasticModulus": 10
+  },
+  {
+    "name": "Bone Ash (Hydroxylapatite)",
+    "type": "Historical & Ceramics",
+    "pattern": "25.8, 40\n31.8, 100\n32.2, 60\n32.9, 60\n39.8, 20\n46.7, 30\n49.5, 25",
+    "description": "Calcined animal bone, primarily hydroxylapatite. Historically used for making cupels for assaying silver/gold, and later for creating Bone China.",
+    "formula": "Ca10(PO4)6(OH)2",
+    "elements": [
+      "Ca",
+      "P",
+      "O",
+      "H"
+    ],
+    "crystalSystem": "Hexagonal",
+    "spaceGroup": "P63/m",
+    "density": 3.16,
+    "applications": [
+      "Bone China",
+      "Cupellation",
+      "Fertilizer (Historical)"
+    ],
+    "molecularWeight": 1004.6,
+    "elasticModulus": 110
+  },
+  {
+    "name": "Roman Concrete (Tobermorite binder)",
+    "type": "Historical & Ceramics",
+    "pattern": "7.8, 100\n16.1, 20\n29.1, 80\n29.9, 65\n31.8, 40",
+    "description": "Tobermorite is a rare calcium silicate hydrate mineral, but it formed abundantly in Roman marine concrete (opus caementicium) yielding incredible multi-millennia durability.",
+    "formula": "Ca5Si6O16(OH)2·4H2O",
+    "elements": [
+      "Ca",
+      "Si",
+      "O",
+      "H"
+    ],
+    "crystalSystem": "Orthorhombic",
+    "spaceGroup": "C2221",
+    "density": 2.45,
+    "applications": [
+      "Ancient Architecture",
+      "Marine Concrete",
+      "Archaeology"
+    ],
+    "molecularWeight": 730,
+    "elasticModulus": 40
+  },
+  {
+    "name": "Natron",
+    "type": "Historical & Chemicals",
+    "pattern": "16.8, 100\n26.6, 20\n31.7, 40\n34.2, 60\n38.4, 25\n40.1, 15",
+    "description": "A naturally occurring mixture of sodium carbonate decahydrate and sodium bicarbonate. Essential in ancient Egyptian mummification and early glassmaking.",
+    "formula": "Na2CO3·10H2O",
+    "elements": [
+      "Na",
+      "C",
+      "O",
+      "H"
+    ],
+    "crystalSystem": "Monoclinic",
+    "spaceGroup": "C2/c",
+    "density": 1.46,
+    "applications": [
+      "Mummification",
+      "Faience",
+      "Glassmaking"
+    ],
+    "molecularWeight": 286.1,
+    "elasticModulus": 5
+  },
+  {
+    "name": "Litharge",
+    "type": "Historical & Pigments",
+    "pattern": "28.5, 100\n32.7, 50\n47.1, 35\n55.4, 40\n58.0, 15",
+    "description": "Lead(II) oxide (red/yellow). Crucial in antiquity for the cupellation of silver, and as an historic pigment and drying agent for oil paints.",
+    "formula": "PbO",
+    "elements": [
+      "Pb",
+      "O"
+    ],
+    "crystalSystem": "Tetragonal",
+    "spaceGroup": "P4/nmm",
+    "density": 9.53,
+    "applications": [
+      "Cupellation",
+      "Pigments",
+      "Lead Glass"
+    ],
+    "molecularWeight": 223.2,
+    "elasticModulus": 45
+  },
+  {
+    "name": "Verdigris (Copper Acetate)",
+    "type": "Historical & Pigments",
+    "pattern": "12.5, 100\n16.1, 55\n22.8, 40\n26.4, 25\n30.5, 15",
+    "description": "A synthetic blue-green pigment widely used from antiquity to the 19th century, made by hanging copper plates over boiling vinegar in sealed pots.",
+    "formula": "Cu(CH3COO)2·H2O",
+    "elements": [
+      "Cu",
+      "C",
+      "H",
+      "O"
+    ],
+    "crystalSystem": "Monoclinic",
+    "spaceGroup": "C2/c",
+    "density": 1.88,
+    "applications": [
+      "Historical Pigments",
+      "Illuminated Manuscripts",
+      "Fungicide (Historic)"
+    ],
+    "molecularWeight": 199.6,
+    "elasticModulus": 10
+  },
+  {
+    name: "Roman Concrete (Alberese Lime)",
+    type: "Calibration & Standards",
+    pattern:
+      "11.20, 100\n29.40, 78\n32.10, 66\n47.10, 54\n49.80, 42",
+    description:
+      "Ancient Roman marine concrete composed of quicklime, volcanic ash, and pumice. Famous for self-healing cracks through fluid chemistry.",
+    formula: "CaCO3·Ca(OH)2·Al-Tobermorite",
+    elements: ["Ca","C","O","H","Al","To"],
+    crystalSystem: "Complex Multiphase",
+    spaceGroup: "Pm-3m",
+    density: 2.5,
+    applications: ["Historical","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Egyptian Natron",
+    type: "Calibration & Standards",
+    pattern:
+      "18.50, 100\n26.20, 78\n34.00, 66\n39.10, 54\n42.50, 42",
+    description:
+      "A naturally occurring mixture of sodium carbonate decahydrate and sodium bicarbonate, harvested from dry lake beds and heavily utilized in Egyptian mummification.",
+    formula: "Na2CO3·10H2O + NaHCO3",
+    elements: ["Na","C","O","H"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/c",
+    density: 2.5,
+    applications: ["Historical","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Corinthian Bronze",
+    type: "Calibration & Standards",
+    pattern:
+      "42.80, 100\n49.90, 78\n73.20, 66\n88.60, 54",
+    description:
+      "Highly prized alloy of classical antiquity, supposedly formed by the mixture of copper, gold, and silver. A standard metal in Ancient Greece and Rome.",
+    formula: "Cu-Sn-Au-Ag Alloy",
+    elements: ["Cu","Sn","Au","Ag","Al"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 2.5,
+    applications: ["Historical","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Maya Blue",
+    type: "Calibration & Standards",
+    pattern:
+      "8.40, 100\n10.50, 78\n13.70, 66\n19.80, 54\n26.50, 42\n33.10, 30",
+    description:
+      "An incredibly durable ancient Mesoamerican pigment created by intercalating indigo dye into the clay mineral palygorskite.",
+    formula: "(Mg,Al)2Si4O10(OH)·4(H2O)",
+    elements: ["Mg","Al","Si","O","H"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "Pm-3m",
+    density: 2.5,
+    applications: ["Historical","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Greek Electrum",
+    type: "Calibration & Standards",
+    pattern:
+      "38.20, 100\n44.40, 78\n64.60, 66\n77.50, 54\n81.70, 42",
+    description:
+      "A naturally occurring or historically smelted alloy of gold and silver widely used in ancient Lydia and Greece for early coinage.",
+    formula: "Au0.7Ag0.3",
+    elements: ["Au","Ag"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m",
+    density: 2.5,
+    applications: ["Historical","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Silicon Standard",
+    type: "Calibration & Standards",
+    pattern:
+      "28.44, 100\n47.30, 78\n56.12, 66\n69.13, 54\n76.38, 42\n88.03, 30\n94.89, 18",
+    description:
+      "Internal reference standard used globally for peak position and line-broadening calibration.",
+    formula: "Si",
+    elements: ["Si"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 2.5,
+    applications: ["Standard","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Corundum Standard (Al2O3)",
+    type: "Calibration & Standards",
+    pattern:
+      "25.58, 100\n35.15, 78\n37.78, 66\n43.36, 54\n52.55, 42\n57.50, 30\n61.30, 18\n66.52, 10\n68.21, 10",
+    description:
+      "NIST Standard Reference Material SRM 676a used for quantitative analysis and instrument calibration.",
+    formula: "Al2O3",
+    elements: ["Al","O"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3c (No. 167)",
+    density: 2.5,
+    applications: ["Standard","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Lanthanum Hexaboride (LaB6)",
+    type: "Calibration & Standards",
+    pattern:
+      "21.36, 100\n30.38, 78\n37.44, 66\n43.51, 54\n48.96, 42\n53.99, 30\n58.71, 18\n63.19, 10",
+    description:
+      "NIST Standard Reference Material SRM 660c, world-wide high-accuracy line profile calibrator.",
+    formula: "LaB6",
+    elements: ["La","B"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Pm-3m (No. 221)",
+    density: 2.5,
+    applications: ["Standard","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Polypropylene (Isotactic)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "14.10, 100\n16.90, 78\n18.60, 66\n21.20, 54\n21.80, 42",
+    description:
+      "Alpha-form isotactic PP, showing multiple sharp characteristic reflections due to its monoclinic packing.",
+    formula: "(C3H6)n",
+    elements: ["C","H"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 2.5,
+    applications: ["Polymer","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Benzoic Acid",
+    type: "Polymers & Frameworks",
+    pattern:
+      "8.15, 100\n11.95, 78\n15.62, 66\n17.48, 54\n20.15, 42\n23.85, 30\n27.50, 18",
+    description:
+      "Monoclinic molecular crystal of benzoic acid, classic sublimation standard.",
+    formula: "C7H6O2",
+    elements: ["C","H","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 2.5,
+    applications: ["Polymer","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "L-Alanine",
+    type: "Polymers & Frameworks",
+    pattern:
+      "13.06, 100\n17.52, 78\n20.58, 66\n22.18, 54\n25.10, 42\n29.45, 30\n32.10, 18",
+    description:
+      "Orthorhombic chiral amino acid crystal structure from CSD file reference.",
+    formula: "C3H7NO2",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "P212121 (No. 19)",
+    density: 2.5,
+    applications: ["Polymer","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Paracetamol (Form I)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "12.15, 100\n15.65, 78\n18.20, 66\n20.35, 54\n23.51, 42\n26.54, 30\n27.20, 18",
+    description:
+      "Most stable monoclinic polymorph of acetaminophen, CSD reference standard.",
+    formula: "C8H9NO2",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/a (No. 14)",
+    density: 2.5,
+    applications: ["Polymer","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "PTFE (Teflon)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "18.10, 100\n31.50, 78\n36.60, 66\n41.20, 54",
+    description:
+      "Highly helical crystalline polymer with a prominent reflection at 18.1° corresponding to interchain packing.",
+    formula: "(CF2)n",
+    elements: ["C","F"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P3121 (No. 152)",
+    density: 2.5,
+    applications: ["Polymer","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Nylon 6",
+    type: "Polymers & Frameworks",
+    pattern:
+      "20.30, 100\n23.70, 78",
+    description:
+      "Alpha crystalline monoclinic phase structured by hydrogen-bonded molecular chains.",
+    formula: "(C6H11NO)n",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/b (No. 14)",
+    density: 2.5,
+    applications: ["Polymer","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Polyethylene Terephthalate",
+    type: "Polymers & Frameworks",
+    pattern:
+      "16.20, 100\n17.50, 78\n22.80, 66\n26.10, 54",
+    description:
+      "Semi-crystalline PET showing structural peaks induced via thermal holding or stretch orientation.",
+    formula: "(C10H8O4)n",
+    elements: ["C","H","O"],
+    crystalSystem: "Triclinic",
+    spaceGroup: "P-1 (No. 2)",
+    density: 2.5,
+    applications: ["Polymer","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Aluminum",
+    type: "Metals & Alloys",
+    pattern:
+      "38.47, 100\n44.72, 78\n65.10, 66\n78.23, 54\n82.44, 42",
+    description:
+      "Face-centered cubic metal, ideal for standard cell calculation and educational indexing.",
+    formula: "Al",
+    elements: ["Al"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Gold Powder",
+    type: "Metals & Alloys",
+    pattern:
+      "38.19, 100\n44.39, 78\n64.58, 66\n77.55, 54\n81.72, 42",
+    description:
+      "Heavy chemical standard. Very high electron density creates brilliant reflections for instrument calibration.",
+    formula: "Au",
+    elements: ["Au"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Alpha Iron",
+    type: "Metals & Alloys",
+    pattern:
+      "44.67, 100\n65.02, 78\n82.33, 66\n98.94, 54",
+    description:
+      "Body-centered cubic Ferrite matrix, standard for structural steel alloying and phase analysis.",
+    formula: "Fe",
+    elements: ["Fe"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Cerium Oxide",
+    type: "Ceramics & Refractories",
+    pattern:
+      "28.55, 100\n33.08, 78\n47.48, 66\n56.33, 54\n59.08, 42\n69.41, 30\n76.70, 18\n79.07, 10",
+    description:
+      "Fluorite cubic oxide displaying high catalytic action; excellent for line profile grain size evaluations.",
+    formula: "CeO2",
+    elements: ["Ce","O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Titanium Dioxide (Anatase)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "25.28, 100\n37.80, 78\n48.05, 66\n53.89, 54\n55.06, 42\n62.69, 30\n68.76, 18\n70.31, 10\n75.03, 10",
+    description:
+      "Metastable photoactive polymorph of titania, standard for thin-film solar cell validation and nanotechnology.",
+    formula: "TiO2",
+    elements: ["Ti","O"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I41/amd (No. 141)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Sodium Chloride",
+    type: "Calibration & Standards",
+    pattern:
+      "27.35, 100\n31.69, 78\n45.45, 66\n53.89, 54\n56.48, 42\n66.23, 30\n75.31, 18",
+    description:
+      "Prototypical rock salt ionic structure, perfect for demonstrating structural factor absences.",
+    formula: "NaCl",
+    elements: ["Na","Cl"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Standard","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Copper",
+    type: "Metals & Alloys",
+    pattern:
+      "43.30, 100\n50.43, 78\n74.13, 66\n89.93, 54\n116.92, 42",
+    description:
+      "Highly ordered metallic wire alloy substrate, showing characteristic intense peak shifts.",
+    formula: "Cu",
+    elements: ["Cu"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Silver",
+    type: "Metals & Alloys",
+    pattern:
+      "38.12, 100\n44.30, 78\n64.44, 66\n77.40, 54\n81.54, 42",
+    description:
+      "Brilliant conductive silver nanoparticles for studying size-strain properties through full-width indices.",
+    formula: "Ag",
+    elements: ["Ag"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Zinc Oxide",
+    type: "Ceramics & Refractories",
+    pattern:
+      "31.77, 100\n34.42, 78\n36.25, 66\n47.54, 54\n56.60, 42\n62.86, 30\n66.38, 18\n67.96, 10\n69.10, 10",
+    description:
+      "Hexagonal wurtzite crystal system, important optoelectronic material that shows multiple diagnostic reflections.",
+    formula: "ZnO",
+    elements: ["Zn","O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63mc (No. 186)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Quartz (Alpha)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "20.86, 100\n26.64, 78\n36.54, 66\n39.46, 54\n40.29, 42\n42.45, 30\n45.79, 18\n50.14, 10\n54.87, 10\n59.95, 10\n60.14, 10",
+    description:
+      "Trigonal quartz matrix. Extremely rich in low-symmetry peaks, frequently chosen for indexing exercises.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "P3221 (No. 154)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Beta-Quartz (High Quartz)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "20.60, 100\n25.80, 78\n36.40, 66\n38.80, 54\n42.30, 42\n45.50, 30\n50.00, 18",
+    description:
+      "The high-temperature polymorph of quartz, stable above 573 °C (at ambient pressure).",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P6222 (No. 180)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Alpha-Cristobalite",
+    type: "Ceramics & Refractories",
+    pattern:
+      "21.90, 100\n31.40, 78\n36.10, 66\n42.70, 54\n44.80, 42\n48.60, 30",
+    description:
+      "Low-temperature, tetragonal polymorph of cristobalite.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "P41212 (No. 92)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Beta-Cristobalite",
+    type: "Ceramics & Refractories",
+    pattern:
+      "21.50, 100\n35.80, 78\n44.30, 66\n48.20, 54",
+    description:
+      "High-temperature cubic polymorph of cristobalite.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Alpha-Tridymite",
+    type: "Ceramics & Refractories",
+    pattern:
+      "20.50, 100\n21.60, 78\n23.20, 66\n28.80, 54\n35.90, 42\n43.10, 30",
+    description:
+      "Low-symmetry monoclinic polymorph of tridymite.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "Cc (No. 9)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Beta-Tridymite",
+    type: "Ceramics & Refractories",
+    pattern:
+      "21.20, 100\n35.60, 78\n42.50, 66",
+    description:
+      "High-temperature hexagonal polymorph of tridymite.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Stishovite",
+    type: "Ceramics & Refractories",
+    pattern:
+      "28.50, 100\n33.20, 78\n41.20, 66\n43.80, 54\n47.20, 42\n53.80, 30",
+    description:
+      "Extremely dense, high-pressure rutile-structured silica.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "P42/mnm (No. 136)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Keatite",
+    type: "Ceramics & Refractories",
+    pattern:
+      "23.80, 100\n27.50, 78\n33.50, 66\n38.40, 54\n45.60, 42",
+    description:
+      "Synthetic tetragonal polymorph of silica.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "P41212 (No. 92)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Moganite",
+    type: "Ceramics & Refractories",
+    pattern:
+      "20.10, 100\n26.60, 78\n36.40, 66\n39.50, 54\n42.30, 42",
+    description:
+      "Monoclinic polymorph of silica.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "I2/a (No. 15)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Seifertite",
+    type: "Ceramics & Refractories",
+    pattern:
+      "30.10, 100\n31.50, 78\n34.20, 66\n42.10, 54\n48.50, 42",
+    description:
+      "Ultra-high-pressure polymorph of silica.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pbcn (No. 60)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Coesite",
+    type: "Ceramics & Refractories",
+    pattern:
+      "26.00, 100\n27.20, 78\n28.30, 66\n30.20, 54\n34.10, 42",
+    description:
+      "A high-pressure monoclinic polymorph of silica.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/c (No. 15)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Beryl (Be3Al2Si6O18)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "11.02, 100\n19.15, 78\n22.14, 66\n25.32, 54\n28.18, 42\n30.65, 30\n34.60, 18",
+    description:
+      "Rare hexagonal ring silicate mineral structure from the RRUFF physical database.",
+    formula: "Be3Al2Si6O18",
+    elements: ["Be","Al","Si","O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P6/mcc (No. 192)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Diamond",
+    type: "Calibration & Standards",
+    pattern:
+      "43.92, 100\n75.30, 78\n91.50, 66\n119.52, 54",
+    description:
+      "Sp³ carbon diamond-cubic framework with ultra-small unit cell sizes and sparse peaks.",
+    formula: "C",
+    elements: ["C"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 2.5,
+    applications: ["Standard","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Hydroxyapatite",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "25.87, 100\n31.77, 78\n32.19, 66\n32.90, 54\n34.04, 42\n39.81, 30",
+    description:
+      "Highly relevant bio-mineral form of calcium phosphate used in bone implants and scaffolds.",
+    formula: "Ca10(PO4)6(OH)2",
+    elements: ["Ca","P","O","H"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/m (No. 176)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Stem Cell Crystallin",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "8.62, 100\n11.45, 78\n16.24, 66\n20.52, 54\n24.81, 42\n29.11, 30",
+    description:
+      "Recombinant human stem cell crystallin protein featuring highly ordered beta-pleated sheets, serving as an advanced crystallographic profile for cellular scaffolds and organoid tracking.",
+    formula: "C72H112N20O22S2",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Gamma-Crystallin (Eye Lens)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "4.50, 100\n6.80, 78\n9.10, 66\n13.60, 54\n18.20, 42\n22.80, 30",
+    description:
+      "High-purity vertebrate eye lens gamma-crystallin protein specimen. Characterized by stable hydrophobic beta-barrel fold layers with excellent solution stability controls.",
+    formula: "C82H134N24O26S4",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "P43212 (No. 96)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Alpha-A-Crystallin Subunit",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "7.20, 100\n10.80, 78\n14.40, 66\n18.00, 54\n21.60, 42\n25.20, 30",
+    description:
+      "Vertebrate core molecular heat shock alpha-A-crystallin protein complex structure, vital for maintaining cellular refraction stability.",
+    formula: "C58H96N16O18S",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/m (No. 176)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Beta-B2-Crystallin Dimer",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "5.10, 100\n8.20, 78\n12.30, 66\n15.40, 54\n20.60, 42\n24.70, 30",
+    description:
+      "Major vertebrate lens structural beta-B2-crystallin protein. Shows stable dimeric assemblies preserving low-scattering characteristics.",
+    formula: "C74H122N22O24",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "P212121 (No. 19)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Delta-Crystallin Lyase",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "6.20, 100\n9.30, 78\n12.40, 66\n15.50, 54\n18.60, 42\n21.70, 30",
+    description:
+      "Avian and reptile eye-lens specific delta-crystallin, structurally related to argininosuccinate lyase.",
+    formula: "C92H150N26O30S2",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Cubic",
+    spaceGroup: "I432 (No. 211)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Collagen Triple-Helix",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "2.89, 100\n5.78, 78\n8.67, 66\n11.56, 54\n14.45, 42\n17.34, 30",
+    description:
+      "Fibrillar collagen microcrystalline matrix containing highly repeating glycine-proline-hydroxyproline triple helices.",
+    formula: "C45H75N15O15",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P6 (No. 168)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Keratin-Alpha Filament",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "1.85, 100\n3.70, 78\n5.55, 66\n9.25, 54\n12.95, 42\n18.50, 30",
+    description:
+      "Fibrous alpha-helical structural keratin protein intermediate filament showing highly organized coiled-coil structures.",
+    formula: "C62H102N18O21S4",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "C222 (No. 21)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Silk Fibroin Beta-Sheet",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "10.20, 100\n14.80, 78\n18.90, 66\n20.30, 54\n24.20, 42\n28.50, 30",
+    description:
+      "Ordered beta-sheet structure of Bombyx mori silk protein, characterized by recurrent glycine-alanine-serine hexapeptides.",
+    formula: "C30H48N10O12",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "P212121 (No. 19)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Human Insulin Hexamer",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "3.15, 100\n5.46, 78\n6.30, 66\n9.54, 54\n11.20, 42\n15.80, 30",
+    description:
+      "Recombinant human insulin hexameric crystal stabilized with zinc coordinates and phenolic ligands.",
+    formula: "C257H383N65O77S6",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "R3 (No. 146)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Bovine Serum Albumin",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "2.80, 100\n4.20, 78\n5.60, 66\n8.40, 54\n11.20, 42\n14.00, 30",
+    description:
+      "Polycrystalline bovine serum albumin transport protein specimen used as a reference point in biological small-angle scattering (SAXS).",
+    formula: "C293H461N81O89S4",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Hen Egg White Lysozyme",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "5.80, 100\n8.12, 78\n10.20, 66\n12.30, 54\n16.40, 42\n20.50, 30",
+    description:
+      "Tetragonal hen egg-white lysozyme crystal. Used as the global benchmark protein crystal for calibrating biological XRD detectors.",
+    formula: "C124H192N38O38S3",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "P43212 (No. 96)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Sperm Whale Myoglobin",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "3.80, 100\n7.60, 78\n11.40, 66\n15.20, 54\n19.00, 42\n22.80, 30",
+    description:
+      "Crystalline sperm whale myoglobin protein featuring the historic eight alpha-helix fold and a core active heme prosthetic coordination complex.",
+    formula: "C134H212N38O39S1",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "ECM Laminin Crystallin",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "3.20, 100\n6.40, 78\n9.60, 66\n12.80, 54\n16.00, 42\n19.20, 30",
+    description:
+      "Recombinant extracellular matrix (ECM) laminin-crystallin hybrid protein specimen. Organizes into a highly structured sheet-like hexagonal network suitable for cellular scaffolding and basement membrane modeling.",
+    formula: "C112H184N32O36S4",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63 (No. 173)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Crystalline DPPC Lipid",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "4.20, 100\n6.30, 78\n8.40, 66\n12.60, 54\n16.80, 42",
+    description:
+      "Crystallized dipalmitoylphosphatidylcholine (DPPC) lipid bilayer lattice. Demonstrates solid-gel phase sub-lattice alignment used to calibrate biomembrane structural dynamics scans.",
+    formula: "C40H80NO8P",
+    elements: ["C","H","N","O","P"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Cholesteryl Palmitate Phase",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "3.80, 100\n5.70, 78\n7.60, 66\n11.40, 54\n15.20, 42",
+    description:
+      "Highly ordered organic crystal phase of cholesteryl palmitate ester. Crucial reference marker in modeling atherosclerotic calcified streaks and cell storage membrane boundaries.",
+    formula: "C43H76O2",
+    elements: ["C","H","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Cholesterol Monohydrate",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "5.18, 100\n10.36, 78\n15.54, 66\n17.10, 54\n21.80, 42",
+    description:
+      "Crystalline form of cholesterol monohydrate. Found as a key plaque constituent in cardiovascular deposits and used as a calibration standard for biological lipid structures.",
+    formula: "C27H46O · H2O",
+    elements: ["C","H","O"],
+    crystalSystem: "Triclinic",
+    spaceGroup: "P1 (No. 1)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Crystalline Sphingomyelin",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "4.12, 100\n6.18, 78\n8.24, 66\n12.36, 54\n20.50, 42",
+    description:
+      "Highly ordered solid gel crystalline phase of milk-derived sphingomyelin. Essential for examining lipid-raft domain boundaries.",
+    formula: "C39H79N2O6P",
+    elements: ["C","H","N","O","P"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Palmitic Acid Crystal",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "6.10, 100\n12.20, 78\n18.30, 66\n21.50, 54\n24.10, 42",
+    description:
+      "Monoclinic B-form crystal structure of palmitic acid. Shows classic aliphatic chain packing with tilted dimer layers.",
+    formula: "C16H32O2",
+    elements: ["C","H","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Stearic Acid Crystal B",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "5.45, 100\n10.90, 78\n16.35, 66\n21.70, 54\n24.20, 42",
+    description:
+      "Crystallized octadecanoic fatty acid (Stearic Acid) form B. Exhibits tight subcell packing used in thermal storage materials and pharmaceutical lubricant benchmarking.",
+    formula: "C18H36O2",
+    elements: ["C","H","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/a (No. 14)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Lauric Acid Crystal",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "8.15, 100\n12.10, 78\n16.30, 66\n21.12, 54\n23.40, 42",
+    description:
+      "Fully crystallized dodecanoic acid (Lauric Acid) structure. Features clean hydrogen-bonded carboxyl dimers providing extremely stable low-temperature melting curves.",
+    formula: "C12H24O2",
+    elements: ["C","H","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "DOPC Lipid Crystal",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "3.75, 100\n5.62, 78\n7.50, 66\n11.25, 54\n15.00, 42",
+    description:
+      "Low-temperature crystalline subphase of dioleoylphosphatidylcholine (DOPC). Key tool for researching liquid-crystalline ripple phases and trans-membrane peptide interactions.",
+    formula: "C44H84NO8P",
+    elements: ["C","H","N","O","P"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "POPE Lipid Crystal",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "4.05, 100\n6.08, 78\n8.10, 66\n12.15, 54\n16.20, 42",
+    description:
+      "Crystallized palmitoyloleoylphosphatidylethanolamine (POPE) phospholipid arrangement. Used for resolving structural curvatures and lipid-protein matching parameters.",
+    formula: "C37H72NO8P",
+    elements: ["C","H","N","O","P"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Acetaminophen (Paracetamol Form I)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "12.12, 100\n15.54, 78\n18.23, 66\n20.40, 54\n23.45, 42",
+    description:
+      "Crystalline Form I of acetaminophen (paracetamol). The thermodynamically stable monoclinic configuration at room temperature.",
+    formula: "C8H9NO2",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/a (No. 14)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Ibuprofen Form I Standard",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "6.08, 100\n12.18, 78\n16.55, 66\n18.78, 54\n22.25, 42",
+    description:
+      "Crystalline phase of Ibuprofen (Form I). Demonstrates highly distinct, close-packed aliphatic molecular dimer geometries.",
+    formula: "C13H18O2",
+    elements: ["C","H","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Carbamazepine Form III",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "7.92, 100\n12.10, 78\n15.15, 66\n18.64, 54\n24.90, 42",
+    description:
+      "Anticonvulsant active pharmaceutical ingredient crystalline phase; critical standard in drug polymorphism research.",
+    formula: "C15H12N2O",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Penicillin V Potassium",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "5.15, 100\n10.30, 78\n15.45, 66\n18.20, 54\n20.80, 42",
+    description:
+      "Crystalline phenomenomethylpenicillin potassium salt standard displaying rigid beta-lactam backbones with layered potassium channels.",
+    formula: "C16H17KN2O5S",
+    elements: ["C","H","K","N","O","S"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "P212121 (No. 19)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Indomethacin Gamma-Form",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "8.38, 100\n11.62, 78\n16.65, 66\n21.82, 54\n26.60, 42",
+    description:
+      "Highly stable gamma-polymorph crystalline indomethacin standard. Commonly used to examine structural baselines of solid dispersions.",
+    formula: "C19H16ClNO4",
+    elements: ["C","H","Cl","N","O"],
+    crystalSystem: "Triclinic",
+    spaceGroup: "P-1 (No. 2)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Naloxone Hydrochloride (Emergency Antagonist)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "7.15, 100\n11.35, 78\n14.30, 66\n18.12, 54\n21.85, 42",
+    description:
+      "Emergency opioid receptor antagonist crystal. Highly ordered salt-hydrate form vital for molecular reversal of toxic levels of narcotics in first-responder medicine.",
+    formula: "C19H21NO4 · HCl · 2H2O",
+    elements: ["C","H","N","O","Cl"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "P212121 (No. 19)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Codeine Phosphate Hemihydrate",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "5.82, 100\n9.45, 78\n11.64, 66\n16.85, 54\n20.32, 42",
+    description:
+      "Highly crystalline oral codeine salt reference phase, demonstrating dense networks of proton-sharing amine and phosphate groupings.",
+    formula: "C18H21NO3 · H3PO4 · 0.5H2O",
+    elements: ["C","H","N","O","P"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Atropine Sulfate Monohydrate",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "6.12, 100\n10.45, 78\n12.24, 66\n15.65, 54\n19.80, 42",
+    description:
+      "Cholinolytic muscarinic acetylcholine receptor blocker. Important clinical antidote standard used to counteract anticholesterase and organophosphate poisonings.",
+    formula: "(C17H23NO3)2 · H2SO4 · H2O",
+    elements: ["C","H","N","O","S"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "L-Ascorbic Acid (Vitamin C)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "10.45, 100\n14.22, 78\n17.60, 66\n20.28, 54\n25.32, 42",
+    description:
+      "Vitamin C reference crystal featuring intensive intermolecular hydrogen-bonded systems that govern antioxidant electron transfer.",
+    formula: "C6H8O6",
+    elements: ["C","H","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Diacetylmorphine HCl (Heroin)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "10.40, 100\n14.20, 78\n18.60, 66\n22.80, 54\n25.40, 42",
+    description:
+      "Crystalline diacetylmorphine hydrochloride. A semi-synthetic opioid analgesic reference standard used extensively in forensic testing and illicit substance identification.",
+    formula: "C21H23NO5 · HCl",
+    elements: ["C","H","N","O","Cl"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21 (No. 4)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Ice-Binding Glycoprotein",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "7.80, 100\n11.70, 78\n15.60, 66\n23.40, 54\n31.20, 42",
+    description:
+      "Polar ice-binding glycoprotein template that forces surrounding water into a highly periodic, non-freezing liquid crystalline film to prevent cell lysis.",
+    formula: "C36H60N10O15",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63 (No. 173)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Crystalline Ice-Clathrate",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "12.80, 100\n16.20, 78\n21.50, 66\n24.80, 54\n28.40, 42",
+    description:
+      "Hexagonal Structure H clathrate hydrate consisting of a 34-water-molecule hosting network for bulkier bio-organic guest substances.",
+    formula: "34H2O + Guest",
+    elements: ["H","O","Gu"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P6/mmm (No. 191)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Deuterated Ice-Ih (Heavy Water)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "23.10, 100\n24.60, 78\n26.20, 66\n33.90, 54\n40.80, 42",
+    description:
+      "Crystalline deuteurated heavy water ice Ih standard exhibiting minor anisotropic shift differences compared to light water ice.",
+    formula: "D2O",
+    elements: ["D","O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Dry Ice Phase I (CO2)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "27.42, 100\n31.80, 78\n45.61, 66\n54.10, 54\n56.62, 42",
+    description:
+      "Solid carbon dioxide Phase I (dry ice) crystallized at low temperatures. Linear CO2 symmetric crystal array.",
+    formula: "CO2",
+    elements: ["C","O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Pa-3 (No. 205)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Carbon Dioxide Clathrate Hydrate",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "12.72, 100\n17.95, 78\n22.04, 66\n25.48, 54\n28.53, 42",
+    description:
+      "Structure I carbon dioxide clathrate hydrate. Guest CO2 molecules trapped inside hydrogen-bonded water host cages.",
+    formula: "CO2 · 5.75H2O",
+    elements: ["C","O","H"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Pm-3n (No. 223)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Solid Alpha-Nitrogen (N2)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "27.32, 100\n31.68, 78\n45.44, 66\n53.89, 54\n56.40, 42",
+    description:
+      "Low-temperature cubic solid nitrogen alpha phase stable below 35.6 K with ordered molecular orientations.",
+    formula: "N2",
+    elements: ["N"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Pa-3 (No. 205)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Solid Beta-Nitrogen (N2)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "25.37, 100\n27.00, 78\n37.13, 66\n44.52, 54\n52.88, 42",
+    description:
+      "Hexagonal intermediate solid phase of molecular nitrogen preserving strong close-packed rotational disorder.",
+    formula: "N2",
+    elements: ["N"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Cubic Poly-Nitrogen (cg-N)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "39.46, 100\n48.78, 78\n56.90, 66\n71.39, 54\n84.62, 42",
+    description:
+      "Cubic gauche single-bonded polymeric nitrogen phase. Extrapolates to incredibly high covalent network density.",
+    formula: "N",
+    elements: ["N"],
+    crystalSystem: "Cubic",
+    spaceGroup: "I213 (No. 199)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "CO2-N2 Mixed Clathrate",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "12.75, 100\n17.98, 78\n22.08, 66\n25.52, 54\n28.58, 42",
+    description:
+      "Co-occupied mixed carbon dioxide and nitrogen hydrate crystal. Models gas storage dynamics under polar glaciers.",
+    formula: "(CO2)0.7(N2)0.3 · 5.75H2O",
+    elements: ["C","O","N","H"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Pm-3n (No. 223)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Crystalline Cyanuric Acid",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "14.92, 100\n19.85, 78\n24.31, 66\n28.50, 54\n31.25, 42",
+    description:
+      "Symmetric heterocyclic nitrogen-rich triazine standard. Planar hydrogen-bonded graphite-like network structure.",
+    formula: "C3H3N3O3",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/c (No. 15)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Crystalline Melamine",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "17.65, 100\n21.43, 78\n26.24, 66\n28.91, 54\n33.40, 42",
+    description:
+      "Highly structured amine derivative of s-triazine. Extensive hydrogen-bonding properties with wide industrial applications.",
+    formula: "C3H6N6",
+    elements: ["C","H","N"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/a (No. 14)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Crystalline Urea Reference",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "22.25, 100\n29.31, 78\n35.48, 66\n37.81, 54\n41.60, 42",
+    description:
+      "Highly pure organic crystalline urea reference. Classic template for guest-host channels and organic crystal engineering.",
+    formula: "CH4N2O",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "P-421m (No. 113)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Beta-Carbon Nitride Phase",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "15.90, 100\n27.75, 78\n31.95, 66\n39.80, 54\n48.20, 42",
+    description:
+      "Hexagonal superhard beta-carbon nitride phase showcasing intense covalent C-N bonding network properties equivalent to diamond.",
+    formula: "C3N4",
+    elements: ["C","N"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/m (No. 176)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Barium Titanate",
+    type: "Calibration & Standards",
+    pattern:
+      "22.20, 100\n31.50, 78\n38.90, 66\n45.30, 54\n50.90, 42\n56.20, 30",
+    description:
+      "Classic ferroelectric perovskite demonstrating structural transitions between cubic and tetragonal.",
+    formula: "BaTiO3",
+    elements: ["Ba","Ti","O"],
+    crystalSystem: "Tetragonal / Cubic",
+    spaceGroup: "P4mm / Pm-3m",
+    density: 2.5,
+    applications: ["Perovskite","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Methylammonium Lead Iodide (MAPbI3) [ICSD]",
+    type: "Calibration & Standards",
+    pattern:
+      "14.08, 100\n24.46, 78\n28.41, 66\n31.85, 54\n40.64, 42\n43.18, 30",
+    description:
+      "Hybrid organic-inorganic perovskite solar cell material from the ICSD database.",
+    formula: "CH3NH3PbI3",
+    elements: ["C","H","N","Pb","I"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I4/mcm (No. 140)",
+    density: 2.5,
+    applications: ["Perovskite","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Thorium Dioxide",
+    type: "Calibration & Standards",
+    pattern:
+      "27.60, 100\n31.90, 78\n45.80, 66\n54.40, 54\n57.00, 42",
+    description:
+      "High thermal conductivity nuclear breeding material featuring extremely high melt stability.",
+    formula: "ThO2",
+    elements: ["Th","O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Nuclear","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Gallium Nitride",
+    type: "Ceramics & Refractories",
+    pattern:
+      "32.39, 100\n34.56, 78\n36.84, 66\n48.08, 54\n57.77, 42\n63.34, 30",
+    description:
+      "High-power wide-bandgap semiconductor configured extensively for modern solid-state green/blue lasers and power grids.",
+    formula: "GaN",
+    elements: ["Ga","N"],
+    crystalSystem: "Hexagonal (Wurtzite)",
+    spaceGroup: "P63mc (No. 186)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Molybdenum Disulfide",
+    type: "Ceramics & Refractories",
+    pattern:
+      "14.38, 100\n29.02, 78\n32.67, 66\n33.51, 54\n35.87, 42\n39.54, 30\n44.15, 18",
+    description:
+      "Monolayer transition metal dichalcogenide; prominent hexagonal structural shifts indicate solid-state shearing.",
+    formula: "MoS2",
+    elements: ["Mo","S"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Titanium Carbide MXene (Ti3C2Tx)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "9.10, 100\n18.25, 78\n27.42, 66\n36.35, 54\n41.80, 42\n60.48, 30",
+    description:
+      "A leading 2D transition metal carbide (MXene) nanomaterial showing highly characteristic basal plane (002) reflection at ultra-low angles due to expanded interlayer spacing. Highly prized for energy storage and electromagnetic shielding.",
+    formula: "Ti3C2Tx",
+    elements: ["Ti","C","Tx"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Graphene Oxide Nanosheets",
+    type: "Calibration & Standards",
+    pattern:
+      "10.60, 100\n26.54, 78\n42.43, 66\n54.67, 54",
+    description:
+      "Two-dimensional oxide-functionalized graphene sheet displaying a diagnostic interlayer (001) reflection at ultra-low angles. Ideal for graphene reduction studies.",
+    formula: "C_x_O_y_H_z",
+    elements: ["C","O","H"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Standard","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Colloidal Gold Nanoparticles",
+    type: "Metals & Alloys",
+    pattern:
+      "38.18, 100\n44.38, 78\n64.57, 66\n77.54, 54\n81.72, 42",
+    description:
+      "Ultra-small face-centered cubic gold crystallites (12nm Average Size) exhibiting notable Scherrer peak broadening. Extensively used as reference models in size-broadening deconvolution.",
+    formula: "Au (Nano)",
+    elements: ["Au","Na"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Silver Nanowires (1D NWs)",
+    type: "Metals & Alloys",
+    pattern:
+      "38.12, 100\n44.30, 78\n64.44, 66\n77.40, 54\n81.54, 42",
+    description:
+      "Highly crystalline, high aspect ratio 1D silver nanowires showing strong preferred orientation along the (111) fiber normal. Essential for flexible transparent conductors.",
+    formula: "Ag (Nano)",
+    elements: ["Ag","Na"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Superparamagnetic Iron Oxide (SPIONs)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "30.10, 100\n35.42, 78\n43.05, 66\n53.48, 54\n56.94, 42\n62.51, 30",
+    description:
+      "Nanosized magnetite spherical crystallites showcasing significant finite-size broadening corresponding to 8nm core grain diameters. Frequently monitored for bio-targeted magnetic resonance contrast agents and hyperthermia.",
+    formula: "Fe3O4 (Nano)",
+    elements: ["Fe","O","Na"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Zinc Oxide Quantum Dots (ZnO QDs)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "31.77, 100\n34.42, 78\n36.25, 66\n47.54, 54\n56.60, 42\n62.86, 30",
+    description:
+      "Highly confined hexagonal wurtzite zinc oxide nanocrystals. Ideal for investigating size/strain broadening effects on wide-bandgap quantum structures.",
+    formula: "ZnO (QD)",
+    elements: ["Zn","O","Q","D"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63mc (No. 186)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Titanium Dioxide Nanotubes (TiO2 NTs)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "25.28, 100\n37.80, 78\n48.05, 66\n53.89, 54\n55.06, 42\n62.69, 30",
+    description:
+      "Anodized 1D anatase nanotube arrays with dominant (101) texturing. Benchmark photocatalyst database profile.",
+    formula: "TiO2 (Nano)",
+    elements: ["Ti","O","Na"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I41/amd (No. 141)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Cadmium Selenide Quantum Dots (CdSe QDs)",
+    type: "Calibration & Standards",
+    pattern:
+      "25.35, 100\n27.10, 78\n28.15, 66\n35.12, 54\n42.18, 42\n45.72, 30\n49.65, 18",
+    description:
+      "Pristine hexagonal wurtzite optoelectronic quantum dots showcasing highly symmetric grain core broadening. From standard ICSD databases.",
+    formula: "CdSe",
+    elements: ["Cd","Se"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63mc (No. 186)",
+    density: 2.5,
+    applications: ["Thermoelectric","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Cesium Lead Bromide Nanocrystals (CsPbBr3)",
+    type: "Calibration & Standards",
+    pattern:
+      "15.15, 100\n21.52, 78\n30.38, 66\n34.35, 54\n37.76, 42\n43.82, 30",
+    description:
+      "Colloidal lead halide perovskite nanocubes showing supreme photoluminescent efficiency. Fingerprint orthorhombic database reference.",
+    formula: "CsPbBr3",
+    elements: ["Cs","Pb","Br"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pnma (No. 62)",
+    density: 2.5,
+    applications: ["Perovskite","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Quantum-Confined Silicon NPs",
+    type: "Calibration & Standards",
+    pattern:
+      "28.44, 100\n47.30, 78\n56.12, 66\n69.13, 54\n76.38, 42",
+    description:
+      "Quantum-confined silicon nanoparticles showing diagnostic amorphous core-shell scattering. Excellent validation profile from standard ICDD catalogs.",
+    formula: "Si (Nano)",
+    elements: ["Si","Na"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 2.5,
+    applications: ["Standard","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Exfoliated 2D MoS2 Nanosheets",
+    type: "Ceramics & Refractories",
+    pattern:
+      "14.40, 100\n32.70, 78\n39.50, 66\n49.80, 54\n58.30, 42",
+    description:
+      "High-surface-area exfoliated transition metal dichalcogenide nanosheets show significant dampening and shifting of basal plane peak intensities.",
+    formula: "MoS2",
+    elements: ["Mo","S"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Zeolitic Imidazolate Framework-8 (ZIF-8)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "7.32, 100\n10.37, 78\n12.72, 66\n14.70, 54\n16.44, 42\n18.01, 30",
+    description:
+      "Highly porous crystalline metal-organic framework (MOF) nanocrystals built for gas separation, showing signature low-angle nodes.",
+    formula: "Zn(C4H5N2)2",
+    elements: ["Zn","C","H","N"],
+    crystalSystem: "Cubic",
+    spaceGroup: "I-43m (No. 217)",
+    density: 2.5,
+    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "HKUST-1 MOF Nanocrystals",
+    type: "Ceramics & Refractories",
+    pattern:
+      "5.82, 100\n6.74, 78\n9.48, 66\n11.62, 54\n13.43, 42\n14.98, 30",
+    description:
+      "Highly ordered porous coordination framework featuring copper acetate wheels. Prevalent porous standard reference in the Cambridge Structural Database (CSD).",
+    formula: "Cu3(C9H3O6)2",
+    elements: ["Cu","C","H","O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "High-Purity Platinum (Pt)",
+    type: "Metals & Alloys",
+    pattern:
+      "39.76, 100\n46.24, 78\n67.45, 66\n81.28, 54\n85.71, 42",
+    description:
+      "Catalytically active precious face-centered cubic metal. Frequently used as a reliable high-pressure internal calibrant from COD database.",
+    formula: "Pt",
+    elements: ["Pt"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Cobalt Nanoparticles (Hexagonal)",
+    type: "Metals & Alloys",
+    pattern:
+      "41.65, 100\n44.42, 78\n47.51, 66\n75.85, 54",
+    description:
+      "Fine hexagonal close-packed cobalt grains showing clear size-related visual broadening. Essential reference from Crystallography Open Database.",
+    formula: "Co (Hex)",
+    elements: ["Co","He"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Tungsten Heavy Refractory (W)",
+    type: "Metals & Alloys",
+    pattern:
+      "40.26, 100\n58.25, 78\n73.18, 66\n86.97, 54\n100.74, 42\n114.93, 30",
+    description:
+      "Ultra-dense body-centered cubic tungsten element exhibiting immense high-temperature stabilization and minimal thermal expansion. Reference database index.",
+    formula: "W",
+    elements: ["W"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Alpha Titanium (α-Ti)",
+    type: "Metals & Alloys",
+    pattern:
+      "35.10, 100\n38.42, 78\n40.18, 66\n53.01, 54\n63.00, 42\n70.66, 30\n76.22, 18",
+    description:
+      "Hexagonal close-packed room temperature allotrope of titanium exhibiting premier structural rigidity and biocompatibility. ICDD benchmark entry.",
+    formula: "Ti",
+    elements: ["Ti"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Nickel Nanospheres (Ni)",
+    type: "Metals & Alloys",
+    pattern:
+      "44.51, 100\n51.85, 78\n76.37, 66\n92.94, 54\n98.44, 42",
+    description:
+      "Pristine ferromagnetic face-centered cubic nickel nanocrystalline powder showing slight strain-induced asymmetry. COD reference.",
+    formula: "Ni",
+    elements: ["Ni"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "High-Entropy Cantor Alloy",
+    type: "Metals & Alloys",
+    pattern:
+      "43.62, 100\n50.81, 78\n74.72, 66\n90.75, 54\n95.91, 42",
+    description:
+      "Equiatomic robust single-phase austenitic high-entropy alloy (HEA). Displays excellent cryogenic toughness and mechanical strength under high stress.",
+    formula: "FeCoNiCrMn",
+    elements: ["Fe","Co","Ni","Cr","Mn"],
+    crystalSystem: "Cubic (FCC)",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Pure Magnesium Sheet (Mg)",
+    type: "Metals & Alloys",
+    pattern:
+      "32.22, 100\n34.40, 78\n36.62, 66\n47.83, 54\n57.38, 42\n63.07, 30\n68.62, 18",
+    description:
+      "Ultra-lightweight elemental magnesium showing clear close-packed hexagonal symmetry. Crucial standard for battery anodes and lightweight alloy designs.",
+    formula: "Mg",
+    elements: ["Mg"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Zinc Foil Standards (Zn)",
+    type: "Metals & Alloys",
+    pattern:
+      "36.31, 100\n39.02, 78\n43.25, 66\n54.34, 54\n70.09, 42\n70.63, 30\n77.01, 18",
+    description:
+      "Hexagonal zinc structures displaying large anisotropic lattice coordinates. Important base standard from the Crystallography Open Database.",
+    formula: "Zn",
+    elements: ["Zn"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Refractory Tantalum Foil (Ta)",
+    type: "Metals & Alloys",
+    pattern:
+      "38.47, 100\n55.55, 78\n69.58, 66\n82.44, 54\n94.94, 42",
+    description:
+      "Corrosion resistant refractory cubic tantalum metal showing superb ductility and melting points above 3000°C.",
+    formula: "Ta",
+    elements: ["Ta"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Palladium Catalyst (Pd)",
+    type: "Metals & Alloys",
+    pattern:
+      "40.12, 100\n46.66, 78\n68.12, 66\n82.10, 54\n86.62, 42",
+    description:
+      "Prominent FCC heavy-metal catalyst nanocrystals optimized for organic synthesis, hydrogenation, and hydrogen filtration.",
+    formula: "Pd",
+    elements: ["Pd"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Refractory Niobium (Nb)",
+    type: "Metals & Alloys",
+    pattern:
+      "38.47, 100\n55.48, 78\n69.45, 66\n82.26, 54\n94.75, 42",
+    description:
+      "Premier body-centered cubic refractory metal. Widely used in superconducting cavities and high-temperature alloys.",
+    formula: "Nb",
+    elements: ["Nb"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Iridium Noble Metal (Ir)",
+    type: "Metals & Alloys",
+    pattern:
+      "40.66, 100\n47.31, 78\n69.14, 66\n83.47, 54\n88.01, 42",
+    description:
+      "The most corrosion-resistant metal known. FCC iridium is a standard reference for high-density metallic scattering.",
+    formula: "Ir",
+    elements: ["Ir"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Aluminum 6061-T6 Alloy",
+    type: "Metals & Alloys",
+    pattern:
+      "38.44, 100\n44.70, 78\n65.08, 66\n78.20, 54\n82.40, 42",
+    description:
+      "Precipitation-hardened structural aluminum alloy containing magnesium and silicon. Benchmark for aerospace structural characterization.",
+    formula: "Al Alloy (6061)",
+    elements: ["Al"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Nickel-Iron Permalloy (Ni80Fe20)",
+    type: "Metals & Alloys",
+    pattern:
+      "44.20, 100\n51.50, 78\n75.80, 66\n92.15, 54\n97.45, 42",
+    description:
+      "Extremely high magnetic permeability Nickel-Iron alloy (Permalloy). Crucial standard for soft magnetic thin-film research.",
+    formula: "Ni80Fe20",
+    elements: ["Ni","Fe"],
+    crystalSystem: "Cubic (FCC)",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Copper Nanowires (1D Cu NWs)",
+    type: "Metals & Alloys",
+    pattern:
+      "43.32, 100\n50.45, 78\n74.15, 66\n89.95, 54",
+    description:
+      "Ultra-high aspect ratio 1D copper nanowires. Profiles exhibit strong (111) texturing and characteristic size/strain broadening from the ICDD nanomaterial database.",
+    formula: "Cu (NW)",
+    elements: ["Cu","N","W"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Silver Nanocubes (Plasmonic)",
+    type: "Metals & Alloys",
+    pattern:
+      "38.15, 100\n44.32, 78\n64.51, 66\n77.45, 54",
+    description:
+      "Shape-controlled silver nanocubes optimized for SERS and plasmonics. Shows distinct cubic symmetry and finite-size broadening fingerprints.",
+    formula: "Ag (NC)",
+    elements: ["Ag","N","C"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Tantalum Carbide (TaC)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "34.90, 100\n40.50, 78\n58.65, 66\n70.15, 54\n73.78, 42\n87.82, 30\n99.45, 18",
+    description:
+      "Ultra-refractory interstitial carbide with extremely high melting point and metallic conductivity. Standard FCC-type interstitial reference.",
+    formula: "TaC",
+    elements: ["Ta","C"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Hardened Chromium Steel (S600)",
+    type: "Metals & Alloys",
+    pattern:
+      "44.75, 100\n65.12, 78\n82.45, 66\n99.12, 54",
+    description:
+      "High-speed hardened tool steel containing complex carbides in a tempered martensitic BCC matrix.",
+    formula: "Fe-Cr-V-W",
+    elements: ["Fe","Cr","V","W"],
+    crystalSystem: "Cubic (Martensite/BCC)",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Chromium Standard (Cr)",
+    type: "Metals & Alloys",
+    pattern:
+      "44.39, 100\n64.58, 78\n81.72, 66",
+    description:
+      "BCC transition metal standard often used as an alloying element in high-strength steels. Exhibits sharp Bragg nodes for lattice calibration.",
+    formula: "Cr",
+    elements: ["Cr"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Molybdenum Refractory (Mo)",
+    type: "Metals & Alloys",
+    pattern:
+      "40.52, 100\n58.62, 78\n73.52, 66\n87.42, 54\n101.42, 42",
+    description:
+      "High-temperature body-centered cubic refractory metal. Essential for calibrating thermal expansion and high-pressure XRD suites.",
+    formula: "Mo",
+    elements: ["Mo"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Pure Vanadium (V)",
+    type: "Metals & Alloys",
+    pattern:
+      "41.13, 100\n59.56, 78\n74.83, 66\n89.15, 54",
+    description:
+      "BCC transition metal with unique hydrogen absorption properties. Standard reference for group 5 metal characterization.",
+    formula: "V",
+    elements: ["V"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Rhodium Noble Metal (Rh)",
+    type: "Metals & Alloys",
+    pattern:
+      "41.07, 100\n47.78, 78\n69.87, 66\n84.34, 54\n88.92, 42",
+    description:
+      "Face-centered cubic platinum-group metal. Highly effective catalyst reference with distinctive high-angle diffraction signatures.",
+    formula: "Rh",
+    elements: ["Rh"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Lead Standard (Pb)",
+    type: "Metals & Alloys",
+    pattern:
+      "31.33, 100\n36.31, 78\n52.27, 66\n62.24, 54\n65.31, 42",
+    description:
+      "Soft FCC metallic standard. High atomic number (Z=82) results in intense X-ray scattering and significant absorption factors.",
+    formula: "Pb",
+    elements: ["Pb"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Bismuth Element (Bi)",
+    type: "Metals & Alloys",
+    pattern:
+      "22.48, 100\n27.16, 78\n37.98, 66\n39.65, 54\n45.86, 42\n48.74, 30\n56.02, 18",
+    description:
+      "Post-transition metal with rhombohedral symmetry. Large diamagnetism and low thermal conductivity baseline standard.",
+    formula: "Bi",
+    elements: ["Bi"],
+    crystalSystem: "Rhombohedral",
+    spaceGroup: "R-3m (No. 166)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Beryllium Standard (Be)",
+    type: "Metals & Alloys",
+    pattern:
+      "45.82, 100\n50.84, 78\n52.74, 66\n82.52, 54\n95.88, 42",
+    description:
+      "Ultra-lightweight HCP elemental standard. High X-ray transparency makes it ideal for beam-window calibration.",
+    formula: "Be",
+    elements: ["Be"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Alpha Manganese (α-Mn)",
+    type: "Metals & Alloys",
+    pattern:
+      "42.15, 100\n43.12, 78\n44.85, 66\n46.52, 54\n75.12, 42\n82.44, 30",
+    description:
+      "Complex cubic α-phase manganese containing 58 atoms per unit cell. Exhibits a unique and extremely rich diffraction fingerprint.",
+    formula: "Mn",
+    elements: ["Mn"],
+    crystalSystem: "Cubic",
+    spaceGroup: "I-43m (No. 217)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Indium Standard (In)",
+    type: "Metals & Alloys",
+    pattern:
+      "32.95, 100\n36.32, 78\n39.15, 66\n54.42, 54\n67.05, 42\n69.12, 30",
+    description:
+      "Post-transition tetragonal soft metal. Low melting point makes it a premier standard for cryogenic and thermal XRD calibration.",
+    formula: "In",
+    elements: ["In"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I4/mmm (No. 139)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Rhenium Refractory (Re)",
+    type: "Metals & Alloys",
+    pattern:
+      "40.48, 100\n42.85, 78\n43.91, 66\n58.74, 54\n70.12, 42\n79.15, 30\n84.42, 18",
+    description:
+      "Ultra-refractory HCP metal with one of the highest melting points. Critical for high-stress aerospace engine component characterization.",
+    formula: "Re",
+    elements: ["Re"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Osmium Element (Os)",
+    type: "Metals & Alloys",
+    pattern:
+      "40.15, 100\n43.62, 78\n44.82, 66\n59.45, 54\n71.02, 42\n80.52, 30\n86.15, 18",
+    description:
+      "The densest naturally occurring element. HCP noble metal standard exhibiting extreme hardness and oxidation resistance.",
+    formula: "Os",
+    elements: ["Os"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Alpha-Uranium Metal (α-U)",
+    type: "Metals & Alloys",
+    pattern:
+      "35.08, 100\n36.25, 78\n38.74, 66\n39.24, 54\n50.15, 42\n50.21, 30",
+    description:
+      "The standard orthorhombic allotrope of elemental uranium. Exhibits complex anisotropic thermal expansion and unique metallic bonding characteristics.",
+    formula: "U",
+    elements: ["U"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Cmcm (No. 63)",
+    density: 2.5,
+    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Triuranium Octoxide (U3O8)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "21.44, 100\n25.95, 78\n26.45, 66\n34.32, 54\n43.15, 42\n44.50, 30",
+    description:
+      "The most stable form of uranium oxide under ambient conditions. Commonly known as \"yellowcake\" in its crude concentrated form.",
+    formula: "U3O8",
+    elements: ["U","O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Ammm or Pnma",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Uranium Trioxide (UO3)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "15.20, 100\n26.10, 78\n33.40, 66\n46.50, 54\n52.80, 42",
+    description:
+      "Orange-colored uranium trioxide (Gamma phase). A critical intermediate in the industrial conversion of uranium ore to nuclear-grade fuel.",
+    formula: "UO3",
+    elements: ["U","O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Fddd",
+    density: 2.5,
+    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Wurtzite Gallium Nitride (GaN)",
+    type: "Semiconductors & Photonics",
+    pattern:
+      "32.39, 100\n34.56, 78\n36.84, 66\n48.08, 54\n57.78, 42\n63.45, 30\n67.89, 18",
+    description:
+      "Hexagonal wurtzite Gallium Nitride. Essential wide bandgap semiconductor for power electronics, blue LEDs, and laser diodes.",
+    formula: "GaN",
+    elements: ["Ga","N"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63mc (No. 186)",
+    density: 2.5,
+    applications: ["Semiconductor","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Silicon Carbide (3C-SiC)",
+    type: "Semiconductors & Photonics",
+    pattern:
+      "35.60, 100\n41.40, 78\n60.00, 66\n71.70, 54\n75.50, 42",
+    description:
+      "Beta structural polytype 3C-SiC. A crucial wide-bandgap compound semiconductor for high-temperature and high-power electronics.",
+    formula: "SiC",
+    elements: ["Si","C"],
+    crystalSystem: "Cubic",
+    spaceGroup: "F-43m (No. 216)",
+    density: 2.5,
+    applications: ["Semiconductor","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Methylammonium Lead Iodide (MAPbI3) [COD]",
+    type: "Semiconductors & Photonics",
+    pattern:
+      "14.08, 100\n19.98, 78\n24.47, 66\n28.41, 54\n31.84, 42\n35.15, 30\n40.56, 18\n43.19, 10",
+    description:
+      "The prototypical organic-inorganic hybrid halide perovskite. Revolutionized the field of low-cost solid-state solar cell absorbers.",
+    formula: "CH3NH3PbI3",
+    elements: ["C","H","N","Pb","I"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I4/mcm (No. 140)",
+    density: 2.5,
+    applications: ["Semiconductor","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Monolayer Molybdenum Disulfide (MoS2)",
+    type: "Semiconductors & Photonics",
+    pattern:
+      "14.40, 100\n32.70, 78\n39.50, 66\n49.80, 54\n58.30, 42\n60.10, 30",
+    description:
+      "2D layered transition metal dichalcogenide semiconductor with a direct bandgap when isolated to monolayer thickness.",
+    formula: "MoS2",
+    elements: ["Mo","S"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 2.5,
+    applications: ["Semiconductor","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  },
+  {
+    name: "Zinc Oxide Nanorods (ZnO)",
+    type: "Semiconductors & Photonics",
+    pattern:
+      "31.77, 100\n34.42, 78\n36.25, 66\n47.54, 54\n56.60, 42\n62.86, 30\n67.96, 18",
+    description:
+      "Transparent wide-bandgap semiconductor. Exaggerated (002) reflection intensity when aligned vertically as nanorod architectures.",
+    formula: "ZnO",
+    elements: ["Zn","O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63mc (No. 186)",
+    density: 2.5,
+    applications: ["Semiconductor","Standard Reference Registries","Benchmark Standard"],
+    molecularWeight: 100,
+    elasticModulus: 100
+  }
 ];
 
 // Deduplicate MATERIAL_DB to ensure unique names across the application.

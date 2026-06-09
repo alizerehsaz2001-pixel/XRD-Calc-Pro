@@ -71,7 +71,7 @@ const mappedPresets: MaterialPreset[] = MATERIAL_DB.map(m => {
   };
 });
 
-const PRESETS: MaterialPreset[] = [
+export const PRESETS: MaterialPreset[] = [
   {
     name: 'Roman Concrete (Alberese Lime)',
     formula: 'CaCO3·Ca(OH)2·Al-Tobermorite',

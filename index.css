@@ -226,7 +226,7 @@
 .terminal .bg-slate-900, .terminal .bg-slate-950 { background-color: #000 !important; border: 1px solid var(--color-term-dim) !important; }
 .terminal input, .terminal textarea, .terminal select { background-color: #000 !important; border: 1px solid var(--color-term-fg) !important; color: var(--color-term-fg) !important; font-family: 'Courier New', Courier, monospace !important; }
 .terminal input:focus, .terminal textarea:focus { box-shadow: 0 0 5px var(--color-term-fg) !important; outline: none !important; }
-.terminal .text-slate-400, .terminal .text-slate-500 { color: var(--color-term-dim) !important; }
+.terminal .text-slate-400, .terminal .text-slate-500, .terminal .text-slate-300 { color: var(--color-term-dim) !important; }
 .terminal .rounded-xl, .terminal .rounded-2xl { border-radius: 0 !important; }
 .terminal .shadow-sm, .terminal .shadow-md, .terminal .shadow-lg, .terminal .shadow-xl, .terminal .shadow-2xl { box-shadow: none !important; }
 .terminal .from-indigo-500, .terminal .via-slate-200, .terminal .to-slate-400 { background-image: none !important; color: var(--color-term-fg) !important; }
@@ -244,6 +244,8 @@
   50% { transform: scaleX(1); opacity: 1; }
   100% { transform: scaleX(0.7); opacity: 0.8; }
 }
+
+/* Synthwave Theme */
 :root {
   --color-synth-bg: #2b005e;
   --color-synth-fg: #f9a8d4;
@@ -262,13 +264,78 @@
 .synthwave .border-slate-200, .synthwave .border-slate-800 { border-color: rgba(244, 114, 182, 0.4) !important; }
 .synthwave .bg-indigo-600, .synthwave .bg-violet-500, .synthwave .bg-violet-600 { background-color: #d946ef !important; box-shadow: 0 0 10px #d946ef !important; }
 .synthwave .text-indigo-600, .synthwave .text-violet-600, .synthwave .text-violet-500, .synthwave .text-violet-400 { color: #f472b6 !important; }
-.synthwave .text-indigo-400 { color: #22d3ee !important; }
+.synthwave .text-indigo-400 { color: #22d3ee !important; text-shadow: 0 0 5px rgba(34, 211, 238, 0.5); }
 .synthwave .bg-slate-900, .synthwave .bg-slate-950 { background-color: #17002e !important; border: 1px solid #701a75 !important; }
 .synthwave input, .synthwave textarea, .synthwave select { background-color: #17002e !important; border: 1px solid #d946ef !important; color: #fdf4ff !important; }
 .synthwave input:focus, .synthwave textarea:focus { box-shadow: 0 0 10px #d946ef !important; outline: none !important; }
-.synthwave .text-slate-400, .synthwave .text-slate-500 { color: #c084fc !important; }
+.synthwave .text-slate-400, .synthwave .text-slate-500, .synthwave .text-slate-300 { color: #c084fc !important; }
 .synthwave .rounded-xl, .synthwave .rounded-2xl { border-radius: 4px !important; }
 .synthwave .shadow-sm, .synthwave .shadow-md, .synthwave .shadow-lg, .synthwave .shadow-xl, .synthwave .shadow-2xl { box-shadow: 0 0 15px rgba(217, 70, 239, 0.2) !important; }
 .synthwave .from-indigo-500, .synthwave .via-slate-200, .synthwave .to-slate-400 { background-image: linear-gradient(to right, #ec4899, #8b5cf6) !important; color: transparent !important; background-clip: text !important; -webkit-background-clip: text !important; }
 .synthwave .text-transparent.bg-clip-text { background-clip: text !important; -webkit-background-clip: text !important; }
 .synthwave .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #d946ef; border-radius: 4px; }
+
+/* Dracula Theme */
+:root {
+  --color-dracula-bg: #282a36;
+  --color-dracula-curr: #44475a;
+  --color-dracula-fg: #f8f8f2;
+  --color-dracula-comment: #6272a4;
+  --color-dracula-cyan: #8be9fd;
+  --color-dracula-green: #50fa7b;
+  --color-dracula-orange: #ffb86c;
+  --color-dracula-pink: #ff79c6;
+  --color-dracula-purple: #bd93f9;
+  --color-dracula-red: #ff5555;
+  --color-dracula-yellow: #f1fa8c;
+}
+.dracula {
+  --chart-bar: #bd93f9;
+  --chart-ref: #ff79c6;
+  background-color: var(--color-dracula-bg);
+  color: var(--color-dracula-fg);
+}
+.dracula aside { background-color: #21222c !important; border-right-color: var(--color-dracula-curr) !important; }
+.dracula .bg-white, .dracula .bg-slate-50, .dracula .bg-slate-100 { background-color: #21222c !important; }
+.dracula .text-slate-900, .dracula .text-slate-800, .dracula .text-slate-700 { color: var(--color-dracula-fg) !important; }
+.dracula .border-slate-200, .dracula .border-slate-800 { border-color: var(--color-dracula-curr) !important; }
+.dracula .bg-indigo-600, .dracula .bg-violet-500, .dracula .bg-violet-600 { background-color: var(--color-dracula-purple) !important; color: #282a36 !important; }
+.dracula .text-indigo-600, .dracula .text-violet-600, .dracula .text-violet-500, .dracula .text-violet-400 { color: var(--color-dracula-purple) !important; }
+.dracula .text-indigo-400 { color: var(--color-dracula-cyan) !important; }
+.dracula .bg-slate-900, .dracula .bg-slate-950, .dracula .bg-black { background-color: #191a21 !important; border: 1px solid var(--color-dracula-curr) !important; }
+.dracula input, .dracula textarea, .dracula select { background-color: var(--color-dracula-bg) !important; border: 1px solid var(--color-dracula-comment) !important; color: var(--color-dracula-fg) !important; }
+.dracula input:focus, .dracula textarea:focus { border-color: var(--color-dracula-pink) !important; outline: none !important; }
+.dracula .text-slate-400, .dracula .text-slate-500, .dracula .text-slate-300 { color: var(--color-dracula-comment) !important; }
+.dracula .from-indigo-500, .dracula .via-slate-200, .dracula .to-slate-400 { background-image: linear-gradient(to right, var(--color-dracula-purple), var(--color-dracula-pink)) !important; color: transparent !important; background-clip: text !important; -webkit-background-clip: text !important; }
+.dracula .text-transparent.bg-clip-text { background-clip: text !important; -webkit-background-clip: text !important; }
+.dracula .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-dracula-comment); }
+
+/* Oceanic Theme */
+:root {
+  --color-oceanic-bg: #0f172a;
+  --color-oceanic-bg2: #1e293b;
+  --color-oceanic-fg: #f8fafc;
+  --color-oceanic-accent: #38bdf8;
+  --color-oceanic-accent2: #818cf8;
+  --color-oceanic-muted: #64748b;
+}
+.oceanic {
+  --chart-bar: #38bdf8;
+  --chart-ref: #818cf8;
+  background-color: var(--color-oceanic-bg);
+  color: var(--color-oceanic-fg);
+}
+.oceanic aside { background-color: var(--color-oceanic-bg2) !important; border-right-color: #334155 !important; }
+.oceanic .bg-white, .oceanic .bg-slate-50, .oceanic .bg-slate-100 { background-color: var(--color-oceanic-bg2) !important; }
+.oceanic .text-slate-900, .oceanic .text-slate-800, .oceanic .text-slate-700 { color: var(--color-oceanic-fg) !important; }
+.oceanic .border-slate-200, .oceanic .border-slate-800 { border-color: #334155 !important; }
+.oceanic .bg-indigo-600, .oceanic .bg-violet-500, .oceanic .bg-violet-600 { background-color: var(--color-oceanic-accent) !important; color: #0f172a !important; }
+.oceanic .text-indigo-600, .oceanic .text-violet-600, .oceanic .text-violet-500, .oceanic .text-violet-400 { color: var(--color-oceanic-accent2) !important; }
+.oceanic .text-indigo-400 { color: var(--color-oceanic-accent) !important; }
+.oceanic .bg-slate-900, .oceanic .bg-slate-950, .oceanic .bg-black { background-color: #0b1120 !important; border: 1px solid #1e293b !important; }
+.oceanic input, .oceanic textarea, .oceanic select { background-color: #0f172a !important; border: 1px solid var(--color-oceanic-muted) !important; color: var(--color-oceanic-fg) !important; }
+.oceanic input:focus, .oceanic textarea:focus { border-color: var(--color-oceanic-accent) !important; outline: none !important; }
+.oceanic .text-slate-400, .oceanic .text-slate-500, .oceanic .text-slate-300 { color: var(--color-oceanic-muted) !important; }
+.oceanic .from-indigo-500, .oceanic .via-slate-200, .oceanic .to-slate-400 { background-image: linear-gradient(to right, var(--color-oceanic-accent), var(--color-oceanic-accent2)) !important; color: transparent !important; background-clip: text !important; -webkit-background-clip: text !important; }
+.oceanic .text-transparent.bg-clip-text { background-clip: text !important; -webkit-background-clip: text !important; }
+.oceanic .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-oceanic-muted); }

@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'motion/react';
+import { motion, useMotionValue, useSpring } from 'motion/react';
 import LanguageSelector from './LanguageSelector';
 import { 
   Zap, 
@@ -65,7 +65,7 @@ const DiffractionGrid = () => (
 );
 
 // --- 3D Lattice Decoration ---
-const CrystalLattice = () => {
+const CrystalLattice = ({ springX, springY }: { springX: any, springY: any }) => {
   const nodes = [
     { x: '20%', y: '20%', z: 0 }, { x: '80%', y: '20%', z: 0 },
     { x: '20%', y: '80%', z: 0 }, { x: '80%', y: '80%', z: 0 },
@@ -76,27 +76,35 @@ const CrystalLattice = () => {
   ];
   return (
     <motion.div 
-      animate={{ rotateY: 360, rotateX: 360 }}
-      transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-      className="absolute top-[20%] right-[10%] w-[400px] h-[400px] pointer-events-none opacity-[0.15] hidden lg:block perspective-1000 transform-style-3d"
+      style={{
+        rotateX: springY,
+        rotateY: springX,
+      }}
+      className="absolute top-[20%] right-[10%] w-[400px] h-[400px] pointer-events-none opacity-[0.25] hidden lg:block perspective-1000 transform-style-3d"
     >
-      {nodes.map((n, i) => (
-        <motion.div 
-          key={i}
-          className="absolute w-4 h-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.8)]"
-          style={{ left: n.x, top: n.y, translateZ: n.z === 0 ? '-100px' : n.z === 1 ? '100px' : '0px' }}
-        />
-      ))}
-      <svg className="absolute inset-0 w-full h-full" style={{ transform: 'translateZ(0)' }}>
-         <line x1="20%" y1="20%" x2="80%" y2="20%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
-         <line x1="20%" y1="80%" x2="80%" y2="80%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
-         <line x1="20%" y1="20%" x2="20%" y2="80%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
-         <line x1="80%" y1="20%" x2="80%" y2="80%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
-         
-         {/* Cross lines to center out */}
-         <line x1="20%" y1="20%" x2="57.5%" y2="57.5%" stroke="rgba(34,211,238,0.3)" strokeWidth="1" strokeDasharray="4 2" />
-         <line x1="80%" y1="80%" x2="57.5%" y2="57.5%" stroke="rgba(34,211,238,0.3)" strokeWidth="1" strokeDasharray="4 2" />
-      </svg>
+      <motion.div
+        animate={{ rotateZ: 360 }}
+        transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+        className="w-full h-full transform-style-3d text-cyan-400"
+      >
+        {nodes.map((n, i) => (
+          <motion.div 
+            key={i}
+            className="absolute w-4 h-4 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.8)]"
+            style={{ left: n.x, top: n.y, translateZ: n.z === 0 ? '-100px' : n.z === 1 ? '100px' : '0px' }}
+          />
+        ))}
+        <svg className="absolute inset-0 w-full h-full" style={{ transform: 'translateZ(0)' }}>
+           <line x1="20%" y1="20%" x2="80%" y2="20%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
+           <line x1="20%" y1="80%" x2="80%" y2="80%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
+           <line x1="20%" y1="20%" x2="20%" y2="80%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
+           <line x1="80%" y1="20%" x2="80%" y2="80%" stroke="rgba(139,92,246,0.5)" strokeWidth="2" />
+           
+           {/* Cross lines to center out */}
+           <line x1="20%" y1="20%" x2="57.5%" y2="57.5%" stroke="rgba(34,211,238,0.3)" strokeWidth="1" strokeDasharray="4 2" />
+           <line x1="80%" y1="80%" x2="57.5%" y2="57.5%" stroke="rgba(34,211,238,0.3)" strokeWidth="1" strokeDasharray="4 2" />
+        </svg>
+      </motion.div>
     </motion.div>
   );
 };
@@ -177,6 +185,57 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
   const [dSpace, setDSpace] = useState(2.82);   // NaCl default
   const [order, setOrder] = useState(1);
   const [activeAnode, setActiveAnode] = useState('Cu');
+
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
+
+  const animFrameRef = useRef<number | null>(null);
+
+  const handleCanvasDrag = (clientY: number) => {
+    if (animFrameRef.current) return;
+    
+    animFrameRef.current = requestAnimationFrame(() => {
+      if (!svgRef.current) {
+        animFrameRef.current = null;
+        return;
+      }
+      const rect = svgRef.current.getBoundingClientRect();
+      const relativeY = clientY - rect.top;
+      const distanceToCenter = Math.abs(relativeY - (rect.height / 2));
+      const computedD = distanceToCenter / 22;
+      const clampedD = Math.max(1.00, Math.min(6.00, computedD));
+      setDSpace(clampedD);
+      animFrameRef.current = null;
+    });
+  };
+
+  useEffect(() => {
+    const handleGlobalMove = (e: MouseEvent) => {
+      if (isDraggingCanvas) {
+        handleCanvasDrag(e.clientY);
+      }
+    };
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (isDraggingCanvas) {
+        handleCanvasDrag(e.touches[0].clientY);
+      }
+    };
+    const handleGlobalUp = () => {
+      setIsDraggingCanvas(false);
+    };
+
+    window.addEventListener('mousemove', handleGlobalMove);
+    window.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
+    window.addEventListener('mouseup', handleGlobalUp);
+    window.addEventListener('touchend', handleGlobalUp);
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      window.removeEventListener('mousemove', handleGlobalMove);
+      window.removeEventListener('touchmove', handleGlobalTouchMove);
+      window.removeEventListener('mouseup', handleGlobalUp);
+      window.removeEventListener('touchend', handleGlobalUp);
+    };
+  }, [isDraggingCanvas]);
 
   const presets = [
     { name: 'Copper (Cu)', symbol: 'Cu', val: 1.5406, color: 'bg-amber-500/10 border-amber-500/30 text-amber-300' },
@@ -365,7 +424,20 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
 
         {/* Simulated Ray Tracing Canvas SVG */}
         <div className="w-full flex-1 flex items-center justify-center relative min-h-[220px]">
-          <svg width={svgW} height={svgH} className="max-w-full drop-shadow-2xl">
+          <svg 
+            ref={svgRef}
+            width={svgW} 
+            height={svgH} 
+            className="max-w-full drop-shadow-2xl cursor-ns-resize select-none touch-none"
+            onMouseDown={(e) => {
+              setIsDraggingCanvas(true);
+              handleCanvasDrag(e.clientY);
+            }}
+            onTouchStart={(e) => {
+              setIsDraggingCanvas(true);
+              handleCanvasDrag(e.touches[0].clientY);
+            }}
+          >
             {/* Plane horizontal grid lines of atom rows */}
             <line x1="30" y1={y1} x2={svgW - 30} y2={y1} stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="5 3" />
             <line x1="10" y1={y2} x2={svgW - 10} y2={y2} stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
@@ -491,7 +563,23 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
 
   const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';
 
-  React.useEffect(() => {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 50, damping: 15 });
+  const springY = useSpring(mouseY, { stiffness: 50, damping: 15 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const xOffset = (e.clientX / window.innerWidth - 0.5) * 60;
+      const yOffset = (e.clientY / window.innerHeight - 0.5) * -60;
+      mouseX.set(xOffset);
+      mouseY.set(yOffset);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [mouseX, mouseY]);
+
+  useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
@@ -540,14 +628,16 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
       <SideSeekBar theme={theme} />
 
       {/* Theme Switcher Shared with App */}
-      <div className="fixed top-24 right-6 z-[110] flex flex-col gap-2 bg-white/5 backdrop-blur-2xl p-1.5 rounded-2xl border border-white/10 shadow-2xl opacity-0 hover:opacity-100 transition-opacity duration-300">
-        {['light', 'dark', 'cyberpunk', 'terminal', 'synthwave'].map((t) => (
+      <div className="fixed top-24 right-6 z-[110] flex flex-col gap-2 bg-slate-900/90 backdrop-blur-2xl p-2.5 rounded-2xl border border-white/10 shadow-2xl opacity-70 hover:opacity-100 transition-opacity duration-300">
+        <span className="text-[8px] font-black tracking-widest text-[#94a3b8] text-center uppercase mb-1">Theme</span>
+        {['light', 'dark', 'cyberpunk', 'terminal', 'synthwave', 'dracula', 'oceanic'].map((t) => (
           <button
             key={t}
             onClick={() => setTheme(t as any)}
-            className={`w-6 h-6 rounded-lg transition-all ${
-              theme === t ? 'bg-violet-500 scale-110 shadow-lg shadow-violet-500/50' : 'bg-slate-800 opacity-50 hover:opacity-100'
+            className={`w-6 h-6 rounded-lg transition-all border border-transparent ${
+              theme === t ? 'bg-violet-500 scale-110 shadow-lg shadow-violet-500/50 border-white/20' : 'bg-slate-800 opacity-50 hover:opacity-100'
             }`}
+            title={`Switch to ${t} theme`}
           />
         ))}
       </div>
@@ -601,7 +691,7 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
         {/* --- Hero Section --- */}
         <section className="relative px-6 pt-48 pb-32 md:pb-56 min-h-[90vh] flex items-center overflow-hidden">
           <DiffractionGrid />
-          <CrystalLattice />
+          <CrystalLattice springX={springX} springY={springY} />
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10 w-full">
             <motion.div
               initial={{ opacity: 0, y: 30 }}

@@ -14,8 +14,8 @@ import { playSynthTone } from '../utils/sound';
 import LanguageSelector from './LanguageSelector';
 
 interface SettingsModuleProps {
-  theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave';
-  setTheme: (theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave') => void;
+  theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic';
+  setTheme: (theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic') => void;
   precision: number;
   setPrecision: (precision: number) => void;
   animationsEnabled: boolean;
@@ -486,7 +486,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     { id: 'dark', label: 'Dark Matter', color: 'bg-slate-900', text: 'text-white', border: 'border-slate-700' },
     { id: 'cyberpunk', label: 'Cyber Net', color: 'bg-black', text: 'text-yellow-400', border: 'border-yellow-500' },
     { id: 'terminal', label: 'Mainframe', color: 'bg-black', text: 'text-green-500', border: 'border-green-500' },
-    { id: 'synthwave', label: 'Neon City', color: 'bg-indigo-950', text: 'text-pink-500', border: 'border-pink-500' }
+    { id: 'synthwave', label: 'Neon City', color: 'bg-indigo-950', text: 'text-pink-500', border: 'border-pink-500' },
+    { id: 'dracula', label: 'Vampire Night', color: 'bg-[#282a36]', text: 'text-[#bd93f9]', border: 'border-[#ff79c6]' },
+    { id: 'oceanic', label: 'Deep Ocean', color: 'bg-[#0f172a]', text: 'text-[#38bdf8]', border: 'border-[#818cf8]' }
   ];
 
   const wavelengthPresets = [

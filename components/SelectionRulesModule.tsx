@@ -1,16 +1,48 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { CrystalSystem, SelectionRuleResult } from '../types';
-import { parseHKLString, validateSelectionRule } from '../utils/physics';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  CheckCircle2, XCircle, Info, RefreshCw, Filter, BookOpen, 
-  Layers, Zap, ChevronDown, Check, Maximize, RotateCw, 
-  Split, CircleDot, ShieldQuestion, Loader2, Atom, Binary, Beaker,
-  Network, Hexagon, Component, Box, Cuboid, Pyramid, Download, X,
-  Play, Pause, Activity
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { CrystalSystem, SelectionRuleResult } from "../types";
+import { parseHKLString, validateSelectionRule } from "../utils/physics";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  CheckCircle2,
+  XCircle,
+  Info,
+  RefreshCw,
+  Filter,
+  BookOpen,
+  Layers,
+  Zap,
+  ChevronDown,
+  Check,
+  Maximize,
+  RotateCw,
+  Split,
+  CircleDot,
+  ShieldQuestion,
+  Loader2,
+  Atom,
+  Binary,
+  Beaker,
+  Network,
+  Hexagon,
+  Component,
+  Box,
+  Cuboid,
+  Pyramid,
+  Download,
+  X,
+  Play,
+  Pause,
+  Activity,
+} from "lucide-react";
 
-const Symmetry3DVisualizer = ({ system, showLatticeOutline, showMirrorPlanes, showSymmetryAxes, showInversionCenter, currentSymmetry }: any) => {
+const Symmetry3DVisualizer = ({
+  system,
+  showLatticeOutline,
+  showMirrorPlanes,
+  showSymmetryAxes,
+  showInversionCenter,
+  currentSymmetry,
+}: any) => {
   const [time, setTime] = useState(0);
 
   useEffect(() => {
@@ -24,12 +56,14 @@ const Symmetry3DVisualizer = ({ system, showLatticeOutline, showMirrorPlanes, sh
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  const isHex = system === 'Hexagonal';
-  const isMono = system === 'Monoclinic';
-  const isTri = system === 'Triclinic';
-  const isOrth = ['Orthorhombic', 'Orthorhombic_F', 'Orthorhombic_C'].includes(system);
-  const isTet = ['Tetragonal', 'Tetragonal_I'].includes(system);
-  const isCubic = ['SC', 'BCC', 'FCC', 'Cubic', 'Diamond'].includes(system);
+  const isHex = system === "Hexagonal";
+  const isMono = system === "Monoclinic";
+  const isTri = system === "Triclinic";
+  const isOrth = ["Orthorhombic", "Orthorhombic_F", "Orthorhombic_C"].includes(
+    system,
+  );
+  const isTet = ["Tetragonal", "Tetragonal_I"].includes(system);
+  const isCubic = ["SC", "BCC", "FCC", "Cubic", "Diamond"].includes(system);
 
   // Z-rotated view over time
   const angleY = time * 0.4;
@@ -41,7 +75,7 @@ const Symmetry3DVisualizer = ({ system, showLatticeOutline, showMirrorPlanes, sh
     const z1 = x * Math.sin(angleY) + z * Math.cos(angleY);
     const y1 = y; // y is up
 
-    // Rotation around X 
+    // Rotation around X
     const y2 = y1 * Math.cos(angleX) - z1 * Math.sin(angleX);
     const z2 = y1 * Math.sin(angleX) + z1 * Math.cos(angleX);
     const x2 = x1;
@@ -50,105 +84,225 @@ const Symmetry3DVisualizer = ({ system, showLatticeOutline, showMirrorPlanes, sh
     return {
       x: 150 + x2 * scale,
       y: 100 + y2 * scale,
-      z: z2
+      z: z2,
     };
   };
 
   let vertices: [number, number, number][] = [];
-  let axes: { start: [number, number, number], end: [number, number, number], label: string, color: string }[] = [];
+  let axes: {
+    start: [number, number, number];
+    end: [number, number, number];
+    label: string;
+    color: string;
+  }[] = [];
   let planes: [number, number, number][][] = [];
 
   if (isHex) {
     for (let i = 0; i < 6; i++) {
-        const a = (i * Math.PI) / 3;
-        vertices.push([Math.cos(a) * 0.9, Math.sin(a) * 0.9, 0.9]);
+      const a = (i * Math.PI) / 3;
+      vertices.push([Math.cos(a) * 0.9, Math.sin(a) * 0.9, 0.9]);
     }
     for (let i = 0; i < 6; i++) {
-        const a = (i * Math.PI) / 3;
-        vertices.push([Math.cos(a) * 0.9, Math.sin(a) * 0.9, -0.9]);
+      const a = (i * Math.PI) / 3;
+      vertices.push([Math.cos(a) * 0.9, Math.sin(a) * 0.9, -0.9]);
     }
     axes = [
-        { start: [0, 0, -1.3], end: [0, 0, 1.3], label: '6-fold (C6)', color: '#06b6d4' },
-        { start: [-1.2, 0, 0], end: [1.2, 0, 0], label: '2-fold (C2)', color: '#a855f7' },
-        { start: [-0.6, -1.03, 0], end: [0.6, 1.03, 0], label: '2-fold (C2)', color: '#a855f7' },
-        { start: [0.6, -1.03, 0], end: [-0.6, 1.03, 0], label: '2-fold (C2)', color: '#a855f7' },
+      {
+        start: [0, 0, -1.3],
+        end: [0, 0, 1.3],
+        label: "6-fold (C6)",
+        color: "#06b6d4",
+      },
+      {
+        start: [-1.2, 0, 0],
+        end: [1.2, 0, 0],
+        label: "2-fold (C2)",
+        color: "#a855f7",
+      },
+      {
+        start: [-0.6, -1.03, 0],
+        end: [0.6, 1.03, 0],
+        label: "2-fold (C2)",
+        color: "#a855f7",
+      },
+      {
+        start: [0.6, -1.03, 0],
+        end: [-0.6, 1.03, 0],
+        label: "2-fold (C2)",
+        color: "#a855f7",
+      },
     ];
     const hexPlane: [number, number, number][] = [];
     for (let i = 0; i < 6; i++) {
-        const a = (i * Math.PI) / 3;
-        hexPlane.push([Math.cos(a) * 0.9, Math.sin(a) * 0.9, 0]);
+      const a = (i * Math.PI) / 3;
+      hexPlane.push([Math.cos(a) * 0.9, Math.sin(a) * 0.9, 0]);
     }
     planes = [hexPlane];
   } else {
-    let sx = 0.85, sy = 0.85, sz = 0.85;
-    if (isTet) { sx = 0.7; sy = 0.7; sz = 1.1; }
-    else if (isOrth) { sx = 0.6; sy = 1.0; sz = 1.25; }
-    else if (isMono) { sx = 0.6; sy = 0.9; sz = 1.0; }
-    else if (isTri) { sx = 0.6; sy = 0.85; sz = 0.95; }
+    let sx = 0.85,
+      sy = 0.85,
+      sz = 0.85;
+    if (isTet) {
+      sx = 0.7;
+      sy = 0.7;
+      sz = 1.1;
+    } else if (isOrth) {
+      sx = 0.6;
+      sy = 1.0;
+      sz = 1.25;
+    } else if (isMono) {
+      sx = 0.6;
+      sy = 0.9;
+      sz = 1.0;
+    } else if (isTri) {
+      sx = 0.6;
+      sy = 0.85;
+      sz = 0.95;
+    }
 
-    const getPt = (dx: number, dy: number, dz: number): [number, number, number] => {
-        let rx = dx * sx;
-        let ry = dy * sy;
-        let rz = dz * sz;
-        if (isMono) { ry += dz * 0.35; }
-        else if (isTri) { rx += dy * 0.15 + dz * 0.25; ry += dz * 0.35; }
-        return [rx, ry, rz];
+    const getPt = (
+      dx: number,
+      dy: number,
+      dz: number,
+    ): [number, number, number] => {
+      let rx = dx * sx;
+      let ry = dy * sy;
+      let rz = dz * sz;
+      if (isMono) {
+        ry += dz * 0.35;
+      } else if (isTri) {
+        rx += dy * 0.15 + dz * 0.25;
+        ry += dz * 0.35;
+      }
+      return [rx, ry, rz];
     };
 
     vertices = [
-        getPt(-1, -1, -1), getPt(1, -1, -1), getPt(1, 1, -1), getPt(-1, 1, -1),
-        getPt(-1, -1, 1),  getPt(1, -1, 1),  getPt(1, 1, 1),  getPt(-1, 1, 1)
+      getPt(-1, -1, -1),
+      getPt(1, -1, -1),
+      getPt(1, 1, -1),
+      getPt(-1, 1, -1),
+      getPt(-1, -1, 1),
+      getPt(1, -1, 1),
+      getPt(1, 1, 1),
+      getPt(-1, 1, 1),
     ];
 
     if (isCubic) {
-        axes = [
-        { start: [0, 0, -1.45 * sz], end: [0, 0, 1.45 * sz], label: '4-fold (C4)', color: '#10b981' },
-        { start: [-1.45 * sx, 0, 0], end: [1.45 * sx, 0, 0], label: '4-fold (C4)', color: '#10b981' },
-        { start: [0, -1.45 * sy, 0], end: [0, 1.45 * sy, 0], label: '4-fold (C4)', color: '#10b981' },
-        { start: getPt(-1.25, -1.25, -1.25), end: getPt(1.25, 1.25, 1.25), label: '3-fold (C3)', color: '#a855f7' }
-        ];
-        planes = [
+      axes = [
+        {
+          start: [0, 0, -1.45 * sz],
+          end: [0, 0, 1.45 * sz],
+          label: "4-fold (C4)",
+          color: "#10b981",
+        },
+        {
+          start: [-1.45 * sx, 0, 0],
+          end: [1.45 * sx, 0, 0],
+          label: "4-fold (C4)",
+          color: "#10b981",
+        },
+        {
+          start: [0, -1.45 * sy, 0],
+          end: [0, 1.45 * sy, 0],
+          label: "4-fold (C4)",
+          color: "#10b981",
+        },
+        {
+          start: getPt(-1.25, -1.25, -1.25),
+          end: getPt(1.25, 1.25, 1.25),
+          label: "3-fold (C3)",
+          color: "#a855f7",
+        },
+      ];
+      planes = [
         [getPt(-1, -1, 0), getPt(1, -1, 0), getPt(1, 1, 0), getPt(-1, 1, 0)],
-        [getPt(-1, 0, -1), getPt(1, 0, -1), getPt(1, 0, 1), getPt(-1, 0, 1)]
-        ];
+        [getPt(-1, 0, -1), getPt(1, 0, -1), getPt(1, 0, 1), getPt(-1, 0, 1)],
+      ];
     } else if (isTet) {
-        axes = [
-        { start: [0, 0, -1.4 * sz], end: [0, 0, 1.4 * sz], label: '4-fold (C4)', color: '#06b6d4' },
-        { start: [-1.3 * sx, 0, 0], end: [1.3 * sx, 0, 0], label: '2-fold (C2)', color: '#a855f7' },
-        { start: [0, -1.3 * sy, 0], end: [0, 1.3 * sy, 0], label: '2-fold (C2)', color: '#a855f7' }
-        ];
-        planes = [
-        [getPt(-1, -1, 0), getPt(1, -1, 0), getPt(1, 1, 0), getPt(-1, 1, 0)]
-        ];
+      axes = [
+        {
+          start: [0, 0, -1.4 * sz],
+          end: [0, 0, 1.4 * sz],
+          label: "4-fold (C4)",
+          color: "#06b6d4",
+        },
+        {
+          start: [-1.3 * sx, 0, 0],
+          end: [1.3 * sx, 0, 0],
+          label: "2-fold (C2)",
+          color: "#a855f7",
+        },
+        {
+          start: [0, -1.3 * sy, 0],
+          end: [0, 1.3 * sy, 0],
+          label: "2-fold (C2)",
+          color: "#a855f7",
+        },
+      ];
+      planes = [
+        [getPt(-1, -1, 0), getPt(1, -1, 0), getPt(1, 1, 0), getPt(-1, 1, 0)],
+      ];
     } else if (isOrth) {
-        axes = [
-        { start: [-1.3 * sx, 0, 0], end: [1.3 * sx, 0, 0], label: '2-fold (C2)', color: '#a855f7' },
-        { start: [0, -1.3 * sy, 0], end: [0, 1.3 * sy, 0], label: '2-fold (C2)', color: '#a855f7' },
-        { start: [0, 0, -1.3 * sz], end: [0, 0, 1.3 * sz], label: '2-fold (C2)', color: '#a855f7' }
-        ];
-        planes = [
-        [getPt(-1, -1, 0), getPt(1, -1, 0), getPt(1, 1, 0), getPt(-1, 1, 0)]
-        ];
+      axes = [
+        {
+          start: [-1.3 * sx, 0, 0],
+          end: [1.3 * sx, 0, 0],
+          label: "2-fold (C2)",
+          color: "#a855f7",
+        },
+        {
+          start: [0, -1.3 * sy, 0],
+          end: [0, 1.3 * sy, 0],
+          label: "2-fold (C2)",
+          color: "#a855f7",
+        },
+        {
+          start: [0, 0, -1.3 * sz],
+          end: [0, 0, 1.3 * sz],
+          label: "2-fold (C2)",
+          color: "#a855f7",
+        },
+      ];
+      planes = [
+        [getPt(-1, -1, 0), getPt(1, -1, 0), getPt(1, 1, 0), getPt(-1, 1, 0)],
+      ];
     } else if (isMono) {
-        axes = [
-        { start: [0, -1.35 * sy, 0], end: [0, 1.35 * sy, 0], label: '2-fold (C2)', color: '#db2777' }
-        ];
-        planes = [
-        [getPt(-1, 0, -1), getPt(1, 0, -1), getPt(1, 0, 1), getPt(-1, 0, 1)]
-        ];
+      axes = [
+        {
+          start: [0, -1.35 * sy, 0],
+          end: [0, 1.35 * sy, 0],
+          label: "2-fold (C2)",
+          color: "#db2777",
+        },
+      ];
+      planes = [
+        [getPt(-1, 0, -1), getPt(1, 0, -1), getPt(1, 0, 1), getPt(-1, 0, 1)],
+      ];
     }
   }
 
-  type RenderElement = { type: string; zObj: number; content: React.ReactElement };
+  type RenderElement = {
+    type: string;
+    zObj: number;
+    content: React.ReactElement;
+  };
   const renderQueue: RenderElement[] = [];
 
   if (showMirrorPlanes) {
     planes.forEach((p, idx) => {
-      const pts = p.map(pt => project3D(pt[0], pt[1], pt[2]));
+      const pts = p.map((pt) => project3D(pt[0], pt[1], pt[2]));
       const avgZ = pts.reduce((sum, pt) => sum + pt.z, 0) / pts.length;
-      const pathString = `M ${pts[0].x} ${pts[0].y} ` + pts.slice(1).map(pt => `L ${pt.x} ${pt.y}`).join(' ') + ' Z';
+      const pathString =
+        `M ${pts[0].x} ${pts[0].y} ` +
+        pts
+          .slice(1)
+          .map((pt) => `L ${pt.x} ${pt.y}`)
+          .join(" ") +
+        " Z";
       renderQueue.push({
-        type: 'plane', zObj: avgZ,
+        type: "plane",
+        zObj: avgZ,
         content: (
           <path
             key={`plane-${idx}`}
@@ -160,96 +314,187 @@ const Symmetry3DVisualizer = ({ system, showLatticeOutline, showMirrorPlanes, sh
             className="transition-all"
             style={{ filter: "drop-shadow(0 0 6px rgba(6,182,212,0.4))" }}
           />
-        )
+        ),
       });
     });
   }
 
   if (showLatticeOutline) {
     if (isHex) {
-      const topPts = vertices.slice(0, 6).map(v => project3D(v[0], v[1], v[2]));
-      const botPts = vertices.slice(6, 12).map(v => project3D(v[0], v[1], v[2]));
-      
+      const topPts = vertices
+        .slice(0, 6)
+        .map((v) => project3D(v[0], v[1], v[2]));
+      const botPts = vertices
+        .slice(6, 12)
+        .map((v) => project3D(v[0], v[1], v[2]));
+
       const avgTopZ = topPts.reduce((acc, p) => acc + p.z, 0) / 6;
       const avgBotZ = botPts.reduce((acc, p) => acc + p.z, 0) / 6;
 
-      const pathTop = `M ${topPts[0].x} ${topPts[0].y} ` + topPts.slice(1).map(pt => `L ${pt.x} ${pt.y}`).join(' ') + ' Z';
-      const pathBot = `M ${botPts[0].x} ${botPts[0].y} ` + botPts.slice(1).map(pt => `L ${pt.x} ${pt.y}`).join(' ') + ' Z';
+      const pathTop =
+        `M ${topPts[0].x} ${topPts[0].y} ` +
+        topPts
+          .slice(1)
+          .map((pt) => `L ${pt.x} ${pt.y}`)
+          .join(" ") +
+        " Z";
+      const pathBot =
+        `M ${botPts[0].x} ${botPts[0].y} ` +
+        botPts
+          .slice(1)
+          .map((pt) => `L ${pt.x} ${pt.y}`)
+          .join(" ") +
+        " Z";
 
       renderQueue.push({
-          type: 'latt-face-t', zObj: avgTopZ,
-          content: <path key="hex-top" d={pathTop} stroke="rgba(255,255,255,0.7)" strokeWidth={1.5} fill="rgba(255,255,255,0.02)" />
+        type: "latt-face-t",
+        zObj: avgTopZ,
+        content: (
+          <path
+            key="hex-top"
+            d={pathTop}
+            stroke="rgba(255,255,255,0.7)"
+            strokeWidth={1.5}
+            fill="rgba(255,255,255,0.02)"
+          />
+        ),
       });
       renderQueue.push({
-          type: 'latt-face-b', zObj: avgBotZ,
-          content: <path key="hex-bot" d={pathBot} stroke="rgba(255,255,255,0.7)" strokeWidth={1.5} fill="rgba(255,255,255,0.02)" />
+        type: "latt-face-b",
+        zObj: avgBotZ,
+        content: (
+          <path
+            key="hex-bot"
+            d={pathBot}
+            stroke="rgba(255,255,255,0.7)"
+            strokeWidth={1.5}
+            fill="rgba(255,255,255,0.02)"
+          />
+        ),
       });
-      
+
       for (let i = 0; i < 6; i++) {
         renderQueue.push({
-            type: 'latt-edge', zObj: (topPts[i].z + botPts[i].z) / 2,
-            content: <line key={`side-${i}`} x1={topPts[i].x} y1={topPts[i].y} x2={botPts[i].x} y2={botPts[i].y} stroke="rgba(255,255,255,0.5)" strokeWidth={1} />
+          type: "latt-edge",
+          zObj: (topPts[i].z + botPts[i].z) / 2,
+          content: (
+            <line
+              key={`side-${i}`}
+              x1={topPts[i].x}
+              y1={topPts[i].y}
+              x2={botPts[i].x}
+              y2={botPts[i].y}
+              stroke="rgba(255,255,255,0.5)"
+              strokeWidth={1}
+            />
+          ),
         });
       }
     } else {
-      const pts = vertices.map(v => project3D(v[0], v[1], v[2]));
+      const pts = vertices.map((v) => project3D(v[0], v[1], v[2]));
       const edges = [
-          [0, 1], [1, 2], [2, 3], [3, 0],
-          [4, 5], [5, 6], [6, 7], [7, 4],
-          [0, 4], [1, 5], [2, 6], [3, 7]
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 0],
+        [4, 5],
+        [5, 6],
+        [6, 7],
+        [7, 4],
+        [0, 4],
+        [1, 5],
+        [2, 6],
+        [3, 7],
       ];
       edges.forEach(([u, v], idx) => {
-          renderQueue.push({
-              type: 'latt-edge', zObj: (pts[u].z + pts[v].z) / 2,
-              content: <line key={`latt-edge-${idx}`} x1={pts[u].x} y1={pts[u].y} x2={pts[v].x} y2={pts[v].y} stroke="rgba(255,255,255,0.6)" strokeWidth={1.5} />
-          });
+        renderQueue.push({
+          type: "latt-edge",
+          zObj: (pts[u].z + pts[v].z) / 2,
+          content: (
+            <line
+              key={`latt-edge-${idx}`}
+              x1={pts[u].x}
+              y1={pts[u].y}
+              x2={pts[v].x}
+              y2={pts[v].y}
+              stroke="rgba(255,255,255,0.6)"
+              strokeWidth={1.5}
+            />
+          ),
+        });
       });
     }
   }
 
   if (showSymmetryAxes) {
     axes.forEach((axis, idx) => {
-        const ptStart = project3D(axis.start[0], axis.start[1], axis.start[2]);
-        const ptEnd = project3D(axis.end[0], axis.end[1], axis.end[2]);
-        renderQueue.push({
-            type: 'axis', zObj: (ptStart.z + ptEnd.z) / 2,
-            content: (
-              <g key={`axis-${idx}`}>
-                  <line x1={ptStart.x} y1={ptStart.y} x2={ptEnd.x} y2={ptEnd.y} stroke={axis.color} strokeWidth={2.5} style={{ filter: `drop-shadow(0 0 5px ${axis.color})` }} />
-                  <circle cx={ptStart.x} cy={ptStart.y} r={3} fill={axis.color} />
-                  <circle cx={ptEnd.x} cy={ptEnd.y} r={3} fill={axis.color} />
-              </g>
-            )
-        });
+      const ptStart = project3D(axis.start[0], axis.start[1], axis.start[2]);
+      const ptEnd = project3D(axis.end[0], axis.end[1], axis.end[2]);
+      renderQueue.push({
+        type: "axis",
+        zObj: (ptStart.z + ptEnd.z) / 2,
+        content: (
+          <g key={`axis-${idx}`}>
+            <line
+              x1={ptStart.x}
+              y1={ptStart.y}
+              x2={ptEnd.x}
+              y2={ptEnd.y}
+              stroke={axis.color}
+              strokeWidth={2.5}
+              style={{ filter: `drop-shadow(0 0 5px ${axis.color})` }}
+            />
+            <circle cx={ptStart.x} cy={ptStart.y} r={3} fill={axis.color} />
+            <circle cx={ptEnd.x} cy={ptEnd.y} r={3} fill={axis.color} />
+          </g>
+        ),
+      });
     });
   }
 
   if (showLatticeOutline) {
-      vertices.forEach((v, idx) => {
-        const p = project3D(v[0], v[1], v[2]);
-        renderQueue.push({
-            type: 'node', zObj: p.z,
-            content: (
-                <g key={`node-${idx}`}>
-                    <circle cx={p.x} cy={p.y} r={5} fill="#0f172a" />
-                    <circle cx={p.x} cy={p.y} r={3.5} fill="#cbd5e1" />
-                </g>
-            )
-        });
+    vertices.forEach((v, idx) => {
+      const p = project3D(v[0], v[1], v[2]);
+      renderQueue.push({
+        type: "node",
+        zObj: p.z,
+        content: (
+          <g key={`node-${idx}`}>
+            <circle cx={p.x} cy={p.y} r={5} fill="#0f172a" />
+            <circle cx={p.x} cy={p.y} r={3.5} fill="#cbd5e1" />
+          </g>
+        ),
       });
+    });
   }
 
   if (showInversionCenter && currentSymmetry.inversion) {
-      const center = project3D(0, 0, 0);
-      renderQueue.push({
-          type: 'center', zObj: center.z,
-          content: (
-              <g key="inv-center">
-                  <circle cx={center.x} cy={center.y} r={12} fill="#fbbf24" fillOpacity={0.2} className="animate-pulse" style={{ filter: "drop-shadow(0 0 10px #fbbf24)" }} />
-                  <circle cx={center.x} cy={center.y} r={4.5} fill="#f59e0b" stroke="#fff" strokeWidth={1.5} />
-              </g>
-          )
-      });
+    const center = project3D(0, 0, 0);
+    renderQueue.push({
+      type: "center",
+      zObj: center.z,
+      content: (
+        <g key="inv-center">
+          <circle
+            cx={center.x}
+            cy={center.y}
+            r={12}
+            fill="#fbbf24"
+            fillOpacity={0.2}
+            className="animate-pulse"
+            style={{ filter: "drop-shadow(0 0 10px #fbbf24)" }}
+          />
+          <circle
+            cx={center.x}
+            cy={center.y}
+            r={4.5}
+            fill="#f59e0b"
+            stroke="#fff"
+            strokeWidth={1.5}
+          />
+        </g>
+      ),
+    });
   }
 
   renderQueue.sort((a, b) => a.zObj - b.zObj); // Sort lower z (far) to higher z (near)
@@ -260,54 +505,84 @@ const Symmetry3DVisualizer = ({ system, showLatticeOutline, showMirrorPlanes, sh
         <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] opacity-100 pointer-events-none"></div>
         <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
 
-        <svg className="w-full h-full max-w-[400px] max-h-[300px] overflow-visible" viewBox="0 0 300 200">
-            <defs>
-                <linearGradient id="glass-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="rgba(6,182,212,0.4)" />
-                    <stop offset="100%" stopColor="rgba(6,182,212,0.1)" />
-                </linearGradient>
-            </defs>
-            <g className="opacity-30 stroke-slate-700" strokeWidth={0.5}>
-                <line x1={0} y1={100} x2={300} y2={100} />
-                <line x1={150} y1={0} x2={150} y2={200} />
-                <circle cx={150} cy={100} r={55} fill="none" strokeDasharray="2 4" />
-                <circle cx={150} cy={100} r={85} fill="none" strokeDasharray="2 4" />
-            </g>
+        <svg
+          className="w-full h-full max-w-[400px] max-h-[300px] overflow-visible"
+          viewBox="0 0 300 200"
+        >
+          <defs>
+            <linearGradient
+              id="glass-gradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <stop offset="0%" stopColor="rgba(6,182,212,0.4)" />
+              <stop offset="100%" stopColor="rgba(6,182,212,0.1)" />
+            </linearGradient>
+          </defs>
+          <g className="opacity-30 stroke-slate-700" strokeWidth={0.5}>
+            <line x1={0} y1={100} x2={300} y2={100} />
+            <line x1={150} y1={0} x2={150} y2={200} />
+            <circle
+              cx={150}
+              cy={100}
+              r={55}
+              fill="none"
+              strokeDasharray="2 4"
+            />
+            <circle
+              cx={150}
+              cy={100}
+              r={85}
+              fill="none"
+              strokeDasharray="2 4"
+            />
+          </g>
 
-            {renderQueue.map(item => item.content)}
+          {renderQueue.map((item) => item.content)}
         </svg>
 
         <div className="absolute top-3 left-4 flex items-center gap-2 z-10">
-            <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
-            <span className="text-[10px] font-mono font-black text-slate-300 uppercase tracking-[0.2em] drop-shadow-md">Live Render</span>
+          <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
+          <span className="text-[10px] font-mono font-black text-slate-300 uppercase tracking-[0.2em] drop-shadow-md">
+            Live Render
+          </span>
         </div>
         <div className="absolute bottom-3 right-4 text-[9px] font-mono font-black text-slate-500 bg-[#070D18]/80 backdrop-blur px-2.5 py-1 rounded-md border border-[#1e293b]">
-            Kinematic 3D Matrix
+          Kinematic 3D Matrix
         </div>
       </div>
     </div>
   );
 };
 
-const calculateDSpacingForProbe = (h: number, k: number, l: number, system: string, a: number) => {
+const calculateDSpacingForProbe = (
+  h: number,
+  k: number,
+  l: number,
+  system: string,
+  a: number,
+) => {
   if (h === 0 && k === 0 && l === 0) return 0;
-  
+
   // Set representative cell constants based on the system to showcase realistic non-cubic physics
   let b = a;
   let c = a;
-  
-  if (system.startsWith('Tetragonal')) {
+
+  if (system.startsWith("Tetragonal")) {
     c = a * 1.35; // realistic Tetragonal c/a ratio
     const dInvSq = (h * h + k * k) / (a * a) + (l * l) / (c * c);
     return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
-  } else if (system.startsWith('Orthorhombic')) {
+  } else if (system.startsWith("Orthorhombic")) {
     b = a * 1.15;
     c = a * 1.45;
     const dInvSq = (h * h) / (a * a) + (k * k) / (b * b) + (l * l) / (c * c);
     return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
-  } else if (system === 'Hexagonal') {
+  } else if (system === "Hexagonal") {
     c = a * 1.633; // ideal HCP c/a packing ratio
-    const dInvSq = (4 / 3) * (h * h + k * k + h * k) / (a * a) + (l * l) / (c * c);
+    const dInvSq =
+      ((4 / 3) * (h * h + k * k + h * k)) / (a * a) + (l * l) / (c * c);
     return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
   } else {
     // Cubic systems: SC, BCC, FCC, Diamond, etc.
@@ -317,20 +592,24 @@ const calculateDSpacingForProbe = (h: number, k: number, l: number, system: stri
 };
 
 export const SelectionRulesModule: React.FC = () => {
-  const [system, setSystem] = useState<CrystalSystem>('FCC');
+  const [system, setSystem] = useState<CrystalSystem>("FCC");
   const [isSystemMenuOpen, setIsSystemMenuOpen] = useState(false);
-  const [hklInput, setHklInput] = useState<string>('1 0 0, 1 1 0, 1 1 1, 2 0 0, 2 1 0, 2 2 0, 3 1 1');
+  const [hklInput, setHklInput] = useState<string>(
+    "1 0 0, 1 1 0, 1 1 1, 2 0 0, 2 1 0, 2 2 0, 3 1 1",
+  );
   const [results, setResults] = useState<SelectionRuleResult[]>([]);
-  const [filter, setFilter] = useState<'All' | 'Allowed' | 'Forbidden'>('All');
+  const [filter, setFilter] = useState<"All" | "Allowed" | "Forbidden">("All");
   const [maxIndex, setMaxIndex] = useState<number>(3);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const [symmetryTab, setSymmetryTab] = useState<'visualizer' | 'properties' | 'sandbox'>('visualizer');
+  const [symmetryTab, setSymmetryTab] = useState<
+    "visualizer" | "properties" | "sandbox"
+  >("visualizer");
   const [showLatticeOutline, setShowLatticeOutline] = useState(true);
   const [showSymmetryAxes, setShowSymmetryAxes] = useState(true);
   const [showMirrorPlanes, setShowMirrorPlanes] = useState(true);
   const [showInversionCenter, setShowInversionCenter] = useState(true);
-  
+
   const [sandboxH, setSandboxH] = useState(1);
   const [sandboxK, setSandboxK] = useState(1);
   const [sandboxL, setSandboxL] = useState(0);
@@ -341,11 +620,15 @@ export const SelectionRulesModule: React.FC = () => {
   const [recipDragStart, setRecipDragStart] = useState({ x: 0, y: 0 });
   const recipCanvasRef = useRef<HTMLCanvasElement>(null);
   const clickStartPos = useRef({ x: 0, y: 0 });
-  const [hoveredNode, setHoveredNode] = useState<[number, number, number] | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<
+    [number, number, number] | null
+  >(null);
 
   // Custom states to improve 3D Reciprocal Space Probe
   const [isOrbiting, setIsOrbiting] = useState<boolean>(false);
-  const [projectionMode, setProjectionMode] = useState<'ortho' | 'perspective'>('perspective');
+  const [projectionMode, setProjectionMode] = useState<"ortho" | "perspective">(
+    "perspective",
+  );
   const [showEwaldSphere, setShowEwaldSphere] = useState<boolean>(true);
   const [wavelength, setWavelength] = useState<number>(1.5406); // Cu-Ka wavelength in Angstroms
   const [latticeParameter, setLatticeParameter] = useState<number>(4.07); // Custom lattice constant 'a' in Angstroms
@@ -358,37 +641,41 @@ export const SelectionRulesModule: React.FC = () => {
   // Toggle index in the array list
   const toggleHKLNode = (h: number, k: number, l: number) => {
     const parsed = parseHKLString(hklInput);
-    const exists = parsed.some(p => p[0] === h && p[1] === k && p[2] === l);
+    const exists = parsed.some((p) => p[0] === h && p[1] === k && p[2] === l);
     let newParsed: [number, number, number][];
     if (exists) {
-      newParsed = parsed.filter(p => !(p[0] === h && p[1] === k && p[2] === l));
+      newParsed = parsed.filter(
+        (p) => !(p[0] === h && p[1] === k && p[2] === l),
+      );
     } else {
       newParsed = [...parsed, [h, k, l]];
     }
-    setHklInput(newParsed.map(p => `${p[0]} ${p[1]} ${p[2]}`).join(', '));
+    setHklInput(newParsed.map((p) => `${p[0]} ${p[1]} ${p[2]}`).join(", "));
   };
 
   const addQuickHKL = () => {
     const parsed = parseHKLString(hklInput);
-    const exists = parsed.some(p => p[0] === quickH && p[1] === quickK && p[2] === quickL);
+    const exists = parsed.some(
+      (p) => p[0] === quickH && p[1] === quickK && p[2] === quickL,
+    );
     if (!exists) {
       const newParsed = [...parsed, [quickH, quickK, quickL]];
-      setHklInput(newParsed.map(p => `${p[0]} ${p[1]} ${p[2]}`).join(', '));
+      setHklInput(newParsed.map((p) => `${p[0]} ${p[1]} ${p[2]}`).join(", "));
     }
   };
 
   const removeHKLAtIndex = (index: number) => {
     const parsed = parseHKLString(hklInput);
     const newParsed = parsed.filter((_, idx) => idx !== index);
-    setHklInput(newParsed.map(p => `${p[0]} ${p[1]} ${p[2]}`).join(', '));
+    setHklInput(newParsed.map((p) => `${p[0]} ${p[1]} ${p[2]}`).join(", "));
   };
 
   const clearAllHKLs = () => {
-    setHklInput('');
+    setHklInput("");
   };
 
   const loadLowIndexPresets = () => {
-    setHklInput('1 0 0, 1 1 0, 1 1 1, 2 0 0, 2 1 0, 2 1 1, 2 2 0, 3 1 1');
+    setHklInput("1 0 0, 1 1 0, 1 1 1, 2 0 0, 2 1 0, 2 1 1, 2 2 0, 3 1 1");
   };
 
   // Orbit animation loop
@@ -396,7 +683,7 @@ export const SelectionRulesModule: React.FC = () => {
     if (!isOrbiting) return;
     let animId: number;
     const animate = () => {
-      setRecipRotation(prev => ({ ...prev, y: (prev.y + 0.4) % 360 }));
+      setRecipRotation((prev) => ({ ...prev, y: (prev.y + 0.4) % 360 }));
       animId = requestAnimationFrame(animate);
     };
     animId = requestAnimationFrame(animate);
@@ -413,13 +700,13 @@ export const SelectionRulesModule: React.FC = () => {
   const handleRecipMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = recipCanvasRef.current;
     if (!canvas) return;
-    
+
     if (isRecipDragging) {
       const dx = e.clientX - recipDragStart.x;
       const dy = e.clientY - recipDragStart.y;
-      setRecipRotation(prev => ({
+      setRecipRotation((prev) => ({
         x: Math.max(-95, Math.min(95, prev.x - dy * 0.5)),
-        y: prev.y + dx * 0.5
+        y: prev.y + dx * 0.5,
       }));
       setRecipDragStart({ x: e.clientX, y: e.clientY });
       return;
@@ -431,14 +718,14 @@ export const SelectionRulesModule: React.FC = () => {
 
     let found: [number, number, number] | null = null;
     let mindist = 15;
-    
+
     const cx = rect.width / 2;
     const cy = rect.height / 2;
     const maxBound = Math.min(Math.max(1, maxIndex), 3);
     const scaleBase = Math.min(rect.width, rect.height) * 0.42;
     const scale = scaleBase / (maxBound + 0.5);
-    const rx = recipRotation.x * Math.PI / 180;
-    const ry = recipRotation.y * Math.PI / 180;
+    const rx = (recipRotation.x * Math.PI) / 180;
+    const ry = (recipRotation.y * Math.PI) / 180;
 
     for (let h = -maxBound; h <= maxBound; h++) {
       for (let k = -maxBound; k <= maxBound; k++) {
@@ -453,11 +740,11 @@ export const SelectionRulesModule: React.FC = () => {
           let projX = cx + x1 * scale;
           let projY = cy + y2 * scale;
 
-          if (projectionMode === 'perspective') {
+          if (projectionMode === "perspective") {
             const cameraDistance = (maxBound + 1.2) * 1.5;
-            const depthFactor = Math.max(0.1, 1 - (z2 / cameraDistance));
-            projX = cx + x1 * scale / depthFactor;
-            projY = cy + y2 * scale / depthFactor;
+            const depthFactor = Math.max(0.1, 1 - z2 / cameraDistance);
+            projX = cx + (x1 * scale) / depthFactor;
+            projY = cy + (y2 * scale) / depthFactor;
           }
 
           const dist = Math.sqrt((mouseX - projX) ** 2 + (mouseY - projY) ** 2);
@@ -473,22 +760,26 @@ export const SelectionRulesModule: React.FC = () => {
 
   const handleRecipMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setIsRecipDragging(false);
-    
-    if (Math.abs(e.clientX - clickStartPos.current.x) < 5 && Math.abs(e.clientY - clickStartPos.current.y) < 5) {
+
+    if (
+      Math.abs(e.clientX - clickStartPos.current.x) < 5 &&
+      Math.abs(e.clientY - clickStartPos.current.y) < 5
+    ) {
       const canvas = recipCanvasRef.current;
       if (!canvas) return;
       const rect = canvas.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
       const clickY = e.clientY - rect.top;
 
-      let closest: { h: number, k: number, l: number, dist: number } | null = null;
+      let closest: { h: number; k: number; l: number; dist: number } | null =
+        null;
       const cx = rect.width / 2;
       const cy = rect.height / 2;
       const maxBound = Math.min(Math.max(1, maxIndex), 3);
       const scaleBase = Math.min(rect.width, rect.height) * 0.42;
       const scale = scaleBase / (maxBound + 0.5);
-      const rx = recipRotation.x * Math.PI / 180;
-      const ry = recipRotation.y * Math.PI / 180;
+      const rx = (recipRotation.x * Math.PI) / 180;
+      const ry = (recipRotation.y * Math.PI) / 180;
 
       for (let h = -maxBound; h <= maxBound; h++) {
         for (let k = -maxBound; k <= maxBound; k++) {
@@ -503,14 +794,16 @@ export const SelectionRulesModule: React.FC = () => {
             let projX = cx + x1 * scale;
             let projY = cy + y2 * scale;
 
-            if (projectionMode === 'perspective') {
+            if (projectionMode === "perspective") {
               const cameraDistance = (maxBound + 1.2) * 1.5;
-              const depthFactor = Math.max(0.1, 1 - (z2 / cameraDistance));
-              projX = cx + x1 * scale / depthFactor;
-              projY = cy + y2 * scale / depthFactor;
+              const depthFactor = Math.max(0.1, 1 - z2 / cameraDistance);
+              projX = cx + (x1 * scale) / depthFactor;
+              projY = cy + (y2 * scale) / depthFactor;
             }
 
-            const dist = Math.sqrt((clickX - projX) ** 2 + (clickY - projY) ** 2);
+            const dist = Math.sqrt(
+              (clickX - projX) ** 2 + (clickY - projY) ** 2,
+            );
             if (dist < 15) {
               if (!closest || dist < closest.dist) {
                 closest = { h, k, l, dist };
@@ -530,7 +823,7 @@ export const SelectionRulesModule: React.FC = () => {
   useEffect(() => {
     const canvas = recipCanvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
@@ -547,8 +840,8 @@ export const SelectionRulesModule: React.FC = () => {
     const cx = width / 2;
     const cy = height / 2;
 
-    const rx = recipRotation.x * Math.PI / 180;
-    const ry = recipRotation.y * Math.PI / 180;
+    const rx = (recipRotation.x * Math.PI) / 180;
+    const ry = (recipRotation.y * Math.PI) / 180;
 
     const maxBound = Math.min(Math.max(1, maxIndex), 3);
 
@@ -561,10 +854,14 @@ export const SelectionRulesModule: React.FC = () => {
       const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
       const z2 = k * Math.sin(rx) + z1 * Math.cos(rx);
 
-      if (projectionMode === 'perspective') {
+      if (projectionMode === "perspective") {
         const cameraDistance = (maxBound + 1.2) * 1.5;
-        const depthFactor = Math.max(0.1, 1 - (z2 / cameraDistance));
-        return { x: cx + x1 * scale / depthFactor, y: cy + y2 * scale / depthFactor, z: z2 };
+        const depthFactor = Math.max(0.1, 1 - z2 / cameraDistance);
+        return {
+          x: cx + (x1 * scale) / depthFactor,
+          y: cy + (y2 * scale) / depthFactor,
+          z: z2,
+        };
       } else {
         return { x: cx + x1 * scale, y: cy + y2 * scale, z: z2 };
       }
@@ -588,23 +885,58 @@ export const SelectionRulesModule: React.FC = () => {
           // Render edges
           if (h < maxBound) {
             const p2 = project(h + 1, k, l);
-            elements.push({ type: 'edge', p1, p2, h1: h, k1: k, l1: l, h2: h + 1, k2: k, l2: l, z: (p1.z + p2.z) / 2 });
+            elements.push({
+              type: "edge",
+              p1,
+              p2,
+              h1: h,
+              k1: k,
+              l1: l,
+              h2: h + 1,
+              k2: k,
+              l2: l,
+              z: (p1.z + p2.z) / 2,
+            });
           }
           if (k < maxBound) {
             const p2 = project(h, k + 1, l);
-            elements.push({ type: 'edge', p1, p2, h1: h, k1: k, l1: l, h2: h, k2: k + 1, l2: l, z: (p1.z + p2.z) / 2 });
+            elements.push({
+              type: "edge",
+              p1,
+              p2,
+              h1: h,
+              k1: k,
+              l1: l,
+              h2: h,
+              k2: k + 1,
+              l2: l,
+              z: (p1.z + p2.z) / 2,
+            });
           }
           if (l < maxBound) {
             const p2 = project(h, k, l + 1);
-            elements.push({ type: 'edge', p1, p2, h1: h, k1: k, l1: l, h2: h, k2: k, l2: l + 1, z: (p1.z + p2.z) / 2 });
+            elements.push({
+              type: "edge",
+              p1,
+              p2,
+              h1: h,
+              k1: k,
+              l1: l,
+              h2: h,
+              k2: k,
+              l2: l + 1,
+              z: (p1.z + p2.z) / 2,
+            });
           }
 
           if (h === 0 && k === 0 && l === 0) continue;
 
-          const isSelected = parsedHKLs.some(p => p[0] === h && p[1] === k && p[2] === l);
-          
-          let status: 'Allowed' | 'Forbidden' | 'None' = 'None';
-          let reason = '';
+          const isSelected = parsedHKLs.some(
+            (p) => p[0] === h && p[1] === k && p[2] === l,
+          );
+
+          let status: "Allowed" | "Forbidden" | "None" = "None";
+          let reason = "";
           if (isSelected) {
             const val = validateSelectionRule(system, [h, k, l]);
             status = val.status;
@@ -615,17 +947,20 @@ export const SelectionRulesModule: React.FC = () => {
           const xc_val = -latticeParameter / wavelength;
           const r_val = latticeParameter / wavelength;
           const distToCenter = Math.sqrt((h - xc_val) ** 2 + k * k + l * l);
-          const isEwaldIntersecting = showEwaldSphere && Math.abs(distToCenter - r_val) < 0.25;
+          const isEwaldIntersecting =
+            showEwaldSphere && Math.abs(distToCenter - r_val) < 0.25;
 
           elements.push({
-            type: 'node',
-            h, k, l,
+            type: "node",
+            h,
+            k,
+            l,
             p: p1,
             isSelected,
             status,
             reason,
             isEwaldIntersecting,
-            z: p1.z
+            z: p1.z,
           });
         }
       }
@@ -640,24 +975,26 @@ export const SelectionRulesModule: React.FC = () => {
 
       // Draw wireframes
       const rings = [
-        { plane: 'xy', color: 'rgba(56, 189, 248, 0.22)' },
-        { plane: 'xz', color: 'rgba(56, 189, 248, 0.22)' },
-        { plane: 'yz', color: 'rgba(56, 189, 248, 0.22)' }
+        { plane: "xy", color: "rgba(56, 189, 248, 0.22)" },
+        { plane: "xz", color: "rgba(56, 189, 248, 0.22)" },
+        { plane: "yz", color: "rgba(56, 189, 248, 0.22)" },
       ];
 
-      rings.forEach(ring => {
+      rings.forEach((ring) => {
         const ringPoints: any[] = [];
         const divisions = 48; // smoother rings
         for (let i = 0; i <= divisions; i++) {
           const phi = (i / divisions) * 2 * Math.PI;
-          let x = xc_val, y = yc_val, z = zc_val;
-          if (ring.plane === 'xy') {
+          let x = xc_val,
+            y = yc_val,
+            z = zc_val;
+          if (ring.plane === "xy") {
             x = xc_val + r_val * Math.cos(phi);
             y = yc_val + r_val * Math.sin(phi);
-          } else if (ring.plane === 'xz') {
+          } else if (ring.plane === "xz") {
             x = xc_val + r_val * Math.cos(phi);
             z = zc_val + r_val * Math.sin(phi);
-          } else if (ring.plane === 'yz') {
+          } else if (ring.plane === "yz") {
             y = yc_val + r_val * Math.cos(phi);
             z = zc_val + r_val * Math.sin(phi);
           }
@@ -668,48 +1005,109 @@ export const SelectionRulesModule: React.FC = () => {
           const p1 = ringPoints[i];
           const p2 = ringPoints[i + 1];
           elements.push({
-            type: 'sphere-wire',
+            type: "sphere-wire",
             p1,
             p2,
             color: ring.color,
-            z: (p1.z + p2.z) / 2
+            z: (p1.z + p2.z) / 2,
           });
         }
       });
     }
 
-    elements.push({ type: 'axis', p1: origin, p2: axH, label: 'h* (a*)', color: '#ff4d4d', z: origin.z + 0.1 });
-    elements.push({ type: 'axis', p1: origin, p2: axK, label: 'k* (b*)', color: '#10b981', z: origin.z + 0.1 });
-    elements.push({ type: 'axis', p1: origin, p2: axL, label: 'l* (c*)', color: '#0fbcf9', z: origin.z + 0.1 });
-    elements.push({ type: 'origin', p: origin, z: origin.z });
+    elements.push({
+      type: "axis",
+      p1: origin,
+      p2: axH,
+      label: "h* (a*)",
+      color: "#ff4d4d",
+      z: origin.z + 0.1,
+    });
+    elements.push({
+      type: "axis",
+      p1: origin,
+      p2: axK,
+      label: "k* (b*)",
+      color: "#10b981",
+      z: origin.z + 0.1,
+    });
+    elements.push({
+      type: "axis",
+      p1: origin,
+      p2: axL,
+      label: "l* (c*)",
+      color: "#0fbcf9",
+      z: origin.z + 0.1,
+    });
+    elements.push({ type: "origin", p: origin, z: origin.z });
 
-    // Draw reciprocal vector for hovered node from origin (0,0,0) to node
+    // Add Ewald Sphere Center & Wave vectors if sphere is visible
+    if (showEwaldSphere) {
+      const xc_val = -latticeParameter / wavelength;
+      const yc_val = 0;
+      const zc_val = 0;
+      const c = project(xc_val, yc_val, zc_val);
+
+      elements.push({ type: "ewald-center", p: c, z: c.z });
+
+      // Incident wave vector k0 (from Center to Origin)
+      elements.push({
+        type: "k-vector",
+        p1: c,
+        p2: origin,
+        color: "#38bdf8", // sky-400
+        label: "k₀",
+        z: (c.z + origin.z) / 2 + 0.1,
+      });
+
+      // Diffracted wave vector k (from Center to active node)
+      if (hoveredNode) {
+        const p_hover = project(hoveredNode[0], hoveredNode[1], hoveredNode[2]);
+        elements.push({
+          type: "k-vector",
+          p1: c,
+          p2: p_hover,
+          color: "#a78bfa", // violet-400
+          label: "k",
+          z: (c.z + p_hover.z) / 2 + 0.1,
+        });
+      }
+    }
+
+    // Draw reciprocal standard vector (g*) for hovered node from origin (0,0,0) to node
     if (hoveredNode) {
       const p_hover = project(hoveredNode[0], hoveredNode[1], hoveredNode[2]);
       elements.push({
-        type: 'recip-vector',
+        type: "recip-vector",
         p1: origin,
         p2: p_hover,
-        color: '#fbbf24', // golden yellow
-        z: (origin.z + p_hover.z) / 2 + 0.2
+        color: "#fbbf24", // golden yellow
+        label: "g*",
+        z: (origin.z + p_hover.z) / 2 + 0.2,
       });
     }
 
     elements.sort((a, b) => b.z - a.z);
 
     elements.forEach((el) => {
-      if (el.type === 'edge') {
-        const isHoveredEdge = hoveredNode && (
-          (hoveredNode[0] === el.h1 && hoveredNode[1] === el.k1 && hoveredNode[2] === el.l1) ||
-          (hoveredNode[0] === el.h2 && hoveredNode[1] === el.k2 && hoveredNode[2] === el.l2)
-        );
+      if (el.type === "edge") {
+        const isHoveredEdge =
+          hoveredNode &&
+          ((hoveredNode[0] === el.h1 &&
+            hoveredNode[1] === el.k1 &&
+            hoveredNode[2] === el.l1) ||
+            (hoveredNode[0] === el.h2 &&
+              hoveredNode[1] === el.k2 &&
+              hoveredNode[2] === el.l2));
         ctx.beginPath();
         ctx.moveTo(el.p1.x, el.p1.y);
         ctx.lineTo(el.p2.x, el.p2.y);
-        ctx.strokeStyle = isHoveredEdge ? 'rgba(52, 211, 153, 0.5)' : 'rgba(148, 163, 184, 0.1)';
+        ctx.strokeStyle = isHoveredEdge
+          ? "rgba(52, 211, 153, 0.5)"
+          : "rgba(148, 163, 184, 0.1)";
         ctx.lineWidth = isHoveredEdge ? 1.5 : 0.8;
         ctx.stroke();
-      } else if (el.type === 'sphere-wire') {
+      } else if (el.type === "sphere-wire") {
         ctx.beginPath();
         ctx.moveTo(el.p1.x, el.p1.y);
         ctx.lineTo(el.p2.x, el.p2.y);
@@ -718,7 +1116,7 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.setLineDash([3, 3]);
         ctx.stroke();
         ctx.setLineDash([]);
-      } else if (el.type === 'recip-vector') {
+      } else if (el.type === "recip-vector") {
         // Draw standard vector
         ctx.beginPath();
         ctx.moveTo(el.p1.x, el.p1.y);
@@ -731,12 +1129,25 @@ export const SelectionRulesModule: React.FC = () => {
         const angle = Math.atan2(el.p2.y - el.p1.y, el.p2.x - el.p1.x);
         ctx.beginPath();
         ctx.moveTo(el.p2.x, el.p2.y);
-        ctx.lineTo(el.p2.x - 6 * Math.cos(angle - Math.PI / 6), el.p2.y - 6 * Math.sin(angle - Math.PI / 6));
-        ctx.lineTo(el.p2.x - 6 * Math.cos(angle + Math.PI / 6), el.p2.y - 6 * Math.sin(angle + Math.PI / 6));
+        ctx.lineTo(
+          el.p2.x - 6 * Math.cos(angle - Math.PI / 6),
+          el.p2.y - 6 * Math.sin(angle - Math.PI / 6),
+        );
+        ctx.lineTo(
+          el.p2.x - 6 * Math.cos(angle + Math.PI / 6),
+          el.p2.y - 6 * Math.sin(angle + Math.PI / 6),
+        );
         ctx.closePath();
         ctx.fillStyle = el.color;
         ctx.fill();
-      } else if (el.type === 'axis') {
+
+        if (el.label) {
+          ctx.fillStyle = el.color;
+          ctx.font = "bold 10px monospace";
+          // Label slightly offset
+          ctx.fillText(el.label, el.p2.x + 8, el.p2.y - 6);
+        }
+      } else if (el.type === "axis") {
         ctx.beginPath();
         ctx.moveTo(el.p1.x, el.p1.y);
         ctx.lineTo(el.p2.x, el.p2.y);
@@ -745,29 +1156,92 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.stroke();
 
         ctx.fillStyle = el.color;
-        ctx.font = 'bold 9px monospace';
+        ctx.font = "bold 9px monospace";
         ctx.fillText(el.label, el.p2.x + 4, el.p2.y + 4);
-      } else if (el.type === 'origin') {
+      } else if (el.type === "origin") {
         ctx.beginPath();
         ctx.arc(el.p.x, el.p.y, 4, 0, 2 * Math.PI);
-        ctx.fillStyle = '#facc15';
-        ctx.shadowColor = 'rgba(250, 204, 21, 0.6)';
+        ctx.fillStyle = "#facc15";
+        ctx.shadowColor = "rgba(250, 204, 21, 0.6)";
         ctx.shadowBlur = 8;
         ctx.fill();
         ctx.shadowBlur = 0;
-        ctx.fillStyle = '#facc15';
-        ctx.font = 'bold 8.5px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('(0,0,0)', el.p.x, el.p.y - 6);
-      } else if (el.type === 'node') {
-        const isHovered = hoveredNode && hoveredNode[0] === el.h && hoveredNode[1] === el.k && hoveredNode[2] === el.l;
-        const radius = el.isSelected ? (isHovered ? 8 : 6.5) : (isHovered ? 5.5 : 3.5);
-        
+        ctx.fillStyle = "#facc15";
+        ctx.font = "bold 8.5px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("(0,0,0)", el.p.x, el.p.y - 6);
+      } else if (el.type === "ewald-center") {
+        ctx.beginPath();
+        ctx.arc(el.p.x, el.p.y, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = "#38bdf8";
+        ctx.shadowColor = "rgba(56, 189, 248, 0.6)";
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "bold 8.5px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("C", el.p.x, el.p.y - 7);
+      } else if (el.type === "k-vector") {
+        // Draw dashed wave vector
+        ctx.beginPath();
+        ctx.moveTo(el.p1.x, el.p1.y);
+        ctx.lineTo(el.p2.x, el.p2.y);
+        ctx.strokeStyle = el.color;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw arrow head
+        const angle = Math.atan2(el.p2.y - el.p1.y, el.p2.x - el.p1.x);
+        const headX = el.p2.x - 5 * Math.cos(angle);
+        const headY = el.p2.y - 5 * Math.sin(angle);
+        ctx.beginPath();
+        ctx.moveTo(headX, headY);
+        ctx.lineTo(
+          headX - 6 * Math.cos(angle - Math.PI / 6),
+          headY - 6 * Math.sin(angle - Math.PI / 6),
+        );
+        ctx.lineTo(
+          headX - 6 * Math.cos(angle + Math.PI / 6),
+          headY - 6 * Math.sin(angle + Math.PI / 6),
+        );
+        ctx.closePath();
+        ctx.fillStyle = el.color;
+        ctx.fill();
+
+        // Draw label
+        const midX = (el.p1.x + el.p2.x) / 2;
+        const midY = (el.p1.y + el.p2.y) / 2;
+        ctx.fillStyle = el.color;
+        ctx.font = "bold 9px monospace";
+        ctx.fillText(el.label, midX, midY - 5);
+      } else if (el.type === "node") {
+        const isHovered =
+          hoveredNode &&
+          hoveredNode[0] === el.h &&
+          hoveredNode[1] === el.k &&
+          hoveredNode[2] === el.l;
+        const radius = el.isSelected
+          ? isHovered
+            ? 8
+            : 6.5
+          : isHovered
+            ? 5.5
+            : 3.5;
+
         // If node satisfies Ewald Sphere reflection, add a glowing aura
         if (el.isEwaldIntersecting) {
           ctx.beginPath();
-          ctx.arc(el.p.x, el.p.y, radius + (isHovered ? 5 : 3.5), 0, 2 * Math.PI);
-          ctx.strokeStyle = 'rgba(251, 191, 36, 0.45)'; // golden glow
+          ctx.arc(
+            el.p.x,
+            el.p.y,
+            radius + (isHovered ? 5 : 3.5),
+            0,
+            2 * Math.PI,
+          );
+          ctx.strokeStyle = "rgba(251, 191, 36, 0.45)"; // golden glow
           ctx.lineWidth = 1.2;
           ctx.stroke();
         }
@@ -776,31 +1250,39 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.arc(el.p.x, el.p.y, radius, 0, 2 * Math.PI);
 
         if (el.isSelected) {
-          if (el.status === 'Allowed') {
+          if (el.status === "Allowed") {
             const grad = ctx.createRadialGradient(
-              el.p.x - radius*0.3, el.p.y - radius*0.3, radius*0.1,
-              el.p.x, el.p.y, radius
+              el.p.x - radius * 0.3,
+              el.p.y - radius * 0.3,
+              radius * 0.1,
+              el.p.x,
+              el.p.y,
+              radius,
             );
-            grad.addColorStop(0, '#ffffff');
-            grad.addColorStop(0.3, '#10b981');
-            grad.addColorStop(1, '#064e3b');
+            grad.addColorStop(0, "#ffffff");
+            grad.addColorStop(0.3, "#10b981");
+            grad.addColorStop(1, "#064e3b");
             ctx.fillStyle = grad;
-            ctx.strokeStyle = '#34d399';
+            ctx.strokeStyle = "#34d399";
             ctx.lineWidth = 1;
-            ctx.shadowColor = 'rgba(16, 185, 129, 0.45)';
+            ctx.shadowColor = "rgba(16, 185, 129, 0.45)";
             ctx.shadowBlur = isHovered ? 12 : 6;
           } else {
             const grad = ctx.createRadialGradient(
-              el.p.x - radius*0.3, el.p.y - radius*0.3, radius*0.1,
-              el.p.x, el.p.y, radius
+              el.p.x - radius * 0.3,
+              el.p.y - radius * 0.3,
+              radius * 0.1,
+              el.p.x,
+              el.p.y,
+              radius,
             );
-            grad.addColorStop(0, '#ffffff');
-            grad.addColorStop(0.3, '#ef4444');
-            grad.addColorStop(1, '#7f1d1d');
+            grad.addColorStop(0, "#ffffff");
+            grad.addColorStop(0.3, "#ef4444");
+            grad.addColorStop(1, "#7f1d1d");
             ctx.fillStyle = grad;
-            ctx.strokeStyle = '#f87171';
+            ctx.strokeStyle = "#f87171";
             ctx.lineWidth = 1;
-            ctx.shadowColor = 'rgba(239, 68, 68, 0.45)';
+            ctx.shadowColor = "rgba(239, 68, 68, 0.45)";
             ctx.shadowBlur = isHovered ? 12 : 6;
           }
           ctx.fill();
@@ -809,29 +1291,49 @@ export const SelectionRulesModule: React.FC = () => {
         } else {
           // Unselected node styling
           if (el.isEwaldIntersecting) {
-            ctx.fillStyle = 'rgba(245, 158, 11, 0.85)'; // diffracting inactive point is bright orange/amber
+            ctx.fillStyle = "rgba(245, 158, 11, 0.85)"; // diffracting inactive point is bright orange/amber
           } else {
-            ctx.fillStyle = isHovered ? 'rgba(255, 255, 255, 0.8)' : 'rgba(148, 163, 184, 0.22)';
+            ctx.fillStyle = isHovered
+              ? "rgba(255, 255, 255, 0.8)"
+              : "rgba(148, 163, 184, 0.22)";
           }
           ctx.fill();
         }
 
         if (el.isSelected || isHovered) {
-          ctx.fillStyle = el.isSelected ? '#ffffff' : '#94a3b8';
-          ctx.font = isHovered ? 'bold 8.5px monospace' : '7.5px monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText(`(${el.h},${el.k},${el.l})`, el.p.x, el.p.y - radius - 3);
+          ctx.fillStyle = el.isSelected ? "#ffffff" : "#94a3b8";
+          ctx.font = isHovered ? "bold 8.5px monospace" : "7.5px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(
+            `(${el.h},${el.k},${el.l})`,
+            el.p.x,
+            el.p.y - radius - 3,
+          );
         }
       }
     });
 
     ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
-    ctx.font = 'bold 8px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(`ROTATION X: ${Math.round(recipRotation.x)}° Y: ${Math.round(recipRotation.y)}°`, 10, 15);
-    ctx.fillText('DRAG ORBIT / CLICK NODE TO TOGGLE ARRAY', 10, 26);
-  }, [hklInput, recipRotation, system, hoveredNode, maxIndex, projectionMode, showEwaldSphere, wavelength, latticeParameter]);
+    ctx.fillStyle = "rgba(148, 163, 184, 0.6)";
+    ctx.font = "bold 8px monospace";
+    ctx.textAlign = "left";
+    ctx.fillText(
+      `ROTATION X: ${Math.round(recipRotation.x)}° Y: ${Math.round(recipRotation.y)}°`,
+      10,
+      15,
+    );
+    ctx.fillText("DRAG ORBIT / CLICK NODE TO TOGGLE ARRAY", 10, 26);
+  }, [
+    hklInput,
+    recipRotation,
+    system,
+    hoveredNode,
+    maxIndex,
+    projectionMode,
+    showEwaldSphere,
+    wavelength,
+    latticeParameter,
+  ]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -839,50 +1341,102 @@ export const SelectionRulesModule: React.FC = () => {
         setIsSystemMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const systemGroups = [
     {
-      label: 'Cubic',
+      label: "Cubic",
       icon: <Box className="w-4 h-4" />,
       options: [
-        { value: 'SC', label: 'Simple Cubic', badge: 'P', color: 'text-emerald-400' },
-        { value: 'BCC', label: 'Body-Centered', badge: 'I', color: 'text-emerald-400' },
-        { value: 'FCC', label: 'Face-Centered', badge: 'F', color: 'text-emerald-400' },
-        { value: 'Diamond', label: 'Diamond', badge: 'Fd-3m', color: 'text-emerald-400' }
-      ]
+        {
+          value: "SC",
+          label: "Simple Cubic",
+          badge: "P",
+          color: "text-emerald-400",
+        },
+        {
+          value: "BCC",
+          label: "Body-Centered",
+          badge: "I",
+          color: "text-emerald-400",
+        },
+        {
+          value: "FCC",
+          label: "Face-Centered",
+          badge: "F",
+          color: "text-emerald-400",
+        },
+        {
+          value: "Diamond",
+          label: "Diamond",
+          badge: "Fd-3m",
+          color: "text-emerald-400",
+        },
+      ],
     },
     {
-      label: 'Hexagonal',
+      label: "Hexagonal",
       icon: <Hexagon className="w-4 h-4" />,
       options: [
-        { value: 'Hexagonal', label: 'Hexagonal', badge: 'HCP', color: 'text-amber-400' }
-      ]
+        {
+          value: "Hexagonal",
+          label: "Hexagonal",
+          badge: "HCP",
+          color: "text-amber-400",
+        },
+      ],
     },
     {
-      label: 'Tetragonal',
+      label: "Tetragonal",
       icon: <Pyramid className="w-4 h-4" />,
       options: [
-        { value: 'Tetragonal', label: 'Primitive', badge: 'P', color: 'text-blue-400' },
-        { value: 'Tetragonal_I', label: 'Body-Centered', badge: 'I', color: 'text-blue-400' }
-      ]
+        {
+          value: "Tetragonal",
+          label: "Primitive",
+          badge: "P",
+          color: "text-blue-400",
+        },
+        {
+          value: "Tetragonal_I",
+          label: "Body-Centered",
+          badge: "I",
+          color: "text-blue-400",
+        },
+      ],
     },
     {
-      label: 'Orthorhombic',
+      label: "Orthorhombic",
       icon: <Cuboid className="w-4 h-4" />,
       options: [
-        { value: 'Orthorhombic', label: 'Primitive', badge: 'P', color: 'text-rose-400' },
-        { value: 'Orthorhombic_F', label: 'Face-Centered', badge: 'F', color: 'text-rose-400' },
-        { value: 'Orthorhombic_C', label: 'Base-Centered', badge: 'C', color: 'text-rose-400' }
-      ]
-    }
+        {
+          value: "Orthorhombic",
+          label: "Primitive",
+          badge: "P",
+          color: "text-rose-400",
+        },
+        {
+          value: "Orthorhombic_F",
+          label: "Face-Centered",
+          badge: "F",
+          color: "text-rose-400",
+        },
+        {
+          value: "Orthorhombic_C",
+          label: "Base-Centered",
+          badge: "C",
+          color: "text-rose-400",
+        },
+      ],
+    },
   ];
 
   const handleValidate = () => {
     const hklList = parseHKLString(hklInput);
-    const validationResults = hklList.map(hkl => validateSelectionRule(system, hkl));
+    const validationResults = hklList.map((hkl) =>
+      validateSelectionRule(system, hkl),
+    );
     setResults(validationResults);
   };
 
@@ -896,7 +1450,7 @@ export const SelectionRulesModule: React.FC = () => {
         }
       }
     }
-    setHklInput(newHKLs.join(', '));
+    setHklInput(newHKLs.join(", "));
   };
 
   useEffect(() => {
@@ -906,117 +1460,142 @@ export const SelectionRulesModule: React.FC = () => {
 
   const handleSave = () => {
     if (results.length === 0) return;
-    
+
     const csvHeader = "Reflection (h k l),Status,Reason\n";
-    const csvRows = results.map(res => 
-      `"(${res.hkl.join(' ')})","${res.status}","${res.reason.replace(/"/g, '""')}"`
-    ).join("\n");
-    
-    const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
+    const csvRows = results
+      .map(
+        (res) =>
+          `"(${res.hkl.join(" ")})","${res.status}","${res.reason.replace(/"/g, '""')}"`,
+      )
+      .join("\n");
+
+    const blob = new Blob([csvHeader + csvRows], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `validation_results_${system}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `validation_results_${system}_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const filteredResults = useMemo(() => {
-    if (filter === 'All') return results;
-    return results.filter(r => r.status === filter);
+    if (filter === "All") return results;
+    return results.filter((r) => r.status === filter);
   }, [results, filter]);
 
   const systemDetails = {
     SC: {
       title: "Simple Cubic (SC)",
       rule: "All (h k l) are allowed.",
-      origin: "The primitive unit cell has only one lattice point at (0,0,0). No destructive interference occurs between basis atoms.",
+      origin:
+        "The primitive unit cell has only one lattice point at (0,0,0). No destructive interference occurs between basis atoms.",
       formula: "F(hkl) = f",
-      examples: "Polonium (Po), Pyrite (FeS2 - Pa3)"
+      examples: "Polonium (Po), Pyrite (FeS2 - Pa3)",
     },
     BCC: {
       title: "Body-Centered Cubic (BCC)",
       rule: "h + k + l must be even.",
-      origin: "Lattice points at (0,0,0) and (½,½,½). Destructive interference occurs when the phase difference is π (odd sum).",
+      origin:
+        "Lattice points at (0,0,0) and (½,½,½). Destructive interference occurs when the phase difference is π (odd sum).",
       formula: "F(hkl) = f[1 + exp(πi(h+k+l))]",
-      examples: "Iron (α-Fe), Chromium (Cr), Tungsten (W), Sodium (Na)"
+      examples: "Iron (α-Fe), Chromium (Cr), Tungsten (W), Sodium (Na)",
     },
     FCC: {
       title: "Face-Centered Cubic (FCC)",
       rule: "h, k, l must be all even or all odd.",
-      origin: "Lattice points at (0,0,0), (½,½,0), (½,0,½), (0,½,½). Mixed parity leads to total destructive interference.",
+      origin:
+        "Lattice points at (0,0,0), (½,½,0), (½,0,½), (0,½,½). Mixed parity leads to total destructive interference.",
       formula: "F(hkl) = f[1 + e^{πi(h+k)} + e^{πi(h+l)} + e^{πi(k+l)}]",
-      examples: "Aluminum (Al), Copper (Cu), Gold (Au), Silver (Ag), Nickel (Ni)"
+      examples:
+        "Aluminum (Al), Copper (Cu), Gold (Au), Silver (Ag), Nickel (Ni)",
     },
     Diamond: {
       title: "Diamond Cubic",
       rule: "FCC rules + if all even, h+k+l must be divisible by 4.",
-      origin: "Basis of two atoms at (0,0,0) and (¼,¼,¼) combined with FCC lattice. This adds extra extinctions (e.g., 200 forbidden).",
+      origin:
+        "Basis of two atoms at (0,0,0) and (¼,¼,¼) combined with FCC lattice. This adds extra extinctions (e.g., 200 forbidden).",
       formula: "F(hkl) = F_{FCC} [1 + exp(πi/2(h+k+l))]",
-      examples: "Silicon (Si), Germanium (Ge), Diamond (C)"
+      examples: "Silicon (Si), Germanium (Ge), Diamond (C)",
     },
     Hexagonal: {
       title: "Hexagonal Close Packed (HCP)",
       rule: "Forbidden if l is odd AND (h + 2k) is divisible by 3.",
-      origin: "Basis of two atoms at (0,0,0) and (2/3, 1/3, 1/2) in a primitive hexagonal cell.",
+      origin:
+        "Basis of two atoms at (0,0,0) and (2/3, 1/3, 1/2) in a primitive hexagonal cell.",
       formula: "F(hkl) = f[1 + exp(2πi(h/3 + 2k/3 + l/2))]",
-      examples: "Magnesium (Mg), Titanium (Ti), Zinc (Zn)"
+      examples: "Magnesium (Mg), Titanium (Ti), Zinc (Zn)",
     },
     Tetragonal: {
       title: "Tetragonal (Primitive)",
       rule: "All (h k l) are allowed.",
-      origin: "Primitive cell with lattice points only at corners. No centering to cause destructive interference.",
+      origin:
+        "Primitive cell with lattice points only at corners. No centering to cause destructive interference.",
       formula: "F(hkl) = f",
-      examples: "Rutile (TiO2), Stishovite (SiO2)"
+      examples: "Rutile (TiO2), Stishovite (SiO2)",
     },
     Tetragonal_I: {
       title: "Tetragonal (Body Centered)",
       rule: "h + k + l must be even.",
-      origin: "Lattice points at (0,0,0) and (½,½,½). Same extinction condition as BCC.",
+      origin:
+        "Lattice points at (0,0,0) and (½,½,½). Same extinction condition as BCC.",
       formula: "F(hkl) = f[1 + exp(πi(h+k+l))]",
-      examples: "Anatase (TiO2), Tin (White Sn)"
+      examples: "Anatase (TiO2), Tin (White Sn)",
     },
     Orthorhombic: {
       title: "Orthorhombic (Primitive)",
       rule: "All (h k l) are allowed.",
       origin: "Primitive cell with lattice points only at corners.",
       formula: "F(hkl) = f",
-      examples: "Topaz, Aragonite (CaCO3), Sulfur (α-S)"
+      examples: "Topaz, Aragonite (CaCO3), Sulfur (α-S)",
     },
     Orthorhombic_F: {
       title: "Orthorhombic (Face Centered)",
       rule: "h, k, l must be all even or all odd.",
       origin: "Lattice points at faces. Same extinction condition as FCC.",
       formula: "F(hkl) = f[1 + e^{πi(h+k)} + e^{πi(h+l)} + e^{πi(k+l)}]",
-      examples: "Gallium (Ga - pseudo-orthorhombic)"
+      examples: "Gallium (Ga - pseudo-orthorhombic)",
     },
     Orthorhombic_C: {
       title: "Orthorhombic (Base Centered C)",
       rule: "h + k must be even.",
-      origin: "Lattice points at (0,0,0) and (½,½,0). Centering on C-face causes extinction when h+k is odd.",
+      origin:
+        "Lattice points at (0,0,0) and (½,½,0). Centering on C-face causes extinction when h+k is odd.",
       formula: "F(hkl) = f[1 + exp(πi(h+k))]",
-      examples: "Alpha-Uranium (α-U)"
-    }
+      examples: "Alpha-Uranium (α-U)",
+    },
   };
 
-  const symmetryDetails: Record<CrystalSystem, {
-    rotation: string[];
-    reflection: string;
-    inversion: boolean;
-    identity: string;
-    group: string;
-    operations: number;
-    description: string;
-  }> = {
+  const symmetryDetails: Record<
+    CrystalSystem,
+    {
+      rotation: string[];
+      reflection: string;
+      inversion: boolean;
+      identity: string;
+      group: string;
+      operations: number;
+      description: string;
+    }
+  > = {
     SC: {
       group: "m-3m (Oh)",
       operations: 48,
-      rotation: ["3 x 4-fold (Axes)", "4 x 3-fold (Diagonals)", "6 x 2-fold (Edges)"],
+      rotation: [
+        "3 x 4-fold (Axes)",
+        "4 x 3-fold (Diagonals)",
+        "6 x 2-fold (Edges)",
+      ],
       reflection: "9 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "Highest possible crystallographic symmetry. Point group includes full octahedral symmetry."
+      description:
+        "Highest possible crystallographic symmetry. Point group includes full octahedral symmetry.",
     },
     BCC: {
       group: "m-3m (Oh)",
@@ -1025,7 +1604,8 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "9 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "Shares the same point group as SC, but lattice translations differ."
+      description:
+        "Shares the same point group as SC, but lattice translations differ.",
     },
     FCC: {
       group: "m-3m (Oh)",
@@ -1034,7 +1614,8 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "9 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "Shares the same point group as SC, but with face-centering translations."
+      description:
+        "Shares the same point group as SC, but with face-centering translations.",
     },
     Diamond: {
       group: "m-3m (Oh)",
@@ -1043,7 +1624,8 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "9 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "The diamond structure belongs to the Fd-3m space group, sharing the O_h point group."
+      description:
+        "The diamond structure belongs to the Fd-3m space group, sharing the O_h point group.",
     },
     Hexagonal: {
       group: "6/mmm (D6h)",
@@ -1052,7 +1634,8 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "7 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "Hexagonal symmetry requires a 6-fold rotation axis. Characteristic of close-packed HCP."
+      description:
+        "Hexagonal symmetry requires a 6-fold rotation axis. Characteristic of close-packed HCP.",
     },
     Tetragonal: {
       group: "4/mmm (D4h)",
@@ -1061,7 +1644,8 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "5 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "Symmetry is reduced from cubic by stretching one axis. Retains one 4-fold axis."
+      description:
+        "Symmetry is reduced from cubic by stretching one axis. Retains one 4-fold axis.",
     },
     Tetragonal_I: {
       group: "4/mmm (D4h)",
@@ -1070,7 +1654,8 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "5 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "Body-centered tetragonal lattice with full 4/mmm point symmetry."
+      description:
+        "Body-centered tetragonal lattice with full 4/mmm point symmetry.",
     },
     Orthorhombic: {
       group: "mmm (D2h)",
@@ -1079,7 +1664,8 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "3 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "Three mutually perpendicular 2-fold axes. Low symmetry relative to cubic."
+      description:
+        "Three mutually perpendicular 2-fold axes. Low symmetry relative to cubic.",
     },
     Orthorhombic_F: {
       group: "mmm (D2h)",
@@ -1088,7 +1674,7 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "3 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "Face-centered variant of the orthorhombic lattice system."
+      description: "Face-centered variant of the orthorhombic lattice system.",
     },
     Orthorhombic_C: {
       group: "mmm (D2h)",
@@ -1097,7 +1683,7 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "3 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "Base-centered variant of the orthorhombic lattice system."
+      description: "Base-centered variant of the orthorhombic lattice system.",
     },
     Cubic: {
       group: "m-3m (Oh)",
@@ -1106,7 +1692,8 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "9 Symmetry Planes",
       inversion: true,
       identity: "1",
-      description: "General cubic point group symmetry. Highest density of symmetry operations."
+      description:
+        "General cubic point group symmetry. Highest density of symmetry operations.",
     },
     Monoclinic: {
       group: "2/m (C2h)",
@@ -1115,7 +1702,8 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "1 Mirror Plane",
       inversion: true,
       identity: "1",
-      description: "Symmetry follows reaching a single 2-fold axis and a perpendicular mirror plane."
+      description:
+        "Symmetry follows reaching a single 2-fold axis and a perpendicular mirror plane.",
     },
     Triclinic: {
       group: "-1 (Ci)",
@@ -1124,11 +1712,17 @@ export const SelectionRulesModule: React.FC = () => {
       reflection: "No Planes",
       inversion: true,
       identity: "1",
-      description: "Lowest possible symmetry. Contains only inversion and identity."
-    }
+      description:
+        "Lowest possible symmetry. Contains only inversion and identity.",
+    },
   };
 
-  const generateEquivalentPlanes = (h: number, k: number, l: number, system: CrystalSystem): string[] => {
+  const generateEquivalentPlanes = (
+    h: number,
+    k: number,
+    l: number,
+    system: CrystalSystem,
+  ): string[] => {
     const uniq = new Set<string>();
     const add = (x: number, y: number, z: number) => {
       uniq.add(`(${x}, ${y}, ${z})`);
@@ -1181,7 +1775,7 @@ export const SelectionRulesModule: React.FC = () => {
         [-x - y, y, -z],
         [-y, -x, -z],
         [x, -x - y, -z],
-        [x + y, -y, -z]
+        [x + y, -y, -z],
       ];
       for (const [v1, v2, v3] of base) {
         add(v1, v2, v3);
@@ -1212,15 +1806,17 @@ export const SelectionRulesModule: React.FC = () => {
       add(-x, -y, -z);
     };
 
-    if (['Cubic', 'SC', 'BCC', 'FCC', 'Diamond'].includes(system)) {
+    if (["Cubic", "SC", "BCC", "FCC", "Diamond"].includes(system)) {
       cubicPermutations(h, k, l);
-    } else if (['Tetragonal', 'Tetragonal_I'].includes(system)) {
+    } else if (["Tetragonal", "Tetragonal_I"].includes(system)) {
       tetragonalPermutations(h, k, l);
-    } else if (system === 'Hexagonal') {
+    } else if (system === "Hexagonal") {
       hexagonalPermutations(h, k, l);
-    } else if (['Orthorhombic', 'Orthorhombic_F', 'Orthorhombic_C'].includes(system)) {
+    } else if (
+      ["Orthorhombic", "Orthorhombic_F", "Orthorhombic_C"].includes(system)
+    ) {
       orthorhombicPermutations(h, k, l);
-    } else if (system === 'Monoclinic') {
+    } else if (system === "Monoclinic") {
       monoclinicPermutations(h, k, l);
     } else {
       triclinicPermutations(h, k, l);
@@ -1229,7 +1825,8 @@ export const SelectionRulesModule: React.FC = () => {
     return Array.from(uniq).sort();
   };
 
-  const currentSymmetry = symmetryDetails[system as keyof typeof symmetryDetails];
+  const currentSymmetry =
+    symmetryDetails[system as keyof typeof symmetryDetails];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500 items-start">
@@ -1237,7 +1834,7 @@ export const SelectionRulesModule: React.FC = () => {
       <div className="lg:col-span-4 space-y-6">
         <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.05)] border border-[#1e293b] relative overflow-hidden">
           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-emerald-600 rounded-full opacity-10 blur-2xl"></div>
-          
+
           <div className="flex items-center gap-3 mb-6 relative z-10">
             <div className="p-2.5 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
               <Layers className="w-5 h-5 text-emerald-400" />
@@ -1257,29 +1854,48 @@ export const SelectionRulesModule: React.FC = () => {
                   <div className="w-1 h-1 rounded-full bg-emerald-500/10" />
                 </div>
               </div>
-              
+
               <button
                 onClick={() => setIsSystemMenuOpen(!isSystemMenuOpen)}
                 className="w-full px-4 py-4 bg-[#0B1221] hover:bg-[#0f172a] border-2 border-[#1e293b] hover:border-emerald-500/40 rounded-2xl outline-none transition-all flex items-center justify-between group shadow-inner backdrop-blur-sm"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400 font-black text-xs shadow-inner">
-                    {systemGroups.flatMap(g => g.options).find(o => o.value === system)?.badge}
+                    {
+                      systemGroups
+                        .flatMap((g) => g.options)
+                        .find((o) => o.value === system)?.badge
+                    }
                   </div>
                   <div className="flex flex-col items-start gap-1">
                     <span className="text-base font-black text-white leading-none tracking-tight">
-                      {systemGroups.flatMap(g => g.options).find(o => o.value === system)?.label}
+                      {
+                        systemGroups
+                          .flatMap((g) => g.options)
+                          .find((o) => o.value === system)?.label
+                      }
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none bg-[#050B14] px-1.5 py-0.5 rounded border border-[#1e293b]">
-                        {systemGroups.find(g => g.options.some(o => o.value === system))?.label} System
+                        {
+                          systemGroups.find((g) =>
+                            g.options.some((o) => o.value === system),
+                          )?.label
+                        }{" "}
+                        System
                       </span>
-                      {systemGroups.find(g => g.options.some(o => o.value === system))?.icon}
+                      {
+                        systemGroups.find((g) =>
+                          g.options.some((o) => o.value === system),
+                        )?.icon
+                      }
                     </div>
                   </div>
                 </div>
                 <div className="p-1.5 bg-[#050B14] rounded-lg group-hover:bg-emerald-500/10 transition-colors border border-[#1e293b]">
-                  <ChevronDown className={`w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-transform duration-300 ${isSystemMenuOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-transform duration-300 ${isSystemMenuOpen ? "rotate-180" : ""}`}
+                  />
                 </div>
               </button>
 
@@ -1293,9 +1909,14 @@ export const SelectionRulesModule: React.FC = () => {
                     className="absolute top-full left-0 right-0 mt-3 bg-[#0B1221]/95 backdrop-blur-xl rounded-2xl border-2 border-[#1e293b] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 max-h-[400px] overflow-y-auto custom-scrollbar"
                   >
                     {systemGroups.map((group, gIdx) => (
-                      <div key={`group-${group.label}-${gIdx}`} className="border-b border-[#1e293b] last:border-0">
+                      <div
+                        key={`group-${group.label}-${gIdx}`}
+                        className="border-b border-[#1e293b] last:border-0"
+                      >
                         <div className="px-5 py-3 bg-[#050B14]/80 flex items-center gap-2 shadow-inner">
-                          <div className="text-emerald-500/70">{group.icon}</div>
+                          <div className="text-emerald-500/70">
+                            {group.icon}
+                          </div>
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
                             {group.label} Architectural Model
                           </span>
@@ -1309,22 +1930,30 @@ export const SelectionRulesModule: React.FC = () => {
                                 setIsSystemMenuOpen(false);
                               }}
                               className={`w-full px-4 py-3 rounded-xl flex items-center justify-between transition-all group/item
-                                ${system === option.value ? 'bg-emerald-500/10 border border-emerald-500/20' : 'hover:bg-[#0f172a] border border-transparent'}
+                                ${system === option.value ? "bg-emerald-500/10 border border-emerald-500/20" : "hover:bg-[#0f172a] border border-transparent"}
                               `}
                             >
                               <div className="flex items-center gap-4">
-                                <div className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center text-[11px] font-black transition-all
-                                  ${system === option.value 
-                                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.2)]' 
-                                    : 'bg-[#050B14] border-[#1e293b] text-slate-500 group-hover/item:border-slate-500 shadow-inner'}
-                                `}>
+                                <div
+                                  className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center text-[11px] font-black transition-all
+                                  ${
+                                    system === option.value
+                                      ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.2)]"
+                                      : "bg-[#050B14] border-[#1e293b] text-slate-500 group-hover/item:border-slate-500 shadow-inner"
+                                  }
+                                `}
+                                >
                                   {option.badge}
                                 </div>
                                 <div className="flex flex-col items-start">
-                                  <span className={`text-sm font-bold transition-colors ${system === option.value ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                  <span
+                                    className={`text-sm font-bold transition-colors ${system === option.value ? "text-emerald-400" : "text-slate-300"}`}
+                                  >
                                     {option.label}
                                   </span>
-                                  <span className="text-[9px] text-slate-500 font-mono uppercase">Selection Logic: {option.badge}-centering</span>
+                                  <span className="text-[9px] text-slate-500 font-mono uppercase">
+                                    Selection Logic: {option.badge}-centering
+                                  </span>
                                 </div>
                               </div>
                               {system === option.value && (
@@ -1346,7 +1975,9 @@ export const SelectionRulesModule: React.FC = () => {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Active Extinction Logic</h3>
+                  <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                    Active Extinction Logic
+                  </h3>
                 </div>
                 <Zap className="w-3.5 h-3.5 text-emerald-500/30 group-hover/rule:text-emerald-500/60 transition-colors" />
               </div>
@@ -1364,23 +1995,33 @@ export const SelectionRulesModule: React.FC = () => {
                   </label>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">max_n:</span>
-                  <span className="text-xs font-black text-emerald-400 font-mono">{maxIndex}</span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    max_n:
+                  </span>
+                  <span className="text-xs font-black text-emerald-400 font-mono">
+                    {maxIndex}
+                  </span>
                 </div>
               </div>
               <div className="flex gap-4">
                 <div className="flex-1 px-1">
-                  <input 
-                    type="range" min="1" max="6" step="1"
+                  <input
+                    type="range"
+                    min="1"
+                    max="6"
+                    step="1"
                     value={maxIndex}
                     onChange={(e) => setMaxIndex(parseInt(e.target.value))}
                     className="w-full h-1.5 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all hover:bg-slate-600"
                   />
                   <div className="flex justify-between mt-2 px-0.5">
-                    {[1, 2, 3, 4, 5, 6].map(v => (
-                       <span key={v} className={`text-[8px] font-bold font-mono transition-colors ${maxIndex === v ? 'text-emerald-500' : 'text-slate-600'}`}>
-                         {v}
-                       </span>
+                    {[1, 2, 3, 4, 5, 6].map((v) => (
+                      <span
+                        key={v}
+                        className={`text-[8px] font-bold font-mono transition-colors ${maxIndex === v ? "text-emerald-500" : "text-slate-600"}`}
+                      >
+                        {v}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -1408,20 +2049,25 @@ export const SelectionRulesModule: React.FC = () => {
                     type="button"
                     onClick={() => setIsOrbiting(!isOrbiting)}
                     className={`px-2 py-1 rounded border font-mono text-[9px] flex items-center transition-all uppercase tracking-wider ${
-                      isOrbiting 
-                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400' 
-                        : 'bg-black border-[#1e293b] text-slate-400 hover:text-white'
+                      isOrbiting
+                        ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
+                        : "bg-black border-[#1e293b] text-slate-400 hover:text-white"
                     }`}
                   >
-                    {isOrbiting ? <Pause className="w-2.5 h-2.5 mr-1" /> : <Play className="w-2.5 h-2.5 mr-1" />}
-                    {isOrbiting ? 'Orbiting' : 'Auto-Orbit'}
+                    {isOrbiting ? (
+                      <Pause className="w-2.5 h-2.5 mr-1" />
+                    ) : (
+                      <Play className="w-2.5 h-2.5 mr-1" />
+                    )}
+                    {isOrbiting ? "Orbiting" : "Auto-Orbit"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setRecipRotation({ x: 25, y: -45 })}
                     className="px-2 py-1 bg-black rounded border border-[#1e293b] text-[9px] text-slate-400 font-mono flex items-center hover:text-white hover:border-slate-700 transition-colors uppercase tracking-wider font-semibold"
                   >
-                    <RotateCw className="w-2.5 h-2.5 mr-1 text-emerald-500" /> Reset View
+                    <RotateCw className="w-2.5 h-2.5 mr-1 text-emerald-500" />{" "}
+                    Reset View
                   </button>
                 </div>
               </div>
@@ -1433,7 +2079,10 @@ export const SelectionRulesModule: React.FC = () => {
                   onMouseDown={handleRecipMouseDown}
                   onMouseMove={handleRecipMouseMove}
                   onMouseUp={handleRecipMouseUp}
-                  onMouseLeave={() => { setIsRecipDragging(false); setHoveredNode(null); }}
+                  onMouseLeave={() => {
+                    setIsRecipDragging(false);
+                    setHoveredNode(null);
+                  }}
                   className="w-full h-[210px] block"
                 />
                 <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1447,7 +2096,7 @@ export const SelectionRulesModule: React.FC = () => {
                 {hoveredNode && (
                   <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/90 border border-emerald-500/30 rounded-lg text-[9px] font-mono text-emerald-400 animate-pulse flex items-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-ping" />
-                    Point ({hoveredNode.join(' ')}) • Click to Toggle
+                    Point ({hoveredNode.join(" ")}) • Click to Toggle
                   </div>
                 )}
               </div>
@@ -1456,7 +2105,9 @@ export const SelectionRulesModule: React.FC = () => {
               <div className="p-3 bg-black/40 rounded-xl border border-[#1e293b]/50 space-y-3.5">
                 <div className="text-[10px] uppercase font-black tracking-wider text-slate-400 border-b border-[#1e293b]/50 pb-1.5 flex items-center justify-between">
                   <span>PROBE CONTROLS</span>
-                  <span className="text-[9px] font-mono font-bold text-sky-400 uppercase bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded">EWALD CORE</span>
+                  <span className="text-[9px] font-mono font-bold text-sky-400 uppercase bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded">
+                    EWALD CORE
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1464,26 +2115,28 @@ export const SelectionRulesModule: React.FC = () => {
                   <div className="space-y-3">
                     {/* Projection Mode */}
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">Projection:</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                        Projection:
+                      </span>
                       <div className="flex rounded-lg border border-[#1e293b] p-0.5 bg-black/50">
                         <button
                           type="button"
-                          onClick={() => setProjectionMode('ortho')}
+                          onClick={() => setProjectionMode("ortho")}
                           className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all ${
-                            projectionMode === 'ortho'
-                              ? 'bg-emerald-500/15 text-emerald-400 font-black'
-                              : 'text-slate-500 hover:text-slate-300'
+                            projectionMode === "ortho"
+                              ? "bg-emerald-500/15 text-emerald-400 font-black"
+                              : "text-slate-500 hover:text-slate-300"
                           }`}
                         >
                           Ortho
                         </button>
                         <button
                           type="button"
-                          onClick={() => setProjectionMode('perspective')}
+                          onClick={() => setProjectionMode("perspective")}
                           className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all ${
-                            projectionMode === 'perspective'
-                              ? 'bg-emerald-500/15 text-emerald-400 font-black'
-                              : 'text-slate-500 hover:text-slate-300'
+                            projectionMode === "perspective"
+                              ? "bg-emerald-500/15 text-emerald-400 font-black"
+                              : "text-slate-500 hover:text-slate-300"
                           }`}
                         >
                           Perspective
@@ -1493,17 +2146,19 @@ export const SelectionRulesModule: React.FC = () => {
 
                     {/* Ewald Sphere Toggle */}
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">Ewald Sphere:</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+                        Ewald Sphere:
+                      </span>
                       <button
                         type="button"
                         onClick={() => setShowEwaldSphere(!showEwaldSphere)}
                         className={`px-2.5 py-0.5 rounded border text-[9px] font-mono font-bold transition-all ${
                           showEwaldSphere
-                            ? 'bg-sky-500/15 border-sky-500/30 text-sky-400'
-                            : 'bg-black/50 border-[#1e293b] text-slate-500'
+                            ? "bg-sky-500/15 border-sky-500/30 text-sky-400"
+                            : "bg-black/50 border-[#1e293b] text-slate-500"
                         }`}
                       >
-                        {showEwaldSphere ? 'VISIBLE' : 'HIDDEN'}
+                        {showEwaldSphere ? "VISIBLE" : "HIDDEN"}
                       </button>
                     </div>
                   </div>
@@ -1513,8 +2168,12 @@ export const SelectionRulesModule: React.FC = () => {
                     {/* Wavelength */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-[9px] font-mono">
-                        <span className="text-slate-500 uppercase tracking-wider">Wavelength (λ):</span>
-                        <span className="text-sky-400 font-bold">{wavelength.toFixed(4)} Å</span>
+                        <span className="text-slate-500 uppercase tracking-wider">
+                          Wavelength (λ):
+                        </span>
+                        <span className="text-sky-400 font-bold">
+                          {wavelength.toFixed(4)} Å
+                        </span>
                       </div>
                       <input
                         type="range"
@@ -1522,7 +2181,9 @@ export const SelectionRulesModule: React.FC = () => {
                         max="3.0"
                         step="0.05"
                         value={wavelength}
-                        onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                        onChange={(e) =>
+                          setWavelength(parseFloat(e.target.value))
+                        }
                         className="w-full h-1 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-sky-500 transition-all hover:bg-slate-600"
                       />
                     </div>
@@ -1530,8 +2191,12 @@ export const SelectionRulesModule: React.FC = () => {
                     {/* Lattice constant a */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-[9px] font-mono">
-                        <span className="text-slate-500 uppercase tracking-wider">Lattice Parameter (a):</span>
-                        <span className="text-emerald-400 font-bold">{latticeParameter.toFixed(3)} Å</span>
+                        <span className="text-slate-500 uppercase tracking-wider">
+                          Lattice Parameter (a):
+                        </span>
+                        <span className="text-emerald-400 font-bold">
+                          {latticeParameter.toFixed(3)} Å
+                        </span>
                       </div>
                       <input
                         type="range"
@@ -1539,7 +2204,9 @@ export const SelectionRulesModule: React.FC = () => {
                         max="8.0"
                         step="0.05"
                         value={latticeParameter}
-                        onChange={(e) => setLatticeParameter(parseFloat(e.target.value))}
+                        onChange={(e) =>
+                          setLatticeParameter(parseFloat(e.target.value))
+                        }
                         className="w-full h-1 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all hover:bg-slate-600"
                       />
                     </div>
@@ -1552,106 +2219,168 @@ export const SelectionRulesModule: React.FC = () => {
                 {(() => {
                   const activeNode = hoveredNode;
                   const [h, k, l] = activeNode || [0, 0, 0];
-                  const hasSelection = activeNode && (h !== 0 || k !== 0 || l !== 0);
+                  const hasSelection =
+                    activeNode && (h !== 0 || k !== 0 || l !== 0);
 
                   if (!hasSelection) {
                     return (
                       <div className="flex items-start gap-2.5 text-left text-xs text-slate-400">
                         <Info className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                         <span className="leading-normal font-medium text-[11px] text-slate-400">
-                          Hover over any crystallographic node (h, k, l) in the interactive 3D reciprocal canvas above to calculate d-spacing, Bragg angle, and Ewald sphere intersection state.
+                          Hover over any crystallographic node (h, k, l) in the
+                          interactive 3D reciprocal canvas above to calculate
+                          d-spacing, Bragg angle, and Ewald sphere intersection
+                          state.
                         </span>
                       </div>
                     );
                   }
 
                   // 1. Calculate d-spacing based on selected crystal system
-                  const dSpacing = calculateDSpacingForProbe(h, k, l, system, latticeParameter);
-                  
+                  const dSpacing = calculateDSpacingForProbe(
+                    h,
+                    k,
+                    l,
+                    system,
+                    latticeParameter,
+                  );
+
                   // 2. Calculate theta Bragg angle
                   let sinTheta = dSpacing > 0 ? wavelength / (2 * dSpacing) : 0;
                   const hasThetaSolution = sinTheta <= 1 && dSpacing > 0;
-                  const thetaDeg = hasThetaSolution ? Math.asin(sinTheta) * (180 / Math.PI) : 0;
+                  const thetaDeg = hasThetaSolution
+                    ? Math.asin(sinTheta) * (180 / Math.PI)
+                    : 0;
                   const twoThetaDeg = thetaDeg * 2;
 
                   // 3. Extinction check
                   const ruleResult = validateSelectionRule(system, [h, k, l]);
-                  const isAllowed = ruleResult.status === 'Allowed';
+                  const isAllowed = ruleResult.status === "Allowed";
 
                   // 4. Ewald Sphere distance check
                   const xc_val = -latticeParameter / wavelength;
                   const r_val = latticeParameter / wavelength;
-                  const distToCenter = Math.sqrt((h - xc_val) ** 2 + k * k + l * l);
-                  const isEwaldIntersecting = Math.abs(distToCenter - r_val) < 0.25;
+                  const distToCenter = Math.sqrt(
+                    (h - xc_val) ** 2 + k * k + l * l,
+                  );
+                  const isEwaldIntersecting =
+                    Math.abs(distToCenter - r_val) < 0.25;
                   const isWithinLimitingSphere = distToCenter <= r_val * 2.0;
 
                   return (
                     <div className="space-y-2 text-left font-mono">
                       <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
                         <div className="flex items-center gap-1.5 overflow-hidden">
-                          <span className="font-extrabold text-[11px] text-white shrink-0">INSPECTOR: ({h} {k} {l})</span>
-                          <span className={`text-[8px] font-bold px-1 py-0.5 rounded border truncate ${
-                            isAllowed 
-                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                              : 'bg-red-500/10 border-red-500/20 text-red-400'
-                          }`}>
-                            {isAllowed ? 'ALLOWED' : 'FORBIDDEN'}
+                          <span className="font-extrabold text-[11px] text-white shrink-0">
+                            INSPECTOR: ({h} {k} {l})
+                          </span>
+                          <span
+                            className={`text-[8px] font-bold px-1 py-0.5 rounded border truncate ${
+                              isAllowed
+                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                : "bg-red-500/10 border-red-500/20 text-red-400"
+                            }`}
+                          >
+                            {isAllowed ? "ALLOWED" : "FORBIDDEN"}
                           </span>
                         </div>
                         <div className="text-[9px] text-slate-400 shrink-0">
-                          System: <span className="text-slate-300 font-bold">{system}</span>
+                          System:{" "}
+                          <span className="text-slate-300 font-bold">
+                            {system}
+                          </span>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] pt-1">
                         {/* d-spacing */}
                         <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b]">
-                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">Interplanar d</div>
-                          <div className="text-emerald-400 font-extrabold text-[11px]">{dSpacing > 0 ? `${dSpacing.toFixed(4)} Å` : 'N/A'}</div>
+                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">
+                            Interplanar d
+                          </div>
+                          <div className="text-emerald-400 font-extrabold text-[11px]">
+                            {dSpacing > 0 ? `${dSpacing.toFixed(4)} Å` : "N/A"}
+                          </div>
                         </div>
 
                         {/* Reciprocal vector length */}
                         <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b]">
-                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">Recip Vector |g*|</div>
-                          <div className="text-teal-400 font-extrabold text-[11px]">{dSpacing > 0 ? `${(1/dSpacing).toFixed(4)} Å⁻¹` : 'N/A'}</div>
+                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">
+                            Recip Vector |g*|
+                          </div>
+                          <div className="text-teal-400 font-extrabold text-[11px]">
+                            {dSpacing > 0
+                              ? `${(1 / dSpacing).toFixed(4)} Å⁻¹`
+                              : "N/A"}
+                          </div>
                         </div>
 
                         {/* Bragg angle 2theta */}
                         <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b]">
-                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">Bragg 2θ</div>
+                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">
+                            Bragg 2θ
+                          </div>
                           <div className="text-sky-400 font-extrabold text-[11px]">
-                            {hasThetaSolution ? `${twoThetaDeg.toFixed(2)}°` : 'No solution'}
+                            {hasThetaSolution
+                              ? `${twoThetaDeg.toFixed(2)}°`
+                              : "No solution"}
                           </div>
                         </div>
 
                         {/* Ewald Sphere Status */}
                         <div className="bg-black/55 p-2 rounded-lg border border-[#1e293b] col-span-1">
-                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">Diffraction</div>
-                          <div className={`font-extrabold text-[10px] uppercase truncate ${
-                            isEwaldIntersecting && isAllowed
-                              ? 'text-yellow-400' 
-                              : isWithinLimitingSphere
-                              ? 'text-sky-400' 
-                              : 'text-slate-500'
-                          }`}>
+                          <div className="text-slate-500 font-semibold mb-0.5 text-[8px] uppercase tracking-wider">
+                            Diffraction
+                          </div>
+                          <div
+                            className={`font-extrabold text-[10px] uppercase truncate ${
+                              isEwaldIntersecting && isAllowed
+                                ? "text-yellow-400"
+                                : isAllowed
+                                  ? "text-slate-400"
+                                  : "text-red-400/80"
+                            }`}
+                          >
                             {isEwaldIntersecting && isAllowed
-                              ? '⚡ ACTIVE!' 
-                              : isAllowed 
-                              ? 'Measurable' 
-                              : 'Extinguished'}
+                              ? "⚡ ACTIVE!"
+                              : isAllowed
+                                ? "Measurable"
+                                : "Extinguished"}
                           </div>
                         </div>
                       </div>
 
                       {/* Descriptive status or explanation text */}
                       <div className="text-[10px] text-slate-400 bg-black/25 px-2.5 py-1.5 rounded border border-[#1e293b]/50 leading-relaxed font-sans mt-2">
-                        <strong className="text-slate-300 font-semibold">Rule Context:</strong> {ruleResult.reason}.{' '}
+                        <strong className="text-slate-300 font-semibold">
+                          Rule Context:
+                        </strong>{" "}
+                        {ruleResult.reason}.{" "}
                         {isEwaldIntersecting && isAllowed ? (
-                          <span className="text-yellow-400 font-medium">Node lies exactly on the Ewald Sphere boundary! Bragg diffraction condition is mathematically satisfied, meaning this index generates strong physical diffracted beams.</span>
-                        ) : isAllowed ? (
-                          <span className="text-slate-400 font-medium font-sans">Point can diffract if the crystal is rotated. It sits inside the limiting sphere ($d \ge \lambda/2$).</span>
+                          <span className="text-yellow-400 font-medium border-l-2 border-yellow-400 pl-2 ml-1">
+                            Diffraction is ACTIVE! (
+                            <span className="font-mono font-black italic">
+                              k = k₀ + g*
+                            </span>
+                            ). Node lies exactly on the Ewald Sphere boundary.
+                          </span>
+                        ) : isWithinLimitingSphere && isAllowed ? (
+                          <span className="text-sky-400 font-medium">
+                            Node is allowed by structure rules, but to observe
+                            it physically, you must rotate the crystal to bring
+                            it onto the Ewald Sphere boundary.
+                          </span>
+                        ) : !isWithinLimitingSphere && isAllowed ? (
+                          <span className="text-orange-400 font-medium">
+                            Node is allowed by structure rules, but physically
+                            lies outside the Limiting Sphere mapping. It cannot
+                            be observed at current wavelength λ.
+                          </span>
                         ) : (
-                          <span className="text-red-400/80 font-medium font-sans">Destructive interference completely extinguishes intensity for this point.</span>
+                          <span className="text-red-400/80 font-medium font-sans">
+                            Destructive interference completely extinguishes
+                            intensity for this index.
+                          </span>
                         )}
                       </div>
                     </div>
@@ -1663,16 +2392,26 @@ export const SelectionRulesModule: React.FC = () => {
             {/* Quick manual entry helper */}
             <div className="space-y-2 p-4 bg-[#050B14]/40 rounded-2xl border border-[#1e293b]">
               <div className="flex items-center justify-between text-left">
-                <div className="text-[9px] font-black font-mono text-slate-400 uppercase tracking-widest">Quick-Append Plane (h k l)</div>
-                <span className="text-[8px] font-black text-[#10b981] bg-[#10b981]/10 border border-[#10b981]/20 px-1.5 py-0.5 rounded font-mono">SYNTHESIS_PROMPT</span>
+                <div className="text-[9px] font-black font-mono text-slate-400 uppercase tracking-widest">
+                  Quick-Append Plane (h k l)
+                </div>
+                <span className="text-[8px] font-black text-[#10b981] bg-[#10b981]/10 border border-[#10b981]/20 px-1.5 py-0.5 rounded font-mono">
+                  SYNTHESIS_PROMPT
+                </span>
               </div>
               <div className="flex gap-2 items-center">
-                {['h', 'k', 'l'].map((index, idx) => {
+                {["h", "k", "l"].map((index, idx) => {
                   const val = idx === 0 ? quickH : idx === 1 ? quickK : quickL;
-                  const setter = idx === 0 ? setQuickH : idx === 1 ? setQuickK : setQuickL;
+                  const setter =
+                    idx === 0 ? setQuickH : idx === 1 ? setQuickK : setQuickL;
                   return (
-                    <div key={index} className="flex-1 flex gap-1 items-center bg-black/60 rounded-xl px-2 py-1.5 border border-[#1e293b]">
-                      <span className="text-[9px] font-mono font-black text-slate-500 uppercase">{index}:</span>
+                    <div
+                      key={index}
+                      className="flex-1 flex gap-1 items-center bg-black/60 rounded-xl px-2 py-1.5 border border-[#1e293b]"
+                    >
+                      <span className="text-[9px] font-mono font-black text-slate-500 uppercase">
+                        {index}:
+                      </span>
                       <input
                         type="number"
                         step="1"
@@ -1691,7 +2430,7 @@ export const SelectionRulesModule: React.FC = () => {
                   ADD
                 </button>
               </div>
-              
+
               {/* Preset operational row */}
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <button
@@ -1703,7 +2442,11 @@ export const SelectionRulesModule: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setHklInput('1 1 1, 2 2 2, 3 3 3, 4 4 4, 1 1 0, 2 2 0, 3 3 0')}
+                  onClick={() =>
+                    setHklInput(
+                      "1 1 1, 2 2 2, 3 3 3, 4 4 4, 1 1 0, 2 2 0, 3 3 0",
+                    )
+                  }
                   className="px-2 py-1 bg-black/40 border border-[#1e293b] hover:border-slate-700 rounded text-[8px] font-bold font-mono text-slate-400 hover:text-slate-200 transition-colors uppercase tracking-tight"
                 >
                   Axes Diagonal rows
@@ -1727,18 +2470,19 @@ export const SelectionRulesModule: React.FC = () => {
                 <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-1 pt-1">
                   {parseHKLString(hklInput).map((pt, i) => {
                     const ruleResult = validateSelectionRule(system, pt);
-                    const isAllowed = ruleResult.status === 'Allowed';
+                    const isAllowed = ruleResult.status === "Allowed";
                     return (
                       <div
-                        key={`${pt.join('-')}-${i}`}
+                        key={`${pt.join("-")}-${i}`}
                         className={`pl-2 pr-1 py-1 rounded-lg border flex items-center gap-1.5 text-[10px] font-mono select-none transition-colors
-                          ${isAllowed 
-                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                            : 'bg-red-500/10 border-red-500/20 text-red-300'
+                          ${
+                            isAllowed
+                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                              : "bg-red-500/10 border-red-500/20 text-red-300"
                           }
                         `}
                       >
-                        <span className="font-black">({pt.join(' ')})</span>
+                        <span className="font-black">({pt.join(" ")})</span>
                         <button
                           type="button"
                           onClick={() => removeHKLAtIndex(i)}
@@ -1765,15 +2509,21 @@ export const SelectionRulesModule: React.FC = () => {
                   </label>
                 </div>
                 <div className="flex items-center gap-2">
-                   <div className="h-1 w-8 bg-[#1e293b] rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ x: '-100%' }}
-                        animate={{ x: '100%' }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        className="h-full w-full bg-emerald-500/50"
-                      />
-                   </div>
-                   <span className="text-[8px] font-mono text-slate-600">INPUT_ACTIVE</span>
+                  <div className="h-1 w-8 bg-[#1e293b] rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ x: "-100%" }}
+                      animate={{ x: "100%" }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        ease: "linear",
+                      }}
+                      className="h-full w-full bg-emerald-500/50"
+                    />
+                  </div>
+                  <span className="text-[8px] font-mono text-slate-600">
+                    INPUT_ACTIVE
+                  </span>
                 </div>
               </div>
               <div className="relative group/indices">
@@ -1799,54 +2549,69 @@ export const SelectionRulesModule: React.FC = () => {
             >
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/0 via-white/20 to-emerald-400/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
               <CheckCircle2 className="w-5 h-5" />
-              <span className="uppercase tracking-[0.15em] text-sm font-black">Analyze Diffractive States</span>
+              <span className="uppercase tracking-[0.15em] text-sm font-black">
+                Analyze Diffractive States
+              </span>
             </button>
           </div>
         </div>
 
-                {/* Lattice Centering Quick Reference */}
+        {/* Lattice Centering Quick Reference */}
         <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 -mt-2 -mr-2 w-32 h-32 bg-emerald-500/10 rounded-full blur-[60px] group-hover:bg-emerald-500/20 transition-all duration-700"></div>
-          
+
           <div className="flex items-center gap-4 mb-6 relative z-10">
             <div className="p-2.5 bg-emerald-500/20 rounded-xl border border-emerald-500/30">
               <Component className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
               <h3 className="text-lg font-bold">Lattice Guide</h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Centering Types</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                Centering Types
+              </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 relative z-10">
-             {[
-               { id: 'P', label: 'Primitive', desc: 'Points at Corners' },
-               { id: 'I', label: 'Body-Centered', desc: 'Corners + Center' },
-               { id: 'F', label: 'Face-Centered', desc: 'Corners + Faces' },
-               { id: 'C', label: 'Base-Centered', desc: 'Corners + Pair' }
-             ].map((type) => (
-               <div key={type.id} className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] flex flex-col items-center text-center hover:bg-[#070D18] transition-all shadow-inner">
-                  <span className="text-sm font-black text-emerald-400 mb-1">{type.id}</span>
-                  <span className="text-[9px] font-bold text-slate-300 uppercase leading-none mb-1">{type.label}</span>
-                  <span className="text-[8px] text-slate-500 leading-tight">{type.desc}</span>
-               </div>
-             ))}
+            {[
+              { id: "P", label: "Primitive", desc: "Points at Corners" },
+              { id: "I", label: "Body-Centered", desc: "Corners + Center" },
+              { id: "F", label: "Face-Centered", desc: "Corners + Faces" },
+              { id: "C", label: "Base-Centered", desc: "Corners + Pair" },
+            ].map((type) => (
+              <div
+                key={type.id}
+                className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] flex flex-col items-center text-center hover:bg-[#070D18] transition-all shadow-inner"
+              >
+                <span className="text-sm font-black text-emerald-400 mb-1">
+                  {type.id}
+                </span>
+                <span className="text-[9px] font-bold text-slate-300 uppercase leading-none mb-1">
+                  {type.label}
+                </span>
+                <span className="text-[8px] text-slate-500 leading-tight">
+                  {type.desc}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
-{/* Physical Context Card */}
+        {/* Physical Context Card */}
         <div className="bg-[#050B14]/80 backdrop-blur-md p-6 rounded-[2rem] text-white border border-[#1e293b] shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-blue-500/10 rounded-full blur-[60px] group-hover:bg-blue-500/20 transition-all duration-700"></div>
-          
+
           <div className="flex items-center gap-4 mb-6 relative z-10">
             <div className="p-2.5 bg-blue-500/20 rounded-xl border border-blue-500/30">
               <BookOpen className="w-5 h-5 text-blue-400" />
             </div>
             <div>
               <h3 className="text-lg font-bold">Physical Context</h3>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Scattering Intelligence</p>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                Scattering Intelligence
+              </p>
             </div>
           </div>
 
@@ -1854,7 +2619,9 @@ export const SelectionRulesModule: React.FC = () => {
             <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
               <div className="flex items-center gap-2 mb-2">
                 <Atom className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Origin of Extinction</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Origin of Extinction
+                </span>
               </div>
               <p className="text-xs text-slate-300 leading-relaxed font-medium">
                 {systemDetails[system as keyof typeof systemDetails].origin}
@@ -1864,12 +2631,19 @@ export const SelectionRulesModule: React.FC = () => {
             <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
               <div className="flex items-center gap-2 mb-2">
                 <Binary className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Structure Factor Formula</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Structure Factor Formula
+                </span>
               </div>
               <div className="bg-[#050B14] p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-[#1e293b] shadow-inner">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse shrink-0" />
-                  <span className="whitespace-normal break-words drop-shadow-sm">{systemDetails[system as keyof typeof systemDetails].formula}</span>
+                  <span className="whitespace-normal break-words drop-shadow-sm">
+                    {
+                      systemDetails[system as keyof typeof systemDetails]
+                        .formula
+                    }
+                  </span>
                 </div>
               </div>
             </div>
@@ -1877,292 +2651,374 @@ export const SelectionRulesModule: React.FC = () => {
             <div className="bg-[#0B1221] p-4 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
               <div className="flex items-center gap-2 mb-2">
                 <Beaker className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Natural Occurrence</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Natural Occurrence
+                </span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {systemDetails[system as keyof typeof systemDetails].examples.split(',').map((ex, i) => (
-                  <span key={`ex-${ex.trim()}-${i}`} className="text-[10px] font-bold text-slate-300 bg-[#070D18] px-2 py-1 rounded border border-[#1e293b]">
-                    {ex.trim()}
-                  </span>
-                ))}
+                {systemDetails[system as keyof typeof systemDetails].examples
+                  .split(",")
+                  .map((ex, i) => (
+                    <span
+                      key={`ex-${ex.trim()}-${i}`}
+                      className="text-[10px] font-bold text-slate-300 bg-[#070D18] px-2 py-1 rounded border border-[#1e293b]"
+                    >
+                      {ex.trim()}
+                    </span>
+                  ))}
               </div>
             </div>
-         {/* Symmetry Intelligence Card */}
-        <div className="bg-[#050B14]/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-[#1e293b] shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden relative group/symmetry hover:border-indigo-500/40 transition-all duration-700">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none group-hover/symmetry:bg-indigo-500/15 transition-all duration-1000 -translate-y-20 translate-x-10" />
-          
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6 relative z-10 border-b border-[#1e293b] pb-6">
-            <div className="flex items-center gap-6">
-              <div className="relative group/sym-icon cursor-default">
-                  <div className="absolute inset-0 bg-indigo-600/20 blur-xl rounded-full group-hover/sym-icon:bg-indigo-500/30 transition-all duration-700 pointer-events-none" />
-                  <div className="w-16 h-16 bg-[#070D18] rounded-3xl border border-indigo-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/sym-icon:border-indigo-400 transition-colors duration-500 overflow-hidden">
-                    <ShieldQuestion className="w-7 h-7 text-indigo-400 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)] group-hover/sym-icon:rotate-12 transition-transform duration-500" />
-                  </div>
-              </div>
-              <div>
-                <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-1">
-                  Symmetry Profile
-                </h3>
-                <div className="flex items-center gap-3">
-                  <p className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">Group Identifier</p>
-                  <span className="text-[10px] font-mono font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-lg border border-indigo-500/30 uppercase tracking-[0.2em] shadow-[0_0_10px_rgba(99,102,241,0.2)]">{currentSymmetry.group}</span>
-                </div>
-              </div>
-            </div>
-            <div className="px-5 py-3 bg-[#050B14] rounded-2xl border border-[#1e293b] flex items-center gap-4 relative group/ops hover:border-indigo-500/30 transition-colors shadow-inner">
-               <div className="text-right">
-                 <span className="text-4xl font-black font-mono text-indigo-400 leading-none drop-shadow-md">{currentSymmetry.operations}</span>
-               </div>
-               <div className="w-px h-8 bg-[#1e293b]" />
-               <div className="text-left">
-                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Structural</span>
-                 <span className="text-[10px] font-black text-white uppercase tracking-widest block">Operations</span>
-               </div>
-            </div>
-          </div>
+            {/* Symmetry Intelligence Card */}
+            <div className="bg-[#050B14]/80 backdrop-blur-md p-8 rounded-[2.5rem] border border-[#1e293b] shadow-[0_10px_40px_rgba(0,0,0,0.5)] overflow-hidden relative group/symmetry hover:border-indigo-500/40 transition-all duration-700">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[80px] pointer-events-none group-hover/symmetry:bg-indigo-500/15 transition-all duration-1000 -translate-y-20 translate-x-10" />
 
-          {/* Tab Navigation */}
-          <div className="flex bg-[#0B1221] p-1 rounded-xl border border-[#1e293b] gap-1 mb-5 relative z-10 font-mono">
-            <button
-              onClick={() => setSymmetryTab('visualizer')}
-              className={`flex-grow py-2 px-1.5 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1.5 ${symmetryTab === 'visualizer' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'}`}
-            >
-              <Box className="w-3.5 h-3.5" />
-              <span className="truncate">3D Lattice</span>
-            </button>
-            <button
-              onClick={() => setSymmetryTab('properties')}
-              className={`flex-grow py-2 px-1.5 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1.5 ${symmetryTab === 'properties' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'}`}
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-              <span className="truncate">Elements</span>
-            </button>
-            <button
-              onClick={() => setSymmetryTab('sandbox')}
-              className={`flex-grow py-2 px-1.5 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1.5 ${symmetryTab === 'sandbox' ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner' : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'}`}
-            >
-              <Binary className="w-3.5 h-3.5" />
-              <span className="truncate">Equivalents</span>
-            </button>
-          </div>
-
-          {/* Tab Contents */}
-          <div className="relative z-10 min-h-[350px]">
-            {symmetryTab === 'visualizer' && (
-              <div className="flex flex-col gap-4 animate-in fade-in duration-300">
-                <Symmetry3DVisualizer 
-                   system={system} 
-                   showLatticeOutline={showLatticeOutline} 
-                   showMirrorPlanes={showMirrorPlanes} 
-                   showSymmetryAxes={showSymmetryAxes} 
-                   showInversionCenter={showInversionCenter} 
-                   currentSymmetry={currentSymmetry} 
-                />
-
-                {/* Toggle Pill Buttons */}
-                <div className="grid grid-cols-2 gap-2 font-mono">
-                  <button
-                      onClick={() => setShowLatticeOutline(!showLatticeOutline)}
-                      className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showLatticeOutline ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300' : 'bg-[#0B1221] border-[#1e293b] text-slate-500'}`}
-                    >
-                      <span className="flex items-center gap-1">
-                        <Box className="w-3.5 h-3.5" /> Outlines
-                      </span>
-                      <span className={`w-1.5 h-1.5 rounded-full ${showLatticeOutline ? 'bg-indigo-400' : 'bg-slate-700'}`} />
-                    </button>
-
-                    <button
-                      onClick={() => setShowSymmetryAxes(!showSymmetryAxes)}
-                      className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showSymmetryAxes ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300' : 'bg-[#0B1221] border-[#1e293b] text-slate-500'}`}
-                    >
-                      <span className="flex items-center gap-1">
-                        <RotateCw className="w-3.5 h-3.5" /> Axes (Rot)
-                      </span>
-                      <span className={`w-1.5 h-1.5 rounded-full ${showSymmetryAxes ? 'bg-indigo-400' : 'bg-slate-700'}`} />
-                    </button>
-
-                    <button
-                      onClick={() => setShowMirrorPlanes(!showMirrorPlanes)}
-                      className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showMirrorPlanes ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300' : 'bg-[#0B1221] border-[#1e293b] text-slate-500'}`}
-                    >
-                      <span className="flex items-center gap-1">
-                        <Split className="w-3.5 h-3.5" /> Planes (σ)
-                      </span>
-                      <span className={`w-1.5 h-1.5 rounded-full ${showMirrorPlanes ? 'bg-indigo-400' : 'bg-slate-700'}`} />
-                    </button>
-
-                    <button
-                      onClick={() => setShowInversionCenter(!showInversionCenter)}
-                      disabled={!currentSymmetry.inversion}
-                      className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${!currentSymmetry.inversion ? 'opacity-30 cursor-not-allowed bg-slate-900 border-transparent text-slate-600' : showInversionCenter ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300' : 'bg-[#0B1221] border-[#1e293b] text-slate-500'}`}
-                    >
-                      <span className="flex items-center gap-1">
-                        <CircleDot className="w-3.5 h-3.5" /> Inversion (i)
-                      </span>
-                      <span className={`w-1.5 h-1.5 rounded-full ${!currentSymmetry.inversion ? 'bg-slate-800' : showInversionCenter ? 'bg-indigo-400' : 'bg-slate-700'}`} />
-                    </button>
-                  </div>
-                </div>
-            )}
-
-            {symmetryTab === 'properties' && (
-              <div className="space-y-4 animate-in fade-in duration-300">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
-                    <div className="flex items-center gap-1.5 mb-2.5">
-                      <RotateCw className="w-3.5 h-3.5 text-indigo-400" />
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Rotation Ops</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {currentSymmetry.rotation.map((r, idx) => (
-                        <span key={`rot-${r}-${idx}`} className="text-[9px] font-bold font-mono text-indigo-300 bg-[#070D18] px-2 py-0.5 rounded border border-[#1e293b]">
-                          {r}
-                        </span>
-                      ))}
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6 relative z-10 border-b border-[#1e293b] pb-6">
+                <div className="flex items-center gap-6">
+                  <div className="relative group/sym-icon cursor-default">
+                    <div className="absolute inset-0 bg-indigo-600/20 blur-xl rounded-full group-hover/sym-icon:bg-indigo-500/30 transition-all duration-700 pointer-events-none" />
+                    <div className="w-16 h-16 bg-[#070D18] rounded-3xl border border-indigo-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(255,255,255,0.05)] group-hover/sym-icon:border-indigo-400 transition-colors duration-500 overflow-hidden">
+                      <ShieldQuestion className="w-7 h-7 text-indigo-400 drop-shadow-[0_0_12px_rgba(99,102,241,0.6)] group-hover/sym-icon:rotate-12 transition-transform duration-500" />
                     </div>
                   </div>
-
-                  <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Split className="w-3.5 h-3.5 text-indigo-400" />
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Reflections</span>
-                      </div>
-                      <p className="text-[11px] text-slate-300 font-medium font-mono">
-                        {currentSymmetry.reflection}
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-1">
+                      Symmetry Profile
+                    </h3>
+                    <div className="flex items-center gap-3">
+                      <p className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">
+                        Group Identifier
                       </p>
+                      <span className="text-[10px] font-mono font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-lg border border-indigo-500/30 uppercase tracking-[0.2em] shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+                        {currentSymmetry.group}
+                      </span>
                     </div>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between shadow-inner">
-                    <div className="flex items-center gap-1.5">
-                      <Hexagon className="w-3.5 h-3.5 text-indigo-400" />
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Inversion (i)</span>
-                    </div>
-                    <span className={`text-[9px] font-black font-mono uppercase px-2 py-0.5 rounded border ${currentSymmetry.inversion ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-slate-500 bg-slate-900 border-slate-800'}`}>
-                      {currentSymmetry.inversion ? 'Present' : 'Absent'}
+                <div className="px-5 py-3 bg-[#050B14] rounded-2xl border border-[#1e293b] flex items-center gap-4 relative group/ops hover:border-indigo-500/30 transition-colors shadow-inner">
+                  <div className="text-right">
+                    <span className="text-4xl font-black font-mono text-indigo-400 leading-none drop-shadow-md">
+                      {currentSymmetry.operations}
                     </span>
                   </div>
-                  <div className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between shadow-inner">
-                    <div className="flex items-center gap-1.5">
-                      <Component className="w-3.5 h-3.5 text-indigo-400" />
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Identity (E)</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-indigo-400 font-black bg-[#070D18] px-2 py-0.5 rounded border border-[#1e293b]">{currentSymmetry.identity}</span>
+                  <div className="w-px h-8 bg-[#1e293b]" />
+                  <div className="text-left">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                      Structural
+                    </span>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest block">
+                      Operations
+                    </span>
                   </div>
-                </div>
-
-                <div className="bg-[#0B1221] p-3.5 rounded-2xl border border-[#1e293b] shadow-inner">
-                   <div className="flex items-center gap-1.5 mb-2.5">
-                     <Network className="w-3.5 h-3.5 text-indigo-400" />
-                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono font-black">Interpretation</span>
-                   </div>
-                   <div className="bg-[#050B14] p-3.5 rounded-xl font-mono text-[11px] text-indigo-300 border border-[#1e293b] flex gap-2.5 items-start shadow-inner">
-                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse mt-1 shrink-0" />
-                      <p className="leading-relaxed">"{currentSymmetry.description}"</p>
-                   </div>
                 </div>
               </div>
-            )}
 
-            {symmetryTab === 'sandbox' && (() => {
-              const familyList = generateEquivalentPlanes(sandboxH, sandboxK, sandboxL, system);
-              const multiplicity = familyList.length;
+              {/* Tab Navigation */}
+              <div className="flex bg-[#0B1221] p-1 rounded-xl border border-[#1e293b] gap-1 mb-5 relative z-10 font-mono">
+                <button
+                  onClick={() => setSymmetryTab("visualizer")}
+                  className={`flex-grow py-2 px-1.5 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1.5 ${symmetryTab === "visualizer" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                >
+                  <Box className="w-3.5 h-3.5" />
+                  <span className="truncate">3D Lattice</span>
+                </button>
+                <button
+                  onClick={() => setSymmetryTab("properties")}
+                  className={`flex-grow py-2 px-1.5 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1.5 ${symmetryTab === "properties" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                >
+                  <RotateCw className="w-3.5 h-3.5" />
+                  <span className="truncate">Elements</span>
+                </button>
+                <button
+                  onClick={() => setSymmetryTab("sandbox")}
+                  className={`flex-grow py-2 px-1.5 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1.5 ${symmetryTab === "sandbox" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                >
+                  <Binary className="w-3.5 h-3.5" />
+                  <span className="truncate">Equivalents</span>
+                </button>
+              </div>
 
-              return (
-                <div className="space-y-4 animate-in fade-in duration-300">
-                  <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner">
-                    <span className="block text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-3 font-mono">Input Miller Indices (h k l)</span>
-                    
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-mono">h</label>
-                        <input
-                          type="number"
-                          value={sandboxH}
-                          onChange={(e) => setSandboxH(parseInt(e.target.value) || 0)}
-                          className="w-full bg-[#050B14] border border-[#1e293b] rounded-lg text-center py-1.5 font-mono text-indigo-300 text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 outline-none transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-mono font-bold">k</label>
-                        <input
-                          type="number"
-                          value={sandboxK}
-                          onChange={(e) => setSandboxK(parseInt(e.target.value) || 0)}
-                          className="w-full bg-[#050B14] border border-[#1e293b] rounded-lg text-center py-1.5 font-mono text-indigo-300 text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 outline-none transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-mono font-bold">l</label>
-                        <input
-                          type="number"
-                          value={sandboxL}
-                          onChange={(e) => setSandboxL(parseInt(e.target.value) || 0)}
-                          className="w-full bg-[#050B14] border border-[#1e293b] rounded-lg text-center py-1.5 font-mono text-indigo-300 text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                  </div>
+              {/* Tab Contents */}
+              <div className="relative z-10 min-h-[350px]">
+                {symmetryTab === "visualizer" && (
+                  <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+                    <Symmetry3DVisualizer
+                      system={system}
+                      showLatticeOutline={showLatticeOutline}
+                      showMirrorPlanes={showMirrorPlanes}
+                      showSymmetryAxes={showSymmetryAxes}
+                      showInversionCenter={showInversionCenter}
+                      currentSymmetry={currentSymmetry}
+                    />
 
-                  <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] flex justify-between items-center shadow-inner">
-                    <div>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Peak Multiplicity (m)</span>
-                      <p className="text-[9px] text-slate-500 mt-0.5 leading-tight">Diffraction peak intensity factor</p>
-                    </div>
-                    <div className="bg-indigo-500/15 text-indigo-400 px-3 py-1 font-black font-mono text-xs rounded border border-indigo-500/30 shadow-inner">
-                      {multiplicity} Peaks
-                    </div>
-                  </div>
-
-                  <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] shadow-inner flex flex-col h-[130px]">
-                    <span className="block text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 font-mono">Symmetry-Equivalent Family</span>
-                    <div className="flex-1 overflow-y-auto pr-1 flex flex-wrap gap-1.5 content-start custom-scrollbar">
-                      {familyList.map((plane, i) => (
-                        <span key={`equiv-plane-${plane}-${i}`} className="text-[10px] font-mono font-bold text-indigo-300 bg-[#050B14] px-2 py-0.5 rounded border border-[#1e293b] animate-in zoom-in-95 duration-200">
-                          {plane}
+                    {/* Toggle Pill Buttons */}
+                    <div className="grid grid-cols-2 gap-2 font-mono">
+                      <button
+                        onClick={() =>
+                          setShowLatticeOutline(!showLatticeOutline)
+                        }
+                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showLatticeOutline ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                      >
+                        <span className="flex items-center gap-1">
+                          <Box className="w-3.5 h-3.5" /> Outlines
                         </span>
-                      ))}
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${showLatticeOutline ? "bg-indigo-400" : "bg-slate-700"}`}
+                        />
+                      </button>
+
+                      <button
+                        onClick={() => setShowSymmetryAxes(!showSymmetryAxes)}
+                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showSymmetryAxes ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                      >
+                        <span className="flex items-center gap-1">
+                          <RotateCw className="w-3.5 h-3.5" /> Axes (Rot)
+                        </span>
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${showSymmetryAxes ? "bg-indigo-400" : "bg-slate-700"}`}
+                        />
+                      </button>
+
+                      <button
+                        onClick={() => setShowMirrorPlanes(!showMirrorPlanes)}
+                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showMirrorPlanes ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                      >
+                        <span className="flex items-center gap-1">
+                          <Split className="w-3.5 h-3.5" /> Planes (σ)
+                        </span>
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${showMirrorPlanes ? "bg-indigo-400" : "bg-slate-700"}`}
+                        />
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          setShowInversionCenter(!showInversionCenter)
+                        }
+                        disabled={!currentSymmetry.inversion}
+                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${!currentSymmetry.inversion ? "opacity-30 cursor-not-allowed bg-slate-900 border-transparent text-slate-600" : showInversionCenter ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                      >
+                        <span className="flex items-center gap-1">
+                          <CircleDot className="w-3.5 h-3.5" /> Inversion (i)
+                        </span>
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${!currentSymmetry.inversion ? "bg-slate-800" : showInversionCenter ? "bg-indigo-400" : "bg-slate-700"}`}
+                        />
+                      </button>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                )}
+
+                {symmetryTab === "properties" && (
+                  <div className="space-y-4 animate-in fade-in duration-300">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                          <RotateCw className="w-3.5 h-3.5 text-indigo-400" />
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
+                            Rotation Ops
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {currentSymmetry.rotation.map((r, idx) => (
+                            <span
+                              key={`rot-${r}-${idx}`}
+                              className="text-[9px] font-bold font-mono text-indigo-300 bg-[#070D18] px-2 py-0.5 rounded border border-[#1e293b]"
+                            >
+                              {r}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <Split className="w-3.5 h-3.5 text-indigo-400" />
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
+                              Reflections
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 font-medium font-mono">
+                            {currentSymmetry.reflection}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between shadow-inner">
+                        <div className="flex items-center gap-1.5">
+                          <Hexagon className="w-3.5 h-3.5 text-indigo-400" />
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
+                            Inversion (i)
+                          </span>
+                        </div>
+                        <span
+                          className={`text-[9px] font-black font-mono uppercase px-2 py-0.5 rounded border ${currentSymmetry.inversion ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" : "text-slate-500 bg-slate-900 border-slate-800"}`}
+                        >
+                          {currentSymmetry.inversion ? "Present" : "Absent"}
+                        </span>
+                      </div>
+                      <div className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between shadow-inner">
+                        <div className="flex items-center gap-1.5">
+                          <Component className="w-3.5 h-3.5 text-indigo-400" />
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
+                            Identity (E)
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono text-indigo-400 font-black bg-[#070D18] px-2 py-0.5 rounded border border-[#1e293b]">
+                          {currentSymmetry.identity}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#0B1221] p-3.5 rounded-2xl border border-[#1e293b] shadow-inner">
+                      <div className="flex items-center gap-1.5 mb-2.5">
+                        <Network className="w-3.5 h-3.5 text-indigo-400" />
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono font-black">
+                          Interpretation
+                        </span>
+                      </div>
+                      <div className="bg-[#050B14] p-3.5 rounded-xl font-mono text-[11px] text-indigo-300 border border-[#1e293b] flex gap-2.5 items-start shadow-inner">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse mt-1 shrink-0" />
+                        <p className="leading-relaxed">
+                          "{currentSymmetry.description}"
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {symmetryTab === "sandbox" &&
+                  (() => {
+                    const familyList = generateEquivalentPlanes(
+                      sandboxH,
+                      sandboxK,
+                      sandboxL,
+                      system,
+                    );
+                    const multiplicity = familyList.length;
+
+                    return (
+                      <div className="space-y-4 animate-in fade-in duration-300">
+                        <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner">
+                          <span className="block text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-3 font-mono">
+                            Input Miller Indices (h k l)
+                          </span>
+
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-mono">
+                                h
+                              </label>
+                              <input
+                                type="number"
+                                value={sandboxH}
+                                onChange={(e) =>
+                                  setSandboxH(parseInt(e.target.value) || 0)
+                                }
+                                className="w-full bg-[#050B14] border border-[#1e293b] rounded-lg text-center py-1.5 font-mono text-indigo-300 text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 outline-none transition-all"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-mono font-bold">
+                                k
+                              </label>
+                              <input
+                                type="number"
+                                value={sandboxK}
+                                onChange={(e) =>
+                                  setSandboxK(parseInt(e.target.value) || 0)
+                                }
+                                className="w-full bg-[#050B14] border border-[#1e293b] rounded-lg text-center py-1.5 font-mono text-indigo-300 text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 outline-none transition-all"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 font-mono font-bold">
+                                l
+                              </label>
+                              <input
+                                type="number"
+                                value={sandboxL}
+                                onChange={(e) =>
+                                  setSandboxL(parseInt(e.target.value) || 0)
+                                }
+                                className="w-full bg-[#050B14] border border-[#1e293b] rounded-lg text-center py-1.5 font-mono text-indigo-300 text-sm focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 outline-none transition-all"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] flex justify-between items-center shadow-inner">
+                          <div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">
+                              Peak Multiplicity (m)
+                            </span>
+                            <p className="text-[9px] text-slate-500 mt-0.5 leading-tight">
+                              Diffraction peak intensity factor
+                            </p>
+                          </div>
+                          <div className="bg-indigo-500/15 text-indigo-400 px-3 py-1 font-black font-mono text-xs rounded border border-indigo-500/30 shadow-inner">
+                            {multiplicity} Peaks
+                          </div>
+                        </div>
+
+                        <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] shadow-inner flex flex-col h-[130px]">
+                          <span className="block text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 font-mono">
+                            Symmetry-Equivalent Family
+                          </span>
+                          <div className="flex-1 overflow-y-auto pr-1 flex flex-wrap gap-1.5 content-start custom-scrollbar">
+                            {familyList.map((plane, i) => (
+                              <span
+                                key={`equiv-plane-${plane}-${i}`}
+                                className="text-[10px] font-mono font-bold text-indigo-300 bg-[#050B14] px-2 py-0.5 rounded border border-[#1e293b] animate-in zoom-in-95 duration-200"
+                              >
+                                {plane}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-        {/* Results Section */}
+      {/* Results Section */}
       <div className="lg:col-span-8 space-y-6">
         <div className="bg-[#050B14]/80 backdrop-blur-md rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.05)] border border-[#1e293b] overflow-hidden flex flex-col min-h-[600px] relative">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
           <div className="p-6 border-b border-[#1e293b] bg-[#070D18]/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
             <div>
-              <h3 className="text-lg font-bold text-white">Validation Results</h3>
-              <p className="text-xs text-slate-400 font-medium mt-1">Systematic absences for {systemDetails[system as keyof typeof systemDetails].title}</p>
+              <h3 className="text-lg font-bold text-white">
+                Validation Results
+              </h3>
+              <p className="text-xs text-slate-400 font-medium mt-1">
+                Systematic absences for{" "}
+                {systemDetails[system as keyof typeof systemDetails].title}
+              </p>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="flex items-center gap-1.5 bg-[#0B1221] p-1.5 rounded-xl border border-[#1e293b]">
-                {(['All', 'Allowed', 'Forbidden'] as const).map((f) => (
+                {(["All", "Allowed", "Forbidden"] as const).map((f) => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
                     className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      filter === f 
-                        ? 'bg-emerald-600 text-white shadow-md' 
-                        : 'text-slate-400 hover:text-white hover:bg-slate-700'
+                      filter === f
+                        ? "bg-emerald-600 text-white shadow-md"
+                        : "text-slate-400 hover:text-white hover:bg-slate-700"
                     }`}
                   >
                     {f}
                   </button>
                 ))}
               </div>
-              
+
               <button
                 onClick={handleSave}
                 disabled={results.length === 0}
@@ -2183,13 +3039,19 @@ export const SelectionRulesModule: React.FC = () => {
                     <Hexagon className="w-10 h-10 text-slate-600 group-hover/empty:text-emerald-500/50 transition-colors" />
                   </div>
                 </div>
-                <h4 className="text-lg font-black text-white mb-2 tracking-wide">Awaiting Lattice Vectors</h4>
+                <h4 className="text-lg font-black text-white mb-2 tracking-wide">
+                  Awaiting Lattice Vectors
+                </h4>
                 <p className="text-sm font-medium text-slate-500 max-w-sm leading-relaxed">
-                  Enter custom HKL indices in the configuration panel or use the Index Synthesis engine to generate a theoretical reflection dataset.
+                  Enter custom HKL indices in the configuration panel or use the
+                  Index Synthesis engine to generate a theoretical reflection
+                  dataset.
                 </p>
                 <div className="mt-8 flex gap-2 items-center">
                   <span className="w-2 h-2 rounded-full bg-emerald-500/50 animate-pulse" />
-                  <span className="text-[10px] font-mono text-emerald-400/70 uppercase tracking-widest">Engine Ready</span>
+                  <span className="text-[10px] font-mono text-emerald-400/70 uppercase tracking-widest">
+                    Engine Ready
+                  </span>
                 </div>
               </div>
             ) : (
@@ -2197,7 +3059,9 @@ export const SelectionRulesModule: React.FC = () => {
                 <table className="w-full text-sm text-left">
                   <thead className="text-[10px] text-slate-400 uppercase tracking-widest bg-[#0B1221] border-b border-[#1e293b]">
                     <tr>
-                      <th className="px-8 py-4 font-bold">Reflection (h k l)</th>
+                      <th className="px-8 py-4 font-bold">
+                        Reflection (h k l)
+                      </th>
                       <th className="px-8 py-4 font-bold">Status</th>
                       <th className="px-8 py-4 font-bold">Physical Reason</th>
                     </tr>
@@ -2205,29 +3069,37 @@ export const SelectionRulesModule: React.FC = () => {
                   <tbody className="divide-y divide-[#1e293b]">
                     <AnimatePresence mode="popLayout">
                       {filteredResults.map((res, index) => (
-                        <motion.tr 
+                        <motion.tr
                           layout
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          key={`${res.hkl.join('-')}-${index}`} 
+                          key={`${res.hkl.join("-")}-${index}`}
                           className="group hover:bg-[#0B1221] transition-colors"
                         >
                           <td className="px-8 py-5">
                             <div className="flex items-center gap-3">
-                              <div className={`w-2 h-2 rounded-full ${res.status === 'Allowed' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+                              <div
+                                className={`w-2 h-2 rounded-full ${res.status === "Allowed" ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"}`}
+                              />
                               <span className="font-mono font-bold text-white text-base">
-                                ({res.hkl.join(' ')})
+                                ({res.hkl.join(" ")})
                               </span>
                             </div>
                           </td>
                           <td className="px-8 py-5">
-                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${
-                              res.status === 'Allowed' 
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                                : 'bg-red-500/10 text-red-400 border-red-500/20'
-                            }`}>
-                              {res.status === 'Allowed' ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                            <div
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${
+                                res.status === "Allowed"
+                                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  : "bg-red-500/10 text-red-400 border-red-500/20"
+                              }`}
+                            >
+                              {res.status === "Allowed" ? (
+                                <CheckCircle2 className="w-3 h-3" />
+                              ) : (
+                                <XCircle className="w-3 h-3" />
+                              )}
                               {res.status}
                             </div>
                           </td>
@@ -2249,18 +3121,20 @@ export const SelectionRulesModule: React.FC = () => {
             <div className="flex gap-6">
               <span className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-emerald-400">
                 <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                Allowed: {results.filter(r => r.status === 'Allowed').length}
+                Allowed: {results.filter((r) => r.status === "Allowed").length}
               </span>
               <span className="flex items-center gap-2 bg-red-500/10 px-3 py-1.5 rounded-lg border border-red-500/20 text-red-400">
                 <div className="w-2 h-2 rounded-full bg-red-500" />
-                Forbidden: {results.filter(r => r.status === 'Forbidden').length}
+                Forbidden:{" "}
+                {results.filter((r) => r.status === "Forbidden").length}
               </span>
             </div>
-            <span className="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">Total: {results.length}</span>
+            <span className="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-300">
+              Total: {results.length}
+            </span>
           </div>
         </div>
       </div>
     </div>
   );
 };
-

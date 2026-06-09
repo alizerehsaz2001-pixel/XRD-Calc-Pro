@@ -25,8 +25,8 @@ export const SideSeekBar: React.FC<SideSeekBarProps> = ({ targetRef, theme }) =>
 
   const translateY = useTransform(scaleY, [0, 1], ["0%", "100%"]);
 
-  const handleDrag = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging || !scrollTrackRef.current) return;
+  const handleDrag = (e: React.MouseEvent | React.TouchEvent, forceDrag = false) => {
+    if ((!forceDrag && !isDragging) || !scrollTrackRef.current) return;
 
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
     const rect = scrollTrackRef.current.getBoundingClientRect();
@@ -106,7 +106,7 @@ export const SideSeekBar: React.FC<SideSeekBarProps> = ({ targetRef, theme }) =>
         } backdrop-blur-sm border border-white/5 group-hover:w-3`}
         onMouseDown={(e) => {
             setIsDragging(true);
-            handleDrag(e);
+            handleDrag(e, true);
         }}
       >
         {/* Progress Fill */}

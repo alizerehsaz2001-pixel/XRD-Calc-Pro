@@ -88,6 +88,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
   const [selectedMaterial, setSelectedMaterial] = useState<string>(MATERIAL_PRESETS[0].label);
   const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
+  const [showInfiniteExpl, setShowInfiniteExpl] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const matMenuRef = useRef<HTMLDivElement>(null);
@@ -354,148 +355,170 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                   </div>
 
                   {/* Instrumental Broadening Mode Picker */}
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em] flex justify-between items-center">
-                      <span>Instrument Calibration</span>
-                    </label>
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <button
-                        type="button"
-                        onClick={() => setInstrumentalMode('constant')}
-                        className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
-                          instrumentalMode === 'constant'
-                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                            : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
-                        }`}
-                      >
-                        Constant β_inst
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setInstrumentalMode('caglioti')}
-                        className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
-                          instrumentalMode === 'caglioti'
-                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-400'
-                            : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
-                        }`}
-                      >
-                        Caglioti Fit
-                      </button>
-                    </div>
+                  <div className="pt-3 mt-3 border-t border-white/5 space-y-4">
+                    <h4 className="flex justify-between items-center text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">
+                      <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Instrumental Broadening</span>
+                    </h4>
 
-                    {instrumentalMode === 'constant' ? (
-                      <div>
-                        <label className="block text-[9px] font-black text-slate-600 mb-1.5 uppercase tracking-[0.15em] flex justify-between items-center">
-                          <span>Resolution β_IB (DEG)</span>
-                          <span className="text-[8px] text-slate-700 font-mono">Constant</span>
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={instBetaIB}
-                          onChange={(e) => setInstBetaIB(parseFloat(e.target.value) || 0)}
-                          className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
-                        />
+                    <div>
+                      <label className="block text-[9px] font-black text-slate-500 mb-1.5 uppercase tracking-widest flex justify-between items-center">
+                        <span>Calibration Mapping Curve</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <button
+                          type="button"
+                          onClick={() => setInstrumentalMode('constant')}
+                          className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
+                            instrumentalMode === 'constant'
+                              ? 'bg-amber-500/10 border-amber-500/50 text-amber-400'
+                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
+                          }`}
+                        >
+                          Constant β_inst
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setInstrumentalMode('caglioti')}
+                          className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
+                            instrumentalMode === 'caglioti'
+                              ? 'bg-amber-500/10 border-amber-500/50 text-amber-400'
+                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
+                          }`}
+                        >
+                          Caglioti Polynomial
+                        </button>
                       </div>
-                    ) : (
-                      <div className="space-y-2.5 bg-[#0A101C] p-3 rounded-xl border border-white/5">
-                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 block mb-1">
-                          Caglioti Curve: β² = U·tan²θ + V·tanθ + W
-                        </span>
-                        <div className="grid grid-cols-3 gap-2">
-                          <div>
-                            <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">U-param</span>
-                            <input
-                              type="number"
-                              step="0.001"
-                              value={cagliotiU}
-                              onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
-                              className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 focus:border-amber-500/50 rounded uppercase text-center"
-                            />
-                          </div>
-                          <div>
-                            <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">V-param</span>
-                            <input
-                              type="number"
-                              step="0.001"
-                              value={cagliotiV}
-                              onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
-                              className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 focus:border-amber-500/50 rounded uppercase text-center"
-                            />
-                          </div>
-                          <div>
-                            <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">W-param</span>
-                            <input
-                              type="number"
-                              step="0.001"
-                              value={cagliotiW}
-                              onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
-                              className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 focus:border-amber-500/50 rounded uppercase text-center"
-                            />
+
+                      {instrumentalMode === 'constant' ? (
+                        <div>
+                          <label className="block text-[9px] font-black text-slate-600 mb-1.5 uppercase tracking-[0.15em] flex justify-between items-center">
+                            <span>Resolution β_IB (DEG)</span>
+                            <span className="text-[8px] text-amber-600/60 font-mono">Constant</span>
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={instBetaIB}
+                            onChange={(e) => setInstBetaIB(parseFloat(e.target.value) || 0)}
+                            className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
+                            placeholder="e.g. 0.05"
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5 bg-[#0A101C] p-3 rounded-xl border border-amber-500/10 shadow-inner">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-amber-500/80 block mb-1">
+                            Polynomial: β_inst² = U·tan²θ + V·tanθ + W
+                          </span>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div>
+                              <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">U-param</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                value={cagliotiU}
+                                onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 focus:border-amber-500/50 rounded uppercase text-center focus:ring-1 focus:ring-amber-500/20 outline-none"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">V-param</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                value={cagliotiV}
+                                onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 focus:border-amber-500/50 rounded uppercase text-center focus:ring-1 focus:ring-amber-500/20 outline-none"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">W-param</span>
+                              <input
+                                type="number"
+                                step="0.001"
+                                value={cagliotiW}
+                                onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1.5 bg-[#070D18] text-amber-300 font-mono text-xs border border-white/5 focus:border-amber-500/50 rounded uppercase text-center focus:ring-1 focus:ring-amber-500/20 outline-none"
+                              />
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* De-convolution subtraction method assumption */}
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">
-                      Deconstruction Model (Separation)
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDecouplingMethod('linear')}
-                        className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
-                          decouplingMethod === 'linear'
-                            ? 'bg-pink-500/20 border-pink-500/50 text-pink-400'
-                            : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
-                        }`}
-                        title="Linear subtraction appropriate for Lorentzian/Cauchy peak profiles"
-                      >
-                        Linear (Lorentz)
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDecouplingMethod('squared')}
-                        className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
-                          decouplingMethod === 'squared'
-                            ? 'bg-pink-500/20 border-pink-500/50 text-pink-400'
-                            : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
-                        }`}
-                        title="Quadratic separation appropriate for pure Gaussian peak profiles"
-                      >
-                        Squared (Gauss)
-                      </button>
+                      )}
                     </div>
                   </div>
 
-                  {/* Elastic Properties Settings */}
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-[0.2em] flex justify-between items-center">
-                      <span>Young's Modulus (E)</span>
-                      <span className="text-[8px] text-slate-600 font-mono">GPa</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="1"
-                      value={youngsModulusGPa ?? 0}
-                      onChange={(e) => setYoungsModulusGPa(parseFloat(e.target.value) || 0)}
-                      className="w-full px-4 py-2.5 bg-[#0A101C] text-cyan-300 border border-white/10 focus:border-cyan-500/50 rounded-lg outline-none font-mono text-sm transition-all"
-                      placeholder="e.g. 130 for Silicon"
-                    />
-                  </div>
-                </div>
+                  {/* Size-Strain Separation Model section */}
+                  <div className="pt-3 mt-3 border-t border-white/5 space-y-4">
+                    <h4 className="flex justify-between items-center text-[10px] font-black text-pink-400 uppercase tracking-[0.2em]">
+                      <span className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Size-Strain Separation</span>
+                    </h4>
+                    
+                    <div>
+                      <label className="block text-[9px] font-black text-slate-500 mb-1.5 uppercase tracking-widest flex items-center gap-1.5">
+                        Profile Broadening Deconvolution
+                        <span title="Governs how the instrumental error is subtracted mathematically from observed breadth">
+                          <Info className="w-3 h-3 text-slate-600 cursor-help" />
+                        </span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDecouplingMethod('linear')}
+                          className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
+                            decouplingMethod === 'linear'
+                              ? 'bg-pink-500/10 border-pink-500/50 text-pink-400'
+                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
+                          }`}
+                          title="Linear subtraction appropriate for Lorentzian/Cauchy peak profiles (β_sample = β_obs - β_inst)"
+                        >
+                          Linear (Lorentz)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDecouplingMethod('squared')}
+                          className={`py-2 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border ${
+                            decouplingMethod === 'squared'
+                              ? 'bg-pink-500/10 border-pink-500/50 text-pink-400'
+                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
+                          }`}
+                          title="Quadratic separation appropriate for pure Gaussian peak profiles (β_sample² = β_obs² - β_inst²)"
+                        >
+                          Squared (Gauss)
+                        </button>
+                      </div>
+                      <div className="mt-2 flex flex-col gap-1 text-[8.5px] font-bold text-slate-400 bg-[#0A101C]/80 p-2.5 rounded-lg border border-pink-500/10 font-mono">
+                        <div className="flex items-center gap-1.5 text-pink-400 uppercase tracking-wider">
+                          <span className="text-pink-500">&gt;</span> Method: {decouplingMethod === 'linear' ? 'Linear Subtraction' : 'Quadratic Subtraction'}
+                        </div>
+                        <div className="text-slate-500 leading-normal uppercase">
+                          {decouplingMethod === 'linear'
+                            ? 'Mathematical Best-Fit for Lorentzian/Cauchy profiles.'
+                            : 'Mathematical Best-Fit for Gaussian / Dislocation profiles.'}
+                        </div>
+                      </div>
+                    </div>
 
-                <div className="mt-3 flex flex-col gap-1 text-[9px] font-bold text-slate-400 bg-black/40 p-2.5 rounded-lg border border-white/5 font-mono">
-                  <div className="flex items-center gap-1.5 text-pink-400 uppercase tracking-wider">
-                    <span className="text-pink-500">&gt;</span> Mode: {decouplingMethod === 'linear' ? 'Linear subtraction' : 'Squared subtraction'}
-                  </div>
-                  <div className="text-[8px] text-slate-500 leading-normal uppercase">
-                    {decouplingMethod === 'linear'
-                      ? 'Best for Lorentzian/Cauchy peak profiles.'
-                      : 'Best for Gaussian/highly instrumental peak shapes.'}
+                    <div>
+                      <label className="block text-[9px] font-black text-slate-500 mb-1.5 uppercase tracking-[0.2em] flex justify-between items-center">
+                        <span>Uniform Stress Deformation (USDM)</span>
+                      </label>
+                      <div className="bg-[#0A101C] rounded-lg border border-white/5 p-3 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">Young's Modulus (E)</span>
+                          <span className="text-[8px] text-pink-600/50 font-mono uppercase font-black tracking-widest">GPa</span>
+                        </div>
+                        <input
+                          type="number"
+                          step="1"
+                          value={youngsModulusGPa ?? 0}
+                          onChange={(e) => setYoungsModulusGPa(parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 bg-[#070D18] text-pink-300 border border-white/10 focus:border-pink-500/50 rounded-lg outline-none font-mono text-xs transition-all focus:ring-1 focus:ring-pink-500/20"
+                          placeholder="e.g. 130 for Silicon"
+                        />
+                        <p className="text-[8px] font-black text-slate-600 uppercase tracking-wider pt-1 border-t border-white/5">
+                          * Determines Uniform Stress and Strain Energy Density limits.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -659,7 +682,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
               <div className="bg-[#070D18] p-4 rounded-xl border border-white/5 flex flex-col gap-3 shadow-inner">
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Calculated Size</span>
-                  <span className="text-sm font-black font-mono text-emerald-400">{result.sizeInterceptNm > 0 ? result.sizeInterceptNm.toFixed(2) : '∞'} <span className="text-[10px] opacity-50 font-sans tracking-widest uppercase">NM</span></span>
+                  <span className="text-sm font-black font-mono text-emerald-400">{result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? result.sizeInterceptNm.toFixed(2) : '> 250 nm (∞)'} <span className="text-[10px] opacity-50 font-sans tracking-widest uppercase">NM</span></span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Microstrain</span>
@@ -714,10 +737,29 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
              <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full transition-all group-hover:scale-110" />
              <div>
                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 relative z-10">Crystallite Size</p>
-               <p className="text-2xl font-black text-white relative z-10 drop-shadow-[0_0_15px_rgba(16,185,129,0.4)] mt-2">
-                 {result ? (result.sizeInterceptNm > 0 ? result.sizeInterceptNm.toFixed(2) : '∞') : '-'} <span className="text-base text-emerald-500/80 font-mono tracking-widest uppercase">NM</span>
-               </p>
-               {result && <p className="text-[9px] text-slate-500 mt-1 font-medium">Global W-H intercept average</p>}
+               <div className="relative z-10 mt-2">
+                 {result ? (
+                   result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? (
+                     <div>
+                       <p className="text-2xl font-black text-white hover:text-emerald-50 transition-colors drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                         {result.sizeInterceptNm.toFixed(2)} <span className="text-sm text-emerald-500/80 font-mono tracking-widest uppercase">NM</span>
+                       </p>
+                       <p className="text-[9px] text-slate-500 mt-1 font-medium">Global W-H intercept average</p>
+                     </div>
+                   ) : (
+                     <div>
+                       <p className="text-lg font-black text-emerald-300 tracking-tight leading-none">
+                         &gt; 250 nm <span className="text-[9px] text-emerald-500/80 font-mono font-bold">({result.regression.intercept <= 0 ? 'Negative Intercept / ∞' : '∞'})</span>
+                       </p>
+                       <p className="text-[8px] font-black text-amber-500 uppercase tracking-widest mt-1">
+                         Beyond typical XRD limit
+                       </p>
+                     </div>
+                   )
+                 ) : (
+                   <p className="text-2xl font-black text-white">- <span className="text-base text-slate-600 font-mono uppercase">NM</span></p>
+                 )}
+               </div>
              </div>
              
              {result && result.pointsExtended && result.pointsExtended.length > 0 && (
@@ -730,14 +772,31 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                    {result.pointsExtended.map((p, i) => (
                      <div key={i} className="flex justify-between items-center text-[10px] font-mono bg-emerald-500/5 px-2 py-1 rounded border border-emerald-500/10">
                        <span className="text-slate-400">{p.twoTheta.toFixed(2)}°</span>
-                       <span className="text-emerald-300 font-bold">{p.singlePeakSizeNm > 0 ? p.singlePeakSizeNm.toFixed(1) : '∞'} <span className="text-[8px] font-sans text-emerald-500/50">nm</span></span>
+                       {p.singlePeakSizeNm > 0 && p.singlePeakSizeNm < 1000 ? (
+                         <span className="text-emerald-300 font-bold">{p.singlePeakSizeNm.toFixed(1)} <span className="text-[8px] font-sans text-emerald-500/50">nm</span></span>
+                       ) : (
+                         <span className="text-amber-400 font-bold text-[9px] flex items-center gap-0.5">
+                           &gt; 200 nm <span className="text-[8px] text-amber-600 font-sans tracking-none">(∞)</span>
+                         </span>
+                       )}
                      </div>
                    ))}
                  </div>
                </div>
              )}
 
-             <p className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded inline-block mt-3 border border-emerald-500/20 uppercase tracking-widest relative z-10 w-fit">Y-Intercept Derived</p>
+             <div className="flex items-center justify-between gap-1.5 flex-wrap mt-3 relative z-10 w-full animate-pulse-slow">
+               <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 uppercase tracking-widest">Y-Intercept Derived</span>
+               {result && (result.sizeInterceptNm <= 0 || result.pointsExtended?.some(p => p.singlePeakSizeNm <= 0 || p.singlePeakSizeNm >= 1000)) && (
+                 <button
+                   onClick={() => setShowInfiniteExpl(!showInfiniteExpl)}
+                   className="text-[8px] font-black text-amber-300 bg-amber-500/10 hover:bg-amber-500/25 px-2 py-1 rounded border border-amber-500/20 uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1"
+                 >
+                   <span>{showInfiniteExpl ? 'Hide Help' : 'Why Infinite?'}</span>
+                   <Info className="w-2.5 h-2.5" />
+                 </button>
+               )}
+             </div>
            </div>
 
            {/* Card 3: Isotropic Elastic Stress */}
@@ -793,6 +852,87 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
              </div>
            </div>
         </div>
+
+        {/* Collapsible Scientific Explanation sheet for Infinities */}
+        <AnimatePresence>
+          {showInfiniteExpl && result && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.4, ease: 'easeInOut' }}
+              className="overflow-hidden mb-6"
+            >
+              <div className="bg-[#0D1527] border border-amber-500/25 rounded-[2rem] p-6 text-slate-300 space-y-4 shadow-[0_0_40px_rgba(245,158,11,0.05)] relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/[0.02] rounded-bl-full pointer-events-none" />
+                
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-amber-500/15 rounded-xl border border-amber-500/30 text-amber-400 mt-0.5 animate-pulse-slow">
+                    <Info className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-black text-white uppercase tracking-[0.2em] mb-1">
+                      Scientific Advisory: Resolving "Infinite" Crystallite Sizes
+                    </h4>
+                    <p className="text-[10px] text-amber-400 uppercase font-black tracking-widest font-mono">
+                      Physics &amp; Numerical Regression Analysis Guidelines
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-white/5 text-[11px] leading-relaxed font-sans">
+                  <div className="space-y-2">
+                    <p className="font-bold text-slate-200">
+                      1. Why does the calculation return <span className="text-emerald-400 font-mono italic">Infinite (&infin;)</span>?
+                    </p>
+                    <p className="text-slate-400 text-[10.5px]">
+                      The Williamson-Hall equation calculates crystallite size from the y-intercept of the regression line, where:
+                      <br />
+                      <span className="block my-2 py-1.5 bg-black/40 text-center rounded font-mono text-xs text-white border border-white/5">
+                        D = ( K &middot; &lambda; ) / ( &beta;_intercept &middot; cos &theta; &middot; 10 )
+                      </span>
+                      If the trendline's y-intercept (&beta;_intercept) is <span className="font-semibold text-amber-400">equal to or less than zero</span>, solving for crystallite size (D) yields infinitely large or physically impossible negative values. In materials science, this confirms that size-broadening is entirely negligible compared to strain.
+                    </p>
+                    
+                    <p className="font-bold text-slate-200 pt-2">
+                      2. Physical Resolution Limits (&gt; 200 nm):
+                    </p>
+                    <p className="text-slate-400 text-[10.5px]">
+                      In standard diffractometers, peak broadening has an instrumental threshold. When crystallite sizes exceed **100&ndash;300 nm**, their size-broadening contribution becomes so microscopically small that the observed peak width (&beta;_obs) matches the instrumental width (&beta;_inst). Net sample broadening becomes &beta;_sample &approx; 0. Physically, the material has transitioned from nano-crystalline to macro-crystalline.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/10 font-mono">Likely Diagnoses</span>
+                      <ul className="list-disc pl-4 mt-2 space-y-1.5 text-slate-400 text-[10.5px]">
+                        <li>
+                          <strong className="text-slate-200">Microstrain Dominance:</strong> High lattice deformation creates a steep slope on the W-H plot, pulling the y-axis intersection below zero.
+                        </li>
+                        <li>
+                          <strong className="text-slate-200">Overstated Resolution (&beta;_inst):</strong> If configured instrumental width was set too close to or exceeds observed peaks, the sample broadening calculates to &le; 0.
+                        </li>
+                        <li>
+                          <strong className="text-slate-200">Anisotropic Broadening:</strong> Different peak families (hkl directions) widen unevenly, skewing the global linear trendline fit.
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-black/30 p-3 rounded-xl border border-white/5 space-y-1.5">
+                      <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest block font-mono">Suggested Fixes:</span>
+                      <ul className="list-decimal pl-4 space-y-0.5 text-slate-400 text-[10px]">
+                        <li>Slightly reduce <span className="text-amber-400 font-mono">&beta;_inst</span> in the "Instrumental Broadening" panel.</li>
+                        <li>Review and trim noisy high-angle peaks causing trendline skew.</li>
+                        <li>Try toggling the <span className="text-pink-400 font-semibold font-mono">Profile Deconvolution</span> from Linear to Squared.</li>
+                        <li>Consider transitioning to the <strong className="text-emerald-400">Warren-Averbach</strong> Fourier module for strain/size allocation.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Chart */}
         <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/10 h-[700px] flex flex-col relative overflow-hidden group hover:border-pink-500/30 transition-all">
@@ -932,10 +1072,14 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                         {p.betaSampleDeg > 0 ? `${p.betaSampleDeg.toFixed(4)}°` : '0.0000° (Below Limit)'}
                       </td>
                       <td className="px-4 py-3.5 font-bold text-pink-400">
-                        {p.betaSampleDeg > 0 ? (
+                        {p.betaSampleDeg > 0 && p.singlePeakSizeNm > 0 && p.singlePeakSizeNm < 1000 ? (
                           <span>
                             {p.singlePeakSizeNm.toFixed(2)}{' '}
                             <span className="text-[10px] text-slate-500 font-sans tracking-wide">nm</span>
+                          </span>
+                        ) : p.betaSampleDeg > 0 ? (
+                          <span className="text-amber-400 text-[10px] uppercase font-black tracking-wider">
+                            &gt; 200 nm <span className="opacity-60 text-[8px] font-mono">(∞)</span>
                           </span>
                         ) : (
                           <span className="text-slate-600 text-[10px]">Too small / Infinite</span>

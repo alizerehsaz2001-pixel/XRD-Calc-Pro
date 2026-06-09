@@ -18,7 +18,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showFilters, setShowFilters] = useState<boolean>(true);
 
-  const filteredResults = results.filter(row => {
+  const filteredResults = React.useMemo(() => results.filter(row => {
     // 1. Intensity check
     const intensity = row.intensity !== undefined ? row.intensity : 100;
     if (intensity < minIntensity) return false;
@@ -44,7 +44,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
     }
 
     return true;
-  });
+  }), [results, minIntensity, minDSpacing, maxDSpacing, searchQuery]);
   
   const exportToCSV = () => {
     const dataToExport = filteredResults;

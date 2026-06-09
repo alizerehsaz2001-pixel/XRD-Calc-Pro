@@ -79,7 +79,13 @@ const NATIONALITIES: Nationality[] = [
   { name: 'Ukrainian', code: 'UA', langCode: 'uk', langName: 'Українська (UK)', flag: '🇺🇦' },
   { name: 'Vatican / Latin Scholar', code: 'VA', langCode: 'la', langName: 'Latina (LA)', flag: '🏛️' },
   { name: 'Vietnamese', code: 'VN', langCode: 'vi', langName: 'Tiếng Việt (VI)', flag: '🇻🇳' },
-  { name: 'Welsh', code: 'GB_WLS', langCode: 'cy', langName: 'Cymraeg (CY)', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿' }
+  { name: 'Welsh', code: 'GB_WLS', langCode: 'cy', langName: 'Cymraeg (CY)', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿' },
+  { name: 'Frisian (Netherlands)', code: 'NL_FR', langCode: 'fy', langName: 'Frysk (FY)', flag: '🇳🇱' },
+  { name: 'Breton (France)', code: 'FR_BR', langCode: 'br', langName: 'Brezhoneg (BR)', flag: '🇫🇷' },
+  { name: 'Tatar (Tatarstan)', code: 'RU_TT', langCode: 'tt', langName: 'Татарча (TT)', flag: '🇷🇺' },
+  { name: 'Uyghur (Xinjiang)', code: 'CN_UG', langCode: 'ug', langName: 'ئۇيغۇرچە (UG)', flag: '🇨🇳' },
+  { name: 'Faroese (Faroe Islands)', code: 'FO', langCode: 'fo', langName: 'Føroyskt (FO)', flag: '🇫🇴' },
+  { name: 'Greenlandic (Greenland)', code: 'GL_KL', langCode: 'kl', langName: 'Kalaallisut (KL)', flag: '🇬🇱' }
 ];
 
 export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }) => {

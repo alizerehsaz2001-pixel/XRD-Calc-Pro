@@ -105,6 +105,59 @@ async function startServer() {
     }
   });
 
+  app.post("/api/gemini/synthesis", async (req, res) => {
+    const { phaseName, formula, morphology, size, temp, time, doping, pH, atmosphere, focus, customKey } = req.body;
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+      
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-synthesis',
+          }
+        }
+      });
+
+      const prompt = `Formulate a publication-grade synthetic recipe and morphological growth analysis for preparing Nanocrystalline **${phaseName}** (Formula: **${formula}**) having **${morphology}** morphology.
+
+Synthesis Parameters & Reaction Boundary Conditions:
+- Target Crystallite Size: ${size} nm
+- Calcination/Solution Temperature: ${temp} °C
+- Reaction Duration: ${time} hours
+- Solution pH: ${pH}
+- Reaction Atmosphere: ${atmosphere}
+- Lattice Dopant Level: ${doping} mol%
+- Neural Tuning Core Focus: ${focus}
+
+Provide the response in structured markdown with the following specific sections:
+1.  **Stoichiometric Precursor Formulation**: Specify actual chemical precursors (e.g. nitrates, acetates, halides etc.) and calculate precise millimolar ratios for preparing 1.0g of the material with ${doping} mol% doping.
+2.  **Solvent, Surfactant & Capping Agent Selection**: Recommend suitable solvents (e.g. DMF, ethanol, ethylene glycol, benzyl ether) and capping ligands (e.g. oleic acid, CTAB, TOPO, PEG) to restrict the crystal growth to the target morphology (${morphology}) and crystallite size (${size} nm).
+3.  **Hydrothermal/Calcination Temperature Ramp & Profile**: Describe a temperature profile from room temp to ${temp} °C with ramping speed (e.g., 5°C/min), holding time (${time} hours), and cooling rate under ${atmosphere} environment.
+4.  **Lattice Strain & Thermodynamics Analysis**: Analyze how the ${doping} mol% dopant level affects the lattice strain (Williamson-Hall profile) and structural coherence in the ${morphology} structure.
+5.  **Quality Control & Secondary Phase Impurity Guidelines**: Provide practical laboratory hints for verifying synthesis completion using X-ray Diffraction (XRD peak movements) and avoiding common impurities.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: "You are XRD-Calc Pro's Senior AI Materials Synthesis Expert. " +
+            "Your task is to provide an elite, publication-grade, and academically thorough synthesis recipe/formulation advise for preparing the requested nanomaterial phase with specific morphology under current autoclave/reaction conditions. " +
+            "Structure your response with clean headings, readable bullet points, equations where needed, and a professional, academic tone."
+        }
+      });
+      
+      res.json({ success: true, text: response.text });
+    } catch (error: any) {
+      console.error("Gemini Synthesis Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.post("/api/gemini/coder", async (req, res) => {
     const { prompt, context, customKey } = req.body;
     try {

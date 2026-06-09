@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
@@ -37,7 +37,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext } from './components/SettingsContext';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward } from 'lucide-react';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
 
@@ -56,7 +56,7 @@ const App: React.FC = () => {
   const [isExplained, setIsExplained] = useState<boolean>(false);
 
   // Load persistent configurations from localStorage with robust safety fallbacks
-  const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave'>(() => {
+  const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic'>(() => {
     return (localStorage.getItem('xrd_theme') as any) || 'light';
   });
   const [precision, setPrecision] = useState<number>(() => {
@@ -133,6 +133,18 @@ const App: React.FC = () => {
   const [isSimulationRunning, setIsSimulationRunning] = useState(false);
   const [simulationStep, setSimulationStep] = useState(0);
 
+  const [showShortcutsModal, setShowShortcutsModal] = useState<boolean>(false);
+
+  const handleClearAll = () => {
+    setSampleId('');
+    setRawPeaks('');
+    setRawHKL('');
+    setResults([]);
+    setMaterialName(null);
+    setWavelength(defaultWavelength);
+    playSynthTone('switch');
+  };
+
   // Keep state variables synchronized cleanly in localStorage
   useEffect(() => {
     localStorage.setItem('xrd_theme', theme);
@@ -195,7 +207,7 @@ const App: React.FC = () => {
   // Apply theme classes to document element
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove('dark', 'cyberpunk', 'terminal', 'synthwave');
+    root.classList.remove('dark', 'cyberpunk', 'terminal', 'synthwave', 'dracula', 'oceanic');
     if (theme !== 'light') {
       root.classList.add(theme);
     }
@@ -368,23 +380,7 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [autosaveInterval]);
 
-  useEffect(() => {
-    handleCalculate(false);
-  }, []);
-
-  if (!isRegistered) {
-    return <RegistrationPage onRegister={() => setIsRegistered(true)} />;
-  }
-
-  if (!hasEntered) {
-    return (
-      <div className={theme === 'light' ? '' : theme}>
-        <LandingPage onEnter={() => setHasEntered(true)} theme={theme} setTheme={setTheme} />
-      </div>
-    );
-  }
-
-  const modules: { id: Module; label: string; icon?: string; group?: string }[] = [
+  const modules = useMemo<{ id: Module; label: string; icon?: string; group?: string }[]>(() => [
     { id: 'bragg', label: t('Bragg Basics'), group: t('Fundamentals') },
     { id: 'fwhm', label: t('FWHM Analysis'), group: t('Fundamentals') },
     { id: 'selection', label: t('Selection Rules'), group: t('Fundamentals') },
@@ -405,7 +401,113 @@ const App: React.FC = () => {
     { id: 'database', label: t('Material Registry'), group: t('Intelligence') },
     { id: 'profile', label: t('Laboratory Director'), group: t('Intelligence') },
     { id: 'settings', label: t('Settings'), group: t('Intelligence') },
-  ];
+  ], [t]);
+
+  const stateRef = useRef({
+    activeModule,
+    modules,
+    handleCalculate,
+    handleClearAll,
+    setShowShortcutsModal
+  });
+
+  useEffect(() => {
+    stateRef.current = {
+      activeModule,
+      modules,
+      handleCalculate,
+      handleClearAll,
+      setShowShortcutsModal
+    };
+  });
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const { activeModule, modules, handleCalculate, handleClearAll, setShowShortcutsModal } = stateRef.current;
+      // 1. Calculate shortcut: Cmd + Enter or Ctrl + Enter
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleCalculate(true);
+        playSynthTone('success');
+        return;
+      }
+
+      // 2. Clear All shortcut: Cmd + Delete or Cmd + Backspace or Ctrl + Delete or Ctrl + Backspace
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'Delete' || e.key === 'Backspace')) {
+        e.preventDefault();
+        handleClearAll();
+        return;
+      }
+
+      // 3. Toggle Shortcuts HUD: Cmd + / or Alt + /
+      if (e.key === '/' && (e.metaKey || e.ctrlKey || e.altKey)) {
+        e.preventDefault();
+        setShowShortcutsModal(prev => !prev);
+        playSynthTone('switch');
+        return;
+      }
+
+      // 4. Switch between primary modules: Alt + [1-9]
+      if (e.altKey && e.key >= '1' && e.key <= '9') {
+        const index = parseInt(e.key, 10) - 1;
+        const mappedModules: Module[] = [
+          'bragg',
+          'fwhm',
+          'selection',
+          'scherrer',
+          'wh',
+          'rietveld',
+          'dl',
+          'database',
+          'settings'
+        ];
+        if (mappedModules[index]) {
+          e.preventDefault();
+          setActiveModule(mappedModules[index]);
+          playSynthTone('switch');
+        }
+        return;
+      }
+
+      // 5. Cycling modules with Alt + ArrowRight/Left
+      if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        e.preventDefault();
+        const currentIndex = modules.findIndex(m => m.id === activeModule);
+        if (currentIndex !== -1) {
+          let nextIndex = currentIndex;
+          if (e.key === 'ArrowRight') {
+            nextIndex = (currentIndex + 1) % modules.length;
+          } else {
+            nextIndex = (currentIndex - 1 + modules.length) % modules.length;
+          }
+          setActiveModule(modules[nextIndex].id);
+          playSynthTone('switch');
+        }
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    handleCalculate(false);
+  }, []);
+
+  if (!isRegistered) {
+    return <RegistrationPage onRegister={() => setIsRegistered(true)} />;
+  }
+
+  if (!hasEntered) {
+    return (
+      <div className={theme === 'light' ? '' : theme}>
+        <LandingPage onEnter={() => setHasEntered(true)} theme={theme} setTheme={setTheme} />
+      </div>
+    );
+  }
 
   const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';
 
@@ -497,61 +599,102 @@ const App: React.FC = () => {
         <SideSeekBar targetRef={mainContentRef} theme={theme} />
 
         <div className={`flex-1 flex flex-col h-full overflow-hidden ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 transition-colors duration-300`}>
-          <div className={`md:hidden ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'} border-b p-4 flex justify-between items-center z-20 shrink-0`}>
-            <div className="flex items-center gap-2">
-              <div className={`w-8 h-8 ${theme === 'cyberpunk' ? 'bg-cyber-pink' : 'bg-indigo-600'} rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm`}>
-                λ
+          <div className={`md:hidden ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'} border-b px-3 py-2 flex flex-col gap-2 z-20 shrink-0 shadow-sm`}>
+            <div className="flex justify-between items-center w-full">
+              <div className="flex items-center gap-2 shrink-0">
+                <div className={`w-7 h-7 ${theme === 'cyberpunk' ? 'bg-cyber-pink' : 'bg-indigo-600'} rounded-lg flex items-center justify-center text-white font-bold text-base shadow-sm`}>
+                  λ
+                </div>
+                <span className={`font-black text-lg italic tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} leading-none`}>
+                   XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
+                </span>
               </div>
-              <span className={`font-black text-xl italic tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} leading-none`}>
-                 XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
-              </span>
+              <div className="flex items-center gap-2">
+                 <LanguageSelector compact={true} />
+                 <select
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value as any)}
+                  className={`block w-[75px] rounded-md border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1 px-1 text-[10px] outline-none font-bold uppercase tracking-wider`}
+                >
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="cyberpunk">Cyber</option>
+                  <option value="terminal">Term</option>
+                  <option value="synthwave">Synth</option>
+                  <option value="dracula">Drac</option>
+                  <option value="oceanic">Ocean</option>
+                </select>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <LanguageSelector compact={true} />
-              <select
-                value={theme}
-                onChange={(e) => setTheme(e.target.value as any)}
-                className={`block w-28 rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-2 pr-2 text-[10px] outline-none`}
-              >
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-                <option value="cyberpunk">Cyber</option>
-                <option value="terminal">Terminal</option>
-                <option value="synthwave">Synth</option>
-              </select>
-              <select
-                value={activeModule}
-                onChange={(e) => {
-                  setActiveModule(e.target.value as Module);
-                  playSynthTone('switch');
-                }}
-                className={`block w-32 rounded-lg border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-2 pr-2 text-xs outline-none`}
-              >
-                {modules.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-              </select>
+            <div className="w-full">
+                <select
+                  value={activeModule}
+                  onChange={(e) => {
+                    setActiveModule(e.target.value as Module);
+                    playSynthTone('switch');
+                  }}
+                  className={`block w-full rounded-md border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 px-3 text-xs outline-none font-bold shadow-sm appearance-none bg-no-repeat`}
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                    backgroundPosition: `right 0.5rem center`,
+                    backgroundSize: `1em 1em`
+                  }}
+                >
+                  {Array.from(new Set(modules.map(m => m.group || ''))).map(group => (
+                    <optgroup key={group} label={group}>
+                      {modules.filter(m => (m.group || '') === group).map(m => (
+                        <option key={m.id} value={m.id}>{m.label}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
             </div>
           </div>
 
           {/* Desktop Top Header Bar containing context-aware tools, help and theme guides */}
-          <header className={`hidden md:flex flex-wrap items-center justify-between px-6 lg:px-10 py-3 lg:py-4 border-b ${
+          <header className={`hidden md:flex items-center px-6 lg:px-10 py-3 lg:py-4 border-b ${
             theme === 'cyberpunk'
               ? 'bg-black border-cyber-accent/30 text-cyber-accent'
               : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'
-          } z-20 gap-4 shrink-0 font-sans transition-colors`}>
-            <div className="flex items-center gap-4 shrink-0">
+          } z-20 font-sans transition-colors shrink-0`}>
+            
+            {/* Left: Title & Badge */}
+            <div className="flex-1 flex items-center gap-4 justify-start overflow-hidden">
               <span className={`text-base font-black uppercase tracking-[0.15em] shrink-0 ${
                 theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'
               }`}>
                 {modules.find(m => m.id === activeModule)?.label || activeModule}
               </span>
-              <span className={`text-[10px] uppercase tracking-wider font-mono px-2.5 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 ${
+              <span className={`hidden lg:inline-block text-[10px] uppercase tracking-wider font-mono px-2.5 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 shrink-0 ${
                 theme === 'cyberpunk' ? 'text-cyber-pink bg-black border-cyber-pink/30' : 'text-slate-400'
               }`}>
                 {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' ? t('Computational Module', 'Computational Suite') : t('System Console', 'System Console')}
               </span>
             </div>
             
-            <div className="flex items-center flex-wrap gap-2 lg:gap-4 ml-auto">
+            {/* Center: Theoretical Guide */}
+            <div className="flex-1 flex justify-center items-center opacity-90 hover:opacity-100 transition-opacity whitespace-nowrap">
+              {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
+                <button
+                  onClick={() => {
+                    setIsExplained(false);
+                    playSynthTone('switch');
+                  }}
+                  className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-2 shadow-sm ${
+                    theme === 'cyberpunk'
+                      ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10 bg-black'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                  }`}
+                  title="Open the mathematical and theoretical introduction for this module"
+                >
+                  <Sparkles className="w-3 h-3 text-indigo-500" />
+                  {t('Theoretical Guide', 'Theoretical Guide')}
+                </button>
+              )}
+            </div>
+            
+            {/* Right: Actions */}
+            <div className="flex-1 flex items-center justify-end gap-3 shrink-0">
               {/* Skip Intros Quick Toggle */}
               {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
                 <button
@@ -561,56 +704,56 @@ const App: React.FC = () => {
                     localStorage.setItem('xrd_skip_intros', nextVal.toString());
                     playSynthTone('switch');
                   }}
-                  className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-2 shrink-0 ${
+                  className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1.5 ${
                     skipIntros 
-                      ? 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-500 hover:text-slate-700'
-                      : 'bg-indigo-600/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600/20'
+                      ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 shadow-sm shadow-indigo-500/5'
+                      : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                   }`}
                   title="Toggle whether module explanations are shown automatically when switching tabs"
                 >
-                  <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                  {skipIntros ? t('Auto-Skip: On', 'Auto-Skip: On') : t('Auto-Skip: Off', 'Auto-Skip: Off')}
+                  <FastForward className={`w-3.5 h-3.5 ${skipIntros ? 'text-indigo-500' : 'text-slate-400'}`} />
+                  <span className="hidden sm:inline">{skipIntros ? t('Auto-Skip: On', 'Auto-Skip: On') : t('Auto-Skip: Off', 'Auto-Skip: Off')}</span>
                 </button>
               )}
 
-              {/* Show Theory/Intro manual button */}
-              {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
-                <button
-                  onClick={() => {
-                    setIsExplained(false);
-                    playSynthTone('switch');
-                  }}
-                  className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-2 shrink-0 ${
-                    theme === 'cyberpunk'
-                      ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10 bg-black'
-                      : 'border-slate-200 dark:border-white/10 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 shadow-sm'
-                  }`}
-                  title="Open the mathematical and theoretical introduction for this module"
-                >
-                  {t('Theoretical Guide', 'Theoretical Guide')}
-                </button>
-              )}
+              <button
+                onClick={() => {
+                  setShowShortcutsModal(true);
+                  playSynthTone('switch');
+                }}
+                className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1.5 ${
+                  theme === 'cyberpunk'
+                    ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10 bg-black'
+                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm shadow-indigo-500/5'
+                }`}
+                title="View keyboard hotkeys (Cmd+/)"
+              >
+                <Terminal className="w-3.5 h-3.5 text-indigo-500" />
+                <span className="hidden lg:inline">{t('Shortcuts', 'Shortcuts')}</span>
+              </button>
 
               <LanguageSelector compact={true} />
 
-              {/* Theme Dropdown Selection */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center">
                 <select
                   value={theme}
                   onChange={(e) => {
                     setTheme(e.target.value as any);
                     playSynthTone('switch');
                   }}
-                  className={`block rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 pl-2 pr-2 text-[10px] outline-none font-bold uppercase tracking-wider cursor-pointer`}
+                  className={`block rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 px-2 text-[10px] outline-none font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors`}
                 >
-                  <option value="light">☀️ Light theme</option>
-                  <option value="dark">🌙 Dark theme</option>
-                  <option value="cyberpunk">⚡ Cyber Theme</option>
-                  <option value="terminal">📟 Terminal Theme</option>
-                  <option value="synthwave">🌆 Synth Theme</option>
+                  <option value="light">☀️ Light</option>
+                  <option value="dark">🌙 Dark</option>
+                  <option value="cyberpunk">⚡ Cyber</option>
+                  <option value="terminal">📟 Term</option>
+                  <option value="synthwave">🌆 Synth</option>
+                  <option value="dracula">🦇 Drac</option>
+                  <option value="oceanic">🌊 Ocean</option>
                 </select>
               </div>
             </div>
+            
           </header>
 
           <main ref={mainContentRef} className="flex-1 overflow-y-auto p-4 lg:p-10 custom-scrollbar relative">
@@ -736,6 +879,99 @@ const App: React.FC = () => {
             </div>
           </main>
           <AIChatSupport />
+          
+          {/* Global Keyboard Shortcut Modal / Cheat Sheet Overlay */}
+          {showShortcutsModal && (
+            <div 
+              className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto cursor-pointer animate-in fade-in duration-200" 
+              onClick={() => setShowShortcutsModal(false)}
+            >
+              <div 
+                className={`relative w-full max-w-lg rounded-3xl p-6 md:p-8 shadow-2xl border cursor-default animate-in zoom-in-95 duration-200 ${
+                  theme === 'cyberpunk'
+                    ? 'bg-black border-cyber-accent text-cyber-accent shadow-[0_0_50px_rgba(255,0,255,0.15)]'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)]'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-black uppercase tracking-wider flex items-center gap-2">
+                    <Terminal className="w-5 h-5 text-indigo-500 animate-pulse" />
+                    {t('Keyboard Shortcuts', 'Keyboard Shortcuts')}
+                  </h3>
+                  <button 
+                    onClick={() => setShowShortcutsModal(false)}
+                    className="text-slate-400 hover:text-slate-200 text-xs font-bold p-1 bg-slate-150 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-full transition-all w-6 h-6 flex items-center justify-center cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-150 dark:border-white/5 hover:border-indigo-500/30 transition-all">
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-wide text-indigo-600 dark:text-indigo-400">{t('Calculate', 'Calculate')}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">{t('Submit or run structural modeling analyses', 'Submit or run structural modeling analyses')}</p>
+                    </div>
+                    <kbd className="px-2.5 py-1 bg-indigo-600/20 border border-indigo-500/55 rounded-lg text-xs font-mono text-indigo-300 shadow-sm shrink-0">
+                      ⌘ + Enter
+                    </kbd>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-150 dark:border-white/5 hover:border-rose-500/30 transition-all">
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-wide text-rose-500">{t('Clear All Inputs', 'Clear All Inputs')}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">{t('Reset laboratory outputs back to default', 'Reset laboratory inputs back to default')}</p>
+                    </div>
+                    <kbd className="px-2.5 py-1 bg-rose-600/20 border border-rose-500/55 rounded-lg text-xs font-mono text-rose-300 shadow-sm shrink-0">
+                      ⌘ + Backspace
+                    </kbd>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-150 dark:border-white/5 hover:border-slate-400/30 transition-all">
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-wide text-slate-700 dark:text-slate-300">{t('Cycle Modules', 'Cycle Modules')}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal">{t('Navigate backward or forward through components', 'Navigate backward or forward')}</p>
+                    </div>
+                    <kbd className="px-2.5 py-1 bg-slate-200 dark:bg-white/10 border border-slate-300 dark:border-white/20 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-300 shadow-sm shrink-0">
+                      Alt + ← / →
+                    </kbd>
+                  </div>
+
+                  <div className="pt-2">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">{t('Direct Module Hotkeys', 'Direct Module Hotkeys')}</h4>
+                    <div className="grid grid-cols-2 gap-2 max-h-[170px] overflow-y-auto custom-scrollbar p-1.5 bg-slate-100/50 dark:bg-black/30 rounded-2xl border border-dotted border-slate-250 dark:border-white/5">
+                      {[
+                        { key: 'Alt+1', name: t('Bragg Basics') },
+                        { key: 'Alt+2', name: t('FWHM Analysis') },
+                        { key: 'Alt+3', name: t('Selection Rules') },
+                        { key: 'Alt+4', name: t('Scherrer Method') },
+                        { key: 'Alt+5', name: t('Williamson-Hall') },
+                        { key: 'Alt+6', name: t('Rietveld Setup') },
+                        { key: 'Alt+7', name: t('PhaseID Neural Net') },
+                        { key: 'Alt+8', name: t('Material Registry') },
+                        { key: 'Alt+9', name: t('Laboratory Settings') },
+                      ].map((jump) => (
+                        <div key={jump.key} className="flex justify-between items-center p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 shadow-xs">
+                          <span className="text-[11px] font-medium truncate max-w-[100px] text-slate-700 dark:text-slate-300">{jump.name}</span>
+                          <kbd className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[9px] font-mono text-slate-500 select-none">{jump.key}</kbd>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-150 dark:border-white/5">
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-400">{t('Toggle Shortcuts Panel', 'Toggle Shortcuts Panel')}</p>
+                    <kbd className="px-2.5 py-1 bg-slate-200 dark:bg-white/10 border border-slate-300 dark:border-white/20 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-300 shadow-sm shrink-0">
+                      ⌘ + / or Alt + /
+                    </kbd>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-center text-slate-400 dark:text-slate-500 mt-6 uppercase tracking-wider font-mono animate-pulse">{t('Click anywhere to dismiss', 'Click anywhere to dismiss')}</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

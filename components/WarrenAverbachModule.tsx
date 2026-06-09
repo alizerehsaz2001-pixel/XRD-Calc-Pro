@@ -10,7 +10,11 @@ import { LineChart,
   ResponsiveContainer,
   Legend,
   AreaChart,
-  Area } from 'recharts';
+  Area,
+  ComposedChart,
+  Scatter,
+  ZAxis,
+  Cell } from 'recharts';
 import {  Info, BookOpen, Activity, TrendingDown, Sparkles, Loader2, Atom, Binary, ShieldQuestion, Ruler, Zap, Database, Settings, FlaskConical, Network, Component, ChevronDown, RefreshCw, Trash2, Download , Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
@@ -1027,54 +1031,99 @@ export const WarrenAverbachModule: React.FC = () => {
                       <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
                         <div className="space-y-4">
                           <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest block">
-                            Crystallite Domain Field View (Click domain nodes to analyze)
+                            Crystallite Domain Field View (Click scatter points to analyze)
                           </span>
                           
-                          {/* 2D Grid Representation of the domains */}
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                            {validStrains.map((item, index) => {
-                              const delta = maxStrain - minStrain;
-                              const normalized = delta > 0 ? (item.rms_strain - minStrain) / delta : 0;
-                              // Cool mapping: blue/violet (low strain) to crimson/orange (high strain)
-                              const hue = (1 - normalized) * 220; 
-                              const isSelected = index === activeIndex;
+                          <div className="bg-black/40 border border-white/5 rounded-2xl p-4 h-[350px] shadow-inner relative">
+                            {(() => {
+                              const chartData = validStrains.map((item, index) => {
+                                const L_m = item.L_nm * 1e-9;
+                                const dislDensityRaw = item.rms_strain > 0 ? (2 * Math.sqrt(3) * item.rms_strain) / (L_m * b_m) : 0;
+                                // limit bubble size range and density display
+                                return {
+                                  ...item,
+                                  densityLog: dislDensityRaw > 0 ? Math.max(12, Math.log10(dislDensityRaw)) : 0,
+                                  normalizedStrain: (item.rms_strain - minStrain) / ((maxStrain - minStrain) || 1),
+                                  index
+                                };
+                              });
 
                               return (
-                                <button
-                                  key={index}
-                                  onClick={() => setSelectedDomainIndex(index)}
-                                  className={`p-3.5 rounded-2xl border text-left transition-all relative flex flex-col justify-between h-24 overflow-hidden group/cell ${
-                                    isSelected 
-                                      ? 'border-purple-500 bg-[#0C1123] shadow-lg shadow-purple-500/10 ring-1 ring-purple-500/30' 
-                                      : 'border-white/5 bg-black/40 hover:border-white/20 hover:bg-black/60 shadow-inner'
-                                  }`}
-                                >
-                                  {/* Dynamic color light pill */}
-                                  <div 
-                                    className="w-1.5 h-1.5 rounded-full absolute top-3 right-3 animate-ping"
-                                    style={{ backgroundColor: `hsl(${hue}, 85%, 50%)` }}
-                                  />
-                                  <div 
-                                    className="w-1.5 h-1.5 rounded-full absolute top-3 right-3 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
-                                    style={{ backgroundColor: `hsl(${hue}, 85%, 50%)` }}
-                                  />
-                                  
-                                  <div>
-                                    <span className="text-[10px] font-mono text-slate-400 block font-bold tracking-tight">L Param</span>
-                                    <span className="text-sm font-sans font-medium text-slate-100 tracking-tight">
-                                      {item.L_nm.toFixed(1)} nm
-                                    </span>
-                                  </div>
-
-                                  <div className="text-[9px] font-mono text-slate-400 mt-2 flex justify-between items-center w-full">
-                                    <span>⟨ε²⟩:</span>
-                                    <span className="font-bold text-slate-200">
-                                      {(item.rms_strain * 1000).toFixed(2)}m
-                                    </span>
-                                  </div>
-                                </button>
+                                <ResponsiveContainer width="100%" height="100%">
+                                  <ComposedChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                                    <XAxis 
+                                      dataKey="L_nm" 
+                                      type="number"
+                                      domain={['dataMin - 1', 'dataMax + 1']}
+                                      label={{ value: 'Column Length L (nm)', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                                      tick={{ fontSize: 10, fill: '#475569', fontFamily: 'monospace' }} 
+                                      axisLine={{ stroke: '#334155' }}
+                                      tickLine={{ stroke: '#334155' }}
+                                    />
+                                    <YAxis 
+                                      dataKey="rms_strain" 
+                                      tickFormatter={(v) => v.toExponential(1)}
+                                      label={{ value: 'RMS Strain ⟨ε²⟩', angle: -90, position: 'insideLeft', offset: 15, fill: '#64748b', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                                      tick={{ fontSize: 10, fill: '#475569', fontFamily: 'monospace' }} 
+                                      axisLine={{ stroke: '#334155' }}
+                                      tickLine={{ stroke: '#334155' }}
+                                    />
+                                    <ZAxis dataKey="densityLog" range={[20, 400]} />
+                                    <Tooltip 
+                                      cursor={{ strokeDasharray: '3 3', stroke: '#94a3b8' }}
+                                      content={({ active, payload }) => {
+                                        if (active && payload && payload.length) {
+                                          const data = payload[0].payload;
+                                          return (
+                                            <div className="bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-2xl space-y-1 z-50">
+                                              <p className="text-[10px] uppercase font-mono font-bold tracking-widest text-[#a855f7]">Domain Node</p>
+                                              <p className="text-white text-xs font-sans font-medium"><span className="text-slate-400">L:</span> {data.L_nm.toFixed(1)} nm</p>
+                                              <p className="text-white text-xs font-sans font-medium"><span className="text-slate-400">Strain:</span> {data.rms_strain.toExponential(2)}</p>
+                                            </div>
+                                          );
+                                        }
+                                        return null;
+                                      }}
+                                    />
+                                    <Area 
+                                      type="monotone" 
+                                      dataKey="rms_strain" 
+                                      fill="url(#strainGradient)" 
+                                      stroke="none" 
+                                      fillOpacity={0.2}
+                                      activeDot={false}
+                                    />
+                                    <Scatter 
+                                      name="Domains" 
+                                      dataKey="rms_strain" 
+                                      onClick={(e: any) => {
+                                        if (e && e.index !== undefined) {
+                                          setSelectedDomainIndex(e.index);
+                                        }
+                                      }}
+                                      className="cursor-pointer"
+                                    >
+                                      {
+                                        chartData.map((entry, index) => {
+                                          const hue = (1 - entry.normalizedStrain) * 220;
+                                          const isSelected = index === activeIndex;
+                                          return (
+                                            <Cell 
+                                              key={`cell-${index}`} 
+                                              fill={`hsl(${hue}, 85%, 50%)`} 
+                                              stroke={isSelected ? '#ffffff' : `hsl(${hue}, 85%, 40%)`} 
+                                              strokeWidth={isSelected ? 3 : 1}
+                                              style={{ filter: isSelected ? 'drop-shadow(0px 0px 8px rgba(255,255,255,0.8))' : 'none', outline: 'none' }}
+                                            />
+                                          );
+                                        })
+                                      }
+                                    </Scatter>
+                                  </ComposedChart>
+                                </ResponsiveContainer>
                               );
-                            })}
+                            })()}
                           </div>
                         </div>
 

@@ -32,7 +32,6 @@ interface Preset {
 
 export const PreferredOrientationModule: React.FC = () => {
   const { precision } = useSettings();
-  const [activeTab, setActiveTab] = useState<'simulator' | 'formulas' | 'solver'>('simulator');
   
   // States
   const [habitModel, setHabitModel] = useState<'Platelet' | 'Cylindrical'>('Platelet');
@@ -432,53 +431,11 @@ export const PreferredOrientationModule: React.FC = () => {
             </p>
           </div>
 
-          {/* Core Navigation Selector */}
-          <div className="flex flex-row p-1.5 bg-black/40 rounded-xl border border-slate-800 self-start md:self-center">
-            <button
-              onClick={() => setActiveTab('simulator')}
-              className={`px-4 py-2 rounded-lg text-xs uppercase font-black tracking-wider transition-all duration-300 flex items-center gap-2 ${
-                activeTab === 'simulator' 
-                  ? 'bg-indigo-600 text-white shadow-lg' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Sliders className="w-3.5 h-3.5" /> Simulator
-            </button>
-            <button
-              onClick={() => setActiveTab('formulas')}
-              className={`px-4 py-2 rounded-lg text-xs uppercase font-black tracking-wider transition-all duration-300 flex items-center gap-2 ${
-                activeTab === 'formulas' 
-                  ? 'bg-indigo-600 text-white shadow-lg' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5" /> Theory & Formulas
-            </button>
-            <button
-              onClick={() => setActiveTab('solver')}
-              className={`px-4 py-2 rounded-lg text-xs uppercase font-black tracking-wider transition-all duration-300 flex items-center gap-2 ${
-                activeTab === 'solver' 
-                  ? 'bg-indigo-600 text-white shadow-lg' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <TrendingUp className="w-3.5 h-3.5" /> R-Factor Fitting
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Main Tab content switch */}
-      <AnimatePresence mode="wait">
-        {activeTab === 'simulator' && (
-          <motion.div 
-            key="simulator"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 xl:grid-cols-12 gap-6"
-          >
+      {/* Main Analysis Content */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
             {/* Control Column */}
             <div className="xl:col-span-4 space-y-6">
               
@@ -740,12 +697,46 @@ export const PreferredOrientationModule: React.FC = () => {
                           Ideal fit ≈ 1.0 (DOF: {fitQuality.dof})
                         </span>
                       </div>
-                      <div className="pt-2 text-[10px] text-slate-500 leading-relaxed font-sans">
-                        These metrics update dynamically. Use the solver below to automatically minimize R<sub>wp</sub>.
-                      </div>
                     </div>
                   </div>
                 )}
+
+                {/* Optimal Fit Solver Button */}
+                <div className="pt-2">
+                  <button
+                    onClick={runParameterRefinement}
+                    className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 active:scale-[0.99] text-white text-xs uppercase font-extrabold tracking-widest rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Auto-Fit Parameters
+                  </button>
+                  
+                  {solverResult && (
+                    <div className="mt-3 bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 relative overflow-hidden">
+                      <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                        <Sparkles className="w-3.5 h-3.5" /> Refinement Successful
+                      </div>
+                      <div className="flex justify-between text-xs py-1 border-b border-slate-800/50">
+                        <span className="text-slate-400">New R<sub>wp</sub> Value</span>
+                        <span className="font-mono font-bold text-white">
+                          {solverResult.finalRwp.toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs py-1 border-b border-slate-800/50">
+                        <span className="text-slate-400">Fitted parameter (r)</span>
+                        <span className="font-mono font-bold text-white">
+                          {solverResult.refinedR.toFixed(3)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs py-1 text-slate-400">
+                         <span>Fraction (f)</span>
+                         <span className="font-mono font-bold text-white">{(solverResult.refinedFraction * 100).toFixed(0)}%</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-2 font-mono leading-relaxed bg-black/40 p-2 rounded border border-slate-900">
+                        &gt; {solverResult.message}
+                      </p>
+                    </div>
+                  )}
+                </div>
 
               </div>
 
@@ -1046,310 +1037,11 @@ export const PreferredOrientationModule: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-black uppercase text-slate-300 tracking-wider border-b border-slate-800 pb-2 flex items-center gap-1.5">
-                       <BookOpen className="w-4 h-4 text-emerald-400" /> What is this Analysis used for?
-                    </h4>
-                    <ul className="text-[11px] text-slate-400 space-y-2 leading-relaxed list-disc list-inside">
-                      <li>
-                        <strong className="text-slate-200">Semiconductor Device Quality:</strong> Epitaxial thin films of Silicon, Gallium Nitride (GaN), or Aluminum Nitride grow as vertical columnar or highly textured crystalline structures. Preferred orientation analysis ensures uniform grain texture alignment, which directly translates to superior charge carrier mobility and acoustic wave piezoelectric efficiency in sub-micron IC electronic devices.
-                      </li>
-                      <li>
-                        <strong className="text-slate-200">Rietveld Refinement Fitting:</strong> Without March-Dollase correction, simulated XRD models fail to match experimental patterns, leading to highly inaccurate structural fits. Fitting the <em className="text-indigo-400 font-mono">r</em> parameter mathematically restores proper phase metrics.
-                      </li>
-                      <li>
-                        <strong className="text-slate-200">Anisotropic Physical Properties:</strong> In advanced materials, battery electrodes (such as graphite plates or lithium cobalt oxide cathodes), preferred orientation of lithium-ion diffusion channels highly influences maximum charging speeds and cyclic battery life.
-                      </li>
-                    </ul>
                   </div>
                 </div>
               </div>
 
             </div>
-          </motion.div>
-        )}
-
-        {/* Theory Tab */}
-        {activeTab === 'formulas' && (
-          <motion.div 
-            key="formulas"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6"
-          >
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
-              {/* Formula Panel */}
-              <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-2xl">
-                <div>
-                  <h2 className="text-lg font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-indigo-400" /> March-Dollase Mathematical Formulation
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    The mathematical derivation of sample structural orientation during diffraction modeling.
-                  </p>
-                  
-                  <div className="mt-3 inline-block bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-800 text-[10px] text-slate-400 font-sans leading-relaxed">
-                    <span className="font-bold text-slate-300 mr-2">Official Reference:</span>
-                    Dollase, W. A. (1986). Correction of intensities for preferred orientation in powder diffractometry: application of the March model. <em className="text-slate-300">Journal of Applied Crystallography</em>, 19(4), 267-272.
-                  </div>
-                </div>
-
-                {/* Super Nice Formula Display Cards */}
-                <div className="p-6 bg-slate-950/60 rounded-2xl border border-slate-850 flex flex-col items-center justify-center space-y-4">
-                  <div className="text-center font-serif text-slate-200 text-xl md:text-2xl tracking-wide max-w-full overflow-x-auto py-3 px-4 bg-black/40 rounded-xl">
-                    P<sub>eff</sub>(<span className="text-indigo-400">α</span>) = <span className="text-emerald-400">f</span> · [ <span className="text-pink-400">r</span><sup>2</sup> cos<sup>2</sup><span className="text-indigo-400">α</span> + <span className="text-pink-400">r</span><sup>-1</sup> sin<sup>2</sup><span className="text-indigo-400">α</span> ]<sup>-3/2</sup> + (1 - <span className="text-emerald-400">f</span>)
-                  </div>
-                  
-                  <div className="w-full text-xs text-slate-400 space-y-2 border-t border-slate-800/50 pt-4">
-                    <div className="flex items-start gap-2">
-                      <span className="font-bold text-indigo-400 min-w-[20px]">α</span>
-                      <span>The angle between the reciprocal lattice vector of the reflection (hkl) and the axis of preferred orientation (fiber axis).</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="font-bold text-pink-400 min-w-[20px]">r</span>
-                      <span>The March-Dollase parameter, representing sample habit profile.</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="font-bold text-emerald-400 min-w-[20px]">f</span>
-                      <span>The isotropic / textured fraction volume. Represents the percentage of the bulk material that is preferentially aligned vs randomly oriented.</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="font-bold text-slate-200 min-w-[20px]">P_eff(α)</span>
-                      <span>The multiplicative scale factor applied to the randomized theoretical peak intensity: <code className="text-xs bg-slate-900 px-1 py-0.5 rounded text-indigo-400">I_corrected = I_isotropic * P_eff(α)</code></span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 text-xs text-slate-400 leading-relaxed font-sans">
-                  <h4 className="font-black text-white uppercase tracking-wider">Physical Phenomenological Cases:</h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 bg-black/40 rounded-xl border border-slate-850">
-                      <div className="font-mono text-sky-400 font-extrabold text-sm mb-1">r &lt; 1.0 (Plateline Habit)</div>
-                      <p className="text-[11px]">Crystallites are plate or disk-like. Under compaction, they align with their face normal parallel to normal, enhancing 0° parallel reflections and reducing 90° ones.</p>
-                    </div>
-                    <div className="p-4 bg-black/40 rounded-xl border border-slate-850">
-                      <div className="font-mono text-slate-400 font-extrabold text-sm mb-1">r = 1.0 (Isotropic)</div>
-                      <p className="text-[11px]">Ideal randomized powder sample without alignment. In this condition, March factor <code className="text-[10px] text-indigo-400">P(α) = 1.000</code> for all values of α.</p>
-                    </div>
-                    <div className="p-4 bg-black/40 rounded-xl border border-slate-850">
-                      <div className="font-mono text-amber-400 font-extrabold text-sm mb-1">r &gt; 1.0 (Acicular / Rod-like)</div>
-                      <p className="text-[11px]">Crystallites are needles. Extrusion forces drag the rod axis parallel, enhancing perpendicular transverse reflections and dampening normal ones.</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-8 bg-slate-950 p-6 rounded-2xl border border-slate-800">
-                  <h4 className="text-xs font-black uppercase text-emerald-400 tracking-wider mb-3 flex items-center gap-1.5">
-                    <Activity className="w-4 h-4 text-emerald-400" /> Export Python Calculation Script
-                  </h4>
-                  <pre className="text-[10px] font-mono text-slate-300 bg-slate-900 p-4 rounded-xl overflow-x-auto border border-slate-850 custom-scrollbar">
-{`import numpy as np
-
-def march_dollase(r, alpha_deg, fraction=1.0):
-    """
-    Computes the effective March-Dollase preferred orientation correction.
-    
-    Parameters:
-    - r: The March parameter (1.0 = isotropic, < 1.0 = plates, > 1.0 = needles)
-    - alpha_deg: Angle between (hkl) normal and the preferred axis (degrees)
-    - fraction: Volume fraction of the textured domain (0.0 to 1.0)
-    """
-    if r <= 0: return 1.0
-    alpha = np.radians(alpha_deg)
-    
-    # Calculate March factor formula
-    base = (r**2) * (np.cos(alpha)**2) + (1.0/r) * (np.sin(alpha)**2)
-    p_alpha = base**(-1.5)
-    
-    # Incorporate uniform isotropic background
-    return fraction * p_alpha + (1.0 - fraction)
-
-# Example usage for clay platelets:
-print(f"Correction at 0°: {march_dollase(0.35, 0):.3f}")
-print(f"Correction at 90°: {march_dollase(0.35, 90):.3f}")`}
-                  </pre>
-                </div>
-              </div>
-
-              {/* Side Angle Formula panel */}
-              <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-2xl">
-                <div>
-                  <h2 className="text-lg font-black text-indigo-400 uppercase tracking-widest mb-1">
-                    Crystallographic Angle Math
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    How interplanar angle α is calculated in reciprocal space:
-                  </p>
-                </div>
-
-                <div className="p-5 bg-slate-950 rounded-2xl border border-slate-850 space-y-4 text-[11px] text-slate-400 leading-relaxed">
-                  <div className="font-serif text-slate-200 text-center py-2 px-3 bg-black/40 rounded-xl lg:text-sm">
-                    cos(α) = d<sub>1</sub>·d<sub>2</sub> / ( |d<sub>1</sub>| |d<sub>2</sub>| )
-                  </div>
-                  <div>
-                    <h5 className="font-black text-pink-400 uppercase tracking-wider mb-2">Cubic / Orthorhombic</h5>
-                    <div className="bg-black/60 font-mono text-[10px] p-2 rounded text-slate-300">
-                      dot = h1·H/a² + k1·K/b² + l1·L/c²
-                    </div>
-                  </div>
-                  <div>
-                    <h5 className="font-black text-pink-400 uppercase tracking-wider mb-2">Hexagonal</h5>
-                    <div className="bg-black/60 font-mono text-[10px] p-2 rounded text-slate-300">
-                      dot = 4/3(h1·H + k1·K + ½(h1·K + k1·H))/a² + l1·L/c²
-                    </div>
-                  </div>
-                  <p>
-                    These dot products compute the structural orientation between the scattering plane and the macroscopic fiber axis.
-                  </p>
-                </div>
-                <p className="text-xs text-slate-400 leading-normal font-sans">
-                  The standard March-Dollase model defines a single standard vector representing the geometric normal. 
-                </p>
-
-                <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-850 space-y-3">
-                  <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-                    <Info className="w-4 h-4 text-indigo-400" /> Integration in Rietveld Refinement
-                  </h4>
-                  <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
-                    During structure fitting (like Rietveld simulation), preferred orientation causes major R-factor mismatch. Failing to correct for March-Dollase can artificially distort isotropic atomic displacement parameters (B-values) or thermal coefficients. Overlapping peak phases can only be accurately solved after fitting the r parameter iteratively.
-                  </p>
-                </div>
-              </div>
-
-            </div>
-          </motion.div>
-        )}
-
-        {/* Solver Tab */}
-        {activeTab === 'solver' && (
-          <motion.div 
-            key="solver"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.3 }}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-6"
-          >
-            
-            {/* Input and run button side */}
-            <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-2xl">
-              <div>
-                <h3 className="text-base font-black text-white uppercase tracking-wider mb-1 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-indigo-400" /> Optimal March-Dollase Fit Solver
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Submit measured peak intensities to automatically fit the optimal March-Dollase parameter $r$.
-                </p>
-              </div>
-
-              <div className="p-4 bg-slate-950 rounded-xl border border-slate-850 text-xs text-slate-400 space-y-4">
-                <p className="leading-relaxed mb-3">
-                  Provide measured experimental peak values against random standards in the table. The solver sweeps the full analytical 2D domain of March parameters and fractional components to find the global minimum for the weighted profile factor R<sub>wp</sub>.
-                </p>
-                
-                <div className="flex justify-center bg-black/60 py-3 rounded-lg border border-slate-900 mb-3">
-                  <div className="font-serif text-slate-300 text-[11px] lg:text-sm">
-                    R<sub>wp</sub> = 100 × √[ Σ ( I<sub>obs</sub> - c·I<sub>calc</sub> )² / Σ ( I<sub>obs</sub> )² ]
-                  </div>
-                </div>
-                
-                <div className="bg-indigo-950/20 p-3 rounded-lg border border-indigo-900/30 text-indigo-200">
-                  <strong>How to use:</strong> Select a platelet or needle preset from the main tab to populate test experimental data, or paste custom measurements in the main tab input panel, then click the fit solver below!
-                </div>
-              </div>
-
-              <div>
-                <button
-                  onClick={runParameterRefinement}
-                  className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 active:scale-[0.99] text-white text-xs uppercase font-extrabold tracking-widest rounded-2xl shadow-xl transition-all duration-200 flex items-center justify-center gap-2.5"
-                >
-                  <RefreshCw className="w-4 h-4 animate-spin-hover" /> Refine and Fit Model Parameter (r)
-                </button>
-              </div>
-
-              {/* Solver diagnostics display box */}
-              {solverResult && (
-                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-805 space-y-3.5 relative overflow-hidden animate-in fade-in duration-300">
-                  <div className="absolute top-0 right-0 p-2 text-[8px] uppercase tracking-widest font-mono text-emerald-400/20">
-                    Optimization Engine Ready
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black uppercase text-slate-400 tracking-wider">
-                      Solver Results Summary
-                    </h4>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-                    <div className="p-3 bg-black/40 rounded-xl border border-slate-800">
-                      <span className="text-slate-500 block text-[9px] uppercase">Refined Parameter r</span>
-                      <strong className="text-lg text-emerald-400">{solverResult.refinedR}</strong>
-                    </div>
-                    <div className="p-3 bg-black/40 rounded-xl border border-slate-800">
-                      <span className="text-slate-500 block text-[9px] uppercase">R_wp factor (Isotropic)</span>
-                      <strong className="text-lg text-slate-400">{solverResult.initialRwp.toFixed(2)}%</strong>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-                    <div className="p-3 bg-black/40 rounded-xl border border-slate-800">
-                      <span className="text-slate-500 block text-[9px] uppercase">R_wp factor (Fitted)</span>
-                      <strong className="text-lg text-indigo-400">{solverResult.finalRwp.toFixed(2)}%</strong>
-                    </div>
-                    <div className="p-3 bg-black/40 rounded-xl border border-slate-800">
-                      <span className="text-slate-500 block text-[9px] uppercase">Overall scale factor (c)</span>
-                      <strong className="text-lg text-slate-300">{solverResult.scalingFactor.toFixed(3)}</strong>
-                    </div>
-                  </div>
-
-                  <p className="text-[11px] text-slate-400 font-sans leading-normal pt-1">
-                    {solverResult.message}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Visual comparison results side */}
-            <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-2xl">
-              <div>
-                <h3 className="text-xs uppercase font-black text-slate-400 tracking-widest mb-1">
-                  Model Fitting Graph Representation
-                </h3>
-                <p className="text-[10px] text-slate-500 uppercase tracking-widest">
-                  Fits model correction to real physical data
-                </p>
-              </div>
-
-              <div className="h-[350px] w-full bg-slate-950/40 p-4 rounded-2xl border border-slate-850 flex flex-col justify-between">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                    <XAxis dataKey="name" stroke="#475569" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={{ stroke: '#334155' }} />
-                    <YAxis stroke="#475569" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={{ stroke: '#334155' }} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                      labelClassName="font-mono text-xs font-black text-white"
-                      itemStyle={{ fontSize: '11px' }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '11px' }} />
-                    <Bar dataKey="Measured Experimental" fill="#ec4899" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Model (March-Dollase)" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="text-xs text-slate-400 leading-normal font-sans">
-                The chart compares your <span className="text-pink-400 font-bold">Experimental measured intensity values</span> directly to the optimized <span className="text-indigo-400 font-bold">March-Dollase model intensities</span>. Notice how fitting the proper habit factor eliminates the original isotropic error.
-              </div>
-            </div>
-
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-    </div>
+      </div>
   );
 };
