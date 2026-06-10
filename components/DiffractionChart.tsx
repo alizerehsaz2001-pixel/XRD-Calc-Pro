@@ -31,11 +31,14 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
     for (let x = minTheta; x <= maxTheta; x += 0.1) {
       let intensity = 5; // Background noise floor
       results.forEach(r => {
-        // Gaussian peak simulation using actual intensity if available (defaulting to 100)
-        const intensityFactor = r.intensity !== undefined ? r.intensity : 100;
-        const sigma = 0.4;
-        const peakInt = (intensityFactor * 0.95) * Math.exp(-Math.pow(x - r.twoTheta, 2) / (2 * Math.pow(sigma, 2)));
-        intensity += peakInt;
+        const diff = x - r.twoTheta;
+        if (Math.abs(diff) < 1.6) { // 4 * sigma threshold (anything further is mathematically negligible)
+          // Gaussian peak simulation using actual intensity if available (defaulting to 100)
+          const intensityFactor = r.intensity !== undefined ? r.intensity : 100;
+          const sigma = 0.4;
+          const peakInt = (intensityFactor * 0.95) * Math.exp(-Math.pow(diff, 2) / 0.32); // 2 * sigma^2 is 0.32
+          intensity += peakInt;
+        }
       });
       // Add random noise
       intensity += Math.random() * 2;

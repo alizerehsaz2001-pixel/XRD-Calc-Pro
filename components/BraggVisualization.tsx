@@ -56,25 +56,27 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
   }, [thetaRad, wavelength, dSpacing]);
 
   // Visual Wavelength calculation
-  const lambdaVis = 2 * planeSpacing * Math.sin(thetaRad);
+  const lambdaVis = Math.max(15, 2 * planeSpacing * Math.sin(thetaRad));
 
   // Generate wave path
   const generateWavePath = (startX: number, startY: number, angleRad: number, length: number, phaseShift: number = 0) => {
-    const points = [];
     const amplitude = 5 + (signalStrength * 5); // Amplify wave visual when in phase
-    const steps = 120;
+    const steps = 45; // Reduced from 120 for a massive calculation speedup
     const cosA = Math.cos(angleRad);
     const sinA = Math.sin(angleRad);
+    const twoPiOverLambda = (2 * Math.PI) / lambdaVis;
 
-    for (let i = 0; i <= steps; i++) {
+    let path = `M ${startX.toFixed(1)},${startY.toFixed(1)}`;
+
+    for (let i = 1; i <= steps; i++) {
       const t = i / steps;
       const dist = t * length;
-      const waveY = amplitude * Math.sin(2 * Math.PI * (dist - phaseShift) / lambdaVis);
+      const waveY = amplitude * Math.sin((dist - phaseShift) * twoPiOverLambda);
       const px = startX + (dist * cosA - waveY * sinA);
       const py = startY + (dist * sinA + waveY * cosA);
-      points.push(`${px},${py}`);
+      path += ` L ${px.toFixed(1)},${py.toFixed(1)}`;
     }
-    return `M ${points.join(' L ')}`;
+    return path;
   };
 
   const topAtomY = centerY - planeSpacing / 2;
@@ -185,13 +187,12 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
              </div>
              <div className="h-16 flex items-end gap-1 px-1">
                 {[...Array(20)].map((_, i) => {
-                  const h = Math.max(10, signalStrength * (100 - i * 4) * Math.random() + 5);
+                  const h = Math.max(10, signalStrength * (100 - i * 4) * (0.8 + 0.2 * Math.sin(Date.now() / 120 + i)) + 5);
                   return (
-                    <motion.div 
+                    <div 
                       key={`bar-${i}`} 
-                      className="flex-1 bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-t-sm"
-                      animate={{ height: `${h}%` }}
-                      transition={{ duration: 0.1 }}
+                      className="flex-1 bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-t-sm transition-[height] duration-75"
+                      style={{ height: `${h}%` }}
                     />
                   );
                 })}

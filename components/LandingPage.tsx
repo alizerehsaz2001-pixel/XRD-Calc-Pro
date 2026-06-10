@@ -186,6 +186,7 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
   const [dSpace, setDSpace] = useState(2.82);   // NaCl default
   const [order, setOrder] = useState(1);
   const [activeAnode, setActiveAnode] = useState('Cu');
+  const [selectedMaterial, setSelectedMaterial] = useState('NaCl');
 
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
@@ -206,6 +207,7 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
       const computedD = distanceToCenter / 22;
       const clampedD = Math.max(1.00, Math.min(6.00, computedD));
       setDSpace(clampedD);
+      setSelectedMaterial('custom');
       animFrameRef.current = null;
     });
   };
@@ -243,6 +245,14 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
     { name: 'Molybdenum (Mo)', symbol: 'Mo', val: 0.7107, color: 'bg-blue-500/10 border-blue-500/30 text-blue-300' },
     { name: 'Chromium (Cr)', symbol: 'Cr', val: 2.290, color: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' },
     { name: 'Cobalt (Co)', symbol: 'Co', val: 1.789, color: 'bg-pink-500/10 border-pink-500/30 text-pink-300' },
+  ];
+
+  const materialPresets = [
+    { name: 'Halite (NaCl)', symbol: 'NaCl', d: 2.820, group: 'Fm-3m', system: 'Cubic', hkl: '(200)', notes: 'Rock salt crystal standard' },
+    { name: 'Silicon (Si)', symbol: 'Si', d: 3.135, group: 'Fd-3m', system: 'Cubic', hkl: '(111)', notes: 'Ultra-pure semiconductor standard' },
+    { name: 'Gold Foil (Au)', symbol: 'Au', d: 2.355, group: 'Fm-3m', system: 'Cubic', hkl: '(111)', notes: 'FCC precious metal metric' },
+    { name: 'Anatase (TiO2)', symbol: 'TiO2', d: 3.520, group: 'I41/amd', system: 'Tetragonal', hkl: '(101)', notes: 'Photocatalytic oxide lattice' },
+    { name: 'Graphite Carbon (C)', symbol: 'C', d: 3.354, group: 'P63/mmc', system: 'Hexagonal', hkl: '(002)', notes: 'Layered basal plane graphene sheets' },
   ];
 
   // Bragg's Law calculation: 2d sin(theta) = n * lambda
@@ -283,24 +293,76 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
   const rx3X = cx - xOffset;
   const rx3OutX = cx + xOffset;
 
+  // Sinusoidal wave drawer along path
+  const generateWaveLine = (x1: number, y1: number, x2: number, y2: number, amp: number, freq: number, phase: number = 0) => {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+    const steps = 30; // Highly optimized, clean wave points
+    let points = `M ${x1.toFixed(1)},${y1.toFixed(1)}`;
+    const factor = (2 * Math.PI * freq) / len;
+    
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const d = t * len;
+      const waveVal = amp * Math.sin(d * factor + phase);
+      const px = x1 + d * Math.cos(angle) - waveVal * Math.sin(angle);
+      const py = y1 + d * Math.sin(angle) + waveVal * Math.cos(angle);
+      points += ` L ${px.toFixed(1)},${py.toFixed(1)}`;
+    }
+    return points;
+  };
+
+  const activeMaterial = materialPresets.find(m => m.symbol === selectedMaterial);
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center bg-slate-900/30 backdrop-blur-3xl border border-slate-800/80 p-8 md:p-12 rounded-[3rem] shadow-2xl">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start bg-slate-900/30 backdrop-blur-3xl border border-slate-800/80 p-8 md:p-12 rounded-[3rem] shadow-2xl">
       {/* Settings Panel */}
       <div className="lg:col-span-5 space-y-8">
         <div>
           <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-            Diffraction Parameter Sandbox
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+            Parameter Sandbox & Mini Lab
           </h3>
           <p className="text-xs text-slate-400 font-medium leading-relaxed">
-            Adjust physical values to see Bragg's Law <span className="text-slate-200 font-mono">2d sin(θ) = nλ</span> converge live.
+            Interactively tune wavelength, choose crystal standard samples, and observe the diffraction peak position calibrate.
           </p>
         </div>
 
-        {/* PRESSETS ANODE selection */}
+        {/* MATERIAL STANDARDS CONFIG */}
         <div className="space-y-3">
           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">
-            Select X-Ray Target Tube (Anode Pre-sets)
+            Select Calibration Crystal Standard
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {materialPresets.map((mat) => (
+              <button
+                key={mat.symbol}
+                onClick={() => {
+                  setDSpace(mat.d);
+                  setSelectedMaterial(mat.symbol);
+                }}
+                className={`flex-1 min-w-[110px] px-3 py-2.5 border rounded-xl text-left transition-all font-sans cursor-pointer flex flex-col justify-between ${
+                  selectedMaterial === mat.symbol
+                    ? 'border-violet-500 bg-violet-500/15 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.2)]'
+                    : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Atom className={`w-3.5 h-3.5 ${selectedMaterial === mat.symbol ? 'text-violet-400' : 'text-slate-500'}`} />
+                  <span className="text-[11px] font-black tracking-wider block">{mat.symbol}</span>
+                </div>
+                <span className="text-[10px] font-mono opacity-80 mt-1">{mat.d.toFixed(3)} Å</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* PRESSET ANODE selection */}
+        <div className="space-y-3">
+          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block">
+            Anode Target Tube (Radiation Source λ)
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {presets.map((p) => (
@@ -327,10 +389,10 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
         <div className="space-y-3">
           <div className="flex justify-between items-baseline">
             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-              Wavelength (λ)
+              Wavelength Tuning (λ)
             </label>
             <span className="text-xs font-mono font-bold text-violet-300">
-              {lambda.toFixed(4)} Å (Custom)
+              {lambda.toFixed(4)} Å {activeAnode === 'custom' ? '(Custom)' : `(${activeAnode}-Kα)`}
             </span>
           </div>
           <input
@@ -351,10 +413,10 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
         <div className="space-y-4">
           <div className="flex justify-between items-baseline">
             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-              Lattice Spacing (d)
+              Interplanar Spacing (d)
             </label>
             <span className="text-xs font-mono font-bold text-cyan-300">
-              {dSpace.toFixed(3)} Å
+              {dSpace.toFixed(3)} Å {selectedMaterial !== 'custom' ? `(${selectedMaterial})` : '(Custom)'}
             </span>
           </div>
           <input
@@ -363,7 +425,10 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
             max="6.00"
             step="0.01"
             value={dSpace}
-            onChange={(e) => setDSpace(parseFloat(e.target.value))}
+            onChange={(e) => {
+              setDSpace(parseFloat(e.target.value));
+              setSelectedMaterial('custom');
+            }}
             className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg outline-none"
           />
         </div>
@@ -389,14 +454,37 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
             ))}
           </div>
         </div>
+
+        {/* Material specs profile card */}
+        {activeMaterial && (
+          <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl relative overflow-hidden transition-all">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-violet-600/5 blur-xl rounded-full" />
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-violet-400 font-mono">Structural Details</span>
+              <span className="text-[9px] bg-slate-800 px-2 py-0.5 rounded-full font-mono text-slate-400">{activeMaterial.system}</span>
+            </div>
+            <p className="text-sm font-black text-white">{activeMaterial.name}</p>
+            <div className="grid grid-cols-2 gap-4 mt-2 border-t border-slate-800/80 pt-2 text-[11px] font-mono">
+              <div>
+                <span className="text-[9px] text-slate-500 block uppercase">Space Group</span>
+                <span className="text-slate-300 font-bold">{activeMaterial.group}</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-slate-500 block uppercase">Reflecting Plane</span>
+                <span className="text-cyan-400 font-bold">{activeMaterial.hkl}</span>
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-2 italic leading-relaxed">{activeMaterial.notes}</p>
+          </div>
+        )}
       </div>
 
       {/* Visual Workspace */}
-      <div className="lg:col-span-7 flex flex-col items-center bg-[#050A14] border border-slate-800/60 p-8 rounded-[2.5rem] relative overflow-hidden self-stretch justify-between">
+      <div className="lg:col-span-7 flex flex-col items-center bg-[#050A14] border border-slate-800/60 p-6 md:p-8 rounded-[2.5rem] relative overflow-hidden self-stretch justify-between">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none" />
         
         {/* Real-time Math Outputs Header */}
-        <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6 relative z-10 text-center">
+        <div className="w-full grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4 relative z-10 text-center">
           <div className="bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800/40">
             <span className="block text-[9px] font-mono text-slate-500 uppercase tracking-widest">Bragg angle (θ)</span>
             <span className="text-xl font-black font-mono text-white">
@@ -421,6 +509,11 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
               </span>
             )}
           </div>
+        </div>
+
+        {/* Dragging instruction badge */}
+        <div className="text-[9px] font-mono bg-slate-900/80 px-3 py-1 rounded-full text-slate-400 border border-slate-800 text-center select-none uppercase tracking-widest mb-2 z-10">
+          ↔ Drag canvas background to adjust d-spacing ↔
         </div>
 
         {/* Simulated Ray Tracing Canvas SVG */}
@@ -458,7 +551,7 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
                 r={pos === 0 ? "8" : "5"} 
                 fill={pos === 0 ? "#22d3ee" : "rgba(255,255,255,0.3)"} 
                 className={pos === 0 ? "animate-pulse" : ""}
-                style={{ filter: pos === 0 ? 'shadow(0 0 10px rgba(34,211,238,0.5))' : 'none' }}
+                style={{ filter: pos === 0 ? 'drop-shadow(0 0 8px rgba(34,211,238,0.7))' : 'none' }}
               />
             ))}
             {/* Plane 3 atoms */}
@@ -474,18 +567,20 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
 
             {isValid && (
               <>
-                {/* Ray 1 Reflection paths - Upper reflection plane */}
-                {/* Incoming incident beam wave */}
-                <line 
-                  x1={rxInX} y1={rxInY} x2={cx} y2={y2} 
-                  stroke="url(#incGrad)" strokeWidth="3" 
-                  strokeDasharray="4 2"
+                {/* Wave 1 - Incident wave trace */}
+                <path
+                  d={generateWaveLine(rxInX, rxInY, cx, y2, 5, 8, -Date.now() / 80)}
+                  fill="none"
+                  stroke="url(#incWaveGrad)"
+                  strokeWidth="2"
                 />
-                {/* Outgoing diffracted beam wave */}
-                <line 
-                  x1={cx} y1={y2} x2={rxOutX} y2={rxOutY} 
-                  stroke="url(#difGrad)" strokeWidth="3" 
-                  strokeDasharray="4 2"
+
+                {/* Wave 2 - Diffracted wave trace (In Phase visualization) */}
+                <path
+                  d={generateWaveLine(cx, y2, rxOutX, rxOutY, 5, 8, -Date.now() / 80)}
+                  fill="none"
+                  stroke="url(#difWaveGrad)"
+                  strokeWidth="2.5"
                 />
 
                 {/* Sub-surface Ray 2 reflection to demonstrate constructive path difference */}
@@ -513,11 +608,11 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
 
             {/* Definitions gradients support */}
             <defs>
-              <linearGradient id="incGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="incWaveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="rgba(244,63,94,0)" />
                 <stop offset="100%" stopColor="#22d3ee" />
               </linearGradient>
-              <linearGradient id="difGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+              <linearGradient id="difWaveGrad" x1="0%" y1="100%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#22d3ee" />
                 <stop offset="100%" stopColor="rgba(139,92,246,0)" />
               </linearGradient>
@@ -528,6 +623,51 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
           <div className="absolute left-6 bottom-4 flex flex-col gap-1 z-10 text-[9px] uppercase font-mono tracking-wider text-slate-500">
             <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />Atomic Spacing Plane</div>
             <div>Plane Interdistance d = {dSpace.toFixed(2)} Å</div>
+          </div>
+        </div>
+
+        {/* Mini Live XRD Peak Chart */}
+        <div className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 mt-2 relative overflow-hidden h-20">
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] pointer-events-none" />
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 font-mono">Live Simulated Intensity Spectrum</span>
+            <span className="text-[9px] font-mono text-cyan-400 font-bold">2θ Peak = {isValid ? `${twoThetaDeg.toFixed(2)}°` : 'Invalid'}</span>
+          </div>
+          <div className="w-full h-10 relative">
+            <svg width="100%" height="100%" className="overflow-visible">
+              {/* Background X axis */}
+              <line x1="0" y1="36" x2="100%" y2="36" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+              {/* Dynamic peak */}
+              {isValid && (
+                <path
+                  d={(() => {
+                    // map twoThetaDeg (between 10 and 150) to percentage of width (0% to 100%)
+                    const pct = Math.max(5, Math.min(95, ((twoThetaDeg - 10) / 140) * 100));
+                    // draw a nice smooth Gaussian curve centered at pct
+                    let path = "";
+                    for (let x = 0; x <= 100; x += 1) {
+                      const diff = x - pct;
+                      // Gaussian curve formula mapping to SVG Y position (amplitude 32, center pct, width 15)
+                      const y = 35 - 32 * Math.exp(-Math.pow(diff, 2) / 15);
+                      if (x === 0) path += `M 0,${y}`;
+                      else path += ` L ${x}%,${y}`;
+                    }
+                    return path;
+                  })()}
+                  fill="none"
+                  stroke="url(#peakGrad)"
+                  strokeWidth="2.5"
+                />
+              )}
+              {/* Gradients */}
+              <defs>
+                <linearGradient id="peakGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#6366f1" />
+                  <stop offset="50%" stopColor="#22d3ee" />
+                  <stop offset="100%" stopColor="#6366f1" />
+                </linearGradient>
+              </defs>
+            </svg>
           </div>
         </div>
 

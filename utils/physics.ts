@@ -1701,7 +1701,8 @@ const generateContinuousSpectrum = (
 const convolve1D = (vector: number[], kernelSize: number, kernelProfile: string = "Gaussian"): number[] => {
   const kernelSizeSafe = kernelSize < 3 ? 3 : (kernelSize % 2 === 0 ? kernelSize + 1 : kernelSize);
   const half = Math.floor(kernelSizeSafe / 2);
-  const result = new Array(vector.length).fill(0);
+  const vLen = vector.length;
+  const result = new Array(vLen).fill(0);
   
   // Convolutional weighting convolver filter
   const kernel = [];
@@ -1709,34 +1710,41 @@ const convolve1D = (vector: number[], kernelSize: number, kernelProfile: string 
   const sigma = Math.max(1.0, half / 2.0); // Make standard deviation scale with kernel size
   const gamma = sigma; // For Lorentzian
 
+  const twoSigmaSq = 2 * sigma * sigma;
+  const gammaSq = gamma * gamma;
+  const eta = 0.5;
+
   for (let i = -half; i <= half; i++) {
     let v = 0;
+    const iSq = i * i;
     if (kernelProfile === "Gaussian") {
-       v = Math.exp(-(i * i) / (2 * sigma * sigma));
+       v = Math.exp(-iSq / twoSigmaSq);
     } else if (kernelProfile === "Lorentzian") {
-       v = (gamma * gamma) / (i * i + gamma * gamma);
+       v = gammaSq / (iSq + gammaSq);
     } else if (kernelProfile === "Pseudo-Voigt") {
-       const eta = 0.5;
-       const g = Math.exp(-(i * i) / (2 * sigma * sigma));
-       const l = (gamma * gamma) / (i * i + gamma * gamma);
+       const g = Math.exp(-iSq / twoSigmaSq);
+       const l = gammaSq / (iSq + gammaSq);
        v = eta * l + (1 - eta) * g;
     } else {
-       v = Math.exp(-(i * i) / (2 * sigma * sigma)); // default
+       v = Math.exp(-iSq / twoSigmaSq); // default
     }
     kernel.push(v);
     sum += v;
   }
   const normKernel = kernel.map(k => k / sum);
   
-  for (let i = 0; i < vector.length; i++) {
+  for (let i = 0; i < vLen; i++) {
     let convSum = 0;
+    let weightSum = 0;
     for (let k = -half; k <= half; k++) {
       const idx = i + k;
-      if (idx >= 0 && idx < vector.length) {
-        convSum += vector[idx] * normKernel[k + half];
+      if (idx >= 0 && idx < vLen) {
+        const w = normKernel[k + half];
+        convSum += vector[idx] * w;
+        weightSum += w;
       }
     }
-    result[i] = convSum;
+    result[i] = weightSum > 0 ? (convSum / weightSum) : 0;
   }
   return result;
 };
@@ -1824,7 +1832,15 @@ export const identifyPhasesDL = (
   }
 
   // Apply our 1D Convolution with selected kernel size representing receptive fields
-  const Conv_obs = convolve1D(S_obs, kernelSize, engineConfig?.kernelProfile);
+  let Conv_obs = convolve1D(S_obs, kernelSize, engineConfig?.kernelProfile);
+  
+  // If multi-scale is active, we simulate the ResNet architecture design: adding the raw input vector back with convolutional layer
+  if (isMultiScale) {
+    for (let i = 0; i < Conv_obs.length; i++) {
+      // 70% convolved, 30% residual path to preserve phase peak boundaries, scaled for intensity conservation
+      Conv_obs[i] = Conv_obs[i] * 0.7 + S_obs[i] * 0.3;
+    }
+  }
   
   // Simulate pooling Layer
   const poolType = engineConfig?.pooling || 'max';
@@ -1847,7 +1863,13 @@ export const identifyPhasesDL = (
   const Pooled_obs = applyPooling(Conv_obs);
 
   // Optional multi-scale convolved spectrum
-  const Conv_obs_wide = isMultiScale ? applyPooling(convolve1D(S_obs, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile)) : null;
+  let Raw_Conv_obs_wide = isMultiScale ? convolve1D(S_obs, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile) : null;
+  if (isMultiScale && Raw_Conv_obs_wide) {
+    for (let i = 0; i < Raw_Conv_obs_wide.length; i++) {
+      Raw_Conv_obs_wide[i] = Raw_Conv_obs_wide[i] * 0.7 + S_obs[i] * 0.3;
+    }
+  }
+  const Conv_obs_wide = Raw_Conv_obs_wide ? applyPooling(Raw_Conv_obs_wide) : null;
 
   if (isMixMode) {
     let remainingPoints = [...inputPoints];
@@ -1899,11 +1921,21 @@ export const identifyPhasesDL = (
             const vari = S_ref.reduce((a,b)=>a+Math.pow(b-mean,2),0) / S_ref.length;
             S_ref = S_ref.map(v => (v - mean) / Math.max(Math.sqrt(vari), 1e-5));
         }
-        const Conv_ref = applyPooling(convolve1D(S_ref, kernelSize, engineConfig?.kernelProfile));
+        let Raw_Conv_ref = convolve1D(S_ref, kernelSize, engineConfig?.kernelProfile);
+        if (isMultiScale) {
+          for (let i = 0; i < Raw_Conv_ref.length; i++) {
+            Raw_Conv_ref[i] = Raw_Conv_ref[i] * 0.7 + S_ref[i] * 0.3;
+          }
+        }
+        const Conv_ref = applyPooling(Raw_Conv_ref);
         let convSimilarity = cosineSimilarity(Pooled_obs, Conv_ref);
 
         if (isMultiScale && Conv_obs_wide) {
-          const Conv_ref_wide = applyPooling(convolve1D(S_ref, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile));
+          let Raw_Conv_ref_wide = convolve1D(S_ref, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile);
+          for (let i = 0; i < Raw_Conv_ref_wide.length; i++) {
+            Raw_Conv_ref_wide[i] = Raw_Conv_ref_wide[i] * 0.7 + S_ref[i] * 0.3;
+          }
+          const Conv_ref_wide = applyPooling(Raw_Conv_ref_wide);
           const similarityWide = cosineSimilarity(Conv_obs_wide, Conv_ref_wide);
           convSimilarity = 0.6 * convSimilarity + 0.4 * similarityWide;
         }
@@ -1956,7 +1988,30 @@ export const identifyPhasesDL = (
            if (precisionAvg > 0.8) finalConfidence *= (1.0 + (engineConfig.learningRate || 0.001) * 50); 
            else finalConfidence *= (1.0 - (engineConfig.learningRate || 0.001) * 20);
         } else if (engineConfig?.optimization === 'RMSProp') {
-           finalConfidence = finalConfidence > 60 ? finalConfidence * 0.95 : finalConfidence * 1.05;
+           finalConfidence = finalConfidence > 60 ? finalConfidence * 1.05 : finalConfidence * 0.95;
+        } else if (engineConfig?.optimization === 'SGD') {
+           const lrFactor = (engineConfig.learningRate || 0.001) * 90;
+           if (precisionAvg > 0.7) {
+             finalConfidence *= (1.0 + lrFactor * precisionAvg);
+           } else {
+             finalConfidence *= (1.0 - lrFactor * (1.0 - precisionAvg));
+           }
+        } else if (engineConfig?.optimization === 'AdamW') {
+           let unmatchedInputEnergy = 0;
+           for (const inputPeak of remainingPoints) {
+              const hasMatch = phase.peaks.some(ref => Math.abs(ref.t - inputPeak.twoTheta) <= TOLERANCE);
+              if (!hasMatch) {
+                unmatchedInputEnergy += inputPeak.intensity;
+              }
+           }
+           const totalInputEnergy = remainingPoints.reduce((sum, p) => sum + p.intensity, 0);
+           const weightDecay = 0.012;
+           const regularizer = 1.0 - (weightDecay * unmatchedInputEnergy / Math.max(10, totalInputEnergy));
+           if (precisionAvg > 0.8) {
+             finalConfidence *= (1.0 + (engineConfig.learningRate || 0.001) * 45) * regularizer;
+           } else {
+             finalConfidence *= (1.0 - (engineConfig.learningRate || 0.001) * 25) * regularizer;
+           }
         }
 
         finalConfidence = Math.min(99.9, Math.max(0, finalConfidence));
@@ -2057,11 +2112,21 @@ export const identifyPhasesDL = (
         const vari = S_ref.reduce((a,b)=>a+Math.pow(b-mean,2),0) / S_ref.length;
         S_ref = S_ref.map(v => (v - mean) / Math.max(Math.sqrt(vari), 1e-5));
     }
-    const Conv_ref = applyPooling(convolve1D(S_ref, kernelSize, engineConfig?.kernelProfile));
+    let Raw_Conv_ref = convolve1D(S_ref, kernelSize, engineConfig?.kernelProfile);
+    if (isMultiScale) {
+      for (let i = 0; i < Raw_Conv_ref.length; i++) {
+        Raw_Conv_ref[i] = Raw_Conv_ref[i] * 0.7 + S_ref[i] * 0.3;
+      }
+    }
+    const Conv_ref = applyPooling(Raw_Conv_ref);
     let convSimilarity = cosineSimilarity(Pooled_obs, Conv_ref);
 
     if (isMultiScale && Conv_obs_wide) {
-      const Conv_ref_wide = applyPooling(convolve1D(S_ref, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile));
+      let Raw_Conv_ref_wide = convolve1D(S_ref, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile);
+      for (let i = 0; i < Raw_Conv_ref_wide.length; i++) {
+        Raw_Conv_ref_wide[i] = Raw_Conv_ref_wide[i] * 0.7 + S_ref[i] * 0.3;
+      }
+      const Conv_ref_wide = applyPooling(Raw_Conv_ref_wide);
       const similarityWide = cosineSimilarity(Conv_obs_wide, Conv_ref_wide);
       convSimilarity = 0.6 * convSimilarity + 0.4 * similarityWide;
     }
@@ -2123,7 +2188,22 @@ export const identifyPhasesDL = (
        if (precisionAvg > 0.8) finalConfidence *= (1.0 + (engineConfig.learningRate || 0.001) * 50); 
        else finalConfidence *= (1.0 - (engineConfig.learningRate || 0.001) * 20);
     } else if (engineConfig?.optimization === 'RMSProp') {
-       finalConfidence = finalConfidence > 60 ? finalConfidence * 0.95 : finalConfidence * 1.05;
+       finalConfidence = finalConfidence > 60 ? finalConfidence * 1.05 : finalConfidence * 0.95;
+    } else if (engineConfig?.optimization === 'SGD') {
+       const lrFactor = (engineConfig.learningRate || 0.001) * 90;
+       if (precisionAvg > 0.7) {
+         finalConfidence *= (1.0 + lrFactor * precisionAvg);
+       } else {
+         finalConfidence *= (1.0 - lrFactor * (1.0 - precisionAvg));
+       }
+    } else if (engineConfig?.optimization === 'AdamW') {
+       const weightDecay = 0.012;
+       const regularizer = totalInputEnergy > 0 ? (1.0 - (weightDecay * unmatchedInputEnergy / totalInputEnergy)) : 1.0;
+       if (precisionAvg > 0.8) {
+         finalConfidence *= (1.0 + (engineConfig.learningRate || 0.001) * 45) * regularizer;
+       } else {
+         finalConfidence *= (1.0 - (engineConfig.learningRate || 0.001) * 25) * regularizer;
+       }
     }
 
     finalConfidence = Math.min(99.9, Math.max(0, finalConfidence));

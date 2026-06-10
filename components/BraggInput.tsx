@@ -271,6 +271,23 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                 placeholder="e.g., 111, 220, 311"
                 className="w-full h-20 px-3 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-mono text-xs leading-relaxed custom-scrollbar resize-none"
               />
+              <div className="mt-1.5 flex flex-wrap gap-1 items-center">
+                <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mr-1">Symmetry Presets:</span>
+                {[
+                  { name: 'FCC/Cubic', list: '111, 200, 220, 311' },
+                  { name: 'BCC', list: '110, 200, 211, 220' },
+                  { name: 'Hexagonal', list: '100, 002, 101, 102' }
+                ].map((tpl) => (
+                  <button
+                    key={tpl.name}
+                    type="button"
+                    onClick={() => setRawHKL(tpl.list)}
+                    className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
+                  >
+                    {tpl.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           

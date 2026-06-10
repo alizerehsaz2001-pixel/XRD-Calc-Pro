@@ -3310,14 +3310,14 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <div className="w-1 h-1 bg-indigo-500 rounded-full" />{" "}
                 Optimization
               </label>
-              <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
-                {["Adam", "RMSProp"].map((opt) => (
+              <div className="flex flex-wrap gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
+                {["Adam", "AdamW", "SGD", "RMSProp"].map((opt) => (
                   <button
                     key={opt}
                     onClick={() =>
                       setEngineConfig({ ...engineConfig, optimization: opt })
                     }
-                    className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.optimization === opt ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
+                    className={`flex-1 min-w-[60px] py-1.5 text-[9px] font-black rounded-lg transition-all ${engineConfig.optimization === opt ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
                   >
                     {opt}
                   </button>
@@ -5099,6 +5099,14 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <span className="w-1 h-1 rounded-full bg-emerald-400"></span>{" "}
                 Conv1D [{engineConfig.kernelSize}]
               </span>
+              <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-rose-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-rose-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-rose-400"></span>{" "}
+                {engineConfig.depth} Layers
+              </span>
+              <span className="px-3 py-1.5 bg-slate-800/40 border border-slate-700/80 rounded-lg text-[9px] font-mono font-black text-amber-300/90 uppercase tracking-[0.2em] shadow-inner hover:border-amber-500/30 hover:bg-slate-800/60 transition-colors cursor-default flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full flex items-center justify-center bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] animate-pulse"></span>{" "}
+                ~{(engineConfig.filters * engineConfig.kernelSize * 1024 * engineConfig.depth / 1000000).toFixed(1)}M Params
+              </span>
             </div>
           </div>
 
@@ -5221,57 +5229,56 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       {idx === 1 && isActive && (
                         <div className="mb-2 relative z-10">
                           <div className="text-[9px] text-slate-400 font-mono space-y-2 mb-3 bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_15px_rgba(139,92,246,0.1)] font-black uppercase tracking-widest hover:border-violet-400/50 transition-colors">
-                            <p className="flex justify-between items-center">
-                              <span className="text-violet-300 flex items-center gap-2">
-                                <span className="text-violet-500">&gt;</span>
-                                Conv1D_1: [{engineConfig.filters},{" "}
-                                {engineConfig.kernelSize}]
-                              </span>{" "}
-                              <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded border border-violet-500/20">
-                                {Math.floor(Math.random() * 99)}ms
-                              </span>
-                            </p>
-                            <p className="flex justify-between items-center">
-                              <span className="text-violet-300 flex items-center gap-2">
-                                <span className="text-violet-500">&gt;</span>
-                                BatchNorm:{" "}
-                                {engineConfig.batchNorm ? "ACTIVE" : "OFF"}
-                              </span>{" "}
-                              <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded border border-violet-500/20">
-                                β,γ OPT
-                              </span>
-                            </p>
-                            <p className="flex justify-between items-center">
-                              <span className="text-violet-300 flex items-center gap-2">
-                                <span className="text-violet-500">&gt;</span>
-                                Activation: {engineConfig.activation}
-                              </span>{" "}
-                              <span className="text-emerald-400 drop-shadow-sm px-1.5 py-0.5 bg-emerald-500/10 rounded border border-emerald-500/20 animate-[pulse_2s_ease-in-out_infinite]">
-                                STABLE
-                              </span>
-                            </p>
-                            <p className="flex justify-between items-center">
-                              <span className="text-violet-300 flex items-center gap-2">
-                                <span className="text-violet-500">&gt;</span>
-                                Dropout ({engineConfig.dropout.toFixed(2)}):
-                                Active
-                              </span>{" "}
-                              <span className="text-fuchsia-400 drop-shadow-sm px-1.5 py-0.5 bg-fuchsia-500/10 rounded border border-fuchsia-500/20">
-                                REG
-                              </span>
-                            </p>
-                            <p className="flex justify-between items-center">
-                              <span className="text-violet-300 flex items-center gap-2">
-                                <span className="text-violet-500">&gt;</span>
-                                Fusion:{" "}
-                                {engineConfig.multiScale
-                                  ? "ENABLED"
-                                  : "DISABLED"}
-                              </span>{" "}
-                              <span className="text-violet-400 drop-shadow-sm px-1.5 py-0.5 bg-violet-500/10 rounded border border-violet-500/20">
-                                {Math.floor(Math.random() * 99)}ms
-                              </span>
-                            </p>
+                            <div className="flex flex-col gap-3">
+                              {/* Animated Kernel Sliding Visualization */}
+                              <div className="relative h-6 bg-slate-950 rounded border border-slate-800 overflow-hidden mb-1 flex items-center">
+                                {/* Input signal mock */}
+                                <svg className="absolute inset-0 w-full h-full opacity-30" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                  <path d="M0 50 Q 10 10, 20 60 T 40 40 T 60 70 T 80 30 T 100 50" fill="none" stroke="#a78bfa" strokeWidth="2" />
+                                </svg>
+                                {/* Sliding kernel */}
+                                <div 
+                                  className="absolute h-full bg-violet-500/20 border-x border-violet-400 shadow-[0_0_10px_rgba(139,92,246,0.5)] animate-[slide_2s_ease-in-out_infinite_alternate]"
+                                  style={{ width: `${Math.max(10, engineConfig.kernelSize * 2)}%` }}
+                                >
+                                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[6px] text-violet-300 bg-violet-900 px-1 rounded whitespace-nowrap">k={engineConfig.kernelSize}</div>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                                <p className="flex justify-between items-center bg-slate-950/50 px-2 py-1 rounded border border-slate-800">
+                                  <span className="text-violet-300 flex items-center gap-1.5">
+                                    <Layers className="w-3 h-3 text-violet-500"/>
+                                    Filters
+                                  </span>{" "}
+                                  <span className="text-violet-400 drop-shadow-sm">{engineConfig.filters}</span>
+                                </p>
+                                <p className="flex justify-between items-center bg-slate-950/50 px-2 py-1 rounded border border-slate-800">
+                                  <span className="text-violet-300 flex items-center gap-1.5">
+                                    <Activity className="w-3 h-3 text-emerald-500"/>
+                                    Activ
+                                  </span>{" "}
+                                  <span className="text-emerald-400 drop-shadow-sm">{engineConfig.activation}</span>
+                                </p>
+                                <p className="flex justify-between items-center bg-slate-950/50 px-2 py-1 rounded border border-slate-800">
+                                  <span className="text-violet-300 flex items-center gap-1.5">
+                                    <Database className="w-3 h-3 text-amber-500"/>
+                                    Norm
+                                  </span>{" "}
+                                  <span className={engineConfig.batchNorm ? "text-emerald-400" : "text-amber-400"}>
+                                    {engineConfig.batchNorm ? "ACTIVE" : "OFF"}
+                                  </span>
+                                </p>
+                                <p className="flex justify-between items-center bg-slate-950/50 px-2 py-1 rounded border border-slate-800">
+                                  <span className="text-violet-300 flex items-center gap-1.5">
+                                    <span className="w-3 h-3 rounded bg-fuchsia-500/20 text-fuchsia-400 flex items-center justify-center border border-fuchsia-500/50 text-[6px]">D</span>
+                                    Drop
+                                  </span>{" "}
+                                  <span className="text-fuchsia-400 drop-shadow-sm">
+                                    {engineConfig.dropout.toFixed(2)}
+                                  </span>
+                                </p>
+                              </div>
+                            </div>
                           </div>
                           <div className="flex flex-col gap-2 w-full bg-slate-900/60 p-3 rounded-xl border border-slate-800 relative overflow-hidden group">
                             <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -5351,15 +5358,15 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                               Vector DB
                             </span>
                             <span className="text-slate-500 text-[8px] bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
-                              HNSW-1M Index
+                              M-TREE COD/ICSD
                             </span>
                           </div>
                           <div className="relative h-12 w-full flex items-center justify-center border border-dashed border-slate-700/60 rounded-lg overflow-hidden group mb-3 bg-slate-950/50">
                             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMjBMIDIwIDAiIHN0cm9rZT0iIzFmMjkwMyIgc3Ryb2tlLXdpZHRoPSIwLjUiLz48L3N2Zz4=')] opacity-30"></div>
                             <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/5 to-transparent"></div>
                             <p className="text-violet-300 flex items-center gap-2 z-10 bg-slate-900 px-3 py-1.5 rounded-lg border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]">
-                              <Search className="w-3.5 h-3.5 text-violet-500 animate-spin-slow" />{" "}
-                              Cosine Similarity Eval
+                              <Search className="w-3.5 h-3.5 text-violet-500 animate-[spin_3s_linear_infinite]" />{" "}
+                              L2 / Cosine Similarity
                             </p>
                           </div>
                           <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800 p-0.5 shadow-inner">
@@ -5380,15 +5387,15 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           <div className="grid grid-cols-2 gap-2 mb-3">
                             <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col justify-center">
                               <span className="text-[7px] text-slate-500 mb-1">
-                                LAYER
+                                INFERENCE
                               </span>
                               <span className="text-violet-300 font-bold border-l-2 border-violet-500 pl-1.5">
-                                Dense_1
+                                Dense Classifier
                               </span>
                             </div>
                             <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col justify-center">
                               <span className="text-[7px] text-slate-500 mb-1">
-                                ACTIVATION
+                                DISTRIBUTION
                               </span>
                               <span className="text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)] font-bold border-l-2 border-emerald-500 pl-1.5">
                                 Softmax

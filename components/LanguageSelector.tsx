@@ -122,6 +122,8 @@ export const languagesList: Language[] = [
   { code: 'fj', name: 'Fijian', nativeName: 'Na Vosa Vakaviti (FJ)', flag: '🇫🇯', region: 'Oceania' },
   { code: 'sm', name: 'Samoan', nativeName: 'Gagana Samoa (SM)', flag: '🇼🇸', region: 'Oceania' },
   { code: 'iu', name: 'Inuktitut', nativeName: 'ᐃᓄᒃᑎᑐᑦ (IU)', flag: '🇨🇦', region: 'Americas' },
+  { code: 'pirate', name: 'Pirate', nativeName: 'Ahoy Matey! (Pirate)', flag: '🏴‍☠️', region: 'The Seven Seas' },
+  { code: 'tlh', name: 'Klingon', nativeName: 'tlhIngan Hol (Klingon)', flag: '👽', region: 'Space' },
 ];
 
 interface LanguageSelectorProps {

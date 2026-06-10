@@ -33,6 +33,7 @@ import { SideSeekBar } from './components/SideSeekBar';
 import LanguageSelector from './components/LanguageSelector';
 import { BraggHistory } from './components/BraggHistory';
 import { BraggVisualization } from './components/BraggVisualization';
+import { LatticeEstimator } from './components/LatticeEstimator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext } from './components/SettingsContext';
 import { calculateBragg, parsePeakString } from './utils/physics';
@@ -822,6 +823,7 @@ const App: React.FC = () => {
                         />
                         <DiffractionChart results={results} materialName={materialName} />
                         <ResultsTable results={results} />
+                        <LatticeEstimator results={results} />
                       </div>
                     </div>
                   )}
