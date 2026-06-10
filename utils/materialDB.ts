@@ -296,12 +296,12 @@ const RAW_MATERIAL_DB = [
     hazards: ["Respiratory irritant (dust)"],
   },
   {
-    name: "Hydroxyapatite (Sintered)",
+    name: "Hydroxyapatite (Highly Crystalline)",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.87, 45, 0, 0, 2\n31.77, 100, 2, 1, 1\n32.19, 98, 1, 1, 2\n32.90, 65, 3, 0, 0\n34.04, 50, 2, 0, 2\n39.81, 30, 3, 1, 0\n46.71, 40, 2, 2, 2\n49.46, 35, 2, 1, 3\n50.49, 30, 3, 2, 1",
     description:
-      "Highly crystalline synthetic hydroxyapatite sintered at 1000°C. Characterized by sharp, well-defined Bragg reflections.",
+      "Highly crystalline synthetic hydroxyapatite (HAp) engineered through high-temperature sintering. Exhibits rigorous stoichiometric ratios, minimal ionic substitution, and a thermodynamically stable hexagonal lattice. Characterized by extremely sharp, well-defined Bragg reflections indicating large crystallite domains.",
     formula: "Ca10(PO4)6(OH)2",
     elements: ["Ca", "P", "O", "H"],
     crystalSystem: "Hexagonal",
@@ -312,12 +312,12 @@ const RAW_MATERIAL_DB = [
     elasticModulus: 120,
   },
   {
-    name: "Hydroxyapatite (Nano)",
+    name: "Nano-Hydroxyapatite (Biomimetic)",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.9, 30, 0, 0, 2\n31.8, 100, 2, 1, 1\n32.2, 90, 1, 1, 2\n32.9, 50, 3, 0, 0\n34.0, 40, 2, 0, 2\n39.8, 20, 3, 1, 0",
     description:
-      "Poorly crystalline nano-meter sized hydroxyapatite synthesized via low-temperature precipitation. Exhibits significant peak broadening.",
+      "Biomimetic nano-crystalline hydroxyapatite synthesized via controlled precipitation at physiological temperatures. Characterized by substantial line broadening due to nanoscale crystallites (<50nm) and inherent lattice strains, closely mimicking the morphological and crystallographic state of young mammalian bone mineral.",
     formula: "Ca10(PO4)6(OH)2",
     elements: ["Ca", "P", "O", "H"],
     crystalSystem: "Hexagonal",
@@ -329,12 +329,12 @@ const RAW_MATERIAL_DB = [
     opticalProperties: "White nano-powder",
   },
   {
-    name: "Carbonated Hydroxyapatite",
+    name: "Carbonated Hydroxyapatite (Type-B)",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.75, 40\n31.65, 100\n32.08, 95\n32.75, 60\n33.85, 45\n39.65, 25",
     description:
-      "Type-B carbonated hydroxyapatite where carbonate ions substitute for phosphate ions, similar to biological bone mineral.",
+      "Biological-grade Type-B carbonated hydroxyapatite featuring significant carbonate (CO3) substitution at phosphate (PO4) lattice sites. This ionic doping induces substantial crystalline disorder, reduces symmetry, and dramatically increases bio-resorbability compared to stoichiometric HAp.",
     formula: "Ca10(PO4)6-x(CO3)x(OH)2",
     elements: ["Ca", "P", "O", "C", "H"],
     crystalSystem: "Hexagonal",
@@ -389,11 +389,11 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 1041.5,
   },
   {
-    name: "Hydroxyapatite (Dental Enamel)",
+    name: "Biological Hydroxyapatite (Mature Enamel)",
     type: "Biomaterials & Pharmaceuticals",
     pattern: "25.8, 40\n31.7, 100\n32.2, 95\n32.9, 60\n34.0, 50\n39.8, 30",
     description:
-      "Human dental enamel, primarily composed of carbonated hydroxyapatite with specific orientation and crystallite size. Key to tooth structure.",
+      "Highly oriented biological hydroxyapatite constituting mammalian dental enamel. Features unique anisotropic crystallite growth (elongated nanorods), trace fluoride/carbonate incorporations, and exceptional mechanical hardness. XRD patterns typically exhibit pronounced preferred orientation effects.",
     formula: "Ca10(PO4,CO3)6(OH,F)2",
     elements: ["Ca", "P", "O", "C", "H", "F"],
     crystalSystem: "Hexagonal",
@@ -448,12 +448,12 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 0,
   },
   {
-    name: "Hydroxyapatite (Human Dentin)",
+    name: "Biological Hydroxyapatite (Dentin Matrix)",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
       "25.85, 35\n31.75, 100\n32.25, 92\n32.95, 58\n34.10, 48\n39.90, 25",
     description:
-      "Human dentin, slightly more carbonated and less crystalline than enamel. Found under the tooth enamel.",
+      "Nanocrystalline biological hydroxyapatite embedded within a collagenous matrix, characteristic of mammalian dentin and mature trabecular bone. Exhibits extensive ionic substitutions, very small domain sizes, and broad diffraction profiles indicative of high specific surface area.",
     formula: "Ca10(PO4,CO3)6(OH)2",
     elements: ["Ca", "P", "O", "C", "H"],
     crystalSystem: "Hexagonal",
@@ -9982,20 +9982,6 @@ const RAW_MATERIAL_DB = [
     elasticModulus: 35,
   },
   {
-    name: "Synthetic Nano-Hydroxyapatite",
-    type: "Biomaterials & Pharmaceuticals",
-    pattern: "25.9, 40\n31.8, 100\n32.2, 60\n32.9, 50\n34.0, 30",
-    description: "Phase-pure nanocrystalline calcium phosphate replicating the mineral phase of human bone.",
-    formula: "Ca10(PO4)6(OH)2",
-    elements: ["Ca", "P", "O", "H"],
-    crystalSystem: "Hexagonal",
-    spaceGroup: "P63/m",
-    density: 3.16,
-    applications: ["Bone Void Fillers", "Implant Coating", "Toothpaste Remineralization"],
-    molecularWeight: 1004.6,
-    elasticModulus: 100,
-  },
-  {
     name: "Bone Carbonated Apatite (Dahllite)",
     type: "Biomaterials & Pharmaceuticals",
     pattern: "25.8, 30\n31.9, 100\n32.5, 50\n33.0, 40",
@@ -10841,18 +10827,6 @@ const RAW_MATERIAL_DB = [
     applications: ["IT-SOFC Electrolytes","Oxygen Sensors","Catalytic Supports"],
   }
 ,
-  {
-    name: "Hydroxyapatite (HAP)",
-    type: "Biomaterials & Pharmaceuticals",
-    pattern: "25.8, 40\n31.8, 100\n32.2, 60\n32.9, 55\n39.8, 20\n49.5, 30",
-    description: "A naturally occurring mineral form of calcium apatite. It is the main inorganic constituent of tooth enamel and bone, extensively used for bone grafts and dental implants.",
-    formula: "Ca10(PO4)6(OH)2",
-    elements: ["Ca","P","O","H"],
-    crystalSystem: "Hexagonal",
-    spaceGroup: "P63/m",
-    density: 3.16,
-    applications: ["Bone Grafts","Dental Implants","Orthopedics"],
-  },
   {
     name: "Beta-Tricalcium Phosphate (B-TCP)",
     type: "Biomaterials & Pharmaceuticals",
@@ -16396,22 +16370,6 @@ const RAW_MATERIAL_DB = [
     spaceGroup: "Fd-3m (No. 227)",
     density: 2.5,
     applications: ["Standard","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
-    name: "Hydroxyapatite",
-    type: "Biomaterials & Pharmaceuticals",
-    pattern:
-      "25.87, 100\n31.77, 78\n32.19, 66\n32.90, 54\n34.04, 42\n39.81, 30",
-    description:
-      "Highly relevant bio-mineral form of calcium phosphate used in bone implants and scaffolds.",
-    formula: "Ca10(PO4)6(OH)2",
-    elements: ["Ca","P","O","H"],
-    crystalSystem: "Hexagonal",
-    spaceGroup: "P63/m (No. 176)",
-    density: 2.5,
-    applications: ["Biomaterial","Standard Reference Registries","Benchmark Standard"],
     molecularWeight: 100,
     elasticModulus: 100
   },

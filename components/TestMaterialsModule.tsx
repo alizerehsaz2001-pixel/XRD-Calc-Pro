@@ -2630,8 +2630,19 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
     }
   };
 
-  // Combine standard, mapped, and custom presets
-  const allPresets = [...PRESETS, ...mappedPresets, ...customPresets];
+  // Combine and deduplicate standard, mapped, and custom presets to prevent repetitive entries
+  const combinedPresets = [...PRESETS, ...mappedPresets, ...customPresets];
+  const uniquePresetsMap = new Map<string, MaterialPreset>();
+  
+  combinedPresets.forEach(preset => {
+    // PRESETS comes first in the array, so if it's already set, we keep the original PRESETS version 
+    // which has accurately mapped hkls arrays, instead of the mapped version which just has '?'
+    if (!uniquePresetsMap.has(preset.name)) {
+       uniquePresetsMap.set(preset.name, preset);
+    }
+  });
+  
+  const allPresets = Array.from(uniquePresetsMap.values());
 
   // Filter based on Tab + Database + Search Query
   const filteredPresets = allPresets.filter(preset => {

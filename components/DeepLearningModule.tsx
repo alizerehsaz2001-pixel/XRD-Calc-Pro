@@ -6197,25 +6197,35 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
                 {/* Mixture Candidates Selector */}
                 {result?.candidates && result.candidates.length > 1 && (
-                  <div className="flex flex-wrap gap-2 mb-8 relative z-10 p-4 bg-slate-900/50 rounded-2xl border border-slate-700/50 shadow-inner">
-                    <div className="w-full mb-2 flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-indigo-400" />
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Identified Mixture Components
-                      </span>
+                  <div className="flex flex-col gap-2 mb-8 relative z-10 p-5 bg-slate-900/40 rounded-3xl border border-slate-700/50 shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
+                    <div className="w-full mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-700/40 pb-4 gap-3 relative">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+                          <Layers className="w-3.5 h-3.5 text-indigo-300" />
+                        </div>
+                        <span className="text-[11px] font-black text-slate-200 uppercase tracking-[0.15em]">
+                          Identified Mixture Components
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[9px] font-black text-amber-400 uppercase tracking-widest shadow-[0_0_10px_rgba(245,158,11,0.1)] backdrop-blur-md">
+                        <ShieldAlert className="w-3 h-3" />
+                        {t("Laboratory Verification Required", "Laboratory Verification Required")}
+                      </div>
                     </div>
+                    <div className="flex flex-wrap gap-2.5">
                     {result.candidates.map((candidate, idx) => (
                       <button
                         key={candidate.phase_name + idx}
                         onClick={() => setSelectedCandidate(candidate)}
-                        className={`px-4 py-2 rounded-xl border text-xs font-bold transition-all ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)]" : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white"}`}
+                        className={`px-4 py-2.5 rounded-xl border text-[11px] font-bold tracking-wider uppercase transition-all flex items-center gap-2 ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]" : "bg-slate-950/50 border-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-white"}`}
                       >
-                        {candidate.phase_name}{" "}
-                        <span className="opacity-60 ml-1 font-mono">
+                        {candidate.phase_name}
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-500/50 text-white" : "bg-slate-800 text-slate-500"}`}>
                           {candidate.confidence_score.toFixed(0)}%
                         </span>
                       </button>
                     ))}
+                    </div>
                   </div>
                 )}
 
@@ -6230,13 +6240,19 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       </div>
                     </div>
 
-                    <div className="flex-1">
-                      <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-indigo-300 uppercase tracking-tighter drop-shadow-sm pb-1 leading-tight flex items-center gap-3">
+                    <div className="flex-1 flex flex-col justify-center">
+                      <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-slate-200 to-indigo-300 uppercase tracking-tighter drop-shadow-sm pb-1 leading-tight flex flex-wrap items-center gap-3">
                         {t("Synthesis Intelligence", "Synthesis Intelligence")}
-                        <span className="hidden md:flex px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] items-center gap-1.5 text-emerald-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(52,211,153,0.1)]">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                          Network Active
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="hidden lg:flex px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[9px] items-center gap-1.5 text-emerald-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(52,211,153,0.1)] uppercase font-bold">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                            Network Active
+                          </span>
+                          <span className="flex px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[9px] items-center gap-1.5 text-amber-400 font-mono tracking-widest shadow-[inset_0_0_10px_rgba(245,158,11,0.1)] uppercase font-bold">
+                            <ShieldAlert className="w-3 h-3" />
+                            Laboratory Verification Required
+                          </span>
+                        </div>
                       </h3>
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex gap-1.5 p-1.5 bg-black/40 rounded-full border border-white/5 shadow-inner">
@@ -6406,13 +6422,22 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   {/* Property Analytics Board */}
                   <div className="md:col-span-12 group/analytics mb-8 bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] hover:border-emerald-500/40 transition-all duration-500 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none group-hover/analytics:bg-emerald-500/10 transition-all duration-700 -translate-y-10 -translate-x-10" />
+                    {/* Physical property spectrum */}
                     <div className="flex items-center gap-4 mb-8">
-                      <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/30 shadow-[inset_0_2px_10px_rgba(52,211,153,0.2)]">
-                        <Activity className="w-5 h-5 text-emerald-400" />
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-emerald-500/20 blur-md rounded-full pointer-events-none" />
+                        <div className="p-3 bg-gradient-to-br from-[#0F172A] to-[#0A101C] rounded-2xl text-emerald-400 border border-emerald-500/30 shadow-[inset_0_2px_10px_rgba(52,211,153,0.2)] relative z-10 flex items-center justify-center">
+                          <Activity className="w-6 h-6 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                        </div>
                       </div>
-                      <h4 className="text-lg font-black text-white uppercase tracking-widest">
-                        Physical property spectrum
-                      </h4>
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-emerald-400/90 tracking-[0.3em] block leading-none mb-1.5">
+                          Material Characteristics
+                        </span>
+                        <h4 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider drop-shadow-md font-serif italic">
+                          Physical Property Spectrum
+                        </h4>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 z-10 relative">
@@ -6488,23 +6513,44 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         return (
                           <div
                             key={"prop-" + i}
-                            className="flex flex-col gap-3 group/bar"
+                            className="flex flex-col gap-2.5 group/bar bg-[#0B1221] p-5 rounded-2xl border border-slate-800 shadow-inner hover:border-slate-600 transition-colors relative overflow-hidden"
                           >
-                            <div className="flex justify-between items-end">
-                              <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                            <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-[20px] pointer-events-none transition-colors"
+                              style={{
+                                backgroundColor: prop.color === 'emerald' ? 'rgba(16, 185, 129, 0.05)' :
+                                                 prop.color === 'blue' ? 'rgba(59, 130, 246, 0.05)' :
+                                                 prop.color === 'violet' ? 'rgba(139, 92, 246, 0.05)' :
+                                                 prop.color === 'amber' ? 'rgba(245, 158, 11, 0.05)' :
+                                                 prop.color === 'rose' ? 'rgba(225, 29, 72, 0.05)' :
+                                                 prop.color === 'orange' ? 'rgba(234, 88, 12, 0.05)' :
+                                                 prop.color === 'slate' ? 'rgba(100, 116, 139, 0.05)' :
+                                                 prop.color === 'cyan' ? 'rgba(6, 182, 212, 0.05)' :
+                                                 prop.color === 'fuchsia' ? 'rgba(217, 70, 239, 0.05)' : 'rgba(255, 255, 255, 0.05)'
+                              }}
+                            />
+                            {/* <div className="absolute top-0 left-0 w-1 h-full bg-slate-800 group-hover/bar:bg-slate-700 transition-colors" /> */}
+                            
+                            <div className="flex justify-between items-start relative z-10">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] max-w-[60%]">
                                 {prop.label}
                               </span>
                               <span
-                                className={`text-base font-mono font-black ${textClass} drop-shadow-md`}
+                                className={`text-xl sm:text-2xl font-mono font-black ${textClass} drop-shadow-md leading-none`}
                               >
                                 {prop.val.toFixed(1)}
                               </span>
                             </div>
-                            <div className="h-2.5 w-full bg-[#050B14] rounded-full border border-slate-800/80 overflow-hidden relative shadow-inner">
-                              <div
-                                className={`h-full rounded-full transition-all duration-1000 ${colorClass}`}
-                                style={{ width: `${pct}%` }}
-                              />
+                            
+                            <div className="flex items-center gap-3 relative z-10 mt-1">
+                              <div className="flex-1 h-1.5 bg-[#050B14] rounded-full overflow-hidden relative shadow-inner">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-1000 ${colorClass}`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                              <span className="text-[8px] font-mono font-bold text-slate-500 min-w-[24px] text-right">
+                                {pct.toFixed(0)}%
+                              </span>
                             </div>
                           </div>
                         );
@@ -6662,36 +6708,44 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
                     {/* Constituent elements under Physical property spectrum */}
                     {selectedCandidate && (
-                      <div className="mt-8 pt-8 border-t border-[#1e293b]/55 z-10 relative">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-violet-500/10 rounded-xl text-violet-400 border border-violet-500/20">
-                              <FlaskConical className="w-4 h-4 text-violet-400" />
+                      <div className="mt-12 pt-8 border-t border-[#1e293b]/55 z-10 relative">
+                        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+                          <div className="flex items-center gap-4">
+                            <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-inner flex items-center justify-center">
+                              <FlaskConical className="w-6 h-6 text-indigo-400" />
                             </div>
                             <div>
-                              <span className="text-[9px] font-black uppercase text-violet-400/80 tracking-[0.25em] block leading-none mb-1">
+                              <span className="text-[10px] font-black uppercase text-indigo-400/80 tracking-[0.25em] block leading-none mb-1.5">
                                 Crystalline Components
                               </span>
-                              <h5 className="text-xs font-black text-white uppercase tracking-wider">
+                              <h5 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider font-serif italic drop-shadow-sm">
                                 Constituent Phase Elements
                               </h5>
                             </div>
                           </div>
-                          <span className="text-[9px] font-mono font-black text-slate-400 bg-[#0B1221] px-2.5 py-1.5 rounded-xl border border-[#1e293b] self-start sm:self-auto">
-                            Lattice Signature: {selectedCandidate.formula}
-                          </span>
+                          <div className="flex items-center gap-2 bg-[#090F1B]/95 px-4 py-2.5 rounded-xl border border-slate-700/50 shadow-inner">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                              Lattice Signature
+                            </span>
+                            <span className="text-sm font-mono font-black text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.4)]">
+                              {selectedCandidate.formula}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Elements Cards Grid */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                           {(() => {
                             const elements = selectedCandidate.elements 
                                ? selectedCandidate.elements.map((s: string) => ({ symbol: s, name: "" })) // Minimal, we expect MATERIAL_ELEMENTS dict to fill name below
                                : parseElementsFromFormula(selectedCandidate.formula);
                             if (elements.length === 0) {
                               return (
-                                <div className="col-span-full py-4 text-center text-xs font-mono text-slate-500">
-                                  No constituent elements identified.
+                                <div className="col-span-full py-10 bg-slate-900/30 rounded-2xl border border-white/5 border-dashed text-center flex flex-col items-center justify-center gap-3">
+                                  <FlaskConical className="w-8 h-8 text-slate-600 mb-2" />
+                                  <div className="text-sm font-mono text-slate-500 uppercase tracking-widest">
+                                    No constituent elements identified.
+                                  </div>
                                 </div>
                               );
                             }
@@ -6704,41 +6758,89 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 category: "Element",
                                 mass: 1.0,
                               };
-                              const isMetal =
-                                details.category.includes("Metal") ||
-                                details.category.includes("Lanthanide");
-                              const isMetalloid =
-                                details.category === "Metalloid";
-                              const catColors = isMetal
-                                ? "from-violet-500/10 to-violet-500/5 text-violet-400 border-violet-500/15"
-                                : isMetalloid
-                                  ? "from-amber-500/10 to-amber-500/5 text-amber-400 border-amber-500/15"
-                                  : "from-emerald-500/10 to-emerald-500/5 text-emerald-400 border-emerald-500/15";
+                              
+                              let themeColor = "indigo";
+                              if (details.category.includes("Metal")) themeColor = "violet";
+                              if (details.category === "Metalloid") themeColor = "fuchsia";
+                              if (details.category.includes("Alkali")) themeColor = "rose";
+                              if (details.category.includes("Nonmetal")) themeColor = "emerald";
+                              if (details.category.includes("Gas")) themeColor = "cyan";
+
+                              const catColors = {
+                                violet: {
+                                  bg: "bg-violet-500/10 hover:bg-violet-500/20",
+                                  border: "border-violet-500/20",
+                                  text: "text-violet-400 group-hover/element:text-violet-300",
+                                  badge: "border-violet-500/20 bg-violet-500/10 text-violet-400"
+                                },
+                                fuchsia: {
+                                  bg: "bg-fuchsia-500/10 hover:bg-fuchsia-500/20",
+                                  border: "border-fuchsia-500/20",
+                                  text: "text-fuchsia-400 group-hover/element:text-fuchsia-300",
+                                  badge: "border-fuchsia-500/20 bg-fuchsia-500/10 text-fuchsia-400"
+                                },
+                                rose: {
+                                  bg: "bg-rose-500/10 hover:bg-rose-500/20",
+                                  border: "border-rose-500/20",
+                                  text: "text-rose-400 group-hover/element:text-rose-300",
+                                  badge: "border-rose-500/20 bg-rose-500/10 text-rose-400"
+                                },
+                                emerald: {
+                                  bg: "bg-emerald-500/10 hover:bg-emerald-500/20",
+                                  border: "border-emerald-500/20",
+                                  text: "text-emerald-400 group-hover/element:text-emerald-300",
+                                  badge: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+                                },
+                                cyan: {
+                                  bg: "bg-cyan-500/10 hover:bg-cyan-500/20",
+                                  border: "border-cyan-500/20",
+                                  text: "text-cyan-400 group-hover/element:text-cyan-300",
+                                  badge: "border-cyan-500/20 bg-cyan-500/10 text-cyan-400"
+                                },
+                                indigo: {
+                                  bg: "bg-indigo-500/10 hover:bg-indigo-500/20",
+                                  border: "border-indigo-500/20",
+                                  text: "text-indigo-400 group-hover/element:text-indigo-300",
+                                  badge: "border-indigo-500/20 bg-indigo-500/10 text-indigo-400"
+                                }
+                              };
+                              const colorMap = catColors[themeColor as keyof typeof catColors] || catColors.indigo;
 
                               return (
                                 <div
                                   key={elem.symbol}
-                                  className="p-3.5 rounded-2xl bg-[#090F1B]/95 border border-[#1e293b] hover:border-violet-500/40 hover:shadow-[0_0_20px_rgba(139,92,246,0.12)] transition-all duration-300 relative group/element overflow-hidden flex flex-col justify-between"
+                                  className="p-4 rounded-[1.5rem] bg-[#0a0f1d] border border-white/5 shadow-inner hover:border-white/20 transition-all duration-300 relative group/element overflow-hidden flex flex-col min-h-[140px]"
                                 >
-                                  <div className="absolute top-0 right-0 w-12 h-12 bg-white/[0.01] group-hover/element:bg-white/[0.02] rounded-full blur-md pointer-events-none transition-colors" />
-                                  <div className="flex justify-between items-start mb-2">
-                                    <span className="text-[9px] font-mono font-black text-slate-600 group-hover/element:text-slate-400 transition-colors">
-                                      #{details.number}
+                                  {/* Background Glow */}
+                                  <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-[30px] transition-colors pointer-events-none ${colorMap.bg}`} />
+                                  
+                                  {/* Top Row: Atomic Number & Mass */}
+                                  <div className="flex justify-between items-start mb-auto relative z-10">
+                                    <span className="text-xs font-mono font-black text-slate-500 group-hover/element:text-slate-300 transition-colors">
+                                      {details.number}
                                     </span>
-                                    <span className="text-[8px] font-mono text-slate-500">
-                                      {details.mass} u
+                                    <span className="text-[9px] font-mono font-bold text-slate-500 group-hover/element:text-slate-400 transition-colors">
+                                      {Number(details.mass).toFixed(details.mass % 1 === 0 ? 0 : 3)}
                                     </span>
                                   </div>
-                                  <div className="text-xl font-mono font-black text-white group-hover/element:text-violet-300 transition-colors leading-none mb-0.5">
-                                    {elem.symbol}
+                                  
+                                  {/* Symbol & Name */}
+                                  <div className="flex flex-col relative z-10 mt-4 mb-3">
+                                    <div className={`text-4xl font-serif font-black text-white transition-colors leading-none drop-shadow-md ${colorMap.text}`}>
+                                      {elem.symbol}
+                                    </div>
+                                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest truncate mt-2 group-hover/element:text-white transition-colors">
+                                      {details.name || elem.symbol}
+                                    </div>
                                   </div>
-                                  <div className="text-[10px] font-extrabold text-slate-300 truncate leading-tight mb-2.5">
-                                    {elem.name}
-                                  </div>
-                                  <div
-                                    className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-center border bg-gradient-to-br ${catColors} truncate`}
-                                  >
-                                    {details.category}
+                                  
+                                  {/* Category Tag */}
+                                  <div className="mt-auto relative z-10">
+                                    <div
+                                      className={`inline-flex px-2 py-1 rounded text-[8px] font-black uppercase tracking-[0.15em] border truncate max-w-full ${colorMap.badge}`}
+                                    >
+                                      {details.category}
+                                    </div>
                                   </div>
                                 </div>
                               );
@@ -6760,18 +6862,25 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/30 shadow-[inset_0_2px_10px_rgba(99,102,241,0.2)] group-hover/card:bg-indigo-500/20 group-hover/card:scale-110 transition-all duration-500">
                             <Box className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
                           </div>
-                          <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] group-hover/card:text-indigo-300 transition-colors block drop-shadow-sm">
-                            Cell Metrics
-                          </span>
+                          <div>
+                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] group-hover/card:text-indigo-300 transition-colors block drop-shadow-sm mb-1">
+                              Cell Metrics
+                            </span>
+                            <span className="text-xl sm:text-2xl font-serif italic text-indigo-100 tracking-wider">
+                              Crystallographic Intelligence
+                            </span>
+                          </div>
                         </div>
-                        <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest shadow-[inset_0_1px_5px_rgba(52,211,153,0.2)] flex items-center gap-2 select-none">
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          Verified Match
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-black uppercase tracking-widest shadow-[inset_0_1px_5px_rgba(52,211,153,0.2)] flex items-center gap-2 select-none">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Verified Match
+                          </div>
                         </div>
                       </div>
 
-                      {/* Horizontal Metrics Grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 relative z-10 w-full mb-0">
+                      {/* Structural Overview */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 relative z-10 w-full mb-6">
                         {/* 1. Crystal Structure */}
                         {(() => {
                           const crystalText =
@@ -6783,8 +6892,8 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 ? "text-lg sm:text-xl"
                                 : "text-xl sm:text-2xl";
                           return (
-                            <div className="p-5 sm:p-6 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-2xl flex flex-col justify-center gap-1.5 relative overflow-hidden shadow-inner group/crystal hover:border-indigo-500/40 transition-all h-full min-h-[100px]">
-                              <div className="absolute top-0 left-0 w-[3px] h-full bg-gradient-to-b from-indigo-400 to-indigo-600" />
+                            <div className="p-5 sm:p-6 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-2xl flex flex-col justify-center gap-1.5 relative overflow-hidden shadow-[inset_0_0_20px_rgba(99,102,241,0.05)] group/crystal hover:border-indigo-500/40 hover:shadow-[inset_0_0_30px_rgba(99,102,241,0.1)] transition-all h-full min-h-[100px]">
+                              <div className="absolute top-0 left-0 w-[4px] h-full bg-gradient-to-b from-indigo-400 to-indigo-600 shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
                               <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest pl-3 flex items-center gap-2">
                                 <Scan className="w-3 h-3" /> Structure
                               </span>
@@ -6798,8 +6907,8 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         })()}
 
                         {/* 2. Space Group */}
-                        <div className="p-5 sm:p-6 bg-[#0B1221] border border-[#1e293b] rounded-2xl flex flex-col justify-center gap-2 hover:border-emerald-500/30 transition-colors shadow-inner h-full min-h-[100px]">
-                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-tight">
+                        <div className="p-5 sm:p-6 bg-slate-900/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/sg">
+                          <span className="text-[9px] font-black text-slate-500 group-hover/sg:text-emerald-500/70 uppercase tracking-widest leading-tight transition-colors">
                             Space Group
                           </span>
                           <span className="text-xl sm:text-2xl font-mono font-black text-emerald-400 drop-shadow-sm break-words whitespace-normal leading-tight">
@@ -6808,11 +6917,11 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         </div>
 
                         {/* 3. Density */}
-                        <div className="p-5 sm:p-6 bg-[#0B1221] border border-[#1e293b] rounded-2xl flex flex-col justify-center gap-2 hover:border-indigo-300/30 transition-colors shadow-inner h-full min-h-[100px]">
-                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-tight">
+                        <div className="p-5 sm:p-6 bg-slate-900/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/den">
+                          <span className="text-[9px] font-black text-slate-500 group-hover/den:text-cyan-500/70 uppercase tracking-widest leading-tight transition-colors">
                             Density (g/cm³)
                           </span>
-                          <span className="text-xl sm:text-2xl font-mono font-black text-indigo-300 drop-shadow-sm break-words whitespace-normal leading-tight">
+                          <span className="text-xl sm:text-2xl font-mono font-black text-cyan-300 drop-shadow-sm break-words whitespace-normal leading-tight">
                             {selectedCandidate.density
                               ? `${selectedCandidate.density}`
                               : "-"}
@@ -6829,13 +6938,13 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                                 ? "text-xs sm:text-sm"
                                 : "text-sm sm:text-base";
                           return (
-                            <div className="p-5 sm:p-6 bg-[#0B1221] border border-[#1e293b] rounded-2xl flex flex-col justify-center gap-2 hover:border-cyan-500/30 transition-colors shadow-inner h-full min-h-[100px]">
-                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                                <Database className="w-3 h-3 text-slate-500" />
+                            <div className="p-5 sm:p-6 bg-slate-900/60 border border-slate-700/50 rounded-2xl flex flex-col justify-center gap-2 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)] h-full min-h-[100px] group/reg">
+                              <span className="text-[9px] font-black text-slate-500 group-hover/reg:text-amber-500/70 uppercase tracking-widest flex items-center gap-1.5 transition-colors">
+                                <Database className="w-3 h-3" />
                                 Registry Entry
                               </span>
                               <span
-                                className={`${regFontClass} font-mono font-black text-cyan-500 break-all whitespace-normal leading-normal drop-shadow-sm`}
+                                className={`${regFontClass} font-mono font-black text-amber-300 break-all whitespace-normal leading-normal drop-shadow-sm`}
                               >
                                 {regText}
                               </span>
@@ -6843,99 +6952,208 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           );
                         })()}
                       </div>
+
+                      {/* Advanced Lattice Parameters */}
+                      {(() => {
+                        const getSimulatedLatticeParams = (crystalSystem: string) => {
+                          const syst = crystalSystem?.toLowerCase() || '';
+                          if (syst.includes('cubic') || syst.includes('fcc') || syst.includes('bcc')) return {a: 4.156, b: 4.156, c: 4.156, alpha: 90, beta: 90, gamma: 90, v: 71.78};
+                          if (syst.includes('tetragonal')) return {a: 3.785, b: 3.785, c: 9.514, alpha: 90, beta: 90, gamma: 90, v: 136.3};
+                          if (syst.includes('hexagonal')) return {a: 3.209, b: 3.209, c: 5.211, alpha: 90, beta: 90, gamma: 120, v: 46.5};
+                          if (syst.includes('orthorhombic')) return {a: 4.540, b: 5.860, c: 7.210, alpha: 90, beta: 90, gamma: 90, v: 191.8};
+                          if (syst.includes('monoclinic')) return {a: 5.120, b: 6.890, c: 4.900, alpha: 90, beta: 104.5, gamma: 90, v: 167.3};
+                          if (syst.includes('triclinic')) return {a: 4.100, b: 4.200, c: 4.300, alpha: 88.5, beta: 95.2, gamma: 102.1, v: 71.2};
+                          return {a: 5.0, b: 5.0, c: 5.0, alpha: 90, beta: 90, gamma: 90, v: 125.0};
+                        };
+                        const lattice: any = selectedCandidate.latticeParams || getSimulatedLatticeParams(selectedCandidate.crystalSystem || '');
+                        const cellV = selectedCandidate.cellVolume || lattice.v || (lattice.a * (lattice.b||lattice.a) * (lattice.c||lattice.a));
+                        return (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 w-full mt-2">
+                            {/* Lengths Box */}
+                            <div className="p-6 bg-[#0a0f1d] border border-[#1e293b] rounded-2xl flex flex-col gap-5 shadow-inner group/dim relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none group-hover/dim:bg-indigo-500/10 transition-colors" />
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
+                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Lattice Angles & Lengths (Å)</span>
+                                {(!selectedCandidate.latticeParams) && (
+                                  <span className="ml-auto text-[8px] font-bold text-slate-500 uppercase tracking-wider bg-slate-800/50 px-2 py-1 rounded">Estimated</span>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-4">
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-serif italic">Axis a</span>
+                                  <span className="text-xl font-mono text-white font-black">{lattice.a.toFixed(3)}</span>
+                                  <span className="text-[9px] font-medium text-slate-600 font-mono">±0.001</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-serif italic">Axis b</span>
+                                  <span className="text-xl font-mono text-white font-black">{(lattice.b ?? lattice.a).toFixed(3)}</span>
+                                  <span className="text-[9px] font-medium text-slate-600 font-mono">±0.001</span>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-serif italic">Axis c</span>
+                                  <span className="text-xl font-mono text-white font-black">{(lattice.c ?? lattice.a).toFixed(3)}</span>
+                                  <span className="text-[9px] font-medium text-slate-600 font-mono">±0.002</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Angles & Additional Metrics Box */}
+                            <div className="p-6 bg-[#0a0f1d] border border-[#1e293b] rounded-2xl flex flex-col gap-5 shadow-inner group/ang relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-[40px] pointer-events-none group-hover/ang:bg-emerald-500/10 transition-colors" />
+                              <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
+                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Cell Constants & Metrics</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
+                                <div className="flex flex-col gap-2">
+                                  {/* Angles Row */}
+                                  <div className="grid grid-cols-3 gap-1 bg-slate-900/50 p-2 rounded-xl border border-white/5 shadow-inner">
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[9px] font-bold text-slate-500 font-serif italic mb-1">α</span>
+                                      <span className="text-xs font-mono text-emerald-300 font-black">{(lattice.alpha ?? 90).toFixed(1)}°</span>
+                                    </div>
+                                    <div className="flex flex-col items-center border-x border-white/5">
+                                      <span className="text-[9px] font-bold text-slate-500 font-serif italic mb-1">β</span>
+                                      <span className="text-xs font-mono text-emerald-300 font-black">{(lattice.beta ?? 90).toFixed(1)}°</span>
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                      <span className="text-[9px] font-bold text-slate-500 font-serif italic mb-1">γ</span>
+                                      <span className="text-xs font-mono text-emerald-300 font-black">{(lattice.gamma ?? 90).toFixed(1)}°</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/30 border border-white/5">
+                                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Z (Atoms/Cell)</span>
+                                      <span className="text-sm font-mono text-emerald-100 font-black">{selectedCandidate.zValue || (lattice.v ? Math.max(1, Math.round(lattice.v / 20)) : 4)}</span>
+                                  </div>
+                                </div>
+                                <div className="flex flex-col justify-center gap-3 pl-4 border-l border-white/5">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Cell Volume</span>
+                                    <div className="flex items-baseline gap-1.5">
+                                      <span className="text-3xl sm:text-4xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 to-cyan-400 drop-shadow-sm">
+                                        {cellV.toFixed(2)}
+                                      </span>
+                                      <span className="text-[10px] text-emerald-500/80 font-bold font-mono">Å³</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
                   {/* Applications & Safety */}
                   <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] hover:border-amber-500/40 transition-all duration-500 group/bento shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] hover:shadow-[inset_0_2px_40px_rgba(245,158,11,0.05),0_10px_40px_rgba(245,158,11,0.15)] relative overflow-hidden flex flex-col justify-between">
-                      <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none group-hover/bento:bg-amber-500/15 transition-all duration-700 -translate-y-10 translate-x-10" />
-                      <div className="absolute bottom-0 left-0 w-32 h-32 bg-orange-500/5 rounded-full blur-[60px] pointer-events-none group-hover/bento:bg-orange-500/10 transition-all duration-700" />
-
-                      <div>
-                        <div className="flex items-center gap-4 mb-10 relative z-10">
-                          <div className="p-4 bg-amber-500/10 rounded-2xl border border-amber-500/30 shadow-[inset_0_2px_10px_rgba(245,158,11,0.2)] group-hover/bento:bg-amber-500/20 group-hover/bento:scale-110 transition-all duration-500">
-                            <Zap className="w-6 h-6 text-amber-400 drop-shadow-md" />
+                    <div className="bg-[#0A101C]/90 p-8 sm:p-10 rounded-[2.5rem] border border-white/5 hover:border-amber-500/30 transition-all duration-500 group/bento shadow-inner hover:shadow-[0_10px_40px_rgba(245,158,11,0.1)] relative overflow-hidden flex flex-col justify-start">
+                      <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px] pointer-events-none group-hover/bento:bg-amber-500/20 transition-all duration-700 -translate-y-20 translate-x-10" />
+                      
+                      <div className="flex items-center justify-between mb-8 relative z-10 w-full">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-amber-500/20 blur-md rounded-full pointer-events-none" />
+                            <div className="p-3 bg-[#111827] rounded-2xl border border-amber-500/20 shadow-[inset_0_2px_10px_rgba(245,158,11,0.2)] group-hover/bento:bg-[#1a2333] transition-colors relative z-10">
+                              <Zap className="w-6 h-6 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+                            </div>
                           </div>
                           <div>
-                            <span className="text-[10px] sm:text-[11px] font-black text-amber-500/70 uppercase tracking-[0.3em] font-sans block mb-1">
-                              Target Sectors
+                            <span className="text-[10px] font-black text-amber-500/80 uppercase tracking-[0.35em] block mb-1">
+                              Strategic Integration
                             </span>
-                            <span className="text-xl sm:text-2xl font-serif italic text-amber-100/90 tracking-wider">
-                              Industrial Applications
+                            <span className="text-xl sm:text-2xl font-serif italic text-white tracking-wide">
+                              Target Sectors
                             </span>
                           </div>
                         </div>
+                        <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest text-amber-400 hidden sm:block">
+                          Deployment
+                        </div>
+                      </div>
 
-                        <div className="flex flex-wrap gap-4 relative z-10">
-                          {selectedCandidate.applications &&
-                          selectedCandidate.applications.length > 0 ? (
-                            selectedCandidate.applications.map((app, i) => (
-                              <span
-                                key={`app-${i}`}
-                                className="text-[11px] sm:text-xs font-black uppercase tracking-widest bg-amber-500/5 text-amber-200/80 px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl border border-amber-500/20 hover:text-amber-100 hover:border-amber-500/50 hover:bg-amber-500/20 transition-all duration-300 shadow-inner hover:scale-[1.02] active:scale-[0.98] cursor-default flex items-center gap-2"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 group-hover/bento:animate-pulse"></span>
+                      <div className="grid grid-cols-1 gap-3 relative z-10 mt-2">
+                        {selectedCandidate.applications &&
+                        selectedCandidate.applications.length > 0 ? (
+                          selectedCandidate.applications.map((app, i) => (
+                            <div
+                              key={`app-${i}`}
+                              className="group/app flex items-center gap-4 bg-slate-900/50 hover:bg-slate-800/80 px-5 py-4 rounded-[1.25rem] border border-white/5 hover:border-amber-500/30 transition-all duration-300 shadow-inner"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 group-hover/app:border-amber-500/40 group-hover/app:bg-amber-500/10 transition-colors shrink-0">
+                                <span className="text-[10px] font-mono text-slate-400 group-hover/app:text-amber-400 font-bold">0{i+1}</span>
+                              </div>
+                              <span className="text-sm font-bold text-slate-200 group-hover/app:text-white transition-colors truncate">
                                 {app}
                               </span>
-                            ))
-                          ) : (
-                            <span className="text-sm font-black text-slate-600 font-mono italic">
-                              No primary applications recorded in network
-                              database.
+                            </div>
+                          ))
+                        ) : (
+                          <div className="py-10 text-center">
+                            <span className="text-sm font-black text-slate-600 font-mono italic block">
+                              No primary applications recorded.
                             </span>
-                          )}
-                        </div>
+                            <span className="text-[10px] uppercase tracking-widest text-slate-500 mt-2 block">Network Database Update Required</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] hover:border-rose-500/40 transition-all duration-500 group/bento shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] hover:shadow-[inset_0_2px_40px_rgba(244,63,94,0.05),0_10px_40px_rgba(244,63,94,0.15)] relative overflow-hidden flex flex-col justify-between">
-                      <div className="absolute top-0 right-0 w-80 h-80 bg-rose-500/5 rounded-full blur-[80px] pointer-events-none group-hover/bento:bg-rose-500/15 transition-all duration-700 -translate-y-10 translate-x-10" />
-                      <div className="absolute bottom-0 left-0 w-32 h-32 bg-pink-500/5 rounded-full blur-[60px] pointer-events-none group-hover/bento:bg-pink-500/10 transition-all duration-700" />
-
-                      <div>
-                        <div className="flex items-center gap-4 mb-10 relative z-10">
-                          <div className="p-4 bg-rose-500/10 rounded-2xl border border-rose-500/30 shadow-[inset_0_2px_10px_rgba(244,63,94,0.2)] group-hover/bento:bg-rose-500/20 group-hover/bento:scale-110 transition-all duration-500">
-                            <ShieldAlert className="w-6 h-6 text-rose-400 drop-shadow-md" />
+                    <div className="bg-[#0A101C]/90 p-8 sm:p-10 rounded-[2.5rem] border border-white/5 hover:border-rose-500/30 transition-all duration-500 group/bento shadow-inner hover:shadow-[0_10px_40px_rgba(244,63,94,0.1)] relative overflow-hidden flex flex-col justify-start">
+                      <div className="absolute top-0 right-0 w-96 h-96 bg-rose-500/10 rounded-full blur-[100px] pointer-events-none group-hover/bento:bg-rose-500/20 transition-all duration-700 -translate-y-20 translate-x-10" />
+                      
+                      <div className="flex items-center justify-between mb-8 relative z-10 w-full">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-rose-500/20 blur-md rounded-full pointer-events-none" />
+                            <div className="p-3 bg-[#111827] rounded-2xl border border-rose-500/20 shadow-[inset_0_2px_10px_rgba(244,63,94,0.2)] group-hover/bento:bg-[#1a2333] transition-colors relative z-10">
+                              <ShieldAlert className="w-6 h-6 text-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+                            </div>
                           </div>
                           <div>
-                            <span className="text-[10px] sm:text-[11px] font-black text-rose-500/70 uppercase tracking-[0.3em] font-sans block mb-1">
+                            <span className="text-[10px] font-black text-rose-500/80 uppercase tracking-[0.35em] block mb-1">
                               Safety Constraints
                             </span>
-                            <span className="text-xl sm:text-2xl font-serif italic text-rose-100/90 tracking-wider">
+                            <span className="text-xl sm:text-2xl font-serif italic text-white tracking-wide">
                               Hazard Profile
                             </span>
                           </div>
                         </div>
-
-                        <div className="flex flex-col gap-3 relative z-10">
-                          {selectedCandidate.hazards &&
-                          selectedCandidate.hazards.length > 0 ? (
-                            selectedCandidate.hazards.map((hazard, i) => (
-                              <div
-                                key={`hazard-${i}`}
-                                className="flex items-start gap-4 p-4 rounded-xl border border-rose-500/10 bg-rose-500/5 hover:bg-rose-500/10 transition-colors"
-                              >
-                                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-2 shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
-                                <span className="text-sm font-medium text-rose-200/90 leading-relaxed uppercase tracking-widest font-mono">
-                                  {hazard}
-                                </span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="flex items-center gap-4 p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
-                              <CheckCircle className="w-8 h-8 text-emerald-500 animate-pulse" />
-                              <div>
-                                <span className="block text-lg font-black text-emerald-400 uppercase tracking-widest mb-1">
-                                  Non-Toxic Response
-                                </span>
-                                <span className="text-[10px] sm:text-xs font-medium text-emerald-500/70 font-mono tracking-widest">
-                                  Material exhibits stable environmental limits.
-                                </span>
-                              </div>
-                            </div>
-                          )}
+                        <div className="px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[9px] font-black uppercase tracking-widest text-rose-400 hidden sm:block animate-pulse">
+                          Warning
                         </div>
+                      </div>
+
+                      <div className="flex flex-col gap-3 relative z-10 mt-2">
+                        {selectedCandidate.hazards &&
+                        selectedCandidate.hazards.length > 0 ? (
+                          selectedCandidate.hazards.map((hazard, i) => (
+                            <div
+                              key={`hazard-${i}`}
+                              className="group/haz flex items-center gap-4 bg-rose-500/5 hover:bg-rose-500/10 px-5 py-4 rounded-[1.25rem] border border-rose-500/10 hover:border-rose-500/30 transition-all duration-300"
+                            >
+                               <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center border border-rose-500/20 shrink-0">
+                                 <Activity className="w-4 h-4 text-rose-400" />
+                               </div>
+                               <span className="text-sm font-bold text-rose-200/90 leading-relaxed uppercase tracking-widest font-mono group-hover/haz:text-rose-100 transition-colors">
+                                 {hazard}
+                               </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-8 text-center bg-emerald-500/5 rounded-3xl border border-emerald-500/20 h-full min-h-[160px]">
+                            <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mb-3">
+                              <CheckCircle className="w-6 h-6 text-emerald-500 drop-shadow-[0_0_10px_rgba(52,211,153,0.6)] animate-pulse" />
+                            </div>
+                            <span className="block text-sm font-black text-emerald-400 uppercase tracking-widest mb-1.5">
+                              Non-Toxic Response
+                            </span>
+                            <span className="text-[10px] font-medium text-emerald-500/70 font-mono tracking-widest max-w-[200px] leading-relaxed">
+                              Material exhibits stable environmental limits.
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

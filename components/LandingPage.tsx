@@ -37,7 +37,8 @@ import {
   Box,
   Binary,
   Shapes,
-  Atom
+  Atom,
+  Search
 } from 'lucide-react';
 
 import { SideSeekBar } from './SideSeekBar';
@@ -45,22 +46,22 @@ import { SideSeekBar } from './SideSeekBar';
 // --- Background Decorations ---
 const DiffractionGrid = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,#4f46e520,transparent_70%)]" />
+    <div className="absolute top-0 left-0 w-full h-[120%] bg-[radial-gradient(circle_at_50%_0%,#4f46e525,transparent_60%)]" />
+    <div className="absolute bottom-0 right-0 w-full h-[100%] bg-[radial-gradient(circle_at_100%_100%,#06b6d415,transparent_50%)]" />
     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] mix-blend-overlay"></div>
-    <div className="grid grid-cols-8 md:grid-cols-12 gap-px opacity-20 h-full w-full">
+    <div className="grid grid-cols-8 md:grid-cols-12 gap-px opacity-[0.15] h-full w-full">
       {Array.from({ length: 96 }).map((_, i) => (
-        <div key={i} className="border-[0.5px] border-slate-800" />
+        <div key={i} className="border-[0.5px] border-slate-700/50" />
       ))}
     </div>
     <div className="absolute top-0 left-[20%] w-[1px] h-full bg-gradient-to-b from-transparent via-violet-500/50 to-transparent" />
     <div className="absolute top-1/3 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
     
     {/* Floating Scientific Equations */}
-    <div className="absolute top-[15%] left-[5%] opacity-20 font-serif text-2xl text-violet-300 transform -rotate-12 select-none drop-shadow-[0_0_10px_rgba(139,92,246,0.6)] font-bold italic border border-white/5 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl">nλ = 2d sin(θ)</div>
-    <div className="absolute top-[45%] right-[10%] opacity-20 font-serif text-3xl text-cyan-300 transform rotate-12 select-none drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] font-bold border border-white/5 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl">τ = Kλ / (β cos(θ))</div>
-    <div className="absolute bottom-[20%] left-[25%] opacity-20 font-serif text-2xl text-emerald-300 transform -rotate-6 select-none drop-shadow-[0_0_12px_rgba(16,185,129,0.6)] font-bold border border-white/5 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl">1/d² = (h²+k²+l²)/a²</div>
-    <div className="absolute top-[30%] right-[30%] opacity-10 font-serif text-4xl text-rose-300 transform rotate-6 select-none drop-shadow-[0_0_20px_rgba(244,63,94,0.4)] font-bold border border-white/5 bg-black/20 backdrop-blur-sm px-4 py-2 rounded-xl">I(θ) = |F(hkl)|² · Lp</div>
-    
+    <div className="absolute top-[15%] left-[5%] opacity-30 font-serif text-2xl text-violet-300 transform -rotate-12 select-none drop-shadow-[0_0_10px_rgba(139,92,246,0.6)] font-bold italic border border-white/10 bg-black/30 backdrop-blur-md px-4 py-2 rounded-xl">nλ = 2d sin(θ)</div>
+    <div className="absolute top-[45%] right-[10%] opacity-30 font-serif text-3xl text-cyan-300 transform rotate-12 select-none drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] font-bold border border-white/10 bg-black/30 backdrop-blur-md px-4 py-2 rounded-xl">τ = Kλ / (β cos(θ))</div>
+    <div className="absolute bottom-[20%] left-[25%] opacity-30 font-serif text-2xl text-emerald-300 transform -rotate-6 select-none drop-shadow-[0_0_12px_rgba(16,185,129,0.6)] font-bold border border-white/10 bg-black/30 backdrop-blur-md px-4 py-2 rounded-xl">1/d² = (h²+k²+l²)/a²</div>
+    <div className="absolute top-[30%] right-[30%] opacity-20 font-serif text-4xl text-rose-300 transform rotate-6 select-none drop-shadow-[0_0_20px_rgba(244,63,94,0.4)] font-bold border border-white/10 bg-black/30 backdrop-blur-md px-4 py-2 rounded-xl">I(θ) = |F(hkl)|² · Lp</div>
   </div>
 );
 
@@ -643,7 +644,7 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
       </div>
 
       {/* Dynamic Navbar */}
-      <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 ${isScrolled ? 'bg-[#050B14]/90 backdrop-blur-xl border-b border-white/10 py-3 shadow-2xl' : 'bg-transparent py-6'}`}>
+      <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 ${isScrolled ? 'bg-[#050B14]/80 backdrop-blur-2xl border-b border-white/10 py-3 shadow-2xl' : 'bg-transparent py-6'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <div className="flex items-center gap-3 group cursor-pointer" onClick={onEnter}>
             <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-800 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.3)] group-hover:scale-105 transition-transform duration-300">
@@ -655,29 +656,28 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
               </div>
               <span className="text-[9px] font-mono uppercase tracking-widest text-cyan-400 mt-1 flex items-center gap-1.5 opacity-90">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
-                Scientific Analysis Suite
+                {t('Scientific Suite')}
               </span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-10 text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <div className="hidden md:flex items-center gap-8 text-xs font-semibold uppercase tracking-wider text-slate-300">
             <LanguageSelector compact={true} />
-            <a href="#sandbox" className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 font-black"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />Interactive Lab</a>
-            <a href="#features" className="hover:text-white transition-colors">Framework</a>
-            <a href="#platform" className="hover:text-white transition-colors">Methods</a>
-            <a href="#about" className="hover:text-white transition-colors">Documentation</a>
-            <div className="w-px h-5 bg-slate-700" />
+            <a href="#sandbox" className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 font-black px-3 py-2 rounded-lg hover:bg-cyan-500/10"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />Interactive Lab</a>
+            <a href="#features" className="hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">Framework</a>
+            <a href="#platform" className="hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">Methods</a>
+            <div className="w-px h-5 bg-slate-700 mx-2" />
             <button 
               onClick={onEnter}
               className="hover:text-white transition-colors"
             >
-              Sign In
+              {t('Log In')}
             </button>
             <button 
               onClick={onEnter}
               className="bg-white text-slate-900 hover:bg-slate-200 px-6 py-2.5 rounded-full shadow-lg font-bold transition-all active:scale-95"
             >
-              Launch Tool
+              {t('Get Started')}
             </button>
           </div>
 
@@ -705,8 +705,8 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
                 <span className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-300">Phase Match & Structural Indexing</span>
               </div>
 
-              <h1 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-black tracking-tight mb-6 text-white leading-[1.1] drop-shadow-2xl flex flex-col md:block">
-                <span className="inline-block mb-2">Automate Your</span><br className="hidden md:block"/>
+              <h1 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-black tracking-tight mb-6 text-white leading-[1.05] drop-shadow-2xl flex flex-col md:block">
+                <span className="inline-block mb-2">{t('Automate Your')}</span><br className="hidden md:block"/>
                 <span className="inline-flex items-center gap-4">
                   <span className="text-transparent bg-clip-text bg-gradient-to-tr from-violet-500 via-cyan-400 to-indigo-300 drop-shadow-[0_0_20px_rgba(139,92,246,0.3)]">Diffraction Analysis</span>
                   <Sparkles className="w-10 h-10 text-cyan-400 opacity-60 animate-pulse mt-1 hidden sm:inline-block" />
@@ -714,25 +714,41 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
               </h1>
               
               <p className="text-lg sm:text-xl text-slate-300 font-medium mb-10 leading-relaxed max-w-2xl">
-                The ultimate computational suite for X-ray powder diffraction (XRD). Extract precise phase data, determine crystallite size, calculate strain metrics, and perform structure refinement with institutional-grade computational models directly in your browser.
+                {t('Hero Description') || 'The ultimate computational suite for X-ray powder diffraction (XRD). Extract precise phase data, determine crystallite size, calculate strain metrics, and perform structure refinement with institutional-grade computational models directly in your browser.'}
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-5">
-                <button 
-                  onClick={onEnter}
-                  className="flex-1 sm:flex-none px-10 py-5 bg-violet-600 hover:bg-violet-500 rounded-2xl flex items-center justify-center gap-4 transition-all shadow-[0_20px_50px_rgba(139,92,246,0.4)] active:scale-95 group relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                  <span className="text-base font-bold uppercase tracking-widest relative z-10 text-white">Start Analysis</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform relative z-10 text-white" />
-                </button>
-                <button 
-                  onClick={onEnter}
-                  className="flex-1 sm:flex-none px-10 py-5 bg-[#0a0f1d] hover:bg-[#111827] border border-slate-700 hover:border-slate-500 rounded-2xl flex items-center justify-center gap-4 transition-all shadow-xl active:scale-95 text-slate-300 hover:text-white group"
-                >
-                  <Beaker className="w-5 h-5 text-cyan-400 group-hover:rotate-12 transition-transform" />
-                  <span className="text-base font-bold uppercase tracking-widest">Explore Tools</span>
-                </button>
+              {/* Dynamic Interactive Search Module replacing standard buttons */}
+              <div className="relative max-w-2xl group w-full mb-10">
+                <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-cyan-500 rounded-[2rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
+                <div className="relative flex items-center bg-slate-950/80 ring-1 ring-white/10 backdrop-blur-2xl rounded-3xl p-2 w-full">
+                  <div className="p-3 pl-5 text-slate-400">
+                    <Search className="w-6 h-6 text-violet-400 group-hover:text-cyan-400 transition-colors" />
+                  </div>
+                  <input 
+                    type="text" 
+                    placeholder="Search structures... e.g. 'TiO2 Anatase', 'NaCl'" 
+                    className="flex-1 bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 font-medium text-lg px-2 w-full"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') onEnter();
+                    }}
+                  />
+                  <div className="flex gap-2 pr-1">
+                    <button 
+                      onClick={onEnter}
+                      className="hidden sm:flex px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl items-center justify-center gap-2 transition-all text-slate-300 hover:text-white font-bold"
+                    >
+                      <Beaker className="w-4 h-4 text-cyan-400" />
+                      View Demo
+                    </button>
+                    <button 
+                      onClick={onEnter}
+                      className="px-8 py-4 bg-violet-600 hover:bg-violet-500 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(139,92,246,0.4)] active:scale-95 text-white font-bold uppercase tracking-wider h-14"
+                    >
+                      Start
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-white/10 pt-8">

@@ -388,6 +388,17 @@ export interface DLPhaseCandidate {
   electricalResistivity?: number; // microOhm·cm
   dielectricConstant?: number;
   thermalExpansion?: number; // 10^-6/K
+  // Cell structure details
+  latticeParams?: {
+    a: number;
+    b?: number;
+    c?: number;
+    alpha?: number;
+    beta?: number;
+    gamma?: number;
+  };
+  cellVolume?: number; // Å³
+  zValue?: number;
 }
 
 export interface DLPhaseResult {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Mail, Building, ArrowRight, FlaskConical, Globe, ShieldCheck, ChevronDown, Sparkles } from 'lucide-react';
+import { User, Mail, Building, ArrowRight, FlaskConical, Globe, ShieldCheck, ChevronDown, Sparkles, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import LanguageSelector from './LanguageSelector';
 
@@ -202,8 +202,8 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
           </p>
         </div>
 
-        <div className="bg-[#0B1221]/80 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500" />
+        <div className="bg-[#0B1221]/60 backdrop-blur-3xl border border-white/20 rounded-[3rem] p-10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-cyan-400 via-violet-500 to-indigo-500 shadow-[0_0_15px_rgba(139,92,246,0.5)]" />
           
           {/* Fast-Track Guest Access Banner */}
           <div className="mb-6 p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-center relative overflow-hidden">
@@ -256,7 +256,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className={`w-full pl-11 pr-4 py-4 bg-slate-950/50 border ${errors.name ? 'border-red-500' : 'border-white/10 focus:border-indigo-500'} rounded-2xl text-white placeholder-slate-700 outline-none transition-all focus:ring-1 focus:ring-indigo-500/30 font-medium`}
+                    className={`w-full pl-11 pr-4 py-4 bg-slate-900/60 border ${errors.name ? 'border-red-500 bg-red-500/5' : 'border-white/10 focus:border-cyan-400 focus:bg-slate-900/80'} rounded-2xl text-white placeholder-slate-600 outline-none transition-all shadow-inner focus:shadow-[0_0_20px_rgba(34,211,238,0.15)] font-medium`}
                     placeholder="Dr. Jane Doe"
                   />
                 </div>
@@ -286,7 +286,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full pl-11 pr-4 py-4 bg-slate-950/50 border ${errors.email ? 'border-red-500' : 'border-white/10 focus:border-indigo-500'} rounded-2xl text-white placeholder-slate-700 outline-none transition-all focus:ring-1 focus:ring-indigo-500/30 font-medium`}
+                    className={`w-full pl-11 pr-4 py-4 bg-slate-900/60 border ${errors.email ? 'border-red-500 bg-red-500/5' : 'border-white/10 focus:border-cyan-400 focus:bg-slate-900/80'} rounded-2xl text-white placeholder-slate-600 outline-none transition-all shadow-inner focus:shadow-[0_0_20px_rgba(34,211,238,0.15)] font-medium`}
                     placeholder="jane.doe@university.edu"
                   />
                 </div>
@@ -318,7 +318,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
                     type="text"
                     value={organization}
                     onChange={(e) => setOrganization(e.target.value)}
-                    className={`w-full pl-11 pr-4 py-4 bg-slate-950/50 border ${errors.organization ? 'border-red-500' : 'border-white/10 focus:border-indigo-500'} rounded-2xl text-white placeholder-slate-700 outline-none transition-all focus:ring-1 focus:ring-indigo-500/30 font-medium`}
+                    className={`w-full pl-11 pr-4 py-4 bg-slate-900/60 border ${errors.organization ? 'border-red-500 bg-red-500/5' : 'border-white/10 focus:border-violet-400 focus:bg-slate-900/80'} rounded-2xl text-white placeholder-slate-600 outline-none transition-all shadow-inner focus:shadow-[0_0_20px_rgba(139,92,246,0.15)] font-medium`}
                     placeholder="MIT, Stanford, CERN, etc."
                   />
                 </div>
@@ -365,7 +365,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
                         setSelectedNation(null);
                       }
                     }}
-                    className={`w-full pl-11 pr-10 py-4 bg-slate-950/50 border ${errors.nationality ? 'border-red-500' : 'border-white/10 focus:border-indigo-500'} rounded-2xl text-white placeholder-slate-400 outline-none transition-all focus:ring-1 focus:ring-indigo-500/30 font-medium`}
+                    className={`w-full pl-11 pr-10 py-4 bg-slate-900/60 border ${errors.nationality ? 'border-red-500 bg-red-500/5' : 'border-white/10 focus:border-violet-400 focus:bg-slate-900/80'} rounded-2xl text-white placeholder-slate-400 outline-none transition-all shadow-inner focus:shadow-[0_0_20px_rgba(139,92,246,0.15)] font-medium`}
                     placeholder="Select nationality..."
                   />
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer text-slate-500 hover:text-white" onClick={() => setIsNationDropdownOpen(!isNationDropdownOpen)}>
@@ -451,11 +451,14 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
 
             <button
               type="submit"
-              className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.2em] italic rounded-2xl shadow-xl shadow-indigo-600/20 transition-all hover:translate-y-[-2px] active:translate-y-[1px] flex items-center justify-center gap-3 relative group overflow-hidden"
+              className="w-full py-5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black uppercase tracking-[0.2em] italic rounded-2xl shadow-[0_0_40px_rgba(139,92,246,0.3)] transition-all hover:translate-y-[-2px] active:translate-y-[1px] flex items-center justify-center gap-3 relative group overflow-hidden border border-white/10"
             >
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-              <span className="relative z-10">{t('Complete Registration')}</span>
-              <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform" />
+              <span className="relative z-10 flex items-center gap-3">
+                <CheckCircle2 className="w-5 h-5 text-cyan-400" />
+                {t('Complete Registration')}
+              </span>
+              <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-2 transition-transform" />
             </button>
           </form>
 
