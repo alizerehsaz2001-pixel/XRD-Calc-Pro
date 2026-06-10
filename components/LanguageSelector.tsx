@@ -117,6 +117,11 @@ export const languagesList: Language[] = [
   { code: 'kw', name: 'Cornish', nativeName: 'Kernowek (KW)', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', region: 'Europe' },
   { code: 'oc', name: 'Occitan', nativeName: 'Occitan (OC)', flag: '🇫🇷', region: 'Europe' },
   { code: 'rm', name: 'Romansh', nativeName: 'Rumantsch (RM)', flag: '🇨🇭', region: 'Europe' },
+  { code: 'qu', name: 'Quechua', nativeName: 'Runasimi (QU)', flag: '🇵🇪', region: 'Americas' },
+  { code: 'gn', name: 'Guarani', nativeName: 'Avañe\'ẽ (GN)', flag: '🇵🇾', region: 'Americas' },
+  { code: 'fj', name: 'Fijian', nativeName: 'Na Vosa Vakaviti (FJ)', flag: '🇫🇯', region: 'Oceania' },
+  { code: 'sm', name: 'Samoan', nativeName: 'Gagana Samoa (SM)', flag: '🇼🇸', region: 'Oceania' },
+  { code: 'iu', name: 'Inuktitut', nativeName: 'ᐃᓄᒃᑎᑐᑦ (IU)', flag: '🇨🇦', region: 'Americas' },
 ];
 
 interface LanguageSelectorProps {

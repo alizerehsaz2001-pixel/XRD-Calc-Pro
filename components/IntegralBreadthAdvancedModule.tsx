@@ -13,7 +13,7 @@ import {
   Legend,
   Area
 } from 'recharts';
-import { RefreshCw, Trash2, Settings2, Info, FileText, ArrowUpRight, TrendingUp, ChevronDown, Zap, Download, Database, Activity, Layers, CheckCircle, FlaskConical, Loader2 } from 'lucide-react';
+import { RefreshCw, Trash2, Settings2, Info, FileText, ArrowUpRight, TrendingUp, ChevronDown, Zap, Download, Database, Activity, Layers, CheckCircle, FlaskConical, Loader2, Box } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const MATERIAL_PRESETS = [
@@ -718,64 +718,114 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
         {/* Results Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
            {/* Card 1: Microstrain */}
-           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.05)] relative overflow-hidden group hover:border-cyan-500/40 transition-all flex flex-col justify-between">
-             <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-bl-full transition-all group-hover:scale-110" />
+           <div className="bg-[#050B14]/90 backdrop-blur-xl p-6 rounded-3xl border border-cyan-500/10 hover:border-cyan-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(34,211,238,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] transition-all duration-700 pointer-events-none group-hover:bg-cyan-500/20 translate-x-10 -translate-y-10" />
+             <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full blur-[30px] transition-all duration-700 pointer-events-none group-hover:bg-blue-500/20 -translate-x-10 translate-y-10" />
+             
              <div>
-               <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 relative z-10">Microstrain (ε)</p>
+               <div className="flex items-center gap-3 mb-4 relative z-10">
+                 <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 shadow-[inset_0_2px_10px_rgba(34,211,238,0.2)]">
+                   <Activity className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+                 </div>
+                 <p className="text-[10px] font-black text-cyan-400/80 uppercase tracking-[0.3em]">Microstrain (ε)</p>
+               </div>
+               
                <div className="flex flex-col mt-2 relative z-10">
-                 <p className="text-2xl font-black text-white hover:text-cyan-50 transition-colors drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">
-                   {result ? (result.strainPercent / 100 * 10000).toFixed(2) : '-'} <span className="text-base text-cyan-500/80 font-mono tracking-widest uppercase">× 10⁻⁴</span>
-                 </p>
-                 {result && <p className="text-[10px] text-slate-400 font-mono mt-0.5">({result.strainPercent.toFixed(4)}%)</p>}
+                 <div className="flex items-baseline gap-2">
+                   <p className="text-3xl sm:text-4xl font-black text-white group-hover:text-cyan-50 transition-colors drop-shadow-[0_0_20px_rgba(34,211,238,0.3)] font-mono tracking-tight tracking-tighter">
+                     {result ? (result.strainPercent / 100).toExponential(2).split('e')[0] : '-'}
+                   </p>
+                   {result && (
+                     <span className="text-sm font-mono text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">
+                       × 10<sup className="text-[10px]">{result.strainPercent === 0 ? '0' : (result.strainPercent / 100).toExponential(2).split('e')[1].replace('+', '')}</sup>
+                     </span>
+                   )}
+                 </div>
+                 
+                 {result && (
+                   <div className="flex items-center gap-2 mt-3">
+                     <div className="h-px flex-1 bg-gradient-to-r from-cyan-500/50 to-transparent" />
+                     <p className="text-xs text-slate-400 font-mono font-medium">
+                       <span className="text-slate-500 mr-1">Percentage:</span>
+                       <span className="text-cyan-200/70">{result.strainPercent.toFixed(4)}%</span>
+                     </p>
+                   </div>
+                 )}
                </div>
              </div>
-             <p className="text-[8px] font-black text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded inline-block mt-3 border border-cyan-500/20 uppercase tracking-widest relative z-10 w-fit">From W-H Slope</p>
+             
+             <div className="flex items-center justify-between mt-6 relative z-10 w-full pt-4 border-t border-white/5">
+                <span className="text-[9px] font-black text-cyan-500 bg-cyan-500/5 px-2 py-1.5 rounded-lg border border-cyan-500/10 uppercase tracking-widest flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  W-H Slope Derived
+                </span>
+             </div>
            </div>
            
            {/* Card 2: Crystallite Size */}
-           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.05)] relative overflow-hidden group hover:border-emerald-500/40 transition-all flex flex-col justify-between">
-             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full transition-all group-hover:scale-110" />
+           <div className="bg-[#0A101C]/90 p-6 rounded-3xl border border-white/5 hover:border-emerald-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(16,185,129,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-700 translate-x-10 -translate-y-10" />
+             
              <div>
-               <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 relative z-10">Crystallite Size</p>
+               <div className="flex items-center gap-3 mb-4 relative z-10">
+                 <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-[inset_0_2px_10px_rgba(16,185,129,0.2)]">
+                   <Box className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                 </div>
+                 <p className="text-[10px] font-black text-emerald-400/80 uppercase tracking-[0.3em]">Crystallite Size</p>
+               </div>
+               
                <div className="relative z-10 mt-2">
                  {result ? (
                    result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? (
-                     <div>
-                       <p className="text-2xl font-black text-white hover:text-emerald-50 transition-colors drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-                         {result.sizeInterceptNm.toFixed(2)} <span className="text-sm text-emerald-500/80 font-mono tracking-widest uppercase">NM</span>
-                       </p>
-                       <p className="text-[9px] text-slate-500 mt-1 font-medium">Global W-H intercept average</p>
+                     <div className="flex flex-col">
+                       <div className="flex items-baseline gap-2">
+                         <p className="text-3xl sm:text-4xl font-black text-white group-hover:text-emerald-50 transition-colors drop-shadow-[0_0_20px_rgba(16,185,129,0.3)] font-mono tracking-tighter">
+                           {result.sizeInterceptNm.toFixed(1)}
+                         </p>
+                         <span className="text-sm font-black text-emerald-500/80 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">nm</span>
+                       </div>
+                       <div className="flex items-center gap-2 mt-3">
+                         <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/50 to-transparent" />
+                         <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
+                           Global W-H Intercept
+                         </p>
+                       </div>
                      </div>
                    ) : (
-                     <div>
-                       <p className="text-lg font-black text-emerald-300 tracking-tight leading-none">
-                         &gt; 250 nm <span className="text-[9px] text-emerald-500/80 font-mono font-bold">({result.regression.intercept <= 0 ? 'Negative Intercept / ∞' : '∞'})</span>
-                       </p>
-                       <p className="text-[8px] font-black text-amber-500 uppercase tracking-widest mt-1">
-                         Beyond typical XRD limit
+                     <div className="flex flex-col justify-center h-[70px] bg-amber-500/5 rounded-2xl border border-amber-500/10 px-4 py-2">
+                       <div className="flex items-baseline gap-2">
+                         <p className="text-2xl font-black text-amber-400 tracking-tight font-mono">
+                           &gt; 250 <span className="text-sm text-amber-500/80 uppercase">nm</span>
+                         </p>
+                         <span className="text-[10px] font-bold text-amber-500/70 font-mono bg-amber-500/10 px-1.5 py-0.5 rounded">
+                           ({result.regression.intercept <= 0 ? 'Negative / ∞' : '∞'})
+                         </span>
+                       </div>
+                       <p className="text-[9px] font-black text-amber-500/60 uppercase tracking-widest mt-1">
+                         Beyond typical XRD resolution limit
                        </p>
                      </div>
                    )
                  ) : (
-                   <p className="text-2xl font-black text-white">- <span className="text-base text-slate-600 font-mono uppercase">NM</span></p>
+                   <p className="text-3xl font-black text-white font-mono opacity-50">- <span className="text-sm uppercase tracking-widest text-slate-600">nm</span></p>
                  )}
                </div>
              </div>
              
              {result && result.pointsExtended && result.pointsExtended.length > 0 && (
-               <div className="mt-4 py-3 border-y border-emerald-500/10 relative z-10">
-                 <p className="text-[8px] font-black text-emerald-400/80 uppercase tracking-widest mb-2 flex items-center justify-between">
-                    <span>Single-Peak Estimates</span>
-                    <span className="text-emerald-500/50">Apparent Size</span>
+               <div className="mt-4 pt-3 border-t border-white/5 relative z-10 flex-1 flex flex-col">
+                 <p className="text-[8px] font-black text-emerald-400/60 uppercase tracking-widest flex items-center justify-between mb-2">
+                    <span>Individual Peak Estimates</span>
+                    <span className="text-slate-500">Apparent Size</span>
                  </p>
-                 <div className="space-y-1.5 max-h-[70px] overflow-y-auto custom-scrollbar pr-2">
+                 <div className="space-y-1.5 max-h-[85px] overflow-y-auto custom-scrollbar pr-1 flex-1">
                    {result.pointsExtended.map((p, i) => (
-                     <div key={i} className="flex justify-between items-center text-[10px] font-mono bg-emerald-500/5 px-2 py-1 rounded border border-emerald-500/10">
-                       <span className="text-slate-400">{p.twoTheta.toFixed(2)}°</span>
+                     <div key={i} className="flex justify-between items-center text-[10px] font-mono bg-emerald-500/5 hover:bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/10 transition-colors">
+                       <span className="text-slate-400 font-medium">{p.twoTheta.toFixed(2)}° <span className="text-[8px] text-slate-600 font-sans ml-0.5">2θ</span></span>
                        {p.singlePeakSizeNm > 0 && p.singlePeakSizeNm < 1000 ? (
-                         <span className="text-emerald-300 font-bold">{p.singlePeakSizeNm.toFixed(1)} <span className="text-[8px] font-sans text-emerald-500/50">nm</span></span>
+                         <span className="text-emerald-300 font-bold">{p.singlePeakSizeNm.toFixed(1)} <span className="text-[8px] font-sans text-emerald-500/50 ml-0.5">nm</span></span>
                        ) : (
-                         <span className="text-amber-400 font-bold text-[9px] flex items-center gap-0.5">
+                         <span className="text-amber-400/80 font-bold text-[9px] flex items-center gap-1">
                            &gt; 200 nm <span className="text-[8px] text-amber-600 font-sans tracking-none">(∞)</span>
                          </span>
                        )}
@@ -785,15 +835,18 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                </div>
              )}
 
-             <div className="flex items-center justify-between gap-1.5 flex-wrap mt-3 relative z-10 w-full animate-pulse-slow">
-               <span className="text-[8px] font-black text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 uppercase tracking-widest">Y-Intercept Derived</span>
+             <div className="flex items-center justify-between mt-4 relative z-10 w-full pt-4 border-t border-white/5">
+               <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/5 px-2 py-1.5 rounded-lg border border-emerald-500/10 uppercase tracking-widest flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Y-Intercept Derived
+               </span>
                {result && (result.sizeInterceptNm <= 0 || result.pointsExtended?.some(p => p.singlePeakSizeNm <= 0 || p.singlePeakSizeNm >= 1000)) && (
                  <button
                    onClick={() => setShowInfiniteExpl(!showInfiniteExpl)}
-                   className="text-[8px] font-black text-amber-300 bg-amber-500/10 hover:bg-amber-500/25 px-2 py-1 rounded border border-amber-500/20 uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1"
+                   className="text-[9px] font-black text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1.5 rounded-lg border border-amber-500/20 uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1.5"
                  >
-                   <span>{showInfiniteExpl ? 'Hide Help' : 'Why Infinite?'}</span>
-                   <Info className="w-2.5 h-2.5" />
+                   <span>{showInfiniteExpl ? 'Close Help' : 'Why Infinite?'}</span>
+                   <Info className="w-3 h-3" />
                  </button>
                )}
              </div>

@@ -2435,6 +2435,48 @@ export const PRESETS: MaterialPreset[] = [
     latticeParams: 'a = 6.482 Å',
     database: 'COD',
     databaseId: '1521994'
+  },
+  {
+    name: 'Titanium Carbide MXene (Ti3C2Tx)',
+    formula: 'Ti3C2Tx',
+    wavelength: 1.5406,
+    peaks: [8.9, 18.2, 27.5, 36.1, 39.0, 60.5],
+    hkls: ['002', '004', '006', '101', '103', '110'],
+    description: 'Highly conductive 2D transition metal carbide (MXene) synthesized via selective etching of MAX phases. Characterized by shifting basal spacing based on intercalated water/ions.',
+    category: 'Carbon & 2D Materials',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/mmc (No. 194)',
+    latticeParams: 'c = 19.84 Å',
+    database: 'COD',
+    databaseId: 'MXENE-194'
+  },
+  {
+    name: 'Buckyball C60 Solid (Fullerene)',
+    formula: 'C60',
+    wavelength: 1.5406,
+    peaks: [10.8, 17.7, 20.8, 27.4, 28.1, 30.9],
+    hkls: ['111', '220', '311', '222', '400', '420'],
+    description: 'Intermolecularly close-packed solid-phase of pure C60 buckminsterfullerene molecule. Crystallizes in a face-centered cubic (FCC) lattice under ambient conditions.',
+    category: 'Carbon & 2D Materials',
+    crystalSystem: 'Cubic',
+    spaceGroup: 'Fm-3m (No. 225)',
+    latticeParams: 'a = 14.17 Å',
+    database: 'COD',
+    databaseId: 'FUL-060'
+  },
+  {
+    name: 'LK-99 Simulant (Lead Apatite)',
+    formula: 'Pb9Cu(PO4)6O',
+    wavelength: 1.5406,
+    peaks: [19.1, 23.3, 26.8, 29.8, 32.1, 34.3, 41.2, 48.1],
+    hkls: ['101', '110', '200', '111', '201', '002', '310', '211'],
+    description: 'Active apatite framework structural phase (copper-substituted lead apatite) that was investigated globally as a room-temperature superconductor candidate.',
+    category: 'Advanced Materials',
+    crystalSystem: 'Hexagonal',
+    spaceGroup: 'P63/m (No. 176)',
+    latticeParams: 'a = 9.843 Å, c = 7.428 Å',
+    database: 'ICSD',
+    databaseId: 'ICSD-14920'
   }
 ];
 

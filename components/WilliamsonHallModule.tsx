@@ -1152,57 +1152,142 @@ export const WilliamsonHallModule: React.FC = () => {
       <div className="lg:col-span-8 space-y-6">
         {/* Results Summary */}
         <div className={`grid grid-cols-1 md:grid-cols-3 ${isModulusEnabled ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-4`}>
-           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-cyan-500/20 shadow-[0_0_30px_rgba(34,211,238,0.05)] relative overflow-hidden group hover:border-cyan-500/40 transition-all flex flex-col justify-between">
-              <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                <TrendingUp className="w-16 h-16 text-cyan-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Microstrain (ε)</p>
-                <div className="flex flex-col mt-2">
-                  <p className="text-2xl font-black text-white flex items-baseline gap-1 font-mono drop-shadow-[0_0_15px_rgba(34,211,238,0.4)] relative z-10">
-                    {result ? (result.strainPercent / 100 * 10000).toFixed(2) : '-'} <span className="text-xs font-black text-cyan-500 tracking-widest uppercase">× 10⁻⁴</span>
-                  </p>
-                  {result && <p className="text-[9px] text-slate-400 font-mono mt-0.5">({result.strainPercent.toFixed(4)}%)</p>}
-                </div>
-              </div>
-              <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[8px] text-cyan-400 font-black uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/20 relative z-10 self-start">
-                <span className="w-1 h-1 rounded-full bg-cyan-500"></span>
-                Strain Gradient
-              </div>
+           <div className="bg-[#050B14]/90 backdrop-blur-xl p-6 rounded-3xl border border-cyan-500/10 hover:border-cyan-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(34,211,238,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] transition-all duration-700 pointer-events-none group-hover:bg-cyan-500/20 translate-x-10 -translate-y-10" />
+             <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/10 rounded-full blur-[30px] transition-all duration-700 pointer-events-none group-hover:bg-blue-500/20 -translate-x-10 translate-y-10" />
+             
+             <div>
+               <div className="flex items-center gap-3 mb-4 relative z-10">
+                 <div className="w-8 h-8 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 shadow-[inset_0_2px_10px_rgba(34,211,238,0.2)]">
+                   <TrendingUp className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+                 </div>
+                 <p className="text-[10px] font-black text-cyan-400/80 uppercase tracking-[0.3em]">Microstrain (ε)</p>
+               </div>
+               
+               <div className="flex flex-col mt-2 relative z-10">
+                 <div className="flex items-baseline gap-2">
+                   <p className="text-3xl sm:text-4xl font-black text-white group-hover:text-cyan-50 transition-colors drop-shadow-[0_0_20px_rgba(34,211,238,0.3)] font-mono tracking-tight tracking-tighter">
+                     {result ? (result.strainPercent / 100).toExponential(2).split('e')[0] : '-'}
+                   </p>
+                   {result && (
+                     <span className="text-sm font-mono text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">
+                       × 10<sup className="text-[10px]">{result.strainPercent === 0 ? '0' : (result.strainPercent / 100).toExponential(2).split('e')[1].replace('+', '')}</sup>
+                     </span>
+                   )}
+                 </div>
+                 
+                 {result && (
+                   <div className="flex items-center gap-2 mt-3">
+                     <div className="h-px flex-1 bg-gradient-to-r from-cyan-500/50 to-transparent" />
+                     <p className="text-xs text-slate-400 font-mono font-medium">
+                       <span className="text-slate-500 mr-1">Percentage:</span>
+                       <span className="text-cyan-200/70">{result.strainPercent.toFixed(4)}%</span>
+                     </p>
+                   </div>
+                 )}
+               </div>
+             </div>
+             
+             <div className="flex items-center justify-between mt-6 relative z-10 w-full pt-4 border-t border-white/5">
+                <span className="text-[9px] font-black text-cyan-500 bg-cyan-500/5 px-2 py-1.5 rounded-lg border border-cyan-500/10 uppercase tracking-widest flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  Strain Gradient
+                </span>
+             </div>
            </div>
            
-           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.05)] relative overflow-hidden group hover:border-emerald-500/40 transition-all flex flex-col justify-between">
-              <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Ruler className="w-16 h-16 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Crystallite Size</p>
-                <p className="text-2xl font-black text-white mt-2 flex items-baseline gap-1 font-mono drop-shadow-[0_0_15px_rgba(16,185,129,0.4)] relative z-10">
-                  {result ? (result.sizeInterceptNm > 0 ? result.sizeInterceptNm.toFixed(2) : '∞') : '-'} <span className="text-xs font-black text-emerald-500 tracking-widest uppercase">NM</span>
-                </p>
-              </div>
-              <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[8px] text-emerald-400 font-black uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 relative z-10 self-start">
-                <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
-                decoupled size
-              </div>
+           <div className="bg-[#0A101C]/90 p-6 rounded-3xl border border-white/5 hover:border-emerald-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(16,185,129,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-all duration-700 translate-x-10 -translate-y-10" />
+             
+             <div>
+               <div className="flex items-center gap-3 mb-4 relative z-10">
+                 <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-[inset_0_2px_10px_rgba(16,185,129,0.2)]">
+                   <Ruler className="w-4 h-4 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                 </div>
+                 <p className="text-[10px] font-black text-emerald-400/80 uppercase tracking-[0.3em]">Crystallite Size</p>
+               </div>
+               
+               <div className="relative z-10 mt-2">
+                 {result ? (
+                   result.sizeInterceptNm > 0 && result.sizeInterceptNm < 1000 ? (
+                     <div className="flex flex-col">
+                       <div className="flex items-baseline gap-2">
+                         <p className="text-3xl sm:text-4xl font-black text-white group-hover:text-emerald-50 transition-colors drop-shadow-[0_0_20px_rgba(16,185,129,0.3)] font-mono tracking-tighter">
+                           {result.sizeInterceptNm.toFixed(1)}
+                         </p>
+                         <span className="text-sm font-black text-emerald-500/80 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">nm</span>
+                       </div>
+                       <div className="flex items-center gap-2 mt-3">
+                         <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/50 to-transparent" />
+                         <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
+                           Decoupled Size
+                         </p>
+                       </div>
+                     </div>
+                   ) : (
+                     <div className="flex flex-col justify-center h-[70px] bg-amber-500/5 rounded-2xl border border-amber-500/10 px-4 py-2">
+                       <div className="flex items-baseline gap-2">
+                         <p className="text-2xl font-black text-amber-400 tracking-tight font-mono">
+                           &gt; 250 <span className="text-sm text-amber-500/80 uppercase">nm</span>
+                         </p>
+                         <span className="text-[10px] font-bold text-amber-500/70 font-mono bg-amber-500/10 px-1.5 py-0.5 rounded">
+                           (∞)
+                         </span>
+                       </div>
+                       <p className="text-[9px] font-black text-amber-500/60 uppercase tracking-widest mt-1">
+                         Beyond typical XRD resolution limit
+                       </p>
+                     </div>
+                   )
+                 ) : (
+                   <p className="text-3xl font-black text-white font-mono opacity-50">- <span className="text-sm uppercase tracking-widest text-slate-600">nm</span></p>
+                 )}
+               </div>
+             </div>
+             
+             <div className="flex items-center justify-between mt-6 relative z-10 w-full pt-4 border-t border-white/5">
+               <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/5 px-2 py-1.5 rounded-lg border border-emerald-500/10 uppercase tracking-widest flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Y-Intercept Derived
+               </span>
+             </div>
            </div>
 
-           <div className="bg-[#0A101C]/80 backdrop-blur-xl p-5 rounded-[2rem] border border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.05)] relative overflow-hidden group hover:border-purple-500/40 transition-all flex flex-col justify-between">
-              <div className="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mb-1">Fit Quality (R²)</p>
-                <div className="flex items-end gap-1 mt-2 font-mono relative z-10">
-                  <p className="text-2xl font-black text-white drop-shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-                    {result ? result.regression.rSquared.toFixed(4) : '-'}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[8px] text-purple-400 font-black uppercase tracking-widest bg-purple-500/10 border border-purple-500/20 relative z-10 self-start">
-                <span className={`w-1 h-1 rounded-full animate-pulse ${result && result.regression.rSquared > 0.9 ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                Regression
-              </div>
+           <div className="bg-[#050B14]/90 backdrop-blur-xl p-6 rounded-3xl border border-purple-500/10 hover:border-purple-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(168,85,247,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-purple-500/20 transition-all duration-700 translate-x-10 -translate-y-10" />
+             
+             <div>
+               <div className="flex items-center gap-3 mb-4 relative z-10">
+                 <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 shadow-[inset_0_2px_10px_rgba(168,85,247,0.2)]">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                 </div>
+                 <p className="text-[10px] font-black text-purple-400/80 uppercase tracking-[0.3em]">Fit Quality (R²)</p>
+               </div>
+               
+               <div className="flex flex-col mt-2 relative z-10">
+                 <div className="flex items-baseline gap-2">
+                   <p className="text-3xl sm:text-4xl font-black text-white group-hover:text-purple-50 transition-colors drop-shadow-[0_0_20px_rgba(168,85,247,0.3)] font-mono tracking-tight tracking-tighter">
+                     {result ? result.regression.rSquared.toFixed(4) : '-'}
+                   </p>
+                 </div>
+                 
+                 {result && (
+                   <div className="flex items-center gap-2 mt-3">
+                     <div className="h-px flex-1 bg-gradient-to-r from-purple-500/50 to-transparent" />
+                     <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
+                       {result.regression.rSquared > 0.9 ? 'Strong correlation' : 'Weak correlation'}
+                     </p>
+                   </div>
+                 )}
+               </div>
+             </div>
+             
+             <div className="flex items-center justify-between mt-6 relative z-10 w-full pt-4 border-t border-white/5">
+                <span className={`text-[9px] font-black ${result && result.regression.rSquared > 0.9 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-400 bg-amber-500/10 border-amber-500/20'} px-2 py-1.5 rounded-lg border uppercase tracking-widest flex items-center gap-1.5 transition-colors`}>
+                  <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${result && result.regression.rSquared > 0.9 ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                  Regression Analysis
+                </span>
+             </div>
            </div>
 
            {result?.stephensParams && (

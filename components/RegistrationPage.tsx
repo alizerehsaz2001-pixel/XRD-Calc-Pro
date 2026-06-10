@@ -85,7 +85,12 @@ const NATIONALITIES: Nationality[] = [
   { name: 'Tatar (Tatarstan)', code: 'RU_TT', langCode: 'tt', langName: 'Татарча (TT)', flag: '🇷🇺' },
   { name: 'Uyghur (Xinjiang)', code: 'CN_UG', langCode: 'ug', langName: 'ئۇيغۇرچە (UG)', flag: '🇨🇳' },
   { name: 'Faroese (Faroe Islands)', code: 'FO', langCode: 'fo', langName: 'Føroyskt (FO)', flag: '🇫🇴' },
-  { name: 'Greenlandic (Greenland)', code: 'GL_KL', langCode: 'kl', langName: 'Kalaallisut (KL)', flag: '🇬🇱' }
+  { name: 'Greenlandic (Greenland)', code: 'GL_KL', langCode: 'kl', langName: 'Kalaallisut (KL)', flag: '🇬🇱' },
+  { name: 'Quechua (Peru/Andes)', code: 'PE_QU', langCode: 'qu', langName: 'Runasimi (QU)', flag: '🇵🇪' },
+  { name: 'Guarani (Paraguay)', code: 'PY_GN', langCode: 'gn', langName: 'Avañe\'ẽ (GN)', flag: '🇵🇾' },
+  { name: 'Fijian (Fiji)', code: 'FJ_FJ', langCode: 'fj', langName: 'Na Vosa Vakaviti (FJ)', flag: '🇫🇯' },
+  { name: 'Samoan (Samoa)', code: 'WS_SM', langCode: 'sm', langName: 'Gagana Samoa (SM)', flag: '🇼🇸' },
+  { name: 'Inuktitut (Inuit/Canada)', code: 'CA_IU', langCode: 'iu', langName: 'ᐃᓄᒃᑎᑐᑦ (IU)', flag: '🇨🇦' }
 ];
 
 export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }) => {
