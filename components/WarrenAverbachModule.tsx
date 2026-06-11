@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { parseWAInput, calculateWarrenAverbach } from '../utils/physics';
 import { WAResult } from '../types';
+import { DefectTopographyVisualizer } from './DefectTopographyVisualizer';
+import { DislocationMetricsVisualizer } from './DislocationMetricsVisualizer';
 import { LineChart,
   Line,
   XAxis,
@@ -1186,24 +1188,26 @@ export const WarrenAverbachModule: React.FC = () => {
                           </div>
 
                           {/* Calculated Physical Estimates metrics */}
-                          <div className="grid grid-cols-2 gap-3 pt-2">
-                            <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-1">
-                              <span className="text-[8px] font-bold font-mono text-slate-500 uppercase tracking-widest block">
-                                Est. Dislocation Density
-                              </span>
-                              <span className="text-sm font-mono font-bold text-slate-100 block">
-                                {dislDensity.toExponential(2)} <span className="text-[9px] font-sans text-slate-400 font-normal">m⁻²</span>
-                              </span>
-                            </div>
+                          <DislocationMetricsVisualizer
+                            dislDensity={dislDensity}
+                            energyKJ={energyKJ}
+                            burgersVectorNm={burgersVector}
+                            youngsModulusGpa={youngsModulus}
+                            columnLengthNm={activeItem.L_nm}
+                            rmsStrain={activeItem.rms_strain}
+                          />
 
-                            <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl space-y-1">
-                              <span className="text-[8px] font-bold font-mono text-slate-500 uppercase tracking-widest block">
-                                Stored Elastic Energy
-                              </span>
-                              <span className="text-sm font-mono font-bold text-slate-100 block">
-                                {energyKJ.toFixed(2)} <span className="text-[9px] font-sans text-slate-400 font-normal">kJ/m³</span>
-                              </span>
-                            </div>
+                          {/* Interactive 3D Dislocation Defect Topography Crystalline Plane Visualizer */}
+                          <div className="pt-3 border-t border-white/5">
+                            <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest block mb-3">
+                              Crystalline Defect Mapping (Dynamic 3D)
+                            </span>
+                            <DefectTopographyVisualizer 
+                              rmsStrain={activeItem.rms_strain}
+                              burgersVectorNm={burgersVector}
+                              youngsModulusGpa={youngsModulus}
+                              selectedLNm={activeItem.L_nm}
+                            />
                           </div>
 
                           {/* Interactive adjustable tuning criteria sliders */}

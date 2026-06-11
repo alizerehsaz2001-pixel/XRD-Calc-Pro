@@ -1671,7 +1671,7 @@ export const enhancePhaseCandidateProperties = (candidate: DLPhaseCandidate): DL
   return candidate;
 };
 
-// Generates continuous simulated spectrum envelope (for convolving)
+// Generates continuous simulated spectrum envelope (for convolving) with peak proximity optimizations
 const generateContinuousSpectrum = (
   points: { twoTheta: number, intensity: number }[],
   min2T: number = 10,
@@ -1684,9 +1684,13 @@ const generateContinuousSpectrum = (
   // Model peak broadening using a Gaussian profile (sigma = 0.45)
   const sigma = 0.45;
   const twoSigmaSq = 2 * sigma * sigma;
+  const rangeLimit = 4.0 * sigma; // 1.8 degree window limit for 22x speedup (values outside this yield <0.0003 multiplier)
   
   points.forEach(p => {
-    for (let i = 0; i < steps; i++) {
+    const minI = Math.max(0, Math.floor((p.twoTheta - rangeLimit - min2T) / stepOrder));
+    const maxI = Math.min(steps - 1, Math.ceil((p.twoTheta + rangeLimit - min2T) / stepOrder));
+    
+    for (let i = minI; i <= maxI; i++) {
       const cur2T = min2T + i * stepOrder;
       const dist = cur2T - p.twoTheta;
       const contribution = p.intensity * Math.exp(-(dist * dist) / twoSigmaSq);
@@ -1695,6 +1699,103 @@ const generateContinuousSpectrum = (
   });
   
   return vector;
+};
+
+// Simulate pooling Layer
+const applyPooling = (arr: number[], poolType: string = 'max'): number[] => {
+  const res = [];
+  const len = arr.length;
+  for (let i = 0; i < len; i += 2) {
+    if (i + 1 < len) {
+      res.push(poolType === 'max' ? Math.max(arr[i], arr[i + 1]) : (arr[i] + arr[i + 1]) / 2);
+    } else {
+      res.push(arr[i]);
+    }
+  }
+  // Interpolate back to original length for DB comparison size alignment
+  const expanded = new Array(len).fill(0);
+  for (let i = 0; i < len; i++) {
+    expanded[i] = res[Math.floor(i / 2)];
+  }
+  return expanded;
+};
+
+interface SpectrumCacheItem {
+  rawSpectrum: number[];
+  convolvedSpectrums: {
+    [configKey: string]: {
+      convRef: number[];
+      convRefWide: number[] | null;
+    };
+  };
+}
+
+const spectrumCache: Record<string, SpectrumCacheItem> = {};
+
+const getCachedReferenceSpectrum = (
+  phaseName: string, 
+  peaks: { t: number, i: number, h?: number, k?: number, l?: number }[]
+): number[] => {
+  if (!spectrumCache[phaseName]) {
+    spectrumCache[phaseName] = {
+      rawSpectrum: generateContinuousSpectrum(
+        peaks.map(p => ({ twoTheta: p.t, intensity: p.i })),
+        10,
+        90,
+        0.2
+      ),
+      convolvedSpectrums: {}
+    };
+  }
+  return spectrumCache[phaseName].rawSpectrum;
+};
+
+const getCachedConvolvedReference = (
+  phaseName: string,
+  peaks: { t: number, i: number, h?: number, k?: number, l?: number }[],
+  kernelSize: number,
+  kernelProfile: string = "Gaussian",
+  batchNorm: boolean,
+  multiScale: boolean,
+  pooling: string
+) => {
+  const S_ref_raw = getCachedReferenceSpectrum(phaseName, peaks);
+  const configKey = `${kernelSize}_${kernelProfile}_${batchNorm}_${multiScale}_${pooling}`;
+  
+  if (!spectrumCache[phaseName].convolvedSpectrums[configKey]) {
+    let S_ref = [...S_ref_raw];
+    if (batchNorm) {
+      const mean = S_ref.reduce((a, b) => a + b, 0) / S_ref.length;
+      const vari = S_ref.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / S_ref.length;
+      S_ref = S_ref.map(v => (v - mean) / Math.max(Math.sqrt(vari), 1e-5));
+    }
+    
+    let Raw_Conv_ref = convolve1D(S_ref, kernelSize, kernelProfile);
+    if (multiScale) {
+      const rLen = Raw_Conv_ref.length;
+      for (let i = 0; i < rLen; i++) {
+        Raw_Conv_ref[i] = Raw_Conv_ref[i] * 0.7 + S_ref[i] * 0.3;
+      }
+    }
+    const Conv_ref = applyPooling(Raw_Conv_ref, pooling);
+    
+    let Conv_ref_wide: number[] | null = null;
+    if (multiScale) {
+      let Raw_Conv_ref_wide = convolve1D(S_ref, Math.round(kernelSize * 1.8), kernelProfile);
+      const rwLen = Raw_Conv_ref_wide.length;
+      for (let i = 0; i < rwLen; i++) {
+        Raw_Conv_ref_wide[i] = Raw_Conv_ref_wide[i] * 0.7 + S_ref[i] * 0.3;
+      }
+      Conv_ref_wide = applyPooling(Raw_Conv_ref_wide, pooling);
+    }
+    
+    spectrumCache[phaseName].convolvedSpectrums[configKey] = {
+      convRef: Conv_ref,
+      convRefWide: Conv_ref_wide
+    };
+  }
+  
+  return spectrumCache[phaseName].convolvedSpectrums[configKey];
 };
 
 // High-fidelity 1D Convolution with kernel filter size
@@ -1842,25 +1943,8 @@ export const identifyPhasesDL = (
     }
   }
   
-  // Simulate pooling Layer
   const poolType = engineConfig?.pooling || 'max';
-  const applyPooling = (arr: number[]) => {
-    let res = [];
-    for(let i=0; i<arr.length; i+=2) {
-      if (i+1 < arr.length) {
-        res.push(poolType === 'max' ? Math.max(arr[i], arr[i+1]) : (arr[i]+arr[i+1])/2);
-      } else {
-        res.push(arr[i]);
-      }
-    }
-    // Interpolate back to original length for DB comparison size alignment
-    let expanded = new Array(arr.length).fill(0);
-    for(let i=0; i<arr.length; i++) {
-        expanded[i] = res[Math.floor(i/2)];
-    }
-    return expanded;
-  };
-  const Pooled_obs = applyPooling(Conv_obs);
+  const Pooled_obs = applyPooling(Conv_obs, poolType);
 
   // Optional multi-scale convolved spectrum
   let Raw_Conv_obs_wide = isMultiScale ? convolve1D(S_obs, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile) : null;
@@ -1869,7 +1953,7 @@ export const identifyPhasesDL = (
       Raw_Conv_obs_wide[i] = Raw_Conv_obs_wide[i] * 0.7 + S_obs[i] * 0.3;
     }
   }
-  const Conv_obs_wide = Raw_Conv_obs_wide ? applyPooling(Raw_Conv_obs_wide) : null;
+  const Conv_obs_wide = Raw_Conv_obs_wide ? applyPooling(Raw_Conv_obs_wide, poolType) : null;
 
   if (isMixMode) {
     let remainingPoints = [...inputPoints];
@@ -1915,28 +1999,21 @@ export const identifyPhasesDL = (
         }
         
         // 1D Convolution mathematical cross-correlation check for mixture candidates
-        let S_ref = generateContinuousSpectrum(phase.peaks.map(p => ({ twoTheta: p.t, intensity: p.i })), 10, 90, 0.2);
-        if (engineConfig?.batchNorm) {
-            const mean = S_ref.reduce((a,b)=>a+b,0) / S_ref.length;
-            const vari = S_ref.reduce((a,b)=>a+Math.pow(b-mean,2),0) / S_ref.length;
-            S_ref = S_ref.map(v => (v - mean) / Math.max(Math.sqrt(vari), 1e-5));
-        }
-        let Raw_Conv_ref = convolve1D(S_ref, kernelSize, engineConfig?.kernelProfile);
-        if (isMultiScale) {
-          for (let i = 0; i < Raw_Conv_ref.length; i++) {
-            Raw_Conv_ref[i] = Raw_Conv_ref[i] * 0.7 + S_ref[i] * 0.3;
-          }
-        }
-        const Conv_ref = applyPooling(Raw_Conv_ref);
+        const cachedRef = getCachedConvolvedReference(
+          phase.name,
+          phase.peaks,
+          kernelSize,
+          engineConfig?.kernelProfile,
+          !!engineConfig?.batchNorm,
+          isMultiScale,
+          poolType
+        );
+        
+        const Conv_ref = cachedRef.convRef;
         let convSimilarity = cosineSimilarity(Pooled_obs, Conv_ref);
 
-        if (isMultiScale && Conv_obs_wide) {
-          let Raw_Conv_ref_wide = convolve1D(S_ref, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile);
-          for (let i = 0; i < Raw_Conv_ref_wide.length; i++) {
-            Raw_Conv_ref_wide[i] = Raw_Conv_ref_wide[i] * 0.7 + S_ref[i] * 0.3;
-          }
-          const Conv_ref_wide = applyPooling(Raw_Conv_ref_wide);
-          const similarityWide = cosineSimilarity(Conv_obs_wide, Conv_ref_wide);
+        if (isMultiScale && Conv_obs_wide && cachedRef.convRefWide) {
+          const similarityWide = cosineSimilarity(Conv_obs_wide, cachedRef.convRefWide);
           convSimilarity = 0.6 * convSimilarity + 0.4 * similarityWide;
         }
 
@@ -2106,28 +2183,21 @@ export const identifyPhasesDL = (
     }
 
     // 1D Convolution mathematical cross-correlation calculation
-    let S_ref = generateContinuousSpectrum(phase.peaks.map(p => ({ twoTheta: p.t, intensity: p.i })), 10, 90, 0.2);
-    if (engineConfig?.batchNorm) {
-        const mean = S_ref.reduce((a,b)=>a+b,0) / S_ref.length;
-        const vari = S_ref.reduce((a,b)=>a+Math.pow(b-mean,2),0) / S_ref.length;
-        S_ref = S_ref.map(v => (v - mean) / Math.max(Math.sqrt(vari), 1e-5));
-    }
-    let Raw_Conv_ref = convolve1D(S_ref, kernelSize, engineConfig?.kernelProfile);
-    if (isMultiScale) {
-      for (let i = 0; i < Raw_Conv_ref.length; i++) {
-        Raw_Conv_ref[i] = Raw_Conv_ref[i] * 0.7 + S_ref[i] * 0.3;
-      }
-    }
-    const Conv_ref = applyPooling(Raw_Conv_ref);
+    const cachedRef = getCachedConvolvedReference(
+      phase.name,
+      phase.peaks,
+      kernelSize,
+      engineConfig?.kernelProfile,
+      !!engineConfig?.batchNorm,
+      isMultiScale,
+      poolType
+    );
+    
+    const Conv_ref = cachedRef.convRef;
     let convSimilarity = cosineSimilarity(Pooled_obs, Conv_ref);
 
-    if (isMultiScale && Conv_obs_wide) {
-      let Raw_Conv_ref_wide = convolve1D(S_ref, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile);
-      for (let i = 0; i < Raw_Conv_ref_wide.length; i++) {
-        Raw_Conv_ref_wide[i] = Raw_Conv_ref_wide[i] * 0.7 + S_ref[i] * 0.3;
-      }
-      const Conv_ref_wide = applyPooling(Raw_Conv_ref_wide);
-      const similarityWide = cosineSimilarity(Conv_obs_wide, Conv_ref_wide);
+    if (isMultiScale && Conv_obs_wide && cachedRef.convRefWide) {
+      const similarityWide = cosineSimilarity(Conv_obs_wide, cachedRef.convRefWide);
       convSimilarity = 0.6 * convSimilarity + 0.4 * similarityWide;
     }
 

@@ -33,6 +33,7 @@ import {
   Play,
   Pause,
   Activity,
+  Compass,
 } from "lucide-react";
 
 const Symmetry3DVisualizer = ({
@@ -623,6 +624,7 @@ export const SelectionRulesModule: React.FC = () => {
   const [hoveredNode, setHoveredNode] = useState<
     [number, number, number] | null
   >(null);
+  const [manualProbe, setManualProbe] = useState<[number, number, number]>([1, 1, 0]);
 
   // Custom states to improve 3D Reciprocal Space Probe
   const [isOrbiting, setIsOrbiting] = useState<boolean>(false);
@@ -756,6 +758,9 @@ export const SelectionRulesModule: React.FC = () => {
       }
     }
     setHoveredNode(found);
+    if (found) {
+      setManualProbe(found);
+    }
   };
 
   const handleRecipMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -815,6 +820,7 @@ export const SelectionRulesModule: React.FC = () => {
 
       if (closest) {
         toggleHKLNode(closest.h, closest.k, closest.l);
+        setManualProbe([closest.h, closest.k, closest.l]);
       }
     }
   };
@@ -844,6 +850,7 @@ export const SelectionRulesModule: React.FC = () => {
     const ry = (recipRotation.y * Math.PI) / 180;
 
     const maxBound = Math.min(Math.max(1, maxIndex), 3);
+    const activeNode = hoveredNode || manualProbe;
 
     const project = (h: number, k: number, l: number) => {
       // Dynamic scale based on extent
@@ -1061,8 +1068,8 @@ export const SelectionRulesModule: React.FC = () => {
       });
 
       // Diffracted wave vector k (from Center to active node)
-      if (hoveredNode) {
-        const p_hover = project(hoveredNode[0], hoveredNode[1], hoveredNode[2]);
+      if (activeNode) {
+        const p_hover = project(activeNode[0], activeNode[1], activeNode[2]);
         elements.push({
           type: "k-vector",
           p1: c,
@@ -1074,9 +1081,9 @@ export const SelectionRulesModule: React.FC = () => {
       }
     }
 
-    // Draw reciprocal standard vector (g*) for hovered node from origin (0,0,0) to node
-    if (hoveredNode) {
-      const p_hover = project(hoveredNode[0], hoveredNode[1], hoveredNode[2]);
+    // Draw reciprocal standard vector (g*) for active node from origin (0,0,0) to node
+    if (activeNode) {
+      const p_hover = project(activeNode[0], activeNode[1], activeNode[2]);
       elements.push({
         type: "recip-vector",
         p1: origin,
@@ -1092,13 +1099,13 @@ export const SelectionRulesModule: React.FC = () => {
     elements.forEach((el) => {
       if (el.type === "edge") {
         const isHoveredEdge =
-          hoveredNode &&
-          ((hoveredNode[0] === el.h1 &&
-            hoveredNode[1] === el.k1 &&
-            hoveredNode[2] === el.l1) ||
-            (hoveredNode[0] === el.h2 &&
-              hoveredNode[1] === el.k2 &&
-              hoveredNode[2] === el.l2));
+          activeNode &&
+          ((activeNode[0] === el.h1 &&
+            activeNode[1] === el.k1 &&
+            activeNode[2] === el.l1) ||
+            (activeNode[0] === el.h2 &&
+              activeNode[1] === el.k2 &&
+              activeNode[2] === el.l2));
         ctx.beginPath();
         ctx.moveTo(el.p1.x, el.p1.y);
         ctx.lineTo(el.p2.x, el.p2.y);
@@ -1223,12 +1230,19 @@ export const SelectionRulesModule: React.FC = () => {
           hoveredNode[0] === el.h &&
           hoveredNode[1] === el.k &&
           hoveredNode[2] === el.l;
+        const isManual =
+          manualProbe &&
+          manualProbe[0] === el.h &&
+          manualProbe[1] === el.k &&
+          manualProbe[2] === el.l;
+        const isProbeActive = isHovered || isManual;
+
         const radius = el.isSelected
-          ? isHovered
-            ? 8
+          ? isProbeActive
+            ? 8.5
             : 6.5
-          : isHovered
-            ? 5.5
+          : isProbeActive
+            ? 6.0
             : 3.5;
 
         // If node satisfies Ewald Sphere reflection, add a glowing aura
@@ -1237,13 +1251,24 @@ export const SelectionRulesModule: React.FC = () => {
           ctx.arc(
             el.p.x,
             el.p.y,
-            radius + (isHovered ? 5 : 3.5),
+            radius + (isProbeActive ? 5 : 3.5),
             0,
             2 * Math.PI,
           );
           ctx.strokeStyle = "rgba(251, 191, 36, 0.45)"; // golden glow
           ctx.lineWidth = 1.2;
           ctx.stroke();
+        }
+
+        // Draw selection halo/pointer ring for hovered or manually focused probe
+        if (isProbeActive) {
+          ctx.beginPath();
+          ctx.arc(el.p.x, el.p.y, radius + 4, 0, 2 * Math.PI);
+          ctx.strokeStyle = isHovered ? "rgba(52, 211, 153, 0.75)" : "rgba(168, 85, 247, 0.85)";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([2, 2]);
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
 
         ctx.beginPath();
@@ -1266,7 +1291,7 @@ export const SelectionRulesModule: React.FC = () => {
             ctx.strokeStyle = "#34d399";
             ctx.lineWidth = 1;
             ctx.shadowColor = "rgba(16, 185, 129, 0.45)";
-            ctx.shadowBlur = isHovered ? 12 : 6;
+            ctx.shadowBlur = isProbeActive ? 12 : 6;
           } else {
             const grad = ctx.createRadialGradient(
               el.p.x - radius * 0.3,
@@ -1283,7 +1308,7 @@ export const SelectionRulesModule: React.FC = () => {
             ctx.strokeStyle = "#f87171";
             ctx.lineWidth = 1;
             ctx.shadowColor = "rgba(239, 68, 68, 0.45)";
-            ctx.shadowBlur = isHovered ? 12 : 6;
+            ctx.shadowBlur = isProbeActive ? 12 : 6;
           }
           ctx.fill();
           ctx.stroke();
@@ -1293,21 +1318,21 @@ export const SelectionRulesModule: React.FC = () => {
           if (el.isEwaldIntersecting) {
             ctx.fillStyle = "rgba(245, 158, 11, 0.85)"; // diffracting inactive point is bright orange/amber
           } else {
-            ctx.fillStyle = isHovered
-              ? "rgba(255, 255, 255, 0.8)"
+            ctx.fillStyle = isProbeActive
+              ? "rgba(255, 255, 255, 0.85)"
               : "rgba(148, 163, 184, 0.22)";
           }
           ctx.fill();
         }
 
-        if (el.isSelected || isHovered) {
-          ctx.fillStyle = el.isSelected ? "#ffffff" : "#94a3b8";
-          ctx.font = isHovered ? "bold 8.5px monospace" : "7.5px monospace";
+        if (el.isSelected || isProbeActive) {
+          ctx.fillStyle = el.isSelected ? "#ffffff" : isHovered ? "#34d399" : "#a855f7";
+          ctx.font = isProbeActive ? "bold 8.5px monospace" : "7.5px monospace";
           ctx.textAlign = "center";
           ctx.fillText(
             `(${el.h},${el.k},${el.l})`,
             el.p.x,
-            el.p.y - radius - 3,
+            el.p.y - radius - (isProbeActive ? 6 : 3),
           );
         }
       }
@@ -1328,6 +1353,7 @@ export const SelectionRulesModule: React.FC = () => {
     recipRotation,
     system,
     hoveredNode,
+    manualProbe,
     maxIndex,
     projectionMode,
     showEwaldSphere,
@@ -2037,14 +2063,14 @@ export const SelectionRulesModule: React.FC = () => {
 
             {/* Reciprocal Space 3D interactive grid */}
             <div className="space-y-4 p-4 bg-[#050B14] rounded-2xl border border-[#1e293b]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[10px] font-black font-mono text-emerald-400 uppercase tracking-widest flex items-center">
                     <Activity className="w-3.5 h-3.5 text-emerald-500 mr-1 animate-pulse" />
                     3D Reciprocal Space Probe
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     type="button"
                     onClick={() => setIsOrbiting(!isOrbiting)}
@@ -2072,6 +2098,48 @@ export const SelectionRulesModule: React.FC = () => {
                 </div>
               </div>
 
+              {/* Quick View Orienteer */}
+              <div className="flex flex-wrap items-center gap-1 bg-black/40 p-1.5 rounded-xl border border-[#1e293b]/60">
+                <span className="text-[8px] font-bold font-mono text-slate-500 uppercase tracking-widest mr-1.5 pl-1">
+                  View Alignment Presets:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setRecipRotation({ x: 0, y: 0 }); setIsOrbiting(false); }}
+                  className="px-2 py-0.5 bg-black hover:bg-slate-900 border border-[#1e293b] hover:border-emerald-500/30 rounded text-[8.5px] font-mono text-slate-300 hover:text-emerald-400 transition-all font-semibold uppercase"
+                >
+                  [100] Front
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRecipRotation({ x: 0, y: 90 }); setIsOrbiting(false); }}
+                  className="px-2 py-0.5 bg-black hover:bg-slate-900 border border-[#1e293b] hover:border-emerald-500/30 rounded text-[8.5px] font-mono text-slate-300 hover:text-emerald-400 transition-all font-semibold uppercase"
+                >
+                  [010] Side
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRecipRotation({ x: 90, y: 0 }); setIsOrbiting(false); }}
+                  className="px-2 py-0.5 bg-black hover:bg-slate-900 border border-[#1e293b] hover:border-emerald-500/30 rounded text-[8.5px] font-mono text-slate-300 hover:text-emerald-400 transition-all font-semibold uppercase"
+                >
+                  [001] Top
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRecipRotation({ x: 35.26, y: -45 }); setIsOrbiting(false); }}
+                  className="px-2 py-0.5 bg-black hover:bg-slate-900 border border-[#1e293b] hover:border-emerald-500/30 rounded text-[8.5px] font-mono text-slate-300 hover:text-emerald-400 transition-all font-semibold uppercase"
+                >
+                  [111] Diag
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setRecipRotation({ x: 25, y: -45 }); setIsOrbiting(false); }}
+                  className="px-2 py-0.5 bg-black hover:bg-slate-900 border border-[#1e293b] hover:border-emerald-500/30 rounded text-[8.5px] font-mono text-slate-300 hover:text-emerald-400 transition-all font-semibold uppercase animate-pulse"
+                >
+                  Isometric
+                </button>
+              </div>
+
               {/* 3D Canvas Box */}
               <div className="relative rounded-xl border border-[#1e293b]/80 overflow-hidden cursor-grab active:cursor-grabbing bg-[#010308] group">
                 <canvas
@@ -2093,12 +2161,147 @@ export const SelectionRulesModule: React.FC = () => {
                     CLICK TO TOGGLE HKL
                   </span>
                 </div>
-                {hoveredNode && (
-                  <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/90 border border-emerald-500/30 rounded-lg text-[9px] font-mono text-emerald-400 animate-pulse flex items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-ping" />
-                    Point ({hoveredNode.join(" ")}) • Click to Toggle
+                {(hoveredNode || manualProbe) && (
+                  <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/95 border border-purple-500/40 rounded-lg text-[9px] font-mono text-purple-400 animate-pulse flex items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mr-1.5 animate-ping" />
+                    Probe: ({(hoveredNode || manualProbe).join(" ")}) • Click to Toggle
                   </div>
                 )}
+              </div>
+
+              {/* Direct HKL Micro-Probe Selector Console */}
+              <div className="p-3 bg-black/40 rounded-xl border border-[#1e293b]/50 space-y-3">
+                <div className="text-[10px] uppercase font-black tracking-wider text-slate-400 border-b border-[#1e293b]/30 pb-1.5 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Compass className="w-3.5 h-3.5 text-purple-400 animate-spin-slow animate-pulse" />
+                    <span>PRECISION HKL PROBE DIAL</span>
+                  </div>
+                  <span className="text-[8px] font-mono text-slate-500 uppercase">
+                    Direct Selector Control
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2.5">
+                  {/* H Index selector */}
+                  <div className="bg-[#030712] p-1.5 rounded-lg border border-[#1e293b]/50 flex flex-col items-center">
+                    <span className="text-[8px] font-mono font-bold text-slate-500 mb-1 uppercase tracking-wider">Index h</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const limit = Math.min(maxIndex, 3);
+                          const nextH = Math.max(-limit, manualProbe[0] - 1);
+                          setManualProbe([nextH, manualProbe[1], manualProbe[2]]);
+                        }}
+                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                      >
+                        -
+                      </button>
+                      <span className="text-xs font-mono font-black text-emerald-400 w-6 text-center">
+                        {manualProbe[0]}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const limit = Math.min(maxIndex, 3);
+                          const nextH = Math.min(limit, manualProbe[0] + 1);
+                          setManualProbe([nextH, manualProbe[1], manualProbe[2]]);
+                        }}
+                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* K Index selector */}
+                  <div className="bg-[#030712] p-1.5 rounded-lg border border-[#1e293b]/50 flex flex-col items-center">
+                    <span className="text-[8px] font-mono font-bold text-slate-500 mb-1 uppercase tracking-wider">Index k</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const limit = Math.min(maxIndex, 3);
+                          const nextK = Math.max(-limit, manualProbe[1] - 1);
+                          setManualProbe([manualProbe[0], nextK, manualProbe[2]]);
+                        }}
+                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                      >
+                        -
+                      </button>
+                      <span className="text-xs font-mono font-black text-emerald-400 w-6 text-center">
+                        {manualProbe[1]}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const limit = Math.min(maxIndex, 3);
+                          const nextK = Math.min(limit, manualProbe[1] + 1);
+                          setManualProbe([manualProbe[0], nextK, manualProbe[2]]);
+                        }}
+                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* L Index selector */}
+                  <div className="bg-[#030712] p-1.5 rounded-lg border border-[#1e293b]/50 flex flex-col items-center">
+                    <span className="text-[8px] font-mono font-bold text-slate-500 mb-1 uppercase tracking-wider">Index l</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const limit = Math.min(maxIndex, 3);
+                          const nextL = Math.max(-limit, manualProbe[2] - 1);
+                          setManualProbe([manualProbe[0], manualProbe[1], nextL]);
+                        }}
+                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                      >
+                        -
+                      </button>
+                      <span className="text-xs font-mono font-black text-emerald-400 w-6 text-center">
+                        {manualProbe[2]}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const limit = Math.min(maxIndex, 3);
+                          const nextL = Math.min(limit, manualProbe[2] + 1);
+                          setManualProbe([manualProbe[0], manualProbe[1], nextL]);
+                        }}
+                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (manualProbe[0] === 0 && manualProbe[1] === 0 && manualProbe[2] === 0) return;
+                    toggleHKLNode(manualProbe[0], manualProbe[1], manualProbe[2]);
+                  }}
+                  className={`w-full py-2 px-3 rounded-xl border text-[9px] font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${
+                    (() => {
+                      const parsed = parseHKLString(hklInput);
+                      const exists = parsed.some((p) => p[0] === manualProbe[0] && p[1] === manualProbe[1] && p[2] === manualProbe[2]);
+                      return exists 
+                        ? "bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-400"
+                        : "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                    })()
+                  }`}
+                >
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  {(() => {
+                    const parsed = parseHKLString(hklInput);
+                    const exists = parsed.some((p) => p[0] === manualProbe[0] && p[1] === manualProbe[1] && p[2] === manualProbe[2]);
+                    return exists ? "Remove reflection from analysis list" : "Add reflection to analysis list";
+                  })()}
+                </button>
               </div>
 
               {/* Probe Calibration Panel */}
@@ -2217,7 +2420,7 @@ export const SelectionRulesModule: React.FC = () => {
               {/* Crystallographic Investigator (Real-time Bragg Equation Solver) */}
               <div className="p-3 bg-[#0A1221] rounded-xl border border-emerald-500/15">
                 {(() => {
-                  const activeNode = hoveredNode;
+                  const activeNode = hoveredNode || manualProbe;
                   const [h, k, l] = activeNode || [0, 0, 0];
                   const hasSelection =
                     activeNode && (h !== 0 || k !== 0 || l !== 0);
@@ -2228,9 +2431,9 @@ export const SelectionRulesModule: React.FC = () => {
                         <Info className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                         <span className="leading-normal font-medium text-[11px] text-slate-400">
                           Hover over any crystallographic node (h, k, l) in the
-                          interactive 3D reciprocal canvas above to calculate
-                          d-spacing, Bragg angle, and Ewald sphere intersection
-                          state.
+                          interactive 3D reciprocal canvas or use the precision
+                          keypad above to calculate d-spacing, Bragg angle, and
+                          Ewald sphere intersection state.
                         </span>
                       </div>
                     );
