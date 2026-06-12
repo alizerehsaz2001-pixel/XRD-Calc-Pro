@@ -178,6 +178,16 @@
   accent-color: var(--color-cyber-blue) !important;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+body {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 /* Custom Thin Scrollbar */
 .perspective-1000 { perspective: 1000px; }
 .transform-style-3d { transform-style: preserve-3d; }

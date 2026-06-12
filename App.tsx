@@ -50,6 +50,7 @@ const App: React.FC = () => {
     return !!localStorage.getItem('xrd_user_registration');
   });
   const [hasEntered, setHasEntered] = useState<boolean>(false);
+  const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
   const [activeModule, setActiveModule] = useState<Module>('bragg');
   const [skipIntros, setSkipIntros] = useState<boolean>(() => {
     return localStorage.getItem('xrd_skip_intros') === 'true';
@@ -498,16 +499,48 @@ const App: React.FC = () => {
     handleCalculate(false);
   }, []);
 
+  useEffect(() => {
+    if (!hasEntered || !isRegistered) {
+      document.body.classList.remove('overflow-hidden', 'h-screen');
+      document.body.classList.add('overflow-y-auto', 'min-h-screen');
+    } else {
+      document.body.classList.add('overflow-hidden', 'h-screen');
+      document.body.classList.remove('overflow-y-auto', 'min-h-screen');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden', 'h-screen', 'overflow-y-auto', 'min-h-screen');
+    };
+  }, [hasEntered, isRegistered]);
+
   if (!hasEntered) {
     return (
       <div className={theme === 'light' ? '' : theme}>
-        <LandingPage onEnter={() => setHasEntered(true)} theme={theme} setTheme={setTheme} />
+        <LandingPage
+          onEnter={(mode?: 'register' | 'login') => {
+            setAuthMode(mode || 'register');
+            setHasEntered(true);
+          }}
+          theme={theme}
+          setTheme={setTheme}
+          isRegistered={isRegistered}
+          onSignOut={() => {
+            localStorage.removeItem('xrd_user_registration');
+            setIsRegistered(false);
+            setHasEntered(false);
+          }}
+        />
       </div>
     );
   }
 
   if (!isRegistered) {
-    return <RegistrationPage onRegister={() => setIsRegistered(true)} />;
+    return (
+      <RegistrationPage
+        initialMode={authMode}
+        onRegister={() => setIsRegistered(true)}
+        onBack={() => setHasEntered(false)}
+      />
+    );
   }
 
   const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';

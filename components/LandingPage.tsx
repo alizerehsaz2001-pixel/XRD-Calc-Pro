@@ -694,13 +694,30 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
 };
 
 // --- Main Page Component ---
-export const LandingPage = ({ onEnter, setTheme, theme }: { 
-  onEnter: () => void, 
+export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut }: { 
+  onEnter: (mode?: 'register' | 'login') => void, 
   setTheme: (theme: any) => void,
-  theme: string
+  theme: string,
+  isRegistered?: boolean,
+  onSignOut?: () => void
 }) => {
   const { t, i18n } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [userName, setUserName] = useState<string>('');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('xrd_user_registration');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.name) {
+          setUserName(parsed.name);
+        }
+      } else {
+        setUserName('');
+      }
+    } catch (e) {}
+  }, [isRegistered]);
 
   const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';
 
@@ -786,7 +803,7 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
       {/* Dynamic Navbar */}
       <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 ${isScrolled ? 'bg-[#050B14]/80 backdrop-blur-2xl border-b border-white/10 py-3 shadow-2xl' : 'bg-transparent py-6'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={onEnter}>
+          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => onEnter(isRegistered ? 'login' : 'register')}>
             <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-800 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.3)] group-hover:scale-105 transition-transform duration-300">
               <Hexagon className="w-6 h-6 text-white" />
             </div>
@@ -807,23 +824,65 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
             <a href="#features" className="hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">Framework</a>
             <a href="#platform" className="hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">Methods</a>
             <div className="w-px h-5 bg-slate-700 mx-2" />
-            <button 
-              onClick={onEnter}
-              className="hover:text-white transition-colors"
-            >
-              {t('Log In')}
-            </button>
-            <button 
-              onClick={onEnter}
-              className="bg-white text-slate-900 hover:bg-slate-200 px-6 py-2.5 rounded-full shadow-lg font-bold transition-all active:scale-95"
-            >
-              {t('Get Started')}
-            </button>
+            
+            {isRegistered ? (
+              <>
+                <span className="text-cyan-400 font-bold tracking-tight lowercase truncate max-w-[130px] flex items-center gap-1.5 bg-cyan-950/40 border border-cyan-800/40 px-2.5 py-1.5 rounded-lg">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  {userName || 'User'}
+                </span>
+                <button 
+                  onClick={() => onEnter('login')}
+                  className="hover:text-white font-bold transition-colors text-indigo-400"
+                >
+                  {t('Go to App')}
+                </button>
+                <button 
+                  onClick={onSignOut}
+                  className="bg-rose-500/10 text-rose-450 border border-rose-500/20 hover:bg-rose-550/20 px-4 py-2 rounded-full font-bold transition-all active:scale-95"
+                >
+                  {t('Sign Out')}
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  onClick={() => onEnter('login')}
+                  className="hover:text-white transition-colors text-indigo-400 font-bold"
+                >
+                  {t('Log In')}
+                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => onEnter('login')}
+                    className="hover:text-white hover:bg-white/5 border border-white/10 px-4 py-2.5 rounded-full font-bold transition-all"
+                  >
+                    {t('Sign In')}
+                  </button>
+                  <button 
+                    onClick={() => onEnter('register')}
+                    className="bg-white text-slate-900 hover:bg-slate-200 px-5 py-2.5 rounded-full shadow-lg font-bold transition-all active:scale-95"
+                  >
+                    {t('Get Started')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
-          <button onClick={onEnter} className="md:hidden p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700">
-            <ArrowRight className="w-5 h-5 text-violet-400" />
-          </button>
+          <div className="flex md:hidden items-center gap-2">
+            {isRegistered && (
+              <button 
+                onClick={onSignOut}
+                className="text-[10px] uppercase font-black tracking-wider bg-rose-500/10 text-rose-450 px-2.5 py-1.5 rounded-lg border border-rose-500/20"
+              >
+                {t('Sign Out')}
+              </button>
+            )}
+            <button onClick={() => onEnter(isRegistered ? 'login' : 'register')} className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700">
+              <ArrowRight className="w-5 h-5 text-violet-400" />
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -883,22 +942,22 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
                     placeholder="Search structures... e.g. 'TiO2 Anatase', 'NaCl'" 
                     className="flex-1 bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 font-medium text-lg px-2 w-full"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') onEnter();
+                      if (e.key === 'Enter') onEnter(isRegistered ? 'login' : 'register');
                     }}
                   />
                   <div className="flex gap-2 pr-1">
                     <button 
-                      onClick={onEnter}
+                      onClick={() => onEnter(isRegistered ? 'login' : 'register')}
                       className="hidden sm:flex px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl items-center justify-center gap-2 transition-all text-slate-300 hover:text-white font-bold"
                     >
                       <Beaker className="w-4 h-4 text-cyan-400" />
-                      View Demo
+                      {isRegistered ? t('Go to App') : 'Demo Access'}
                     </button>
                     <button 
-                      onClick={onEnter}
+                      onClick={() => onEnter(isRegistered ? 'login' : 'register')}
                       className="px-8 py-4 bg-violet-600 hover:bg-violet-500 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(139,92,246,0.4)] active:scale-95 text-white font-bold uppercase tracking-wider h-14"
                     >
-                      Start
+                      {isRegistered ? 'Launch Core' : 'Start'}
                       <ArrowRight className="w-5 h-5" />
                     </button>
                   </div>
@@ -1302,12 +1361,18 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
                     </p>
                     
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                       <button onClick={onEnter} className="px-10 py-5 bg-white text-slate-900 rounded-2xl font-bold tracking-wide hover:bg-slate-100 transition-all shadow-xl active:scale-95">
-                          Initialize Free Trial
+                       <button onClick={() => onEnter(isRegistered ? 'login' : 'register')} className="px-10 py-5 bg-white text-slate-900 rounded-2xl font-bold tracking-wide hover:bg-slate-100 transition-all shadow-xl active:scale-95">
+                          {isRegistered ? 'Enter Custom Workspace' : 'Initialize General Access'}
                        </button>
-                       <button onClick={onEnter} className="px-10 py-5 bg-transparent border border-slate-600 text-slate-300 rounded-2xl font-bold tracking-wide hover:bg-slate-800 hover:text-white transition-all active:scale-95">
-                          View Pricing
-                       </button>
+                       {isRegistered ? (
+                         <button onClick={onSignOut} className="px-10 py-5 bg-transparent border border-rose-600/30 text-rose-300 rounded-2xl font-bold tracking-wide hover:bg-rose-950/20 hover:text-rose-450 transition-all active:scale-95">
+                            {t('Sign Out')}
+                         </button>
+                       ) : (
+                         <button onClick={() => onEnter('login')} className="px-10 py-5 bg-transparent border border-slate-600 text-slate-300 rounded-2xl font-bold tracking-wide hover:bg-slate-800 hover:text-white transition-all active:scale-95">
+                            {t('Log In / Sign In')}
+                         </button>
+                       )}
                     </div>
 
                     <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
@@ -1330,7 +1395,7 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
       <footer className="bg-slate-950 py-32 px-6 border-t border-slate-900 relative z-10">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-20">
           <div className="lg:col-span-2">
-             <div className="flex items-center gap-3 mb-10 group" onClick={onEnter}>
+             <div className="flex items-center gap-3 mb-10 group" onClick={() => onEnter(isRegistered ? 'login' : 'register')}>
                 <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-800 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.3)] group-hover:scale-105 transition-transform duration-300">
                   <Hexagon className="w-6 h-6 text-white" />
                 </div>
