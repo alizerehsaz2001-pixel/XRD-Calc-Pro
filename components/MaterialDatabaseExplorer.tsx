@@ -30,6 +30,8 @@ import {
   Atom
 } from 'lucide-react';
 import { MATERIAL_DB } from '../utils/materialDB';
+import { calculateThermodynamics, generateTemperatureSweep } from '../utils/thermodynamics';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const LOCAL_STORAGE_KEY = 'crystal_suite_materials_v1';
 
@@ -161,7 +163,8 @@ export const MaterialDatabaseExplorer: React.FC = () => {
   // Scientific XRD properties
   const [xrdWavelength, setXrdWavelength] = useState<number>(1.54059);
   const [xrdFwhm, setXrdFwhm] = useState<number>(0.3);
-  const [activeDetailTab, setActiveDetailTab] = useState<'spectrum' | 'lattice' | 'composition'>('spectrum');
+  const [activeDetailTab, setActiveDetailTab] = useState<'spectrum' | 'lattice' | 'composition' | 'thermo'>('spectrum');
+  const [thermoTemperature, setThermoTemperature] = useState<number>(298);
 
   // Smooth continuous spin duration for 3D crystal lattice visualizer
   const [spinTime, setSpinTime] = useState<number>(0);
@@ -208,6 +211,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     mwComputed: number;
     patternsNormalized: number;
     densitiesCalibrated: number;
+    thermoRefined: number;
   } | null>(null);
 
   const computeFormulaWeight = (formula: string): number => {
@@ -386,7 +390,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
       // Step 7: Calibrate missing or anomalous densities
       setRefineStageMsg("Stage 6: Verifying structural density constraints and calibrating physical limits...");
-      setRefineProgress(95);
+      setRefineProgress(90);
       await delay(800);
       currentData = currentData.map(m => {
         const dens = m.density || 0;
@@ -413,6 +417,26 @@ export const MaterialDatabaseExplorer: React.FC = () => {
         return m;
       });
 
+      // Step 8: Calibrate thermodynamic properties
+      setRefineStageMsg("Stage 7: Simulating thermodynamic solid-state stability and deriving formation energy curves...");
+      setRefineProgress(98);
+      await delay(800);
+      let thermoRefined = 0;
+      currentData = currentData.map(m => {
+        const tPkg = calculateThermodynamics(m.formula, m.crystalSystem, m.molecularWeight);
+        thermoRefined++;
+        return {
+          ...m,
+          formationEnergy: m.formationEnergy !== undefined ? m.formationEnergy : tPkg.formationEnergy,
+          standardEntropy: m.standardEntropy !== undefined ? m.standardEntropy : tPkg.standardEntropy,
+          heatCapacity: m.heatCapacity !== undefined ? m.heatCapacity : tPkg.heatCapacity,
+          debyeTemperature: m.debyeTemperature !== undefined ? m.debyeTemperature : tPkg.debyeTemperature,
+          energyAboveHull: m.energyAboveHull !== undefined ? m.energyAboveHull : tPkg.energyAboveHull,
+          stabilityStatus: m.stabilityStatus !== undefined ? m.stabilityStatus : tPkg.stabilityStatus,
+          decompositionTemp: m.decompositionTemp !== undefined ? m.decompositionTemp : tPkg.decompositionTemp
+        };
+      });
+
       // Save Data
       setRefineStageMsg("Finalizing... Saving synchronized metadata package to the local warehouse...");
       setRefineProgress(100);
@@ -426,7 +450,8 @@ export const MaterialDatabaseExplorer: React.FC = () => {
         spaceGroupsNormalized,
         mwComputed,
         patternsNormalized,
-        densitiesCalibrated
+        densitiesCalibrated,
+        thermoRefined
       });
       setIsRefiningAll(false);
     };
@@ -1570,6 +1595,10 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                         <span className="text-[7.5px] text-slate-500 font-bold uppercase">Theoretical Density Calibration</span>
                         <span className="font-extrabold text-teal-400 text-[10px]">+{refineSummary.densitiesCalibrated} bounds fixed</span>
                       </div>
+                      <div className="p-2 col-span-2 xs:col-span-3 bg-black/40 border border-emerald-950 rounded-lg flex justify-between items-center">
+                        <span className="text-[7.5px] text-slate-500 font-bold uppercase">Thermodynamic & Stability Refined</span>
+                        <span className="font-extrabold text-amber-400 text-[10px]">+{refineSummary.thermoRefined} profiles updated</span>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -2482,6 +2511,12 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                     >
                       🧪 Composition & Roles
                     </button>
+                    <button
+                      onClick={() => setActiveDetailTab('thermo')}
+                      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${activeDetailTab === 'thermo' ? 'border-orange-500 text-orange-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                    >
+                      🔥 Thermodynamics & Stability
+                    </button>
                   </div>
 
                   {/* Tab Contents */}
@@ -2765,6 +2800,195 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                         )}
                       </div>
                     )}
+
+                    {activeDetailTab === 'thermo' && (() => {
+                      const computedThermo = calculateThermodynamics(
+                        selectedMaterial.formula || '',
+                        selectedMaterial.crystalSystem || 'Cubic',
+                        selectedMaterial.molecularWeight
+                      );
+
+                      const standardEntropy = selectedMaterial.standardEntropy !== undefined ? Number(selectedMaterial.standardEntropy) : computedThermo.standardEntropy;
+                      const formationEnergy = selectedMaterial.formationEnergy !== undefined ? Number(selectedMaterial.formationEnergy) : computedThermo.formationEnergy;
+                      const heatCapacity = selectedMaterial.heatCapacity !== undefined ? Number(selectedMaterial.heatCapacity) : computedThermo.heatCapacity;
+                      const debyeTemperature = selectedMaterial.debyeTemperature !== undefined ? Number(selectedMaterial.debyeTemperature) : computedThermo.debyeTemperature;
+                      const energyAboveHull = selectedMaterial.energyAboveHull !== undefined ? Number(selectedMaterial.energyAboveHull) : computedThermo.energyAboveHull;
+                      const stabilityStatus = selectedMaterial.stabilityStatus !== undefined ? selectedMaterial.stabilityStatus : computedThermo.stabilityStatus;
+                      const decompositionTemp = selectedMaterial.decompositionTemp !== undefined ? Number(selectedMaterial.decompositionTemp) : computedThermo.decompositionTemp;
+                      
+                      const elementLength = selectedMaterial.elements?.length || 2;
+                      const calculatedEnthalpy = Math.round(formationEnergy * elementLength * 96.485);
+                      const formationEnthalpy = selectedMaterial.formationEnthalpy !== undefined ? Number(selectedMaterial.formationEnthalpy) : calculatedEnthalpy;
+
+                      const sweepData = generateTemperatureSweep({
+                        formationEnthalpy,
+                        formationEnergy,
+                        standardEntropy,
+                        heatCapacity,
+                        debyeTemperature,
+                        energyAboveHull,
+                        stabilityStatus,
+                        decompositionTemp
+                      });
+
+                      const selectedPoint = sweepData.find(pt => pt.tempKelvin === Math.floor(thermoTemperature / 50) * 50) || sweepData[0] || { gibbsFreeEnergy: formationEnthalpy, entropy: standardEntropy, heatCapacity };
+
+                      return (
+                        <div className="space-y-4 animate-in fade-in duration-300">
+                          {/* Thermostat dashboard values */}
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <div className="p-3 bg-black/40 border border-slate-800/40 rounded-xl font-mono">
+                              <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-extrabold">Formation Enthalpy (ΔHf°)</span>
+                              <span className="text-xs block text-slate-100 mt-1 font-bold">
+                                {formationEnthalpy ? `${formationEnthalpy} kJ/mol` : 'N/A'}
+                              </span>
+                              <span className="text-[8px] text-slate-400 mt-0.5 block">
+                                ~ {formationEnergy.toFixed(3)} eV/atom
+                              </span>
+                            </div>
+
+                            <div className="p-3 bg-black/40 border border-slate-800/40 rounded-xl font-mono">
+                              <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-extrabold">Standard Entropy (S°)</span>
+                              <span className="text-xs block text-slate-100 mt-1 font-bold">
+                                {standardEntropy ? `${standardEntropy} J/mol·K` : 'N/A'}
+                              </span>
+                              <span className="text-[8px] text-slate-400 mt-0.5 block leading-none">
+                                Estimated via Latimer's rule
+                              </span>
+                            </div>
+
+                            <div className="p-3 bg-black/40 border border-slate-800/40 rounded-xl font-mono">
+                              <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-extrabold border-b border-transparent">Heat Capacity (Cp, 298)</span>
+                              <span className="text-xs block text-slate-100 mt-1 font-bold">
+                                {heatCapacity ? `${heatCapacity} J/mol·K` : 'N/A'}
+                              </span>
+                              <span className="text-[8px] text-slate-400 mt-0.5 block leading-none">
+                                Estimated via Kopp's rule
+                              </span>
+                            </div>
+
+                            <div className="p-3 bg-black/40 border border-slate-800/40 rounded-xl font-mono">
+                              <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-extrabold">Debye Temp (θD)</span>
+                              <span className="text-xs block text-cyan-400 mt-1 font-extrabold">
+                                {debyeTemperature ? `${debyeTemperature} K` : 'N/A'}
+                              </span>
+                              <span className="text-[8px] text-slate-400 mt-0.5 block leading-none">
+                                Lattice vibrational limit
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Phase Stability verdict */}
+                          <div className={`p-3.5 border rounded-xl font-sans text-xs flex flex-col gap-2 ${
+                            energyAboveHull === 0 && stabilityStatus === "Stable" 
+                              ? "bg-emerald-950/20 border-emerald-500/20 text-emerald-300"
+                              : "bg-amber-950/20 border-amber-500/20 text-amber-300"
+                          }`}>
+                            <div className="flex items-center justify-between">
+                              <span className="font-extrabold uppercase tracking-widest text-[9px]">Phase Stability Analysis</span>
+                              <span className={`px-2 py-0.5 text-[8px] font-black uppercase rounded ${
+                                energyAboveHull === 0 && stabilityStatus === "Stable" 
+                                  ? "bg-emerald-500 text-black"
+                                  : "bg-amber-500 text-black"
+                              }`}>
+                                {energyAboveHull === 0 ? "E-Above-Hull: 0.0 eV/atom" : `E-Above-Hull: +${energyAboveHull.toFixed(3)} eV/atom`}
+                              </span>
+                            </div>
+                            <p className="text-[11px] leading-relaxed text-slate-300">
+                              {energyAboveHull === 0 
+                                ? `The formula ${selectedMaterial.formula} crystallizes in a thermodynamically stable ground state configuration conforming to the standard convex hull. It is highly resistant to standard chemical decomposition.`
+                                : `The system possesses isostructural polymorphs or mechanical boundaries. With a Hull separation of +${energyAboveHull} eV/atom, it exhibits solid-state metastability.`
+                              }
+                            </p>
+                            <div className="text-[10px] font-mono text-slate-400 flex justify-between items-center bg-black/30 p-2 rounded-lg border border-white/5 mt-0.5">
+                              <span>Thermal Stability Threshold:</span>
+                              <span className="font-bold text-white uppercase text-[10px]">
+                                Stable up to {decompositionTemp} K ({(decompositionTemp - 273.15).toFixed(0)}°C)
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Interactive Temperature Sweep Dashboard */}
+                          <div className="p-3.5 bg-black/35 border border-slate-900 rounded-xl space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-bold text-white uppercase text-[9px] tracking-wider leading-none">Gibbs Potential Temperature Sweep (0K - 1500K)</h4>
+                              <div className="text-slate-400 font-mono text-[9px]">
+                                Selected: <span className="text-orange-400 font-black">{thermoTemperature} K</span>
+                              </div>
+                            </div>
+
+                            {/* Range slider */}
+                            <input 
+                              type="range" 
+                              min="0" 
+                              max="1500" 
+                              step="50"
+                              value={thermoTemperature}
+                              onChange={(e) => setThermoTemperature(Number(e.target.value))}
+                              className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                            />
+
+                            {/* Grid showing swept values */}
+                            <div className="grid grid-cols-3 gap-2.5 pt-1 text-[10px] font-mono">
+                              <div className="bg-black/40 p-2 border border-slate-900 rounded-lg">
+                                <span className="block text-[7.5px] font-bold text-slate-500 uppercase leading-none">Gibbs free energy (ΔG)</span>
+                                <span className="font-black text-orange-400 text-xs mt-1 block">
+                                  {selectedPoint.gibbsFreeEnergy.toFixed(1)} <span className="text-[8px] font-normal">kJ/mol</span>
+                                </span>
+                              </div>
+                              <div className="bg-black/40 p-2 border border-slate-900 rounded-lg">
+                                <span className="block text-[7.5px] font-bold text-slate-500 uppercase leading-none">Swept Entropy (S)</span>
+                                <span className="font-black text-slate-350 text-xs mt-1 block">
+                                  {selectedPoint.entropy.toFixed(1)} <span className="text-[8px] font-normal">J/mol·K</span>
+                                </span>
+                              </div>
+                              <div className="bg-black/40 p-2 border border-slate-900 rounded-lg">
+                                <span className="block text-[7.5px] font-bold text-slate-500 uppercase leading-none">Heat Capacity (Cp)</span>
+                                <span className="font-black text-slate-350 text-xs mt-1 block">
+                                  {selectedPoint.heatCapacity.toFixed(1)} <span className="text-[8px] font-normal">J/mol·K</span>
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Recharts Continuous Curve */}
+                            <div className="h-40 w-full pt-2">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={sweepData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                  <defs>
+                                    <linearGradient id="thermoGibbsGrad" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.25} />
+                                      <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                    </linearGradient>
+                                  </defs>
+                                  <XAxis 
+                                    dataKey="tempKelvin" 
+                                    tick={{ fill: '#64748b', fontSize: 8 }} 
+                                    stroke="#1e293b" 
+                                  />
+                                  <YAxis 
+                                    tick={{ fill: '#64748b', fontSize: 8 }} 
+                                    stroke="#1e293b" 
+                                  />
+                                  <Tooltip 
+                                    contentStyle={{ backgroundColor: '#020617', borderColor: '#334155', borderRadius: '8px', fontSize: '9px', fontFamily: 'monospace' }}
+                                    labelFormatter={(lbl) => `T: ${lbl} K (${(lbl - 273.15).toFixed(0)} °C)`}
+                                  />
+                                  <Area 
+                                    type="monotone" 
+                                    dataKey="gibbsFreeEnergy" 
+                                    stroke="#f97316" 
+                                    strokeWidth={1.5} 
+                                    fillOpacity={1} 
+                                    fill="url(#thermoGibbsGrad)" 
+                                    name="Gibbs Potential" 
+                                  />
+                                </AreaChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                 </div>
