@@ -498,16 +498,16 @@ const App: React.FC = () => {
     handleCalculate(false);
   }, []);
 
-  if (!isRegistered) {
-    return <RegistrationPage onRegister={() => setIsRegistered(true)} />;
-  }
-
   if (!hasEntered) {
     return (
       <div className={theme === 'light' ? '' : theme}>
         <LandingPage onEnter={() => setHasEntered(true)} theme={theme} setTheme={setTheme} />
       </div>
     );
+  }
+
+  if (!isRegistered) {
+    return <RegistrationPage onRegister={() => setIsRegistered(true)} />;
   }
 
   const isRTL = i18n.language === 'he' || i18n.language === 'fa' || i18n.language === 'ar';

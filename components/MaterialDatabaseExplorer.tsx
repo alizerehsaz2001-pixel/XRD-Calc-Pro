@@ -1146,19 +1146,19 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-slate-100">
       
       {/* 1. HERO DIRECTORY HEADER */}
-      <div className="relative group p-6 sm:p-8 rounded-[2.5rem] bg-gradient-to-b from-[#111A2E]/80 to-[#050B14]/90 border border-slate-800/60 shadow-2xl overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none group-hover:bg-indigo-500/20 transition-all duration-700" />
-        <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-cyan-600/10 rounded-full blur-[80px] pointer-events-none group-hover:bg-cyan-500/20 transition-all duration-700" />
+      <div className="relative group p-8 sm:p-10 rounded-[3rem] bg-black/40 backdrop-blur-md border border-white/5 hover:border-indigo-500/30 transition-all shadow-2xl overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-0">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-500/10 to-cyan-500/10 rounded-full blur-[100px] pointer-events-none group-hover:scale-110 group-hover:opacity-100 transition-all duration-700 opacity-50 z-[-1]" />
         
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_10px_20px_rgba(0,0,0,0.4)] backdrop-blur">
-            <Database className="w-7 h-7 text-indigo-400 animate-pulse" />
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10 w-full md:w-auto">
+          <div className="w-20 h-20 rounded-[2rem] bg-indigo-500/10 border border-indigo-500/20 shadow-inner flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-500">
+            <Database className="w-10 h-10 text-indigo-400 group-hover:scale-110 transition-transform duration-500" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tighter uppercase">
+            <h1 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-indigo-100 to-cyan-100 tracking-tighter uppercase drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">
               {t('Scientific Materials Registry', 'Scientific Materials Registry')}
             </h1>
-            <p className="text-xs text-indigo-400 font-mono font-bold tracking-widest uppercase mt-1">
+            <p className="text-xs md:text-sm text-indigo-400/80 font-mono font-bold tracking-[0.2em] uppercase mt-2 flex items-center gap-2">
+               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/50" />
               {t('Crystal Suite Database - Index 12.1.0', 'Crystal Suite Database - Index 12.1.0')}
             </p>
           </div>
@@ -1166,27 +1166,27 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
         {/* Global Inventory Counts Banner & Reset options */}
         <div className="flex gap-4 sm:gap-6 flex-wrap relative z-10 w-full md:w-auto mt-4 md:mt-0 items-center">
-          <div className="flex-1 min-w-[120px] rounded-2xl bg-black/40 border border-indigo-500/20 px-4 py-3 text-center backdrop-blur">
-            <span className="text-2xl sm:text-3xl font-extrabold text-indigo-400 font-mono tracking-tighter">{stats.totalCount}</span>
-            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-0.5">Standards Indexed</p>
+          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/60 border border-white/5 shadow-inner px-5 py-4 text-center hover:border-indigo-500/30 transition-colors">
+            <span className="text-3xl sm:text-4xl font-black text-indigo-400 font-mono tracking-tighter">{stats.totalCount}</span>
+            <p className="text-[10px] uppercase font-black text-slate-500 tracking-[0.2em] mt-1">Standards</p>
           </div>
-          <div className="flex-1 min-w-[120px] rounded-2xl bg-black/40 border border-cyan-500/20 px-4 py-3 text-center backdrop-blur">
-            <span className="text-2xl sm:text-3xl font-extrabold text-cyan-400 font-mono tracking-tighter">{categories.length}</span>
-            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-0.5">Taxonomy Types</p>
+          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/60 border border-white/5 shadow-inner px-5 py-4 text-center hover:border-cyan-500/30 transition-colors">
+            <span className="text-3xl sm:text-4xl font-black text-cyan-400 font-mono tracking-tighter">{categories.length}</span>
+            <p className="text-[10px] uppercase font-black text-slate-500 tracking-[0.2em] mt-1">Taxonomy</p>
           </div>
-          <div className="flex-1 min-w-[120px] rounded-2xl bg-black/40 border border-emerald-500/20 px-4 py-3 text-center backdrop-blur">
-            <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono tracking-tighter">{stats.uniqueElements}</span>
-            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mt-0.5">Elements Tracked</p>
+          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/60 border border-white/5 shadow-inner px-5 py-4 text-center hover:border-emerald-500/30 transition-colors">
+            <span className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tighter">{stats.uniqueElements}</span>
+            <p className="text-[10px] uppercase font-black text-slate-500 tracking-[0.2em] mt-1">Elements</p>
           </div>
 
           {/* Reset All Database Button */}
           {isAnyMaterialModified && (
             <button
               onClick={handleResetAllMaterials}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 text-rose-300 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200 shadow-lg"
+              className="flex items-center gap-2 px-6 py-3.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 text-rose-400 rounded-2xl text-[11px] font-black uppercase tracking-widest cursor-pointer transition-all duration-300 shadow-inner w-full md:w-auto justify-center"
               title={t('Reset entire database overrides to standard defaults', 'Reset entire database overrides to standard defaults')}
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-4 h-4" />
               <span>Reset DB Override</span>
             </button>
           )}
@@ -1197,13 +1197,16 @@ export const MaterialDatabaseExplorer: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Category breakdown progress meter */}
-        <div className="lg:col-span-7 bg-[#050B14]/85 border border-[#1e293b] p-6 rounded-[2rem] shadow-xl relative overflow-hidden flex flex-col justify-between">
-          <div>
-            <h3 className="font-extrabold text-white text-base tracking-tight mb-4 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-indigo-400" />
+        <div className="lg:col-span-7 bg-black/40 backdrop-blur-md border border-white/5 hover:border-indigo-500/20 transition-all p-8 rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col justify-between group z-0">
+          <div className="absolute top-0 right-0 p-32 opacity-[0.03] bg-gradient-to-bl from-indigo-400 to-purple-400 rounded-bl-[100px] pointer-events-none group-hover:opacity-10 group-hover:scale-110 transition-all duration-700 z-[-1]" />
+          <div className="relative z-10">
+            <h3 className="font-black text-slate-200 text-sm tracking-widest uppercase mb-6 flex items-center gap-3">
+              <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 shadow-inner">
+                <Layers className="w-5 h-5 text-indigo-400" />
+              </div>
               Taxonomy Category Breakdown
             </h3>
-            <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
               {stats.categoryDistribution.map(({ name, count }) => {
                 const percent = ((count / stats.totalCount) * 100).toFixed(1);
                 const color = getCategoryThemeColor(name);
@@ -1227,19 +1230,19 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 const bc = bgThemes[color] || 'bg-slate-500';
 
                 return (
-                  <div key={name} className="space-y-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-300 flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${bc}`} />
+                  <div key={name} className="space-y-2 group/item">
+                    <div className="flex justify-between items-center text-[11px] uppercase tracking-wider">
+                      <span className="font-bold text-slate-400 group-hover/item:text-slate-200 transition-colors flex items-center gap-2.5">
+                        <span className={`w-2.5 h-2.5 rounded-full ${bc} shadow-[0_0_10px_rgba(255,255,255,0.2)]`} />
                         {name}
                       </span>
-                      <span className="font-mono text-slate-400 font-bold">
-                        <span className={tc}>{count}</span> <span className="text-[10px] text-slate-500">({percent}%)</span>
+                      <span className="font-mono text-slate-500 font-bold bg-black/40 px-2 py-0.5 rounded shadow-inner">
+                        <span className={tc}>{count}</span> <span className="text-[9px]">({percent}%)</span>
                       </span>
                     </div>
-                    <div className="h-2 w-full bg-slate-900/60 rounded-full overflow-hidden border border-slate-800/50">
+                    <div className="h-1.5 w-full bg-black/60 rounded-full overflow-hidden border border-white/5 shadow-inner">
                       <div 
-                        className={`h-full rounded-full ${bc} opacity-80`} 
+                        className={`h-full rounded-full ${bc} opacity-80 group-hover/item:opacity-100 transition-all duration-300 shadow-[0_0_10px_rgba(255,255,255,0.2)]`} 
                         style={{ width: `${percent}%` }}
                       />
                     </div>
@@ -1254,21 +1257,24 @@ export const MaterialDatabaseExplorer: React.FC = () => {
         <div className="lg:col-span-5 flex flex-col gap-6">
           
           {/* Crystal system stats */}
-          <div className="bg-[#050B14]/85 border border-[#1e293b] p-6 rounded-[2rem] shadow-xl flex-1 flex flex-col justify-between">
-            <div>
-              <h3 className="font-extrabold text-white text-base tracking-tight mb-4 flex items-center gap-2">
-                <Box className="w-5 h-5 text-cyan-400" />
+          <div className="bg-black/40 backdrop-blur-md border border-white/5 hover:border-cyan-500/20 transition-all p-8 rounded-[3rem] shadow-2xl flex-1 flex flex-col justify-between relative overflow-hidden group z-0">
+             <div className="absolute top-0 right-0 p-24 opacity-[0.03] bg-gradient-to-bl from-cyan-400 to-blue-400 rounded-bl-[100px] pointer-events-none group-hover:opacity-10 group-hover:scale-110 transition-all duration-700 z-[-1]" />
+            <div className="relative z-10">
+              <h3 className="font-black text-slate-200 text-sm tracking-widest uppercase mb-6 flex items-center gap-3">
+                <div className="p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20 shadow-inner">
+                  <Box className="w-5 h-5 text-cyan-400" />
+                </div>
                 Crystal System Distribution
               </h3>
-              <div className="grid grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-2 gap-4">
                 {stats.systemDistribution.slice(0, 6).map(({ name, count }) => {
                   const percent = ((count / stats.totalCount) * 100).toFixed(1);
                   return (
-                    <div key={name} className="p-3 rounded-xl bg-black/40 border border-slate-800/60 flex flex-col justify-between">
-                      <span className="text-xs font-black text-slate-400 tracking-tight leading-tight truncate">{name}</span>
-                      <div className="flex justify-between items-baseline mt-2">
-                        <span className="text-base font-extrabold text-cyan-400 font-mono leading-none">{count}</span>
-                        <span className="text-[9px] font-mono text-slate-500 font-bold">{percent}%</span>
+                    <div key={name} className="p-4 rounded-2xl bg-black/60 border border-white/5 hover:border-cyan-500/20 flex flex-col justify-between shadow-inner transition-colors group/sys">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight group-hover/sys:text-slate-300 transition-colors">{name}</span>
+                      <div className="flex justify-between items-baseline mt-3">
+                        <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-600 font-mono leading-none">{count}</span>
+                        <span className="text-[9px] font-mono text-cyan-500/50 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded">{percent}%</span>
                       </div>
                     </div>
                   );
@@ -1278,21 +1284,21 @@ export const MaterialDatabaseExplorer: React.FC = () => {
           </div>
 
           {/* Density metrics/stats extreme */}
-          <div className="bg-[#050B14]/85 border border-[#1e293b] p-5 rounded-2xl shadow-xl flex flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                <Compass className="w-5 h-5 text-emerald-400" />
+          <div className="bg-black/40 backdrop-blur-md border border-white/5 hover:border-emerald-500/20 transition-all p-6 rounded-[2.5rem] shadow-2xl flex flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 shadow-inner flex items-center justify-center p-3">
+                <Compass className="w-full h-full text-emerald-400" />
               </div>
               <div>
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Database Density Extremes</h4>
-                <p className="text-xs text-emerald-300 font-bold mt-1 max-w-[200px] truncate" title={stats.maxDensity.mat}>
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] leading-none mb-1.5">Database Density Extremes</h4>
+                <p className="text-sm text-emerald-300 font-bold max-w-[200px] truncate" title={stats.maxDensity.mat}>
                   {stats.maxDensity.mat || 'N/A'}
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-xl font-extrabold text-white font-mono leading-none">{stats.maxDensity.val || '0.0'}</span>
-              <p className="text-[8px] uppercase text-slate-500 font-mono font-bold">g/cm³ (Max)</p>
+            <div className="text-right pl-4 border-l border-white/5">
+              <span className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 font-mono leading-none">{stats.maxDensity.val || '0.0'}</span>
+              <p className="text-[9px] uppercase text-slate-500 font-mono font-bold tracking-widest mt-1">g/cm³ (Max)</p>
             </div>
           </div>
 
@@ -1306,51 +1312,51 @@ export const MaterialDatabaseExplorer: React.FC = () => {
         <div className="lg:col-span-7 space-y-6">
           
           {/* Controls Bar */}
-          <div className="bg-[#050B14]/80 p-5 rounded-3xl border border-slate-800 flex flex-col gap-4 relative z-20">
+          <div className="bg-black/40 backdrop-blur-md p-6 rounded-[2.5rem] border border-white/5 shadow-2xl flex flex-col gap-5 relative z-20 hover:border-indigo-500/20 transition-colors">
             
             {/* Direct Search Input with Custom Standard Add option */}
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-3 items-center">
               <div className="relative flex-1 group">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder={t("Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...", "Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...")}
-                  className="w-full pl-10 pr-10 py-2.5 bg-black/40 backdrop-blur border border-slate-800 text-indigo-100 outline-none rounded-xl focus:border-indigo-500/50 focus:bg-black/60 focus:ring-1 focus:ring-indigo-500/30 placeholder:text-slate-600 transition-all text-[11px] font-mono shadow-inner select-none"
+                  className="w-full pl-14 pr-12 py-3.5 bg-black/60 backdrop-blur border border-white/10 text-slate-100 outline-none rounded-2xl focus:border-indigo-500/50 focus:bg-indigo-950/20 focus:ring-1 focus:ring-indigo-500/30 placeholder:text-slate-600 transition-all text-xs font-mono shadow-inner select-none"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors p-1"
                     title="Clear query"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
 
               <button
                 onClick={handleStartCreate}
-                className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] font-bold shadow shadow-indigo-600/10 border border-indigo-500/30 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[38px] select-none"
+                className="flex items-center justify-center gap-2 px-5 py-3.5 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(79,70,229,0.4)] border border-indigo-400/50 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[46px] select-none"
                 title={t('Create a novel custom standard to index in the database', 'Create a novel custom standard to index in the database')}
               >
-                <Plus className="w-3.5 h-3.5 text-white" />
-                <span>Custom Standard</span>
+                <Plus className="w-4 h-4 text-white" />
+                <span>Custom Std</span>
               </button>
             </div>
 
             {/* Dropdown Filters */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               
               {/* Category selector */}
-              <div className="flex flex-col gap-0.5">
-                <label className="text-[7.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Taxonomy Category</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Taxonomy Category</label>
                 <div className="relative">
                   <select
                     value={selectedCategory}
                     onChange={e => setSelectedCategory(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-black/40 border border-slate-800/80 text-slate-300 outline-none rounded-lg text-[10px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                    className="w-full px-4 py-2.5 bg-black/60 border border-white/10 shadow-inner text-slate-300 outline-none rounded-xl text-[11px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
                   >
                     <option value="All">All Categories</option>
                     {categories.map(cat => (
@@ -1361,12 +1367,12 @@ export const MaterialDatabaseExplorer: React.FC = () => {
               </div>
 
               {/* Crystal System Selector */}
-              <div className="flex flex-col gap-0.5">
-                <label className="text-[7.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Crystal Lattice System</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Crystal Lattice System</label>
                 <select
                   value={selectedCrystalSystem}
                   onChange={e => setSelectedCrystalSystem(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-black/40 border border-slate-800/80 text-slate-300 outline-none rounded-lg text-[10px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 shadow-inner text-slate-300 outline-none rounded-xl text-[11px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
                 >
                   <option value="All">All Lattice Systems</option>
                   <option value="Cubic">Cubic</option>
@@ -1381,12 +1387,12 @@ export const MaterialDatabaseExplorer: React.FC = () => {
               </div>
 
               {/* Sort selector */}
-              <div className="col-span-2 md:col-span-1 flex flex-col gap-0.5">
-                <label className="text-[7.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Sort Metric</label>
+              <div className="col-span-2 md:col-span-1 flex flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Sort Metric</label>
                 <select
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value as any)}
-                  className="w-full px-2.5 py-1.5 bg-black/40 border border-slate-800/80 text-slate-300 outline-none rounded-lg text-[10px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 shadow-inner text-slate-300 outline-none rounded-xl text-[11px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
                 >
                   <option value="name">Chemical Name</option>
                   <option value="density">Density</option>
@@ -1398,12 +1404,12 @@ export const MaterialDatabaseExplorer: React.FC = () => {
             </div>
 
             {/* Advanced Filters Toggles */}
-            <div className="flex gap-2 items-center flex-wrap pt-0.5 border-t border-slate-900">
+            <div className="flex gap-3 items-center flex-wrap pt-4 border-t border-white/5">
               <button 
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 hover:border-indigo-500/30 text-indigo-300 font-bold rounded-lg transition-colors cursor-pointer text-[9px] font-mono leading-none"
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-500/5 hover:bg-indigo-500/15 border border-indigo-500/20 hover:border-indigo-500/40 text-indigo-300 font-black tracking-widest uppercase rounded-xl transition-colors cursor-pointer text-[10px] leading-none"
               >
-                <Sliders className="w-3.5 h-3.5" />
+                <Sliders className="w-4 h-4" />
                 <span>{showAdvancedFilters ? t('Hide Advanced Limits', 'Hide Advanced Limits') : t('Advanced Range Filters', 'Advanced Range Filters')}</span>
               </button>
 
@@ -1411,22 +1417,22 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 onClick={() => {
                   setShowCurationTools(!showCurationTools);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/30 text-emerald-300 font-bold rounded-lg transition-colors cursor-pointer text-[9px] font-mono leading-none"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-500/5 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400 font-black tracking-widest uppercase rounded-xl transition-colors cursor-pointer text-[10px] leading-none"
               >
-                <FlaskConical className="w-3.5 h-3.5 animate-pulse" />
+                <FlaskConical className="w-4 h-4 animate-pulse" />
                 <span>{showCurationTools ? t('Hide DB Curation', 'Hide DB Curation') : t('Audit & Refine DB', 'Audit & Refine DB')}</span>
               </button>
             </div>
 
             {/* Advanced Range Filters Sub-Drawer */}
             {showAdvancedFilters && (
-              <div className="grid grid-cols-2 gap-2 p-3 bg-black/40 rounded-xl border border-slate-900/60 animate-in fade-in slide-in-from-top-1.5 duration-200">
-                <div className="flex flex-col gap-0.5">
-                  <label className="text-[7.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Density Threshold</label>
+              <div className="grid grid-cols-2 gap-4 p-5 bg-black/40 rounded-2xl border border-white/5 shadow-inner mt-2 animate-in fade-in slide-in-from-top-1.5 duration-200">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Density Threshold</label>
                   <select
                     value={densityRange}
                     onChange={e => setDensityRange(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-black/40 border border-slate-800/80 text-slate-300 outline-none rounded-lg text-[10px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                    className="w-full px-4 py-2.5 bg-black/60 border border-white/10 shadow-inner text-slate-300 outline-none rounded-xl text-[11px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
                   >
                     <option value="All">All Densities (No limit)</option>
                     <option value="Ultra-Light">Ultra-Light (&lt; 1.5 g/cm³)</option>
@@ -1436,12 +1442,12 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="flex flex-col gap-0.5">
-                  <label className="text-[7.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Mechanical Stiffness</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-2">Mechanical Stiffness</label>
                   <select
                     value={elasticRange}
                     onChange={e => setElasticRange(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-black/40 border border-slate-800/80 text-slate-300 outline-none rounded-lg text-[10px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                    className="w-full px-4 py-2.5 bg-black/60 border border-white/10 shadow-inner text-slate-300 outline-none rounded-xl text-[11px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
                   >
                     <option value="All">All Stiffness Levels</option>
                     <option value="Ultra-Soft">Ultra-Soft (&lt; 5 GPa)</option>
@@ -1455,10 +1461,10 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
             {/* Curation & Database Refiner Area */}
             {showCurationTools && (
-              <div className="p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl space-y-4 animate-in fade-in slide-in-from-top-1.5 duration-200">
-                <div className="flex justify-between items-center flex-wrap gap-2">
-                  <span className="text-[10px] uppercase font-black tracking-widest text-[#10b981] flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-emerald-400" />
+              <div className="p-5 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl shadow-inner mt-2 space-y-5 animate-in fade-in slide-in-from-top-1.5 duration-200">
+                <div className="flex justify-between items-center flex-wrap gap-3">
+                  <span className="text-xs uppercase font-black tracking-widest text-[#10b981] flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-emerald-400" />
                     Database Refiner & Curation Panel
                   </span>
                   
@@ -1692,7 +1698,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
           {/* Directory Materials List Container */}
           {viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {paginatedMaterials.map((material) => {
                 const themeColor = getCategoryThemeColor(material.type || '');
                 const isSelected = selectedMaterialName === material.name;
@@ -1712,22 +1718,22 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
                 // Color classes
                 const activeBorderColor = isSelected 
-                  ? 'border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)] bg-[#050B14]' 
-                  : 'border-slate-800/80 hover:border-slate-600 bg-[#020617] hover:bg-[#030914]';
+                  ? 'border-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.2)] bg-indigo-950/20' 
+                  : 'border-white/5 hover:border-indigo-500/30 bg-black/40 hover:bg-black/60';
 
                 const indicatorBadgeTheme: any = {
-                  amber: 'text-amber-400 bg-amber-400/10',
-                  blue: 'text-blue-400 bg-blue-400/10',
-                  cyan: 'text-cyan-400 bg-cyan-400/10',
-                  fuchsia: 'text-fuchsia-400 bg-fuchsia-400/10',
-                  rose: 'text-rose-400 bg-rose-400/10',
-                  orange: 'text-orange-400 bg-orange-400/10',
-                  yellow: 'text-yellow-400 bg-yellow-400/10',
-                  emerald: 'text-emerald-400 bg-emerald-400/10',
-                  violet: 'text-violet-400 bg-violet-400/10',
-                  purple: 'text-purple-400 bg-purple-400/10',
-                  teal: 'text-teal-400 bg-teal-400/10',
-                  slate: 'text-slate-400 bg-slate-800/50'
+                  amber: 'text-amber-300 bg-amber-500/20 border-amber-500/30 text-shadow-amber',
+                  blue: 'text-blue-300 bg-blue-500/20 border-blue-500/30 text-shadow-blue',
+                  cyan: 'text-cyan-300 bg-cyan-500/20 border-cyan-500/30 text-shadow-cyan',
+                  fuchsia: 'text-fuchsia-300 bg-fuchsia-500/20 border-fuchsia-500/30 text-shadow-fuchsia',
+                  rose: 'text-rose-300 bg-rose-500/20 border-rose-500/30 text-shadow-rose',
+                  orange: 'text-orange-300 bg-orange-500/20 border-orange-500/30 text-shadow-orange',
+                  yellow: 'text-yellow-300 bg-yellow-500/20 border-yellow-500/30 text-shadow-yellow',
+                  emerald: 'text-emerald-300 bg-emerald-500/20 border-emerald-500/30 text-shadow-emerald',
+                  violet: 'text-violet-300 bg-violet-500/20 border-violet-500/30 text-shadow-violet',
+                  purple: 'text-purple-300 bg-purple-500/20 border-purple-500/30 text-shadow-purple',
+                  teal: 'text-teal-300 bg-teal-500/20 border-teal-500/30 text-shadow-teal',
+                  slate: 'text-slate-300 bg-slate-800/50 border-slate-700/50'
                 };
 
                 const countOfPeaks = material.pattern.split('\n').filter(p=>p.trim()).length;
@@ -1739,51 +1745,53 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                       setSelectedMaterialName(material.name);
                       setIsEditing(false); // Close edit mode on change
                     }}
-                    className={`group relative p-3 border rounded-xl cursor-pointer transition-all duration-300 flex flex-col justify-between ${activeBorderColor}`}
+                    className={`group relative p-5 rounded-[2rem] cursor-pointer transition-all duration-500 flex flex-col justify-between backdrop-blur-sm border hover:shadow-2xl overflow-hidden ${activeBorderColor}`}
                   >
                     {/* Top decoration line for selected */}
-                    {isSelected && <div className="absolute top-0 inset-x-0 h-[2px] bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />}
+                    {isSelected && <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-cyan-400 to-indigo-500 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />}
+                    
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-[30px] group-hover:bg-indigo-500/10 transition-all duration-700 pointer-events-none" />
 
-                    <div>
-                      <div className="flex justify-between items-start gap-2 mb-2">
-                        <div className="flex flex-col gap-0.5">
-                          <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded inline-block w-fit ${indicatorBadgeTheme[themeColor] || indicatorBadgeTheme.slate}`}>
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start gap-4 mb-4">
+                        <div className="flex flex-col gap-1.5">
+                          <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-lg inline-flex items-center w-fit border shadow-inner ${indicatorBadgeTheme[themeColor] || indicatorBadgeTheme.slate}`}>
                             {material.type || 'Custom'}
                           </span>
-                          <span className="text-sm font-black text-slate-100 flex items-center gap-1.5 mt-1 truncate" title={material.name}>
+                          <span className="text-base font-black text-slate-100 flex items-center gap-2 mt-2 truncate max-w-[180px] drop-shadow-md group-hover:text-indigo-200 transition-colors" title={material.name}>
                             {isItemModified && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping inline-block" title="Has manual overrides" />
+                              <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(129,140,248,0.8)] animate-pulse inline-block shrink-0" title="Has manual overrides" />
                             )}
                             {material.name}
                           </span>
                         </div>
-                        <div className="text-right flex flex-col items-end gap-1 font-mono">
-                          <span className="text-[11px] text-cyan-400 font-bold bg-cyan-950/30 px-1.5 py-0.5 rounded border border-cyan-500/20 shadow-sm">
+                        <div className="text-right flex flex-col items-end shrink-0">
+                          <span className="text-[11px] text-cyan-300 font-bold bg-black/60 px-2.5 py-1.5 rounded-xl border border-white/10 shadow-inner group-hover:border-cyan-500/30 transition-colors">
                             {material.formula}
                           </span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 mt-3 font-mono">
-                        <div className="flex flex-col">
-                          <span className="text-[7px] text-slate-500 uppercase font-bold tracking-wider">Crystal System</span>
-                          <span className="text-[10px] text-slate-300 truncate">{material.crystalSystem || 'Crystalline'}</span>
+                      <div className="grid grid-cols-2 gap-3 mt-4 bg-black/20 p-3 rounded-2xl border border-white/5 font-mono">
+                        <div className="flex flex-col gap-1 text-center border-r border-white/5 pr-3">
+                          <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Crystal System</span>
+                          <span className="text-[11px] font-bold text-slate-300 truncate rounded">{material.crystalSystem || 'Crystalline'}</span>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-[7px] text-slate-500 uppercase font-bold tracking-wider">Space Group</span>
-                          <span className="text-[10px] text-slate-300 font-bold">{material.spaceGroup || 'Unknown'}</span>
+                        <div className="flex flex-col gap-1 text-center pl-3">
+                          <span className="text-[8px] text-slate-500 uppercase font-black tracking-widest">Space Group</span>
+                          <span className="text-[11px] text-indigo-300 font-bold">{material.spaceGroup || 'Unknown'}</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-500">
-                      <span className="flex items-center gap-1.5">
-                        <span className="inline-block w-1 h-1 rounded-full bg-emerald-500" />
-                        ρ: <span className="text-emerald-400 font-bold">{material.density ? material.density.toFixed(2) : '-'}</span>
+                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-white/5 text-[10px] font-mono text-slate-500 relative z-10">
+                      <span className="flex items-center gap-2 bg-emerald-500/5 px-2.5 py-1 rounded-lg border border-emerald-500/10">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                        ρ: <span className="text-emerald-400 font-bold ml-0.5">{material.density ? material.density.toFixed(2) : '-'}</span>
                       </span>
-                      <span className="flex items-center gap-1.5">
-                        <Activity className="w-3 h-3 text-slate-600 group-hover:text-indigo-400 transition-colors" /> 
-                        <span className="text-indigo-400 font-bold">{countOfPeaks}</span> <span className="text-[8px] uppercase tracking-wider text-slate-600">Peaks</span>
+                      <span className="flex items-center gap-1.5 bg-indigo-500/5 px-2.5 py-1 rounded-lg border border-indigo-500/10">
+                        <Activity className="w-3.5 h-3.5 text-indigo-400/70" /> 
+                        <span className="text-indigo-400 font-black">{countOfPeaks}</span> <span className="text-[8px] uppercase tracking-widest text-slate-500">Peaks</span>
                       </span>
                     </div>
                   </div>
@@ -1799,18 +1807,18 @@ export const MaterialDatabaseExplorer: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto bg-[#050B14]/60 border border-slate-800/80 rounded-2xl shadow-xl">
-              <table className="w-full text-left border-collapse text-[10px] font-mono">
+            <div className="overflow-x-auto bg-black/40 backdrop-blur-md border border-white/5 rounded-[2.5rem] shadow-2xl">
+              <table className="w-full text-left border-collapse text-xs font-mono">
                 <thead>
-                  <tr className="border-b border-slate-800/85 bg-indigo-950/15 text-slate-400 select-none">
-                    <th className="py-3 px-4 font-black uppercase tracking-wider text-[8px]">Formula & Name</th>
-                    <th className="py-3 px-3 font-black uppercase tracking-wider text-[8px]">Lattice System</th>
-                    <th className="py-3 px-3 font-black uppercase tracking-wider text-[8px] text-right">Density (g/cm³)</th>
-                    <th className="py-3 px-3 font-black uppercase tracking-wider text-[8px] text-right">Modulus (GPa)</th>
-                    <th className="py-3 px-3 font-black uppercase tracking-wider text-[8px] text-center">XRD Peaks</th>
+                  <tr className="border-b border-white/10 bg-indigo-500/5 text-slate-400 select-none">
+                    <th className="py-4 px-6 font-black uppercase tracking-[0.2em] text-[9px] w-5/12">Formula & Name</th>
+                    <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px]">Lattice System</th>
+                    <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-right">Density (g/cm³)</th>
+                    <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-right">Modulus (GPa)</th>
+                    <th className="py-4 px-6 font-black uppercase tracking-[0.2em] text-[9px] text-center">XRD Peaks</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-900/50">
+                <tbody className="divide-y divide-white/5">
                   {paginatedMaterials.map((material) => {
                     const isSelected = selectedMaterialName === material.name;
                     const countOfPeaks = material.pattern.split('\n').filter(p=>p.trim()).length;
@@ -1821,27 +1829,28 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                           setSelectedMaterialName(material.name);
                           setIsEditing(false);
                         }}
-                        className={`cursor-pointer transition-colors duration-150 group hover:bg-indigo-500/5 text-slate-350 ${isSelected ? 'bg-indigo-500/10 text-indigo-200 font-bold' : 'bg-transparent'}`}
+                        className={`cursor-pointer transition-all duration-300 group hover:bg-white/5 text-slate-300 ${isSelected ? 'bg-indigo-500/10 text-indigo-100 font-bold shadow-inner' : 'bg-transparent'}`}
                       >
-                        <td className="py-3 px-4">
-                          <div className="font-extrabold text-white flex items-center gap-2 font-sans text-xs">
-                            <span className="text-[9px] text-cyan-400 font-mono font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                        <td className="py-4 px-6 relative">
+                          {isSelected && <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]" />}
+                          <div className="font-extrabold flex items-center gap-3 font-sans text-xs">
+                            <span className="text-[10px] text-cyan-300 font-mono font-bold bg-black/60 px-2 py-1 rounded-lg border border-white/10 group-hover:border-cyan-500/30 transition-colors shadow-inner">
                               {material.formula}
                             </span>
-                            <span className="truncate max-w-[150px]" title={material.name}>{material.name}</span>
+                            <span className="truncate max-w-[180px] drop-shadow-md group-hover:text-white transition-colors" title={material.name}>{material.name}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-3">
-                          <div className="text-slate-300 font-sans text-[10px] font-bold">{material.crystalSystem || 'N/A'}</div>
-                          <div className="text-[8px] text-slate-500 font-mono tracking-tight mt-0.5">{material.spaceGroup || 'N/A'}</div>
+                        <td className="py-4 px-4">
+                          <div className="text-slate-200 font-sans text-[11px] font-bold">{material.crystalSystem || 'N/A'}</div>
+                          <div className="text-[9px] text-indigo-300 font-mono tracking-wider mt-1">{material.spaceGroup || 'N/A'}</div>
                         </td>
-                        <td className="py-3 px-3 text-right font-mono text-emerald-450 font-bold text-xs">
+                        <td className="py-4 px-4 text-right font-mono text-emerald-400 font-bold text-xs">
                           {material.density ? material.density.toFixed(2) : '-'}
                         </td>
-                        <td className="py-3 px-3 text-right font-mono text-amber-450 font-bold text-xs">
+                        <td className="py-4 px-4 text-right font-mono text-amber-400 font-bold text-xs">
                           {material.elasticModulus || '-'}
                         </td>
-                        <td className="py-3 px-3 text-center font-mono font-black text-indigo-400 text-xs">
+                        <td className="py-4 px-6 text-center font-mono font-black text-indigo-400 text-xs">
                           {countOfPeaks}
                         </td>
                       </tr>
@@ -1851,9 +1860,9 @@ export const MaterialDatabaseExplorer: React.FC = () => {
               </table>
 
               {filteredAndSortedMaterials.length === 0 && (
-                <div className="py-16 text-center text-slate-600 space-y-2">
-                  <ShieldAlert className="w-8 h-8 text-slate-755 mx-auto" />
-                  <p className="text-xs font-black uppercase tracking-wider font-mono">No matching standards found</p>
+                <div className="py-20 text-center text-slate-500 space-y-3">
+                  <ShieldAlert className="w-10 h-10 text-slate-600 mx-auto" />
+                  <p className="text-xs font-black uppercase tracking-[0.2em] font-mono">No matching standards found</p>
                 </div>
               )}
             </div>

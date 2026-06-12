@@ -186,24 +186,33 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister }
         <div className="text-center mb-10">
           <motion.div 
             whileHover={{ rotate: 15, scale: 1.1 }}
-            className="inline-flex items-center justify-center w-20 h-20 bg-indigo-600 rounded-[2rem] shadow-[0_0_40px_rgba(79,70,229,0.4)] mb-8 text-4xl font-black text-white relative group"
+            className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-tr from-violet-600 to-indigo-500 rounded-[2.5rem] shadow-[0_0_60px_rgba(79,70,229,0.5)] mb-8 text-5xl font-black text-white relative group"
           >
-            <div className="absolute inset-0 bg-white/20 rounded-[2rem] opacity-0 group-hover:opacity-100 transition-opacity" />
-            <span className="italic tracking-tighter">λ</span>
-            <FlaskConical className="absolute -bottom-2 -right-2 w-8 h-8 text-indigo-400 bg-slate-950 rounded-full p-1.5 border border-indigo-500/30" />
+            <div className="absolute inset-0 bg-white/20 rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity" />
+            <span className="italic tracking-tighter drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">λ</span>
+            <FlaskConical className="absolute -bottom-2 -right-2 w-10 h-10 text-cyan-400 bg-[#0B1221] rounded-full p-2 border border-cyan-500/40 shadow-lg" />
           </motion.div>
           
           <div className="flex flex-col mb-4">
-            <h1 className="text-4xl md:text-5xl font-black text-white uppercase italic tracking-tighter leading-none flex justify-center items-baseline gap-1">
-              XRD-Calc<span className="text-indigo-500 drop-shadow-[0_0_15px_rgba(99,102,241,0.8)]">Pro</span>
-            </h1>
-            <span className="text-[10px] font-mono font-black uppercase tracking-[0.4em] text-slate-400 mt-3 flex justify-center items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+            <motion.h1 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-2xl md:text-3xl font-bold text-cyan-400 uppercase tracking-[0.2em] mb-2 flex justify-center items-center gap-3 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]"
+            >
+              <span className="w-12 h-px bg-cyan-400/50 hidden sm:block"></span>
+               Welcome To
+              <span className="w-12 h-px bg-cyan-400/50 hidden sm:block"></span>
+            </motion.h1>
+            <h2 className="text-5xl md:text-6xl font-black text-white uppercase italic tracking-tighter leading-none flex justify-center items-baseline gap-1 relative z-10">
+              XRD-Calc<span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400 drop-shadow-[0_0_15px_rgba(139,92,246,0.8)]">Pro</span>
+            </h2>
+            <span className="text-[11px] font-mono font-black uppercase tracking-[0.4em] text-slate-400 mt-4 flex justify-center items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
               Advanced {t('Computational Suite')}
             </span>
           </div>
           <p className="text-lg text-slate-400 font-medium tracking-tight">
-            {t('Register description')}
+            Confirm your researcher identity to begin.
           </p>
         </div>
 

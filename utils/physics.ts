@@ -626,7 +626,7 @@ export const calculateWilliamsonHall = (
   
   if (youngsModulusGPa && youngsModulusGPa > 0) {
     stressMPa = absoluteStrain * youngsModulusGPa * 1000;
-    energyDensityKjM3 = 0.5 * youngsModulusGPa * absoluteStrain * absoluteStrain * 1000;
+    energyDensityKjM3 = 0.5 * youngsModulusGPa * absoluteStrain * absoluteStrain * 1000000;
   }
   
   return {
@@ -811,7 +811,7 @@ export const calculateIBAdvanced = (
 
   if (youngsModulusGPa && youngsModulusGPa > 0) {
     stressMPa = absoluteStrain * youngsModulusGPa * 1000;
-    energyDensityKjM3 = 0.5 * youngsModulusGPa * absoluteStrain * absoluteStrain * 1000;
+    energyDensityKjM3 = 0.5 * youngsModulusGPa * absoluteStrain * absoluteStrain * 1000000;
   }
 
   return {
@@ -1110,13 +1110,17 @@ export const generateRietveldSetup = (input: RietveldSetupInput): RietveldSetupR
 
 export const XRAY_WAVELENGTHS: Record<string, number> = {
   'Cu Kα (avg)': 1.54184,
-  'Cu Kα1': 1.54056,
+  'Cu Kα1': 1.54060,
   'Mo Kα (avg)': 0.71073,
   'Mo Kα1': 0.70930,
-  'Co Kα (avg)': 1.78897,
-  'Cr Kα (avg)': 2.28970,
-  'Fe Kα (avg)': 1.93604,
-  'Ag Kα (avg)': 0.55941,
+  'Co Kα (avg)': 1.79026,
+  'Co Kα1': 1.78897,
+  'Cr Kα (avg)': 2.29100,
+  'Cr Kα1': 2.28970,
+  'Fe Kα (avg)': 1.93735,
+  'Fe Kα1': 1.93604,
+  'Ag Kα (avg)': 0.56088,
+  'Ag Kα1': 0.55941,
 };
 
 export const NEUTRON_WAVELENGTHS: Record<string, number> = {

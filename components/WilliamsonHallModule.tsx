@@ -1371,7 +1371,7 @@ export const WilliamsonHallModule: React.FC = () => {
         )}
 
         {/* Chart */}
-        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/10 h-[500px] flex flex-col relative overflow-hidden group hover:border-cyan-500/30 transition-all">
+        <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_40px_rgba(34,211,238,0.05)] border border-white/10 min-h-[600px] xl:min-h-[700px] h-[70vh] xl:h-[80vh] flex flex-col relative overflow-hidden group hover:border-cyan-500/30 transition-all">
           <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-cyan-500/10 transition-all duration-700" />
           <div className="flex justify-between items-center mb-6 relative z-10 px-2">
             <div className="flex items-center gap-3">
@@ -1405,7 +1405,7 @@ export const WilliamsonHallModule: React.FC = () => {
           ) : (
             <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-[#070D18] border border-white/5 rounded-2xl p-4 shadow-inner">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 20, bottom: 40 }}>
+                <ComposedChart data={chartData} margin={{ top: 30, right: 40, left: 50, bottom: 55 }}>
                   <defs>
                     <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
                       <feGaussianBlur stdDeviation="4" result="blur" />
@@ -1420,13 +1420,13 @@ export const WilliamsonHallModule: React.FC = () => {
                     dataKey="x" 
                     type="number" 
                     domain={['auto', 'auto']}
-                    label={{ value: '4 sin(θ)', position: 'bottom', offset: 20, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                    label={{ value: '4 sin(θ)', position: 'bottom', offset: 35, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
                     tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
                     tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                     axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                   />
                   <YAxis 
-                    label={{ value: 'β cos(θ) [rad]', angle: -90, position: 'insideLeft', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                    label={{ value: 'β cos(θ) [rad]', angle: -90, position: 'insideLeft', offset: -30, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
                     tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
                     tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                     axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}

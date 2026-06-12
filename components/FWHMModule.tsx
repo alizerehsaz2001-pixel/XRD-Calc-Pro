@@ -439,7 +439,7 @@ export const FWHMModule: React.FC = () => {
       {/* Visualizer and Stats */}
       <div className="lg:col-span-8 space-y-6">
         <div 
-          className="bg-white dark:bg-slate-950 p-1 lg:p-1.5 rounded-[2rem] shadow-2xl shadow-indigo-500/10 border border-slate-200 dark:border-slate-800/80 h-[550px] lg:h-[700px] flex flex-col relative overflow-hidden cursor-none group/visualizer"
+          className="bg-white dark:bg-slate-950 p-1 lg:p-1.5 rounded-[2rem] border border-slate-200 dark:border-slate-800/80 min-h-[600px] lg:min-h-[800px] h-[70vh] lg:h-[85vh] flex flex-col relative overflow-hidden cursor-none group/visualizer shadow-[0_0_40px_rgba(99,102,241,0.1)]"
           ref={chartContainerRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setMousePos(null)}
@@ -487,7 +487,7 @@ export const FWHMModule: React.FC = () => {
                <ResponsiveContainer width="100%" height="100%">
                  <ComposedChart 
                    data={chartData} 
-                   margin={{ top: 20, right: 60, left: 20, bottom: 30 }}
+                   margin={{ top: 20, right: 60, left: 20, bottom: 45 }}
                  >
                    <defs>
                      <linearGradient id="colorY" x1="0" y1="0" x2="0" y2="1">
@@ -511,12 +511,12 @@ export const FWHMModule: React.FC = () => {
                      type="number" 
                      domain={['auto', 'auto']} 
                      tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}}
-                     label={{ value: 'Diffraction Angle 2θ (°)', position: 'bottom', offset: 15, fill: '#475569', fontSize: 11, fontWeight: 800, textAnchor: 'middle', letterSpacing: '0.05em' }}
+                     label={{ value: 'Diffraction Angle 2θ (°)', position: 'bottom', offset: 25, fill: '#475569', fontSize: 11, fontWeight: 800, textAnchor: 'middle', letterSpacing: '0.05em' }}
                      tickFormatter={(val) => val.toFixed(1)}
                      axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
                      tickLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
                    />
-                   <YAxis hide domain={[0, amplitude * 1.25]} />
+                   <YAxis hide domain={[0, amplitude * 1.35]} />
                    
                    <Tooltip 
                      content={({ active, payload, label }) => {
@@ -650,7 +650,7 @@ export const FWHMModule: React.FC = () => {
                </ResponsiveContainer>
                
                {/* Custom Annotations Overlay */}
-               <div className="absolute bottom-24 lg:bottom-28 right-8 lg:right-12 flex flex-col items-end gap-3 pointer-events-none transition-opacity z-20">
+               <div className="absolute top-24 lg:top-28 right-8 lg:right-12 flex flex-col items-end gap-3 pointer-events-none transition-opacity z-20 hidden md:flex">
                   <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl shadow-indigo-500/5 text-slate-800 dark:text-white font-mono tracking-tight max-w-[260px] lg:max-w-[320px]">
                     <div className="text-[12px] lg:text-[14px] flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300 text-center leading-relaxed">
                       {type === 'Gaussian' && <span>I(2θ) = Iₘₐₓ · exp[-ln(2)·((2θ-2θ₀)/w)²]</span>}

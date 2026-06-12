@@ -408,640 +408,673 @@ export const PreferredOrientationModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 flex flex-col min-h-screen">
-      
+    <div className="space-y-6 flex flex-col pt-4 min-h-[90vh] relative z-10 w-full mb-32 custom-scrollbar">
       {/* Top Description Hub */}
-      <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+      <div className="bg-black/40 p-8 rounded-[2rem] border border-white/5 hover:border-white/10 transition-all relative overflow-hidden shadow-2xl backdrop-blur-md">
+        <div className="absolute top-0 right-0 p-32 opacity-10 bg-gradient-to-br from-indigo-500 to-sky-500 rounded-bl-full pointer-events-none"></div>
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="px-2.5 py-1 bg-indigo-500/15 border border-indigo-500/30 rounded-md text-[10px] font-mono tracking-widest text-indigo-400 font-extrabold uppercase">
-                Texture-Rich Sample Suite
-              </span>
-              <span className="px-2.5 py-1 bg-emerald-500/15 border border-emerald-500/30 rounded-md text-[10px] font-mono tracking-widest text-emerald-400 font-extrabold uppercase">
-                March-Dollase Active
-              </span>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] font-mono tracking-widest text-indigo-400 font-extrabold uppercase flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5" /> Texture-Rich Sample Suite
+              </div>
+              <div className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[10px] font-mono tracking-widest text-emerald-400 font-extrabold uppercase flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5" /> March-Dollase Active
+              </div>
             </div>
-            <h1 className="text-3xl font-black text-white uppercase tracking-tight font-sans">
+            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 uppercase tracking-tight font-sans">
               Preferred Orientation Analyzer
             </h1>
-            <p className="text-sm text-slate-400 mt-2 max-w-2xl leading-relaxed">
-              Analyze crystallite fiber texture and correct diffraction peak intensity anomalies using the industry-standard <strong>March-Dollase Model</strong>. Simulate platelets, needle configurations, and run interactive Rwp numeric optimization on physical data.
+            <p className="text-sm text-slate-500 mt-3 max-w-2xl leading-relaxed">
+              Analyze crystallite fiber texture and correct diffraction peak intensity anomalies using the industry-standard <strong className="text-slate-300">March-Dollase Model</strong>. Simulate platelets, needle configurations, and run interactive Rwp numeric optimization on physical data.
             </p>
           </div>
-
         </div>
       </div>
 
       {/* Main Analysis Content */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-            {/* Control Column */}
-            <div className="xl:col-span-4 space-y-6">
-              
-              {/* Presets Card */}
-              <div className="bg-slate-900 p-6 border border-slate-800 rounded-3xl h-fit">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="w-4 h-4 text-indigo-400" />
-                  <h3 className="text-xs uppercase font-black text-white tracking-widest">
-                    Quick Preset Demonstrations
-                  </h3>
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {PRESETS.map((p, index) => (
-                    <button
-                      key={index}
-                      onClick={() => selectPreset(p)}
-                      className="group flex flex-col text-left p-3 rounded-xl border border-slate-800 hover:border-slate-700/80 bg-slate-950/40 hover:bg-slate-800/30 transition-all duration-200"
-                    >
-                      <div className="flex items-center justify-between w-full mb-1">
-                        <span className="font-bold text-slate-200 text-xs group-hover:text-white flex items-center gap-2">
-                          {p.icon}
-                          {p.name}
-                        </span>
-                        <span className="font-mono text-[10px] text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">
-                          r = {p.r.toFixed(2)}
-                        </span>
+        
+        {/* Control Column */}
+        <div className="xl:col-span-4 space-y-6">
+          
+          {/* Quick Preset Demonstrations */}
+          <div className="bg-black/40 p-6 rounded-[2rem] border border-white/5 hover:border-indigo-500/30 transition-all backdrop-blur-md relative z-0 group">
+            <div className="flex items-center gap-2 mb-5">
+              <div className="p-1.5 max-w-fit bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                <Sparkles className="w-4 h-4 text-indigo-400" />
+              </div>
+              <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest group-hover:text-indigo-400 transition-colors">
+                Demonstrations
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {PRESETS.map((p, index) => (
+                <button
+                  key={index}
+                  onClick={() => selectPreset(p)}
+                  className="group/btn flex flex-col text-left p-4 rounded-2xl border border-white/5 hover:border-indigo-500/30 bg-black/40 hover:bg-indigo-500/10 transition-all duration-300 shadow-sm"
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <span className="font-bold text-slate-300 text-xs flex items-center gap-2 transition-colors">
+                      <div className="text-indigo-400 group-hover/btn:scale-110 transition-transform">
+                        {p.icon}
                       </div>
-                      <p className="text-[10px] text-slate-400 font-sans leading-normal">
-                        {p.description}
-                      </p>
-                    </button>
-                  ))}
-                </div>
+                      {p.name}
+                    </span>
+                    <span className="font-mono text-[10px] font-black text-indigo-400 bg-black/40 border border-indigo-500/20 px-2 py-1 rounded-lg shadow-inner group-hover/btn:bg-indigo-500/20 transition-colors">
+                      r = {p.r.toFixed(2)}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 group-hover/btn:text-slate-400 font-sans leading-relaxed transition-colors mt-1">
+                    {p.description}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Adjust Texture Model */}
+          <div className="bg-black/40 p-6 rounded-[2rem] border border-white/5 hover:border-white/10 transition-all backdrop-blur-md space-y-6 relative z-0">
+            <div className="flex items-center gap-2 mb-5">
+              <div className="p-1.5 max-w-fit bg-sky-500/10 rounded-lg border border-sky-500/20 shadow-inner">
+                <Sliders className="w-4 h-4 text-sky-400" />
+              </div>
+              <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+                Adjust Texture Model
+              </h3>
+            </div>
+            
+            {/* March Slider */}
+            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-sky-500/30 transition-all group/slider shadow-inner">
+              <div className="flex justify-between items-center text-xs mb-4">
+                <span className="font-bold text-slate-500 group-hover/slider:text-sky-400 transition-colors uppercase tracking-widest text-[9px] font-mono">Habit Distribution Model</span>
+              </div>
+              
+              <div className="flex bg-black/60 border border-white/10 rounded-xl p-1 mb-5">
+                 <button
+                   onClick={() => {
+                     setHabitModel('Platelet');
+                     if (rValue > 1.0) setRValue(0.5);
+                     setSolverResult(null);
+                   }}
+                   className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2 rounded-lg transition-all ${habitModel === 'Platelet' ? 'bg-sky-500/20 text-sky-400 shadow-sm border border-sky-500/20' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent'}`}
+                 >
+                   Platelet (Platy)
+                 </button>
+                 <button
+                   onClick={() => {
+                     setHabitModel('Cylindrical');
+                     if (rValue < 1.0) setRValue(2.0);
+                     setSolverResult(null);
+                   }}
+                   className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2 rounded-lg transition-all ${habitModel === 'Cylindrical' ? 'bg-sky-500/20 text-sky-400 shadow-sm border border-sky-500/20' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent'}`}
+                 >
+                   Cylindrical (Needle)
+                 </button>
               </div>
 
-              {/* Main Parameter Inputs */}
-              <div className="bg-slate-900 p-6 border border-slate-800 rounded-3xl space-y-6">
-                <div>
-                  <h3 className="text-xs uppercase font-black text-white tracking-widest mb-4 flex items-center gap-2">
-                    <Sliders className="w-4 h-4 text-indigo-400" /> Adjust Texture Model
-                  </h3>
-                  
-                  {/* March Slider */}
-                  <div className="bg-black/40 p-4 rounded-xl border border-slate-800 space-y-3">
-                    <div className="flex justify-between items-center text-xs mb-3">
-                      <span className="font-bold text-slate-300">Habit Distribution Model</span>
-                    </div>
+              <div className="flex flex-col space-y-3">
+                 <div className="flex justify-between items-center text-xs">
+                   <span className="font-bold text-slate-400 text-[11px]">March r parameter</span>
+                   <span className="font-mono text-sky-400 bg-sky-500/10 border border-sky-500/20 px-3 py-1 rounded-lg font-black text-[11px] shadow-inner">
+                     {rValue.toFixed(3)}
+                   </span>
+                 </div>
+                 <input
+                   type="range"
+                   min={habitModel === 'Platelet' ? 0.1 : 1.02}
+                   max={habitModel === 'Platelet' ? 0.98 : 4.0}
+                   step="0.01"
+                   value={rValue}
+                   onChange={(e) => {
+                     setRValue(parseFloat(e.target.value));
+                     setSolverResult(null);
+                   }}
+                   className="w-full accent-sky-500 py-2 cursor-ew-resize opacity-80 hover:opacity-100 transition-opacity"
+                 />
+                 <div className="flex justify-between text-[9px] font-black font-mono text-slate-600 mt-2 uppercase tracking-widest">
+                   {habitModel === 'Platelet' ? (
+                     <><span>r ≪ 1.0 (Plates)</span><span>Iso (≈1.0)</span></>
+                   ) : (
+                     <><span>Iso (≈1.0)</span><span>r ≫ 1.0 (Needles)</span></>
+                   )}
+                 </div>
+              </div>
+            </div>
 
-                    {/* Habit Switch */}
-                    <div className="flex bg-slate-950 border border-slate-800 rounded-lg p-1.5 mb-4">
-                       <button
-                         onClick={() => {
-                           setHabitModel('Platelet');
-                           if (rValue > 1.0) setRValue(0.5);
-                           setSolverResult(null);
-                         }}
-                         className={`flex-1 text-[10px] font-bold uppercase tracking-wider py-1.5 rounded-md transition-all ${
-                           habitModel === 'Platelet' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 hover:text-slate-300'
-                         }`}
-                       >
-                         Platelet (Platy)
-                       </button>
-                       <button
-                         onClick={() => {
-                           setHabitModel('Cylindrical');
-                           if (rValue < 1.0) setRValue(2.0);
-                           setSolverResult(null);
-                         }}
-                         className={`flex-1 text-[10px] font-bold uppercase tracking-wider py-1.5 rounded-md transition-all ${
-                           habitModel === 'Cylindrical' ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 hover:text-slate-300'
-                         }`}
-                       >
-                         Cylindrical (Needle)
-                       </button>
-                    </div>
+            {/* Preferred Direction Vector */}
+            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-indigo-500/30 transition-all group/vector flex flex-col space-y-4 shadow-inner">
+              <div className="flex justify-between items-center text-xs">
+                 <span className="font-bold text-slate-500 group-hover/vector:text-indigo-400 transition-colors uppercase tracking-widest text-[9px] font-mono flex items-center gap-1.5">
+                   <MoveRight className="w-4 h-4" /> Preferred Axis [H, K, L]
+                 </span>
+                 <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Fiber Normal</span>
+              </div>
+              <input
+                type="text"
+                value={targetHKL}
+                onChange={(e) => {
+                  setTargetHKL(e.target.value);
+                  setSolverResult(null);
+                }}
+                placeholder="0, 0, 1"
+                className="w-full px-4 py-2.5 bg-black/60 text-slate-200 focus:text-indigo-400 border border-white/10 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500/30 focus:border-indigo-500/30 transition-all font-mono shadow-inner font-bold text-sm"
+              />
+            </div>
 
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-300">March r parameter</span>
-                      <span className="font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded font-bold text-sm">
-                        {rValue.toFixed(3)}
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={habitModel === 'Platelet' ? 0.1 : 1.02}
-                      max={habitModel === 'Platelet' ? 0.98 : 4.0}
-                      step="0.01"
-                      value={rValue}
-                      onChange={(e) => {
-                        setRValue(parseFloat(e.target.value));
-                        setSolverResult(null);
-                      }}
-                      className="w-full accent-indigo-500"
+            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-emerald-500/30 transition-all group/fraction flex flex-col space-y-4 shadow-inner">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-slate-500 group-hover/fraction:text-emerald-400 transition-colors uppercase tracking-widest text-[9px] font-mono flex items-center gap-1.5">
+                   <Activity className="w-4 h-4" /> Textured Fraction (f)
+                </span>
+                <span className="font-mono font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg text-[11px] shadow-inner">
+                  {(fraction * 100).toFixed(0)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.0"
+                max="1.0"
+                step="0.01"
+                value={fraction}
+                onChange={(e) => {
+                  setFraction(parseFloat(e.target.value));
+                  setSolverResult(null);
+                }}
+                className="w-full accent-emerald-500 py-2 cursor-ew-resize opacity-80 hover:opacity-100 transition-opacity"
+              />
+              <p className="text-[10px] text-slate-500 leading-relaxed font-sans">
+                Real samples contain an un-textured isotropic background phase.
+              </p>
+            </div>
+
+            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-pink-500/30 transition-all group/crystal flex flex-col space-y-4 shadow-inner">
+              <div className="flex justify-between items-center text-xs mb-1">
+                 <span className="font-bold text-slate-500 group-hover/crystal:text-pink-400 transition-colors uppercase tracking-widest text-[9px] font-mono flex items-center gap-1.5">
+                   <Layers className="w-4 h-4" /> Crystal System
+                 </span>
+              </div>
+              <select 
+                value={crystalSystem}
+                onChange={(e) => {
+                  setCrystalSystem(e.target.value as any);
+                  setSolverResult(null);
+                }}
+                className="w-full px-4 py-2.5 bg-black/60 text-slate-200 border border-white/10 rounded-xl outline-none focus:ring-1 focus:ring-pink-500/30 focus:border-pink-500/30 transition-all shadow-inner font-bold text-xs"
+              >
+                <option value="Cubic" className="bg-slate-900 text-slate-200">Cubic / Isomeric (a=b=c)</option>
+                <option value="Tetragonal" className="bg-slate-900 text-slate-200">Tetragonal (a=b≠c)</option>
+                <option value="Hexagonal" className="bg-slate-900 text-slate-200">Hexagonal (a=b≠c, γ=120°)</option>
+                <option value="Orthorhombic" className="bg-slate-900 text-slate-200">Orthorhombic (a≠b≠c)</option>
+              </select>
+              
+              {crystalSystem !== 'Cubic' && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <label className="text-[9px] uppercase font-bold text-slate-500 font-mono">a (Å)</label>
+                    <input 
+                      type="number" step="0.01" min="0.1" value={latticeA} 
+                      onChange={(e) => { setLatticeA(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
+                      className="w-full px-2 py-2 bg-black/60 text-pink-400 border border-white/10 rounded-lg outline-none focus:border-pink-500/50 shadow-inner font-mono text-xs text-center font-bold"
                     />
-                    <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                      {habitModel === 'Platelet' ? (
-                        <>
-                          <span>r ≪ 1.0 (Plates)</span>
-                          <span>Iso (≈1.0)</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Iso (≈1.0)</span>
-                          <span>r ≫ 1.0 (Needles)</span>
-                        </>
-                      )}
-                    </div>
+                  </div>
+                  <div className="space-y-2">
+                     <label className="text-[9px] uppercase font-bold text-slate-500 font-mono">b (Å)</label>
+                     <input 
+                       type="number" step="0.01" min="0.1" value={crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? latticeA : latticeB} 
+                       onChange={(e) => { setLatticeB(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
+                       disabled={crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal'}
+                       className={`w-full px-2 py-2 font-mono text-xs font-bold text-center border rounded-lg outline-none shadow-inner ${crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? 'bg-black/30 text-slate-600 border-transparent cursor-not-allowed' : 'bg-black/60 text-pink-400 border-white/10 focus:border-pink-500/50'}`}
+                     />
+                  </div>
+                  <div className="space-y-2">
+                     <label className="text-[9px] uppercase font-bold text-slate-500 font-mono">c (Å)</label>
+                     <input 
+                       type="number" step="0.01" min="0.1" value={latticeC} 
+                       onChange={(e) => { setLatticeC(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
+                       className="w-full px-2 py-2 bg-black/60 text-pink-400 border border-white/10 rounded-lg outline-none focus:border-pink-500/50 shadow-inner font-mono text-xs text-center font-bold"
+                     />
                   </div>
                 </div>
+              )}
+            </div>
 
-                {/* Preferred Direction Vector H,K,L */}
-                <div className="bg-black/40 p-4 rounded-xl border border-slate-800 space-y-3">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                      <MoveRight className="w-3.5 h-3.5 text-indigo-400" />
-                      Preferred Axis [H, K, L]
+            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+              <div className="text-slate-500 font-black uppercase text-[9px] tracking-widest font-mono mb-3">
+                Crystallographic Diagnostics
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-slate-400 text-[11px] font-sans">Parallel Intensity (P_0°)</span>
+                <span className={`font-mono font-black text-xs px-2 py-0.5 rounded shadow-inner ${rValue < 1 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                  {(maxCorrection).toFixed(3)}x
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-white/5">
+                <span className="text-slate-400 text-[11px] font-sans">Transverse Intensity (P_90°)</span>
+                <span className={`font-mono font-black text-xs px-2 py-0.5 rounded shadow-inner ${rValue > 1 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                  {(minCorrection).toFixed(3)}x
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-slate-400 text-[11px] font-sans">Habit Class</span>
+                <span className={`font-mono font-black uppercase text-[9px] tracking-widest px-2 py-1 rounded shadow-inner ${rValue === 1.0 ? 'bg-white/5 text-slate-300 border border-white/10' : rValue < 1.0 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                  {rValue === 1.0 ? 'Isotropic' : rValue < 1.0 ? 'Platelet' : 'Needle'}
+                </span>
+              </div>
+            </div>
+
+            {fitQuality && (
+              <div className="bg-indigo-500/5 border border-indigo-500/20 p-5 rounded-2xl backdrop-blur-md shadow-inner relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-16 opacity-10 bg-gradient-to-bl from-emerald-400 to-emerald-600 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+                <div className="text-emerald-400 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 mb-4 font-mono relative z-10">
+                  <Activity className="w-4 h-4" /> Quality of Fit
+                </div>
+                <div className="space-y-3 relative z-10">
+                  <div className="flex justify-between items-center py-2 border-b border-indigo-500/10">
+                    <span className="text-slate-300 text-xs">R<sub className="pointer-events-none mb-1">wp</sub> Factor</span>
+                    <span className="font-mono text-emerald-400 font-black text-sm">
+                      {fitQuality.Rwp.toFixed(2)}%
                     </span>
-                    <span className="text-[10px] text-slate-500 font-mono">Fiber Normal</span>
                   </div>
-                  <input
-                    type="text"
-                    value={targetHKL}
-                    onChange={(e) => {
-                      setTargetHKL(e.target.value);
-                      setSolverResult(null);
-                    }}
-                    placeholder="0, 0, 1"
-                    className="w-full px-3 py-2 bg-slate-950 font-mono text-sm text-indigo-400 border border-slate-800 rounded-lg outline-none focus:border-indigo-500 transition-colors"
-                  />
-                </div>
-
-                {/* Texture Fraction Slider */}
-                <div className="bg-black/40 p-4 rounded-xl border border-slate-800 space-y-3">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-300">Textured Fraction (f)</span>
-                    <span className="font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded font-bold text-sm">
-                      {(fraction * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0.0"
-                    max="1.0"
-                    step="0.01"
-                    value={fraction}
-                    onChange={(e) => {
-                      setFraction(parseFloat(e.target.value));
-                      setSolverResult(null);
-                    }}
-                    className="w-full accent-emerald-500"
-                  />
-                  <p className="text-[10px] text-slate-400 leading-normal">
-                    Real samples contain an un-textured isotropic background phase.
-                  </p>
-                </div>
-
-                {/* Crystal System & Lattice Inputs */}
-                <div className="bg-black/40 p-4 rounded-xl border border-slate-800 space-y-3">
-                  <div className="flex justify-between items-center text-xs mb-2">
-                     <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                       <Layers className="w-3.5 h-3.5 text-pink-400" /> Crystal System
+                  <div className="flex justify-between items-center py-2">
+                     <span className="flex flex-col gap-1">
+                        <span className="text-slate-300 text-xs">Reduced Chi-Squared (<span className="font-serif italic font-bold">χ²<sub className="font-sans not-italic text-[10px]">r</sub></span>)</span>
+                        <span className="text-[10px] text-slate-500 font-sans">Ideal ≈ 1.0 (DOF: {fitQuality.dof})</span>
+                     </span>
+                     <span className={`font-mono font-black text-sm px-2 py-1 rounded shadow-inner ${fitQuality.reducedChiSquared < 2 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : fitQuality.reducedChiSquared < 5 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                       {fitQuality.reducedChiSquared.toFixed(2)}
                      </span>
                   </div>
-                  <select 
-                    value={crystalSystem}
-                    onChange={(e) => {
-                      setCrystalSystem(e.target.value as any);
-                      setSolverResult(null);
-                    }}
-                    className="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-lg px-3 py-2 outline-none focus:border-pink-500"
-                  >
-                    <option value="Cubic">Cubic / Isomeric (a=b=c)</option>
-                    <option value="Tetragonal">Tetragonal (a=b≠c)</option>
-                    <option value="Hexagonal">Hexagonal (a=b≠c, γ=120°)</option>
-                    <option value="Orthorhombic">Orthorhombic (a≠b≠c)</option>
-                  </select>
-                  
-                  {crystalSystem !== 'Cubic' && (
-                    <div className="grid grid-cols-3 gap-2 mt-3">
-                      <div className="space-y-1">
-                        <label className="text-[9px] uppercase font-mono text-slate-500">Lattice a (Å)</label>
-                        <input 
-                          type="number" step="0.01" min="0.1" value={latticeA} 
-                          onChange={(e) => { setLatticeA(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
-                          className="w-full px-2 py-1.5 bg-slate-950 font-mono text-xs text-pink-400 border border-slate-800 rounded outline-none"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                         <label className="text-[9px] uppercase font-mono text-slate-500">Lattice b (Å)</label>
-                         <input 
-                           type="number" step="0.01" min="0.1" value={crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? latticeA : latticeB} 
-                           onChange={(e) => { setLatticeB(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
-                           disabled={crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal'}
-                           className={`w-full px-2 py-1.5 font-mono text-xs border border-slate-800 rounded outline-none ${crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? 'bg-slate-900 text-slate-600' : 'bg-slate-950 text-pink-400'}`}
-                         />
-                      </div>
-                      <div className="space-y-1">
-                         <label className="text-[9px] uppercase font-mono text-slate-500">Lattice c (Å)</label>
-                         <input 
-                           type="number" step="0.01" min="0.1" value={latticeC} 
-                           onChange={(e) => { setLatticeC(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
-                           className="w-full px-2 py-1.5 bg-slate-950 font-mono text-xs text-pink-400 border border-slate-800 rounded outline-none"
-                         />
-                      </div>
-                    </div>
-                  )}
                 </div>
-
-                {/* Live Model Stats Block */}
-                <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
-                  <div className="text-slate-400 font-black uppercase text-[10px] tracking-wider mb-2">
-                    Crystallographic Scale Diagnostics
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/50">
-                    <span className="text-slate-400">Parallel Intensity (P_0°)</span>
-                    <span className={`font-mono font-bold ${rValue < 1 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {(maxCorrection).toFixed(3)}x
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-800/50">
-                    <span className="text-slate-400">Transverse Intensity (P_90°)</span>
-                    <span className={`font-mono font-bold ${rValue > 1 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {(minCorrection).toFixed(3)}x
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-slate-400">Habit Class</span>
-                    <span className="font-mono text-indigo-300 font-bold uppercase text-[10px]">
-                      {rValue === 1.0 
-                        ? 'Isotropic (No Texture)' 
-                        : rValue < 1.0 
-                          ? 'Platelet / Flattening' 
-                          : 'Needle / Needle Axis'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Quality of Fit Diagnostics Block */}
-                {fitQuality && (
-                  <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 text-xs">
-                    <div className="text-emerald-400 font-black uppercase text-[10px] tracking-wider mb-3 flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-emerald-400" /> Quality of Fit
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between py-1 border-b border-slate-800/50">
-                        <span className="text-slate-400">R<sub className="pointer-events-none">wp</sub> Factor</span>
-                        <span className="font-mono text-emerald-400 font-bold">
-                          {fitQuality.Rwp.toFixed(2)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between py-1 border-b border-slate-800/50 flex-col gap-1">
-                        <div className="flex justify-between">
-                           <span className="text-slate-400">Reduced Chi-Squared (<span className="font-serif italic font-bold">χ²<sub className="font-sans not-italic text-[9px]">r</sub></span>)</span>
-                           <span className={`font-mono font-bold ${fitQuality.reducedChiSquared < 2 ? 'text-emerald-400' : fitQuality.reducedChiSquared < 5 ? 'text-amber-400' : 'text-rose-400'}`}>
-                             {fitQuality.reducedChiSquared.toFixed(2)}
-                           </span>
-                        </div>
-                        <span className="text-[9px] text-slate-500 font-sans">
-                          Ideal fit ≈ 1.0 (DOF: {fitQuality.dof})
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Optimal Fit Solver Button */}
-                <div className="pt-2">
-                  <button
-                    onClick={runParameterRefinement}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 active:scale-[0.99] text-white text-xs uppercase font-extrabold tracking-widest rounded-xl shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" /> Auto-Fit Parameters
-                  </button>
-                  
-                  {solverResult && (
-                    <div className="mt-3 bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 relative overflow-hidden">
-                      <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
-                        <Sparkles className="w-3.5 h-3.5" /> Refinement Successful
-                      </div>
-                      <div className="flex justify-between text-xs py-1 border-b border-slate-800/50">
-                        <span className="text-slate-400">New R<sub>wp</sub> Value</span>
-                        <span className="font-mono font-bold text-white">
-                          {solverResult.finalRwp.toFixed(2)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs py-1 border-b border-slate-800/50">
-                        <span className="text-slate-400">Fitted parameter (r)</span>
-                        <span className="font-mono font-bold text-white">
-                          {solverResult.refinedR.toFixed(3)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs py-1 text-slate-400">
-                         <span>Fraction (f)</span>
-                         <span className="font-mono font-bold text-white">{(solverResult.refinedFraction * 100).toFixed(0)}%</span>
-                      </div>
-                      <p className="text-[10px] text-slate-500 mt-2 font-mono leading-relaxed bg-black/40 p-2 rounded border border-slate-900">
-                        &gt; {solverResult.message}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
               </div>
+            )}
 
-            </div>
-
-            {/* Visual & Plot Column */}
-            <div className="xl:col-span-8 space-y-6">
+            <div className="pt-2">
+              <button
+                onClick={runParameterRefinement}
+                className="w-full py-4 px-4 bg-gradient-to-br from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 active:scale-[0.98] text-white text-[11px] uppercase font-black tracking-widest rounded-2xl shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_30px_rgba(99,102,241,0.3)] transition-all duration-300 flex items-center justify-center gap-2 border border-white/10"
+              >
+                <RefreshCw className="w-4 h-4" /> Global Refinement
+              </button>
               
-              {/* Plot Card */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                {/* Visual ODF Polar Contour */}
-                <div className="lg:col-span-4 bg-slate-900 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 -mt-6 -mr-6 w-24 h-24 bg-teal-500/5 rounded-full blur-2xl" />
-                  <div>
-                    <h3 className="text-xs uppercase font-black text-white tracking-widest mb-1 flex items-center gap-1.5">
-                      <CircleDot className="w-4 h-4 text-indigo-400" /> Polar ODF Figure
-                    </h3>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-4">
-                      Probability density W(α)
+              {solverResult && (
+                <div className="mt-4 bg-emerald-500/10 p-5 rounded-2xl border border-emerald-500/30 space-y-3 relative overflow-hidden backdrop-blur-md shadow-inner">
+                  <div className="absolute top-0 right-0 p-16 opacity-10 bg-gradient-to-bl from-emerald-400 to-teal-400 rounded-bl-full pointer-events-none"></div>
+                  <div className="text-[10px] text-emerald-400 font-black uppercase tracking-widest flex items-center gap-2 mb-3 font-mono relative z-10">
+                    <Sparkles className="w-4 h-4" /> Refinement Successful
+                  </div>
+                  <div className="flex flex-col gap-2 relative z-10">
+                    <div className="flex justify-between text-xs py-2 border-b border-emerald-500/10 items-center">
+                      <span className="text-slate-300">New R<sub>wp</sub> Value</span>
+                      <span className="font-mono font-black text-white bg-black/40 px-2 py-1 rounded shadow-inner text-sm">
+                        {solverResult.finalRwp.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs py-2 border-b border-emerald-500/10 items-center">
+                      <span className="text-slate-300">Fitted Extent (r)</span>
+                      <span className="font-mono font-black text-emerald-400 text-sm">
+                        {solverResult.refinedR.toFixed(3)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs py-2 items-center">
+                       <span className="text-slate-300">Fraction (f)</span>
+                       <span className="font-mono font-black text-emerald-400 text-sm">{(solverResult.refinedFraction * 100).toFixed(0)}%</span>
+                    </div>
+                  </div>
+                  <div className="mt-3 bg-black/40 px-3 py-2.5 rounded-xl border border-emerald-500/20 shadow-inner relative z-10 flex gap-2 items-start">
+                    <span className="text-emerald-500 font-mono text-sm mt-0.5">&gt;</span>
+                    <p className="text-[10px] text-emerald-200/80 font-mono leading-relaxed">
+                       {solverResult.message}
                     </p>
                   </div>
-                  
-                  {/* Central SVG Canvas showing the March model */}
-                  <div className="flex justify-center items-center py-4 bg-slate-950/40 rounded-2xl border border-slate-800/50 relative">
-                    <svg width="200" height="200" className="overflow-visible">
-                      {/* Grid concentric circles */}
-                      <circle cx="100" cy="100" r="50" fill="none" stroke="#1e293b" strokeDasharray="3 3" />
-                      <circle cx="100" cy="100" r="25" fill="none" stroke="#1e293b" strokeDasharray="3 3" />
-                      <circle cx="100" cy="100" r="75" fill="none" stroke="#1e293b" strokeDasharray="3 3" />
-                      
-                      {/* Axes */}
-                      <line x1="100" y1="5" x2="100" y2="195" stroke="#1e293b" strokeWidth="1" strokeDasharray="1 3" />
-                      <line x1="5" y1="100" x2="195" y2="100" stroke="#1e293b" strokeWidth="1" strokeDasharray="1 3" />
-                      
-                      {/* Text tags */}
-                      <text x="100" y="15" fill="#475569" fontSize="8" textAnchor="middle" className="font-mono">preferred direction (0°)</text>
-                      <text x="180" y="105" fill="#475569" fontSize="8" textAnchor="end">90° facet</text>
-                      
-                      {/* Random reference ring (r=1.0) */}
-                      <circle cx="100" cy="100" r="50" fill="none" stroke="#334155" strokeWidth="1.5" strokeDasharray="4 2" />
-                      
-                      {/* Real-time March ODF contours */}
-                      <path 
-                        d={polarOdfPath} 
-                        fill="rgba(99, 102, 241, 0.12)" 
-                        stroke="#6366f1" 
-                        strokeWidth="2.5" 
-                        className="transition-all duration-300 ease-out" 
-                      />
-                    </svg>
-                  </div>
-
-                  <div className="mt-4 text-[10px] text-slate-400 font-sans leading-normal">
-                    The solid <span className="text-indigo-400 font-bold">purple line</span> maps W(α) vs inclination angle α. The dashed circle shows random distribution. Note the stretching under non-isotropic texture!
-                  </div>
                 </div>
-
-                {/* Intensity Profile Chart */}
-                <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xs uppercase font-black text-white tracking-widest mb-1 flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-indigo-400" /> Simulated Intensity Anomalies
-                    </h3>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-5">
-                      Theoretical Random standards vs corrected March-Dollase model
-                    </p>
-                  </div>
-
-                  <div className="h-[230px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                        <XAxis 
-                          dataKey="name" 
-                          stroke="#475569" 
-                          tick={{ fontSize: 10, fill: '#94a3b8' }} 
-                          axisLine={{ stroke: '#334155' }} 
-                        />
-                        <YAxis 
-                          stroke="#475569" 
-                          tick={{ fontSize: 10, fill: '#94a3b8' }} 
-                          axisLine={{ stroke: '#334155' }} 
-                        />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                          labelClassName="font-bold text-white text-xs mb-1 font-mono"
-                          itemStyle={{ fontSize: '11px', padding: '2px 0' }}
-                        />
-                        <Legend wrapperStyle={{ fontSize: '11px', marginTop: '10px' }} />
-                        <Bar dataKey="Random standard" fill="#334155" name="Random Standard (no texture)" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="Model (March-Dollase)" fill="#6366f1" name="March Model (with texture)" radius={[4, 4, 0, 0]} />
-                        {results.some(r => r.iMeas !== r.iTh) && (
-                          <Bar dataKey="Measured Experimental" fill="#ec4899" name="Measured Experimental" radius={[4, 4, 0, 0]} />
-                        )}
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Data Table with complete detail */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                  <div>
-                    <h3 className="text-xs uppercase font-black text-white tracking-widest flex items-center gap-1.5">
-                      <Layers className="w-4 h-4 text-indigo-400" /> Reflection Correction Details
-                    </h3>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-0.5">
-                      Crystallographic correction for peak scaling
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2 items-center">
-                    <span className="text-[9px] bg-slate-950 text-indigo-400 border border-slate-800 px-3 py-1.5 rounded-lg font-mono">
-                      Target direction normal: [{targetHKL}]
-                    </span>
-                    <button 
-                      onClick={exportToCSV}
-                      disabled={overlayResults.length === 0}
-                      className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:bg-slate-800/50 disabled:text-slate-500 disabled:border-slate-800 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-1.5"
-                    >
-                      <Download className="w-3.5 h-3.5" /> Export Data
-                    </button>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-800 text-slate-400 uppercase font-black tracking-widest text-[9px] pb-2">
-                        <th className="pb-3 px-2">Miller Index (hkl)</th>
-                        <th className="pb-3 px-2">Angle w/ normal (α)</th>
-                        <th className="pb-3 px-2">Correction P(α)</th>
-                        <th className="pb-3 px-2">Standard Intensity</th>
-                        <th className="pb-3 px-2">Measured/Target</th>
-                        <th className="pb-3 px-2 text-right">Modeled Intensity</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {overlayResults.map((r, i) => {
-                        // Color label representing enhancement or reduction factor
-                        const isEnhancement = r.correction > 1.0;
-                        const percentDiff = Math.abs((r.correction - 1.0) * 100);
-                        return (
-                          <tr key={i} className="border-b border-indigo-950/10 font-mono hover:bg-slate-800/20 transition-colors">
-                            <td className="py-3 px-2 text-indigo-400 font-bold text-sm">
-                              {r.hkl}
-                            </td>
-                            <td className="py-3 px-2 text-slate-300">
-                              {r.angle.toFixed(1)}°
-                            </td>
-                            <td className="py-3 px-2">
-                              <span className={`px-2 py-0.5 rounded font-bold text-xs ${
-                                r.correction === 1.0 
-                                  ? 'bg-slate-850 text-slate-400' 
-                                  : isEnhancement 
-                                    ? 'bg-emerald-500/10 text-emerald-400' 
-                                    : 'bg-rose-500/10 text-rose-400'
-                              }`}>
-                                {r.correction.toFixed(4)}
-                                {percentDiff > 0.5 && (
-                                  <span className="text-[8px] font-normal ml-1">
-                                    ({isEnhancement ? '+' : '-'}{percentDiff.toFixed(0)}%)
-                                  </span>
-                                )}
-                              </span>
-                            </td>
-                            <td className="py-3 px-2 text-slate-400">
-                              {r.iTh.toFixed(1)}
-                            </td>
-                            <td className="py-3 px-2 text-slate-300">
-                              {r.iMeas.toFixed(1)}
-                            </td>
-                            <td className="py-3 px-2 text-white font-extrabold text-right">
-                              {r.iModeledScaled.toFixed(1)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {overlayResults.length === 0 && (
-                        <tr>
-                          <td colSpan={6} className="py-8 text-center text-slate-500 uppercase font-black tracking-widest">
-                            No valid reflex reflection lines entered.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Live Input Field editing reflections */}
-                <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-800 space-y-2">
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="font-mono font-black text-slate-400 uppercase tracking-widest">
-                      Edit Scattering Points Database (Paste/Write below)
-                    </span>
-                    <span className="text-slate-500 font-mono">Format: h, k, l, standard_i, measured_i</span>
-                  </div>
-                  <textarea
-                    value={inputData}
-                    onChange={(e) => {
-                      setInputData(e.target.value);
-                      setSolverResult(null);
-                    }}
-                    className="w-full h-24 px-3 py-2 bg-slate-950 outline-none font-mono text-xs border border-slate-850 text-indigo-400 rounded-xl resize-none custom-scrollbar leading-relaxed"
-                  />
-                </div>
-              </div>
-
-              {/* Instant Angle calculator tool */}
-              <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                <div className="md:col-span-4">
-                  <h3 className="text-xs uppercase font-black text-white tracking-widest flex items-center gap-1.5 mb-1">
-                    <BookOpen className="w-4 h-4 text-indigo-400" /> Dot Product Angle Solver
-                  </h3>
-                  <p className="text-[10px] text-slate-400 leading-normal">
-                    Instantly compute inclination angle and Dollase correction for any arbitrary index.
-                  </p>
-                </div>
-                
-                <div className="md:col-span-4 flex items-center gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[9px] uppercase font-mono text-slate-500 block">Index h</label>
-                    <input 
-                      type="number" 
-                      value={testH} 
-                      onChange={(e) => setTestH(parseInt(e.target.value) || 0)} 
-                      className="w-16 px-2.5 py-1.5 bg-black/50 text-slate-200 font-mono text-center rounded border border-slate-805"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] uppercase font-mono text-slate-500 block">Index k</label>
-                    <input 
-                      type="number" 
-                      value={testK} 
-                      onChange={(e) => setTestK(parseInt(e.target.value) || 0)} 
-                      className="w-16 px-2.5 py-1.5 bg-black/50 text-slate-200 font-mono text-center rounded border border-slate-805"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] uppercase font-mono text-slate-500 block">Index l</label>
-                    <input 
-                      type="number" 
-                      value={testL} 
-                      onChange={(e) => setTestL(parseInt(e.target.value) || 0)} 
-                      className="w-16 px-2.5 py-1.5 bg-black/50 text-slate-200 font-mono text-center rounded border border-slate-805"
-                    />
-                  </div>
-                </div>
-
-                <div className="md:col-span-4 bg-slate-950 p-4 rounded-xl border border-slate-805 text-xs space-y-1.5 leading-none">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-mono text-[10px]">Angle with [{targetHKL}]</span>
-                    <span className="font-mono text-indigo-400 font-bold">{userTestAngle.toFixed(1)}°</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-mono text-[10px]">Correction P(α)</span>
-                    <span className="font-mono text-emerald-400 font-bold">{userTestCorrection.toFixed(4)}x</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Core Scientific Analysis, Interpretation, & Educational Panel */}
-              <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6">
-                <div>
-                  <h3 className="text-sm uppercase font-black text-white tracking-widest flex items-center gap-2 mb-1.5 text-indigo-400">
-                    <Sparkles className="w-5 h-5 text-indigo-400" /> Continuous Real-Time Texture Analysis Report
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                    This advanced reporting engine computes physical characteristics of your active specimen. Read below to understand what is going on in this analysis.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-950 p-6 rounded-2xl border border-slate-850">
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-black uppercase text-slate-300 tracking-wider border-b border-slate-800 pb-2 flex items-center gap-1.5">
-                       <Info className="w-4 h-4 text-sky-400" /> Active State Physics & Interpretation
-                    </h4>
-                    <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
-                      {rValue === 1.0 ? (
-                        <>
-                          Your current parameter <span className="font-mono text-emerald-400 font-bold">r = 1.00</span> models an <span className="text-slate-200 font-semibold">Ideal Isotropic Powder</span>. All grains are randomly oriented in space. There are zero systematic intensity anomalies, meaning the correction factor <span className="font-mono text-indigo-400">P(α) = 1.000</span> for all angles.
-                        </>
-                      ) : rValue < 1.0 ? (
-                        <>
-                          At <span className="font-mono text-emerald-400 font-bold">r = {rValue.toFixed(2)}</span>, the system models a <span className="text-sky-400 font-bold">Platelet Habit alignment</span> (plateline texture). Under compaction or settling, flat crystal plates settle with their face normals parallel to the sample surface (displacement axis [{targetHKL}]). This causes the perpendicular reflections (α = 0°) to be scaled up by an extreme <span className="text-emerald-400 font-bold">{(maxCorrection).toFixed(2)}x</span> intensity boost. Conversely, side facets parallel to the shear vector (α = 90°) are deeply suppressed to <span className="text-rose-400 font-bold">{(minCorrection).toFixed(2)}x</span>.
-                        </>
-                      ) : (
-                        <>
-                          At <span className="font-mono text-emerald-400 font-bold">r = {rValue.toFixed(2)}</span>, the system models an <span className="text-amber-400 font-bold font-sans">Acicular / Needle Habit alignment</span> (needle-like columns). Under extrusion, tape casting, or vertical growth, the needle cylinder axis aligns down or perpendicular to gravity parallel to the preferred normal [{targetHKL}]. This stretches the ODF and severely suppresses longitudinal reflections (α = 0°) down to <span className="text-rose-400 font-bold">{(maxCorrection).toFixed(2)}x</span>. Transverse side wall orientations (α = 90°) receive an intensity boost up to <span className="text-emerald-400 font-bold">{(minCorrection).toFixed(2)}x</span>.
-                        </>
-                      )}
-                    </p>
-                    <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
-                      <strong>Scattering Redistribution Law:</strong> Notice that preferred orientation <em className="text-slate-300">does not create or destroy scattered x-rays</em>. It systematically redistributes them in reciprocal space relative to the sample holder geometry, creating intensity peaks at specific angles and valleys at others.
-                    </p>
-                  </div>
-
-                  </div>
-                </div>
-              </div>
-
+              )}
             </div>
+
+          </div>
+
+        </div>
+
+        {/* Visual & Plot Column */}
+        <div className="xl:col-span-8 space-y-6">
+          
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Visual ODF Polar Contour */}
+            <div className="lg:col-span-4 bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between backdrop-blur-md z-0 group">
+              <div className="absolute top-0 left-0 p-32 opacity-5 bg-gradient-to-br from-teal-400 to-emerald-400 rounded-br-[100px] pointer-events-none group-hover:opacity-10 group-hover:scale-110 transition-all duration-700"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-1.5 py-1.5 max-w-fit bg-teal-500/10 rounded-lg border border-teal-500/20 shadow-inner">
+                    <CircleDot className="w-4 h-4 text-teal-400" />
+                  </div>
+                  <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+                    Polar ODF Figure
+                  </h3>
+                </div>
+                <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold mb-6">
+                  Probability density W(α)
+                </p>
+              </div>
+              
+              <div className="flex justify-center items-center py-6 bg-black/60 rounded-[2rem] border border-white/5 relative shadow-inner z-10 mt-auto">
+                <svg width="200" height="200" className="overflow-visible filter drop-shadow-lg">
+                  <circle cx="100" cy="100" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+                  <circle cx="100" cy="100" r="25" fill="none" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+                  <circle cx="100" cy="100" r="75" fill="none" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
+                  
+                  <line x1="100" y1="5" x2="100" y2="195" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2 4" />
+                  <line x1="5" y1="100" x2="195" y2="100" stroke="rgba(255,255,255,0.1)" strokeWidth="1" strokeDasharray="2 4" />
+                  
+                  <text x="100" y="15" fill="#64748b" fontSize="8" textAnchor="middle" className="font-mono font-bold tracking-wider uppercase">0°</text>
+                  <text x="180" y="105" fill="#64748b" fontSize="8" textAnchor="end" className="font-mono font-bold tracking-wider uppercase">90°</text>
+                  
+                  <circle cx="100" cy="100" r="50" fill="none" stroke="#475569" strokeWidth="1.5" strokeDasharray="4 2" className="opacity-80" />
+                  
+                  <path 
+                    d={polarOdfPath} 
+                    fill="rgba(45, 212, 191, 0.15)" 
+                    stroke="#2dd4bf" 
+                    strokeWidth="2.5" 
+                    className="transition-all duration-300 ease-out" 
+                  />
+                </svg>
+              </div>
+
+              <div className="mt-6 text-[10px] text-slate-400 font-sans leading-relaxed text-center px-4 bg-teal-500/5 rounded-xl border border-teal-500/10 py-3 relative z-10 shadow-inner">
+                The <span className="text-teal-400 font-bold px-1 rounded bg-teal-500/10">teal contour</span> maps probability. Dashed grey represents random powder.
+              </div>
+            </div>
+
+            {/* Intensity Profile Chart */}
+            <div className="lg:col-span-8 bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl flex flex-col justify-between backdrop-blur-md relative z-0 group">
+              <div className="absolute top-0 right-0 p-40 opacity-[0.03] bg-gradient-to-bl from-rose-500 to-indigo-500 rounded-bl-[150px] pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-1.5 py-1.5 max-w-fit bg-rose-500/10 rounded-lg border border-rose-500/20 shadow-inner">
+                    <Activity className="w-4 h-4 text-rose-400" />
+                  </div>
+                  <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+                    Simulated Intensity Anomalies
+                  </h3>
+                </div>
+                <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold mb-8">
+                  Theoretical Random vs March-Dollase Modeled
+                </p>
+              </div>
+
+              <div className="h-[280px] w-full relative z-10 bg-black/40 p-4 rounded-3xl border border-white/5 shadow-inner">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="#475569" 
+                      tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }} 
+                      axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} 
+                      tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                      tickMargin={10}
+                    />
+                    <YAxis 
+                      stroke="#475569" 
+                      tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }} 
+                      axisLine={{ stroke: 'rgba(255,255,255,0.1)' }} 
+                      tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
+                      tickMargin={10}
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'rgba(10,15,30,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '16px', backdropFilter: 'blur(16px)', color: '#f1f5f9', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}
+                      labelClassName="font-bold text-white text-xs mb-3 font-mono tracking-wider uppercase border-b border-white/10 pb-2"
+                      itemStyle={{ fontSize: '11px', padding: '5px 0', fontFamily: 'monospace', fontWeight: 600 }}
+                      cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '10px', marginTop: '20px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} />
+                    <Bar dataKey="Random standard" fill="#475569" name="Standard (Random)" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="Model (March-Dollase)" fill="#6366f1" name="March Model" radius={[8, 8, 0, 0]} />
+                    {results.some(r => r.iMeas !== r.iTh) && (
+                      <Bar dataKey="Measured Experimental" fill="#ec4899" name="Experimental Data" radius={[8, 8, 0, 0]} />
+                    )}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Data Table */}
+          <div className="bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl space-y-6 backdrop-blur-md relative z-0">
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 border-b border-white/5 pb-5">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                   <div className="p-1.5 py-1.5 max-w-fit bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-inner">
+                     <Layers className="w-4 h-4 text-indigo-400" />
+                   </div>
+                   <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+                     Reflection Detail
+                   </h3>
+                </div>
+                <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
+                  Absolute Corrected Values & Scale
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-4 items-center">
+                <span className="text-[10px] bg-black/60 text-indigo-400 border border-white/10 px-4 py-2 rounded-xl font-mono font-black tracking-widest shadow-inner">
+                  Target Normal: [{targetHKL}]
+                </span>
+                <button 
+                  onClick={exportToCSV}
+                  disabled={overlayResults.length === 0}
+                  className="px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-[0.98] disabled:bg-white/5 disabled:text-slate-600 disabled:border-transparent disabled:shadow-none text-emerald-400 border border-emerald-500/30 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all duration-300 flex items-center gap-2 shadow-lg"
+                >
+                  <Download className="w-4 h-4" /> Export CSV
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto custom-scrollbar pb-3">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-slate-500 uppercase font-black tracking-widest text-[9px] font-mono whitespace-nowrap">
+                    <th className="pb-4 px-4 font-mono w-[15%]">hkl</th>
+                    <th className="pb-4 px-4 font-mono w-[15%]">Angle (α)</th>
+                    <th className="pb-4 px-4 font-mono w-[20%]">P(α) Correction</th>
+                    <th className="pb-4 px-4 font-mono w-[15%]">Standard I</th>
+                    <th className="pb-4 px-4 font-mono w-[15%]">Measured I</th>
+                    <th className="pb-4 px-4 font-mono text-right text-indigo-400 w-[20%]">Modeled I</th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs font-mono">
+                  {overlayResults.map((r, i) => {
+                    const isEnhancement = r.correction > 1.0;
+                    const percentDiff = Math.abs((r.correction - 1.0) * 100);
+                    return (
+                      <tr key={i} className="border-t border-white/5 hover:bg-white/[0.03] transition-colors group/row">
+                        <td className="py-4 px-4 text-white font-black tracking-wider">
+                          <span className="bg-white/5 px-2 py-1 rounded shadow-inner inline-block min-w-[70px] text-center border border-white/5">
+                            {r.hkl}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-400 font-bold">
+                          {r.angle.toFixed(1)}°
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-3 py-1.5 rounded-lg font-black text-[10px] tracking-wider shadow-inner inline-flex items-center gap-2 ${
+                            r.correction === 1.0 
+                              ? 'bg-black/60 border border-white/10 text-slate-400' 
+                              : isEnhancement 
+                                ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' 
+                                : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+                          }`}>
+                            {r.correction.toFixed(4)}
+                            {percentDiff > 0.5 && (
+                              <span className="text-[9px] opacity-80 font-mono tracking-normal font-medium bg-black/20 px-1.5 py-0.5 rounded">
+                                {isEnhancement ? '+' : '-'}{percentDiff.toFixed(0)}%
+                              </span>
+                            )}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-400 font-bold">
+                          {r.iTh.toFixed(1)}
+                        </td>
+                        <td className="py-4 px-4 text-slate-300 font-black">
+                          {r.iMeas.toFixed(1)}
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                           <span className="text-indigo-400 font-black text-sm bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-xl shadow-inner inline-block min-w-[60px] text-center">
+                             {r.iModeledScaled.toFixed(1)}
+                           </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {overlayResults.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-16 text-center text-slate-500 uppercase font-black tracking-widest text-[10px] font-mono border-t border-white/5 bg-black/20 rounded-b-3xl">
+                        <div className="flex flex-col items-center justify-center gap-4">
+                           <div className="p-4 bg-white/5 rounded-full shadow-inner">
+                             <Activity className="w-8 h-8 text-slate-600" />
+                           </div>
+                           No valid measurement entries detected.
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="bg-black/60 p-6 rounded-[2rem] border border-white/5 space-y-4 shadow-inner group/edit hover:border-white/10 transition-colors">
+              <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                <div className="flex items-center gap-2">
+                   <div className="p-1 bg-white/5 rounded border border-white/10">
+                      <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+                   </div>
+                   <span className="font-mono font-black text-slate-300 group-hover/edit:text-white transition-colors uppercase tracking-widest text-[10px]">
+                     Measurement Input Matrix
+                   </span>
+                </div>
+                <span className="text-[10px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg font-mono font-bold tracking-widest shadow-inner border border-white/5">
+                  Format: h, k, l, standard_i, measured_i
+                </span>
+              </div>
+              <textarea
+                value={inputData}
+                onChange={(e) => {
+                  setInputData(e.target.value);
+                  setSolverResult(null);
+                }}
+                className="w-full h-32 px-5 py-4 bg-black/40 outline-none font-mono text-[13px] border border-white/5 text-slate-300 focus:text-white rounded-2xl resize-none custom-scrollbar leading-loose focus:ring-1 focus:ring-indigo-500/30 transition-all shadow-inner placeholder:text-slate-600"
+                placeholder="0, 0, 1, 100, 100"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Angle Calculator Mini Tool */}
+            <div className="bg-black/40 border border-white/5 hover:border-white/10 transition-all p-8 rounded-[2rem] flex flex-col justify-between backdrop-blur-md relative overflow-hidden shadow-xl z-0 group">
+               <div className="absolute top-0 right-0 p-32 opacity-10 bg-gradient-to-bl from-amber-400 to-amber-600 rounded-bl-[100px] pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+               <div className="relative z-10 mb-8">
+                 <div className="flex items-center gap-2 mb-3">
+                   <div className="p-1.5 bg-amber-500/10 rounded-lg border border-amber-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                     <BookOpen className="w-4 h-4 text-amber-400" />
+                   </div>
+                   <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest group-hover:text-amber-400 transition-colors">
+                     Dot Product Angle Solver
+                   </h3>
+                 </div>
+                 <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
+                   Compute arbitrary structural index pairs
+                 </p>
+               </div>
+               
+               <div className="flex flex-wrap items-center gap-4 mb-8 relative z-10 bg-black/40 p-5 rounded-2xl border border-white/5 shadow-inner">
+                 <div className="space-y-2 flex-1 min-w-[60px]">
+                   <label className="text-[9px] uppercase font-black text-slate-500 font-mono tracking-widest">Index h</label>
+                   <input 
+                     type="number" 
+                     value={testH} 
+                     onChange={(e) => setTestH(parseInt(e.target.value) || 0)} 
+                     className="w-full px-3 py-2.5 bg-black/60 text-white font-mono font-bold text-center rounded-xl border border-white/10 shadow-inner focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
+                   />
+                 </div>
+                 <div className="space-y-2 flex-1 min-w-[60px]">
+                   <label className="text-[9px] uppercase font-black text-slate-500 font-mono tracking-widest">Index k</label>
+                   <input 
+                     type="number" 
+                     value={testK} 
+                     onChange={(e) => setTestK(parseInt(e.target.value) || 0)} 
+                     className="w-full px-3 py-2.5 bg-black/60 text-white font-mono font-bold text-center rounded-xl border border-white/10 shadow-inner focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
+                   />
+                 </div>
+                 <div className="space-y-2 flex-1 min-w-[60px]">
+                   <label className="text-[9px] uppercase font-black text-slate-500 font-mono tracking-widest">Index l</label>
+                   <input 
+                     type="number" 
+                     value={testL} 
+                     onChange={(e) => setTestL(parseInt(e.target.value) || 0)} 
+                     className="w-full px-3 py-2.5 bg-black/60 text-white font-mono font-bold text-center rounded-xl border border-white/10 shadow-inner focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
+                   />
+                 </div>
+               </div>
+
+               <div className="bg-black/60 p-6 rounded-2xl border border-amber-500/20 text-xs space-y-4 shadow-inner relative z-10 font-mono font-black tracking-widest mt-auto">
+                 <div className="flex justify-between items-center pb-3 border-b border-amber-500/10">
+                   <span className="text-amber-500/70 text-[10px] uppercase font-sans">Angle With [{targetHKL}]</span>
+                   <span className="text-amber-400 text-sm bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">{userTestAngle.toFixed(1)}°</span>
+                 </div>
+                 <div className="flex justify-between items-center">
+                   <span className="text-emerald-500/70 text-[10px] uppercase font-sans">Correction P(α)</span>
+                   <span className="text-emerald-400 text-sm bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">{userTestCorrection.toFixed(4)}x</span>
+                 </div>
+               </div>
+            </div>
+
+            {/* Core Scientific Panel */}
+            <div className="bg-black/40 border border-white/5 hover:border-white/10 transition-all p-8 rounded-[2rem] backdrop-blur-md relative overflow-hidden shadow-xl z-0 group flex flex-col justify-between">
+              <div className="absolute top-0 left-0 p-40 opacity-[0.03] bg-gradient-to-br from-blue-400 to-indigo-600 rounded-br-[150px] pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+              
+              <div className="relative z-10 mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                    <Info className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest group-hover:text-blue-400 transition-colors">
+                    Interpretation Node
+                  </h3>
+                </div>
+                <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
+                   Active State Physics Analysis
+                </p>
+              </div>
+
+              <div className="relative z-10 bg-black/60 p-6 rounded-2xl border border-white/5 shadow-inner flex-1 flex flex-col">
+                 <p className="text-[11px] text-slate-400 leading-relaxer font-sans mb-6">
+                    {rValue === 1.0 ? (
+                      <>
+                        Parameter <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-500/20">r = 1.00</span> maps an <strong className="text-slate-200">Ideal Isotropic Powder</strong>. All grains randomly oriented; zero anomalous intensities; correction <span className="font-mono text-cyan-400 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded shadow-sm border border-cyan-500/20">P(α) = 1.000</span> for all facets.
+                      </>
+                    ) : rValue < 1.0 ? (
+                      <>
+                        At <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-500/20">r = {rValue.toFixed(2)}</span>, the system constructs an active <strong className="text-cyan-400">Platelet Habit alignment</strong>. Flat plates orient their normals parallel to the compact axis [{targetHKL}], deeply scaling parallel peaks (<span className="text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-500/20">{(maxCorrection).toFixed(1)}x</span>) while damping transverse geometry (<span className="text-rose-400 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded shadow-sm border border-rose-500/20">{(minCorrection).toFixed(1)}x</span>).
+                      </>
+                    ) : (
+                      <>
+                        At <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-500/20">r = {rValue.toFixed(2)}</span>, the system evaluates <strong className="text-amber-400">Acicular / Needle Habit alignment</strong>. Linear extrusions parallel the target axis [{targetHKL}], radically amplifying transverse reflection planes up to (<span className="text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-500/20">{(minCorrection).toFixed(1)}x</span>) while destroying cross-sections down to (<span className="text-rose-400 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded shadow-sm border border-rose-500/20">{(maxCorrection).toFixed(1)}x</span>).
+                      </>
+                    )}
+                 </p>
+                 <div className="mt-auto bg-blue-500/5 border-l-4 border-blue-500 p-4 rounded-r-xl shadow-inner border-y border-r border-y-blue-500/10 border-r-blue-500/10">
+                    <p className="text-[10px] text-blue-200/80 leading-relaxed font-sans">
+                      <strong className="text-blue-400 font-black uppercase tracking-widest text-[9px] block mb-1">Conservation Law</strong> Crystallographic texture doesn't destroy or generate total intensity—it purely routes reflections radially, behaving as a probability redistribution filter over reciprocal space.
+                    </p>
+                 </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
       </div>
+    </div>
   );
 };

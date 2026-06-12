@@ -1,7 +1,7 @@
 const RAW_MATERIAL_DB = [
   {
     name: "Beta-Quartz (High Quartz, SiO2)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern:
       "20.6, 30\n25.8, 100\n36.4, 20\n38.8, 15\n42.3, 10\n45.5, 12\n50.0, 18",
     description:
@@ -21,7 +21,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Alpha-Cristobalite (Low Cristobalite, SiO2)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "21.9, 100\n31.4, 15\n36.1, 10\n42.7, 8\n44.8, 5\n48.6, 6",
     description:
       "A low-temperature, tetragonal polymorph of cristobalite. Often occurs as a metastable phase in volcanic rocks and opal.",
@@ -40,7 +40,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Beta-Cristobalite (High Cristobalite, SiO2)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "21.5, 100\n35.8, 20\n44.3, 10\n48.2, 5",
     description:
       "The high-temperature cubic polymorph of cristobalite, stable above ~267 °C and sometimes found stabilized at room temperature in glasses.",
@@ -59,7 +59,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Alpha-Tridymite (Low Tridymite, SiO2)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "20.5, 80\n21.6, 100\n23.2, 60\n28.8, 30\n35.9, 25\n43.1, 15",
     description:
       "A complex, low-symmetry polymorph of tridymite found in terrestrial volcanic rocks and meteorites as a metastable phase.",
@@ -74,7 +74,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Beta-Tridymite (High Tridymite, SiO2)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "21.2, 100\n35.6, 30\n42.5, 15",
     description:
       "The high-temperature hexagonal polymorph of tridymite. Forms typically between 870 °C and 1470 °C.",
@@ -89,7 +89,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Stishovite (SiO2 High-Pressure Polymorph)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "28.5, 100\n33.2, 40\n41.2, 20\n43.8, 15\n47.2, 35\n53.8, 25",
     description:
       "An extremely dense, high-pressure polymorph of silica with octahedrally coordinated silicon (rutile structure). Forms during meteorite impacts.",
@@ -108,7 +108,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Keatite (SiO2 Synthetic Polymorph)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "23.8, 100\n27.5, 80\n33.5, 45\n38.4, 30\n45.6, 20",
     description:
       "A synthetic tetragonal polymorph of silica. Rarely found in nature, but can form hydrothermally in ultra-high-pressure environments or as intermediate phases.",
@@ -123,7 +123,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Moganite (SiO2 Monoclinic Polymorph)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "20.1, 30\n26.6, 100\n36.4, 15\n39.5, 10\n42.3, 8",
     description:
       "A monoclinic polymorph of silica occurring widely in microcrystalline silica such as chalcedony, chert, and flint.",
@@ -142,7 +142,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Seifertite (SiO2 Ultra-High-Pressure)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "30.1, 100\n31.5, 80\n34.2, 60\n42.1, 40\n48.5, 30",
     description:
       "An ultra-high-pressure polymorph of silica found in Martian and Lunar meteorites, with an alpha-PbO2-type structure.",
@@ -5643,7 +5643,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Diopside",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "29.8, 100\n35.5, 60\n41.0, 45\n42.3, 35",
     description:
       "A monoclinic pyroxene mineral frequently found in igneous and metamorphic rocks. Serves as a vital indicator mineral for tracing kimberlite pipes and deep mantle conditions.",
@@ -5890,7 +5890,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Coesite (SiO2 High-Pressure Polymorph)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "14.1, 100\n19.2, 75\n28.4, 60\n34.5, 45",
     description:
       "A high-pressure, high-density polymorph of silicon dioxide (silica). Crucial index mineral used to verify high-pressure metamorphic zones and meteorite impact sites.",
@@ -5928,7 +5928,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Wurtzite (Hexagonal ZnS)",
-    type: "Carbon & 2D Materials",
+    type: "Semiconductors & Photonics",
     pattern: "26.9, 100\n28.5, 85\n30.5, 75\n47.6, 50\n51.8, 40",
     description:
       "The hexagonal, high-temperature crystalline polymorph of zinc sulfide. Forms in localized hydrothermal veins and is a key structural prototype.",
@@ -5947,7 +5947,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Crocidolite (Blue Asbestos Amphibole)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "10.5, 100\n27.8, 80\n29.1, 65\n34.2, 50",
     description:
       "An asbestiform monoclinic amphibole silicate also known as blue asbestos. Highly prized historically for its immense tensile strength, now monitored for geological hazards.",
@@ -11479,7 +11479,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Andalusite (Aluminium Silicate Polymorph)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "15.6, 100\n21.8, 85\n22.8, 40\n27.6, 55\n31.2, 45\n34.9, 30",
     description: "An aluminium-silicate polymorph key in metamorphic petrology, indicative of low-pressure, high-temperature recrystallization facies in pelitic schists.",
     formula: "Al2SiO5",
@@ -11491,7 +11491,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Kyanite (Aluminium Silicate Polymorph)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "18.2, 50\n21.0, 65\n23.4, 100\n26.2, 40\n31.1, 70\n39.5, 30",
     description: "A high-pressure aluminium-silicate polymorph characterized by high hardness anisotropy, forming sky-blue bladed habits in regional metamorphic schists.",
     formula: "Al2SiO5",
@@ -11503,7 +11503,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Sillimanite (Aluminium Silicate Polymorph)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "16.4, 35\n21.1, 100\n26.1, 80\n33.2, 45\n35.8, 50\n46.2, 25",
     description: "The high-temperature aluminium-silicate polymorph typical of high-grade pelitic gneisses, often forming acicular fibrolite aggregates.",
     formula: "Al2SiO5",
@@ -11515,7 +11515,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Fayalite (Iron Olivine Endmember)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "17.4, 30\n25.1, 80\n31.8, 100\n35.2, 90\n51.5, 25\n60.8, 20",
     description: "The iron-rich endmember of the olivine solid-solution series, commonly found in iron-rich igneous rocks, acidic slags, and metamorphosed iron formations.",
     formula: "Fe2SiO4",
@@ -11527,7 +11527,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Labradorite (Iridescent Plagioclase Feldspar)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "13.9, 30\n22.0, 100\n24.2, 75\n27.8, 85\n28.1, 90\n42.1, 20",
     description: "A calcium-sodium plagioclase feldspar showing striking iridescent labradorescence arising from sub-solidus lamellar exsolution within Bøggild intergrowths.",
     formula: "(Ca,Na)(Al,Si)4O8",
@@ -11551,7 +11551,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Albite (Sodium Feldspar Endmember)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "13.8, 30\n21.9, 85\n23.5, 50\n27.8, 100\n28.1, 95\n35.4, 25",
     description: "The sodium-rich endmember of the plagioclase feldspar mineral series, constituting a major mineral phase in granites, pegmatites, and greenschists.",
     formula: "NaAlSi3O8",
@@ -11563,7 +11563,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Sanidine (Volcanic K-Feldspar Polymorph)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "13.6, 25\n21.1, 35\n23.6, 80\n25.7, 60\n27.1, 100\n41.2, 15",
     description: "The disordered high-temperature potassium feldspar polymorph, stable above 800 °C, commonly preserved in rapidly quenched felsic volcanic tuffs and rhyolites.",
     formula: "KAlSi3O8",
@@ -11587,7 +11587,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Celestine (Geode Strontium Ore)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "20.2, 100\n22.8, 50\n25.9, 75\n27.4, 45\n31.2, 80\n43.1, 25",
     description: "A strontium sulfate mineral named for its delicate fibrous sky-blue crystalline geode voids, forming principally in evaporitic sedimentary strata.",
     formula: "SrSO4",
@@ -11623,7 +11623,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Glaucophane (Sodic Blueschist Amphibole)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "8.6, 100\n10.5, 25\n19.3, 30\n27.2, 65\n28.8, 50\n34.1, 35",
     description: "The diagnostic sodic amphibole indicative of cold subduction zones under extreme high-pressure, low-temperature metamorphic paths, giving blueschist its rich hue.",
     formula: "Na2Mg3Al2Si8O22(OH)2",
@@ -11635,7 +11635,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Staurolite (Cruciform Metamorphic Index Mineral)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "14.1, 30\n21.5, 100\n23.9, 60\n26.8, 45\n33.1, 40\n38.5, 20",
     description: "A complex iron-aluminum silicate that serves as a medium-to-high grade regional metamorphic marker, noted mineralogically for structural penetrative twin habits.",
     formula: "Fe2Al9Si4O22(OH)2",
@@ -11659,7 +11659,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Zoisite (Tanzanite Parent Mineral)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "14.2, 25\n24.3, 60\n26.5, 100\n28.1, 85\n31.9, 45\n39.5, 30",
     description: "An calcium-aluminum sorosilicate mineral. The vanadium-rich crystalline variety represents tanzanite, a highly valuable trichroic blue-violet gemstone.",
     formula: "Ca2Al3(SiO4)3(OH)",
@@ -11683,7 +11683,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Chrysoberyl (Alexandrite Parent Mineral)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "20.1, 45\n28.4, 100\n33.2, 35\n37.5, 70\n42.1, 55\n48.9, 30",
     description: "An exceptionally hard beryllium aluminate mineral. Chromium-substituted varieties exhibit intense color shifting (Alexandrite Effect) between sunlight and incandescent light.",
     formula: "BeAl2O4",
@@ -12919,7 +12919,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Ice Ih Crystalline Phase (Hexagonal Standard Ice)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "22.8, 100\n24.3, 85\n25.9, 90\n33.5, 40\n40.3, 30",
     description: "The standard hexagonal crystalline form of solid water, constituting almost all natural ice on Earth with a highly open, tetrahedral hydrogen-bonded structure.",
     formula: "H2O",
@@ -12931,7 +12931,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Ice Ic Crystalline Phase (Metastable Cubic Ice)",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "24.2, 100\n40.1, 45\n47.5, 35\n69.5, 20",
     description: "Metastable cubic polymorph of ice, formed by condensation of water vapor at extremely low temperatures or via phase transition of high-pressure polymorphs.",
     formula: "H2O",
@@ -12943,7 +12943,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Ice II Rhombohedral Crystalline Phase",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "20.1, 100\n23.4, 75\n27.8, 90\n31.2, 50\n34.6, 40",
     description: "A highly ordered rhombohedral crystalline form of ice, formed by compressing hexagonal ice to 300 MPa at low temperatures (~200 K).",
     formula: "H2O",
@@ -12955,7 +12955,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Ice III Tetragonal Crystalline Phase",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "19.5, 80\n21.8, 100\n26.2, 60\n31.5, 45",
     description: "A proton-disordered tetragonal high-pressure crystalline ice form, stable from 240 K to 260 K under ~300 MPa of pressure.",
     formula: "H2O",
@@ -12967,7 +12967,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Ice VI Tetragonal High-Pressure Phase",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "18.9, 100\n22.4, 85\n25.6, 70\n30.8, 55\n35.2, 30",
     description: "A high-pressure tetragonal ice form, stable at room temperature under gigapascal-scale pressures. Comprises interpenetrating non-bonded hydrogen networks.",
     formula: "H2O",
@@ -12979,7 +12979,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Ice VII Cubic Ultra-High-Pressure Phase",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "25.1, 100\n35.8, 60\n44.2, 80\n51.5, 40\n58.2, 55",
     description: "A cubic, highly stable crystalline phase of ice, surviving up to extreme megapascals and temperatures. Can be preserved as pressurized mineral inclusions inside deep diamonds.",
     formula: "H2O",
@@ -12991,7 +12991,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Ice VIII Tetragonal Ordered Phase",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "21.6, 100\n24.2, 70\n31.8, 55\n38.4, 85\n42.6, 45",
     description: "The hydrogen-ordered, low-temperature counterpart of cubic Ice VII. Exhibits a highly structured, parallel-aligned dipole sublattice.",
     formula: "H2O",
@@ -13003,7 +13003,7 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Ice XI Orthorhombic Ordered Low-Temperature Phase",
-    type: "Carbon & 2D Materials",
+    type: "Minerals, Ores & Geology",
     pattern: "22.6, 100\n24.0, 90\n26.1, 80\n33.8, 45\n40.1, 35",
     description: "The ferroelectrically ordered, thermodynamically stable low-temperature phase of hexagonal ice (Ice Ih) below 72 Kelvin.",
     formula: "H2O",

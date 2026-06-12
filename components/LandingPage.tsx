@@ -845,11 +845,25 @@ export const LandingPage = ({ onEnter, setTheme, theme }: {
                 <span className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-300">Phase Match & Structural Indexing</span>
               </div>
 
-              <h1 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-black tracking-tight mb-6 text-white leading-[1.05] drop-shadow-2xl flex flex-col md:block">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="mb-4"
+              >
+                <h2 className="text-xl sm:text-2xl font-bold text-cyan-400 tracking-widest uppercase flex items-center gap-3">
+                  <span className="w-8 h-px bg-cyan-400/50"></span>
+                  Welcome to XRD-CalcPro
+                  <span className="w-8 h-px bg-cyan-400/50"></span>
+                </h2>
+              </motion.div>
+
+              <h1 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-black tracking-tight mb-6 text-white leading-[1.05] drop-shadow-2xl flex flex-col md:block relative">
+                <span className="absolute -inset-4 bg-violet-500/20 blur-3xl rounded-full -z-10" />
                 <span className="inline-block mb-2">{t('Automate Your')}</span><br className="hidden md:block"/>
                 <span className="inline-flex items-center gap-4">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-tr from-violet-500 via-cyan-400 to-indigo-300 drop-shadow-[0_0_20px_rgba(139,92,246,0.3)]">Diffraction Analysis</span>
-                  <Sparkles className="w-10 h-10 text-cyan-400 opacity-60 animate-pulse mt-1 hidden sm:inline-block" />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-tr from-violet-400 via-cyan-300 to-indigo-200 drop-shadow-[0_0_25px_rgba(139,92,246,0.5)] relative z-10">Diffraction Analysis</span>
+                  <Sparkles className="w-10 h-10 text-cyan-300 opacity-80 animate-pulse mt-1 hidden sm:inline-block drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
                 </span>
               </h1>
               
