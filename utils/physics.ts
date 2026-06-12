@@ -1754,6 +1754,26 @@ const getCachedReferenceSpectrum = (
   return spectrumCache[phaseName].rawSpectrum;
 };
 
+const subtractMathematicalBackground = (vector: number[]): number[] => {
+  // High-fidelity iterative peak-clipping baseline estimator (SNIP / Shirley approximation)
+  const len = vector.length;
+  const result = [...vector];
+  const iterations = 10;
+  for (let iter = 1; iter <= iterations; iter++) {
+    for (let i = iter; i < len - iter; i++) {
+      const avg = (result[i - iter] + result[i + iter]) / 2;
+      if (result[i] > avg) {
+        result[i] = avg;
+      }
+    }
+  }
+  return vector.map((val, idx) => Math.max(0, val - result[idx]));
+};
+
+// Helper FWHM widths for Voigt function approximation
+const fwhmVoigtGaussian = (sigma: number) => sigma * 2.35482;
+const fwhmVoigtLorentzian = (gamma: number) => gamma * 2.0;
+
 const getCachedConvolvedReference = (
   phaseName: string,
   peaks: { t: number, i: number, h?: number, k?: number, l?: number }[],
@@ -1761,10 +1781,11 @@ const getCachedConvolvedReference = (
   kernelProfile: string = "Gaussian",
   batchNorm: boolean,
   multiScale: boolean,
-  pooling: string
+  pooling: string,
+  engineConfig?: any
 ) => {
   const S_ref_raw = getCachedReferenceSpectrum(phaseName, peaks);
-  const configKey = `${kernelSize}_${kernelProfile}_${batchNorm}_${multiScale}_${pooling}`;
+  const configKey = `${kernelSize}_${kernelProfile}_${batchNorm}_${multiScale}_${pooling}_${engineConfig?.cagliotiCorrection}_${engineConfig?.asymmetryCorrection}_${engineConfig?.shapeExponent}`;
   
   if (!spectrumCache[phaseName].convolvedSpectrums[configKey]) {
     let S_ref = [...S_ref_raw];
@@ -1774,7 +1795,7 @@ const getCachedConvolvedReference = (
       S_ref = S_ref.map(v => (v - mean) / Math.max(Math.sqrt(vari), 1e-5));
     }
     
-    let Raw_Conv_ref = convolve1D(S_ref, kernelSize, kernelProfile);
+    let Raw_Conv_ref = convolve1D(S_ref, kernelSize, kernelProfile, engineConfig);
     if (multiScale) {
       const rLen = Raw_Conv_ref.length;
       for (let i = 0; i < rLen; i++) {
@@ -1785,7 +1806,7 @@ const getCachedConvolvedReference = (
     
     let Conv_ref_wide: number[] | null = null;
     if (multiScale) {
-      let Raw_Conv_ref_wide = convolve1D(S_ref, Math.round(kernelSize * 1.8), kernelProfile);
+      let Raw_Conv_ref_wide = convolve1D(S_ref, Math.round(kernelSize * 1.8), kernelProfile, engineConfig);
       const rwLen = Raw_Conv_ref_wide.length;
       for (let i = 0; i < rwLen; i++) {
         Raw_Conv_ref_wide[i] = Raw_Conv_ref_wide[i] * 0.7 + S_ref[i] * 0.3;
@@ -1802,55 +1823,120 @@ const getCachedConvolvedReference = (
   return spectrumCache[phaseName].convolvedSpectrums[configKey];
 };
 
-// High-fidelity 1D Convolution with kernel filter size
-const convolve1D = (vector: number[], kernelSize: number, kernelProfile: string = "Gaussian"): number[] => {
+// High-fidelity 1D Convolution with kernel filter size & scientific optics corrections
+const convolve1D = (
+  vector: number[],
+  kernelSize: number,
+  kernelProfile: string = "Gaussian",
+  config?: {
+    cagliotiCorrection?: boolean;
+    asymmetryCorrection?: boolean;
+    shapeExponent?: number;
+  }
+): number[] => {
   const kernelSizeSafe = kernelSize < 3 ? 3 : (kernelSize % 2 === 0 ? kernelSize + 1 : kernelSize);
   const half = Math.floor(kernelSizeSafe / 2);
   const vLen = vector.length;
   const result = new Array(vLen).fill(0);
   
-  // Convolutional weighting convolver filter
-  const kernel = [];
-  let sum = 0;
-  const sigma = Math.max(1.0, half / 2.0); // Make standard deviation scale with kernel size
-  const gamma = sigma; // For Lorentzian
-
-  const twoSigmaSq = 2 * sigma * sigma;
-  const gammaSq = gamma * gamma;
-  const eta = 0.5;
-
-  for (let i = -half; i <= half; i++) {
-    let v = 0;
-    const iSq = i * i;
-    if (kernelProfile === "Gaussian") {
-       v = Math.exp(-iSq / twoSigmaSq);
-    } else if (kernelProfile === "Lorentzian") {
-       v = gammaSq / (iSq + gammaSq);
-    } else if (kernelProfile === "Pseudo-Voigt") {
-       const g = Math.exp(-iSq / twoSigmaSq);
-       const l = gammaSq / (iSq + gammaSq);
-       v = eta * l + (1 - eta) * g;
-    } else {
-       v = Math.exp(-iSq / twoSigmaSq); // default
-    }
-    kernel.push(v);
-    sum += v;
-  }
-  const normKernel = kernel.map(k => k / sum);
+  // Typical Bragg-Brentano diffractometer Caglioti parameters: U=0.006, V=-0.003, W=0.012
+  const U = 0.006;
+  const V = -0.003;
+  const W = 0.012;
+  
+  const defaultSigma = Math.max(1.0, half / 2.0);
+  const defaultGamma = defaultSigma;
+  const defaultEta = 0.5;
   
   for (let i = 0; i < vLen; i++) {
+    // Spatial angle coordinate corresponding to index block (2-theta)
+    const twoTheta = 10 + i * 0.2;
+    const thetaRad = (twoTheta / 2) * (Math.PI / 180);
+    
+    let sigma = defaultSigma;
+    let gamma = defaultGamma;
+    let eta = defaultEta;
+    let m = config?.shapeExponent || 2.5; // Pearson VII shape exponent
+    
+    if (config?.cagliotiCorrection) {
+      // Caglioti equation: FWHM^2 = U*tan^2(theta) + V*tan(theta) + W
+      const tanTheta = Math.tan(thetaRad);
+      const fwhmSq = U * tanTheta * tanTheta + V * tanTheta + W;
+      const fwhm = Math.sqrt(Math.max(0.001, fwhmSq));
+      // Convert degree FWHM to local pixel scale: FWHM / (step size * 2.355)
+      sigma = Math.max(0.5, fwhm / (2.355 * 0.2));
+      gamma = Math.max(0.5, fwhm / (2.0 * 0.2));
+      eta = Math.max(0.1, Math.min(0.9, 0.4 + 0.1 * tanTheta));
+    }
+    
+    // Build localized dynamic convolution kernel for index i
+    const localKernel = [];
+    let kernelSum = 0;
+    
+    const twoSigmaSq = 2 * sigma * sigma;
+    const gammaSq = gamma * gamma;
+    
+    for (let k = -half; k <= half; k++) {
+      let v = 0;
+      let dist = k;
+      
+      if (config?.asymmetryCorrection && twoTheta < 42 && k < 0) {
+        // Finger-Cox-Jephcoat asymmetry stretch (axial divergence aberration at lower 2-theta)
+        const skew = 1.0 + 0.25 * ((42 - twoTheta) / 32);
+        dist = k / skew;
+      }
+      
+      const distSq = dist * dist;
+      
+      if (kernelProfile === "Gaussian") {
+        v = Math.exp(-distSq / twoSigmaSq);
+      } else if (kernelProfile === "Lorentzian") {
+        v = gammaSq / (distSq + gammaSq);
+      } else if (kernelProfile === "Pseudo-Voigt") {
+        const g = Math.exp(-distSq / twoSigmaSq);
+        const l = gammaSq / (distSq + gammaSq);
+        v = eta * l + (1 - eta) * g;
+      } else if (kernelProfile === "Pearson-VII") {
+        const fwhm = 2.0 * gamma;
+        v = Math.pow(1 + 4 * (Math.pow(2, 1 / m) - 1) * distSq / (fwhm * fwhm), -m);
+      } else if (kernelProfile === "Voigt") {
+        const fG = fwhmVoigtGaussian(sigma);
+        const fL = fwhmVoigtLorentzian(gamma);
+        const fV = Math.pow(
+          Math.pow(fG, 5) +
+          2.69269 * Math.pow(fG, 4) * fL +
+          2.42843 * Math.pow(fG, 3) * fL * fL +
+          4.47163 * fG * fG * Math.pow(fL, 3) +
+          0.07842 * fG * Math.pow(fL, 4) +
+          Math.pow(fL, 5),
+          0.2
+        );
+        const etaVoigt = 1.36603 * (fL / fV) - 0.47719 * Math.pow(fL / fV, 2) + 0.11116 * Math.pow(fL / fV, 3);
+        const g = Math.exp(-distSq / (2 * Math.pow(fV / 2.35482, 2)));
+        const l = Math.pow(fV / 2, 2) / (distSq + Math.pow(fV / 2, 2));
+        v = etaVoigt * l + (1 - etaVoigt) * g;
+      } else {
+        v = Math.exp(-distSq / twoSigmaSq);
+      }
+      
+      localKernel.push(v);
+      kernelSum += v;
+    }
+    
+    // Apply localized filter across kernel width
     let convSum = 0;
     let weightSum = 0;
     for (let k = -half; k <= half; k++) {
       const idx = i + k;
       if (idx >= 0 && idx < vLen) {
-        const w = normKernel[k + half];
+        const w = localKernel[k + half] / (kernelSum || 1);
         convSum += vector[idx] * w;
         weightSum += w;
       }
     }
     result[i] = weightSum > 0 ? (convSum / weightSum) : 0;
   }
+  
   return result;
 };
 
@@ -1883,6 +1969,10 @@ export const identifyPhasesDL = (
     confidenceThreshold: number;
     batchNorm: boolean;
     multiScale: boolean;
+    cagliotiCorrection?: boolean;
+    asymmetryCorrection?: boolean;
+    backgroundSubtraction?: boolean;
+    shapeExponent?: number;
   }
 ): DLPhaseResult => {
   const DB = MATERIAL_DB.map(m => {
@@ -1922,6 +2012,10 @@ export const identifyPhasesDL = (
   // Generate the observed envelope vector
   let S_obs = generateContinuousSpectrum(inputPoints, 10, 90, 0.2);
   
+  if (engineConfig?.backgroundSubtraction) {
+    S_obs = subtractMathematicalBackground(S_obs);
+  }
+  
   if (engineConfig?.batchNorm) {
     // Simulate batch normalization: mean centered, variance scaled
     const mean = S_obs.reduce((a,b)=>a+b,0) / S_obs.length;
@@ -1937,7 +2031,7 @@ export const identifyPhasesDL = (
   }
 
   // Apply our 1D Convolution with selected kernel size representing receptive fields
-  let Conv_obs = convolve1D(S_obs, kernelSize, engineConfig?.kernelProfile);
+  let Conv_obs = convolve1D(S_obs, kernelSize, engineConfig?.kernelProfile, engineConfig);
   
   // If multi-scale is active, we simulate the ResNet architecture design: adding the raw input vector back with convolutional layer
   if (isMultiScale) {
@@ -1951,7 +2045,7 @@ export const identifyPhasesDL = (
   const Pooled_obs = applyPooling(Conv_obs, poolType);
 
   // Optional multi-scale convolved spectrum
-  let Raw_Conv_obs_wide = isMultiScale ? convolve1D(S_obs, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile) : null;
+  let Raw_Conv_obs_wide = isMultiScale ? convolve1D(S_obs, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile, engineConfig) : null;
   if (isMultiScale && Raw_Conv_obs_wide) {
     for (let i = 0; i < Raw_Conv_obs_wide.length; i++) {
       Raw_Conv_obs_wide[i] = Raw_Conv_obs_wide[i] * 0.7 + S_obs[i] * 0.3;
@@ -2010,7 +2104,8 @@ export const identifyPhasesDL = (
           engineConfig?.kernelProfile,
           !!engineConfig?.batchNorm,
           isMultiScale,
-          poolType
+          poolType,
+          engineConfig
         );
         
         const Conv_ref = cachedRef.convRef;
@@ -2194,7 +2289,8 @@ export const identifyPhasesDL = (
       engineConfig?.kernelProfile,
       !!engineConfig?.batchNorm,
       isMultiScale,
-      poolType
+      poolType,
+      engineConfig
     );
     
     const Conv_ref = cachedRef.convRef;

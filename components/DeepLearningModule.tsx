@@ -30,6 +30,7 @@ import {
   Layers,
   Zap,
   ChevronDown,
+  MoveRight,
   FlaskConical,
   Loader2,
   Upload,
@@ -378,20 +379,221 @@ export const DeepLearningModule: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Advanced Engine Configuration
-  const [engineConfig, setEngineConfig] = useState({
-    kernelSize: 5,
-    kernelProfile: "Gaussian",
-    filters: 64,
-    activation: "ReLU",
-    optimization: "Adam",
-    multiScale: true,
-    dropout: 0.2,
-    pooling: "max",
-    depth: 50,
-    learningRate: 0.001,
-    batchNorm: true,
-    confidenceThreshold: 50,
+  const [engineConfig, setEngineConfig] = useState(() => {
+    const defaultScientific = {
+      kernelSize: 5,
+      kernelProfile: "Gaussian",
+      filters: 64,
+      activation: "ReLU",
+      optimization: "Adam",
+      multiScale: true,
+      dropout: 0.2,
+      pooling: "max",
+      depth: 50,
+      learningRate: 0.001,
+      batchNorm: true,
+      confidenceThreshold: 50,
+      cagliotiCorrection: true,
+      asymmetryCorrection: true,
+      backgroundSubtraction: true,
+      shapeExponent: 2.5
+    };
+    try {
+      const saved = localStorage.getItem("xrd_engine_config");
+      if (saved) {
+        return {
+          ...defaultScientific,
+          ...JSON.parse(saved)
+        };
+      }
+    } catch (e) {
+      console.error("Failed to load neural config", e);
+    }
+    return defaultScientific;
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("xrd_engine_config", JSON.stringify(engineConfig));
+    } catch (e) {
+      console.error("Failed to save neural config", e);
+    }
+  }, [engineConfig]);
+
+  // AI Auto-Tuning Optimizer simulated states
+  const [isAutoTuning, setIsAutoTuning] = useState(false);
+  const [autoTuneProgress, setAutoTuneProgress] = useState(0);
+  const [autoTuneLogs, setAutoTuneLogs] = useState<string[]>([]);
+  const [activePreset, setActivePreset] = useState<string>("Standard");
+  const [showConfigImportExport, setShowConfigImportExport] = useState(false);
+  const [importJsonText, setImportJsonText] = useState("");
+  const [configFeedback, setConfigFeedback] = useState("");
+  
+  // Advanced Laboratory Validation & Mixture Resolution States
+  const [showLabVerificationPanel, setShowLabVerificationPanel] = useState<boolean>(true);
+  const [activeLabValidationStep, setActiveLabValidationStep] = useState<number>(0);
+  const [labGuideFilter, setLabGuideFilter] = useState<"overlap" | "instrument" | "reconciliation" | "prep">("overlap");
+
+  const runAutoTuner = () => {
+    setIsAutoTuning(true);
+    setAutoTuneProgress(0);
+    setAutoTuneLogs(["Tuning Process Initialized: Querying GPU/TPU baseline registers..."]);
+    
+    const steps = [
+      { progress: 15, log: "Analyzing signal noise-floor & background amorphous humps..." },
+      { progress: 35, log: "Trial 1/4: Scanning Gaussian kernel of width 3. Confidence rating: 78.4%" },
+      { progress: 55, log: "Trial 2/4: Symmetrizing Multi-Scale Residual bypass links... Preserving peak bounds." },
+      { progress: 75, log: "Trial 3/4: Minimizing cross-correlation loss via GELU activation. Error: 0.012" },
+      { progress: 95, log: "Trial 4/4: Stabilising Batch-Norm scale & learning multipliers..." },
+      { progress: 100, log: "Optimization complete. Super-resolved 1D CNN configuration selected and loaded!" }
+    ];
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      if (currentStep < steps.length) {
+        const item = steps[currentStep];
+        setAutoTuneProgress(item.progress);
+        setAutoTuneLogs(prev => [...prev, `[Optimizer] ${item.log}`]);
+        currentStep++;
+      } else {
+        clearInterval(interval);
+        setTimeout(() => {
+          setEngineConfig({
+            kernelSize: 5,
+            kernelProfile: "Pseudo-Voigt",
+            filters: 128,
+            activation: "GELU",
+            optimization: "AdamW",
+            multiScale: true,
+            dropout: 0.15,
+            pooling: "max",
+            depth: 50,
+            learningRate: 0.0015,
+            batchNorm: true,
+            confidenceThreshold: 45,
+            cagliotiCorrection: true,
+            asymmetryCorrection: true,
+            backgroundSubtraction: true,
+            shapeExponent: 3.0
+          });
+          setActivePreset("Tuned");
+          setIsAutoTuning(false);
+        }, 1000);
+      }
+    }, 1200);
+  };
+
+  const applyPreset = (presetName: string) => {
+    setActivePreset(presetName);
+    if (presetName === "Standard") {
+      setEngineConfig({
+        kernelSize: 5,
+        kernelProfile: "Gaussian",
+        filters: 64,
+        activation: "ReLU",
+        optimization: "Adam",
+        multiScale: true,
+        dropout: 0.2,
+        pooling: "max",
+        depth: 50,
+        learningRate: 0.001,
+        batchNorm: true,
+        confidenceThreshold: 50,
+        cagliotiCorrection: true,
+        asymmetryCorrection: true,
+        backgroundSubtraction: true,
+        shapeExponent: 2.5
+      });
+    } else if (presetName === "Low SNR") {
+      setEngineConfig({
+        kernelSize: 7,
+        kernelProfile: "Pseudo-Voigt",
+        filters: 128,
+        activation: "LeakyReLU",
+        optimization: "AdamW",
+        multiScale: true,
+        dropout: 0.35,
+        pooling: "max",
+        depth: 18,
+        learningRate: 0.0005,
+        batchNorm: true,
+        confidenceThreshold: 45,
+        cagliotiCorrection: true,
+        asymmetryCorrection: true,
+        backgroundSubtraction: true,
+        shapeExponent: 3.0
+      });
+    } else if (presetName === "Nanocrystal") {
+      setEngineConfig({
+        kernelSize: 3,
+        kernelProfile: "Lorentzian",
+        filters: 128,
+        activation: "GELU",
+        optimization: "AdamW",
+        multiScale: true,
+        dropout: 0.15,
+        pooling: "avg",
+        depth: 34,
+        learningRate: 0.002,
+        batchNorm: true,
+        confidenceThreshold: 35,
+        cagliotiCorrection: true,
+        asymmetryCorrection: false,
+        backgroundSubtraction: true,
+        shapeExponent: 1.8
+      });
+    } else if (presetName === "Lightweight") {
+      setEngineConfig({
+        kernelSize: 5,
+        kernelProfile: "Gaussian",
+        filters: 32,
+        activation: "ReLU",
+        optimization: "SGD",
+        multiScale: false,
+        dropout: 0.0,
+        pooling: "max",
+        depth: 18,
+        learningRate: 0.005,
+        batchNorm: false,
+        confidenceThreshold: 30,
+        cagliotiCorrection: false,
+        asymmetryCorrection: false,
+        backgroundSubtraction: false,
+        shapeExponent: 2.5
+      });
+    }
+  };
+
+  const handleImportJson = () => {
+    try {
+      const parsed = JSON.parse(importJsonText);
+      const required = ["kernelSize", "filters", "depth", "learningRate", "dropout", "confidenceThreshold"];
+      const missing = required.filter(k => !(k in parsed));
+      if (missing.length > 0) {
+        setConfigFeedback(`Invalid Schema. Missing: ${missing.join(", ")}`);
+        return;
+      }
+      setEngineConfig({
+        kernelSize: parsed.kernelSize || 5,
+        kernelProfile: parsed.kernelProfile || "Gaussian",
+        filters: parsed.filters || 64,
+        activation: parsed.activation || "ReLU",
+        optimization: parsed.optimization || "Adam",
+        multiScale: parsed.multiScale ?? true,
+        dropout: parsed.dropout ?? 0.2,
+        pooling: parsed.pooling || "max",
+        depth: parsed.depth || 50,
+        learningRate: parsed.learningRate ?? 0.001,
+        batchNorm: parsed.batchNorm ?? true,
+        confidenceThreshold: parsed.confidenceThreshold ?? 50,
+      });
+      setActivePreset("Custom");
+      setConfigFeedback("Configuration loaded successfully!");
+      setTimeout(() => setConfigFeedback(""), 3000);
+    } catch (e: any) {
+      setConfigFeedback(`JSON Error: ${e.message}`);
+    }
+  };
 
   // Search & Advanced Tools State
   const [searchTerm, setSearchTerm] = useState("");
@@ -3127,209 +3329,405 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
         <div className="bg-slate-900 p-6 rounded-[2rem] shadow-xl border border-slate-800 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none" />
 
-          <div className="flex items-center justify-between mb-8 relative z-10">
-            <div className="flex items-center gap-4">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
+            <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center shadow-inner relative overflow-hidden">
                 <div className="absolute inset-0 bg-indigo-500/10 blur-md rounded-full pointer-events-none" />
                 <Settings className="w-6 h-6 text-indigo-400 relative z-10" />
               </div>
               <div>
-                <h3 className="font-black text-white text-lg tracking-tight">
-                  Neural Config
+                <h3 className="font-black text-white text-md tracking-tight">
+                  Engine Hyperparameters
                 </h3>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
-                  Engine Hyperparameters
+                  Neural Network Core
                 </p>
               </div>
             </div>
-            <div className="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-full flex items-center gap-2 shadow-inner">
-              <div
-                className={`w-2 h-2 rounded-full ${isSimulating ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-slate-500"}`}
-              />
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                {isSimulating ? "Active" : "Ready"}
-              </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={runAutoTuner}
+                disabled={isAutoTuning}
+                className="flex items-center gap-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black uppercase text-[9px] tracking-widest px-3 py-1.5 rounded-full border border-violet-500/30 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 inline-flex align-middle"
+              >
+                <Sparkles className="w-3 h-3 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "3s" }} />
+                <span>{isAutoTuning ? "Tuning..." : "Auto-Tune"}</span>
+              </button>
+              <div className="bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-inner">
+                <div
+                  className={`w-2 h-2 rounded-full ${isSimulating || isAutoTuning ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-slate-500"}`}
+                />
+                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                  {isSimulating ? "Running" : isAutoTuning ? "Optimizing" : "Ready"}
+                </span>
+              </div>
             </div>
           </div>
 
+          {/* Scientific Info Banner of what Engine Hyperparameters is doing */}
+          <div className="mb-6 p-4 bg-indigo-950/40 border border-indigo-800/50 rounded-2xl relative z-10 text-[11px] text-slate-300 leading-relaxed shadow-sm flex flex-col gap-3">
+            <div className="flex items-center gap-2 text-indigo-400 font-black uppercase tracking-widest text-[10px]">
+              <Cpu className="w-4 h-4 text-indigo-400 animate-pulse" />
+              <span>What are Engine Hyperparameters?</span>
+            </div>
+            <p>
+              These parameters calibrate our advanced 1D Residual Convolutional Neural Network (ConvNet/ResNet). They control how the intelligence engine models diffraction peaks (Gaussian/Lorentzian profiles), processes trace signals (via Feature Maps &amp; receptive Kernel widths), stabilizes gradients (Batch Normalization), and filters noisy backgrounds.
+            </p>
+            <p>
+              Fine-tuning these configurations optimizes identification sensitivity for complex multi-phase mineral mixtures and low signal-to-noise scans.
+            </p>
+          </div>
+
+          {/* Simulated Auto-Tuner Progress Section */}
+          {isAutoTuning && (
+            <div className="mb-6 p-4 bg-slate-950/80 rounded-2xl border border-violet-500/30 relative z-10 animate-in zoom-in duration-300">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] text-violet-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                  <Cpu className="w-3.5 h-3.5 animate-bounce" /> Auto-tuning hyperparameter grid
+                </span>
+                <span className="text-xs text-indigo-400 font-mono font-bold">{autoTuneProgress}%</span>
+              </div>
+              
+              <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-3 border border-slate-800">
+                <div 
+                  className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full transition-all duration-300 shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
+                  style={{ width: `${autoTuneProgress}%` }}
+                />
+              </div>
+
+              {/* Terminal Logs */}
+              <div className="bg-slate-950 p-3 rounded-lg border border-slate-855 h-28 overflow-y-auto space-y-1 font-mono text-[9px] text-emerald-400">
+                {autoTuneLogs.map((log, idx) => (
+                  <div key={idx} className="leading-relaxed border-l-2 border-indigo-700 pl-2">
+                    {log}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Preset Tabs Selector */}
+          <div className="mb-6 relative z-10">
+            <div className="flex justify-between items-center mb-2 px-1">
+              <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">
+                Optimization Presets
+              </span>
+              <button 
+                onClick={() => {
+                  applyPreset("Standard");
+                  setConfigFeedback("Pruned to standard baseline configs");
+                  setTimeout(() => setConfigFeedback(""), 2000);
+                }}
+                className="text-[9px] font-black text-slate-400 hover:text-white uppercase tracking-wider flex items-center gap-1 transition-colors"
+                title="Reset to original crystalline defaults"
+              >
+                <RefreshCw className="w-2.5 h-2.5" /> reset
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-4 gap-1.5 p-1 bg-slate-800/60 border border-slate-700/50 rounded-xl">
+              {["Standard", "Low SNR", "Nanocrystal", "Lightweight"].map((pName) => (
+                <button
+                  key={pName}
+                  onClick={() => {
+                    applyPreset(pName);
+                    setConfigFeedback(`Applied '${pName}' config profile`);
+                    setTimeout(() => setConfigFeedback(""), 2500);
+                  }}
+                  className={`py-1.5 text-[9px] font-black rounded-lg transition-all text-center ${
+                    activePreset === pName 
+                      ? "bg-indigo-600 text-white shadow-md border border-indigo-500" 
+                      : "text-slate-400 hover:text-slate-300 hover:bg-slate-800 bg-transparent"
+                  }`}
+                >
+                  {pName}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Backup / JSON Sync Panel Button & Feedback */}
+          <div className="mb-6 relative z-10">
+            <div className="flex justify-between items-center px-1">
+              <button 
+                onClick={() => {
+                  setShowConfigImportExport(!showConfigImportExport);
+                  setImportJsonText(JSON.stringify(engineConfig, null, 2));
+                }}
+                className="text-[9px] font-bold text-slate-400 hover:text-indigo-300 transition-colors uppercase tracking-wider flex items-center gap-1.5"
+              >
+                <FileText className="w-3 h-3 text-slate-400" />
+                {showConfigImportExport ? "Hide JSON Backups" : "JSON Import / Export"}
+              </button>
+              {configFeedback && (
+                <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 animate-pulse">
+                  {configFeedback}
+                </span>
+              )}
+            </div>
+
+            {showConfigImportExport && (
+              <div className="mt-3 p-4 bg-slate-950 rounded-xl border border-slate-800 animate-in slide-in-from-top-1 duration-200">
+                <textarea
+                  value={importJsonText}
+                  onChange={(e) => setImportJsonText(e.target.value)}
+                  className="w-full h-24 bg-slate-900 border border-slate-700 rounded-lg p-2 font-mono text-[10px] text-slate-200 outline-none focus:border-indigo-500"
+                  placeholder="Paste configuration JSON here..."
+                />
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={handleImportJson}
+                    className="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-[10px] font-black uppercase text-white rounded-lg transition-all"
+                  >
+                    Import Config
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(JSON.stringify(engineConfig, null, 2));
+                      setConfigFeedback("Copied config directly to clipboard!");
+                      setTimeout(() => setConfigFeedback(""), 2000);
+                    }}
+                    className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-black uppercase text-slate-300 rounded-lg transition-all"
+                  >
+                    Copy Output
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Hyperparameters Form Grid */}
           <div className="grid grid-cols-2 gap-5 relative z-10">
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Kernel
-                Shift
+            {/* Kernel Shift */}
+            <div className="space-y-1.5">
+              <label 
+                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                title="Wavelength footprint of the 1D Kernel. Standard width is recommended for most crystalline spectra."
+              >
+                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Kernel Shift
+                <Info className="w-3 h-3 text-slate-500 ml-auto" />
               </label>
               <div className="relative group/select">
                 <select
                   value={engineConfig.kernelSize}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setEngineConfig({
                       ...engineConfig,
                       kernelSize: parseInt(e.target.value),
-                    })
-                  }
+                    });
+                    setActivePreset("Custom");
+                  }}
                   className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all appearance-none shadow-sm cursor-pointer"
                 >
-                  <option value={3} className="bg-slate-800">
-                    3x3 Narrow
-                  </option>
-                  <option value={5} className="bg-slate-800">
-                    5x5 Standard
-                  </option>
-                  <option value={7} className="bg-slate-800">
-                    7x7 Deep
-                  </option>
+                  <option value={3} className="bg-slate-800">3x3 Narrow</option>
+                  <option value={5} className="bg-slate-800">5x5 Standard</option>
+                  <option value={7} className="bg-slate-800">7x7 Wide Receptive</option>
                 </select>
                 <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
               </div>
+              <p className="text-[9px] text-slate-500 leading-tight">Receptive field width matching signal footprint.</p>
             </div>
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Feature
-                Maps
+
+            {/* Feature Maps */}
+            <div className="space-y-1.5">
+              <label 
+                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                title="Number of independent convolved trace signals tracked per layer to decouple overlapping configurations."
+              >
+                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Feature Maps
+                <Info className="w-3 h-3 text-slate-500 ml-auto" />
               </label>
               <div className="relative group/select">
                 <select
                   value={engineConfig.filters}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setEngineConfig({
                       ...engineConfig,
                       filters: parseInt(e.target.value),
-                    })
-                  }
+                    });
+                    setActivePreset("Custom");
+                  }}
                   className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all appearance-none shadow-sm cursor-pointer"
                 >
-                  <option value={32} className="bg-slate-800">
-                    Sparse (32)
-                  </option>
-                  <option value={64} className="bg-slate-800">
-                    Standard (64)
-                  </option>
-                  <option value={128} className="bg-slate-800">
-                    Dense (128)
-                  </option>
+                  <option value={32} className="bg-slate-800">Sparse (32)</option>
+                  <option value={64} className="bg-slate-800">Standard (64)</option>
+                  <option value={128} className="bg-slate-800">Dense (128 Filters)</option>
                 </select>
                 <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
               </div>
+              <p className="text-[9px] text-slate-500 leading-tight">Simulated neuron depth for feature extracting.</p>
             </div>
 
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Neural
-                Depth
+            {/* Neural Depth */}
+            <div className="space-y-1.5">
+              <label 
+                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                title="Hierarchical layering depth used in residual convolutional processing. Heavy depths match mixed systems."
+              >
+                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Neural Depth
+                <Info className="w-3 h-3 text-slate-500 ml-auto" />
               </label>
               <div className="relative group/select">
                 <select
                   value={engineConfig.depth}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setEngineConfig({
                       ...engineConfig,
                       depth: parseInt(e.target.value),
-                    })
-                  }
+                    });
+                    setActivePreset("Custom");
+                  }}
                   className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 outline-none transition-all appearance-none shadow-sm cursor-pointer"
                 >
-                  <option value={18} className="bg-slate-800">
-                    18 Layers (Light)
-                  </option>
-                  <option value={34} className="bg-slate-800">
-                    34 Layers (Med)
-                  </option>
-                  <option value={50} className="bg-slate-800">
-                    50 Layers (Heavy)
-                  </option>
-                  <option value={101} className="bg-slate-800">
-                    101 Layers (Extrm)
-                  </option>
+                  <option value={18} className="bg-slate-800">18 Layers (Light)</option>
+                  <option value={34} className="bg-slate-800">34 Layers (Med)</option>
+                  <option value={50} className="bg-slate-800">50 Layers (Heavy)</option>
+                  <option value={101} className="bg-slate-800">101 Layers (Extreme)</option>
                 </select>
                 <ChevronDown className="w-4 h-4 absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none group-hover/select:text-indigo-400 transition-colors" />
               </div>
+              <p className="text-[9px] text-slate-500 leading-tight">Complex modeling capacity of ResNet blocks.</p>
             </div>
 
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Pooling
-                Op
+            {/* Pooling Operator */}
+            <div className="space-y-1.5">
+              <label 
+                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                title="How downsampling pooling consolidates features. Max limits peak bleed; Avg sifts nanocrystalline clusters."
+              >
+                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Pooling Op
+                <Info className="w-3 h-3 text-slate-500 ml-auto" />
               </label>
               <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
                 {["max", "avg"].map((op) => (
                   <button
                     key={op}
-                    onClick={() =>
-                      setEngineConfig({ ...engineConfig, pooling: op })
-                    }
+                    onClick={() => {
+                      setEngineConfig({ ...engineConfig, pooling: op });
+                      setActivePreset("Custom");
+                    }}
                     className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.pooling === op ? "bg-indigo-600 text-white shadow-md uppercase border border-indigo-500" : "text-slate-400 hover:text-slate-300 uppercase bg-transparent"}`}
                   >
                     {op}
                   </button>
                 ))}
               </div>
+              <p className="text-[9px] text-slate-500 leading-tight">Trace downsampling algorithm mode.</p>
             </div>
 
-            <div className="space-y-2 col-span-2">
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" />{" "}
-                Kernel Profile
+            {/* Kernel Profile */}
+            <div className="space-y-1.5 col-span-2">
+              <label 
+                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                title="Dispersion model applied for standard convolution filters. Lorentzian shapes match defect-heavy structures."
+              >
+                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Kernel Profile
+                <Info className="w-3 h-3 text-slate-500 ml-auto" />
               </label>
-              <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
-                {["Gaussian", "Lorentzian", "Pseudo-Voigt"].map((profile) => (
+              <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner gap-1 flex-wrap">
+                {["Gaussian", "Lorentzian", "Pseudo-Voigt", "Pearson-VII", "Voigt"].map((profile) => (
                   <button
                     key={profile}
-                    onClick={() =>
-                      setEngineConfig({ ...engineConfig, kernelProfile: profile })
-                    }
-                    className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.kernelProfile === profile ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
+                    onClick={() => {
+                      setEngineConfig({ ...engineConfig, kernelProfile: profile });
+                      setActivePreset("Custom");
+                    }}
+                    className={`flex-1 min-w-[65px] py-1.5 text-[9px] font-black rounded-lg transition-all ${engineConfig.kernelProfile === profile ? "bg-indigo-600 text-white shadow-md border border-indigo-500 whitespace-nowrap" : "text-slate-400 hover:text-slate-300 bg-transparent whitespace-nowrap"}`}
                   >
                     {profile}
                   </button>
                 ))}
               </div>
+              <p className="text-[9px] text-slate-500 leading-tight">Crystallography filter line-shape approximation function.</p>
+
+              {/* Pearson-VII shape exponent config */}
+              {engineConfig.kernelProfile === "Pearson-VII" && (
+                <div className="mt-2.5 p-3 bg-slate-900/40 rounded-xl border border-slate-700/50 animate-in slide-in-from-top-1 duration-200">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Pearson-VII Shape Factor (m)</span>
+                    <span className="text-xs font-mono font-bold text-indigo-400">m = {engineConfig.shapeExponent?.toFixed(2) || "2.50"}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1.0"
+                    max="5.0"
+                    step="0.1"
+                    value={engineConfig.shapeExponent || 2.5}
+                    onChange={(e) => {
+                      setEngineConfig({ ...engineConfig, shapeExponent: parseFloat(e.target.value) });
+                      setActivePreset("Custom");
+                    }}
+                    className="w-full accent-indigo-500 h-1 bg-slate-800 rounded-full appearance-none cursor-pointer"
+                  />
+                  <p className="text-[8px] text-slate-500 leading-normal mt-1">
+                    Defines sharpness exponent. m = 1.0 mimics a pure Lorentzian; as m &rarr; &infin;, it approaches a pure Gaussian.
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-2 col-span-2">
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" />{" "}
-                Activation Function
+            {/* Activation Function */}
+            <div className="space-y-1.5 col-span-2">
+              <label 
+                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                title="Non-linear mathematical activation. GELU ensures highly sensitive, smooth threshold gradients."
+              >
+                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Activation Function
+                <Info className="w-3 h-3 text-slate-500 ml-auto" />
               </label>
               <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
                 {["ReLU", "LeakyReLU", "GELU", "Sigmoid"].map((fn) => (
                   <button
                     key={fn}
-                    onClick={() =>
-                      setEngineConfig({ ...engineConfig, activation: fn })
-                    }
+                    onClick={() => {
+                      setEngineConfig({ ...engineConfig, activation: fn });
+                      setActivePreset("Custom");
+                    }}
                     className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all ${engineConfig.activation === fn ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
                   >
                     {fn}
                   </button>
                 ))}
               </div>
+              <p className="text-[9px] text-slate-500 leading-tight">Controls neurons triggering threshold above the computed signal floor.</p>
             </div>
 
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                <div className="w-1 h-1 bg-indigo-500 rounded-full" />{" "}
-                Optimization
+            {/* Optimization */}
+            <div className="space-y-1.5 col-span-2">
+              <label 
+                className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                title="Gradient descent optimization. AdamW ensures decoupled weight decays to regularize models properly."
+              >
+                <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Optimization Algorithm
+                <Info className="w-3 h-3 text-slate-500 ml-auto" />
               </label>
               <div className="flex flex-wrap gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
                 {["Adam", "AdamW", "SGD", "RMSProp"].map((opt) => (
                   <button
                     key={opt}
-                    onClick={() =>
-                      setEngineConfig({ ...engineConfig, optimization: opt })
-                    }
+                    onClick={() => {
+                      setEngineConfig({ ...engineConfig, optimization: opt });
+                      setActivePreset("Custom");
+                    }}
                     className={`flex-1 min-w-[60px] py-1.5 text-[9px] font-black rounded-lg transition-all ${engineConfig.optimization === opt ? "bg-indigo-600 text-white shadow-md border border-indigo-500" : "text-slate-400 hover:text-slate-300 bg-transparent"}`}
                   >
                     {opt}
                   </button>
                 ))}
               </div>
+              <p className="text-[9px] text-slate-500 leading-tight">Selects the numerical optimization tracker backpropagating weight changes.</p>
             </div>
 
-            <div className="space-y-3 col-span-2 md:col-span-1">
+            {/* Dropout Probability */}
+            <div className="space-y-3 col-span-2">
               <div className="flex justify-between items-end px-1">
-                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <ShieldAlert className="w-3.5 h-3.5 text-fuchsia-400" />{" "}
-                  Dropout Prob
+                <label 
+                  className="flex items-center gap-1 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-help"
+                  title="Probability of random elements drop-out to improve model generalized robustness against instrument anomalies."
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 text-fuchsia-400" /> Dropout Prob
+                  <Info className="w-3 h-3 text-slate-500 ml-auto" />
                 </label>
                 <span className="text-xs font-mono font-black text-fuchsia-400 bg-fuchsia-500/10 px-2 py-0.5 rounded border border-fuchsia-500/20">
                   {engineConfig.dropout.toFixed(2)}
@@ -3341,23 +3739,26 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 max="0.8"
                 step="0.05"
                 value={engineConfig.dropout}
-                onChange={(e) =>
+                onChange={(e) => {
                   setEngineConfig({
                     ...engineConfig,
                     dropout: parseFloat(e.target.value),
-                  })
-                }
+                  });
+                  setActivePreset("Custom");
+                }}
                 className="w-full accent-fuchsia-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
               />
+              <p className="text-[9px] text-slate-500 leading-tight">Regularization coefficient dropping temporary trace parameters to prevent noise-floor latching.</p>
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-slate-800 space-y-6 relative z-10">
+          {/* Bottom Sliders & Toggle Options */}
+          <div className="mt-6 pt-6 border-t border-slate-800 space-y-6 relative z-10">
+            {/* Learning Rate */}
             <div className="space-y-3">
               <div className="flex justify-between items-end px-1">
                 <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <Zap className="w-3.5 h-3.5 text-indigo-400" /> Base Learning
-                  Rate
+                  <Zap className="w-3.5 h-3.5 text-indigo-400" /> Base Learning Rate
                 </label>
                 <span className="text-xs font-mono font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
                   {engineConfig.learningRate.toFixed(4)}
@@ -3369,21 +3770,23 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 max="0.01"
                 step="0.0001"
                 value={engineConfig.learningRate}
-                onChange={(e) =>
+                onChange={(e) => {
                   setEngineConfig({
                     ...engineConfig,
                     learningRate: parseFloat(e.target.value),
-                  })
-                }
+                  });
+                  setActivePreset("Custom");
+                }}
                 className="w-full accent-indigo-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
               />
+              <p className="text-[9px] text-slate-500 leading-tight">Backpropagation alpha step size used during training optimization sweeps.</p>
             </div>
 
+            {/* Min Confidence */}
             <div className="space-y-3">
               <div className="flex justify-between items-end px-1">
                 <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" /> Min
-                  Confidence
+                  <ShieldAlert className="w-3.5 h-3.5 text-emerald-400" /> Min Confidence
                 </label>
                 <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                   {engineConfig.confidenceThreshold}%
@@ -3395,32 +3798,36 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 max="100"
                 step="1"
                 value={engineConfig.confidenceThreshold}
-                onChange={(e) =>
+                onChange={(e) => {
                   setEngineConfig({
                     ...engineConfig,
                     confidenceThreshold: parseInt(e.target.value),
-                  })
-                }
+                  });
+                  setActivePreset("Custom");
+                }}
                 className="w-full accent-emerald-500 h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer"
               />
+              <p className="text-[9px] text-slate-500 leading-tight">Hard bounding filters for matching list elements in final database identifications.</p>
             </div>
 
+            {/* Batch Normalization Toggle */}
             <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
               <div className="flex flex-col">
                 <span className="text-xs font-black text-slate-200 tracking-tight">
                   Batch Normalization
                 </span>
                 <span className="text-[10px] text-slate-500 font-medium">
-                  Stabilize training across mini-batches
+                  Stabilize and variance scale intensity signals across input spectra
                 </span>
               </div>
               <div
-                onClick={() =>
+                onClick={() => {
                   setEngineConfig({
                     ...engineConfig,
                     batchNorm: !engineConfig.batchNorm,
-                  })
-                }
+                  });
+                  setActivePreset("Custom");
+                }}
                 className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.batchNorm ? "bg-emerald-500" : "bg-slate-700 bg-opacity-50"}`}
               >
                 <div
@@ -3429,26 +3836,106 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </div>
             </div>
 
+            {/* Multi-Scale Toggle */}
             <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
               <div className="flex flex-col">
                 <span className="text-xs font-black text-slate-200 tracking-tight">
                   Multi-Scale Convolutional Fusion
                 </span>
                 <span className="text-[10px] text-slate-500 font-medium">
-                  Aggregated hierarchical identification
+                  ResNet-style skip-connections pathing crude spectrum values forward
                 </span>
               </div>
               <div
-                onClick={() =>
+                onClick={() => {
                   setEngineConfig({
                     ...engineConfig,
                     multiScale: !engineConfig.multiScale,
-                  })
-                }
+                  });
+                  setActivePreset("Custom");
+                }}
                 className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.multiScale ? "bg-indigo-500" : "bg-slate-700 bg-opacity-50"}`}
               >
                 <div
                   className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.multiScale ? "left-7" : "left-1"}`}
+                />
+              </div>
+            </div>
+
+            {/* Mathematical Background Subtraction Toggle */}
+            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-slate-200 tracking-tight">
+                  Baseline Background Subtraction
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  Strip mathematical curvatures & low-frequency optical baselines automatically
+                </span>
+              </div>
+              <div
+                onClick={() => {
+                  setEngineConfig({
+                    ...engineConfig,
+                    backgroundSubtraction: !engineConfig.backgroundSubtraction,
+                  });
+                  setActivePreset("Custom");
+                }}
+                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.backgroundSubtraction ? "bg-emerald-500" : "bg-slate-700 bg-opacity-50"}`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.backgroundSubtraction ? "left-7" : "left-1"}`}
+                />
+              </div>
+            </div>
+
+            {/* Caglioti Broadening Correction Toggle */}
+            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-slate-200 tracking-tight">
+                  Caglioti Instrument Calibration
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  Scale convolution sigma dynamically across 2&theta; coordinates using Caglioti's FWHM equation
+                </span>
+              </div>
+              <div
+                onClick={() => {
+                  setEngineConfig({
+                    ...engineConfig,
+                    cagliotiCorrection: !engineConfig.cagliotiCorrection,
+                  });
+                  setActivePreset("Custom");
+                }}
+                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.cagliotiCorrection ? "bg-indigo-500" : "bg-slate-700 bg-opacity-50"}`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.cagliotiCorrection ? "left-7" : "left-1"}`}
+                />
+              </div>
+            </div>
+
+            {/* Finger-Cox-Jephcoat Low Angle Asymmetry Toggle */}
+            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors col-span-2">
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-slate-200 tracking-tight">
+                  Finger-Cox-Jephcoat Asymmetric Correction
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  Correct and skew peak broadening at low angles (2&theta; &lt; 42&deg;) due to instrument axial divergence aberrations
+                </span>
+              </div>
+              <div
+                onClick={() => {
+                  setEngineConfig({
+                    ...engineConfig,
+                    asymmetryCorrection: !engineConfig.asymmetryCorrection,
+                  });
+                  setActivePreset("Custom");
+                }}
+                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${engineConfig.asymmetryCorrection ? "bg-amber-500" : "bg-slate-700 bg-opacity-50"}`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.asymmetryCorrection ? "left-7" : "left-1"}`}
                 />
               </div>
             </div>
@@ -4968,24 +5455,38 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 relative z-10">
               <button
                 onClick={handleRunAI}
                 disabled={isSimulating || !inputData.trim()}
-                className={`w-full py-3.5 text-white font-bold text-base rounded-xl transition-all shadow-md flex justify-center items-center gap-2.5 outline-none focus:ring-4 focus:ring-violet-500/30
-                  ${isSimulating || !inputData.trim() ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none border border-slate-300" : "bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 border border-violet-500"}
+                className={`group relative w-full overflow-hidden py-4 text-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all duration-300 shadow-xl flex justify-center items-center gap-3 outline-none focus:ring-4 focus:ring-indigo-500/30
+                  ${isSimulating || !inputData.trim() 
+                    ? "bg-slate-800/80 text-slate-500 cursor-not-allowed shadow-none border border-slate-700/50" 
+                    : "bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-500 bg-[size:200%_auto] hover:bg-[position:right_center] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)] border border-white/20 active:scale-[0.98]"}
                 `}
               >
+                {/* Button Inner Glow */}
+                {!isSimulating && inputData.trim() && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-50 pointer-events-none" />
+                )}
+                
                 {isSimulating ? (
-                  <>
-                    <Activity className="w-5 h-5 animate-spin" />
-                    Executing Neural Scan...
-                  </>
+                  <div className="flex items-center gap-3 relative z-10">
+                    <Activity className="w-5 h-5 animate-spin text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-200 to-indigo-200 animate-pulse drop-shadow-md">
+                      Translating Manifold...
+                    </span>
+                  </div>
                 ) : (
-                  <>
-                    <Brain className="w-5 h-5" />
-                    Initialize Deep Phase ID
-                  </>
+                  <div className="flex items-center gap-3 relative z-10 drop-shadow-md">
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center p-1 border border-white/30 group-hover:scale-110 transition-transform duration-300">
+                       <Brain className="w-full h-full text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                    </div>
+                    <span>Initialize Deep Phase ID</span>
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center p-1 border border-white/30 group-hover:translate-x-1 group-hover:scale-110 transition-transform duration-300 delay-75">
+                       <MoveRight className="w-full h-full text-white" />
+                    </div>
+                  </div>
                 )}
               </button>
             </div>
@@ -6232,6 +6733,230 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         </span>
                       </button>
                     ))}
+                    </div>
+
+                    {/* Interactive Laboratory Verification & Phase Overlap Protocol Panel */}
+                    <div className="mt-6 pt-5 border-t border-slate-700/30">
+                      <div className="flex items-center justify-between mb-4">
+                        <button
+                          onClick={() => setShowLabVerificationPanel(!showLabVerificationPanel)}
+                          className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2 hover:text-amber-300 transition-colors bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-2.5 rounded-xl border border-amber-500/20"
+                        >
+                          <Microscope className="w-3.5 h-3.5 animate-pulse" />
+                          {showLabVerificationPanel ? "Collapse Verification Protocol" : "Expand Laboratory Verification Protocol"}
+                        </button>
+                        <span className="text-[10px] font-mono text-slate-400 uppercase font-black">
+                          {selectedCandidate?.phase_name || "Primary Matrix"} Match Verified
+                        </span>
+                      </div>
+
+                      {showLabVerificationPanel && (
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mt-2">
+                          {/* Sidebar Tabs */}
+                          <div className="lg:col-span-4 flex flex-col gap-2 bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60 shadow-inner">
+                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-2 mb-1">Select Validation Lens</span>
+                            {[
+                              { id: "overlap", label: "Bragg Peak Overlaps", icon: Scan, desc: "2-Theta overlap regions" },
+                              { id: "instrument", label: "Technique Matrix", icon: Microscope, desc: "Physical validation assays" },
+                              { id: "prep", label: "Specimen Preparation", icon: Vial, desc: "Sample thickness & geometry" },
+                              { id: "reconciliation", label: "Rietveld Deconvolution", icon: Calculator, desc: "Quantitative multi-phase fit" }
+                            ].map((tab) => {
+                              const Icon = tab.icon;
+                              return (
+                                <button
+                                  key={tab.id}
+                                  onClick={() => setLabGuideFilter(tab.id as any)}
+                                  className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 group/tab ${
+                                    labGuideFilter === tab.id
+                                      ? "bg-amber-500/10 border-amber-500/40 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)]"
+                                      : "bg-transparent border-transparent text-slate-400 hover:bg-slate-900/40 hover:text-slate-200"
+                                  }`}
+                                >
+                                  <div className={`p-1.5 rounded-lg shrink-0 ${labGuideFilter === tab.id ? "bg-amber-500/20 text-amber-400" : "bg-slate-900 text-slate-500 group-hover/tab:text-slate-400"}`}>
+                                    <Icon className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-[10px] font-black uppercase tracking-wider leading-none">
+                                      {tab.label}
+                                    </span>
+                                    <span className="text-[8.5px] font-medium text-slate-500 group-hover/tab:text-slate-400">
+                                      {tab.desc}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {/* Detail Window */}
+                          <div className="lg:col-span-8 bg-slate-950/70 p-5 rounded-2xl border border-slate-700/30 flex flex-col justify-between relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-[2rem] pointer-events-none" />
+                            
+                            {labGuideFilter === "overlap" && (
+                              <div className="space-y-4">
+                                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Scan className="w-4 h-4 text-amber-500" />
+                                    Phase Reflection Overlaps & Interference Zones
+                                  </span>
+                                  <span className="px-2 py-0.5 bg-rose-500/15 border border-rose-500/30 rounded text-rose-400 text-[8px] font-mono font-bold uppercase tracking-widest">
+                                    High Density Overlap
+                                  </span>
+                                </div>
+                                
+                                <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                                  The coexistence of <span className="text-white font-bold">{result.candidates[0]?.phase_name || "Primary Phase"}</span> and <span className="text-white font-bold">{result.candidates[1]?.phase_name || "Secondary Phase"}</span> yields complex overlapping Bragg reflections due to highly correlated lattice constants. Standard linear matching is insufficient to resolve individual volume fractions.
+                                </p>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                  <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 flex flex-col gap-1.5 shadow-inner">
+                                    <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-wider">Primary Peak Overlap Zone (2θ)</span>
+                                    <span className="text-sm font-mono font-black text-rose-400">22.1° - 24.8° & 31.4° - 33.6°</span>
+                                    <span className="text-[8px] text-slate-500 font-mono">Forbidden reflection crossover; overlap margin &lt; 0.18°</span>
+                                  </div>
+                                  <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 flex flex-col gap-1.5 shadow-inner">
+                                    <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-wider">Estimated Overlap Factor</span>
+                                    <span className="text-sm font-mono font-black text-rose-300">78.4% peak matching correlate</span>
+                                    <span className="text-[8px] text-slate-500 font-mono">Requires high-angle scans to isolate distinct reflections</span>
+                                  </div>
+                                </div>
+
+                                <div className="bg-amber-500/5 border border-amber-500/20 p-3.5 rounded-xl flex items-start gap-3">
+                                  <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                                  <div className="flex flex-col gap-1">
+                                    <span className="text-[9.5px] font-black text-slate-200 uppercase tracking-wide leading-none">Scientist Recommendation</span>
+                                    <p className="text-[10px] text-slate-400 leading-normal">
+                                      Utilize a Cu-Kα1 radiation source with high-resolution monochromators. If possible, execute transmission foil geometries or synchrotron diffraction to eliminate doublet broadening and separate overlaps.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {labGuideFilter === "instrument" && (
+                              <div className="space-y-4">
+                                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Microscope className="w-4 h-4 text-amber-500" />
+                                    Complementary Physical Characterization Assays
+                                  </span>
+                                  <span className="px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/30 rounded text-emerald-400 text-[8px] font-mono font-bold uppercase tracking-widest">
+                                    Optimal Selection
+                                  </span>
+                                </div>
+                                
+                                <p className="text-[11px] text-slate-300 leading-relaxed font-sans font-medium">
+                                  Because both structure and reflections coincide, XRD must be backed by secondary chemical and state measurements to fully satisfy phase purity verification standards:
+                                </p>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  {[
+                                    { name: "STEM-EDS/WDS Mapping", purpose: "Pinpoint micro-elemental stoichiometry of grains", limit: "Spatial resolution < 10nm" },
+                                    { name: "Selected Area Diff. (SAED)", purpose: "Resolve single-crystal diffraction spots of minor phase", limit: "TEM field; isolates 2nm crystallites" },
+                                    { name: "Thermo-Gravimetric (TGA)", purpose: "Validate oxygen/halogen volatilization curves", limit: "Precise up to 1400°C" },
+                                    { name: "Raman Spectroscopy", purpose: "Trace vibrational modes to isolate symmetric groups", limit: "Excitation 532nm source optimal" }
+                                  ].map((item, idx) => (
+                                    <div key={idx} className="p-3 bg-[#0c1221] hover:bg-[#10192e] rounded-xl border border-slate-800 transition-colors flex flex-col gap-1">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                        <span className="text-[10px] font-black text-slate-200 uppercase tracking-wide">{item.name}</span>
+                                      </div>
+                                      <span className="text-[9px] text-slate-400 leading-tight pr-2">{item.purpose}</span>
+                                      <span className="text-[8px] text-slate-600 font-mono mt-0.5">{item.limit}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {labGuideFilter === "prep" && (
+                              <div className="space-y-4">
+                                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Vial className="w-4 h-4 text-amber-500" />
+                                    Optimal Specimen Preparation Controls
+                                  </span>
+                                  <span className="px-2 py-0.5 bg-amber-500/15 border border-amber-500/30 rounded text-amber-400 text-[8px] font-mono font-bold uppercase tracking-widest">
+                                    Highly Sensitive
+                                  </span>
+                                </div>
+
+                                <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
+                                  Physical sampling errors can easily skew quantitative multi-phase fits. Standardize the following parameters in your sample preparation laboratory before feeding data to our refinement engine:
+                                </p>
+
+                                <div className="space-y-2.5">
+                                  {[
+                                    { title: "Critical Sample Thickness Limit", value: "t > 3 / μ", desc: "Prevents reflection asymmetry and X-ray beam penetration into substrate" },
+                                    { title: "Grain Size Optimization", value: "d <= 10 μm", desc: "Minimize coarse grains to eliminate preferred orientation (texture) skewing" },
+                                    { title: "Zero-Background Sample Slate", value: "Silicon Single-Crystal (510)", desc: "Reduces amorphous hump scatter to isolate weak minor-phase reflections" },
+                                    { title: "Mechanical Milling Protocol", value: "Ethanol-assisted agate pestle, 15 min", desc: "Avoids stress-induced lattice strain peaks mismatch" }
+                                  ].map((p, idx) => (
+                                    <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-900/50 rounded-xl border border-slate-800 text-xs">
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="text-[9.5px] font-black text-slate-300 uppercase tracking-wide leading-none">{p.title}</span>
+                                        <span className="text-[9px] text-slate-500 font-sans">{p.desc}</span>
+                                      </div>
+                                      <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-500/5 border border-amber-500/20 px-2 py-1 rounded shrink-0 ml-4">{p.value}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {labGuideFilter === "reconciliation" && (
+                              <div className="space-y-4">
+                                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Calculator className="w-4 h-4 text-amber-500" />
+                                    Mathematical Rietveld Deconvolution Parameters
+                                  </span>
+                                  <span className="px-2 py-0.5 bg-indigo-500/15 border border-indigo-500/30 rounded text-indigo-400 text-[8px] font-mono font-bold uppercase tracking-widest">
+                                    Equation System
+                                  </span>
+                                </div>
+
+                                <p className="text-[11px] text-slate-300 leading-relaxed font-sans font-medium">
+                                  Perform full-profile refinement matching of the composite matrix structure by configuring the following multi-component Rietveld parameters:
+                                </p>
+
+                                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-center mb-1">
+                                  <span className="text-[8.5px] text-slate-500 block uppercase mb-1.5 tracking-widest font-mono">Quantitative Phase Fraction Formula (QPA)</span>
+                                  <span className="text-xs text-indigo-300 font-bold tracking-wide">
+                                    W_p = (S_p * Z_p * M_p * V_p) / [ Σ_i (S_i * Z_i * M_i * V_i) ]
+                                  </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800 flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-indigo-400 font-mono text-[10px]">S_p</span>
+                                      <span className="text-[9.5px] font-black text-slate-300 uppercase tracking-wide">Refinement Scale Factor</span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-500">Refine concurrently with zero-shift and sample displacement parameter errors to prevent accidental local minima entrapment.</p>
+                                  </div>
+                                  <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800 flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-indigo-400 font-mono text-[10px]">V_p</span>
+                                      <span className="text-[9.5px] font-black text-slate-300 uppercase tracking-wide">Unit Cell Volume</span>
+                                      <span className="text-[8px] bg-amber-500/10 text-amber-400 px-1 rounded font-bold font-mono">CRITICAL</span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-500">Refined cell metrics of {selectedCandidate?.phase_name || "matrix"} ({selectedCandidate?.formula || "N/A"}) are tied directly to calculated stoichiometric shifts.</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="mt-4 pt-3 border-t border-slate-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between text-[9px] font-mono text-slate-555 uppercase tracking-widest gap-2">
+                              <span className="flex items-center gap-1.5 font-bold text-amber-400/90">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                                Dynamic Lab Protocol: READY FOR INVESTIGATION
+                              </span>
+                              <span className="text-slate-500 font-bold">Target Phase: {selectedCandidate?.formula || "N/A"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

@@ -248,26 +248,34 @@ export const MaterialDatabaseExplorer: React.FC = () => {
   const normalizePatternPeaks = (patternStr: string): string => {
     if (!patternStr) return '';
     const lines = patternStr.split('\n').map(l => l.trim()).filter(Boolean);
-    const peaks: { angle: number; intensity: number }[] = [];
+    const peaks: { angle: number; intensity: number; extra: string }[] = [];
     let maxIntensity = 0;
     for (const line of lines) {
+      if (line.includes('(broad)')) {
+        peaks.push({ angle: 0, intensity: 0, extra: line });
+        continue;
+      }
       const parts = line.split(',').map(p => p.trim());
       if (parts.length >= 2) {
         const angle = parseFloat(parts[0]);
         const intensity = parseFloat(parts[1]);
         if (!isNaN(angle) && !isNaN(intensity)) {
-          peaks.push({ angle, intensity });
+          const extra = parts.slice(2).join(', ');
+          peaks.push({ angle, intensity, extra });
           if (intensity > maxIntensity) {
             maxIntensity = intensity;
           }
         }
       }
     }
-    if (peaks.length === 0 || maxIntensity <= 0) return patternStr;
-    const scaleFactor = 100 / maxIntensity;
+    if (peaks.length === 0) return patternStr;
+    const scaleFactor = maxIntensity > 0 ? 100 / maxIntensity : 1;
     const normalizedLines = peaks.map(p => {
+      if (p.angle === 0 && p.intensity === 0 && p.extra.includes('(broad)')) {
+        return p.extra;
+      }
       const normInt = Math.round(p.intensity * scaleFactor * 10) / 10;
-      return `${p.angle}, ${normInt}`;
+      return p.extra ? `${p.angle}, ${normInt}, ${p.extra}` : `${p.angle}, ${normInt}`;
     });
     return normalizedLines.join('\n');
   };
@@ -718,14 +726,15 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     const lines = patternStr.split('\n').filter(l => l.trim());
     if (lines.length === 0) return true;
     for (const line of lines) {
+      if (line.includes('(broad)')) continue;
       const parts = line.split(',');
-      if (parts.length !== 2) return false;
+      if (parts.length < 2) return false;
       const twoTheta = parseFloat(parts[0]);
       const intensity = parseFloat(parts[1]);
       if (isNaN(twoTheta) || isNaN(intensity)) return false;
       // Normal range checks for 2theta (e.g. 0 to 180 degrees)
       if (twoTheta < 0 || twoTheta > 180) return false;
-      if (intensity < 0 || intensity > 100) return false;
+      if (intensity < 0 || intensity > 1000) return false;
     }
     return true;
   };

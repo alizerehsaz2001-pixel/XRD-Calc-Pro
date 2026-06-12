@@ -299,7 +299,7 @@ const RAW_MATERIAL_DB = [
     name: "Hydroxyapatite (Highly Crystalline)",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
-      "25.87, 45, 0, 0, 2\n31.77, 100, 2, 1, 1\n32.19, 98, 1, 1, 2\n32.90, 65, 3, 0, 0\n34.04, 50, 2, 0, 2\n39.81, 30, 3, 1, 0\n46.71, 40, 2, 2, 2\n49.46, 35, 2, 1, 3\n50.49, 30, 3, 2, 1",
+      "25.87, 40, 0, 0, 2\n28.14, 12, 1, 0, 2\n28.97, 18, 2, 1, 0\n31.77, 100, 2, 1, 1\n32.19, 95, 1, 1, 2\n32.90, 55, 3, 0, 0\n34.04, 46, 2, 0, 2\n39.81, 21, 3, 1, 0\n46.71, 40, 2, 2, 2\n49.46, 30, 2, 1, 3\n50.49, 32, 3, 2, 1",
     description:
       "Highly crystalline synthetic hydroxyapatite (HAp) engineered through high-temperature sintering. Exhibits rigorous stoichiometric ratios, minimal ionic substitution, and a thermodynamically stable hexagonal lattice. Characterized by extremely sharp, well-defined Bragg reflections indicating large crystallite domains.",
     formula: "Ca10(PO4)6(OH)2",
@@ -315,7 +315,7 @@ const RAW_MATERIAL_DB = [
     name: "Nano-Hydroxyapatite (Biomimetic)",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
-      "25.9, 30, 0, 0, 2\n31.8, 100, 2, 1, 1\n32.2, 90, 1, 1, 2\n32.9, 50, 3, 0, 0\n34.0, 40, 2, 0, 2\n39.8, 20, 3, 1, 0",
+      "25.90, 40, 0, 0, 2\n29.00, 15, 2, 1, 0\n31.80, 100, 2, 1, 1\n32.20, 85, 1, 1, 2\n32.90, 50, 3, 0, 0\n34.00, 40, 2, 0, 2\n39.80, 20, 3, 1, 0\n46.70, 30, 2, 2, 2\n49.50, 25, 2, 1, 3\n50.50, 20, 3, 2, 1",
     description:
       "Biomimetic nano-crystalline hydroxyapatite synthesized via controlled precipitation at physiological temperatures. Characterized by substantial line broadening due to nanoscale crystallites (<50nm) and inherent lattice strains, closely mimicking the morphological and crystallographic state of young mammalian bone mineral.",
     formula: "Ca10(PO4)6(OH)2",
@@ -332,7 +332,7 @@ const RAW_MATERIAL_DB = [
     name: "Carbonated Hydroxyapatite (Type-B)",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
-      "25.75, 40\n31.65, 100\n32.08, 95\n32.75, 60\n33.85, 45\n39.65, 25",
+      "25.95, 35, 0, 0, 2\n29.15, 15, 2, 1, 0\n31.90, 100, 2, 1, 1\n32.25, 80, 1, 1, 2\n33.10, 45, 3, 0, 0\n34.15, 35, 2, 0, 2\n40.05, 18, 3, 1, 0\n46.90, 25, 2, 2, 2\n49.70, 20, 2, 1, 3\n50.75, 18, 3, 2, 1",
     description:
       "Biological-grade Type-B carbonated hydroxyapatite featuring significant carbonate (CO3) substitution at phosphate (PO4) lattice sites. This ionic doping induces substantial crystalline disorder, reduces symmetry, and dramatically increases bio-resorbability compared to stoichiometric HAp.",
     formula: "Ca10(PO4)6-x(CO3)x(OH)2",
@@ -347,7 +347,7 @@ const RAW_MATERIAL_DB = [
     name: "Fluorapatite",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
-      "25.81, 40\n31.85, 100\n32.12, 95\n32.95, 60\n34.12, 45\n40.05, 25",
+      "25.87, 38, 0, 0, 2\n28.28, 11, 1, 0, 2\n29.12, 18, 2, 1, 0\n31.91, 100, 2, 1, 1\n32.22, 90, 1, 1, 2\n33.09, 58, 3, 0, 0\n34.20, 45, 2, 0, 2\n40.03, 22, 3, 1, 0\n46.95, 35, 2, 2, 2\n49.78, 28, 2, 1, 3\n50.72, 25, 3, 2, 1",
     description:
       "The end-member of the apatite series where fluoride replaces hydroxyl groups, increasing acid resistance.",
     formula: "Ca10(PO4)6F2",
@@ -362,7 +362,7 @@ const RAW_MATERIAL_DB = [
     name: "Strontium-Apatite",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
-      "25.21, 35\n30.95, 100\n31.32, 90\n32.05, 55\n33.15, 40\n38.85, 20",
+      "25.21, 35, 0, 0, 2\n27.42, 12, 1, 0, 2\n28.25, 18, 2, 1, 0\n30.95, 100, 2, 1, 1\n31.32, 90, 1, 1, 2\n32.05, 55, 3, 0, 0\n33.15, 40, 2, 0, 2\n38.85, 20, 3, 1, 0\n45.52, 35, 2, 2, 2\n48.21, 28, 2, 1, 3\n49.20, 25, 3, 2, 1",
     description:
       "Strontium-substituted hydroxyapatite used for treating osteoporosis and enhancing bone formation.",
     formula: "(Ca,Sr)10(PO4)6(OH)2",
@@ -377,7 +377,7 @@ const RAW_MATERIAL_DB = [
     name: "Chlorapatite",
     type: "Minerals, Ores & Geology",
     pattern:
-      "25.68, 30\n31.55, 100\n31.92, 85\n32.78, 55\n33.95, 50\n40.15, 20",
+      "25.68, 30, 0, 0, 2\n27.95, 10, 1, 0, 2\n28.60, 15, 2, 1, 0\n31.55, 100, 2, 1, 1\n31.92, 85, 1, 1, 2\n32.78, 55, 3, 0, 0\n33.95, 50, 2, 0, 2\n40.15, 20, 3, 1, 0\n46.10, 35, 2, 2, 2\n48.80, 25, 2, 1, 3\n49.85, 22, 3, 2, 1",
     description:
       "Rare apatite mineral where chloride replaces hydroxyl groups.",
     formula: "Ca10(PO4)6Cl2",
@@ -391,7 +391,8 @@ const RAW_MATERIAL_DB = [
   {
     name: "Biological Hydroxyapatite (Mature Enamel)",
     type: "Biomaterials & Pharmaceuticals",
-    pattern: "25.8, 40\n31.7, 100\n32.2, 95\n32.9, 60\n34.0, 50\n39.8, 30",
+    pattern:
+      "25.82, 85, 0, 0, 2\n28.10, 10, 1, 0, 2\n28.95, 15, 2, 1, 0\n31.75, 100, 2, 1, 1\n32.20, 75, 1, 1, 2\n32.95, 45, 3, 0, 0\n34.05, 35, 2, 0, 2\n39.85, 25, 3, 1, 0\n46.75, 30, 2, 2, 2\n49.50, 25, 2, 1, 3\n50.55, 22, 3, 2, 1",
     description:
       "Highly oriented biological hydroxyapatite constituting mammalian dental enamel. Features unique anisotropic crystallite growth (elongated nanorods), trace fluoride/carbonate incorporations, and exceptional mechanical hardness. XRD patterns typically exhibit pronounced preferred orientation effects.",
     formula: "Ca10(PO4,CO3)6(OH,F)2",
@@ -407,7 +408,7 @@ const RAW_MATERIAL_DB = [
     name: "Magnesium-Doped HAp",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
-      "25.95, 35\n31.85, 100\n32.30, 90\n33.05, 55\n34.15, 45\n39.95, 20",
+      "25.95, 35, 0, 0, 2\n28.25, 12, 1, 0, 2\n29.10, 18, 2, 1, 0\n31.85, 100, 2, 1, 1\n32.30, 90, 1, 1, 2\n33.05, 55, 3, 0, 0\n34.15, 45, 2, 0, 2\n39.95, 20, 3, 1, 0\n46.85, 35, 2, 2, 2\n49.65, 28, 2, 1, 3\n50.60, 24, 3, 2, 1",
     description:
       "Hydroxyapatite where a fraction of calcium is replaced by magnesium, reflecting the composition of early-stage mineralization in bone.",
     formula: "Ca10-xMgx(PO4)6(OH)2",
@@ -422,7 +423,7 @@ const RAW_MATERIAL_DB = [
     name: "Silicon-substituted HAp",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
-      "25.82, 40\n31.68, 100\n32.05, 95\n32.85, 60\n33.95, 50\n39.75, 25",
+      "25.82, 40, 0, 0, 2\n28.18, 12, 1, 0, 2\n29.05, 18, 2, 1, 0\n31.68, 100, 2, 1, 1\n32.05, 95, 1, 1, 2\n32.85, 60, 3, 0, 0\n33.95, 50, 2, 0, 2\n39.75, 25, 3, 1, 0\n46.55, 35, 2, 2, 2\n49.32, 28, 2, 1, 3\n50.38, 22, 3, 2, 1",
     description:
       "Silicate ions substitute for phosphate groups to enhance the bioactivity and bone bonding rate of hydroxyapatite.",
     formula: "Ca10(PO4)6-x(SiO4)x(OH)2-x",
@@ -451,7 +452,7 @@ const RAW_MATERIAL_DB = [
     name: "Biological Hydroxyapatite (Dentin Matrix)",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
-      "25.85, 35\n31.75, 100\n32.25, 92\n32.95, 58\n34.10, 48\n39.90, 25",
+      "25.85, 35, 0, 0, 2\n28.12, 10, 1, 0, 2\n29.02, 15, 2, 1, 0\n31.75, 100, 2, 1, 1\n32.25, 92, 1, 1, 2\n32.95, 58, 3, 0, 0\n34.10, 48, 2, 0, 2\n39.90, 25, 3, 1, 0\n46.75, 30, 2, 2, 2\n49.52, 24, 2, 1, 3\n50.58, 20, 3, 2, 1",
     description:
       "Nanocrystalline biological hydroxyapatite embedded within a collagenous matrix, characteristic of mammalian dentin and mature trabecular bone. Exhibits extensive ionic substitutions, very small domain sizes, and broad diffraction profiles indicative of high specific surface area.",
     formula: "Ca10(PO4,CO3)6(OH)2",
@@ -465,7 +466,8 @@ const RAW_MATERIAL_DB = [
   {
     name: "Lead-doped HAp",
     type: "Minerals, Ores & Geology",
-    pattern: "25.2, 35\n31.1, 100\n31.5, 95\n32.2, 60\n33.4, 50\n39.2, 25",
+    pattern:
+      "25.20, 35, 0, 0, 2\n27.35, 10, 1, 0, 2\n28.15, 15, 2, 1, 0\n31.10, 100, 2, 1, 1\n31.50, 95, 1, 1, 2\n32.20, 60, 3, 0, 0\n33.40, 50, 2, 0, 2\n39.20, 25, 3, 1, 0\n45.42, 35, 2, 2, 2\n48.05, 28, 2, 1, 3\n49.12, 22, 3, 2, 1",
     description:
       "Hydroxyapatite used for heavy metal remediation. Lead ions substitute for calcium, significantly shifting lattice parameters.",
     formula: "(Ca,Pb)10(PO4)6(OH)2",
@@ -479,7 +481,8 @@ const RAW_MATERIAL_DB = [
   {
     name: "Cadmium-doped HAp",
     type: "Advanced Materials",
-    pattern: "26.1, 35\n32.0, 100\n32.4, 90\n33.1, 55\n34.2, 45\n40.1, 20",
+    pattern:
+      "26.10, 35, 0, 0, 2\n28.35, 12, 1, 0, 2\n29.22, 18, 2, 1, 0\n32.00, 100, 2, 1, 1\n32.40, 90, 1, 1, 2\n33.10, 55, 3, 0, 0\n34.20, 45, 2, 0, 2\n40.10, 20, 3, 1, 0\n47.05, 35, 2, 2, 2\n49.82, 28, 2, 1, 3\n50.80, 22, 3, 2, 1",
     description:
       "Apatite structure containing cadmium, often studied in the context of toxic metal uptake from the environment.",
     formula: "(Ca,Cd)10(PO4)6(OH)2",
@@ -3714,7 +3717,7 @@ const RAW_MATERIAL_DB = [
   {
     name: "Zn-Substituted HAp (Zn-HAp)",
     type: "Biomaterials & Pharmaceuticals",
-    pattern: "25.9, 45\n31.8, 100\n32.2, 70\n33.0, 55\n39.8, 25\n46.7, 35",
+    pattern: "25.90, 45, 0, 0, 2\n28.22, 12, 1, 0, 2\n29.15, 18, 2, 1, 0\n31.80, 100, 2, 1, 1\n32.20, 70, 1, 1, 2\n33.00, 55, 3, 0, 0\n34.10, 42, 2, 0, 2\n39.80, 25, 3, 1, 0\n46.70, 35, 2, 2, 2\n49.56, 28, 2, 1, 3\n50.55, 22, 3, 2, 1",
     description:
       "Zinc doping introduces antibacterial properties into the hydroxyapatite lattice and promotes bone formation.",
     formula: "Ca10-xZnx(PO4)6(OH)2",
@@ -3997,7 +4000,7 @@ const RAW_MATERIAL_DB = [
   {
     name: "Apatite (Fluorapatite)",
     type: "Minerals, Ores & Geology",
-    pattern: "25.8, 40\n31.8, 100\n32.2, 60\n33.0, 55\n39.8, 25",
+    pattern: "25.87, 38, 0, 0, 2\n28.28, 11, 1, 0, 2\n29.12, 18, 2, 1, 0\n31.91, 100, 2, 1, 1\n32.22, 90, 1, 1, 2\n33.09, 58, 3, 0, 0\n34.20, 45, 2, 0, 2\n40.03, 22, 3, 1, 0\n46.95, 35, 2, 2, 2\n49.78, 28, 2, 1, 3\n50.72, 25, 3, 2, 1",
     description:
       "A group of phosphate minerals. Fluorapatite is the most common variety and the primary source of phosphorus.",
     formula: "Ca5(PO4)3F",
@@ -5100,7 +5103,7 @@ const RAW_MATERIAL_DB = [
   {
     name: "Biphasic Calcium Phosphate (HAp/beta-TCP)",
     type: "Biomaterials & Pharmaceuticals",
-    pattern: "25.8, 45\n31.0, 100\n31.8, 90\n32.2, 85\n34.1, 40\n49.5, 35",
+    pattern: "25.87, 45, 0, 0, 2\n27.78, 30, 0, 2, 10\n31.02, 100, 3, 0, 0\n31.77, 90, 2, 1, 1\n32.19, 85, 1, 1, 2\n32.90, 40, 3, 0, 0\n34.04, 35, 2, 0, 2\n34.35, 45, 2, 2, 0\n49.46, 35, 2, 1, 3",
     description:
       "An engineered bioceramic mixture consisting of stable Hydroxyapatite (HAp) and soluble beta-Tricalcium Phosphate (beta-TCP) in an optimized osseoconductive 60/40 ratio.",
     formula: "Ca10(PO4)6(OH)2 / Ca3(PO4)2",
@@ -9984,7 +9987,7 @@ const RAW_MATERIAL_DB = [
   {
     name: "Bone Carbonated Apatite (Dahllite)",
     type: "Biomaterials & Pharmaceuticals",
-    pattern: "25.8, 30\n31.9, 100\n32.5, 50\n33.0, 40",
+    pattern: "25.80, 30, 0, 0, 2\n29.00, 15, 2, 1, 0\n31.90, 100, 2, 1, 1\n32.50, 50, 1, 1, 2\n33.00, 40, 3, 0, 0\n34.10, 35, 2, 0, 2\n39.80, 18, 3, 1, 0\n46.70, 25, 2, 2, 2\n49.50, 22, 2, 1, 3\n50.50, 18, 3, 2, 1",
     description: "B-type carbonated apatite directly extracted from or mimicked for actual bone tissue.",
     formula: "Ca10(PO4)6-x(CO3)x(OH)2-y",
     elements: ["Ca", "P", "O", "C", "H"],
@@ -10854,7 +10857,7 @@ const RAW_MATERIAL_DB = [
   {
     name: "Fluorapatite",
     type: "Biomaterials & Pharmaceuticals",
-    pattern: "25.8, 40\n31.9, 100\n32.2, 50\n33.1, 60\n46.9, 30",
+    pattern: "25.87, 38, 0, 0, 2\n28.28, 11, 1, 0, 2\n29.12, 18, 2, 1, 0\n31.91, 100, 2, 1, 1\n32.22, 90, 1, 1, 2\n33.09, 58, 3, 0, 0\n34.20, 45, 2, 0, 2\n40.03, 22, 3, 1, 0\n46.95, 35, 2, 2, 2\n49.78, 28, 2, 1, 3\n50.72, 25, 3, 2, 1",
     description: "A highly stable, acid-resistant calcium phosphate mineral formed when fluoride ions replace hydroxyl groups in hydroxyapatite, famously enhancing tooth decay resistance.",
     formula: "Ca10(PO4)6F2",
     elements: ["Ca","P","O","F"],
@@ -10926,7 +10929,7 @@ const RAW_MATERIAL_DB = [
   {
     name: "Carbonated Apatite (Dahllite)",
     type: "Biomaterials & Pharmaceuticals",
-    pattern: "25.8, 30\n31.8, 100\n32.1, 50\n32.9, 45\n46.7, 25",
+    pattern: "25.80, 30, 0, 0, 2\n28.98, 15, 2, 1, 0\n31.80, 100, 2, 1, 1\n32.10, 80, 1, 1, 2\n32.90, 65, 3, 0, 0\n34.00, 45, 2, 0, 2\n39.80, 22, 3, 1, 0\n46.70, 35, 2, 2, 2\n49.50, 28, 2, 1, 3\n50.50, 22, 3, 2, 1",
     description: "Biological apatite found in human bones and teeth, which features carbonate substitution replacing phosphate or hydroxyl groups, making it more soluble than pure HAP.",
     formula: "Ca10(PO4,CO3)6(OH,CO3)2",
     elements: ["Ca","P","C","O","H"],
@@ -15180,7 +15183,7 @@ const RAW_MATERIAL_DB = [
   {
     name: "Biphasic Calcium Phosphate (BCP Syn-Bone Matrix)",
     type: "Tissue Engineering & Biomaterials",
-    pattern: "10.4, 30\n18.2, 40\n25.8, 70\n31.8, 100\n32.2, 90\n32.9, 85\n34.0, 65",
+    pattern: "25.80, 70, 0, 0, 2\n27.78, 40, 0, 2, 10\n31.02, 100, 3, 0, 0\n31.80, 95, 2, 1, 1\n32.20, 90, 1, 1, 2\n32.90, 85, 3, 0, 0\n34.00, 65, 2, 0, 2\n34.35, 50, 2, 2, 0\n49.50, 45, 2, 1, 3",
     description: "An optimized composite of hydroxyapatite and beta-tricalcium phosphate. Successfully balances permanent structural mechanics and high resorbability rates to guide extensive skeletal injury recovery.",
     formula: "Ca10P6O26H2",
     elements: ["Ca", "P", "O", "H"],
@@ -15671,7 +15674,7 @@ const RAW_MATERIAL_DB = [
   {
     "name": "Bone Ash (Hydroxylapatite)",
     "type": "Historical & Ceramics",
-    "pattern": "25.8, 40\n31.8, 100\n32.2, 60\n32.9, 60\n39.8, 20\n46.7, 30\n49.5, 25",
+    "pattern": "25.80, 40, 0, 0, 2\n28.90, 15, 2, 1, 0\n31.80, 100, 2, 1, 1\n32.20, 60, 1, 1, 2\n32.90, 60, 3, 0, 0\n34.00, 45, 2, 0, 2\n39.80, 20, 3, 1, 0\n46.70, 30, 2, 2, 2\n49.50, 25, 2, 1, 3",
     "description": "Calcined animal bone, primarily hydroxylapatite. Historically used for making cupels for assaying silver/gold, and later for creating Bone China.",
     "formula": "Ca10(PO4)6(OH)2",
     "elements": [

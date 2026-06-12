@@ -124,6 +124,10 @@ export const languagesList: Language[] = [
   { code: 'iu', name: 'Inuktitut', nativeName: 'ᐃᓄᒃᑎᑐᑦ (IU)', flag: '🇨🇦', region: 'Americas' },
   { code: 'pirate', name: 'Pirate', nativeName: 'Ahoy Matey! (Pirate)', flag: '🏴‍☠️', region: 'The Seven Seas' },
   { code: 'tlh', name: 'Klingon', nativeName: 'tlhIngan Hol (Klingon)', flag: '👽', region: 'Space' },
+  { code: 'sjn', name: 'Elvish (Sindarin)', nativeName: 'Edhellen (Sindarin)', flag: '🧝', region: 'Middle-earth' },
+  { code: 'sco', name: 'Scots', nativeName: 'Braid Scots (SCO)', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', region: 'Europe' },
+  { code: 'alc', name: 'Alchemist', nativeName: 'Ars Hermetica (ALC)', flag: '🧙‍♂️', region: 'Hermetic Domain' },
+  { code: 'min', name: 'Minion', nativeName: 'Banananon (Minion)', flag: '🍌', region: 'Minion Land' },
 ];
 
 interface LanguageSelectorProps {
