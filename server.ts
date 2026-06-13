@@ -4,7 +4,7 @@ import { createServer as createViteServer } from "vite";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,7 +94,8 @@ async function startServer() {
         config: {
           systemInstruction: "You are XRD-Calc Pro's Senior AI Crystallography Expert and Physics Advisor. " +
             "Your mission is to provide high-fidelity, academically precise, and actionable solutions for X-ray diffraction, Bragg d-spacing, Scherrer crystallite sizing, Williamson-Hall strain deconvolution, Rietveld structure refinement, preferred orientation texture corrections, and polymer search-match validations. " +
-            "Structure your responses using clean markdown headings, bulleted lists, inline LaTeX approximation formula, and bold key concepts where appropriate, maintaining a highly professional, clinical, and helpful researcher tone."
+            "Structure your responses using clean markdown headings, bulleted lists, inline LaTeX approximation formula, and bold key concepts where appropriate, maintaining a highly professional, clinical, and helpful researcher tone.",
+          tools: [{ googleSearch: {} }]
         }
       });
       
@@ -142,12 +143,13 @@ Provide the response in structured markdown with the following specific sections
 5.  **Quality Control & Secondary Phase Impurity Guidelines**: Provide practical laboratory hints for verifying synthesis completion using X-ray Diffraction (XRD peak movements) and avoiding common impurities.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.1-pro-preview",
         contents: prompt,
         config: {
           systemInstruction: "You are XRD-Calc Pro's Senior AI Materials Synthesis Expert. " +
             "Your task is to provide an elite, publication-grade, and academically thorough synthesis recipe/formulation advise for preparing the requested nanomaterial phase with specific morphology under current autoclave/reaction conditions. " +
-            "Structure your response with clean headings, readable bullet points, equations where needed, and a professional, academic tone."
+            "Structure your response with clean headings, readable bullet points, equations where needed, and a professional, academic tone.",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
         }
       });
       
@@ -182,7 +184,7 @@ Provide the response in structured markdown with the following specific sections
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.1-pro-preview",
         contents: prompt,
         config: {
           systemInstruction: "You are the advanced XRD-Calc Pro Automated Python Scripting Engine. " +
@@ -193,7 +195,8 @@ Provide the response in structured markdown with the following specific sections
             "3. Ensure the script includes a 'Self-Generating Mock XRD data fallback' at the very beginning of its execution block. If the local data file (e.g. data.xy or data.csv) is not found, the script must dynamically generate a high-fidelity synthetic XRD pattern with peak noise, baseline curvature, and realistic peak broadening, save it to disk, and continue analysis seamlessly. This ensures the output script acts as an out-of-the-box working sandbox.\n" +
             "4. Use high-performance scientific libraries like NumPy, SciPy (optimize, signal, interpolate), Matplotlib (publication-grade style), Pandas, or GSAS-II/xrayutilities if requested.\n" +
             "5. Output ONLY valid, executable Python code. Never include introductory text, explanations outside comments, or conversational sentences.\n" +
-            "Context to integrate:\n" + JSON.stringify(context || {})
+            "Context to integrate:\n" + JSON.stringify(context || {}),
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
         }
       });
       

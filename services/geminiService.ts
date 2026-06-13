@@ -122,6 +122,7 @@ export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> 
       contents: `Search for and provide a comprehensive list of the most current and accurate standard characteristic X-ray wavelengths (K-alpha weighted averages for Cu, Mo, Co, Fe, Cr, Ag) and common neutron wavelengths (standard thermal and cold source averages). 
       Return the data in a structured JSON list.`,
       config: {
+        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -168,6 +169,7 @@ export const getMaterialPeaks = async (query: string): Promise<AIResponse> => {
       Provide both the major peak positions (2-theta) AND their corresponding Miller indices (hkl).
       Return at least the top 5 major peaks for the Cu K-alpha wavelength.`,
       config: {
+        tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -321,7 +323,7 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
 
 export const analyzePhaseID = async (xrdDataText: string): Promise<string> => {
   try {
-    const model = 'gemini-3.5-pro';
+    const model = 'gemini-3.1-pro-preview';
     const response = await ai.models.generateContent({
       model,
       contents: `You are an expert Crystallographer and Materials Science AI. Your task is to analyze the provided X-ray Diffraction (XRD) data (2-theta positions, d-spacing, and relative intensities) to identify the material phase and distinguish between closely related crystal structures.
@@ -340,7 +342,8 @@ Provide a structured analysis including:
 - Step-by-step reasoning explaining how peak intensities (especially anomalous or weak peaks) ruled out similar candidate materials.`,
       config: {
         systemInstruction: "You are an expert Crystallographer and Materials Science AI.",
-        tools: [{ googleSearch: {} }] // Allow grounding
+        tools: [{ googleSearch: {} }], // Allow grounding
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
       }
     });
     return response.text || "Analysis unavailable.";

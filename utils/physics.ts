@@ -1785,7 +1785,7 @@ const getCachedConvolvedReference = (
   engineConfig?: any
 ) => {
   const S_ref_raw = getCachedReferenceSpectrum(phaseName, peaks);
-  const configKey = `${kernelSize}_${kernelProfile}_${batchNorm}_${multiScale}_${pooling}_${engineConfig?.cagliotiCorrection}_${engineConfig?.asymmetryCorrection}_${engineConfig?.shapeExponent}`;
+  const configKey = `${kernelSize}_${kernelProfile}_${batchNorm}_${multiScale}_${pooling}_${engineConfig?.cagliotiCorrection}_${engineConfig?.asymmetryCorrection}_${engineConfig?.shapeExponent}_${engineConfig?.attentionMechanism}_${engineConfig?.dropout}`;
   
   if (!spectrumCache[phaseName].convolvedSpectrums[configKey]) {
     let S_ref = [...S_ref_raw];
@@ -1793,6 +1793,19 @@ const getCachedConvolvedReference = (
       const mean = S_ref.reduce((a, b) => a + b, 0) / S_ref.length;
       const vari = S_ref.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / S_ref.length;
       S_ref = S_ref.map(v => (v - mean) / Math.max(Math.sqrt(vari), 1e-5));
+    }
+    
+    if (engineConfig?.dropout && engineConfig.dropout > 0) {
+      const dropProb = engineConfig.dropout;
+      S_ref = S_ref.map(v => Math.random() < dropProb ? 0 : v);
+    }
+    
+    if (engineConfig?.attentionMechanism) {
+      const tempScale = 10;
+      const expVals = S_ref.map(v => Math.exp(v / tempScale));
+      const sumExp = expVals.reduce((a,b)=>a+b, 0);
+      const attentionWeights = expVals.map(e => e / (sumExp || 1));
+      S_ref = S_ref.map((v, i) => v * (1 + attentionWeights[i] * S_ref.length));
     }
     
     let Raw_Conv_ref = convolve1D(S_ref, kernelSize, kernelProfile, engineConfig);
@@ -1973,6 +1986,8 @@ export const identifyPhasesDL = (
     asymmetryCorrection?: boolean;
     backgroundSubtraction?: boolean;
     shapeExponent?: number;
+    attentionMechanism?: boolean;
+    dropout?: number;
   }
 ): DLPhaseResult => {
   const DB = MATERIAL_DB.map(m => {
@@ -2028,6 +2043,17 @@ export const identifyPhasesDL = (
   if ((engineConfig as any)?.dropout && (engineConfig as any).dropout > 0) {
      const dropProb = (engineConfig as any).dropout;
      S_obs = S_obs.map(v => Math.random() < dropProb ? 0 : v);
+  }
+
+  // Self-Attention Mechanism (Scaled Dot-Product)
+  if ((engineConfig as any)?.attentionMechanism) {
+    // Softmax over scaled intensities to derive attention weights
+    const tempScale = 10; // Scaling factor d_k equivalent
+    const expVals = S_obs.map(v => Math.exp(v / tempScale));
+    const sumExp = expVals.reduce((a,b)=>a+b, 0);
+    const attentionWeights = expVals.map(e => e / (sumExp || 1));
+    // Apply attention map back to the sequence, amplifying dominant features
+    S_obs = S_obs.map((v, i) => v * (1 + attentionWeights[i] * S_obs.length));
   }
 
   // Apply our 1D Convolution with selected kernel size representing receptive fields

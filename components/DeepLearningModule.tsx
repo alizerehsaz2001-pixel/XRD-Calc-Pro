@@ -388,6 +388,7 @@ export const DeepLearningModule: React.FC = () => {
       optimization: "Adam",
       multiScale: true,
       dropout: 0.2,
+      attentionMechanism: false,
       pooling: "max",
       depth: 50,
       learningRate: 0.001,
@@ -1031,6 +1032,7 @@ export const DeepLearningModule: React.FC = () => {
   const steps = [
     { label: "Idle", icon: Brain },
     { label: "Preprocessing Pattern", icon: Activity },
+    { label: "Self-Attention Gating", icon: Brain },
     { label: "CNN Feature Extraction", icon: Layers },
     { label: "Database Matching", icon: Database },
     { label: "Final Scoring", icon: CheckCircle },
@@ -1187,8 +1189,9 @@ export const DeepLearningModule: React.FC = () => {
     );
 
     // Simulation Sequence
-    setTimeout(() => setProgressStep(2), 800);
-    setTimeout(() => setProgressStep(3), 2000);
+    setTimeout(() => setProgressStep(2), 500);
+    setTimeout(() => setProgressStep(3), 1200);
+    setTimeout(() => setProgressStep(4), 2000);
     setTimeout(() => {
       const points = parseXYData(dataToAnalyze);
       let computed = identifyPhasesDL(points, mixMode, engineConfig);
@@ -1282,7 +1285,7 @@ export const DeepLearningModule: React.FC = () => {
           console.error("Failed to save neural probe event:", err);
         }
       }
-      setProgressStep(4);
+      setProgressStep(5);
       setIsSimulating(false);
       clearInterval(scanInterval);
       setScanPos(null);
@@ -1337,6 +1340,97 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
     const a = document.createElement("a");
     a.href = url;
     a.download = `${selectedCandidate.phase_name}_Report.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPythonML = () => {
+    const pythonCode = `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import numpy as np
+
+# XRD-Calc Pro - Scientific PyTorch Phase ID Engine Script
+# Configuration used in simulation:
+# Kernel Size: ${engineConfig.kernelSize}
+# Multi-Scale: ${engineConfig.multiScale}
+# Batch Norm: ${engineConfig.batchNorm}
+# Dropout: ${(engineConfig as any).dropout}
+# Attention: ${(engineConfig as any).attentionMechanism}
+
+class ResidualBlock1D(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, dropout=${(engineConfig as any).dropout || 0}):
+        super().__init__()
+        self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size, padding='same')
+        self.bn1 = nn.BatchNorm1d(out_channels) if ${engineConfig.batchNorm ? 'True' : 'False'} else nn.Identity()
+        self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size, padding='same')
+        self.bn2 = nn.BatchNorm1d(out_channels) if ${engineConfig.batchNorm ? 'True' : 'False'} else nn.Identity()
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        res = x
+        x = F.${engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.bn1(self.conv1(x)))
+        x = self.dropout(x)
+        x = self.bn2(self.conv2(x))
+        return F.${engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(x + res)
+
+class XRDPhaseIDModel(nn.Module):
+    def __init__(self, num_classes=${MATERIAL_DB.length}, kernel_size=${engineConfig.kernelSize}):
+        super().__init__()
+        self.attn = nn.MultiheadAttention(1, 1) if ${(engineConfig as any).attentionMechanism ? 'True' : 'False'} else None
+        self.initial_conv = nn.Conv1d(1, ${engineConfig.filters || 32}, kernel_size, padding='same')
+        
+        # Deep Residual Feature Extraction (${engineConfig.depth} layers simulated)
+        self.blocks = nn.ModuleList([
+            ResidualBlock1D(${engineConfig.filters || 32}, ${engineConfig.filters || 32}, kernel_size)
+            for _ in range(${Math.floor((engineConfig.depth || 50) / 10)})
+        ])
+        
+        self.pool = nn.${engineConfig.pooling === 'max' ? 'MaxPool1d' : 'AvgPool1d'}(2)
+        self.fc = nn.Linear((${engineConfig.filters || 32} * 100), num_classes) # Approximate representation
+        
+    def forward(self, x):
+        # x shape: (batch_size, 1, seq_length)
+        if self.attn:
+            x_permuted = x.permute(2, 0, 1) # seq_len, batch_size, channels
+            attn_out, _ = self.attn(x_permuted, x_permuted, x_permuted)
+            x = attn_out.permute(1, 2, 0)
+            
+        x = F.${engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.initial_conv(x))
+        for block in self.blocks:
+            x = block(x)
+            x = self.pool(x)
+            
+        x = x.view(x.size(0), -1)
+        return self.fc(x)
+
+def train_engine():
+    model = XRDPhaseIDModel()
+    optimizer = optim.${engineConfig.optimization || 'Adam'}(model.parameters(), lr=${engineConfig.learningRate || 0.001})
+    loss_fn = nn.CrossEntropyLoss()
+    
+    print("PyTorch Phase ID Model Initialized.")
+    print("Optimization Algorithm:", optimizer.__class__.__name__)
+    print("Learning Rate:", optimizer.param_groups[0]['lr'])
+    return model
+
+if __name__ == '__main__':
+    model = train_engine()
+    # Mock data batch
+    mock_xrd_sweep = torch.rand((16, 1, 1000)) 
+    predictions = model(mock_xrd_sweep)
+    print("Inference completed. Logic structure valid.")
+    print("Predictions shape:", predictions.shape)
+`;
+
+    const blob = new Blob([pythonCode], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `XRD_PhaseID_Neural_Engine.py`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -3833,6 +3927,64 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <div
                   className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${engineConfig.batchNorm ? "left-7" : "left-1"}`}
                 />
+              </div>
+            </div>
+
+            {/* Neural Attention Mechanism Toggle */}
+            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-slate-200 tracking-tight">
+                  Self-Attention Mechanism
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  Apply Scaled Dot-Product Attention to weight prominent peaks dynamically
+                </span>
+              </div>
+              <div
+                onClick={() => {
+                  setEngineConfig({
+                    ...engineConfig,
+                    attentionMechanism: !engineConfig.attentionMechanism,
+                  } as any);
+                  setActivePreset("Custom");
+                }}
+                className={`w-12 h-6 rounded-full transition-all relative shadow-inner ${(engineConfig as any).attentionMechanism ? "bg-fuchsia-500" : "bg-slate-700 bg-opacity-50"}`}
+              >
+                <div
+                  className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-md ${(engineConfig as any).attentionMechanism ? "left-7" : "left-1"}`}
+                />
+              </div>
+            </div>
+
+            {/* Dropout Regularization Toggle */}
+            <div className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-2xl cursor-pointer group hover:bg-slate-800 transition-colors">
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-slate-200 tracking-tight">
+                  Dropout Regularization
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  Randomly zero connections to avoid dataset overfitting
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="0.5"
+                  step="0.05"
+                  value={(engineConfig as any).dropout || 0}
+                  onChange={(e) => {
+                    setEngineConfig({
+                      ...engineConfig,
+                      dropout: parseFloat(e.target.value),
+                    } as any);
+                    setActivePreset("Custom");
+                  }}
+                  className="w-16 accent-fuchsia-500"
+                />
+                <span className="text-[10px] font-mono text-slate-400 w-6 text-right">
+                  {((engineConfig as any).dropout || 0).toFixed(2)}
+                </span>
               </div>
             </div>
 
@@ -7030,6 +7182,19 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         <FileText className="w-5 h-5 text-violet-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(139,92,246,0.5)]" />
                         <span className="text-[10px] font-black text-slate-300 group-hover:text-violet-50 uppercase tracking-[0.2em] whitespace-nowrap">
                           {t("Export Logic", "Export Logic")}
+                        </span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={handleExportPythonML}
+                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-fuchsia-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-fuchsia-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                      <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
+                        <Cpu className="w-5 h-5 text-fuchsia-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]" />
+                        <span className="text-[10px] font-black text-slate-300 group-hover:text-fuchsia-50 uppercase tracking-[0.2em] whitespace-nowrap">
+                          {t("Export ML Script", "Export ML Script")}
                         </span>
                       </div>
                     </button>
