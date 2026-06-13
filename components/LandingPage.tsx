@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useMotionValue, useSpring } from 'motion/react';
 import LanguageSelector from './LanguageSelector';
+import { MATERIAL_DB } from '../utils/materialDB';
 import { 
   Zap, 
   Activity, 
@@ -712,6 +713,29 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   const { t, i18n } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [userName, setUserName] = useState<string>('');
+  const [heroSearchTerm, setHeroSearchTerm] = useState('');
+  const [showHeroSuggestions, setShowHeroSuggestions] = useState(false);
+  const heroSearchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (heroSearchRef.current && !heroSearchRef.current.contains(event.target as Node)) {
+        setShowHeroSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  const filteredHeroSuggestions = useMemo(() => {
+    if (!heroSearchTerm || heroSearchTerm.length < 1) return [];
+    const term = heroSearchTerm.toLowerCase().trim();
+    return MATERIAL_DB.filter(item => 
+      item.name.toLowerCase().includes(term) || 
+      item.formula.toLowerCase().includes(term) ||
+      (item.crystalSystem && item.crystalSystem.toLowerCase().includes(term))
+    ).slice(0, 4);
+  }, [heroSearchTerm]);
 
   useEffect(() => {
     try {
@@ -945,7 +969,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
               </p>
 
               {/* Dynamic Interactive Search Module replacing standard buttons */}
-              <div className="relative max-w-2xl group w-full mb-10">
+              <div ref={heroSearchRef} className="relative max-w-2xl group w-full mb-10">
                 <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-cyan-500 rounded-[2rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
                 <div className="relative flex items-center bg-slate-950/80 ring-1 ring-white/10 backdrop-blur-2xl rounded-3xl p-2 w-full">
                   <div className="p-3 pl-5 text-slate-400">
@@ -953,6 +977,12 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                   </div>
                   <input 
                     type="text" 
+                    value={heroSearchTerm}
+                    onChange={(e) => {
+                      setHeroSearchTerm(e.target.value);
+                      setShowHeroSuggestions(true);
+                    }}
+                    onFocus={() => setShowHeroSuggestions(true)}
                     placeholder="Search structures... e.g. 'TiO2 Anatase', 'NaCl'" 
                     className="flex-1 bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 font-medium text-lg px-2 w-full"
                     onKeyDown={(e) => {
@@ -976,6 +1006,46 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                     </button>
                   </div>
                 </div>
+
+                {/* Real-time floating suggestions */}
+                {showHeroSuggestions && filteredHeroSuggestions.length > 0 && (
+                  <div className="absolute top-20 left-0 right-0 z-50 bg-[#0a0f1d]/95 backdrop-blur-2xl ring-1 ring-white/10 rounded-3xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-200">
+                    <div className="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mb-3 px-2 flex justify-between items-center">
+                      <span>Real-time DB standards match</span>
+                      <span className="text-cyan-400 font-mono text-[8px] tracking-normal lowercase">Offline reference catalog</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {filteredHeroSuggestions.map((item) => (
+                        <div 
+                          key={item.name}
+                          onClick={() => {
+                            setHeroSearchTerm(item.name);
+                            setShowHeroSuggestions(false);
+                            // Set custom initial search value in local storage or transition state
+                            try {
+                              localStorage.setItem("xrd_initial_search", item.name);
+                            } catch (err) {}
+                            onEnter(isRegistered ? 'login' : 'register', 'database');
+                          }}
+                          className="w-full text-left p-3 rounded-2xl bg-white/[0.02] hover:bg-violet-600/10 border border-transparent hover:border-violet-500/30 transition-all duration-200 cursor-pointer flex items-center justify-between group/suggest"
+                        >
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-slate-200 group-hover/suggest:text-violet-300 transition-colors">{item.name}</span>
+                            <span className="text-[10px] text-slate-500 font-sans line-clamp-1 mt-0.5">{item.description}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-mono text-[9px] uppercase tracking-wider bg-violet-500/10 text-violet-400 px-2 py-0.5 rounded-md border border-violet-500/20 font-black">
+                              {item.formula}
+                            </span>
+                            <span className="font-mono text-[9px] text-slate-500 group-hover/suggest:text-cyan-450 transition-colors">
+                              {item.crystalSystem}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Popular Lattice Quick Keys */}

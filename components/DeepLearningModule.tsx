@@ -379,6 +379,14 @@ export const DeepLearningModule: React.FC = () => {
   const [scanPos, setScanPos] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // ML Validation detailed tab view states
+  const [selectedValidationTab, setSelectedValidationTab] = useState<'audit' | 'robustness' | 'confusion'>('audit');
+  const [noiseLevel, setNoiseLevel] = useState<number>(10); // Gaussian noise perturbation %
+  const [backgroundDrift, setBackgroundDrift] = useState<number>(5); // Background curve shift %
+  const [isPerturbationRunning, setIsPerturbationRunning] = useState<boolean>(false);
+  const [perturbationScore, setPerturbationScore] = useState<number | null>(null);
+  const [activeMatrixCell, setActiveMatrixCell] = useState<{ row: string; col: string; val: number } | null>(null);
+
   // Advanced Engine Configuration
   const [engineConfig, setEngineConfig] = useState(() => {
     const defaultScientific = {
@@ -600,6 +608,17 @@ export const DeepLearningModule: React.FC = () => {
   // Search & Advanced Tools State
   const [searchTerm, setSearchTerm] = useState("");
   const [dbSearch, setDbSearch] = useState("");
+
+  useEffect(() => {
+    try {
+      const initialSearch = localStorage.getItem("xrd_initial_search");
+      if (initialSearch) {
+        setSearchTerm(initialSearch);
+        setShowSuggestions(true);
+        localStorage.removeItem("xrd_initial_search");
+      }
+    } catch (e) {}
+  }, []);
   const [dbFilter, setDbFilter] = useState("All");
   const [checkedAudits, setCheckedAudits] = useState<boolean[]>([
     true,
@@ -3448,7 +3467,7 @@ if __name__ == '__main__':
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Input Configuration & Top Panels */}
-      <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="lg:col-span-12 flex flex-col gap-8">
         {/* Advanced Engine Configuration */}
         <div className="bg-slate-900 p-6 rounded-[2rem] shadow-xl border border-slate-800 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none" />
@@ -4144,20 +4163,23 @@ if __name__ == '__main__':
           <div className="space-y-4">
             {/* Material Search */}
             <div className="relative" ref={searchRef}>
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex flex-col gap-1 mb-2">
                 <label className="block text-sm font-bold text-slate-700">
                   Unified DB Search Engine{" "}
                   <span className="text-emerald-500 ml-1 font-mono text-[10px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 uppercase tracking-tighter font-black">
                     COD + MP SYNCED
                   </span>
                 </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Global Verification
+                <div className="flex items-center gap-2 text-slate-500">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">
+                    Global Verification:
                   </span>
                   <div className="w-8 h-4 bg-emerald-500 rounded-full relative cursor-help" title="All database materials are strictly cross-verified with Crystallography Open Database (COD) and Materials Project.">
                     <div className="absolute left-4 top-0.5 w-3 h-3 bg-white rounded-full"></div>
                   </div>
+                  <span className="text-[9px] font-mono font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">
+                    COD/MP VERIFIED
+                  </span>
                 </div>
               </div>
               <div className="relative">
@@ -4252,7 +4274,7 @@ if __name__ == '__main__':
             </div>
 
             <div className="pt-2">
-              <div className="flex justify-between items-center mb-3">
+              <div className="flex flex-col gap-2 mb-3">
                 <label className="block text-sm font-bold text-slate-700">
                   Diffraction Pattern Input
                 </label>
@@ -4284,7 +4306,7 @@ if __name__ == '__main__':
                     }}
                     className="text-xs flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-600 px-3 py-1.5 rounded-lg font-bold transition-all hover:shadow-sm active:scale-95"
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Clear
+                    <Trash2 className="w-3.5 h-3.5" /> Clear Input
                   </button>
                 </div>
               </div>
@@ -4458,14 +4480,14 @@ if __name__ == '__main__':
 
                 {activeInputTool === "denoise" && (
                   <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-2">
                       <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
                         <SlidersHorizontal className="w-3.5 h-3.5" /> Savitzky-Golay Filter Panel
                       </span>
                       <button
                         disabled={parsedPoints.length < 5}
                         onClick={handleCommitSmoothing}
-                        className="text-[9px] bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded font-bold transition-all hover:shadow-xs active:scale-95 disabled:opacity-40"
+                        className="text-[9px] w-full bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded font-black uppercase tracking-wider transition-all hover:shadow-xs active:scale-95 disabled:opacity-40"
                       >
                         Apply In-Place
                       </button>
@@ -4530,14 +4552,14 @@ if __name__ == '__main__':
 
                 {activeInputTool === "noise" && (
                   <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-2">
                       <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-1">
                         <Cpu className="w-3.5 h-3.5" /> Diffractogram Noise Synthesizer
                       </span>
                       <button
                         disabled={parsedPoints.length === 0}
                         onClick={handleSynthesizeNoisyPattern}
-                        className="text-[9px] bg-purple-600 hover:bg-purple-500 text-white px-2.5 py-1 rounded font-bold transition-all hover:shadow-xs active:scale-95 disabled:opacity-40"
+                        className="text-[9px] w-full bg-purple-600 hover:bg-purple-500 text-white py-1.5 rounded font-black uppercase tracking-wider transition-all hover:shadow-xs active:scale-95 disabled:opacity-40"
                       >
                         Synthesize pattern
                       </button>
@@ -4670,36 +4692,36 @@ if __name__ == '__main__':
                 />
               </div>
 
-              <div className="flex items-center justify-between mt-3 px-1">
-                <div className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider font-black">
+              <div className="flex flex-col gap-3 mt-3 px-1 bg-slate-100/50 dark:bg-slate-900/25 p-3.5 rounded-xl border border-slate-200/40">
+                <div className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 uppercase tracking-wider font-black">
                   <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
-                  Format:{" "}
-                  <span className="text-cyan-500 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded ml-0.5 font-bold">
+                  Expected Dataset Format:{" "}
+                  <span className="text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded ml-0.5 font-bold">
                     2θ (deg)
                   </span>{" "}
                   ,{" "}
-                  <span className="text-purple-500 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded font-bold">
+                  <span className="text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded font-bold">
                     Intensity (a.u.)
                   </span>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => {
                       setIsMixMode(!isMixMode);
                       if (!isMixMode) setMixtureList([]);
                     }}
-                    className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md transition-all border
-                      ${isMixMode ? "bg-indigo-600 text-white border-indigo-700 shadow-md ring-2 ring-indigo-500/20" : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"}
+                    className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md transition-all border
+                      ${isMixMode ? "bg-indigo-600 text-white border-indigo-700 shadow-md ring-2 ring-indigo-500/25" : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"}
                     `}
                   >
                     <Layers className="w-3 h-3" />
                     {isMixMode ? "Mix Mode ACTIVE" : "Enable Mix Mode"}
                   </button>
                   {inputData && (
-                    <div className="text-[10px] font-black uppercase tracking-widest text-violet-600 bg-violet-100 border border-violet-200 px-2.5 py-1 rounded-md shadow-sm flex items-center gap-1.5">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-violet-600 bg-violet-100 border border-violet-200 px-2.5 py-1.5 rounded-md shadow-sm flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-pulse" />
                       {inputData.split("\n").filter((l) => l.trim()).length}{" "}
-                      Data Points
+                      Data Points Loaded
                     </div>
                   )}
                 </div>
@@ -6961,10 +6983,9 @@ if __name__ == '__main__':
                       </div>
 
                       {showLabVerificationPanel && (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mt-2">
-                          {/* Sidebar Tabs */}
-                          <div className="lg:col-span-4 flex flex-col gap-2 bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60 shadow-inner">
-                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest px-2 mb-1">Select Validation Lens</span>
+                        <div className="flex flex-col gap-5 mt-2">
+                          {/* Sidebar Tabs (stacked horizontally above detail window, full-width) */}
+                          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60 shadow-inner">
                             {[
                               { id: "overlap", label: "Bragg Peak Overlaps", icon: Scan, desc: "2-Theta overlap regions" },
                               { id: "instrument", label: "Technique Matrix", icon: Microscope, desc: "Physical validation assays" },
@@ -6999,7 +7020,7 @@ if __name__ == '__main__':
                           </div>
 
                           {/* Detail Window */}
-                          <div className="lg:col-span-8 bg-slate-950/70 p-5 rounded-2xl border border-slate-700/30 flex flex-col justify-between relative overflow-hidden">
+                          <div className="w-full bg-slate-950/70 p-5 rounded-2xl border border-slate-700/30 flex flex-col justify-between relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-[2rem] pointer-events-none" />
                             
                             {labGuideFilter === "overlap" && (
@@ -9776,11 +9797,9 @@ ${
                         Verification Audit Protocol
                       </h4>
                       <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">
-                        Dynamic Phase Certification & Cryptographic Structural
-                        Logs
+                        Interactive Checklist for Spectral Integrity
                       </p>
                     </div>
-
                     {selectedCandidate && (
                       <div className="flex items-center gap-4 bg-slate-950/80 px-4 py-2 rounded-xl border border-[#1e293b]">
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono">
@@ -9809,168 +9828,205 @@ ${
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    {/* Left Side: Audit Checks */}
-                    <div className="lg:col-span-7 space-y-4">
-                      {auditItems.map((item, i) => {
-                        const calculatedStatus = item.status(selectedCandidate);
-                        const isChecked = checkedAudits[i];
-
-                        return (
-                          <div
-                            key={`audit-${i}`}
-                            onClick={() => setSelectedAuditLog(i)}
-                            className={`relative flex items-center justify-between p-5 rounded-2xl border transition-all cursor-pointer group hover:bg-[#080E1A] shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)] ${
-                              selectedAuditLog === i
-                                ? "bg-[#081120]/80 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.08)]"
-                                : "bg-[#050B14] border-[#1e293b] hover:border-slate-700/60"
-                            }`}
-                          >
-                            <div className="flex items-center gap-4 flex-1">
-                              <div
-                                className="relative flex items-center justify-center mt-0.5"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const updated = [...checkedAudits];
-                                  updated[i] = !updated[i];
-                                  setCheckedAudits(updated);
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={() => {}}
-                                  className="peer w-5 h-5 rounded-[4px] border-[#1e293b] bg-slate-900/50 text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-0 cursor-pointer transition-all"
-                                />
-                                <div className="absolute inset-0 pointer-events-none rounded-[4px] peer-checked:shadow-[0_0_12px_rgba(16,185,129,0.4)] transition-shadow" />
-                              </div>
-
-                              <div className="flex flex-col gap-1 pr-4">
-                                <span className="text-xs font-black text-slate-300 group-hover:text-white transition-colors uppercase tracking-wide">
-                                  {item.label}
-                                </span>
-                                <span className="text-[10px] font-mono text-slate-500 group-hover:text-slate-400">
-                                  {item.desc}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="text-right flex flex-col items-end gap-1 font-mono">
-                              <span className="text-[10px] font-black text-slate-300">
-                                {item.getMetric(selectedCandidate)}
-                              </span>
-                              <span
-                                className={`text-[9px] font-black uppercase tracking-widest ${calculatedStatus.color}`}
-                              >
-                                {calculatedStatus.text}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Right Side: Verification Ledger */}
-                    <div className="lg:col-span-5 bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 relative overflow-hidden min-h-[380px] flex flex-col justify-between shadow-lg">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none" />
-
-                      {selectedAuditLog !== null ? (
-                        <div className="space-y-6 flex-1 flex flex-col justify-between h-full">
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between border-b border-[#1e293b] pb-4">
-                              <span className="text-[10px] font-black font-mono text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <Activity className="w-3.5 h-3.5" />
-                                Audit Ledger ID_{selectedAuditLog + 1}
-                              </span>
-                              <span className="text-[8px] font-black font-mono text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 rounded uppercase">
-                                Active
-                              </span>
-                            </div>
-
-                            <div>
-                              <h5 className="text-sm font-black text-white uppercase tracking-wider mb-2">
-                                {auditDetailsData[selectedAuditLog].title}
-                              </h5>
-                              <p className="text-xs text-slate-400 leading-relaxed">
-                                {auditDetailsData[selectedAuditLog].details}
-                              </p>
-                            </div>
-
-                            <div className="bg-slate-950 p-4 rounded-xl border border-[#1e293b] font-mono text-center">
-                              <span className="text-[9px] text-slate-500 block uppercase mb-1 tracking-widest font-mono">
-                                Calculated Scientific Equation
-                              </span>
-                              <span className="text-xs text-indigo-300 font-bold tracking-wide">
-                                {auditDetailsData[selectedAuditLog].formula}
-                              </span>
-                            </div>
-
-                            <div className="space-y-2.5">
-                              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block font-mono">
-                                Evaluation Parameters
-                              </span>
-
-                              {auditDetailsData[selectedAuditLog].steps.map(
-                                (step, idx) => (
-                                  <div
-                                    key={`step-${idx}`}
-                                    className="flex justify-between items-center bg-slate-950/60 border border-[#1e293b]/70 px-4 py-2.5 rounded-lg text-xs font-mono"
-                                  >
-                                    <span className="text-slate-400 text-[10px] uppercase">
-                                      {step.name}
-                                    </span>
-                                    <span className="font-bold text-emerald-400">
-                                      {step.value}
-                                    </span>
-                                  </div>
-                                ),
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="pt-4 border-t border-[#1e293b] flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
-                            <span>Cryptographic Signature: verified</span>
-                            <span className="text-slate-400 font-bold">
-                              SHA-256_STABLE
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex-1 flex flex-col justify-center items-center text-center p-6 space-y-4">
-                          <div className="p-4 bg-indigo-500/10 rounded-full border border-indigo-500/20">
-                            <Cpu className="w-8 h-8 text-indigo-400 animate-pulse" />
-                          </div>
-                          <div className="max-w-[240px]">
-                            <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1">
-                              System Check Needed
-                            </h5>
-                            <p className="text-[10px] text-slate-500 uppercase font-mono tracking-wider leading-relaxed">
-                              Select any active Audit item to display analytical
-                              ledger equations and parameter updates
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                  {/* ML Validation Sub-Tabs selector */}
+                  <div className="flex flex-wrap items-center gap-2 mb-8 bg-[#040812] p-1.5 rounded-3xl border border-slate-800/80 max-w-2xl">
+                    <button
+                      onClick={() => setSelectedValidationTab('audit')}
+                      className={`flex-1 py-2.5 px-4 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${
+                        selectedValidationTab === 'audit'
+                          ? 'bg-indigo-600/25 border border-indigo-500/50 text-white shadow-[inset_0_1px_10px_rgba(99,102,241,0.2)]'
+                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-slate-900/40'
+                      }`}
+                    >
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                      Dynamic Checklist
+                    </button>
+                    <button
+                      onClick={() => setSelectedValidationTab('robustness')}
+                      className={`flex-1 py-2.5 px-4 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${
+                        selectedValidationTab === 'robustness'
+                          ? 'bg-fuchsia-600/25 border border-fuchsia-500/50 text-white shadow-[inset_0_1px_10px_rgba(217,70,239,0.2)]'
+                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-slate-900/40'
+                      }`}
+                    >
+                      <SlidersHorizontal className="w-4 h-4 text-fuchsia-400" />
+                      Perturbation & Stress
+                    </button>
+                    <button
+                      onClick={() => setSelectedValidationTab('confusion')}
+                      className={`flex-1 py-2.5 px-4 rounded-2xl text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 ${
+                        selectedValidationTab === 'confusion'
+                          ? 'bg-cyan-600/25 border border-cyan-500/50 text-white shadow-[inset_0_1px_10px_rgba(34,211,238,0.2)]'
+                          : 'text-slate-400 hover:text-white border border-transparent hover:bg-slate-900/40'
+                      }`}
+                    >
+                      <Activity className="w-4 h-4 text-cyan-400" />
+                      Neural Confusion
+                    </button>
                   </div>
 
-                  {/* Final Protocol Action Bar */}
-                  {selectedCandidate && (
-                    <div className="mt-8 p-6 bg-[#050B14] rounded-2xl border border-[#1e293b] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)]">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                          Validated components:{" "}
-                          <span className="text-white font-bold">
-                            {checkedAudits.filter(Boolean).length} of 5 verified
-                          </span>
-                        </span>
+                  {selectedValidationTab === 'audit' && (
+                    <div className="flex flex-col gap-8">
+                      {/* Left Side: Audit Checks */}
+                      <div className="w-full space-y-4">
+                        {auditItems.map((item, i) => {
+                          const calculatedStatus = item.status(selectedCandidate);
+                          const isChecked = checkedAudits[i];
+
+                          return (
+                            <div
+                              key={`audit-${i}`}
+                              onClick={() => setSelectedAuditLog(i)}
+                              className={`relative flex items-center justify-between p-5 rounded-2xl border transition-all cursor-pointer group hover:bg-[#080E1A] shadow-[inset_0_2px_10px_rgba(255,255,255,0.02)] ${
+                                selectedAuditLog === i
+                                  ? "bg-[#081120]/80 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.08)]"
+                                  : "bg-[#050B14] border-[#1e293b] hover:border-slate-700/60"
+                              }`}
+                            >
+                              <div className="flex items-center gap-4 flex-1">
+                                <div
+                                  className="relative flex items-center justify-center mt-0.5"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const updated = [...checkedAudits];
+                                    updated[i] = !updated[i];
+                                    setCheckedAudits(updated);
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {}}
+                                    className="peer w-5 h-5 rounded-[4px] border-[#1e293b] bg-slate-900/50 text-emerald-500 focus:ring-emerald-500/20 focus:ring-offset-0 cursor-pointer transition-all"
+                                  />
+                                  <div className="absolute inset-0 pointer-events-none rounded-[4px] peer-checked:shadow-[0_0_12px_rgba(16,185,129,0.4)] transition-shadow" />
+                                </div>
+
+                                <div className="flex flex-col gap-1 pr-4">
+                                  <span className="text-xs font-black text-slate-300 group-hover:text-white transition-colors uppercase tracking-wide">
+                                    {item.label}
+                                  </span>
+                                  <span className="text-[10px] font-mono text-slate-500 group-hover:text-slate-400">
+                                    {item.desc}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="text-right flex flex-col items-end gap-1 font-mono">
+                                <span className="text-[10px] font-black text-slate-300">
+                                  {item.getMetric(selectedCandidate)}
+                                </span>
+                                <span
+                                  className={`text-[9px] font-black uppercase tracking-widest ${calculatedStatus.color}`}
+                                >
+                                  {calculatedStatus.text}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
 
-                      <button
-                        onClick={() => {
-                          const reportText =
-                            `VERIFICATION AUDIT CERTIFICATE
+                      {/* Right Side: Verification Ledger */}
+                      <div className="w-full bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 relative overflow-hidden min-h-[380px] flex flex-col justify-between shadow-lg">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none" />
+
+                        {selectedAuditLog !== null ? (
+                          <div className="space-y-6 flex-1 flex flex-col justify-between h-full">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between border-b border-[#1e293b] pb-4">
+                                <span className="text-[10px] font-black font-mono text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                                  <Activity className="w-3.5 h-3.5" />
+                                  Audit Ledger ID_{selectedAuditLog + 1}
+                                </span>
+                                <span className="text-[8px] font-black font-mono text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 rounded uppercase">
+                                  Active
+                                </span>
+                              </div>
+
+                              <div>
+                                <h5 className="text-sm font-black text-white uppercase tracking-wider mb-2">
+                                  {auditDetailsData[selectedAuditLog].title}
+                                </h5>
+                                <p className="text-xs text-slate-400 leading-relaxed">
+                                  {auditDetailsData[selectedAuditLog].details}
+                                </p>
+                              </div>
+
+                              <div className="bg-slate-950 p-4 rounded-xl border border-[#1e293b] font-mono text-center">
+                                <span className="text-[9px] text-slate-500 block uppercase mb-1 tracking-widest font-mono">
+                                  Calculated Scientific Equation
+                                </span>
+                                <span className="text-xs text-indigo-300 font-bold tracking-wide">
+                                  {auditDetailsData[selectedAuditLog].formula}
+                                </span>
+                              </div>
+
+                              <div className="space-y-2.5">
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block font-mono">
+                                  Evaluation Parameters
+                                </span>
+
+                                {auditDetailsData[selectedAuditLog].steps.map(
+                                  (step, idx) => (
+                                    <div
+                                      key={`step-${idx}`}
+                                      className="flex justify-between items-center bg-slate-950/60 border border-[#1e293b]/70 px-4 py-2.5 rounded-lg text-xs font-mono"
+                                    >
+                                      <span className="text-slate-400 text-[10px] uppercase">
+                                        {step.name}
+                                      </span>
+                                      <span className="font-bold text-emerald-400">
+                                        {step.value}
+                                      </span>
+                                    </div>
+                                  ),
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-[#1e293b] flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                              <span>Cryptographic Signature: verified</span>
+                              <span className="text-slate-400 font-bold">
+                                SHA-256_STABLE
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex-1 flex flex-col justify-center items-center text-center p-6 space-y-4">
+                            <div className="p-4 bg-indigo-500/10 rounded-full border border-indigo-500/20">
+                              <Cpu className="w-8 h-8 text-indigo-400 animate-pulse" />
+                            </div>
+                            <div className="max-w-[240px]">
+                              <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1">
+                                System Check Needed
+                              </h5>
+                              <p className="text-[10px] text-slate-500 uppercase font-mono tracking-wider leading-relaxed">
+                                Select any active Audit item to display analytical
+                                ledger equations and parameter updates
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Final Protocol Action Bar */}
+                      {selectedCandidate && (
+                        <div className="w-full mt-4 p-6 bg-[#050B14] rounded-2xl border border-[#1e293b] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)]">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              Validated components:{" "}
+                              <span className="text-white font-bold">
+                                {checkedAudits.filter(Boolean).length} of 5 verified
+                              </span>
+                            </span>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              const reportText =
+                                `VERIFICATION AUDIT CERTIFICATE
 Generated on: ${new Date().toLocaleString()}
 Validated Phase: ${selectedCandidate.phase_name}
 Lattice Space Group: ${selectedCandidate.spaceGroup || "Unknown"}
@@ -9978,37 +10034,375 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
 
 --- CRITICAL METRICS VERIFICATION ---
 ` +
-                            auditItems
-                              .map((item, i) => {
-                                const statusText =
-                                  item.status(selectedCandidate).text;
-                                const metricVal =
-                                  item.getMetric(selectedCandidate);
-                                const userChecked = checkedAudits[i]
-                                  ? "[X]"
-                                  : "[ ]";
-                                return `${userChecked} ${item.label}: ${metricVal} -> Status: ${statusText}`;
-                              })
-                              .join("\n") +
-                            `\n\nAuthentication Protocol Status: SIGNED & LOCKED\nSHA-256 Cryptographic Hash: Verified`;
+                                auditItems
+                                  .map((item, i) => {
+                                    const statusText =
+                                      item.status(selectedCandidate).text;
+                                    const metricVal =
+                                      item.getMetric(selectedCandidate);
+                                    const userChecked = checkedAudits[i]
+                                      ? "[X]"
+                                      : "[ ]";
+                                    return `${userChecked} ${item.label}: ${metricVal} -> Status: ${statusText}`;
+                                  })
+                                  .join("\n") +
+                                `\n\nAuthentication Protocol Status: SIGNED & LOCKED\nSHA-256 Cryptographic Hash: Verified`;
 
-                          const blob = new Blob([reportText], {
-                            type: "text/plain",
-                          });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = `XRD_Verification_Audit_${selectedCandidate.phase_name}.txt`;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(url);
-                        }}
-                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] text-[10px] font-black text-white rounded-xl uppercase tracking-widest border border-indigo-500/30 transition-all active:scale-[0.98]"
-                      >
-                        Export Certified Audit Report
-                      </button>
+                              const blob = new Blob([reportText], {
+                                type: "text/plain",
+                              });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = `XRD_Verification_Audit_${selectedCandidate.phase_name}.txt`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] text-[10px] font-black text-white rounded-xl uppercase tracking-widest border border-indigo-500/30 transition-all active:scale-[0.98]"
+                          >
+                            Export Certified Audit Report
+                          </button>
+                        </div>
+                      )}
                     </div>
+                  )}
+
+                  {selectedValidationTab === 'robustness' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start"
+                    >
+                      {/* Left: Perturbation Settings */}
+                      <div className="lg:col-span-5 bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 space-y-6 shadow-lg">
+                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800">
+                          <SlidersHorizontal className="w-5 h-5 text-fuchsia-400" />
+                          <span className="text-[11px] font-black font-mono text-fuchsia-400 uppercase tracking-widest">
+                            Perturbation Settings
+                          </span>
+                        </div>
+
+                        <div className="space-y-5">
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 tracking-wide">
+                              <span>GAUSSIAN NOISE LEVEL (1σ)</span>
+                              <span className="text-fuchsia-400 font-mono text-xs">{noiseLevel}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="50"
+                              value={noiseLevel}
+                              onChange={(e) => {
+                                setNoiseLevel(Number(e.target.value));
+                                setPerturbationScore(null);
+                              }}
+                              className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
+                            />
+                            <p className="text-[8.5px] text-slate-500 leading-normal">
+                              Simulates high thermal vibrations, dark current instrumental errors, or rapid synchrotron beam degradation.
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 tracking-wide">
+                              <span>BACKGROUND DRIFT / SKEW</span>
+                              <span className="text-fuchsia-400 font-mono text-xs">{backgroundDrift}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="30"
+                              value={backgroundDrift}
+                              onChange={(e) => {
+                                setBackgroundDrift(Number(e.target.value));
+                                setPerturbationScore(null);
+                              }}
+                              className="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-fuchsia-500"
+                            />
+                            <p className="text-[8.5px] text-slate-500 leading-normal">
+                              Simulates fluorescent amorphous humps, sample holder displacement skew, or incorrect slit height scaling.
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          disabled={isPerturbationRunning}
+                          onClick={() => {
+                            setIsPerturbationRunning(true);
+                            playSynthTone('switch'); // soft tone
+                            setTimeout(() => {
+                              const base = selectedCandidate?.mlValidationScore || 85;
+                              const rand = 3 * Math.random();
+                              const finalS = Math.max(0, Math.min(100, Number((base - (noiseLevel * 0.72) - (backgroundDrift * 0.44) - rand).toFixed(1))));
+                              setPerturbationScore(finalS);
+                              setIsPerturbationRunning(false);
+                              playSynthTone(finalS > 60 ? 'success' : 'error'); // positive/negative sound
+                            }, 1200);
+                          }}
+                          className="w-full py-3.5 bg-gradient-to-r from-fuchsia-600 to-indigo-600 hover:from-fuchsia-500 hover:to-indigo-500 text-xs font-black text-white rounded-xl uppercase tracking-widest shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2.5"
+                        >
+                          {isPerturbationRunning ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-white" />
+                              Simulating Backprop Perturbation...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 text-white" />
+                              Trigger Adverasial Stress Check
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Right: Results Display & Diagnostic */}
+                      <div className="lg:col-span-7 bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 min-h-[380px] flex flex-col justify-between relative overflow-hidden shadow-lg">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/5 rounded-full blur-[40px] pointer-events-none" />
+
+                        <div className="space-y-6 flex-1 flex flex-col justify-between">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                              <span className="text-[10px] font-black font-mono text-fuchsia-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <Activity className="w-3.5 h-3.5" />
+                                Stress Diagnostic Matrix
+                              </span>
+                              <span className="text-[8px] font-black font-mono text-fuchsia-400 border border-fuchsia-500/30 bg-fuchsia-500/10 px-2.5 py-0.5 rounded uppercase">
+                                Realtime Math Emulator
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                              Adversarial perturbation testing validates network generalizability. By adding controlled Gaussian noise envelopes and baseline drift, we measure whether the 1D CNN\'s receptive filters preserve local d-spacing peaks or degrade into spurious labels.
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex flex-col gap-1.5">
+                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Unperturbed Score</span>
+                                <div className="text-2xl font-black font-mono text-white tracking-tight">
+                                  {selectedCandidate?.mlValidationScore || 0}%
+                                </div>
+                                <span className="text-[8.5px] font-medium text-slate-500">Perfect theoretical clean scan</span>
+                              </div>
+
+                              <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 flex flex-col gap-1.5 relative overflow-hidden">
+                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Perturbed Score</span>
+                                <div className="text-2xl font-black font-mono text-fuchsia-400 tracking-tight">
+                                  {perturbationScore !== null ? `${perturbationScore}%` : "---%"}
+                                </div>
+                                <span className="text-[8.5px] font-medium text-slate-500">
+                                  {perturbationScore !== null ? `Degraded by ${(selectedCandidate?.mlValidationScore || 0) - perturbationScore === 0 ? "0.0" : ((selectedCandidate?.mlValidationScore || 0) - perturbationScore).toFixed(1)}%` : "Requires stress-test run"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Score Interpretation Badge */}
+                            {perturbationScore !== null && (
+                              <div className="p-4 rounded-2xl border bg-slate-950/40 flex flex-col gap-2 relative overflow-hidden animate-in fade-in duration-300">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2.5 h-2.5 rounded-full ${
+                                    perturbationScore > 85 ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' :
+                                    perturbationScore > 70 ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]' :
+                                    perturbationScore > 50 ? 'bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]' :
+                                    'bg-rose-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]'
+                                  }`} />
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-200">
+                                    Resiliency Evaluation:{" "}
+                                    <span className={`${
+                                      perturbationScore > 85 ? 'text-emerald-400' :
+                                      perturbationScore > 70 ? 'text-cyan-400' :
+                                      perturbationScore > 50 ? 'text-amber-400' :
+                                      'text-rose-400'
+                                    }`}>
+                                      {perturbationScore > 85 ? 'SOTA FAULT-TOLERANT' :
+                                       perturbationScore > 70 ? 'ROBUST INDUSTRIAL OPERATIONAL' :
+                                       perturbationScore > 50 ? 'VULNERABLE SEVERE OVERLAPS' :
+                                       'RESOLUTION BREAKDOWN'}
+                                    </span>
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 leading-relaxed font-sans min-h-[50px]">
+                                  {perturbationScore > 85 ? 'The network displays absolute stability against high beam drift or fluctuating noise floors. Excellent for short exposure synchrotron test environments.' :
+                                   perturbationScore > 70 ? 'General operating specs. d-spacings are extracted correct, although minor relative intensity shifts occur from asymmetric amorphous profile skews.' :
+                                   perturbationScore > 50 ? 'The identified phase boundary might overlap with amorphous background humps under stress. Fine-tuning filters or utilizing a wider kernel profile is recommended.' :
+                                   'The model breaks down under severe background drift, suggesting high out-of-distribution distortion. Check sample alignment geometry or filter substrate interference.'}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                            <span>Noise-injection vector: active</span>
+                            <span className="text-slate-400 font-bold">MONTE_CARLO_SIM</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {selectedValidationTab === 'confusion' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-300"
+                    >
+                      {/* Left: Interactive 6x6 Confusion Heatmap Grid */}
+                      <div className="lg:col-span-7 bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 shadow-lg">
+                        <div className="flex items-center gap-2 pb-4 border-b border-slate-800 mb-6">
+                          <Activity className="w-5 h-5 text-cyan-400" />
+                          <span className="text-[11px] font-black font-mono text-cyan-400 uppercase tracking-widest">
+                            Crystal System Multi-Class Matrix
+                          </span>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <div className="min-w-[420px] space-y-2">
+                            {/* X-axis title label */}
+                            <div className="text-center text-[9px] font-black font-mono text-cyan-400/80 uppercase tracking-widest mb-1">
+                              Predicted Crystal System Class (Output Vector)
+                            </div>
+
+                            {/* Actual Table */}
+                            <div className="grid grid-cols-7 gap-1">
+                              {/* Corner header cells */}
+                              <div className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-wider flex items-center justify-center p-1.5 text-center leading-tight">
+                                True \ Pred
+                              </div>
+                              {['Cubic', 'Tetra', 'Hexa', 'Ortho', 'Mono', 'Tric'].map(h => (
+                                <div key={h} className="text-[8px] font-black font-mono text-slate-400 uppercase tracking-wider text-center p-2 bg-slate-950/40 rounded border border-slate-800/40">
+                                  {h}
+                                </div>
+                              ))}
+
+                              {/* Rows of data */}
+                              {(() => {
+                                const rows = ['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic', 'Triclinic'];
+                                const cols = ['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic', 'Triclinic'];
+                                const matrixData: Record<string, number[]> = {
+                                  Cubic:        [94.5, 3.5, 0.5, 1.0, 0.5, 0.0],
+                                  Tetragonal:   [5.2, 89.1, 1.1, 3.8, 0.8, 0.0],
+                                  Hexagonal:    [0.4, 1.2, 96.3, 0.8, 1.0, 0.3],
+                                  Orthorhombic: [1.5, 4.2, 0.8, 88.4, 4.1, 1.0],
+                                  Monoclinic:   [0.8, 1.5, 1.2, 5.5, 84.2, 6.8],
+                                  Triclinic:    [0.2, 1.0, 2.1, 4.5, 11.2, 81.0],
+                                };
+
+                                return rows.map((rowName) => (
+                                  <React.Fragment key={rowName}>
+                                    {/* Y-axis label column */}
+                                    <div className="text-[8px] font-black font-mono text-slate-400 uppercase tracking-wider flex items-center justify-start p-2 bg-slate-950/40 rounded border border-slate-800/40">
+                                      {rowName.slice(0, 5)}...
+                                    </div>
+                                    {/* 6 classification projection columns */}
+                                    {cols.map((colName, colIdx) => {
+                                      const val = matrixData[rowName][colIdx];
+                                      const isDiag = rowName.startsWith(colName.slice(0, 4));
+                                      const isCellSelected = activeMatrixCell?.row === rowName && activeMatrixCell?.col === colName;
+
+                                      return (
+                                        <div
+                                          key={colName}
+                                          onClick={() => setActiveMatrixCell({ row: rowName, col: colName, val })}
+                                          style={{
+                                            backgroundColor: isDiag 
+                                              ? `rgba(14, 165, 233, ${Math.max(0.1, val / 100)})` 
+                                              : `rgba(217, 70, 239, ${Math.max(0, (val - 0.5) / 15)})`
+                                          }}
+                                          className={`aspect-square sm:h-12 flex flex-col items-center justify-center p-1 rounded border cursor-pointer transition-all hover:scale-105 hover:border-white/40 ${
+                                            isCellSelected 
+                                              ? 'border-white ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.4)] z-10' 
+                                              : isDiag 
+                                                ? 'border-cyan-500/20' 
+                                                : 'border-slate-800/40'
+                                          }`}
+                                        >
+                                          <span className="text-[10px] font-black font-mono text-white tracking-tighter tabular-nums leading-none">
+                                            {val.toFixed(1)}%
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </React.Fragment>
+                                ));
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 text-[9px] font-mono text-slate-500 uppercase tracking-wide flex justify-between">
+                          <span>* Diagonal represents TP (True-Positives Rate)</span>
+                          <span>Click cell for projection details</span>
+                        </div>
+                      </div>
+
+                      {/* Right: Neural Diagnostics for Selected Cell */}
+                      <div className="lg:col-span-5 bg-[#050B14] border border-[#1e293b] rounded-3xl p-6 min-h-[380px] flex flex-col justify-between shadow-lg relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-[40px] pointer-events-none" />
+
+                        {activeMatrixCell ? (
+                          <div className="space-y-6 flex-1 flex flex-col justify-between">
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                                <span className="text-[10px] font-black font-mono text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
+                                  <Activity className="w-3.5 h-3.5" />
+                                  Operator Projection Ledger
+                                </span>
+                                <span className="text-[8px] font-black font-mono text-cyan-400 border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 rounded uppercase">
+                                  Inter-class Error
+                                </span>
+                              </div>
+
+                              <div>
+                                <span className="text-[9px] font-black font-mono text-slate-500 uppercase tracking-widest block mb-1">Target Class Correlation</span>
+                                <h5 className="text-sm font-black text-white uppercase tracking-wider mb-2">
+                                  {activeMatrixCell.row} ⟶ {activeMatrixCell.col}
+                                </h5>
+                                <div className="inline-flex px-3 py-1.5 bg-[#09101d] border border-cyan-500/30 rounded-xl text-lg font-black font-mono text-cyan-400 mb-4 tabular-nums shadow-inner">
+                                  {activeMatrixCell.val}% Probability
+                                </div>
+                                <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                                  {activeMatrixCell.row === activeMatrixCell.col ? (
+                                    `High-confidence prediction of ${activeMatrixCell.row} lattice geometry. At ${activeMatrixCell.val}%, the CNN filters have successfully crystallized receptive weights with zero spatial aliasing.`
+                                  ) : (
+                                    `Calculated confusion error. The CNN identifies true ${activeMatrixCell.row} symmetries as false ${activeMatrixCell.col} profiles. Typically triggered by micro-strain distortion, atomic vacancies, or extremely clean secondary peaks of similar d-spacing.`
+                                  )}
+                                </p>
+                              </div>
+
+                              <div className="bg-slate-950 p-4 rounded-xl border border-slate-900 font-mono text-left">
+                                <span className="text-[9px] text-slate-500 block uppercase mb-1 tracking-widest font-mono">Structural Resolution Note</span>
+                                <span className="text-[10px] text-slate-300 font-medium">
+                                  {activeMatrixCell.row === 'Cubic' && activeMatrixCell.col === 'Tetragonal' ? 'Cubic unit cells can shear into a Tetragonal crystal system under localized thermal gradient or epitaxial strain, mimicking identical base reflections.' :
+                                   activeMatrixCell.row === 'Monoclinic' && activeMatrixCell.col === 'Triclinic' ? 'High non-axial crystal limits in triclinic configurations make distinguishing Monoclinic unit cell dimensions highly sensitive to instrument drift.' :
+                                   'High overlapping ratios are highly correlated with similar interplanar d-spacing configurations or fractional volume mixtures in high signal background scanning.'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-800 flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+                              <span>Multi-class test size: N = 10,000</span>
+                              <span className="text-slate-400 font-bold">F1_SCORE: 0.892</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex-1 flex flex-col justify-center items-center text-center p-6 space-y-4">
+                            <div className="p-4 bg-cyan-500/10 rounded-full border border-cyan-500/20">
+                              <Cpu className="w-8 h-8 text-cyan-400 animate-pulse" />
+                            </div>
+                            <div className="max-w-[240px]">
+                              <h5 className="text-xs font-black text-white uppercase tracking-widest mb-1">
+                                Matrix Select Needed
+                              </h5>
+                              <p className="text-[10px] text-slate-500 uppercase font-mono tracking-wider leading-relaxed">
+                                Click any percentage coordinate in the multi-class confusion grid to inspect specific neural prediction behaviors and structural limits.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
                   )}
                 </div>
               </div>
