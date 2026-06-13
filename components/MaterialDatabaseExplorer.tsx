@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -108,6 +108,7 @@ const NORMALIZED_SYSTEMS = [
 
 export const MaterialDatabaseExplorer: React.FC = () => {
   const { t } = useTranslation();
+  const inspectorRef = useRef<HTMLDivElement>(null);
 
   // Load and preserve materials with local overrides
   const [materials, setMaterials] = useState<any[]>(() => {
@@ -198,6 +199,386 @@ export const MaterialDatabaseExplorer: React.FC = () => {
   const [editApplications, setEditApplications] = useState<string[]>([]);
   const [newAppText, setNewAppText] = useState('');
   const [editError, setEditError] = useState('');
+
+  // Manual overrides for Material Characterization & State Analysis
+  const [editStandardState, setEditStandardState] = useState('Solid');
+  const [editStandardEntropy, setEditStandardEntropy] = useState('');
+  const [editFormationEnergy, setEditFormationEnergy] = useState('');
+  const [editHeatCapacity, setEditHeatCapacity] = useState('');
+  const [editDebyeTemperature, setEditDebyeTemperature] = useState('');
+  const [editEnergyAboveHull, setEditEnergyAboveHull] = useState('');
+  const [editStabilityStatus, setEditStabilityStatus] = useState('STABLE');
+  const [editDecompositionTemp, setEditDecompositionTemp] = useState('');
+  const [editFormationEnthalpy, setEditFormationEnthalpy] = useState('');
+
+  // Crystallographic states
+  const [editLatticeA, setEditLatticeA] = useState('');
+  const [editLatticeB, setEditLatticeB] = useState('');
+  const [editLatticeC, setEditLatticeC] = useState('');
+  const [editAlpha, setEditAlpha] = useState('');
+  const [editBeta, setEditBeta] = useState('');
+  const [editGamma, setEditGamma] = useState('');
+  const [editZValue, setEditZValue] = useState('');
+
+  // Subform section toggler
+  const [editFormSection, setEditFormSection] = useState<'profile' | 'thermo' | 'crystal'>('profile');
+
+  const renderCharacterizationSubForm = () => {
+    return (
+      <div className="mt-4 p-4 rounded-2xl bg-slate-950/40 border border-slate-900 space-y-4">
+        {/* Section title */}
+        <div className="flex items-center gap-2 border-b border-slate-900 pb-2">
+          <span className="text-[10px] uppercase font-black text-indigo-400 tracking-wider">Manual Material Characterization overrides</span>
+        </div>
+
+        {/* Sub-form Tab Switcher */}
+        <div className="flex border-b border-slate-800/60 pb-1.5 gap-2">
+          <button
+            type="button"
+            onClick={() => setEditFormSection('profile')}
+            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+              editFormSection === 'profile'
+                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+            }`}
+          >
+            📋 Profile & State
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditFormSection('thermo')}
+            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+              editFormSection === 'thermo'
+                ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+            }`}
+          >
+            🔥 Thermodynamics
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditFormSection('crystal')}
+            className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+              editFormSection === 'crystal'
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+            }`}
+          >
+            💎 Symmetry & Lattice
+          </button>
+        </div>
+
+        {/* Tab 1: Profile & State Analysis */}
+        {editFormSection === 'profile' && (
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Material State */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Standard State</label>
+                <select
+                  value={editStandardState}
+                  onChange={e => setEditStandardState(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors cursor-pointer"
+                >
+                  <option value="Solid">Solid</option>
+                  <option value="Liquid">Liquid</option>
+                  <option value="Gas">Gas</option>
+                  <option value="Supercritical Fluid">Supercritical</option>
+                  <option value="Amorphous Solid">Amorphous Solid</option>
+                </select>
+              </div>
+
+              {/* Molecular Weight */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Mol. Weight (g/mol)</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  value={editMolecularWeight}
+                  onChange={e => setEditMolecularWeight(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. 269.8"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Density */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Density (g/cm³)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editDensity}
+                  onChange={e => setEditDensity(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. 5.86"
+                />
+              </div>
+
+              {/* Elastic Modulus */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Elastic Modulus (GPa)</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={editElasticModulus}
+                  onChange={e => setEditElasticModulus(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. 182"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Thermodynamics & Stability */}
+        {editFormSection === 'thermo' && (
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Stability Status */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Stability Status</label>
+                <select
+                  value={editStabilityStatus}
+                  onChange={e => setEditStabilityStatus(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors cursor-pointer"
+                >
+                  <option value="STABLE">STABLE</option>
+                  <option value="METASTABLE">METASTABLE</option>
+                  <option value="UNSTABLE">UNSTABLE</option>
+                  <option value="HIGHLY UNSTABLE">HIGHLY UNSTABLE</option>
+                </select>
+              </div>
+
+              {/* Energy above Hull */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">E above Hull (eV/atom)</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  value={editEnergyAboveHull}
+                  onChange={e => setEditEnergyAboveHull(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. 0.0"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Formation Gibb Energy */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Formation Energy (eV/atom)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editFormationEnergy}
+                  onChange={e => setEditFormationEnergy(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. -1.43"
+                />
+              </div>
+
+              {/* Formation Enthalpy */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Formation Enthalpy (kJ/mol)</label>
+                <input
+                  type="number"
+                  step="1"
+                  value={editFormationEnthalpy}
+                  onChange={e => setEditFormationEnthalpy(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. -285"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Standard Entropy */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Entropy S° (J/mol·K)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={editStandardEntropy}
+                  onChange={e => setEditStandardEntropy(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. 51.4"
+                />
+              </div>
+
+              {/* Heat Capacity */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Heat Cap. Cp (J/mol·K)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={editHeatCapacity}
+                  onChange={e => setEditHeatCapacity(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. 84.2"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Debye Temperature */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Debye Temp. (K)</label>
+                <input
+                  type="number"
+                  step="1"
+                  value={editDebyeTemperature}
+                  onChange={e => setEditDebyeTemperature(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. 420"
+                />
+              </div>
+
+              {/* Decomposition Temp */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Decomp./Melting (K)</label>
+                <input
+                  type="number"
+                  step="1"
+                  value={editDecompositionTemp}
+                  onChange={e => setEditDecompositionTemp(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. 1850"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Crystallographic Symmetries & Unit Cell Lengths */}
+        {editFormSection === 'crystal' && (
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Z-Value (formula units per cell) */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Z value (Atoms/cell)</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={editZValue}
+                  onChange={e => setEditZValue(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. 4"
+                />
+              </div>
+
+              {/* Space Group */}
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Symmetry Space Group</label>
+                <input
+                  type="text"
+                  value={editSpaceGroup}
+                  onChange={e => setEditSpaceGroup(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
+                  placeholder="e.g. Fm-3m"
+                />
+              </div>
+            </div>
+
+            {/* Lattice Lengths (a,b,c) */}
+            <div className="space-y-1 pt-1.5 border-t border-slate-900">
+              <span className="block text-[8px] font-black uppercase text-indigo-400 tracking-widest mb-1.5">Axial Lengths (Å)</span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[8px] font-bold text-slate-500 uppercase font-serif">a (Å)</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={editLatticeA}
+                    onChange={e => setEditLatticeA(e.target.value)}
+                    className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
+                    placeholder="e.g. 4.156"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[8px] font-bold text-slate-500 uppercase font-serif">b (Å)</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={editLatticeB}
+                    onChange={e => setEditLatticeB(e.target.value)}
+                    className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
+                    placeholder="e.g. 4.156"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[8px] font-bold text-slate-500 uppercase font-serif">c (Å)</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={editLatticeC}
+                    onChange={e => setEditLatticeC(e.target.value)}
+                    className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
+                    placeholder="e.g. 10.21"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Lattice angles (alpha, beta, gamma) */}
+            <div className="space-y-1 pt-1.5">
+              <span className="block text-[8px] font-black uppercase text-indigo-400 tracking-widest mb-1.5">Axial Angles (°)</span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[8px] font-bold text-slate-500 uppercase font-serif">α (alpha)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="180"
+                    value={editAlpha}
+                    onChange={e => setEditAlpha(e.target.value)}
+                    className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
+                    placeholder="e.g. 90"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[8px] font-bold text-slate-500 uppercase font-serif">β (beta)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="180"
+                    value={editBeta}
+                    onChange={e => setEditBeta(e.target.value)}
+                    className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
+                    placeholder="e.g. 90"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[8px] font-bold text-slate-500 uppercase font-serif">γ (gamma)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="180"
+                    value={editGamma}
+                    onChange={e => setEditGamma(e.target.value)}
+                    className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
+                    placeholder="e.g. 120"
+                  />
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Database multi-stage automated refinement pipeline states
   const [isRefiningAll, setIsRefiningAll] = useState(false);
@@ -779,8 +1160,31 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     setEditApplications(selectedMaterial.applications || []);
     setNewAppText('');
     setEditError('');
+
+    // Load custom characterization fields
+    setEditStandardState(selectedMaterial.standardState || 'Solid');
+    setEditStandardEntropy(selectedMaterial.standardEntropy?.toString() || '');
+    setEditFormationEnergy(selectedMaterial.formationEnergy?.toString() || '');
+    setEditHeatCapacity(selectedMaterial.heatCapacity?.toString() || '');
+    setEditDebyeTemperature(selectedMaterial.debyeTemperature?.toString() || '');
+    setEditEnergyAboveHull(selectedMaterial.energyAboveHull?.toString() || '');
+    setEditStabilityStatus(selectedMaterial.stabilityStatus || 'STABLE');
+    setEditDecompositionTemp(selectedMaterial.decompositionTemp?.toString() || '');
+    setEditFormationEnthalpy(selectedMaterial.formationEnthalpy?.toString() || '');
+
+    setEditLatticeA(selectedMaterial.latticeParams?.a?.toString() || '');
+    setEditLatticeB(selectedMaterial.latticeParams?.b?.toString() || '');
+    setEditLatticeC(selectedMaterial.latticeParams?.c?.toString() || '');
+    setEditAlpha(selectedMaterial.latticeParams?.alpha?.toString() || '');
+    setEditBeta(selectedMaterial.latticeParams?.beta?.toString() || '');
+    setEditGamma(selectedMaterial.latticeParams?.gamma?.toString() || '');
+    setEditZValue(selectedMaterial.zValue?.toString() || '');
+
     setIsCreating(false);
     setIsEditing(true);
+    setTimeout(() => {
+      inspectorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   // Set up value for custom creation mode
@@ -797,8 +1201,31 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     setEditApplications([]);
     setNewAppText('');
     setEditError('');
+
+    // Reset custom characterization fields
+    setEditStandardState('Solid');
+    setEditStandardEntropy('');
+    setEditFormationEnergy('');
+    setEditHeatCapacity('');
+    setEditDebyeTemperature('');
+    setEditEnergyAboveHull('');
+    setEditStabilityStatus('STABLE');
+    setEditDecompositionTemp('');
+    setEditFormationEnthalpy('');
+
+    setEditLatticeA('');
+    setEditLatticeB('');
+    setEditLatticeC('');
+    setEditAlpha('');
+    setEditBeta('');
+    setEditGamma('');
+    setEditZValue('');
+
     setIsEditing(false);
     setIsCreating(true);
+    setTimeout(() => {
+      inspectorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   // Save changes to active material or create a new one
@@ -835,7 +1262,27 @@ export const MaterialDatabaseExplorer: React.FC = () => {
       description: editDescription.trim(),
       pattern: editPattern.trim(),
       applications: editApplications,
-      elements: formulaElements.length > 0 ? formulaElements : (selectedMaterial?.elements || [])
+      elements: formulaElements.length > 0 ? formulaElements : (selectedMaterial?.elements || []),
+
+      // Manual characterization properties saved on material
+      standardState: editStandardState.trim(),
+      standardEntropy: editStandardEntropy.trim() ? parseFloat(editStandardEntropy) : undefined,
+      formationEnergy: editFormationEnergy.trim() ? parseFloat(editFormationEnergy) : undefined,
+      heatCapacity: editHeatCapacity.trim() ? parseFloat(editHeatCapacity) : undefined,
+      debyeTemperature: editDebyeTemperature.trim() ? parseFloat(editDebyeTemperature) : undefined,
+      energyAboveHull: editEnergyAboveHull.trim() ? parseFloat(editEnergyAboveHull) : undefined,
+      stabilityStatus: editStabilityStatus.trim(),
+      decompositionTemp: editDecompositionTemp.trim() ? parseFloat(editDecompositionTemp) : undefined,
+      formationEnthalpy: editFormationEnthalpy.trim() ? parseFloat(editFormationEnthalpy) : undefined,
+      zValue: editZValue.trim() ? parseInt(editZValue, 10) : undefined,
+      latticeParams: (editLatticeA.trim() || editLatticeB.trim() || editLatticeC.trim() || editAlpha.trim() || editBeta.trim() || editGamma.trim()) ? {
+        a: editLatticeA.trim() ? parseFloat(editLatticeA) : 5.0,
+        b: editLatticeB.trim() ? parseFloat(editLatticeB) : 5.0,
+        c: editLatticeC.trim() ? parseFloat(editLatticeC) : 5.0,
+        alpha: editAlpha.trim() ? parseFloat(editAlpha) : 90,
+        beta: editBeta.trim() ? parseFloat(editBeta) : 90,
+        gamma: editGamma.trim() ? parseFloat(editGamma) : 90,
+      } : undefined
     };
 
     let next: any[];
@@ -1180,19 +1627,19 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-slate-100">
       
       {/* 1. HERO DIRECTORY HEADER */}
-      <div className="relative group p-8 sm:p-10 rounded-[3rem] bg-black/40 backdrop-blur-md border border-white/5 hover:border-indigo-500/30 transition-all shadow-2xl overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-0">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-500/10 to-cyan-500/10 rounded-full blur-[100px] pointer-events-none group-hover:scale-110 group-hover:opacity-100 transition-all duration-700 opacity-50 z-[-1]" />
+      <div className="relative group p-8 sm:p-10 rounded-[3rem] bg-gradient-to-br from-[#0F172A] to-[#0B1526] backdrop-blur-md border border-indigo-500/20 hover:border-indigo-500/40 transition-all shadow-2xl overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-0">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-indigo-500/20 to-cyan-500/20 rounded-full blur-[100px] pointer-events-none group-hover:scale-110 group-hover:opacity-100 transition-all duration-700 opacity-60 z-[-1]" />
         
         <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative z-10 w-full md:w-auto">
-          <div className="w-20 h-20 rounded-[2rem] bg-indigo-500/10 border border-indigo-500/20 shadow-inner flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-500">
-            <Database className="w-10 h-10 text-indigo-400 group-hover:scale-110 transition-transform duration-500" />
+          <div className="w-20 h-20 rounded-[2rem] bg-indigo-500/20 border border-indigo-400/40 shadow-[inset_0_2px_15px_rgba(255,255,255,0.05),0_4px_25px_rgba(0,0,0,0.5)] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-500">
+            <Database className="w-10 h-10 text-indigo-300 group-hover:scale-110 transition-transform duration-500" />
           </div>
           <div>
-            <h1 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 via-indigo-100 to-cyan-100 tracking-tighter uppercase drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+            <h1 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-cyan-100 tracking-tighter uppercase drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]">
               {t('Scientific Materials Registry', 'Scientific Materials Registry')}
             </h1>
-            <p className="text-xs md:text-sm text-indigo-400/80 font-mono font-bold tracking-[0.2em] uppercase mt-2 flex items-center gap-2">
-               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500/50" />
+            <p className="text-xs md:text-sm text-indigo-300 font-mono font-black tracking-[0.2em] uppercase mt-2 flex items-center gap-2">
+               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
               {t('Crystal Suite Database - Index 12.1.0', 'Crystal Suite Database - Index 12.1.0')}
             </p>
           </div>
@@ -1200,17 +1647,17 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
         {/* Global Inventory Counts Banner & Reset options */}
         <div className="flex gap-4 sm:gap-6 flex-wrap relative z-10 w-full md:w-auto mt-4 md:mt-0 items-center">
-          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/60 border border-white/5 shadow-inner px-5 py-4 text-center hover:border-indigo-500/30 transition-colors">
-            <span className="text-3xl sm:text-4xl font-black text-indigo-400 font-mono tracking-tighter">{stats.totalCount}</span>
-            <p className="text-[10px] uppercase font-black text-slate-500 tracking-[0.2em] mt-1">Standards</p>
+          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/80 border border-indigo-500/30 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] px-5 py-4 text-center hover:border-indigo-400 transition-colors cursor-default">
+            <span className="text-3xl sm:text-4xl font-black text-indigo-400 font-mono tracking-tighter drop-shadow-[0_0_10px_rgba(99,102,241,0.3)]">{stats.totalCount}</span>
+            <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mt-1">Standards</p>
           </div>
-          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/60 border border-white/5 shadow-inner px-5 py-4 text-center hover:border-cyan-500/30 transition-colors">
-            <span className="text-3xl sm:text-4xl font-black text-cyan-400 font-mono tracking-tighter">{categories.length}</span>
-            <p className="text-[10px] uppercase font-black text-slate-500 tracking-[0.2em] mt-1">Taxonomy</p>
+          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/80 border border-cyan-500/30 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] px-5 py-4 text-center hover:border-cyan-400 transition-colors cursor-default">
+            <span className="text-3xl sm:text-4xl font-black text-cyan-400 font-mono tracking-tighter drop-shadow-[0_0_10px_rgba(34,211,238,0.3)]">{categories.length}</span>
+            <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mt-1">Taxonomy</p>
           </div>
-          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/60 border border-white/5 shadow-inner px-5 py-4 text-center hover:border-emerald-500/30 transition-colors">
-            <span className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tighter">{stats.uniqueElements}</span>
-            <p className="text-[10px] uppercase font-black text-slate-500 tracking-[0.2em] mt-1">Elements</p>
+          <div className="flex-1 min-w-[120px] rounded-[1.5rem] bg-black/80 border border-emerald-500/30 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] px-5 py-4 text-center hover:border-emerald-400 transition-colors cursor-default">
+            <span className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tighter drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">{stats.uniqueElements}</span>
+            <p className="text-[10px] uppercase font-black text-slate-400 tracking-[0.2em] mt-1">Elements</p>
           </div>
 
           {/* Reset All Database Button */}
@@ -1291,12 +1738,12 @@ export const MaterialDatabaseExplorer: React.FC = () => {
         <div className="lg:col-span-5 flex flex-col gap-6">
           
           {/* Crystal system stats */}
-          <div className="bg-black/40 backdrop-blur-md border border-white/5 hover:border-cyan-500/20 transition-all p-8 rounded-[3rem] shadow-2xl flex-1 flex flex-col justify-between relative overflow-hidden group z-0">
-             <div className="absolute top-0 right-0 p-24 opacity-[0.03] bg-gradient-to-bl from-cyan-400 to-blue-400 rounded-bl-[100px] pointer-events-none group-hover:opacity-10 group-hover:scale-110 transition-all duration-700 z-[-1]" />
+          <div className="bg-gradient-to-br from-[#0F172A] to-[#0A0F1D] backdrop-blur-md border border-cyan-500/10 hover:border-cyan-500/30 transition-all p-8 rounded-[3rem] shadow-2xl flex-1 flex flex-col justify-between relative overflow-hidden group z-0">
+             <div className="absolute top-0 right-0 p-24 opacity-10 bg-gradient-to-bl from-cyan-500 to-blue-500 rounded-bl-[100px] pointer-events-none group-hover:opacity-20 group-hover:scale-110 transition-all duration-700 z-[-1]" />
             <div className="relative z-10">
-              <h3 className="font-black text-slate-200 text-sm tracking-widest uppercase mb-6 flex items-center gap-3">
-                <div className="p-2 bg-cyan-500/10 rounded-xl border border-cyan-500/20 shadow-inner">
-                  <Box className="w-5 h-5 text-cyan-400" />
+              <h3 className="font-black text-slate-100 text-sm tracking-widest uppercase mb-6 flex items-center gap-3">
+                <div className="p-2 bg-cyan-500/20 rounded-xl border border-cyan-400/30 shadow-[inset_0_2px_10px_rgba(34,211,238,0.2)]">
+                  <Box className="w-5 h-5 text-cyan-300" />
                 </div>
                 Crystal System Distribution
               </h3>
@@ -1304,11 +1751,11 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 {stats.systemDistribution.slice(0, 6).map(({ name, count }) => {
                   const percent = ((count / stats.totalCount) * 100).toFixed(1);
                   return (
-                    <div key={name} className="p-4 rounded-2xl bg-black/60 border border-white/5 hover:border-cyan-500/20 flex flex-col justify-between shadow-inner transition-colors group/sys">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight group-hover/sys:text-slate-300 transition-colors">{name}</span>
+                    <div key={name} className="p-4 rounded-2xl bg-[#060B12]/80 border border-white/5 hover:border-cyan-500/30 flex flex-col justify-between shadow-[inset_0_2px_15px_rgba(0,0,0,0.5)] transition-colors group/sys">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight group-hover/sys:text-white transition-colors">{name}</span>
                       <div className="flex justify-between items-baseline mt-3">
-                        <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-600 font-mono leading-none">{count}</span>
-                        <span className="text-[9px] font-mono text-cyan-500/50 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded">{percent}%</span>
+                        <span className="text-xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-cyan-500 font-mono leading-none drop-shadow-[0_2px_5px_rgba(34,211,238,0.3)]">{count}</span>
+                        <span className="text-[9px] font-mono text-cyan-400 font-bold bg-cyan-500/20 px-1.5 py-0.5 rounded border border-cyan-500/30">{percent}%</span>
                       </div>
                     </div>
                   );
@@ -1318,7 +1765,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
           </div>
 
           {/* Density metrics/stats extreme */}
-          <div className="bg-black/40 backdrop-blur-md border border-white/5 hover:border-emerald-500/20 transition-all p-6 rounded-[2.5rem] shadow-2xl flex flex-row items-center justify-between gap-4">
+          <div className="bg-gradient-to-br from-[#0F172A] to-[#0A0F1D] backdrop-blur-md border border-emerald-500/10 hover:border-emerald-500/30 transition-all p-6 rounded-[2.5rem] shadow-2xl flex flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 shadow-inner flex items-center justify-center p-3">
                 <Compass className="w-full h-full text-emerald-400" />
@@ -1357,7 +1804,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder={t("Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...", "Search by formula, standard name, elements (e.g. 'Fe'), crystal systems...")}
-                  className="w-full pl-14 pr-12 py-3.5 bg-black/60 backdrop-blur border border-white/10 text-slate-100 outline-none rounded-2xl focus:border-indigo-500/50 focus:bg-indigo-950/20 focus:ring-1 focus:ring-indigo-500/30 placeholder:text-slate-600 transition-all text-xs font-mono shadow-inner select-none"
+                  className="w-full pl-14 pr-12 py-3.5 bg-[#0A101D] border border-indigo-500/30 text-slate-100 outline-none rounded-2xl focus:border-indigo-400 focus:bg-[#0D1526] focus:ring-2 focus:ring-indigo-500/50 placeholder:text-slate-500 transition-all text-xs font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] select-none"
                 />
                 {searchQuery && (
                   <button
@@ -1372,11 +1819,11 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
               <button
                 onClick={handleStartCreate}
-                className="flex items-center justify-center gap-2 px-5 py-3.5 bg-indigo-600/90 hover:bg-indigo-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-[0_0_15px_rgba(79,70,229,0.4)] border border-indigo-400/50 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[46px] select-none"
+                className="flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-[0_4px_25px_rgba(79,70,229,0.5)] border border-indigo-400 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[46px] select-none"
                 title={t('Create a novel custom standard to index in the database', 'Create a novel custom standard to index in the database')}
               >
-                <Plus className="w-4 h-4 text-white" />
-                <span>Custom Std</span>
+                <Plus className="w-5 h-5 text-white stroke-[3px]" />
+                <span>Add New Custom Material</span>
               </button>
             </div>
 
@@ -1390,7 +1837,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                   <select
                     value={selectedCategory}
                     onChange={e => setSelectedCategory(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-black/60 border border-white/10 shadow-inner text-slate-300 outline-none rounded-xl text-[11px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                    className="w-full px-4 py-2.5 bg-[#0A101D] border border-indigo-500/20 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] text-slate-200 outline-none rounded-xl text-[11px] font-mono font-black cursor-pointer hover:border-indigo-400 focus:border-indigo-500 transition-colors"
                   >
                     <option value="All">All Categories</option>
                     {categories.map(cat => (
@@ -1406,7 +1853,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 <select
                   value={selectedCrystalSystem}
                   onChange={e => setSelectedCrystalSystem(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 shadow-inner text-slate-300 outline-none rounded-xl text-[11px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                  className="w-full px-4 py-2.5 bg-[#0A101D] border border-indigo-500/20 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] text-slate-200 outline-none rounded-xl text-[11px] font-mono font-black cursor-pointer hover:border-indigo-400 focus:border-indigo-500 transition-colors"
                 >
                   <option value="All">All Lattice Systems</option>
                   <option value="Cubic">Cubic</option>
@@ -1426,7 +1873,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 <select
                   value={sortBy}
                   onChange={e => setSortBy(e.target.value as any)}
-                  className="w-full px-4 py-2.5 bg-black/60 border border-white/10 shadow-inner text-slate-300 outline-none rounded-xl text-[11px] font-mono font-bold cursor-pointer hover:border-indigo-500/30 transition-colors"
+                  className="w-full px-4 py-2.5 bg-[#0A101D] border border-indigo-500/20 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] text-slate-200 outline-none rounded-xl text-[11px] font-mono font-black cursor-pointer hover:border-indigo-400 focus:border-indigo-500 transition-colors"
                 >
                   <option value="name">Chemical Name</option>
                   <option value="density">Density</option>
@@ -1939,7 +2386,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
           <div className="sticky top-6 space-y-6">
             
             {/* Main inspector panel */}
-            <div className="bg-[#050B14]/90 rounded-[2rem] border border-indigo-500/30 p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
+            <div ref={inspectorRef} className="bg-[#050B14]/90 rounded-[2rem] border border-indigo-500/30 p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
               
               {isCreating ? (
@@ -2029,51 +2476,10 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                           <option value="Other">Other / Mixed</option>
                         </select>
                       </div>
-
-                      {/* Density (g/cm3) */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Density (g/cm³)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={editDensity}
-                          onChange={e => setEditDensity(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
-                          placeholder="e.g. 7.64"
-                        />
-                      </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Elastic Modulus (GPa) */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Elastic Modulus (GPa)</label>
-                        <input
-                          type="number"
-                          step="1"
-                          min="0"
-                          value={editElasticModulus}
-                          onChange={e => setEditElasticModulus(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
-                          placeholder="e.g. 138"
-                        />
-                      </div>
-
-                      {/* Molecular Weight */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Molecular Weight (g/mol)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={editMolecularWeight}
-                          onChange={e => setEditMolecularWeight(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
-                          placeholder="e.g. 424.18"
-                        />
-                      </div>
-                    </div>
+                    {/* Integrated Characterization, Thermodynamics & Symmetries parameters */}
+                    {renderCharacterizationSubForm()}
 
                     {/* Description Textarea */}
                     <div className="space-y-1">
@@ -2260,51 +2666,10 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                           <option value="Other">Other / Mixed</option>
                         </select>
                       </div>
-
-                      {/* Density (g/cm3) */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Density (g/cm³)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={editDensity}
-                          onChange={e => setEditDensity(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
-                          placeholder="e.g. 10.97"
-                        />
-                      </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Elastic Modulus (GPa) */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Elastic Modulus (GPa)</label>
-                        <input
-                          type="number"
-                          step="1"
-                          min="0"
-                          value={editElasticModulus}
-                          onChange={e => setEditElasticModulus(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
-                          placeholder="e.g. 220"
-                        />
-                      </div>
-
-                      {/* Molecular Weight */}
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Molecular Weight (g/mol)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={editMolecularWeight}
-                          onChange={e => setEditMolecularWeight(e.target.value)}
-                          className="w-full bg-black/60 border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
-                          placeholder="e.g. 270.03"
-                        />
-                      </div>
-                    </div>
+                    {/* Integrated Characterization, Thermodynamics & Symmetries parameters */}
+                    {renderCharacterizationSubForm()}
 
                     {/* Description Textarea */}
                     <div className="space-y-1">
@@ -2430,11 +2795,11 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
                       <button
                         onClick={() => handleDeleteMaterial(selectedMaterial.name)}
-                        className="flex items-center gap-1 px-2.5 py-1 bg-rose-600/10 hover:bg-rose-600/25 border border-rose-500/30 text-rose-300 hover:text-white rounded-lg text-[10px] font-bold cursor-pointer transition-all duration-200"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 border border-rose-400 text-white rounded-lg text-[11px] font-black tracking-wider cursor-pointer shadow-[0_2px_10px_rgba(225,29,72,0.4)] transition-all duration-200 uppercase"
                         title={t('Delete this standard sheet', 'Delete this standard sheet')}
                       >
-                        <Trash2 className="w-3 h-3 text-rose-400" />
-                        <span>Delete</span>
+                        <Trash2 className="w-3.5 h-3.5 text-white" />
+                        <span>Remove Material</span>
                       </button>
                     </div>
                   </div>
@@ -2449,9 +2814,19 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                         </span>
                       )}
                     </h2>
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
                       <span className="text-xs font-mono font-bold px-2.5 py-1 bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 rounded-md shadow-inner">
                         {selectedMaterial.formula}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-md">
+                        State: {selectedMaterial.standardState || 'Solid'}
+                      </span>
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+                        (selectedMaterial.stabilityStatus || 'Stable').toUpperCase() === 'STABLE'
+                          ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                          : 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                      }`}>
+                        Stability: {selectedMaterial.stabilityStatus || 'Stable'}
                       </span>
                     </div>
                   </div>
@@ -2711,21 +3086,77 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                       </div>
                     )}
 
-                    {activeDetailTab === 'lattice' && (
-                      <div className="space-y-4 animate-in fade-in duration-300">
-                        {renderCrystalLattice(selectedMaterial.crystalSystem)}
-                        
-                        <div className="p-3.5 bg-black/35 border border-slate-900 rounded-xl text-[10px] space-y-2">
-                          <h4 className="font-bold text-white uppercase tracking-wider flex items-center gap-1.5 leading-none">
-                            <Box className="w-3.5 h-3.5 text-indigo-400" />
-                            Unit Cell Lattice Parameters
-                          </h4>
-                          <p className="text-slate-400 leading-relaxed font-sans text-[11px]">
-                            Lattice systems govern a material's intrinsic mechanical resilience, packing density, and crystallographic symmetries. The visual wireframe rotating above represents the ideal unit cell projected on a continuous 3D axis.
-                          </p>
+                    {activeDetailTab === 'lattice' && (() => {
+                      const getSimulatedLatticeParams = (crystalSystem: string) => {
+                        const syst = crystalSystem?.toLowerCase() || '';
+                        if (syst.includes('cubic')) return {a: 4.156, b: 4.156, c: 4.156, alpha: 90, beta: 90, gamma: 90, v: 71.78};
+                        if (syst.includes('tetragonal')) return {a: 3.785, b: 3.785, c: 9.514, alpha: 90, beta: 90, gamma: 90, v: 136.3};
+                        if (syst.includes('hexagonal')) return {a: 3.209, b: 3.209, c: 5.211, alpha: 90, beta: 90, gamma: 120, v: 46.5};
+                        if (syst.includes('orthorhombic')) return {a: 4.540, b: 5.860, c: 7.210, alpha: 90, beta: 90, gamma: 90, v: 191.8};
+                        if (syst.includes('monoclinic')) return {a: 5.120, b: 6.890, c: 4.900, alpha: 90, beta: 104.5, gamma: 90, v: 167.3};
+                        if (syst.includes('triclinic')) return {a: 4.100, b: 4.200, c: 4.300, alpha: 88.5, beta: 95.2, gamma: 102.1, v: 71.2};
+                        return {a: 5.0, b: 5.0, c: 5.0, alpha: 90, beta: 90, gamma: 90, v: 125.0};
+                      };
+                      
+                      const lattice = selectedMaterial.latticeParams || getSimulatedLatticeParams(selectedMaterial.crystalSystem);
+                      const volume = (lattice.a * lattice.b * lattice.c * Math.sin((lattice.beta || 90) * Math.PI / 180)).toFixed(2);
+                      const isEstimated = !selectedMaterial.latticeParams;
+
+                      return (
+                        <div className="space-y-4 animate-in fade-in duration-300">
+                          {renderCrystalLattice(selectedMaterial.crystalSystem)}
+                          
+                          <div className="p-4 bg-black/45 border border-slate-900 rounded-xl space-y-3 font-mono">
+                            <div className="flex justify-between items-center border-b border-slate-900 pb-2">
+                              <h4 className="text-[10px] uppercase tracking-wider text-indigo-400 font-extrabold flex items-center gap-1.5 leading-none">
+                                <Box className="w-3.5 h-3.5" />
+                                Crystallographic Intelligence
+                              </h4>
+                              {isEstimated && (
+                                <span className="text-[8px] uppercase font-bold text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-900">Estimated</span>
+                              )}
+                            </div>
+
+                            {/* Lengths & Angles Grid */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1 bg-black/30 p-2.5 rounded-lg border border-slate-950">
+                                <span className="text-[8px] uppercase tracking-wider text-slate-500 font-bold block mb-1">Axial Distances (Å)</span>
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between"><span className="text-slate-400 font-serif italic">a</span> <span className="text-white font-extrabold">{lattice.a.toFixed(3)}</span></div>
+                                  <div className="flex justify-between"><span className="text-slate-400 font-serif italic">b</span> <span className="text-white font-extrabold">{(lattice.b || lattice.a).toFixed(3)}</span></div>
+                                  <div className="flex justify-between"><span className="text-slate-400 font-serif italic">c</span> <span className="text-white font-extrabold">{(lattice.c || lattice.a).toFixed(3)}</span></div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-1 bg-black/30 p-2.5 rounded-lg border border-slate-950">
+                                <span className="text-[8px] uppercase tracking-wider text-slate-500 font-bold block mb-1">Axial Angles (°)</span>
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between"><span className="text-slate-400 font-serif">α</span> <span className="text-white font-extrabold">{lattice.alpha}°</span></div>
+                                  <div className="flex justify-between"><span className="text-slate-400 font-serif">β</span> <span className="text-white font-extrabold">{lattice.beta}°</span></div>
+                                  <div className="flex justify-between"><span className="text-slate-400 font-serif">γ</span> <span className="text-white font-extrabold">{lattice.gamma}°</span></div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Cell Metadata Row */}
+                            <div className="grid grid-cols-3 gap-2 text-center text-[10px] border-t border-slate-900 pt-2 bg-black/10">
+                              <div className="p-1 px-2 border-r border-slate-900 last:border-0">
+                                <span className="text-slate-500 text-[8px] uppercase block">Space Group</span>
+                                <span className="text-indigo-300 font-extrabold truncate block">{selectedMaterial.spaceGroup || 'N/A'}</span>
+                              </div>
+                              <div className="p-1 px-2 border-r border-slate-900 last:border-0">
+                                <span className="text-slate-500 text-[8px] uppercase block">Z (Formula)</span>
+                                <span className="text-yellow-400 font-extrabold block">{selectedMaterial.zValue || 4}</span>
+                              </div>
+                              <div className="p-1 px-2 last:border-0">
+                                <span className="text-slate-500 text-[8px] uppercase block">Cell Vol.</span>
+                                <span className="text-cyan-400 font-extrabold block">{volume} Å³</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {activeDetailTab === 'composition' && (
                       <div className="space-y-4 animate-in fade-in duration-300">

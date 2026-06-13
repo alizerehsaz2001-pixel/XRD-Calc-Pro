@@ -361,6 +361,7 @@ export interface MagneticResult extends NeutronResult {
 export interface DLPhaseCandidate {
   phase_name: string;
   confidence_score: number; // 0-100
+  mlValidationScore?: number;
   raw_score?: number;
   match_quality?: string;
   card_id: string;
@@ -388,6 +389,16 @@ export interface DLPhaseCandidate {
   electricalResistivity?: number; // microOhm·cm
   dielectricConstant?: number;
   thermalExpansion?: number; // 10^-6/K
+  // Custom manual metadata fields
+  standardState?: string;
+  standardEntropy?: number;
+  formationEnergy?: number;
+  heatCapacity?: number;
+  debyeTemperature?: number;
+  energyAboveHull?: number;
+  stabilityStatus?: string;
+  decompositionTemp?: number;
+  formationEnthalpy?: number;
   // Cell structure details
   latticeParams?: {
     a: number;

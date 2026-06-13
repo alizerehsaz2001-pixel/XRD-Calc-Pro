@@ -57,6 +57,7 @@ import {
   Wind,
   Focus as Ruler,
   TestTube as Vial,
+  Download,
 } from "lucide-react";
 
 import { MATERIAL_DB } from "../utils/materialDB";
@@ -1183,8 +1184,24 @@ export const DeepLearningModule: React.FC = () => {
       setScanPos(currentX > 100 ? 0 : currentX);
     }, 50);
 
+    // Load active materials from local storage merges if present
+    let activeMaterialsList = MATERIAL_DB;
+    try {
+      const savedMaterials = localStorage.getItem("crystal_suite_materials_v1");
+      if (savedMaterials) {
+        const parsedMaterials = JSON.parse(savedMaterials);
+        if (Array.isArray(parsedMaterials) && parsedMaterials.length > 0) {
+          const parsedNames = new Set(parsedMaterials.map(m => m?.name).filter(Boolean));
+          const missingMaterials = MATERIAL_DB.filter(m => !parsedNames.has(m.name));
+          activeMaterialsList = [...parsedMaterials, ...missingMaterials];
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load custom materials in Deep Learning matches", e);
+    }
+
     // Check if input matches a known material to override/enhance results
-    const matchedMaterial = MATERIAL_DB.find(
+    const matchedMaterial = activeMaterialsList.find(
       (m) => m.pattern === dataToAnalyze || m.name === searchTerm,
     );
 
@@ -1231,6 +1248,19 @@ export const DeepLearningModule: React.FC = () => {
           electricalResistivity: (matchedMaterial as any).electricalResistivity,
           dielectricConstant: (matchedMaterial as any).dielectricConstant,
           thermalExpansion: (matchedMaterial as any).thermalExpansion,
+
+          // Custom manual metadata fields
+          standardState: (matchedMaterial as any).standardState,
+          standardEntropy: (matchedMaterial as any).standardEntropy,
+          formationEnergy: (matchedMaterial as any).formationEnergy,
+          heatCapacity: (matchedMaterial as any).heatCapacity,
+          debyeTemperature: (matchedMaterial as any).debyeTemperature,
+          energyAboveHull: (matchedMaterial as any).energyAboveHull,
+          stabilityStatus: (matchedMaterial as any).stabilityStatus,
+          decompositionTemp: (matchedMaterial as any).decompositionTemp,
+          formationEnthalpy: (matchedMaterial as any).formationEnthalpy,
+          zValue: (matchedMaterial as any).zValue,
+          latticeParams: (matchedMaterial as any).latticeParams
         };
 
         // Put the matched one first
@@ -3417,8 +3447,8 @@ if __name__ == '__main__':
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
-      {/* Input Configuration */}
-      <div className="lg:col-span-4 space-y-6">
+      {/* Input Configuration & Top Panels */}
+      <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {/* Advanced Engine Configuration */}
         <div className="bg-slate-900 p-6 rounded-[2rem] shadow-xl border border-slate-800 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none" />
@@ -6183,9 +6213,9 @@ if __name__ == '__main__':
       </div>
 
       {/* Results Section */}
-      <div className="lg:col-span-8 space-y-6">
+      <div className="lg:col-span-12 space-y-6">
         {/* Visualizer */}
-        <div className="bg-gradient-to-br from-[#0B1121] to-[#070B14] p-8 rounded-[2.5rem] shadow-2xl border border-slate-800 h-[1000px] lg:h-[1100px] flex flex-col relative overflow-hidden group/vis">
+        <div className="bg-gradient-to-br from-[#0B1121] to-[#070B14] p-8 rounded-[2.5rem] shadow-2xl border border-slate-800 h-[1200px] lg:h-[1400px] flex flex-col relative overflow-hidden group/vis">
           {/* Subtle grid background to look like a terminal/software UI */}
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDQwIEwgNDAgNDAgNDAgMCBMIDQwIDQwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-[0.4] pointer-events-none mix-blend-screen"></div>
           <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-cyan-500/80 to-transparent opacity-80 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
@@ -6260,7 +6290,7 @@ if __name__ == '__main__':
 
             {/* Advanced Analytics HUD Bar */}
             {selectedCandidate && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
                 <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-cyan-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(34,211,238,0.1)] transition-all hover:border-cyan-400/80 hover:shadow-[0_8px_30px_rgba(34,211,238,0.25)]">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
                   <div className="flex justify-between items-start mb-3 relative z-10">
@@ -6291,6 +6321,34 @@ if __name__ == '__main__':
                     </span>
                   </div>
                   <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-cyan-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
+                </div>
+
+                <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-fuchsia-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(217,70,239,0.1)] transition-all hover:border-fuchsia-400/80 hover:shadow-[0_8px_30px_rgba(217,70,239,0.25)]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/15 blur-[2.5rem] rounded-full -translate-y-12 translate-x-12 mix-blend-screen pointer-events-none" />
+                  <div className="flex justify-between items-start mb-3 relative z-10">
+                    <p className="text-[10px] font-mono text-fuchsia-400 uppercase tracking-[0.2em] font-black flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-sm bg-fuchsia-400 shadow-[0_0_8px_rgba(217,70,239,0.8)] animate-pulse" />{" "}
+                      ML Validation
+                    </p>
+                    <CheckCircle className="w-4 h-4 text-fuchsia-400 drop-shadow-[0_0_5px_rgba(217,70,239,0.6)]" />
+                  </div>
+                  <div className="flex items-end gap-2 relative z-10 mt-1">
+                    <p className="text-4xl font-black text-fuchsia-400 font-mono leading-none drop-shadow-[0_0_12px_rgba(217,70,239,0.5)] tabular-nums">
+                      {selectedCandidate.mlValidationScore || 0}
+                    </p>
+                    <span className="text-[10px] font-mono font-black text-slate-400 mb-1 tracking-widest text-shadow-sm uppercase">
+                      Score
+                    </span>
+                  </div>
+                  <div className="mt-4 w-full h-2 bg-[#040812] rounded-full overflow-hidden flex border border-fuchsia-500/20 relative z-10 shadow-inner">
+                    <div
+                      className="h-full bg-gradient-to-r from-fuchsia-600 via-fuchsia-500 to-fuchsia-400 shadow-[0_0_15px_rgba(217,70,239,0.9)] transition-all duration-1000"
+                      style={{
+                        width: `${Math.min(100, selectedCandidate.mlValidationScore || 0)}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-fuchsia-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(217,70,239,0.8)]" />
                 </div>
 
                 <div className="relative group/hud overflow-hidden bg-gradient-to-br from-[#0A101C] to-[#040812] backdrop-blur-xl border border-rose-500/30 rounded-2xl p-5 shadow-[0_4px_25px_rgba(244,63,94,0.1)] transition-all hover:border-rose-400/80 hover:shadow-[0_8px_30px_rgba(244,63,94,0.25)]">
@@ -7488,8 +7546,12 @@ if __name__ == '__main__':
                                 </span>
                                 Hf
                               </span>
-                              <span className="px-2 py-0.5 rounded border border-emerald-500/30 text-[9px] bg-emerald-500/10 text-emerald-400 font-mono shadow-[inset_0_0_4px_rgba(16,185,129,0.3)]">
-                                STABLE
+                              <span className={`px-2 py-0.5 rounded border text-[9px] font-mono shadow-[inset_0_0_4px_rgba(16,185,129,0.3)] ${
+                                (selectedCandidate.stabilityStatus || "Stable").toUpperCase() === "STABLE"
+                                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                  : "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                              }`}>
+                                {selectedCandidate.stabilityStatus || "STABLE"}
                               </span>
                             </div>
                             <div className="relative z-10 mt-auto">
@@ -7497,9 +7559,7 @@ if __name__ == '__main__':
                                 Formation Enthalpy
                               </span>
                               <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-rose-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
-                                {(
-                                  -(selectedCandidate.density || 5) * 123.4
-                                ).toFixed(1)}{" "}
+                                {selectedCandidate.formationEnthalpy !== undefined ? selectedCandidate.formationEnthalpy.toFixed(1) : (-(selectedCandidate.density || 5) * 123.4).toFixed(1)}{" "}
                                 <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
                                   kJ/mol
                                 </span>
@@ -7519,7 +7579,7 @@ if __name__ == '__main__':
                                 °
                               </span>
                               <span className="px-2 py-0.5 rounded border border-slate-700/80 text-[9px] bg-slate-800/80 text-slate-400 font-mono">
-                                298K
+                                {selectedCandidate.standardState || "Solid"}
                               </span>
                             </div>
                             <div className="relative z-10 mt-auto">
@@ -7527,10 +7587,7 @@ if __name__ == '__main__':
                                 Standard Entropy
                               </span>
                               <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-amber-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
-                                {(
-                                  (selectedCandidate.molecularWeight || 50) *
-                                  0.42
-                                ).toFixed(1)}{" "}
+                                {selectedCandidate.standardEntropy !== undefined ? selectedCandidate.standardEntropy.toFixed(1) : ((selectedCandidate.molecularWeight || 50) * 0.42).toFixed(1)}{" "}
                                 <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
                                   J/(mol·K)
                                 </span>
@@ -7558,9 +7615,7 @@ if __name__ == '__main__':
                                 Gibbs Free Energy
                               </span>
                               <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-cyan-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
-                                {(
-                                  -(selectedCandidate.density || 5) * 115.2
-                                ).toFixed(1)}{" "}
+                                {selectedCandidate.formationEnergy !== undefined ? selectedCandidate.formationEnergy.toFixed(1) : (-(selectedCandidate.density || 5) * 115.2).toFixed(1)}{" "}
                                 <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
                                   kJ/mol
                                 </span>
@@ -7588,10 +7643,7 @@ if __name__ == '__main__':
                                 Heat Capacity
                               </span>
                               <span className="text-2xl font-black font-mono text-white group-hover/thermo:text-fuchsia-400 transition-colors drop-shadow-md truncate flex items-baseline gap-1">
-                                {(
-                                  (selectedCandidate.molecularWeight || 50) *
-                                  0.15
-                                ).toFixed(1)}{" "}
+                                {selectedCandidate.heatCapacity !== undefined ? selectedCandidate.heatCapacity.toFixed(1) : ((selectedCandidate.molecularWeight || 50) * 0.15).toFixed(1)}{" "}
                                 <span className="text-[10px] text-slate-500 font-sans font-bold tracking-widest uppercase">
                                   J/(mol·K)
                                 </span>
@@ -7748,6 +7800,98 @@ if __name__ == '__main__':
                     )}
                   </div>
 
+                  {/* Neural Architecture Python Source */}
+                  <div className="md:col-span-12 group/python mb-8 bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] hover:border-fuchsia-500/40 transition-all duration-500 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-80 h-80 bg-fuchsia-500/5 rounded-full blur-[80px] pointer-events-none group-hover/python:bg-fuchsia-500/10 transition-all duration-700 -translate-y-10 translate-x-10" />
+                    
+                    <div className="flex items-center gap-4 mb-8">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-fuchsia-500/20 blur-md rounded-full pointer-events-none" />
+                        <div className="p-3 bg-gradient-to-br from-[#0F172A] to-[#0A101C] rounded-2xl text-fuchsia-400 border border-fuchsia-500/30 shadow-[inset_0_2px_10px_rgba(217,70,239,0.2)] relative z-10 flex items-center justify-center">
+                          <Cpu className="w-6 h-6 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(217,70,239,0.8)]" />
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-fuchsia-400/90 tracking-[0.3em] block leading-none mb-1.5">
+                          Architectural Transparency
+                        </span>
+                        <h4 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider drop-shadow-md font-serif italic">
+                          PyTorch Neural Engine Source
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 bg-black/60 rounded-2xl border border-[#1e293b]/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-white/5">
+                        <div className="flex gap-2">
+                          <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+                          <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                          <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                        </div>
+                        <span className="text-xs font-mono text-slate-500">xrd_phase_id_engine.py</span>
+                        <button
+                          onClick={handleExportPythonML}
+                          className="text-[10px] flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1 rounded-full font-bold text-slate-300 transition-colors"
+                        >
+                          <Download className="w-3 h-3" />
+                          Export
+                        </button>
+                      </div>
+                      <pre className="p-6 overflow-x-auto text-[11px] sm:text-xs font-mono leading-relaxed text-slate-300 custom-scrollbar max-h-[400px]">
+                        <code className="block">
+                          <span className="text-fuchsia-400">import</span> torch{"\n"}
+                          <span className="text-fuchsia-400">import</span> torch.nn <span className="text-fuchsia-400">as</span> nn{"\n"}
+                          <span className="text-fuchsia-400">import</span> torch.nn.functional <span className="text-fuchsia-400">as</span> F{"\n"}
+                          <span className="text-fuchsia-400">import</span> torch.optim <span className="text-fuchsia-400">as</span> optim{"\n"}
+                          <span className="text-fuchsia-400">import</span> numpy <span className="text-fuchsia-400">as</span> np{"\n\n"}
+                          
+                          <span className="text-slate-500"># Configuration Profile:</span>{"\n"}
+                          <span className="text-slate-500"># Context Depth: {engineConfig.depth || 50} Layers | Dropout: {(engineConfig as any).dropout || 0} | Scaling: {engineConfig.multiScale ? 'True' : 'False'}</span>{"\n\n"}
+
+                          <span className="text-blue-400">class</span> <span className="text-emerald-300">ResidualBlock1D</span>(nn.Module):{"\n"}
+                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__init__</span>(self, in_channels, out_channels, kernel_size):{"\n"}
+                          {"        "}<span className="text-blue-400">super</span>().__init__(){"\n"}
+                          {"        "}self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size, padding=<span className="text-amber-300">'same'</span>){"\n"}
+                          {"        "}self.bn1 = nn.BatchNorm1d(out_channels) <span className="text-fuchsia-400">if</span> {engineConfig.batchNorm ? "True" : "False"} <span className="text-fuchsia-400">else</span> nn.Identity(){"\n"}
+                          {"        "}self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size, padding=<span className="text-amber-300">'same'</span>){"\n"}
+                          {"        "}self.bn2 = nn.BatchNorm1d(out_channels) <span className="text-fuchsia-400">if</span> {engineConfig.batchNorm ? "True" : "False"} <span className="text-fuchsia-400">else</span> nn.Identity(){"\n"}
+                          {"        "}self.dropout = nn.Dropout({(engineConfig as any).dropout || 0}){"\n\n"}
+
+                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">forward</span>(self, x):{"\n"}
+                          {"        "}res = x{"\n"}
+                          {"        "}x = F.{engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.bn1(self.conv1(x))){"\n"}
+                          {"        "}x = self.dropout(x){"\n"}
+                          {"        "}x = self.bn2(self.conv2(x)){"\n"}
+                          {"        "}<span className="text-fuchsia-400">return</span> F.{engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(x + res){"\n\n"}
+                          
+                          <span className="text-blue-400">class</span> <span className="text-emerald-300">XRDPhaseIDModel</span>(nn.Module):{"\n"}
+                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__init__</span>(self, num_classes={MATERIAL_DB.length}, kernel_size={engineConfig.kernelSize}):{"\n"}
+                          {"        "}<span className="text-blue-400">super</span>().__init__(){"\n"}
+                          {"        "}self.attn = nn.MultiheadAttention(1, 1) <span className="text-fuchsia-400">if</span> {(engineConfig as any).attentionMechanism ? 'True' : 'False'} <span className="text-fuchsia-400">else</span> <span className="text-blue-400">None</span>{"\n"}
+                          {"        "}self.initial_conv = nn.Conv1d(1, {engineConfig.filters || 32}, kernel_size, padding=<span className="text-amber-300">'same'</span>){"\n"}
+                          {"        "}self.blocks = nn.ModuleList([{"\n"}
+                          {"            "}ResidualBlock1D({engineConfig.filters || 32}, {engineConfig.filters || 32}, kernel_size){"\n"}
+                          {"            "}<span className="text-fuchsia-400">for</span> _ <span className="text-fuchsia-400">in</span> <span className="text-cyan-300">range</span>({Math.floor((engineConfig.depth || 50) / 10)}){"\n"}
+                          {"        "})]{"\n"}
+                          {"        "}self.pool = nn.{engineConfig.pooling === 'max' ? 'MaxPool1d' : 'AvgPool1d'}(2){"\n"}
+                          {"        "}self.fc = nn.Linear(({engineConfig.filters || 32} * 100), num_classes){"\n\n"}
+                          
+                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">forward</span>(self, x):{"\n"}
+                          {"        "}<span className="text-fuchsia-400">if</span> self.attn:{"\n"}
+                          {"            "}x_permuted = x.permute(2, 0, 1){"\n"}
+                          {"            "}attn_out, _ = self.attn(x_permuted, x_permuted, x_permuted){"\n"}
+                          {"            "}x = attn_out.permute(1, 2, 0){"\n"}
+                          {"        "}x = F.{engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.initial_conv(x)){"\n"}
+                          {"        "}<span className="text-fuchsia-400">for</span> block <span className="text-fuchsia-400">in</span> self.blocks:{"\n"}
+                          {"            "}x = block(x){"\n"}
+                          {"            "}x = self.pool(x){"\n"}
+                          {"        "}x = x.view(x.size(0), -1){"\n"}
+                          {"        "}<span className="text-fuchsia-400">return</span> self.fc(x){"\n"}
+                        </code>
+                      </pre>
+                    </div>
+                  </div>
+
                   {/* Crystallography (Cell Metrics) */}
                   <div className="md:col-span-12 group/card">
                     <div className="bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] relative overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] transition-all duration-500 hover:border-indigo-500/40 hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] flex flex-col">
@@ -7865,74 +8009,103 @@ if __name__ == '__main__':
                         const lattice: any = selectedCandidate.latticeParams || getSimulatedLatticeParams(selectedCandidate.crystalSystem || '');
                         const cellV = selectedCandidate.cellVolume || lattice.v || (lattice.a * (lattice.b||lattice.a) * (lattice.c||lattice.a));
                         return (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 w-full mt-2">
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10 w-full mt-2">
                             {/* Lengths Box */}
-                            <div className="p-6 bg-[#0a0f1d] border border-[#1e293b] rounded-2xl flex flex-col gap-5 shadow-inner group/dim relative overflow-hidden">
-                              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none group-hover/dim:bg-indigo-500/10 transition-colors" />
-                              <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
-                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Lattice Angles & Lengths (Å)</span>
+                            <div className="p-6 lg:col-span-1 bg-gradient-to-br from-[#0A101D] to-[#040810] border border-[#1e293b] rounded-3xl flex flex-col gap-6 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] group/dim relative overflow-hidden transition-all hover:border-indigo-500/40">
+                              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none group-hover/dim:bg-indigo-500/20 transition-all duration-700" />
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                                    <Ruler className="w-5 h-5 text-indigo-400" />
+                                  </div>
+                                  <span className="text-[11px] font-black text-indigo-400 uppercase tracking-widest leading-tight">
+                                    Lattice Lengths<br/><span className="text-slate-500 text-[9px]">Axial Distances (Å)</span>
+                                  </span>
+                                </div>
                                 {(!selectedCandidate.latticeParams) && (
-                                  <span className="ml-auto text-[8px] font-bold text-slate-500 uppercase tracking-wider bg-slate-800/50 px-2 py-1 rounded">Estimated</span>
+                                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider bg-slate-800/50 px-2 py-1 rounded border border-slate-700">Estim.</span>
                                 )}
                               </div>
-                              <div className="grid grid-cols-3 gap-4 border-t border-white/5 pt-4">
-                                <div className="flex flex-col gap-1">
-                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-serif italic">Axis a</span>
+                              <div className="flex flex-col gap-3 relative z-10">
+                                <div className="flex items-center justify-between bg-slate-900/60 p-3 rounded-2xl border border-white/5">
+                                  <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest font-serif italic w-8">a</span>
                                   <span className="text-xl font-mono text-white font-black">{lattice.a.toFixed(3)}</span>
-                                  <span className="text-[9px] font-medium text-slate-600 font-mono">±0.001</span>
+                                  <span className="text-[10px] text-slate-600 font-mono w-10 text-right">±0.001</span>
                                 </div>
-                                <div className="flex flex-col gap-1">
-                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-serif italic">Axis b</span>
+                                <div className="flex items-center justify-between bg-slate-900/60 p-3 rounded-2xl border border-white/5">
+                                  <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest font-serif italic w-8">b</span>
                                   <span className="text-xl font-mono text-white font-black">{(lattice.b ?? lattice.a).toFixed(3)}</span>
-                                  <span className="text-[9px] font-medium text-slate-600 font-mono">±0.001</span>
+                                  <span className="text-[10px] text-slate-600 font-mono w-10 text-right">±0.001</span>
                                 </div>
-                                <div className="flex flex-col gap-1">
-                                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-serif italic">Axis c</span>
+                                <div className="flex items-center justify-between bg-slate-900/60 p-3 rounded-2xl border border-white/5">
+                                  <span className="text-[12px] font-black text-slate-500 uppercase tracking-widest font-serif italic w-8">c</span>
                                   <span className="text-xl font-mono text-white font-black">{(lattice.c ?? lattice.a).toFixed(3)}</span>
-                                  <span className="text-[9px] font-medium text-slate-600 font-mono">±0.002</span>
+                                  <span className="text-[10px] text-slate-600 font-mono w-10 text-right">±0.002</span>
                                 </div>
                               </div>
                             </div>
 
                             {/* Angles & Additional Metrics Box */}
-                            <div className="p-6 bg-[#0a0f1d] border border-[#1e293b] rounded-2xl flex flex-col gap-5 shadow-inner group/ang relative overflow-hidden">
-                              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-[40px] pointer-events-none group-hover/ang:bg-emerald-500/10 transition-colors" />
-                              <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-                                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Cell Constants & Metrics</span>
+                            <div className="p-6 lg:col-span-2 bg-gradient-to-br from-[#0A101D] to-[#040810] border border-[#1e293b] rounded-3xl flex flex-col shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] group/ang relative overflow-hidden transition-all hover:border-emerald-500/40">
+                              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none group-hover/ang:bg-emerald-500/20 transition-all duration-700 -translate-y-10 translate-x-10" />
+                              <div className="flex items-center justify-between mb-8 relative z-10">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                                    <Box className="w-5 h-5 text-emerald-400" />
+                                  </div>
+                                  <span className="text-[11px] font-black text-emerald-400 uppercase tracking-widest leading-tight">
+                                    Cell Constants & Metrics<br/><span className="text-slate-500 text-[9px]">Crystallographic Properties</span>
+                                  </span>
+                                </div>
                               </div>
-                              <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4">
-                                <div className="flex flex-col gap-2">
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 h-full">
+                                <div className="flex flex-col gap-6">
                                   {/* Angles Row */}
-                                  <div className="grid grid-cols-3 gap-1 bg-slate-900/50 p-2 rounded-xl border border-white/5 shadow-inner">
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-[9px] font-bold text-slate-500 font-serif italic mb-1">α</span>
-                                      <span className="text-xs font-mono text-emerald-300 font-black">{(lattice.alpha ?? 90).toFixed(1)}°</span>
+                                  <div className="grid grid-cols-3 gap-2 bg-[#040810]/80 p-3 rounded-2xl border border-[#1e293b] shadow-inner relative overflow-hidden">
+                                     <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+                                    <div className="flex flex-col items-center justify-center p-2">
+                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest">α (Alpha)</span>
+                                      <span className="text-lg font-mono text-emerald-300 font-black tracking-tight">{(lattice.alpha ?? 90).toFixed(1)}°</span>
                                     </div>
-                                    <div className="flex flex-col items-center border-x border-white/5">
-                                      <span className="text-[9px] font-bold text-slate-500 font-serif italic mb-1">β</span>
-                                      <span className="text-xs font-mono text-emerald-300 font-black">{(lattice.beta ?? 90).toFixed(1)}°</span>
+                                    <div className="flex flex-col items-center justify-center p-2 border-x border-[#1e293b]">
+                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest">β (Beta)</span>
+                                      <span className="text-lg font-mono text-emerald-300 font-black tracking-tight">{(lattice.beta ?? 90).toFixed(1)}°</span>
                                     </div>
-                                    <div className="flex flex-col items-center">
-                                      <span className="text-[9px] font-bold text-slate-500 font-serif italic mb-1">γ</span>
-                                      <span className="text-xs font-mono text-emerald-300 font-black">{(lattice.gamma ?? 90).toFixed(1)}°</span>
+                                    <div className="flex flex-col items-center justify-center p-2">
+                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest">γ (Gamma)</span>
+                                      <span className="text-lg font-mono text-emerald-300 font-black tracking-tight">{(lattice.gamma ?? 90).toFixed(1)}°</span>
                                     </div>
                                   </div>
-                                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-900/30 border border-white/5">
-                                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Z (Atoms/Cell)</span>
-                                      <span className="text-sm font-mono text-emerald-100 font-black">{selectedCandidate.zValue || (lattice.v ? Math.max(1, Math.round(lattice.v / 20)) : 4)}</span>
+
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-900/40 border border-[#1e293b]">
+                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 text-center">Z Value<br/>(Atoms/Cell)</span>
+                                        <span className="text-2xl font-mono text-white font-black">{selectedCandidate.zValue || (lattice.v ? Math.max(1, Math.round(lattice.v / 20)) : 4)}</span>
+                                    </div>
+                                    <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-900/40 border border-[#1e293b]">
+                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 text-center">Theor. Density<br/>(g/cm³)</span>
+                                        <span className="text-2xl font-mono text-white font-black">{selectedCandidate.density ? selectedCandidate.density.toFixed(2) : ((lattice.v ? 100 / lattice.v : 2.5) + Math.random()).toFixed(2)}</span>
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="flex flex-col justify-center gap-3 pl-4 border-l border-white/5">
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Cell Volume</span>
-                                    <div className="flex items-baseline gap-1.5">
-                                      <span className="text-3xl sm:text-4xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 to-cyan-400 drop-shadow-sm">
+
+                                <div className="flex flex-col justify-center items-center h-full p-6 bg-gradient-to-br from-emerald-900/10 to-cyan-900/10 rounded-2xl border border-emerald-500/20 relative">
+                                  <div className="absolute top-0 right-0 p-3 opacity-20">
+                                    <Layers className="w-16 h-16 text-emerald-400" />
+                                  </div>
+                                  <div className="flex flex-col items-center text-center gap-1 w-full relative z-10">
+                                    <span className="text-[11px] font-black text-emerald-500/80 uppercase tracking-[0.3em] mb-2">Calculated Cell Volume</span>
+                                    <div className="flex items-baseline gap-2 justify-center">
+                                      <span className="text-5xl sm:text-6xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 via-emerald-200 to-cyan-400 drop-shadow-[0_2px_10px_rgba(52,211,153,0.3)]">
                                         {cellV.toFixed(2)}
                                       </span>
-                                      <span className="text-[10px] text-emerald-500/80 font-bold font-mono">Å³</span>
+                                      <span className="text-sm text-emerald-500 font-bold font-mono tracking-widest">V (Å³)</span>
                                     </div>
+                                    <div className="mt-6 w-full h-1.5 bg-[#040810] rounded-full overflow-hidden shadow-inner border border-[#1e293b]">
+                                      <div className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400" style={{ width: `${Math.min(100, Math.max(10, (cellV / 1000) * 100))}%` }} />
+                                    </div>
+                                    <span className="text-[9px] text-slate-500 tracking-widest uppercase mt-2 font-black font-mono">Volume Expansion Ratio</span>
                                   </div>
                                 </div>
                               </div>

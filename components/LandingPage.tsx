@@ -142,27 +142,35 @@ const SectionHeading = ({ badge, title, description, center = false }: { badge: 
   </div>
 );
 
-const FeatureCard = ({ title, description, icon: Icon, index }: { title: string, description: string, icon: any, index: number }) => (
+const FeatureCard = ({ title, description, icon: Icon, index, module, onLaunch }: { title: string, description: string, icon: any, index: number, module?: string, onLaunch?: (mod: string) => void }) => (
   <motion.div 
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
     transition={{ delay: index * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-    className="group relative bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl hover:border-violet-500/50 transition-all duration-500 cursor-default overflow-hidden shadow-xl hover:shadow-violet-900/20 hover:-translate-y-1"
+    onClick={() => module && onLaunch?.(module)}
+    className={`group relative bg-[#090F1E]/60 backdrop-blur-xl border border-slate-800/80 p-8 rounded-[2rem] hover:border-violet-500/50 transition-all duration-500 overflow-hidden shadow-2xl hover:shadow-violet-950/30 hover:-translate-y-1 block ${module ? 'cursor-pointer' : 'cursor-default'}`}
   >
-    <div className="absolute inset-0 bg-gradient-to-br from-violet-600/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+    <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
     
     <div className="flex flex-col items-start gap-6 relative z-10 h-full">
-      <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-violet-400 group-hover:scale-110 group-hover:bg-violet-900/40 group-hover:border-violet-500/50 group-hover:text-violet-300 transition-all duration-300 shadow-inner">
+      <div className="w-12 h-12 rounded-2xl bg-[#030712] border border-slate-800 flex items-center justify-center text-violet-400 group-hover:scale-110 group-hover:bg-violet-950 group-hover:border-violet-500/50 group-hover:text-violet-300 transition-all duration-300 shadow-inner">
         <Icon className="w-6 h-6" />
       </div>
       <div>
-        <h3 className="font-bold text-sm tracking-wide text-slate-200 group-hover:text-white transition-colors mb-3 flex items-center gap-2">
+        <h3 className="font-bold text-sm tracking-wide text-slate-200 group-hover:text-white transition-colors mb-2.5 flex items-center gap-2">
           {title}
         </h3>
-        <p className="text-sm text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors font-medium">
+        <p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-350 transition-colors font-medium">
           {description}
         </p>
+        
+        {module && (
+          <div className="mt-5 flex items-center gap-1.5 text-[10px] font-black uppercase text-violet-400 tracking-wider group-hover:text-cyan-300 transition-colors">
+            <span>Launch Instrument</span>
+            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+          </div>
+        )}
       </div>
     </div>
   </motion.div>
@@ -695,7 +703,7 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
 
 // --- Main Page Component ---
 export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut }: { 
-  onEnter: (mode?: 'register' | 'login') => void, 
+  onEnter: (mode?: 'register' | 'login', targetModule?: any) => void, 
   setTheme: (theme: any) => void,
   theme: string,
   isRegistered?: boolean,
@@ -747,34 +755,40 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
 
   const features = [
     {
-      title: "AI Peak Search",
-      description: "Proprietary deep learning models that identify phase signatures with 98.4% accuracy even in high-noise datasets.",
-      icon: Brain
+      title: "AI Peak Recognition",
+      description: "Neural network phase signatures identification with 98.4% calibration alignment even in raw, high-noise laboratory datasets.",
+      icon: Brain,
+      module: 'dl'
     },
     {
-      title: "Rietveld Engine",
-      description: "Hardware-accelerated refinement with real-time parameter optimization and visual live-sync monitoring.",
-      icon: Cpu
+      title: "Interactive Materials DB",
+      description: "Direct offline-first local simulation, editing standard parameters, lattice projections, and crystal system densities.",
+      icon: Database,
+      module: 'database'
     },
     {
-      title: "Crystallographic DB",
-      description: "Direct integration with global databases (COD/AMCSD) for seamless phase matching and structural lookup.",
-      icon: Database
+      title: "Rietveld Refinement Lab",
+      description: "Hardware-accelerated least-squares refinement with real-time parameter optimization and visual difference plot monitoring.",
+      icon: Cpu,
+      module: 'rietveld'
     },
     {
-      title: "Cross-Platform Sync",
-      description: "Analyze results on your desktop, and instantly review refinement strategy on your mobile device.",
-      icon: Smartphone
+      title: "Multi-peak Bragg Spacing",
+      description: "Standard structural d-spacing, Bragg angle solvers, custom X-ray source targets, and synthesized acoustic tone reflections.",
+      icon: Beaker,
+      module: 'bragg'
     },
     {
-      title: "Advanced Symmetry",
-      description: "Automated space group determination and systematic absence validation using lattice centering intelligence.",
-      icon: Hexagon
+      title: "Scherrer Crystallite domains",
+      description: "Calculate domains dynamically using full-width at half-maximum (FWHM) fitting with adjustable shape factors.",
+      icon: Microscope,
+      module: 'scherrer'
     },
     {
-      title: "Enterprise Grade",
-      description: "Encrypted data pipelines and multi-user workspace environments designed for institutional research teams.",
-      icon: ShieldCheck
+      title: "Academic Interactive Hub",
+      description: "Premium educational libraries covering systematic absences, selection rules, and XRD diffraction fundamentals.",
+      icon: FileText,
+      module: 'learn'
     }
   ];
 
@@ -964,6 +978,29 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 </div>
               </div>
 
+              {/* Popular Lattice Quick Keys */}
+              <div className="flex flex-wrap gap-2 max-w-2xl mb-12 select-none animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100">
+                <span className="text-[9px] font-black uppercase text-slate-500 tracking-[0.2em] mt-1.5 mr-1">Tuned Lattices:</span>
+                {[
+                  { name: 'Silicon', formula: 'Si' },
+                  { name: 'Halite', formula: 'NaCl' },
+                  { name: 'Anatase', formula: 'TiO2' },
+                  { name: 'Corundum', formula: 'Al2O3' },
+                  { name: 'Quartz', formula: 'SiO2' },
+                  { name: 'Pure Iron', formula: 'Fe' }
+                ].map((mat, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => onEnter(isRegistered ? 'login' : 'register', 'database')}
+                    className="px-2.5 py-1 bg-[#090F1E]/80 hover:bg-violet-950/40 border border-slate-800 hover:border-violet-500/40 rounded-lg flex items-center gap-1.5 text-slate-300 hover:text-white transition-all text-[11px] font-mono cursor-pointer"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+                    <span className="font-bold">{mat.formula}</span>
+                    <span className="text-[9px] text-slate-500">{mat.name}</span>
+                  </button>
+                ))}
+              </div>
+
               <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-white/10 pt-8">
                 <div className="space-y-1">
                   <p className="text-3xl font-black text-white leading-none tracking-tight">1.2M+</p>
@@ -1096,7 +1133,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
               {features.map((f, i) => (
-                <FeatureCard key={i} index={i} {...f} />
+                <FeatureCard key={i} index={i} {...f} onLaunch={(mod) => onEnter(isRegistered ? 'login' : 'register', mod)} />
               ))}
             </div>
           </div>

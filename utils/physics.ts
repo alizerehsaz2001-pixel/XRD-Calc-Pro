@@ -1967,6 +1967,64 @@ const cosineSimilarity = (v1: number[], v2: number[]): number => {
   return dot / (Math.sqrt(norm1) * Math.sqrt(norm2));
 };
 
+const evaluateMLValidationScore = (
+  predictedPeaks: { two_theta: number, intensity: number }[],
+  referencePeaks: { two_theta: number, intensity: number }[],
+  tolerance: number = 0.1
+): number => {
+    if (!referencePeaks.length || !predictedPeaks.length) return 0.0;
+    
+    let matchedPeaks = 0;
+    let intensityErrorSum = 0.0;
+    
+    const maxRefInt = Math.max(...referencePeaks.map(p => p.intensity)) || 1;
+    const maxPredInt = Math.max(...predictedPeaks.map(p => p.intensity)) || 1;
+
+    for (const rp of referencePeaks) {
+        let closestMatch = null;
+        let minDiff = tolerance;
+        
+        for (const pp of predictedPeaks) {
+            const diff = Math.abs(pp.two_theta - rp.two_theta);
+            if (diff <= minDiff) {
+                minDiff = diff;
+                closestMatch = pp;
+            }
+        }
+        
+        if (closestMatch) {
+            matchedPeaks++;
+            const refIntNorm = (rp.intensity / maxRefInt) * 100;
+            const predIntNorm = (closestMatch.intensity / maxPredInt) * 100;
+            intensityErrorSum += Math.abs(refIntNorm - predIntNorm);
+        }
+    }
+    
+    const matchRatio = matchedPeaks / referencePeaks.length;
+    const avgIntensityError = matchedPeaks > 0 ? (intensityErrorSum / matchedPeaks) : 100.0;
+    const intensityScore = Math.max(0.0, 100.0 - avgIntensityError);
+    
+    let confidence = (matchRatio * 70.0) + ((intensityScore / 100.0) * 30.0);
+    
+    const majorPeaks = referencePeaks.filter(p => (p.intensity / maxRefInt) * 100 > 50.0);
+    let matchedMajor = 0;
+    for (const rp of majorPeaks) {
+        for (const pp of predictedPeaks) {
+            if (Math.abs(pp.two_theta - rp.two_theta) <= tolerance) {
+                matchedMajor++;
+                break;
+            }
+        }
+    }
+    
+    if (majorPeaks.length > 0) {
+        const majorMatchRatio = matchedMajor / majorPeaks.length;
+        confidence *= majorMatchRatio;
+    }
+    
+    return Math.max(0, Math.min(100.0, confidence));
+};
+
 export const identifyPhasesDL = (
   inputPoints: { twoTheta: number, intensity: number }[], 
   isMixMode: boolean = false,
@@ -2409,11 +2467,18 @@ export const identifyPhasesDL = (
     else if (finalConfidence > 65) matchQuality = "Good";
     else if (finalConfidence > 40) matchQuality = "Possible";
 
+    const pythonValidatedScore = evaluateMLValidationScore(
+      inputPoints.map(p => ({ two_theta: p.twoTheta, intensity: p.intensity })),
+      phase.peaks.map(p => ({ two_theta: p.t, intensity: p.i })),
+      0.15
+    );
+
     const rawCandidate: DLPhaseCandidate = { 
       phase_name: phase.name, 
       formula: phase.formula, 
       card_id: phase.cardId, 
       confidence_score: parseFloat(finalConfidence.toFixed(1)),
+      mlValidationScore: parseFloat(pythonValidatedScore.toFixed(1)),
       raw_score: confidence,
       match_quality: matchQuality,
       matched_peaks: matchedDetails,

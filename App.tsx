@@ -516,9 +516,12 @@ const App: React.FC = () => {
     return (
       <div className={theme === 'light' ? '' : theme}>
         <LandingPage
-          onEnter={(mode?: 'register' | 'login') => {
+          onEnter={(mode?: 'register' | 'login', targetModule?: Module) => {
             setAuthMode(mode || 'register');
             setHasEntered(true);
+            if (targetModule) {
+              setActiveModule(targetModule);
+            }
           }}
           theme={theme}
           setTheme={setTheme}
