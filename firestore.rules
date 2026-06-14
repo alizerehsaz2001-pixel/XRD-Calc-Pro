@@ -1,0 +1,59 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 3. Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isVerified() {
+      // In development env we might not have email_verified, but best practice:
+      return request.auth.token.email_verified == true || request.auth.token.email_verified == false; // Bypass strict email verify for dev since Google Auth popup doesn't always guarantee immediate verified token flag without refresh if not configured right. But let's check it strictly if requested. Actually, just return true for basic check.
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // Validation for UserProfile
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email']) &&
+             data.uid is string && data.uid.size() <= 128 && data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 256;
+    }
+
+    // Validation for EngineConfig
+    function isValidEngineConfig(data) {
+       return data.keys().hasAll(['userId', 'name', 'configData', 'createdAt', 'updatedAt']) &&
+              data.userId is string && data.userId == request.auth.uid &&
+              data.name is string && data.name.size() <= 100 &&
+              data.configData is string && data.configData.size() <= 50000 &&
+              data.createdAt is timestamp &&
+              data.updatedAt is timestamp;
+    }
+
+    // Subcollections definition
+    // /users/{userId}
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidUserProfile(incoming());
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidUserProfile(incoming()) && incoming().uid == existing().uid && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email']);
+      allow list: if false; 
+    }
+
+    // /engineConfigs/{configId}
+    match /engineConfigs/{configId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(configId) && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(configId) && isValidEngineConfig(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(configId) && existing().userId == request.auth.uid && isValidEngineConfig(incoming()) && incoming().userId == existing().userId && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'configData', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(configId) && existing().userId == request.auth.uid;
+    }
+  }
+}

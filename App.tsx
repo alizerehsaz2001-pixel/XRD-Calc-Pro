@@ -41,14 +41,23 @@ import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward } from 'lucide-react';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
+import { useAuth } from './services/firebase';
 
 type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { user, loading: authLoading } = useAuth();
   const [isRegistered, setIsRegistered] = useState<boolean>(() => {
     return !!localStorage.getItem('xrd_user_registration');
   });
+
+  useEffect(() => {
+     if (user) {
+        setIsRegistered(true);
+     }
+  }, [user]);
+
   const [hasEntered, setHasEntered] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
   const [activeModule, setActiveModule] = useState<Module>('bragg');

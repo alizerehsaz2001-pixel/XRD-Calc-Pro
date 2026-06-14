@@ -89,6 +89,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
   const [selectedKType, setSelectedKType] = useState<string>('Standard Average');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);
   const [showInfiniteExpl, setShowInfiniteExpl] = useState(false);
+  const [showStrainExpl, setShowStrainExpl] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const matMenuRef = useRef<HTMLDivElement>(null);
@@ -759,6 +760,16 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                   <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                   W-H Slope Derived
                 </span>
+                <button
+                  onClick={() => {
+                    setShowStrainExpl(!showStrainExpl);
+                    setShowInfiniteExpl(false);
+                  }}
+                  className="text-[9px] font-black text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 px-2.5 py-1.5 rounded-lg border border-cyan-500/20 uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
+                >
+                  <span>{showStrainExpl ? 'Close Help' : 'What is Strain?'}</span>
+                  <Info className="w-3.5 h-3.5 text-cyan-400" />
+                </button>
              </div>
            </div>
            
@@ -979,6 +990,104 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                         <li>Try toggling the <span className="text-pink-400 font-semibold font-mono">Profile Deconvolution</span> from Linear to Squared.</li>
                         <li>Consider transitioning to the <strong className="text-emerald-400">Warren-Averbach</strong> Fourier module for strain/size allocation.</li>
                       </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Collapsible Scientific Explanation sheet for Microstrain */}
+        <AnimatePresence>
+          {showStrainExpl && result && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.4, ease: 'easeInOut' }}
+              className="overflow-hidden mb-6"
+            >
+              <div className="bg-[#0B1221] border border-cyan-500/20 rounded-[2rem] p-6 text-slate-300 space-y-4 shadow-[0_0_40px_rgba(6,182,212,0.05)] relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/[0.02] rounded-bl-full pointer-events-none" />
+                
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-cyan-500/15 rounded-xl border border-cyan-500/30 text-cyan-400 mt-0.5 animate-pulse-slow font-sans text-sm">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-xs font-black text-white uppercase tracking-[0.2em] mb-1">
+                      Crystallographic Microstrain (ε) Physical Foundations
+                    </h4>
+                    <p className="text-[10px] text-cyan-400 uppercase font-black tracking-widest font-mono">
+                      Mathematical separation of size-strain broadening effects
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-3 border-t border-white/5 text-[11px] leading-relaxed font-sans">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-bold text-slate-200">
+                        1. Theoretical Separation Model
+                      </p>
+                      <p className="text-slate-400 text-[10.5px] mt-1 text-justify">
+                        Peak broadening in X-ray diffraction patterns arises from two non-instrumental, sample-dependent phenomena: finite grain sizes (<span className="text-emerald-400 italic font-medium">Size Broadening</span>) and structural irregularities within the grains (<span className="text-cyan-400 italic font-medium">Strain Broadening</span>).
+                      </p>
+                    </div>
+
+                    <div className="bg-black/30 p-3 rounded-xl border border-white/5 space-y-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block font-mono">Governing Equations:</span>
+                      <div className="text-slate-400 text-[10.5px] space-y-2">
+                        <div>
+                          The Scherrer model for size effect:
+                          <code className="block my-1 px-2 py-1 bg-black/50 text-emerald-400 rounded text-[10px] font-mono text-center">
+                            β_size = (K · λ) / (D · cos θ)
+                          </code>
+                        </div>
+                        <div>
+                          The Wilson equation for inhomogeneous microstrain:
+                          <code className="block my-1 px-2 py-1 bg-black/50 text-cyan-400 rounded text-[10px] font-mono text-center">
+                            β_strain = 4 · ε · tan θ
+                          </code>
+                        </div>
+                        <div>
+                          By assuming Lorentzian peak shapes, we combine them linearly:
+                          <code className="block mt-1 px-2 py-1 bg-black/50 text-pink-400 rounded text-[10px] font-mono text-center">
+                            β_total · cos θ = (K · λ / D) + 4 · ε · sin θ
+                          </code>
+                        </div>
+                        <p className="text-[9.5px] font-sans mt-2">
+                          The slope of the linear fit is <span className="text-cyan-400 font-bold">ε</span> (Crystallographic Microstrain) and the y-intercept yields <span className="text-emerald-400 font-bold">D</span> (Unified average crystallite size).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="text-justify">
+                      <span className="text-[9px] font-black uppercase text-cyan-500 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/10 font-mono">Physical Origins of Microstrain</span>
+                      <p className="text-slate-400 text-[10.5px] mt-2">
+                        Unlike macroscopic tensile stress which uniformally shifts peak centers, <strong className="text-slate-200">microstrain (ε)</strong> represents random deviations in interplanar <span className="italic font-medium">d-spacing</span> (Δd/d) within individual crystal planes, generating peak broadening:
+                      </p>
+                      <ul className="list-disc pl-4 mt-2 space-y-1.5 text-slate-400 text-[10.5px]">
+                        <li>
+                          <strong className="text-slate-200">Dislocation Core Strain:</strong> Distortions of atom alignments adjacent to defects, generating deep localized mechanical strain fields.
+                        </li>
+                        <li>
+                          <strong className="text-slate-200">Grain Boundary Friction:</strong> Misorientations and atom constraints at nanocrystalline boundaries.
+                        </li>
+                        <li>
+                          <strong className="text-slate-200">Residual Stress:</strong> Structural tension conserved after processing, plastic deformation, or intense mechanical cold working.
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-cyan-500/[0.02] p-3 rounded-xl border border-cyan-500/10 space-y-1.5">
+                      <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest block font-mono">Thermodynamics & Strain-Energy:</span>
+                      <p className="text-slate-400 text-[10px] text-justify leading-normal">
+                        Using isotropic linear elastic models, the crystalline stress (σ) is determined as <code className="text-white font-mono font-bold bg-[#040810]/80 px-1 py-0.5 rounded border border-white/5">σ = ε · E</code>, and stored strain-energy density (u) as <code className="text-white font-mono font-bold bg-[#040810]/80 px-1 py-0.5 rounded border border-white/5">u = ½ · ε² · E</code>, where E is the isotropic Young's Modulus.
+                      </p>
                     </div>
                   </div>
                 </div>

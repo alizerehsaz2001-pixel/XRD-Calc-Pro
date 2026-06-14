@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   XAxis,
   YAxis,
@@ -8,9 +8,10 @@ import {
   ResponsiveContainer,
   ComposedChart,
   Area,
-  Scatter
+  Scatter,
+  ReferenceArea
 } from 'recharts';
-import { Activity, Terminal } from 'lucide-react';
+import { Activity, Terminal, RotateCcw, Tag } from 'lucide-react';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
 
@@ -21,6 +22,45 @@ interface DiffractionChartProps {
 
 export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, materialName }) => {
   const { precision } = useSettings();
+  
+  // Zooming states
+  const [left, setLeft] = useState<number | string>('dataMin - 5');
+  const [right, setRight] = useState<number | string>('dataMax + 5');
+  const [refAreaLeft, setRefAreaLeft] = useState<number | string | null>(null);
+  const [refAreaRight, setRefAreaRight] = useState<number | string | null>(null);
+
+  // HKL labels toggle
+  const [showHKL, setShowHKL] = useState(true);
+
+  const zoom = () => {
+    let zoomLeft = refAreaLeft;
+    let zoomRight = refAreaRight;
+
+    if (zoomLeft === zoomRight || zoomRight === null || zoomLeft === null) {
+      setRefAreaLeft(null);
+      setRefAreaRight(null);
+      return;
+    }
+
+    if (zoomLeft > zoomRight) {
+      [zoomLeft, zoomRight] = [zoomRight, zoomLeft];
+    }
+
+    setRefAreaLeft(null);
+    setRefAreaRight(null);
+    setLeft(Number(zoomLeft).toFixed(1));
+    setRight(Number(zoomRight).toFixed(1));
+  };
+
+  const zoomOut = () => {
+    setLeft('dataMin - 5');
+    setRight('dataMax + 5');
+    setRefAreaLeft(null);
+    setRefAreaRight(null);
+  };
+
+  const isZoomedIn = left !== 'dataMin - 5' || right !== 'dataMax + 5';
+
   const chartData = useMemo(() => {
     if (results.length === 0) return { points: [], peakData: [] };
 
@@ -133,19 +173,53 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
           </div>
           <div>
             <h3 className="text-xl font-black text-white tracking-tight uppercase">Spectral Visualizer</h3>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Calculated Diffraction Profile</p>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 flex gap-2 items-center">
+              <span>Calculated Diffraction Profile</span>
+              <span className="px-1.5 py-0.5 bg-slate-800 rounded font-mono text-[8px] text-slate-400 border border-slate-700">Drag to Zoom</span>
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 bg-black/40 px-4 py-1.5 rounded-2xl border border-slate-800/50">
-           <Terminal className="w-3 h-3 text-slate-600" />
-           <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Pattern Synthesis Active</span>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setShowHKL(!showHKL)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border ${
+              showHKL 
+                ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/30' 
+                : 'bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 border-slate-700'
+            }`}
+          >
+            <Tag className="w-3 h-3" />
+            HKL Labels
+          </button>
+          {isZoomedIn && (
+            <button 
+              onClick={zoomOut}
+              className="flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Reset Zoom
+            </button>
+          )}
+          <div className="flex items-center gap-3 bg-black/40 px-4 py-1.5 rounded-2xl border border-slate-800/50">
+             <Terminal className="w-3 h-3 text-slate-600" />
+             <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Pattern Synthesis Active</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 w-full min-h-0 min-w-0 relative z-10">
+      <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 select-none">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart margin={{ top: 25, right: 20, bottom: 20, left: -20 }}>
+          <ComposedChart 
+            margin={{ top: 25, right: 20, bottom: 20, left: -20 }}
+            onMouseDown={(e: any) => e && setRefAreaLeft(e.activeLabel)}
+            onMouseMove={(e: any) => refAreaLeft && e && setRefAreaRight(e.activeLabel)}
+            onMouseUp={zoom}
+            onMouseLeave={() => {
+              setRefAreaLeft(null);
+              setRefAreaRight(null);
+            }}
+          >
             <defs>
                <linearGradient id="profileGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -156,7 +230,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             <XAxis 
               dataKey="twoTheta" 
               type="number"
-              domain={['dataMin - 5', 'dataMax + 5']} 
+              domain={[left, right]} 
+              allowDataOverflow={true}
               tick={{ fontSize: 10, fontWeight: 'black', fill: '#475569', fontFamily: 'monospace' }}
               axisLine={{ stroke: '#334155' }}
               tickLine={{ stroke: '#334155' }}
@@ -173,7 +248,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               stroke="#6366f1"
               strokeWidth={2}
               fill="url(#profileGradient)"
-              isAnimationActive={true}
+              isAnimationActive={!isZoomedIn}
               animationDuration={2000}
             />
 
@@ -184,11 +259,16 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               shape={(props: any) => {
                 const { cx, cy, payload } = props;
                 if (cx === undefined || cy === undefined || isNaN(cx) || isNaN(cy)) return null;
+                // Only render if within zoom bounds. Left and right might be string or number.
+                let l = typeof left === 'string' ? payload.twoTheta - 100 : Number(left);
+                let r = typeof right === 'string' ? payload.twoTheta + 100 : Number(right);
+                if (payload.twoTheta < l || payload.twoTheta > r) return null;
+                
                 return (
                   <g>
                     <line x1={cx} y1={cy} x2={cx} y2={cy + 300} stroke="#10b981" strokeWidth={2} strokeDasharray="3 3" opacity={0.4} />
                     <circle cx={cx} cy={cy} r={4} fill="#10b981" stroke="#fff" strokeWidth={1} />
-                    {payload.isLabelVisible && payload.hkl && (
+                    {showHKL && payload.hkl && (
                       <text x={cx} y={cy - 12} textAnchor="middle" fill="#94a3b8" fontSize="10" className="font-bold font-mono tracking-widest drop-shadow-md">
                         ({payload.hkl})
                       </text>
@@ -197,12 +277,22 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 )
               }}
             />
+
+            {refAreaLeft && refAreaRight ? (
+              <ReferenceArea
+                x1={refAreaLeft}
+                x2={refAreaRight}
+                strokeOpacity={0.3}
+                fill="#6366f1"
+                fillOpacity={0.2}
+              />
+            ) : null}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
       {materialName && (
-        <div className="absolute top-8 right-64 px-4 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full z-20">
+        <div className="absolute top-8 right-64 px-4 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full z-20 transition-opacity">
            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{materialName} Simulation</span>
         </div>
       )}

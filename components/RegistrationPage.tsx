@@ -107,6 +107,7 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister, 
   const [nationSearch, setNationSearch] = useState('');
   const [selectedNation, setSelectedNation] = useState<Nationality | null>(null);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const nationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -120,6 +121,23 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister, 
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  const handleGoogleAuth = async () => {
+    setIsSubmitting(true);
+    try {
+      const { signIn } = await import('../services/firebase');
+      await signIn();
+      // Wait a moment for auth state to propagate to App.tsx
+      setTimeout(() => {
+         onRegister();
+      }, 100);
+    } catch (err: any) {
+      console.error(err);
+      setErrors({ form: err.message || 'Authentication failed' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
@@ -574,14 +592,34 @@ export const RegistrationPage: React.FC<RegistrationPageProps> = ({ onRegister, 
 
             <button
               type="submit"
-              className="w-full py-5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black uppercase tracking-[0.2em] italic rounded-2xl shadow-[0_0_40px_rgba(139,92,246,0.3)] transition-all hover:translate-y-[-2px] active:translate-y-[1px] flex items-center justify-center gap-3 relative group overflow-hidden border border-white/10"
+              disabled={isSubmitting}
+              className="w-full py-5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 text-white font-black uppercase tracking-[0.2em] italic rounded-2xl shadow-[0_0_40px_rgba(139,92,246,0.3)] transition-all hover:translate-y-[-2px] active:translate-y-[1px] flex items-center justify-center gap-3 relative group overflow-hidden border border-white/10"
             >
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
               <span className="relative z-10 flex items-center gap-3">
                 <CheckCircle2 className="w-5 h-5 text-cyan-400" />
-                {mode === 'login' ? 'Authorize & Sign In' : t('Complete Registration')}
+                {isSubmitting ? 'Processing...' : (mode === 'login' ? 'Authorize & Sign In' : t('Complete Registration'))}
               </span>
               <ArrowRight className="w-5 h-5 relative z-10 group-hover:translate-x-2 transition-transform" />
+            </button>
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-800"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="px-4 bg-[#0B1221] text-xs font-bold text-slate-500 uppercase tracking-widest">
+                  Or
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={handleGoogleAuth}
+              className="w-full py-4 bg-white/5 hover:bg-white/10 disabled:opacity-50 text-white font-black uppercase tracking-widest rounded-2xl transition-all flex items-center justify-center gap-3 border border-white/10"
+            >
+              Google Account
             </button>
           </form>
 

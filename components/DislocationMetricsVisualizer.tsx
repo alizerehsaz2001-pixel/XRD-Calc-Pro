@@ -161,10 +161,10 @@ export const DislocationMetricsVisualizer: React.FC<DislocationMetricsVisualizer
                   <div className="space-y-1 pt-1">
                     <div className="w-full h-1.5 rounded-full bg-slate-900/80 relative overflow-hidden border border-white/5">
                       {/* Log zones background color indicators */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-rose-500/20" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-purple-500/20 to-fuchsia-500/20" />
                       {/* Interactive dynamic slide pointer */}
                       <div 
-                        className="absolute top-0 bottom-0 bg-gradient-to-r from-violet-500 to-purple-400 rounded-full shadow-[0_0_6px_rgba(168,85,247,0.8)] transition-all duration-500"
+                        className="absolute top-0 bottom-0 bg-gradient-to-r from-purple-500 to-fuchsia-400 rounded-full shadow-[0_0_8px_rgba(217,70,239,0.7)] transition-all duration-500"
                         style={{ width: `${densityPercent}%` }}
                       />
                     </div>
@@ -186,7 +186,7 @@ export const DislocationMetricsVisualizer: React.FC<DislocationMetricsVisualizer
                   </div>
 
                   <div className="space-y-0.5">
-                    <span className="text-xl font-mono font-black text-amber-400 block">
+                    <span className="text-xl font-mono font-black text-rose-400 block">
                       {safeEnergy >= 1000 
                         ? `${(safeEnergy / 1000).toFixed(3)} MJ/m³` 
                         : `${safeEnergy.toFixed(2)} kJ/m³`
@@ -201,7 +201,7 @@ export const DislocationMetricsVisualizer: React.FC<DislocationMetricsVisualizer
                   <div className="space-y-1 pt-1">
                     <div className="w-full h-1.5 rounded-full bg-slate-900/80 relative overflow-hidden border border-white/5">
                       <div 
-                        className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-amber-500 to-orange-400 rounded-full transition-all duration-500"
+                        className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-fuchsia-500 to-rose-400 rounded-full transition-all duration-500"
                         style={{ width: `${Math.max(5, Math.min(100, (safeEnergy / 950000) * 100))}%` }}
                       />
                     </div>

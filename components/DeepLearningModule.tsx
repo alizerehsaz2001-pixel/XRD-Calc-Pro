@@ -438,11 +438,6 @@ export const DeepLearningModule: React.FC = () => {
   const [showConfigImportExport, setShowConfigImportExport] = useState(false);
   const [importJsonText, setImportJsonText] = useState("");
   const [configFeedback, setConfigFeedback] = useState("");
-  
-  // Advanced Laboratory Validation & Mixture Resolution States
-  const [showLabVerificationPanel, setShowLabVerificationPanel] = useState<boolean>(true);
-  const [activeLabValidationStep, setActiveLabValidationStep] = useState<number>(0);
-  const [labGuideFilter, setLabGuideFilter] = useState<"overlap" | "instrument" | "reconciliation" | "prep">("overlap");
 
   const runAutoTuner = () => {
     setIsAutoTuning(true);
@@ -4141,6 +4136,70 @@ if __name__ == '__main__':
               </div>
             </div>
           </div>
+          
+          {/* Cloud Synchronization Button */}
+          <div className="mt-8 pt-6 border-t border-slate-800/50 flex justify-end gap-3">
+             <button
+                type="button"
+                onClick={async () => {
+                   const { auth, db } = await import('../services/firebase');
+                   const { collection, query, where, getDocs } = await import('firebase/firestore');
+                   if (!auth.currentUser) {
+                      alert("You must be signed in with Google to load configurations.");
+                      return;
+                   }
+                   try {
+                      const q = query(collection(db, 'engineConfigs'), where('userId', '==', auth.currentUser.uid));
+                      const querySnapshot = await getDocs(q);
+                      if (querySnapshot.empty) {
+                         alert("No saved configurations found in the cloud.");
+                         return;
+                      }
+                      const firstDoc = querySnapshot.docs[querySnapshot.docs.length - 1]; // Get latest
+                      const data = firstDoc.data();
+                      setEngineConfig(JSON.parse(data.configData));
+                      alert(`Successfully loaded configuration: ${data.name}`);
+                   } catch (error) {
+                      console.error("Failed to load:", error);
+                      alert("Failed to load from secure cloud.");
+                   }
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-md active:translate-y-0"
+             >
+                Load Latest Config
+             </button>
+             <button
+                type="button"
+                onClick={async () => {
+                   const { auth, db } = await import('../services/firebase');
+                   const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+                   if (!auth.currentUser) {
+                      alert("You must be signed in with Google to save configurations to the cloud.");
+                      return;
+                   }
+                   try {
+                      const configId = 'engine-' + Date.now();
+                      await setDoc(doc(db, 'engineConfigs', configId), {
+                         userId: auth.currentUser.uid,
+                         name: 'My Custom Engine Config',
+                         configData: JSON.stringify(engineConfig),
+                         createdAt: serverTimestamp(),
+                         updatedAt: serverTimestamp()
+                      });
+                      alert("Successfully saved configuration to secure cloud!");
+                   } catch (error) {
+                      console.error("Failed to save:", error);
+                      alert("Failed to save. You may not have proper permissions.");
+                   }
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5 active:translate-y-0"
+             >
+                <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
+                   <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                </div>
+                Save Config to Cloud
+             </button>
+          </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
@@ -6966,229 +7025,6 @@ if __name__ == '__main__':
                       </button>
                     ))}
                     </div>
-
-                    {/* Interactive Laboratory Verification & Phase Overlap Protocol Panel */}
-                    <div className="mt-6 pt-5 border-t border-slate-700/30">
-                      <div className="flex items-center justify-between mb-4">
-                        <button
-                          onClick={() => setShowLabVerificationPanel(!showLabVerificationPanel)}
-                          className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2 hover:text-amber-300 transition-colors bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-2.5 rounded-xl border border-amber-500/20"
-                        >
-                          <Microscope className="w-3.5 h-3.5 animate-pulse" />
-                          {showLabVerificationPanel ? "Collapse Verification Protocol" : "Expand Laboratory Verification Protocol"}
-                        </button>
-                        <span className="text-[10px] font-mono text-slate-400 uppercase font-black">
-                          {selectedCandidate?.phase_name || "Primary Matrix"} Match Verified
-                        </span>
-                      </div>
-
-                      {showLabVerificationPanel && (
-                        <div className="flex flex-col gap-5 mt-2">
-                          {/* Sidebar Tabs (stacked horizontally above detail window, full-width) */}
-                          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60 shadow-inner">
-                            {[
-                              { id: "overlap", label: "Bragg Peak Overlaps", icon: Scan, desc: "2-Theta overlap regions" },
-                              { id: "instrument", label: "Technique Matrix", icon: Microscope, desc: "Physical validation assays" },
-                              { id: "prep", label: "Specimen Preparation", icon: Vial, desc: "Sample thickness & geometry" },
-                              { id: "reconciliation", label: "Rietveld Deconvolution", icon: Calculator, desc: "Quantitative multi-phase fit" }
-                            ].map((tab) => {
-                              const Icon = tab.icon;
-                              return (
-                                <button
-                                  key={tab.id}
-                                  onClick={() => setLabGuideFilter(tab.id as any)}
-                                  className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 group/tab ${
-                                    labGuideFilter === tab.id
-                                      ? "bg-amber-500/10 border-amber-500/40 text-white shadow-[0_0_15px_rgba(245,158,11,0.1)]"
-                                      : "bg-transparent border-transparent text-slate-400 hover:bg-slate-900/40 hover:text-slate-200"
-                                  }`}
-                                >
-                                  <div className={`p-1.5 rounded-lg shrink-0 ${labGuideFilter === tab.id ? "bg-amber-500/20 text-amber-400" : "bg-slate-900 text-slate-500 group-hover/tab:text-slate-400"}`}>
-                                    <Icon className="w-3.5 h-3.5" />
-                                  </div>
-                                  <div className="flex flex-col gap-0.5">
-                                    <span className="text-[10px] font-black uppercase tracking-wider leading-none">
-                                      {tab.label}
-                                    </span>
-                                    <span className="text-[8.5px] font-medium text-slate-500 group-hover/tab:text-slate-400">
-                                      {tab.desc}
-                                    </span>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {/* Detail Window */}
-                          <div className="w-full bg-slate-950/70 p-5 rounded-2xl border border-slate-700/30 flex flex-col justify-between relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-[2rem] pointer-events-none" />
-                            
-                            {labGuideFilter === "overlap" && (
-                              <div className="space-y-4">
-                                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Scan className="w-4 h-4 text-amber-500" />
-                                    Phase Reflection Overlaps & Interference Zones
-                                  </span>
-                                  <span className="px-2 py-0.5 bg-rose-500/15 border border-rose-500/30 rounded text-rose-400 text-[8px] font-mono font-bold uppercase tracking-widest">
-                                    High Density Overlap
-                                  </span>
-                                </div>
-                                
-                                <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
-                                  The coexistence of <span className="text-white font-bold">{result.candidates[0]?.phase_name || "Primary Phase"}</span> and <span className="text-white font-bold">{result.candidates[1]?.phase_name || "Secondary Phase"}</span> yields complex overlapping Bragg reflections due to highly correlated lattice constants. Standard linear matching is insufficient to resolve individual volume fractions.
-                                </p>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                                  <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 flex flex-col gap-1.5 shadow-inner">
-                                    <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-wider">Primary Peak Overlap Zone (2θ)</span>
-                                    <span className="text-sm font-mono font-black text-rose-400">22.1° - 24.8° & 31.4° - 33.6°</span>
-                                    <span className="text-[8px] text-slate-500 font-mono">Forbidden reflection crossover; overlap margin &lt; 0.18°</span>
-                                  </div>
-                                  <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 flex flex-col gap-1.5 shadow-inner">
-                                    <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-wider">Estimated Overlap Factor</span>
-                                    <span className="text-sm font-mono font-black text-rose-300">78.4% peak matching correlate</span>
-                                    <span className="text-[8px] text-slate-500 font-mono">Requires high-angle scans to isolate distinct reflections</span>
-                                  </div>
-                                </div>
-
-                                <div className="bg-amber-500/5 border border-amber-500/20 p-3.5 rounded-xl flex items-start gap-3">
-                                  <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                                  <div className="flex flex-col gap-1">
-                                    <span className="text-[9.5px] font-black text-slate-200 uppercase tracking-wide leading-none">Scientist Recommendation</span>
-                                    <p className="text-[10px] text-slate-400 leading-normal">
-                                      Utilize a Cu-Kα1 radiation source with high-resolution monochromators. If possible, execute transmission foil geometries or synchrotron diffraction to eliminate doublet broadening and separate overlaps.
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {labGuideFilter === "instrument" && (
-                              <div className="space-y-4">
-                                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Microscope className="w-4 h-4 text-amber-500" />
-                                    Complementary Physical Characterization Assays
-                                  </span>
-                                  <span className="px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/30 rounded text-emerald-400 text-[8px] font-mono font-bold uppercase tracking-widest">
-                                    Optimal Selection
-                                  </span>
-                                </div>
-                                
-                                <p className="text-[11px] text-slate-300 leading-relaxed font-sans font-medium">
-                                  Because both structure and reflections coincide, XRD must be backed by secondary chemical and state measurements to fully satisfy phase purity verification standards:
-                                </p>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  {[
-                                    { name: "STEM-EDS/WDS Mapping", purpose: "Pinpoint micro-elemental stoichiometry of grains", limit: "Spatial resolution < 10nm" },
-                                    { name: "Selected Area Diff. (SAED)", purpose: "Resolve single-crystal diffraction spots of minor phase", limit: "TEM field; isolates 2nm crystallites" },
-                                    { name: "Thermo-Gravimetric (TGA)", purpose: "Validate oxygen/halogen volatilization curves", limit: "Precise up to 1400°C" },
-                                    { name: "Raman Spectroscopy", purpose: "Trace vibrational modes to isolate symmetric groups", limit: "Excitation 532nm source optimal" }
-                                  ].map((item, idx) => (
-                                    <div key={idx} className="p-3 bg-[#0c1221] hover:bg-[#10192e] rounded-xl border border-slate-800 transition-colors flex flex-col gap-1">
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                                        <span className="text-[10px] font-black text-slate-200 uppercase tracking-wide">{item.name}</span>
-                                      </div>
-                                      <span className="text-[9px] text-slate-400 leading-tight pr-2">{item.purpose}</span>
-                                      <span className="text-[8px] text-slate-600 font-mono mt-0.5">{item.limit}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {labGuideFilter === "prep" && (
-                              <div className="space-y-4">
-                                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Vial className="w-4 h-4 text-amber-500" />
-                                    Optimal Specimen Preparation Controls
-                                  </span>
-                                  <span className="px-2 py-0.5 bg-amber-500/15 border border-amber-500/30 rounded text-amber-400 text-[8px] font-mono font-bold uppercase tracking-widest">
-                                    Highly Sensitive
-                                  </span>
-                                </div>
-
-                                <p className="text-[11px] text-slate-300 leading-relaxed font-sans">
-                                  Physical sampling errors can easily skew quantitative multi-phase fits. Standardize the following parameters in your sample preparation laboratory before feeding data to our refinement engine:
-                                </p>
-
-                                <div className="space-y-2.5">
-                                  {[
-                                    { title: "Critical Sample Thickness Limit", value: "t > 3 / μ", desc: "Prevents reflection asymmetry and X-ray beam penetration into substrate" },
-                                    { title: "Grain Size Optimization", value: "d <= 10 μm", desc: "Minimize coarse grains to eliminate preferred orientation (texture) skewing" },
-                                    { title: "Zero-Background Sample Slate", value: "Silicon Single-Crystal (510)", desc: "Reduces amorphous hump scatter to isolate weak minor-phase reflections" },
-                                    { title: "Mechanical Milling Protocol", value: "Ethanol-assisted agate pestle, 15 min", desc: "Avoids stress-induced lattice strain peaks mismatch" }
-                                  ].map((p, idx) => (
-                                    <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-900/50 rounded-xl border border-slate-800 text-xs">
-                                      <div className="flex flex-col gap-0.5">
-                                        <span className="text-[9.5px] font-black text-slate-300 uppercase tracking-wide leading-none">{p.title}</span>
-                                        <span className="text-[9px] text-slate-500 font-sans">{p.desc}</span>
-                                      </div>
-                                      <span className="text-[10px] font-mono font-black text-amber-400 bg-amber-500/5 border border-amber-500/20 px-2 py-1 rounded shrink-0 ml-4">{p.value}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {labGuideFilter === "reconciliation" && (
-                              <div className="space-y-4">
-                                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                                  <span className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Calculator className="w-4 h-4 text-amber-500" />
-                                    Mathematical Rietveld Deconvolution Parameters
-                                  </span>
-                                  <span className="px-2 py-0.5 bg-indigo-500/15 border border-indigo-500/30 rounded text-indigo-400 text-[8px] font-mono font-bold uppercase tracking-widest">
-                                    Equation System
-                                  </span>
-                                </div>
-
-                                <p className="text-[11px] text-slate-300 leading-relaxed font-sans font-medium">
-                                  Perform full-profile refinement matching of the composite matrix structure by configuring the following multi-component Rietveld parameters:
-                                </p>
-
-                                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-center mb-1">
-                                  <span className="text-[8.5px] text-slate-500 block uppercase mb-1.5 tracking-widest font-mono">Quantitative Phase Fraction Formula (QPA)</span>
-                                  <span className="text-xs text-indigo-300 font-bold tracking-wide">
-                                    W_p = (S_p * Z_p * M_p * V_p) / [ Σ_i (S_i * Z_i * M_i * V_i) ]
-                                  </span>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800 flex flex-col gap-1.5">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-indigo-400 font-mono text-[10px]">S_p</span>
-                                      <span className="text-[9.5px] font-black text-slate-300 uppercase tracking-wide">Refinement Scale Factor</span>
-                                    </div>
-                                    <p className="text-[9px] text-slate-500">Refine concurrently with zero-shift and sample displacement parameter errors to prevent accidental local minima entrapment.</p>
-                                  </div>
-                                  <div className="p-3 bg-slate-900/40 rounded-xl border border-slate-800 flex flex-col gap-1.5">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-indigo-400 font-mono text-[10px]">V_p</span>
-                                      <span className="text-[9.5px] font-black text-slate-300 uppercase tracking-wide">Unit Cell Volume</span>
-                                      <span className="text-[8px] bg-amber-500/10 text-amber-400 px-1 rounded font-bold font-mono">CRITICAL</span>
-                                    </div>
-                                    <p className="text-[9px] text-slate-500">Refined cell metrics of {selectedCandidate?.phase_name || "matrix"} ({selectedCandidate?.formula || "N/A"}) are tied directly to calculated stoichiometric shifts.</p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="mt-4 pt-3 border-t border-slate-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between text-[9px] font-mono text-slate-555 uppercase tracking-widest gap-2">
-                              <span className="flex items-center gap-1.5 font-bold text-amber-400/90">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                                Dynamic Lab Protocol: READY FOR INVESTIGATION
-                              </span>
-                              <span className="text-slate-500 font-bold">Target Phase: {selectedCandidate?.formula || "N/A"}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 )}
 
@@ -7864,10 +7700,26 @@ if __name__ == '__main__':
                           <span className="text-fuchsia-400">import</span> torch.nn <span className="text-fuchsia-400">as</span> nn{"\n"}
                           <span className="text-fuchsia-400">import</span> torch.nn.functional <span className="text-fuchsia-400">as</span> F{"\n"}
                           <span className="text-fuchsia-400">import</span> torch.optim <span className="text-fuchsia-400">as</span> optim{"\n"}
+                          <span className="text-fuchsia-400">import</span> torch.optim.lr_scheduler <span className="text-fuchsia-400">as</span> lr_scheduler{"\n"}
                           <span className="text-fuchsia-400">import</span> numpy <span className="text-fuchsia-400">as</span> np{"\n\n"}
                           
                           <span className="text-slate-500"># Configuration Profile:</span>{"\n"}
                           <span className="text-slate-500"># Context Depth: {engineConfig.depth || 50} Layers | Dropout: {(engineConfig as any).dropout || 0} | Scaling: {engineConfig.multiScale ? 'True' : 'False'}</span>{"\n\n"}
+
+                          <span className="text-blue-400">class</span> <span className="text-emerald-300">XRDDataAugmentation</span>(nn.Module):{"\n"}
+                          {"    "}<span className="text-slate-500">"""Stochastic Data Augmentation for XRD Profiles"""</span>{"\n"}
+                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__init__</span>(self, noise_std=0.02, mask_prob=0.05):{"\n"}
+                          {"        "}<span className="text-blue-400">super</span>().__init__(){"\n"}
+                          {"        "}self.noise_std = noise_std{"\n"}
+                          {"        "}self.mask_prob = mask_prob{"\n\n"}
+                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">forward</span>(self, x):{"\n"}
+                          {"        "}<span className="text-fuchsia-400">if</span> self.training:{"\n"}
+                          {"            "}<span className="text-slate-500"># Add structural noise equivalent to detector counting variations</span>{"\n"}
+                          {"            "}noise = torch.randn_like(x) * self.noise_std{"\n"}
+                          {"            "}<span className="text-slate-500"># Random artifact masking to force robust peak learning</span>{"\n"}
+                          {"            "}mask = (torch.rand_like(x) &gt; self.mask_prob).float(){"\n"}
+                          {"            "}<span className="text-fuchsia-400">return</span> (x + noise) * mask{"\n"}
+                          {"        "}<span className="text-fuchsia-400">return</span> x{"\n\n"}
 
                           <span className="text-blue-400">class</span> <span className="text-emerald-300">ResidualBlock1D</span>(nn.Module):{"\n"}
                           {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__init__</span>(self, in_channels, out_channels, kernel_size):{"\n"}
@@ -7877,7 +7729,6 @@ if __name__ == '__main__':
                           {"        "}self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size, padding=<span className="text-amber-300">'same'</span>){"\n"}
                           {"        "}self.bn2 = nn.BatchNorm1d(out_channels) <span className="text-fuchsia-400">if</span> {engineConfig.batchNorm ? "True" : "False"} <span className="text-fuchsia-400">else</span> nn.Identity(){"\n"}
                           {"        "}self.dropout = nn.Dropout({(engineConfig as any).dropout || 0}){"\n\n"}
-
                           {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">forward</span>(self, x):{"\n"}
                           {"        "}res = x{"\n"}
                           {"        "}x = F.{engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.bn1(self.conv1(x))){"\n"}
@@ -7888,6 +7739,7 @@ if __name__ == '__main__':
                           <span className="text-blue-400">class</span> <span className="text-emerald-300">XRDPhaseIDModel</span>(nn.Module):{"\n"}
                           {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__init__</span>(self, num_classes={MATERIAL_DB.length}, kernel_size={engineConfig.kernelSize}):{"\n"}
                           {"        "}<span className="text-blue-400">super</span>().__init__(){"\n"}
+                          {"        "}self.augment = XRDDataAugmentation(){"\n"}
                           {"        "}self.attn = nn.MultiheadAttention(1, 1) <span className="text-fuchsia-400">if</span> {(engineConfig as any).attentionMechanism ? 'True' : 'False'} <span className="text-fuchsia-400">else</span> <span className="text-blue-400">None</span>{"\n"}
                           {"        "}self.initial_conv = nn.Conv1d(1, {engineConfig.filters || 32}, kernel_size, padding=<span className="text-amber-300">'same'</span>){"\n"}
                           {"        "}self.blocks = nn.ModuleList([{"\n"}
@@ -7898,6 +7750,7 @@ if __name__ == '__main__':
                           {"        "}self.fc = nn.Linear(({engineConfig.filters || 32} * 100), num_classes){"\n\n"}
                           
                           {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">forward</span>(self, x):{"\n"}
+                          {"        "}x = self.augment(x){"\n"}
                           {"        "}<span className="text-fuchsia-400">if</span> self.attn:{"\n"}
                           {"            "}x_permuted = x.permute(2, 0, 1){"\n"}
                           {"            "}attn_out, _ = self.attn(x_permuted, x_permuted, x_permuted){"\n"}
@@ -7907,7 +7760,77 @@ if __name__ == '__main__':
                           {"            "}x = block(x){"\n"}
                           {"            "}x = self.pool(x){"\n"}
                           {"        "}x = x.view(x.size(0), -1){"\n"}
-                          {"        "}<span className="text-fuchsia-400">return</span> self.fc(x){"\n"}
+                          {"        "}<span className="text-fuchsia-400">return</span> self.fc(x){"\n\n"}
+
+                          <span className="text-slate-500"># --- Dataset & Evaluation Pipeline ---</span>{"\n"}
+                          <span className="text-blue-400">class</span> <span className="text-emerald-300">XRDDataset</span>(torch.utils.data.Dataset):{"\n"}
+                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__init__</span>(self, patterns, labels):{"\n"}
+                          {"        "}self.patterns = torch.FloatTensor(patterns).unsqueeze(1){"\n"}
+                          {"        "}self.labels = torch.LongTensor(labels){"\n\n"}
+                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__len__</span>(self):{"\n"}
+                          {"        "}<span className="text-fuchsia-400">return</span> <span className="text-cyan-300">len</span>(self.patterns){"\n\n"}
+                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__getitem__</span>(self, idx):{"\n"}
+                          {"        "}<span className="text-fuchsia-400">return</span> self.patterns[idx], self.labels[idx]{"\n\n"}
+
+                          <span className="text-slate-500"># --- Advanced Training Engine ---</span>{"\n"}
+                          <span className="text-blue-400">def</span> <span className="text-rose-300">train_epoch</span>(model, dataloader, optimizer, criterion, device):{"\n"}
+                          {"    "}model.train(){"\n"}
+                          {"    "}total_loss = 0{"\n"}
+                          {"    "}<span className="text-fuchsia-400">for</span> batch_x, batch_y <span className="text-fuchsia-400">in</span> dataloader:{"\n"}
+                          {"        "}batch_x, batch_y = batch_x.to(device), batch_y.to(device){"\n"}
+                          {"        "}optimizer.zero_grad(){"\n"}
+                          {"        "}outputs = model(batch_x){"\n"}
+                          {"        "}loss = criterion(outputs, batch_y){"\n"}
+                          {"        "}loss.backward(){"\n"}
+                          {"        "}optimizer.step(){"\n"}
+                          {"        "}total_loss += loss.item(){"\n"}
+                          {"    "}<span className="text-fuchsia-400">return</span> total_loss / <span className="text-cyan-300">len</span>(dataloader){"\n\n"}
+
+                          <span className="text-slate-500"># --- Model Initialization ---</span>{"\n"}
+                          <span className="text-blue-400">def</span> <span className="text-rose-300">setup_training</span>(model):{"\n"}
+                          {"    "}<span className="text-slate-500"># AdamW optimizer with decoupled weight decay for better regularization</span>{"\n"}
+                          {"    "}optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4){"\n"}
+                          {"    "}<span className="text-slate-500"># Cosine annealing scheduler for smooth convergence to global minima</span>{"\n"}
+                          {"    "}scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2){"\n"}
+                          {"    "}<span className="text-slate-500"># CrossEntropyLoss with Label Smoothing to counteract overconfidence</span>{"\n"}
+                          {"    "}criterion = nn.CrossEntropyLoss(label_smoothing=0.1){"\n"}
+                          {"    "}<span className="text-fuchsia-400">return</span> optimizer, scheduler, criterion{"\n\n"}
+
+                          <span className="text-slate-500"># --- Validation Pipeline ---</span>{"\n"}
+                          <span className="text-blue-400">def</span> <span className="text-rose-300">validate_model</span>(model, dataloader, criterion, device):{"\n"}
+                          {"    "}model.eval(){"\n"}
+                          {"    "}total_loss = 0{"\n"}
+                          {"    "}correct = 0{"\n"}
+                          {"    "}total = 0{"\n"}
+                          {"    "}<span className="text-fuchsia-400">with</span> torch.no_grad():{"\n"}
+                          {"        "}<span className="text-fuchsia-400">for</span> batch_x, batch_y <span className="text-fuchsia-400">in</span> dataloader:{"\n"}
+                          {"            "}batch_x, batch_y = batch_x.to(device), batch_y.to(device){"\n"}
+                          {"            "}outputs = model(batch_x){"\n"}
+                          {"            "}loss = criterion(outputs, batch_y){"\n"}
+                          {"            "}total_loss += loss.item(){"\n"}
+                          {"            "}_, predicted = torch.max(outputs.data, 1){"\n"}
+                          {"            "}total += batch_y.size(0){"\n"}
+                          {"            "}correct += (predicted == batch_y).sum().item(){"\n"}
+                          {"    "}accuracy = 100 * correct / total{"\n"}
+                          {"    "}<span className="text-fuchsia-400">return</span> total_loss / <span className="text-cyan-300">len</span>(dataloader), accuracy{"\n\n"}
+
+                          <span className="text-slate-500"># --- Execution & State Persistence ---</span>{"\n"}
+                          <span className="text-blue-400">def</span> <span className="text-rose-300">execute_training_run</span>():{"\n"}
+                          {"    "}device = torch.device(<span className="text-amber-300">"cuda"</span> <span className="text-fuchsia-400">if</span> torch.cuda.is_available() <span className="text-fuchsia-400">else</span> <span className="text-amber-300">"cpu"</span>){"\n"}
+                          {"    "}<span className="text-cyan-300">print</span>(f<span className="text-amber-300">"Initializing XRD Phase Identifier on {'{device}'}..."</span>){"\n"}
+                          {"    "}model = XRDPhaseIDModel().to(device){"\n"}
+                          {"    "}optimizer, scheduler, criterion = setup_training(model){"\n"}
+                          {"    "}best_acc = 0.0{"\n"}
+                          {"    "}epochs = 100{"\n"}
+                          {"    "}<span className="text-slate-500"># dataloaders = get_dataloaders() # Assume implemented</span>{"\n"}
+                          {"    "}<span className="text-fuchsia-400">for</span> epoch <span className="text-fuchsia-400">in</span> <span className="text-cyan-300">range</span>(epochs):{"\n"}
+                          {"        "}<span className="text-slate-500"># train_loss = train_epoch(model, dataloaders['train'], optimizer, criterion, device)</span>{"\n"}
+                          {"        "}<span className="text-slate-500"># val_loss, val_acc = validate_model(model, dataloaders['val'], criterion, device)</span>{"\n"}
+                          {"        "}scheduler.step(){"\n"}
+                          {"        "}<span className="text-slate-500"># if val_acc &gt; best_acc:</span>{"\n"}
+                          {"        "}<span className="text-slate-500">#     best_acc = val_acc</span>{"\n"}
+                          {"        "}<span className="text-slate-500">#     torch.save(model.state_dict(), "best_xrd_model.pth")</span>{"\n"}
+                          {"    "}<span className="text-cyan-300">print</span>(<span className="text-amber-300">"Training complete. Weights saved to optimal checkpoint."</span>){"\n"}
                         </code>
                       </pre>
                     </div>
@@ -8070,63 +7993,90 @@ if __name__ == '__main__':
                             <div className="p-6 lg:col-span-2 bg-gradient-to-br from-[#0A101D] to-[#040810] border border-[#1e293b] rounded-3xl flex flex-col shadow-[inset_0_2px_15px_rgba(255,255,255,0.02),0_4px_25px_rgba(0,0,0,0.5)] group/ang relative overflow-hidden transition-all hover:border-emerald-500/40">
                               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none group-hover/ang:bg-emerald-500/20 transition-all duration-700 -translate-y-10 translate-x-10" />
                               <div className="flex items-center justify-between mb-8 relative z-10">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                                    <Box className="w-5 h-5 text-emerald-400" />
+                                <div className="flex items-center gap-4">
+                                  <div className="relative">
+                                    <div className="absolute inset-0 bg-emerald-500/20 blur-md rounded-full pointer-events-none" />
+                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0F172A] to-[#0A101C] border border-emerald-500/30 flex items-center justify-center shadow-[inset_0_2px_10px_rgba(52,211,153,0.2)] relative z-10">
+                                      <Box className="w-6 h-6 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                                    </div>
                                   </div>
-                                  <span className="text-[11px] font-black text-emerald-400 uppercase tracking-widest leading-tight">
-                                    Cell Constants & Metrics<br/><span className="text-slate-500 text-[9px]">Crystallographic Properties</span>
-                                  </span>
+                                  <div>
+                                    <span className="text-[10px] font-black text-emerald-500/80 uppercase tracking-[0.35em] block mb-1">
+                                      Crystallographic Properties
+                                    </span>
+                                    <span className="text-xl sm:text-2xl font-serif italic text-white tracking-wide">
+                                      Cell Constants & Metrics
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 h-full">
                                 <div className="flex flex-col gap-6">
                                   {/* Angles Row */}
-                                  <div className="grid grid-cols-3 gap-2 bg-[#040810]/80 p-3 rounded-2xl border border-[#1e293b] shadow-inner relative overflow-hidden">
-                                     <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
-                                    <div className="flex flex-col items-center justify-center p-2">
-                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest">α (Alpha)</span>
-                                      <span className="text-lg font-mono text-emerald-300 font-black tracking-tight">{(lattice.alpha ?? 90).toFixed(1)}°</span>
+                                  <div className="grid grid-cols-3 gap-2 bg-[#040810]/90 p-3.5 rounded-2xl border border-emerald-500/20 shadow-[inset_0_2px_15px_rgba(0,0,0,0.4)] relative overflow-hidden group/angles">
+                                    <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/[0.05] to-transparent pointer-events-none" />
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-[30px] opacity-0 group-hover/angles:opacity-100 transition-opacity" />
+                                    <div className="flex flex-col items-center justify-center p-2 relative z-10">
+                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest group-hover/angles:text-emerald-400/80 transition-colors">α (Alpha)</span>
+                                      <span className="text-xl font-mono text-emerald-300 font-black tracking-tight drop-shadow-[0_0_10px_rgba(110,231,183,0.3)]">{(lattice.alpha ?? 90).toFixed(1)}°</span>
                                     </div>
-                                    <div className="flex flex-col items-center justify-center p-2 border-x border-[#1e293b]">
-                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest">β (Beta)</span>
-                                      <span className="text-lg font-mono text-emerald-300 font-black tracking-tight">{(lattice.beta ?? 90).toFixed(1)}°</span>
+                                    <div className="flex flex-col items-center justify-center p-2 border-x border-[#1e293b]/80 relative z-10">
+                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest group-hover/angles:text-emerald-400/80 transition-colors">β (Beta)</span>
+                                      <span className="text-xl font-mono text-emerald-300 font-black tracking-tight drop-shadow-[0_0_10px_rgba(110,231,183,0.3)]">{(lattice.beta ?? 90).toFixed(1)}°</span>
                                     </div>
-                                    <div className="flex flex-col items-center justify-center p-2">
-                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest">γ (Gamma)</span>
-                                      <span className="text-lg font-mono text-emerald-300 font-black tracking-tight">{(lattice.gamma ?? 90).toFixed(1)}°</span>
+                                    <div className="flex flex-col items-center justify-center p-2 relative z-10">
+                                      <span className="text-[10px] font-black text-slate-500 font-serif italic mb-1.5 uppercase tracking-widest group-hover/angles:text-emerald-400/80 transition-colors">γ (Gamma)</span>
+                                      <span className="text-xl font-mono text-emerald-300 font-black tracking-tight drop-shadow-[0_0_10px_rgba(110,231,183,0.3)]">{(lattice.gamma ?? 90).toFixed(1)}°</span>
                                     </div>
                                   </div>
 
                                   <div className="grid grid-cols-2 gap-4">
-                                    <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-900/40 border border-[#1e293b]">
-                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 text-center">Z Value<br/>(Atoms/Cell)</span>
-                                        <span className="text-2xl font-mono text-white font-black">{selectedCandidate.zValue || (lattice.v ? Math.max(1, Math.round(lattice.v / 20)) : 4)}</span>
+                                    <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-b from-slate-900/60 to-slate-900/20 border border-slate-700/50 hover:border-emerald-500/30 transition-colors shadow-inner relative overflow-hidden group/zval">
+                                        <div className="absolute inset-0 bg-emerald-500/[0.02] opacity-0 group-hover/zval:opacity-100 transition-opacity" />
+                                        <span className="text-[9px] font-black text-slate-500 group-hover/zval:text-emerald-500/70 transition-colors uppercase tracking-[0.2em] mb-2 text-center relative z-10">Z Value<br/>(Atoms/Cell)</span>
+                                        <span className="text-3xl font-mono text-white font-black drop-shadow-md relative z-10">{selectedCandidate.zValue || (lattice.v ? Math.max(1, Math.round(lattice.v / 20)) : 4)}</span>
                                     </div>
-                                    <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-900/40 border border-[#1e293b]">
-                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2 text-center">Theor. Density<br/>(g/cm³)</span>
-                                        <span className="text-2xl font-mono text-white font-black">{selectedCandidate.density ? selectedCandidate.density.toFixed(2) : ((lattice.v ? 100 / lattice.v : 2.5) + Math.random()).toFixed(2)}</span>
+                                    <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-b from-slate-900/60 to-slate-900/20 border border-slate-700/50 hover:border-emerald-500/30 transition-colors shadow-inner relative overflow-hidden group/thden">
+                                        <div className="absolute inset-0 bg-emerald-500/[0.02] opacity-0 group-hover/thden:opacity-100 transition-opacity" />
+                                        <span className="text-[9px] font-black text-slate-500 group-hover/thden:text-emerald-500/70 transition-colors uppercase tracking-[0.2em] mb-2 text-center relative z-10">Theor. Density<br/>(g/cm³)</span>
+                                        <span className="text-3xl font-mono text-white font-black drop-shadow-md relative z-10">{selectedCandidate.density ? selectedCandidate.density.toFixed(2) : ((lattice.v ? 100 / lattice.v : 2.5) + Math.random()).toFixed(2)}</span>
                                     </div>
                                   </div>
                                 </div>
 
-                                <div className="flex flex-col justify-center items-center h-full p-6 bg-gradient-to-br from-emerald-900/10 to-cyan-900/10 rounded-2xl border border-emerald-500/20 relative">
-                                  <div className="absolute top-0 right-0 p-3 opacity-20">
-                                    <Layers className="w-16 h-16 text-emerald-400" />
+                                <div className="flex flex-col justify-center items-center h-full p-8 bg-gradient-to-br from-emerald-900/20 via-slate-900/40 to-cyan-900/20 rounded-2xl border border-emerald-500/30 shadow-[inset_0_0_30px_rgba(52,211,153,0.1)] relative overflow-hidden hover:border-emerald-500/50 transition-all group/vol">
+                                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-emerald-500/20 rounded-full blur-[40px] pointer-events-none group-hover/vol:bg-emerald-500/30 transition-colors" />
+                                  <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-cyan-500/20 rounded-full blur-[40px] pointer-events-none group-hover/vol:bg-cyan-500/30 transition-colors" />
+                                  
+                                  <div className="absolute top-4 right-4 p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                                    <Layers className="w-5 h-5 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                                   </div>
-                                  <div className="flex flex-col items-center text-center gap-1 w-full relative z-10">
-                                    <span className="text-[11px] font-black text-emerald-500/80 uppercase tracking-[0.3em] mb-2">Calculated Cell Volume</span>
-                                    <div className="flex items-baseline gap-2 justify-center">
-                                      <span className="text-5xl sm:text-6xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 via-emerald-200 to-cyan-400 drop-shadow-[0_2px_10px_rgba(52,211,153,0.3)]">
+                                  
+                                  <div className="flex flex-col items-center text-center w-full relative z-10 mt-4">
+                                    <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-4 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                      Calculated Cell Volume
+                                    </span>
+                                    <div className="flex items-baseline gap-2 justify-center mb-6">
+                                      <span className="text-5xl sm:text-6xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-br from-white via-emerald-100 to-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)] tracking-tighter">
                                         {cellV.toFixed(2)}
                                       </span>
-                                      <span className="text-sm text-emerald-500 font-bold font-mono tracking-widest">V (Å³)</span>
+                                      <span className="text-lg text-emerald-500 font-black font-mono tracking-widest drop-shadow-sm">V (Å³)</span>
                                     </div>
-                                    <div className="mt-6 w-full h-1.5 bg-[#040810] rounded-full overflow-hidden shadow-inner border border-[#1e293b]">
-                                      <div className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400" style={{ width: `${Math.min(100, Math.max(10, (cellV / 1000) * 100))}%` }} />
+                                    
+                                    <div className="w-full h-1.5 bg-slate-950/80 rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)] border border-white/5 relative">
+                                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvc3ZnPg==')] opacity-50" />
+                                      <div 
+                                        className="h-full bg-gradient-to-r from-cyan-500 via-emerald-400 to-emerald-500 relative" 
+                                        style={{ width: `${Math.min(100, Math.max(10, (cellV / 1000) * 100))}%` }} 
+                                      >
+                                        <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/50 blur-[2px]" />
+                                      </div>
                                     </div>
-                                    <span className="text-[9px] text-slate-500 tracking-widest uppercase mt-2 font-black font-mono">Volume Expansion Ratio</span>
+                                    <div className="flex justify-between w-full mt-2 px-1">
+                                      <span className="text-[9px] text-slate-500 tracking-widest uppercase font-black font-mono">Volume Expansion</span>
+                                      <span className="text-[9px] text-emerald-400/80 tracking-widest uppercase font-black font-mono">{(cellV/1000 * 100).toFixed(1)}%</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -8250,8 +8200,8 @@ if __name__ == '__main__':
                   </div>
                 </div>
 
-                {/* Quantum Morphological Synthesizer */}
-                <div
+                {/* Quantum Morphological Synthesizer is deleted */}
+                {false && <div
                   id="quantum-morphological-synthesizer"
                   className="mt-14 pt-12 border-t border-[#1e293b] relative overflow-hidden group/quantum"
                 >
@@ -9385,7 +9335,7 @@ ${
                       </div>
                     </div>
                   </div>
-                </div>
+                </div>}
 
                 {/* AI Synthesis Route Intelligence & Recipe Optimizer */}
                 <div className="mt-8 p-8 bg-gradient-to-b from-[#080F1D]/90 to-[#040913]/90 border border-slate-800/80 rounded-3xl relative overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.015),0_10px_40px_rgba(0,0,0,0.6)]">

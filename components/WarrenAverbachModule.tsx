@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { parseWAInput, calculateWarrenAverbach } from '../utils/physics';
 import { WAResult } from '../types';
-import { DefectTopographyVisualizer } from './DefectTopographyVisualizer';
 import { DislocationMetricsVisualizer } from './DislocationMetricsVisualizer';
 import { LineChart,
   Line,
@@ -1065,12 +1064,18 @@ export const WarrenAverbachModule: React.FC = () => {
                               return (
                                 <ResponsiveContainer width="100%" height="100%">
                                   <ComposedChart data={chartData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+                                    <defs>
+                                      <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#a855f7" stopOpacity={0.6}/>
+                                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                                      </linearGradient>
+                                    </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
                                     <XAxis 
                                       dataKey="L_nm" 
                                       type="number"
                                       domain={['dataMin - 1', 'dataMax + 1']}
-                                      label={{ value: 'Column Length L (nm)', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                                      label={{ value: 'Fourier Domain Size L (nm)', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
                                       tick={{ fontSize: 10, fill: '#475569', fontFamily: 'monospace' }} 
                                       axisLine={{ stroke: '#334155' }}
                                       tickLine={{ stroke: '#334155' }}
@@ -1083,17 +1088,17 @@ export const WarrenAverbachModule: React.FC = () => {
                                       axisLine={{ stroke: '#334155' }}
                                       tickLine={{ stroke: '#334155' }}
                                     />
-                                    <ZAxis dataKey="densityLog" range={[20, 400]} />
+                                    <ZAxis dataKey="densityLog" range={[40, 600]} />
                                     <Tooltip 
                                       cursor={{ strokeDasharray: '3 3', stroke: '#94a3b8' }}
                                       content={({ active, payload }) => {
                                         if (active && payload && payload.length) {
                                           const data = payload[0].payload;
                                           return (
-                                            <div className="bg-slate-900/90 backdrop-blur-md p-3 rounded-xl border border-white/10 shadow-2xl space-y-1 z-50">
-                                              <p className="text-[10px] uppercase font-mono font-bold tracking-widest text-[#a855f7]">Domain Node</p>
-                                              <p className="text-white text-xs font-sans font-medium"><span className="text-slate-400">L:</span> {data.L_nm.toFixed(1)} nm</p>
-                                              <p className="text-white text-xs font-sans font-medium"><span className="text-slate-400">Strain:</span> {data.rms_strain.toExponential(2)}</p>
+                                            <div className="bg-[#0a0f1d]/95 backdrop-blur-2xl ring-1 ring-white/10 p-4 rounded-2xl shadow-2xl space-y-2 z-50">
+                                              <p className="text-[10px] uppercase font-mono font-black tracking-widest text-[#d946ef] border-b border-white/5 pb-1 mb-2">Defect Domain Node</p>
+                                              <p className="text-white text-xs font-sans font-medium flex justify-between gap-4"><span className="text-slate-500">Node Length L:</span> <span><span className="font-mono text-cyan-400">{data.L_nm.toFixed(1)}</span> nm</span></p>
+                                              <p className="text-white text-xs font-sans font-medium flex justify-between gap-4"><span className="text-slate-500">RMS Strain:</span> <span><span className="font-mono text-cyan-400">{data.rms_strain.toExponential(2)}</span></span></p>
                                             </div>
                                           );
                                         }
@@ -1103,9 +1108,9 @@ export const WarrenAverbachModule: React.FC = () => {
                                     <Area 
                                       type="monotone" 
                                       dataKey="rms_strain" 
-                                      fill="url(#strainGradient)" 
+                                      fill="url(#purpleGradient)" 
                                       stroke="none" 
-                                      fillOpacity={0.2}
+                                      fillOpacity={1}
                                       activeDot={false}
                                     />
                                     <Scatter 
@@ -1120,12 +1125,13 @@ export const WarrenAverbachModule: React.FC = () => {
                                     >
                                       {
                                         chartData.map((entry, index) => {
-                                          const hue = (1 - entry.normalizedStrain) * 220;
+                                          // Purple to Rose interpolation (hue 280 -> 340)
+                                          const hue = 280 + (entry.normalizedStrain * 60);
                                           const isSelected = index === activeIndex;
                                           return (
                                             <Cell 
                                               key={`cell-${index}`} 
-                                              fill={`hsl(${hue}, 85%, 50%)`} 
+                                              fill={`hsl(${hue}, 85%, 55%)`} 
                                               stroke={isSelected ? '#ffffff' : `hsl(${hue}, 85%, 40%)`} 
                                               strokeWidth={isSelected ? 3 : 1}
                                               style={{ filter: isSelected ? 'drop-shadow(0px 0px 8px rgba(255,255,255,0.8))' : 'none', outline: 'none' }}
@@ -1153,7 +1159,7 @@ export const WarrenAverbachModule: React.FC = () => {
                           
                           {/* Continuous gradient element with current value pointer */}
                           <div className="relative">
-                            <div className="w-full h-3 rounded-full bg-gradient-to-r from-[hsl(220,80%,45%)] via-[hsl(120,80%,45%)] to-[hsl(0,80%,45%)] opacity-90 border border-white/5 shadow-inner"></div>
+                            <div className="w-full h-3 rounded-full bg-gradient-to-r from-[#d946ef] via-[#ec4899] to-[#f43f5e] opacity-90 border border-white/5 shadow-inner"></div>
                             
                             {/* Current selection tick marker */}
                             {activeItem && (
@@ -1209,19 +1215,6 @@ export const WarrenAverbachModule: React.FC = () => {
                             rmsStrain={activeItem.rms_strain}
                           />
 
-                          {/* Interactive 3D Dislocation Defect Topography Crystalline Plane Visualizer */}
-                          <div className="pt-3 border-t border-white/5">
-                            <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest block mb-3">
-                              Crystalline Defect Mapping (Dynamic 3D)
-                            </span>
-                            <DefectTopographyVisualizer 
-                              rmsStrain={activeItem.rms_strain}
-                              burgersVectorNm={burgersVector}
-                              youngsModulusGpa={youngsModulus}
-                              selectedLNm={activeItem.L_nm}
-                            />
-                          </div>
-
                           {/* Interactive adjustable tuning criteria sliders */}
                           <div className="space-y-3 pt-3 border-t border-white/5">
                             <span className="text-[9px] font-bold font-mono text-slate-400 uppercase tracking-widest block">
@@ -1240,7 +1233,7 @@ export const WarrenAverbachModule: React.FC = () => {
                                 step="0.01"
                                 value={burgersVector}
                                 onChange={(e) => setBurgersVector(parseFloat(e.target.value))}
-                                className="w-full opacity-80 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500 animate-none pointer-events-auto"
+                                className="w-full opacity-80 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-fuchsia-500 animate-none pointer-events-auto"
                               />
                             </div>
 
@@ -1256,7 +1249,7 @@ export const WarrenAverbachModule: React.FC = () => {
                                 step="5"
                                 value={youngsModulus}
                                 onChange={(e) => setYoungsModulus(parseInt(e.target.value))}
-                                className="w-full opacity-80 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500 animate-none pointer-events-auto"
+                                className="w-full opacity-80 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-fuchsia-500 animate-none pointer-events-auto"
                               />
                             </div>
                           </div>

@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User account information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "EngineConfig": {
+      "title": "Engine Configuration",
+      "description": "User saved engine configurations for the XRD Convolutional Engine",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "configData": { "type": "string" }
+      },
+      "required": ["userId", "name", "configData", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile information"
+    },
+    "/engineConfigs/{configId}": {
+      "schema": { "$ref": "#/entities/EngineConfig" },
+      "description": "User saved engine configurations"
+    }
+  }
+}
