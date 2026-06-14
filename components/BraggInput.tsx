@@ -45,6 +45,57 @@ interface BraggInputProps {
   lastAutosaved?: string | null;
 }
 
+const CALIBRATION_PRESETS = [
+  {
+    name: "Custom / Manual Entry",
+    id: "custom",
+    sampleId: "",
+    wavelength: 1.54060,
+    peaks: "",
+    hkls: ""
+  },
+  {
+    name: "Silicon (NIST SRM 640f)",
+    id: "silicon",
+    sampleId: "NIST-640f-Si",
+    wavelength: 1.54060,
+    peaks: "28.442, 47.302, 56.121, 69.130, 76.376, 88.031",
+    hkls: "111, 220, 311, 400, 331, 422"
+  },
+  {
+    name: "Lanthanum Hexaboride (NIST SRM 660c)",
+    id: "lab6",
+    sampleId: "NIST-660c-LaB6",
+    wavelength: 1.54060,
+    peaks: "21.355, 30.384, 37.441, 43.506, 48.956, 53.987, 58.711",
+    hkls: "100, 110, 111, 200, 210, 211, 220"
+  },
+  {
+    name: "Cerium Oxide (NIST SRM 674b)",
+    id: "ceo2",
+    sampleId: "NIST-674b-CeO2",
+    wavelength: 1.54060,
+    peaks: "28.555, 33.082, 47.479, 56.335, 59.088, 69.414, 76.702",
+    hkls: "111, 200, 220, 311, 222, 400, 331"
+  },
+  {
+    name: "Standard Halite (NaCl Reference)",
+    id: "nacl",
+    sampleId: "Halite-NaCl",
+    wavelength: 1.54060,
+    peaks: "27.35, 31.69, 45.41, 53.81, 56.43, 66.18, 75.25",
+    hkls: "111, 200, 220, 311, 222, 400, 420"
+  },
+  {
+    name: "Gold (Au Nanocrystals)",
+    id: "au",
+    sampleId: "Au-Nanocrystals",
+    wavelength: 1.54060,
+    peaks: "38.18, 44.39, 64.58, 77.55, 81.72",
+    hkls: "111, 200, 220, 311, 222"
+  }
+];
+
 export const BraggInput: React.FC<BraggInputProps> = ({
   sampleId = '',
   setSampleId,
@@ -173,6 +224,34 @@ export const BraggInput: React.FC<BraggInputProps> = ({
             </div>
           </div>
         )}
+
+        {/* Calibration Reference Standard Dropdown */}
+        <div>
+          <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+            <Database className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+            Calibration Reference Standard
+          </label>
+          <select
+            onChange={(e) => {
+              const selectedId = e.target.value;
+              const preset = CALIBRATION_PRESETS.find(p => p.id === selectedId);
+              if (preset) {
+                if (preset.sampleId && setSampleId) setSampleId(preset.sampleId);
+                setWavelength(preset.wavelength);
+                setRawPeaks(preset.peaks);
+                setRawHKL(preset.hkls);
+              }
+            }}
+            className="w-full px-3 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold text-xs cursor-pointer"
+            defaultValue="custom"
+          >
+            {CALIBRATION_PRESETS.map((p) => (
+              <option key={p.id} value={p.id} className="font-bold text-xs">
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
         
         {/* Wavelength Section */}
         <div>
@@ -259,6 +338,60 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                 placeholder="e.g., 28.44, 47.30, 56.12"
                 className="w-full h-20 px-3 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-mono text-xs leading-relaxed custom-scrollbar resize-none"
               />
+              <div className="mt-1.5 flex flex-wrap gap-1 items-center">
+                <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mr-1">Tuning Tools:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sorted = parsedPeaks.slice().sort((a, b) => a - b);
+                    if (sorted.length > 0) {
+                      setRawPeaks(sorted.map(n => n.toFixed(3)).join(', '));
+                    }
+                  }}
+                  className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
+                  title="Sort 2Theta values in ascending order"
+                >
+                  Sort Asc
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (parsedPeaks.length > 0) {
+                      setRawPeaks(parsedPeaks.map(n => n.toFixed(2)).join(', '));
+                    }
+                  }}
+                  className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
+                  title="Normalize formatting to 2 decimal places"
+                >
+                  Clean/Format
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const shifted = parsedPeaks.map(n => Number((n + 0.1).toFixed(4)));
+                    if (shifted.length > 0) {
+                      setRawPeaks(shifted.join(', '));
+                    }
+                  }}
+                  className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
+                  title="Shift all peaks by +0.1° 2-Theta"
+                >
+                  +0.1° Shift
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const shifted = parsedPeaks.map(n => Number((n - 0.1).toFixed(4)));
+                    if (shifted.length > 0) {
+                      setRawPeaks(shifted.join(', '));
+                    }
+                  }}
+                  className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
+                  title="Shift all peaks by -0.1° 2-Theta"
+                >
+                  -0.1° Shift
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">

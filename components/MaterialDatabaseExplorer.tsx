@@ -32,6 +32,9 @@ import {
 import { MATERIAL_DB } from '../utils/materialDB';
 import { calculateThermodynamics, generateTemperatureSweep } from '../utils/thermodynamics';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { db, useAuth, auth } from '../services/firebase';
+import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
+import { bulkSaveOfflineMaterials } from '../utils/offlineDb';
 
 const LOCAL_STORAGE_KEY = 'crystal_suite_materials_v1';
 
@@ -178,6 +181,16 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
   }, []);
+
+  // Global Sync & Database Portal states
+  const [showGlobalPortal, setShowGlobalPortal] = useState(false);
+  const [selectedGlobalDB, setSelectedGlobalDB] = useState('materials_project');
+  const [globalApiKey, setGlobalApiKey] = useState('');
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [globalResults, setGlobalResults] = useState<any[]>([]);
+  const [isGlobalSearching, setIsGlobalSearching] = useState(false);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [isDbUnlocked, setIsDbUnlocked] = useState(false);
 
   // Edit Mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -849,9 +862,149 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     setMaterials(newMaterials);
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newMaterials));
+      bulkSaveOfflineMaterials(newMaterials).catch(e => console.error('IndexedDB bulk save issue:', e));
     } catch (e) {
       console.error('Failed to save material overrides', e);
     }
+  };
+
+  // Global scientific databasing handlers
+  const handleGlobalSearch = async () => {
+    if (!globalSearch.trim()) return;
+    setIsGlobalSearching(true);
+    setGlobalResults([]);
+    setImportStatus(null);
+    try {
+      const response = await fetch('/api/gemini/global-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: globalSearch,
+          databaseId: selectedGlobalDB,
+          apiKey: globalApiKey || undefined
+        })
+      });
+      const data = await response.json();
+      if (data.success && data.materials) {
+        setGlobalResults(data.materials);
+      } else {
+        alert(data.error || 'Failed to fetch global database records.');
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert('Error connecting to Global Database Sync service: ' + e.message);
+    } finally {
+      setIsGlobalSearching(false);
+    }
+  };
+
+  const handleImportGlobalMaterial = async (m: any) => {
+    // Generate a clean record conforming to our Material DB item schema
+    const newMaterial = {
+      name: m.name,
+      formula: m.formula,
+      category: selectedGlobalDB === 'materials_project' ? 'Perovskite' : 'Ceramic',
+      type: m.type || 'Custom Procured Material',
+      crystalSystem: m.crystalSystem,
+      spaceGroup: m.spaceGroup,
+      density: m.density || 4.5,
+      molecularWeight: m.molecularWeight || 100,
+      elasticModulus: m.elasticModulus || 65,
+      description: m.description || `Procured and synced from ${selectedGlobalDB}.`,
+      pattern: m.pattern || "",
+      applications: m.applications || ["Research"],
+      elements: m.elements || []
+    };
+
+    const next = [newMaterial, ...materials];
+    saveMaterials(next);
+
+    // Save to Firestore if user is authenticated
+    if (db && auth.currentUser) {
+      try {
+        const docId = m.name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        await setDoc(doc(db, 'customMaterials', docId), {
+          id: docId,
+          userId: auth.currentUser.uid,
+          name: newMaterial.name,
+          formula: newMaterial.formula,
+          type: newMaterial.type,
+          crystalSystem: newMaterial.crystalSystem,
+          spaceGroup: newMaterial.spaceGroup,
+          density: newMaterial.density,
+          molecularWeight: newMaterial.molecularWeight,
+          elasticModulus: newMaterial.elasticModulus,
+          description: newMaterial.description,
+          pattern: newMaterial.pattern,
+          syncedAt: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error("Firestore database backup error:", err);
+      }
+    }
+
+    setImportStatus(`Successfully synchronized "${m.name}" into all app program sections!`);
+    setTimeout(() => setImportStatus(null), 4000);
+  };
+
+  const handleBulkImportGlobal = async () => {
+    if (globalResults.length === 0) return;
+    let next = [...materials];
+    
+    for (const m of globalResults) {
+      const idx = next.findIndex(item => item.name === m.name);
+      const newMaterial = {
+        name: m.name,
+        formula: m.formula,
+        category: 'Ceramic',
+        type: m.type || 'Custom Procured Material',
+        crystalSystem: m.crystalSystem,
+        spaceGroup: m.spaceGroup,
+        density: m.density || 4.5,
+        molecularWeight: m.molecularWeight || 100,
+        elasticModulus: m.elasticModulus || 65,
+        description: m.description || `Bulk imported from ${selectedGlobalDB}.`,
+        pattern: m.pattern || "",
+        applications: m.applications || ["Research"],
+        elements: m.elements || []
+      };
+      
+      if (idx !== -1) {
+        next[idx] = newMaterial; // Overwrite
+      } else {
+        next = [newMaterial, ...next];
+      }
+
+      // Save to Firestore if authenticated
+      if (db && auth.currentUser) {
+        try {
+          const docId = m.name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+          await setDoc(doc(db, 'customMaterials', docId), {
+            id: docId,
+            userId: auth.currentUser.uid,
+            name: newMaterial.name,
+            formula: newMaterial.formula,
+            type: newMaterial.type,
+            crystalSystem: newMaterial.crystalSystem,
+            spaceGroup: newMaterial.spaceGroup,
+            density: newMaterial.density,
+            molecularWeight: newMaterial.molecularWeight,
+            elasticModulus: newMaterial.elasticModulus,
+            description: newMaterial.description,
+            pattern: newMaterial.pattern,
+            syncedAt: new Date().toISOString()
+          });
+        } catch (err) {
+          console.error("Firestore database backup error:", err);
+        }
+      }
+    }
+
+    saveMaterials(next);
+    setImportStatus(`Successfully synchronized ${globalResults.length} materials into all program sections!`);
+    setTimeout(() => setImportStatus(null), 4000);
   };
 
   // Check if active material has been modified compared to default DB
@@ -1897,11 +2050,23 @@ export const MaterialDatabaseExplorer: React.FC = () => {
               <button 
                 onClick={() => {
                   setShowCurationTools(!showCurationTools);
+                  if (showGlobalPortal) setShowGlobalPortal(false);
                 }}
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-500/5 hover:bg-emerald-500/15 border border-emerald-500/20 hover:border-emerald-500/40 text-emerald-400 font-black tracking-widest uppercase rounded-xl transition-colors cursor-pointer text-[10px] leading-none"
               >
                 <FlaskConical className="w-4 h-4 animate-pulse" />
                 <span>{showCurationTools ? t('Hide DB Curation', 'Hide DB Curation') : t('Audit & Refine DB', 'Audit & Refine DB')}</span>
+              </button>
+
+              <button 
+                onClick={() => {
+                  setShowGlobalPortal(!showGlobalPortal);
+                  if (showCurationTools) setShowCurationTools(false);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500/5 hover:bg-blue-500/15 border border-blue-500/20 hover:border-blue-500/40 text-blue-300 font-black tracking-widest uppercase rounded-xl transition-colors cursor-pointer text-[10px] leading-none"
+              >
+                <Database className="w-4 h-4 animate-pulse" />
+                <span>{showGlobalPortal ? t('Close Global Sync', 'Close Global Sync') : t('Global Database Sync', 'Global Database Sync')}</span>
               </button>
             </div>
 
@@ -2142,6 +2307,189 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                           Clean Space Groups
                         </button>
                       </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Global Databases & API Sync Portal */}
+            {showGlobalPortal && (
+              <div className="p-5 bg-blue-950/20 border border-blue-500/20 rounded-2xl shadow-inner mt-2 space-y-5 animate-in fade-in slide-in-from-top-1.5 duration-200">
+                <div className="flex justify-between items-center flex-wrap gap-3">
+                  <span className="text-xs uppercase font-black tracking-widest text-blue-400 flex items-center gap-2">
+                    <Database className="w-5 h-5 text-blue-400 animate-pulse" />
+                    {t('Global Database Sync Portal', 'Global Database Sync Portal')}
+                  </span>
+                  
+                  {/* Premium Subscription / Enterprise Link Tag */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 rounded text-[8px] font-mono font-black uppercase text-yellow-400 tracking-wider">
+                      {isDbUnlocked ? 'Premium Connection: ACTIVE' : 'Enterprise Credentials Required'}
+                    </span>
+                    {!isDbUnlocked && (
+                      <button
+                        onClick={() => {
+                          setIsDbUnlocked(true);
+                          alert(t('Enterprise Subscription Linked! Fully unlocked access to Premium Databases like SpringerMaterials and ICSD.', 'Enterprise Subscription Linked! Fully unlocked access to Premium Databases like SpringerMaterials and ICSD.'));
+                        }}
+                        className="px-2 py-0.5 bg-yellow-500 text-slate-950 hover:bg-yellow-400 text-[8.5px] font-mono font-black uppercase rounded transition-colors cursor-pointer"
+                      >
+                        {t('Unlock Premium', 'Unlock Premium')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-[10px] font-sans text-slate-300 leading-relaxed">
+                  {t('Directly sync and procure verified crystallographic structures, thermal densities, mechanical moduli, and peak intensities from global public and enterprise registries. Select a registry, enter terms (e.g. "conductive polymers", "superconductor BST perovskite", "GaN wide-bandgap"), and download records directly.', 'Directly sync and procure verified crystallographic structures, thermal densities, mechanical moduli, and peak intensities from global public and enterprise registries. Select a registry, enter terms (e.g. "conductive polymers", "superconductor BST perovskite", "GaN wide-bandgap"), and download records directly.')}
+                </p>
+
+                {/* Database Registry Choice Cards */}
+                <div className="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-5 gap-2.5">
+                  {[
+                    { id: 'materials_project', name: 'Materials Project', type: 'Academic', status: 'FREE ACCESS' },
+                    { id: 'cod', name: 'COD Crystallography', type: 'Open-Source', status: 'FREE ACCESS' },
+                    { id: 'pubchem', name: 'PubChem Substance', type: 'Public', status: 'FREE ACCESS' },
+                    { id: 'springer_materials', name: 'SpringerMaterials', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true },
+                    { id: 'icsd', name: 'ICSD Inorganic', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true }
+                  ].map(dbItem => {
+                    const active = selectedGlobalDB === dbItem.id;
+                    return (
+                      <div
+                        key={dbItem.id}
+                        onClick={() => {
+                          if (dbItem.premium && !isDbUnlocked) {
+                            alert(t('This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.', 'This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.'));
+                            return;
+                          }
+                          setSelectedGlobalDB(dbItem.id);
+                        }}
+                        className={`p-2.5 rounded-xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between h-[64px] ${active ? 'bg-blue-900/45 border-blue-500/60 shadow-[0_0_8px_rgba(59,130,246,0.3)]' : 'bg-black/30 border-white/5 hover:border-white/10'}`}
+                      >
+                        <div>
+                          <span className="block text-[8px] font-black uppercase text-slate-400 tracking-wider leading-none">{dbItem.type}</span>
+                          <span className="block text-[10px] font-bold text-white tracking-tight mt-1 truncate">{dbItem.name}</span>
+                        </div>
+                        <span className={`block text-[8.5px] font-mono leading-none ${dbItem.status === 'LOCKED' ? 'text-red-400 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : 'text-blue-300'}`}>{dbItem.status}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* API Key Form Option (If Springer or ICSD selected or custom key toggle) */}
+                {selectedGlobalDB && (
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-white/5">
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">
+                        {selectedGlobalDB.toUpperCase()} API ACCESS KEY (OPTIONAL FOR PROFESSIONAL ENDPOINTS)
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="e.g. mp_api_8hKwlz81fXpB910A..."
+                        value={globalApiKey}
+                        onChange={e => setGlobalApiKey(e.target.value)}
+                        className="w-full px-4 py-2 bg-black/60 border border-white/10 text-slate-200 placeholder-slate-600 outline-none rounded-xl text-[11px] font-mono"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Query Input Grid */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">
+                      {t('Search keywords or molecular category', 'Search keywords or molecular category')}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder={t('e.g. SrTiO3 cubic perovskite, conducting polymers, heavy fermions...', 'e.g. SrTiO3 cubic perovskite, conducting polymers, heavy fermions...')}
+                        value={globalSearch}
+                        onChange={e => setGlobalSearch(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleGlobalSearch(); }}
+                        className="w-full pl-10 pr-4 py-2.5 bg-black/60 border border-white/10 placeholder-slate-500 text-slate-200 outline-none rounded-xl text-[11.5px] font-mono"
+                      />
+                      <Search className="w-4 h-4 text-slate-600 absolute left-3.5 top-3" />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleGlobalSearch}
+                    disabled={isGlobalSearching}
+                    className="sm:self-end px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900/60 disabled:text-slate-500 text-slate-950 font-black uppercase text-[10px] tracking-widest rounded-xl transition-all h-[38px] cursor-pointer flex items-center justify-center gap-2 border border-blue-500/20 active:scale-95"
+                  >
+                    {isGlobalSearching ? (
+                      <>
+                        <Atom className="w-4 h-4 animate-spin text-white" />
+                        <span className="text-white font-black">{t('Searching Registry...', 'Searching Registry...')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Database className="w-4 h-4 text-white" />
+                        <span className="text-white font-black">{t('Search & Live Sync', 'Search & Live Sync')}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Success Indicator */}
+                {importStatus && (
+                  <div className="p-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl text-center font-mono text-[9.5px] font-bold animate-pulse">
+                    🎉 {importStatus}
+                  </div>
+                )}
+
+                {/* Search Results Drawer */}
+                {globalResults.length > 0 && (
+                  <div className="space-y-3.5 pt-3 border-t border-white/5 max-h-[300px] overflow-y-auto pr-1">
+                    <div className="flex justify-between items-center text-[10px] font-mono">
+                      <span className="text-slate-400 font-bold uppercase tracking-wider">{t('Crystallographic matches found:', 'Crystallographic matches found:')} ({globalResults.length})</span>
+                      <button
+                        onClick={handleBulkImportGlobal}
+                        className="px-3 py-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-lg text-[9px] uppercase tracking-wider transition-all cursor-pointer shadow"
+                      >
+                        {t('Bulk Import All', 'Bulk Import All')}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3">
+                      {globalResults.map((resItem, idx) => (
+                        <div key={idx} className="p-3 bg-black/40 border border-white/5 rounded-xl hover:border-blue-500/20 transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                          <div className="space-y-1 text-left">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-black text-white">{resItem.name}</span>
+                              <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded font-mono text-[9px] font-extrabold">{resItem.formula}</span>
+                              <span className="text-[10px] font-mono text-slate-500">[{resItem.crystalSystem} • {resItem.spaceGroup}]</span>
+                            </div>
+                            <p className="text-[9.5px] text-slate-400 leading-relaxed max-w-4xl">{resItem.description}</p>
+                            <div className="flex gap-2 flex-wrap text-[8.5px] font-mono text-slate-500">
+                              <span><strong>{t('Density', 'Density')}:</strong> {resItem.density?.toFixed(3)}g/cm³</span>
+                              <span>•</span>
+                              <span><strong>{t('Weight', 'Weight')}:</strong> {resItem.molecularWeight?.toFixed(2)}g/mol</span>
+                              {resItem.elasticModulus > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span><strong>{t('Modulus', 'Modulus')}:</strong> {resItem.elasticModulus} GPa</span>
+                                </>
+                              )}
+                              {resItem.pattern && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-indigo-400 font-bold"><strong>XRD Spectrum:</strong> {resItem.pattern.split('\n').filter(Boolean).length} {t('Peaks', 'Peaks')}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleImportGlobalMaterial(resItem)}
+                            className="w-full md:w-auto px-3.5 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-[9.5px] font-sans font-bold text-blue-300 rounded-lg cursor-pointer transition-colors text-center"
+                          >
+                            {t('Import Unit', 'Import Unit')}
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

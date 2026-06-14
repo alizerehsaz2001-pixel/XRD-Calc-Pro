@@ -222,6 +222,102 @@ Provide the response in structured markdown with the following specific sections
     }
   });
 
+  app.post("/api/gemini/global-sync", async (req, res) => {
+    const { query, databaseId, customKey } = req.body;
+    try {
+      if (!query || typeof query !== 'string') {
+        res.status(400).json({ success: false, error: "A valid search query is required." });
+        return;
+      }
+
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-global-sync',
+          }
+        }
+      });
+
+      const prompt = `Find and compile high-fidelity, peer-reviewed crystallography and material science properties for phases or minerals matching the query: "${query}" from the scientific database registry: "${databaseId}".
+      You MUST provide authentic material specifications. Compile up to 4 prominent and distinct structural matches.
+      For each material, compile:
+      - Correct chemical name (e.g., Titanium Dioxide Rutile)
+      - Precise formula (e.g., TiO2)
+      - Crystal system (e.g., Tetragonal, Cubic, Hexagonal, etc.)
+      - Valid Space group (e.g., P42/mnm)
+      - Theoretical calculated density in g/cm³
+      - Molecular weight in g/mol
+      - Elastic shear or Young's modulus (stiffness) in GPa
+      - A comprehensive structural property description suitable for researchers
+      - An XRD diffraction spectrum pattern string with peak definitions in direct twoTheta intensity format, e.g. "25.3 100\\n36.1 45\\n41.2 20\\n54.3 60"
+      - List of present chemical elements
+      - List of practical industrial/scientific applications.
+      
+      Respond only with the JSON array schema details requested. Ground your response using Google search on academic databases if required. Ensure the output is highly accurate.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                name: { type: "STRING" },
+                formula: { type: "STRING" },
+                crystalSystem: { type: "STRING" },
+                spaceGroup: { type: "STRING" },
+                density: { type: "NUMBER" },
+                molecularWeight: { type: "NUMBER" },
+                elasticModulus: { type: "NUMBER" },
+                type: { type: "STRING" },
+                pattern: { type: "STRING", description: "XRD peaks in standard twoTheta relative-intensity format, e.g. '25.3 100\\n36.1 45\\n41.2 20\\n54.4 60'" },
+                elements: { type: "ARRAY", items: { type: "STRING" } },
+                description: { type: "STRING" },
+                applications: { type: "ARRAY", items: { type: "STRING" } }
+              },
+              required: ["name", "formula", "crystalSystem", "spaceGroup", "density", "pattern", "elements"]
+            }
+          }
+        }
+      });
+
+      let text = response.text || "[]";
+      // Clean up markdown block wrapping if returned
+      text = text.replace(/```json\n?/g, "").replace(/\n?```/g, "").trim();
+      
+      let results: any[] = [];
+      try {
+        results = JSON.parse(text);
+      } catch (prsErr) {
+        console.error("JSON parsing failed, retrying manual clean", prsErr, text);
+        // Fallback simple extract if some wrapping survived
+        const firstArr = text.indexOf('[');
+        const lastArr = text.lastIndexOf(']');
+        if (firstArr !== -1 && lastArr !== -1) {
+          results = JSON.parse(text.substring(firstArr, lastArr + 1));
+        } else {
+          throw prsErr;
+        }
+      }
+
+      res.json({ success: true, materials: results });
+    } catch (error: any) {
+      console.error("Gemini Global Sync Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.post("/api/gemini/verify", async (req, res) => {
     const { customKey } = req.body;
     const keyToUse = customKey || process.env.GEMINI_API_KEY;

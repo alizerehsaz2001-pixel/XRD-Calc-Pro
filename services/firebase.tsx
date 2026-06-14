@@ -12,11 +12,18 @@ export const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 export async function testConnection() {
+  // Avoid running test connection on server-side or if the browser reports offline
+  if (typeof window === 'undefined' || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+    return;
+  }
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error: any) {
-    if (error?.message?.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
+    const isOffline = error?.message?.includes('offline') || error?.message?.includes('Could not reach');
+    if (isOffline) {
+      console.warn("Firestore client is offline. Cache-first operations enabled.");
+    } else {
+      console.error("Firestore test connection error:", error?.message || error);
     }
   }
 }

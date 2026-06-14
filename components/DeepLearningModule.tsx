@@ -60,7 +60,8 @@ import {
   Download,
 } from "lucide-react";
 
-import { MATERIAL_DB } from "../utils/materialDB";
+import { getActiveMaterials } from "../utils/materialsHelper";
+const MATERIAL_DB = getActiveMaterials();
 
 const MATERIAL_ELEMENTS: Record<
   string,

@@ -1,4 +1,4 @@
-import { MATERIAL_DB } from './materialDB';
+import { getActiveMaterials } from './materialsHelper';
 import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
 
 // --- Signal Processing (Savitzky-Golay) ---
@@ -2048,7 +2048,7 @@ export const identifyPhasesDL = (
     dropout?: number;
   }
 ): DLPhaseResult => {
-  const DB = MATERIAL_DB.map(m => {
+  const DB = getActiveMaterials().map(m => {
     return {
       name: m.name,
       formula: m.formula || '',

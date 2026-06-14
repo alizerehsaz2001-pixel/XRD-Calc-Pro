@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'motion/react';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
 import { DiffractionChart } from './components/DiffractionChart';
-import { TestMaterialsModule } from './components/TestMaterialsModule';
 import { SelectionRulesModule } from './components/SelectionRulesModule';
 import { ScherrerModule } from './components/ScherrerModule';
 import { WilliamsonHallModule } from './components/WilliamsonHallModule';
@@ -38,11 +38,13 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext } from './components/SettingsContext';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X } from 'lucide-react';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
 import { useAuth, db, handleFirestoreError, OperationType } from './services/firebase';
 import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOfflineMaterial, OfflineAnalysisResult, clearOfflineAnalyses } from './utils/offlineDb';
+import { syncOfflineHelper } from './utils/materialsHelper';
 
 type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database';
 
@@ -132,6 +134,63 @@ const App: React.FC = () => {
       return [];
     }
   });
+
+  // Offline and Local Database states
+  const [isOnline, setIsOnline] = useState<boolean>(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [offlineAnalyses, setOfflineAnalyses] = useState<OfflineAnalysisResult[]>([]);
+  const [cachedMaterialsCount, setCachedMaterialsCount] = useState<number>(0);
+  const [showOfflineHub, setShowOfflineHub] = useState<boolean>(false);
+
+  const refreshOfflineAnalyses = async () => {
+    try {
+      const analyses = await getOfflineAnalyses();
+      setOfflineAnalyses(analyses);
+      const mats = await getOfflineMaterials();
+      setCachedMaterialsCount(mats.length);
+    } catch (e) {
+      console.error("IndexedDB stats refresh warn:", e);
+    }
+  };
+
+  // Monitor online status and retrieve cached records
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const updateOfflineData = async () => {
+      try {
+        const analyses = await getOfflineAnalyses();
+        setOfflineAnalyses(analyses);
+        const mats = await getOfflineMaterials();
+        setCachedMaterialsCount(mats.length);
+      } catch (err) {
+        console.error("Failed to load IndexedDB data", err);
+      }
+    };
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncOfflineHelper()
+        .then(() => updateOfflineData())
+        .catch(console.error);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial sync and fetch
+    syncOfflineHelper()
+      .then(() => updateOfflineData())
+      .catch(console.error);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Fetch Bragg history when user logs in
   useEffect(() => {
@@ -384,6 +443,20 @@ const App: React.FC = () => {
           return updated;
         });
 
+        // Save to IndexedDB (Offline cache)
+        const offlineResult: OfflineAnalysisResult = {
+          id: newItem.id,
+          type: 'bragg',
+          title: newItem.sampleId ? `Bragg: ${newItem.sampleId}` : `Bragg Calculation`,
+          timestamp: newItem.timestamp,
+          wavelength: newItem.wavelength,
+          inputData: { rawPeaks: newItem.rawPeaks, rawHKL: newItem.rawHKL },
+          results: newItem.results
+        };
+        saveOfflineAnalysis(offlineResult)
+          .then(() => refreshOfflineAnalyses())
+          .catch(err => console.error("IndexedDB cache save failed:", err));
+
         if (user) {
           const path = `braggHistory/${newItem.id}`;
           const resultsJson = JSON.stringify(computed);
@@ -420,6 +493,14 @@ const App: React.FC = () => {
     const listToDelete = [...braggHistory];
     setBraggHistory([]);
     localStorage.removeItem('xrd_bragg_history');
+
+    // Clear IndexedDB calculations as well
+    try {
+      await clearOfflineAnalyses();
+      await refreshOfflineAnalyses();
+    } catch (e) {
+      console.error("IndexedDB clear failed:", e);
+    }
 
     if (user && listToDelete.length > 0) {
       for (const item of listToDelete) {
@@ -879,6 +960,24 @@ const App: React.FC = () => {
                 <span className="hidden lg:inline">{t('Shortcuts', 'Shortcuts')}</span>
               </button>
 
+              {/* Offline / Storage Status Badge & Toggle Button */}
+              <button
+                onClick={() => {
+                  setShowOfflineHub(!showOfflineHub);
+                  refreshOfflineAnalyses();
+                  playSynthTone('switch');
+                }}
+                className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1.5 ${
+                  isOnline 
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 shadow-sm'
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 shadow-sm animate-pulse'
+                }`}
+                title="Click to open Offline Sync & IndexedDB Caching Hub"
+              >
+                <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span>{isOnline ? t('Online Cache', 'Online Cache') : t('Offline', 'Offline')}</span>
+              </button>
+
               <LanguageSelector compact={true} />
 
               <div className="flex items-center">
@@ -941,7 +1040,6 @@ const App: React.FC = () => {
                           onRestore={restoreHistory} 
                           onClear={clearHistory} 
                         />
-                        <TestMaterialsModule onLoadMaterial={handleAILoad} />
                         
                         <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-800 dark:border-white/5 ring-1 ring-white/10">
                            <div className="flex justify-between items-center mb-3">
@@ -1120,6 +1218,162 @@ const App: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Offline Sync & IndexedDB Caching Hub overlay */}
+          <AnimatePresence>
+            {showOfflineHub && (
+              <div 
+                className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+                onClick={() => setShowOfflineHub(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-slate-900 border border-white/10 rounded-2xl p-6 max-w-xl w-full shadow-2xl relative text-left"
+                >
+                  <button
+                    onClick={() => setShowOfflineHub(false)}
+                    className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  <div className="flex items-center gap-3.5 border-b border-white/5 pb-4 mb-4">
+                    <div className={`p-2.5 rounded-xl ${isOnline ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400 animate-pulse'}`}>
+                      <Zap className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-white uppercase tracking-wider">
+                        {t('Offline Caching & Sync Hub', 'Offline Caching & Sync Hub')}
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-mono">
+                        Powered by IndexedDB & Progressive Service Worker
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Calculations, materials database additions, and analysis result parameters are cached locally. You can conduct new analyses, manage databases, and access history entirely without an internet connection.
+                    </p>
+
+                    {/* Simulated Offline Toggle */}
+                    <div className="p-3.5 bg-black/45 border border-white/5 rounded-xl flex items-center justify-between">
+                      <div>
+                        <span className="block text-xs font-bold text-white uppercase tracking-wide">
+                          {t('Simulate Offline Mode', 'Simulate Offline Mode')}
+                        </span>
+                        <span className="block text-[9.5px] text-slate-500 font-mono mt-0.5">
+                          Force local cache-first operations for deep testing
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const nextOnline = !isOnline;
+                          setIsOnline(nextOnline);
+                          playSynthTone('success');
+                        }}
+                        className={`px-3 py-1.5 rounded-lg border text-[9.5px] font-black uppercase tracking-wider cursor-pointer transition-all ${
+                          !isOnline 
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 hover:bg-amber-400 font-extrabold shadow'
+                            : 'bg-slate-800 text-slate-300 border-white/10 hover:bg-slate-700'
+                        }`}
+                      >
+                        {!isOnline ? t('Offline Mode Active', 'Offline Mode Active') : t('Force Offline', 'Force Offline')}
+                      </button>
+                    </div>
+
+                    {/* Storage & Caching Information */}
+                    <div>
+                      <span className="block text-[10px] uppercase font-black text-slate-400 tracking-wider mb-2">
+                        {t('IndexedDB Storage Integrity', 'IndexedDB Storage Integrity')}
+                      </span>
+                      <div className="grid grid-cols-2 gap-3 font-mono text-[10.5px]">
+                        <div className="p-3 bg-black/30 border border-white/5 rounded-xl text-left">
+                          <span className="block text-slate-500 font-bold uppercase text-[9px] tracking-wider leading-none">Recent Materials</span>
+                          <span className="block text-lg font-black text-white mt-1.5">{cachedMaterialsCount} cached</span>
+                        </div>
+
+                        <div className="p-3 bg-black/30 border border-white/5 rounded-xl text-left">
+                          <span className="block text-slate-500 font-bold uppercase text-[9px] tracking-wider leading-none">Analysis Records</span>
+                          <span className="block text-lg font-black text-white mt-1.5">{offlineAnalyses.length} cached</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recent Offline Actions Log */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="block text-[10px] uppercase font-black text-slate-400 tracking-wider">
+                          {t('Recent Cached Calculations', 'Recent Cached Calculations')}
+                        </span>
+                        {offlineAnalyses.length > 0 && (
+                          <button
+                            onClick={async () => {
+                              await clearHistory();
+                            }}
+                            className="text-[9.5px] font-mono font-bold text-red-400 hover:text-red-300 transition-colors uppercase"
+                          >
+                            {t('Clear Cache', 'Clear Cache')}
+                          </button>
+                        )}
+                      </div>
+
+                      {offlineAnalyses.length === 0 ? (
+                        <div className="text-center p-6 bg-black/25 border border-white/5 rounded-xl text-[10px] font-mono text-slate-500 uppercase tracking-widest animate-pulse">
+                          {t('No offline records cached yet. Run a calculation!', 'No offline records cached yet. Run a calculation!')}
+                        </div>
+                      ) : (
+                        <div className="max-h-40 overflow-y-auto pr-1 space-y-1.5 custom-scrollbar">
+                          {offlineAnalyses.map((item) => (
+                            <div
+                              key={item.id}
+                              className="p-2.5 bg-black/20 border border-white/5 hover:border-indigo-500/20 rounded-xl flex justify-between items-center text-left text-[11px] font-mono relative group transition-colors"
+                            >
+                              <div>
+                                <span className="block font-bold text-white text-xs leading-none">{item.title}</span>
+                                <span className="block text-[9.5px] text-slate-500 mt-1">
+                                  Peaks: {item.inputData?.rawPeaks || 'N/A'} • {item.results?.length || 0} details
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  const mapped: BraggHistoryItem = {
+                                    id: item.id,
+                                    timestamp: item.timestamp,
+                                    sampleId: item.title.startsWith('Bragg:') ? item.title.replace('Bragg: ', '') : undefined,
+                                    wavelength: item.wavelength || 1.5406,
+                                    rawPeaks: item.inputData?.rawPeaks || '',
+                                    rawHKL: item.inputData?.rawHKL || '',
+                                    results: item.results || []
+                                  };
+                                  restoreHistory(mapped);
+                                  setShowOfflineHub(false);
+                                  playSynthTone('switch');
+                                }}
+                                className="px-2.5 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[9.5px] rounded border border-indigo-500/20 cursor-pointer transition-colors font-bold uppercase"
+                              >
+                                Restore
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-white/5 pt-4 mt-5 text-center">
+                    <span className="text-[9px] uppercase font-black tracking-widest text-emerald-400 font-mono flex items-center justify-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                      Service Worker actively intercepting static resources.
+                    </span>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

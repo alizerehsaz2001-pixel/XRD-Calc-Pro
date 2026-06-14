@@ -17,3 +17,12 @@ root.render(
     </AuthProvider>
   </React.StrictMode>
 );
+
+// Register Service Worker for robust progressive web app offline capability
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((reg) => console.log('Service Worker active!', reg.scope))
+      .catch((err) => console.error('Service Worker registration error:', err));
+  });
+}

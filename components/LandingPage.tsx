@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, useMotionValue, useSpring } from 'motion/react';
 import LanguageSelector from './LanguageSelector';
-import { MATERIAL_DB } from '../utils/materialDB';
+import { getActiveMaterials } from '../utils/materialsHelper';
 import { 
   Zap, 
   Activity, 
@@ -730,7 +730,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   const filteredHeroSuggestions = useMemo(() => {
     if (!heroSearchTerm || heroSearchTerm.length < 1) return [];
     const term = heroSearchTerm.toLowerCase().trim();
-    return MATERIAL_DB.filter(item => 
+    return getActiveMaterials().filter(item => 
       item.name.toLowerCase().includes(term) || 
       item.formula.toLowerCase().includes(term) ||
       (item.crystalSystem && item.crystalSystem.toLowerCase().includes(term))

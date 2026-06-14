@@ -7,6 +7,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // 2. Connectivity Test
+    match /test/{docId} {
+      allow read: if true;
+    }
+
     // 3. Helper Functions
     function isSignedIn() {
       return request.auth != null;
@@ -51,6 +56,22 @@ service cloud.firestore {
               (!data.keys().contains('sampleId') || (data.sampleId is string && data.sampleId.size() <= 100));
     }
 
+    // Validation for CustomMaterial
+    function isValidCustomMaterial(data) {
+       return data.keys().hasAll(['id', 'userId', 'name', 'formula', 'pattern']) &&
+              data.id is string && data.id.size() <= 128 &&
+              data.userId is string && data.userId == request.auth.uid &&
+              data.name is string && data.name.size() <= 200 &&
+              data.formula is string && data.formula.size() <= 100 &&
+              data.pattern is string && data.pattern.size() <= 100000 &&
+              (!data.keys().contains('type') || (data.type is string && data.type.size() <= 200)) &&
+              (!data.keys().contains('crystalSystem') || (data.crystalSystem is string && data.crystalSystem.size() <= 200)) &&
+              (!data.keys().contains('spaceGroup') || (data.spaceGroup is string && data.spaceGroup.size() <= 200)) &&
+              (!data.keys().contains('density') || (data.density is number)) &&
+              (!data.keys().contains('molecularWeight') || (data.molecularWeight is number)) &&
+              (!data.keys().contains('elasticModulus') || (data.elasticModulus is number));
+    }
+
     // Subcollections definition
     // /users/{userId}
     match /users/{userId} {
@@ -76,6 +97,15 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(historyId) && isValidBraggHistoryItem(incoming());
       allow update: if false;
       allow delete: if isSignedIn() && isValidId(historyId) && existing().userId == request.auth.uid;
+    }
+
+    // /customMaterials/{materialId}
+    match /customMaterials/{materialId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(materialId) && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(materialId) && isValidCustomMaterial(incoming());
+      allow update: if isSignedIn() && isValidId(materialId) && existing().userId == request.auth.uid && isValidCustomMaterial(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isValidId(materialId) && existing().userId == request.auth.uid;
     }
   }
 }

@@ -348,133 +348,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
 
   }, [validReflections, crystalSystem]);
 
-  // Unit cell SVG wireframe coordinates projection
-  const svgWidth = 240;
-  const svgHeight = 240;
-  const centerX = svgWidth / 2;
-  const centerY = svgHeight / 2 + 10;
 
-  // Compute live relative scales for a,b,c based on parameters
-  const relativeScales = useMemo(() => {
-    if (!fitResults || fitResults.hasDiverged) {
-      return { sa: 80, sb: 80, sc: 80 };
-    }
-    const maxVal = Math.max(fitResults.a, fitResults.b, fitResults.c);
-    const scalingFactor = 75 / maxVal; // Maximum size is 75px
-    return {
-      sa: fitResults.a * scalingFactor,
-      sb: fitResults.b * scalingFactor,
-      sc: fitResults.c * scalingFactor
-    };
-  }, [fitResults]);
-
-  // standard project function
-  const projectPoint = (x3d: number, y3d: number, z3d: number) => {
-    const angle = Math.PI / 6; // 30 deg isometry
-    const screenX = centerX + (x3d - y3d) * Math.cos(angle);
-    const screenY = centerY + (x3d + y3d) * Math.sin(angle) - z3d;
-    return { x: screenX, y: screenY };
-  };
-
-  // Generate paths and shapes for SVG wireframe
-  const wireframePaths = useMemo(() => {
-    const { sa, sb, sc } = relativeScales;
-    
-    // Vertices of the 3D unit cell
-    const v0 = projectPoint(0, 0, 0);       // Origin
-    const v1 = projectPoint(sa, 0, 0);      // Bottom X axis
-    const v2 = projectPoint(0, sb, 0);      // Bottom Y axis
-    const v3 = projectPoint(sa, sb, 0);     // Bottom XY face
-    const v4 = projectPoint(0, 0, sc);       // Top Z axis
-    const v5 = projectPoint(sa, 0, sc);      // Top XZ face
-    const v6 = projectPoint(0, sb, sc);      // Top YZ face
-    const v7 = projectPoint(sa, sb, sc);     // Top XYZ face
-
-    return { v0, v1, v2, v3, v4, v5, v6, v7 };
-  }, [relativeScales]);
-
-  // Selected hkl plane for visual overlay shading inside the cell
-  const planeShapePath = useMemo(() => {
-    if (!fitResults || fitResults.hasDiverged || fitResults.reflections.length === 0) {
-      return '';
-    }
-    
-    const activeRef = fitResults.reflections[selectedReflectionIndex];
-    if (!activeRef) return '';
-    
-    const [hRaw, kRaw, lRaw] = activeRef.dHkl;
-    const h = Math.max(0.1, Math.abs(hRaw)); // Prevent division by zero
-    const k = Math.max(0.1, Math.abs(kRaw));
-    const l = Math.max(0.1, Math.abs(lRaw));
-    
-    const { sa, sb, sc } = relativeScales;
-
-    // Check cases for intercepts
-    const hasH = Math.abs(hRaw) > 0;
-    const hasK = Math.abs(kRaw) > 0;
-    const hasL = Math.abs(lRaw) > 0;
-
-    let points = [];
-
-    if (hasH && hasK && hasL) {
-      // Standard plane intersecting all three axes
-      // Intercepts are 1/h, 1/k, 1/l
-      const p1 = projectPoint(sa / h, 0, 0);
-      const p2 = projectPoint(0, sb / k, 0);
-      const p3 = projectPoint(0, 0, sc / l);
-      points = [p1, p2, p3];
-    } else if (hasH && hasK && !hasL) {
-      // Parallel to z axis (l=0)
-      const p1 = projectPoint(sa / h, 0, 0);
-      const p2 = projectPoint(0, sb / k, 0);
-      const p3 = projectPoint(0, sb / k, sc);
-      const p4 = projectPoint(sa / h, 0, sc);
-      points = [p1, p2, p3, p4];
-    } else if (hasH && !hasK && hasL) {
-      // Parallel to y axis (k=0)
-      const p1 = projectPoint(sa / h, 0, 0);
-      const p2 = projectPoint(0, sb, 0); // extend through face
-      const p3 = projectPoint(0, 0, sc / l);
-      
-      // Better: standard crystal geometry intercepts at a/h and c/l and parallel to y (extending to b)
-      const inter1 = projectPoint(sa / h, 0, 0);
-      const inter2 = projectPoint(0, 0, sc / l);
-      const inter3 = projectPoint(0, sb, sc / l);
-      const inter4 = projectPoint(sa / h, sb, 0);
-      points = [inter1, inter2, inter3, inter4];
-    } else if (!hasH && hasK && hasL) {
-      // Parallel to x axis (h=0)
-      const inter1 = projectPoint(0, sb / k, 0);
-      const inter2 = projectPoint(0, 0, sc / l);
-      const inter3 = projectPoint(sa, 0, sc / l);
-      const inter4 = projectPoint(sa, sb / k, 0);
-      points = [inter1, inter2, inter3, inter4];
-    } else if (hasH && !hasK && !hasL) {
-      // Parallel to BC plane at x = 1/h (like (100))
-      const p1 = projectPoint(sa / h, 0, 0);
-      const p2 = projectPoint(sa / h, sb, 0);
-      const p3 = projectPoint(sa / h, sb, sc);
-      const p4 = projectPoint(sa / h, 0, sc);
-      points = [p1, p2, p3, p4];
-    } else if (!hasH && hasK && !hasL) {
-      // Parallel to AC plane at y = 1/k (like (010))
-      const p1 = projectPoint(0, sb / k, 0);
-      const p2 = projectPoint(sa, sb / k, 0);
-      const p3 = projectPoint(sa, sb / k, sc);
-      const p4 = projectPoint(0, sb / k, sc);
-      points = [p1, p2, p3, p4];
-    } else if (!hasH && !hasK && hasL) {
-      // Parallel to AB plane at z = 1/l (like (001))
-      const p1 = projectPoint(0, 0, sc / l);
-      const p2 = projectPoint(sa, 0, sc / l);
-      const p3 = projectPoint(sa, sb, sc / l);
-      const p4 = projectPoint(0, sb, sc / l);
-      points = [p1, p2, p3, p4];
-    }
-
-    if (points.length < 3) return '';
-    return `M ${points.map(p => `${p.x},${p.y}`).join(' L ')} Z`;
-  }, [fitResults, selectedReflectionIndex, relativeScales]);
 
   if (results.length === 0) {
     return null;
@@ -528,219 +402,127 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
           </div>
         </div>
       ) : fitResults ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Fit Constants Cards Column */}
-          <div className="lg:col-span-8 space-y-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {/* Lattice param a */}
-              <div className="bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center">
-                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Constant a</span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
-                    {fitResults.a.toFixed(Math.min(precision + 1, 5))}
-                  </span>
-                  <span className="text-[10px] font-black text-slate-400">Å</span>
-                </div>
-              </div>
-
-              {/* Lattice param b */}
-              <div className={`bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center transition-all ${
-                crystalSystem === 'Cubic' || crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? 'opacity-40 select-none' : ''
-              }`}>
-                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Constant b</span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
-                    {fitResults.b.toFixed(Math.min(precision + 1, 5))}
-                  </span>
-                  <span className="text-[10px] font-black text-slate-400">Å</span>
-                </div>
-              </div>
-
-              {/* Lattice param c */}
-              <div className={`bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center transition-all ${
-                crystalSystem === 'Cubic' ? 'opacity-40 select-none' : ''
-              }`}>
-                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Constant c</span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
-                    {fitResults.c.toFixed(Math.min(precision + 1, 5))}
-                  </span>
-                  <span className="text-[10px] font-black text-slate-400">Å</span>
-                </div>
-              </div>
-
-              {/* Cell Volume */}
-              <div className="bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center">
-                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Cell Volume</span>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-lg font-bold font-mono text-indigo-600 dark:text-indigo-400 tabular-nums">
-                    {fitResults.volume.toFixed(Math.min(precision, 4))}
-                  </span>
-                  <span className="text-[10px] font-black text-indigo-400">Å³</span>
-                </div>
-              </div>
-
-              {/* Fit R-factor Quality */}
-              <div className="bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center col-span-2 sm:col-span-1">
-                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Diffraction Residual (GoF)</span>
-                <div className="flex items-center gap-2">
-                  <span className={`text-sm font-black font-mono px-2 py-0.5 rounded-full ${
-                    fitResults.averageError < 0.2
-                      ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                      : fitResults.averageError < 1.0
-                        ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                        : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
-                  }`}>
-                    {fitResults.averageError.toFixed(4)}%
-                  </span>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">
-                    {fitResults.averageError < 0.2 ? 'Excellent' : fitResults.averageError < 1.0 ? 'Acceptable' : 'Unfit'}
-                  </span>
-                </div>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {/* Lattice param a */}
+            <div className="bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center">
+              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Constant a</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
+                  {fitResults.a.toFixed(Math.min(precision + 1, 5))}
+                </span>
+                <span className="text-[10px] font-black text-slate-400">Å</span>
               </div>
             </div>
 
-            {/* Reflections Fit table */}
-            <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900 max-h-[300px] overflow-y-auto custom-scrollbar">
-              <table className="w-full text-xs text-left text-slate-700 dark:text-slate-300">
-                <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 sticky top-0 z-10 border-b border-slate-150 dark:border-slate-800">
-                  <tr>
-                    <th className="px-4 py-2.5">HKL</th>
-                    <th className="px-4 py-2.5">2θ (Obs)</th>
-                    <th className="px-4 py-2.5">2θ (Calc)</th>
-                    <th className="px-4 py-2.5">d (Obs)</th>
-                    <th className="px-4 py-2.5">d (Calc)</th>
-                    <th className="px-4 py-2.5 text-right">Residual</th>
+            {/* Lattice param b */}
+            <div className={`bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center transition-all ${
+              crystalSystem === 'Cubic' || crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? 'opacity-40 select-none' : ''
+            }`}>
+              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Constant b</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
+                  {fitResults.b.toFixed(Math.min(precision + 1, 5))}
+                </span>
+                <span className="text-[10px] font-black text-slate-400">Å</span>
+              </div>
+            </div>
+
+            {/* Lattice param c */}
+            <div className={`bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center transition-all ${
+              crystalSystem === 'Cubic' ? 'opacity-40 select-none' : ''
+            }`}>
+              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Constant c</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold font-mono text-slate-900 dark:text-white tabular-nums">
+                  {fitResults.c.toFixed(Math.min(precision + 1, 5))}
+                </span>
+                <span className="text-[10px] font-black text-slate-400">Å</span>
+              </div>
+            </div>
+
+            {/* Cell Volume */}
+            <div className="bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center">
+              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Cell Volume</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg font-bold font-mono text-indigo-600 dark:text-indigo-400 tabular-nums">
+                  {fitResults.volume.toFixed(Math.min(precision, 4))}
+                </span>
+                <span className="text-[10px] font-black text-indigo-400">Å³</span>
+              </div>
+            </div>
+
+            {/* Fit R-factor Quality */}
+            <div className="bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center col-span-2 sm:col-span-1">
+              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Diffraction Residual (GoF)</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-black font-mono px-2 py-0.5 rounded-full ${
+                  fitResults.averageError < 0.2
+                    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                    : fitResults.averageError < 1.0
+                      ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                      : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                }`}>
+                  {fitResults.averageError.toFixed(4)}%
+                </span>
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block">
+                  {fitResults.averageError < 0.2 ? 'Excellent' : fitResults.averageError < 1.0 ? 'Acceptable' : 'Unfit'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Reflections Fit table */}
+          <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm bg-white dark:bg-slate-900 max-h-[300px] overflow-y-auto custom-scrollbar">
+            <table className="w-full text-xs text-left text-slate-700 dark:text-slate-300">
+              <thead className="bg-slate-50 dark:bg-slate-950 text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-slate-400 sticky top-0 z-10 border-b border-slate-150 dark:border-slate-800">
+                <tr>
+                  <th className="px-4 py-2.5">HKL</th>
+                  <th className="px-4 py-2.5">2θ (Obs)</th>
+                  <th className="px-4 py-2.5">2θ (Calc)</th>
+                  <th className="px-4 py-2.5">d (Obs)</th>
+                  <th className="px-4 py-2.5">d (Calc)</th>
+                  <th className="px-4 py-2.5 text-right">Residual</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
+                {fitResults.reflections.map((ref, idx) => (
+                  <tr
+                    key={idx}
+                    onClick={() => setSelectedReflectionIndex(idx)}
+                    className={`cursor-pointer transition-all ${
+                      selectedReflectionIndex === idx
+                        ? 'bg-indigo-50/50 hover:bg-indigo-50 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/30'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-850/50'
+                    }`}
+                  >
+                    <td className="px-4 py-2 font-bold font-sans text-indigo-600 dark:text-indigo-400">
+                      ({ref.hklString})
+                    </td>
+                    <td className="px-4 py-2 font-bold tabular-nums text-slate-900 dark:text-slate-100">{ref.twoTheta.toFixed(3)}°</td>
+                    <td className="px-4 py-2 tabular-nums text-slate-400">{ref.twoThetaCalc.toFixed(2)}°</td>
+                    <td className="px-4 py-2 font-black tabular-nums text-indigo-700 dark:text-indigo-300">{ref.dObs.toFixed(4)}</td>
+                    <td className="px-4 py-2 tabular-nums text-slate-400">{ref.dCalc.toFixed(4)}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">
+                      <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                        ref.errorPct < 0.2
+                          ? 'text-emerald-600 bg-emerald-500/5 dark:text-emerald-400'
+                          : ref.errorPct < 1.0
+                            ? 'text-amber-600 bg-amber-500/5 dark:text-amber-400'
+                            : 'text-rose-600 bg-rose-500/5 dark:text-rose-400'
+                      }`}>
+                        {ref.errorPct.toFixed(3)}%
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
-                  {fitResults.reflections.map((ref, idx) => (
-                    <tr
-                      key={idx}
-                      onClick={() => setSelectedReflectionIndex(idx)}
-                      className={`cursor-pointer transition-all ${
-                        selectedReflectionIndex === idx
-                          ? 'bg-indigo-50/50 hover:bg-indigo-50 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/30'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-850/50'
-                      }`}
-                    >
-                      <td className="px-4 py-2 font-bold font-sans text-indigo-600 dark:text-indigo-400">
-                        ({ref.hklString})
-                      </td>
-                      <td className="px-4 py-2 font-bold tabular-nums text-slate-900 dark:text-slate-100">{ref.twoTheta.toFixed(3)}°</td>
-                      <td className="px-4 py-2 tabular-nums text-slate-400">{ref.twoThetaCalc.toFixed(2)}°</td>
-                      <td className="px-4 py-2 font-black tabular-nums text-indigo-700 dark:text-indigo-300">{ref.dObs.toFixed(4)}</td>
-                      <td className="px-4 py-2 tabular-nums text-slate-400">{ref.dCalc.toFixed(4)}</td>
-                      <td className="px-4 py-2 text-right tabular-nums">
-                        <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
-                          ref.errorPct < 0.2
-                            ? 'text-emerald-600 bg-emerald-500/5 dark:text-emerald-400'
-                            : ref.errorPct < 1.0
-                              ? 'text-amber-600 bg-amber-500/5 dark:text-amber-400'
-                              : 'text-rose-600 bg-rose-500/5 dark:text-rose-400'
-                        }`}>
-                          {ref.errorPct.toFixed(3)}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 transition-colors flex items-center gap-1.5 leading-normal">
-              <Cpu className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-              Click on rows to dynamically shade the matching plane index inside the isometric unit cell preview.
-            </p>
-          </div>
-
-          {/* Isometric SVG Column */}
-          <div className="lg:col-span-4 flex flex-col items-center">
-            <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 self-start">
-              Isometric Unit Cell Preview
-            </h4>
-            
-            <div className="w-full relative aspect-square bg-[#05070a] border border-slate-205 dark:border-slate-800 rounded-3xl overflow-hidden shadow-lg flex items-center justify-center">
-              {/* background grids decoration */}
-              <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-15 pointer-events-none" />
-              
-              <svg 
-                width="100%" 
-                height="100%" 
-                viewBox={`0 0 ${svgWidth} ${svgHeight}`} 
-                preserveAspectRatio="xMidYMid meet"
-                className="relative z-10"
-              >
-                <defs>
-                  <radialGradient id="atomSph" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
-                    <stop offset="0%" stopColor="#cbd5e1" />
-                    <stop offset="100%" stopColor="#475569" />
-                  </radialGradient>
-                  <radialGradient id="hklAtomSph" cx="50%" cy="50%" r="50%" fx="40%" fy="40%">
-                    <stop offset="0%" stopColor="#818cf8" />
-                    <stop offset="100%" stopColor="#3730a3" />
-                  </radialGradient>
-                </defs>
-
-                {/* Back edges (dashed for depth) */}
-                <line x1={wireframePaths.v0.x} y1={wireframePaths.v0.y} x2={wireframePaths.v1.x} y2={wireframePaths.v1.y} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" strokeWidth="1" />
-                <line x1={wireframePaths.v0.x} y1={wireframePaths.v0.y} x2={wireframePaths.v2.x} y2={wireframePaths.v2.y} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" strokeWidth="1" />
-                <line x1={wireframePaths.v0.x} y1={wireframePaths.v0.y} x2={wireframePaths.v4.x} y2={wireframePaths.v4.y} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" strokeWidth="1" />
-
-                {/* Live Shaded HKL Plane */}
-                {planeShapePath && (
-                  <path 
-                    d={planeShapePath} 
-                    fill="url(#hklAtomSph)" 
-                    fillOpacity="0.25" 
-                    stroke="#818cf8" 
-                    strokeWidth="1.5" 
-                    strokeLinejoin="round"
-                    className="animate-pulse"
-                  />
-                )}
-
-                {/* Main front edges */}
-                <line x1={wireframePaths.v6.x} y1={wireframePaths.v6.y} x2={wireframePaths.v7.x} y2={wireframePaths.v7.y} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-                <line x1={wireframePaths.v5.x} y1={wireframePaths.v5.y} x2={wireframePaths.v7.x} y2={wireframePaths.v7.y} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-                <line x1={wireframePaths.v4.x} y1={wireframePaths.v4.y} x2={wireframePaths.v5.x} y2={wireframePaths.v5.y} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-                <line x1={wireframePaths.v4.x} y1={wireframePaths.v4.y} x2={wireframePaths.v6.x} y2={wireframePaths.v6.y} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-                
-                <line x1={wireframePaths.v3.x} y1={wireframePaths.v3.y} x2={wireframePaths.v7.x} y2={wireframePaths.v7.y} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-                <line x1={wireframePaths.v2.x} y1={wireframePaths.v2.y} x2={wireframePaths.v3.x} y2={wireframePaths.v3.y} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-                <line x1={wireframePaths.v2.x} y1={wireframePaths.v2.y} x2={wireframePaths.v6.x} y2={wireframePaths.v6.y} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-                <line x1={wireframePaths.v1.x} y1={wireframePaths.v1.y} x2={wireframePaths.v3.x} y2={wireframePaths.v3.y} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-                <line x1={wireframePaths.v1.x} y1={wireframePaths.v1.y} x2={wireframePaths.v5.x} y2={wireframePaths.v5.y} stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
-
-                {/* Atoms at Vertices */}
-                {Object.entries(wireframePaths).map(([key, point]) => (
-                  <circle 
-                    key={key} 
-                    cx={point.x} 
-                    cy={point.y} 
-                    r="4" 
-                    fill="url(#atomSph)" 
-                    stroke="rgba(0,0,0,0.5)" 
-                    strokeWidth="0.5" 
-                  />
                 ))}
-
-                {/* Current interactive reflection indicator label overlay */}
-                {fitResults.reflections[selectedReflectionIndex] && (
-                  <g transform={`translate(${centerX - 40}, ${svgHeight - 15})`}>
-                    <rect width="80" height="15" rx="4" fill="rgba(99,102,241,0.2)" stroke="rgba(129,140,248,0.4)" strokeWidth="0.5" />
-                    <text x="40" y="11" fill="#818cf8" fontSize="8" fontWeight="bold" textAnchor="middle" fontFamily="monospace">
-                      Plane: ({fitResults.reflections[selectedReflectionIndex].hklString})
-                    </text>
-                  </g>
-                )}
-              </svg>
-              
-              {/* Corner badge to display active unit cell symmetry status */}
-              <span className="absolute top-3.5 right-3.5 px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/20 text-[8px] font-bold font-mono tracking-widest uppercase text-indigo-400 rounded-full select-none z-20">
-                {crystalSystem} Bravais lattice
-              </span>
-            </div>
+              </tbody>
+            </table>
           </div>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 transition-colors flex items-center gap-1.5 leading-normal">
+            <Cpu className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+            Select a reflection row to track d-spacings and calculated angle residuals in real-time.
+          </p>
         </div>
       ) : null}
     </div>

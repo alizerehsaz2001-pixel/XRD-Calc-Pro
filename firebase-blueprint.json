@@ -40,6 +40,26 @@
         "resultsJson": { "type": "string" }
       },
       "required": ["id", "userId", "timestamp", "wavelength", "rawPeaks", "rawHKL", "resultsJson"]
+    },
+    "CustomMaterial": {
+      "title": "Custom Material Spec",
+      "description": "User created or premium synced material with fully detailed XRD peak spectrum, mechanical parameters, and chemical statistics.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "formula": { "type": "string" },
+        "pattern": { "type": "string" },
+        "description": { "type": "string" },
+        "crystalSystem": { "type": "string" },
+        "spaceGroup": { "type": "string" },
+        "density": { "type": "number" },
+        "molecularWeight": { "type": "number" },
+        "elasticModulus": { "type": "number" }
+      },
+      "required": ["id", "userId", "name", "formula", "pattern"]
     }
   },
   "firestore": {
@@ -54,6 +74,10 @@
     "/braggHistory/{historyId}": {
       "schema": { "$ref": "#/entities/BraggHistoryItem" },
       "description": "User saved Bragg analysis history"
+    },
+    "/customMaterials/{materialId}": {
+      "schema": { "$ref": "#/entities/CustomMaterial" },
+      "description": "Cloud synchronized custom and premium acquired materials"
     }
   }
 }
