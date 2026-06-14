@@ -38,6 +38,19 @@ service cloud.firestore {
               data.updatedAt is timestamp;
     }
 
+    // Validation for BraggHistoryItem
+    function isValidBraggHistoryItem(data) {
+       return data.keys().hasAll(['id', 'userId', 'timestamp', 'wavelength', 'rawPeaks', 'rawHKL', 'resultsJson']) &&
+              data.id is string && data.id.size() <= 128 &&
+              data.userId is string && data.userId == request.auth.uid &&
+              data.timestamp is string && data.timestamp.size() <= 100 &&
+              data.wavelength is number &&
+              data.rawPeaks is string && data.rawPeaks.size() <= 5000 &&
+              data.rawHKL is string && data.rawHKL.size() <= 5000 &&
+              data.resultsJson is string && data.resultsJson.size() <= 100000 &&
+              (!data.keys().contains('sampleId') || (data.sampleId is string && data.sampleId.size() <= 100));
+    }
+
     // Subcollections definition
     // /users/{userId}
     match /users/{userId} {
@@ -54,6 +67,15 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(configId) && isValidEngineConfig(incoming()) && incoming().createdAt == request.time && incoming().updatedAt == request.time;
       allow update: if isSignedIn() && isValidId(configId) && existing().userId == request.auth.uid && isValidEngineConfig(incoming()) && incoming().userId == existing().userId && incoming().createdAt == existing().createdAt && incoming().updatedAt == request.time && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'configData', 'updatedAt']);
       allow delete: if isSignedIn() && isValidId(configId) && existing().userId == request.auth.uid;
+    }
+
+    // /braggHistory/{historyId}
+    match /braggHistory/{historyId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && isValidId(historyId) && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(historyId) && isValidBraggHistoryItem(incoming());
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(historyId) && existing().userId == request.auth.uid;
     }
   }
 }

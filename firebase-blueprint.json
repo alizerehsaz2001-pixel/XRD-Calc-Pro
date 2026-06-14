@@ -24,6 +24,22 @@
         "configData": { "type": "string" }
       },
       "required": ["userId", "name", "configData", "createdAt", "updatedAt"]
+    },
+    "BraggHistoryItem": {
+      "title": "Bragg History Item",
+      "description": "Stored Bragg analysis history item for a user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "sampleId": { "type": "string" },
+        "wavelength": { "type": "number" },
+        "rawPeaks": { "type": "string" },
+        "rawHKL": { "type": "string" },
+        "resultsJson": { "type": "string" }
+      },
+      "required": ["id", "userId", "timestamp", "wavelength", "rawPeaks", "rawHKL", "resultsJson"]
     }
   },
   "firestore": {
@@ -34,6 +50,10 @@
     "/engineConfigs/{configId}": {
       "schema": { "$ref": "#/entities/EngineConfig" },
       "description": "User saved engine configurations"
+    },
+    "/braggHistory/{historyId}": {
+      "schema": { "$ref": "#/entities/BraggHistoryItem" },
+      "description": "User saved Bragg analysis history"
     }
   }
 }

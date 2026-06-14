@@ -41,7 +41,8 @@ import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward } from 'lucide-react';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
-import { useAuth } from './services/firebase';
+import { useAuth, db, handleFirestoreError, OperationType } from './services/firebase';
+import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 
 type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database';
 
@@ -131,6 +132,74 @@ const App: React.FC = () => {
       return [];
     }
   });
+
+  // Fetch Bragg history when user logs in
+  useEffect(() => {
+    let active = true;
+    const fetchFirestoreBraggHistory = async () => {
+      if (!user) {
+        // Fallback to local storage if user is logged out
+        try {
+          const saved = localStorage.getItem('xrd_bragg_history');
+          if (saved) {
+            setBraggHistory(JSON.parse(saved));
+          } else {
+            setBraggHistory([]);
+          }
+        } catch (e) {
+          setBraggHistory([]);
+        }
+        return;
+      }
+
+      const path = 'braggHistory';
+      try {
+        const q = query(
+          collection(db, 'braggHistory'),
+          where('userId', '==', user.uid)
+        );
+        const querySnapshot = await getDocs(q);
+        if (!active) return;
+
+        const fetchedSessions: BraggHistoryItem[] = [];
+        querySnapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          let results: BraggResult[] = [];
+          if (data.resultsJson) {
+            try {
+              results = JSON.parse(data.resultsJson);
+            } catch (e) {
+              console.error("Failed to parse resultsJson", e);
+            }
+          }
+          fetchedSessions.push({
+            id: docSnap.id,
+            timestamp: data.timestamp || new Date().toISOString(),
+            sampleId: data.sampleId,
+            wavelength: data.wavelength,
+            rawPeaks: data.rawPeaks,
+            rawHKL: data.rawHKL,
+            results: results
+          });
+        });
+
+        // Sort by timestamp descending
+        fetchedSessions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+        setBraggHistory(fetchedSessions);
+      } catch (error) {
+        if (active) {
+          handleFirestoreError(error, OperationType.LIST, path);
+        }
+      }
+    };
+
+    fetchFirestoreBraggHistory();
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [lastAutosaved, setLastAutosaved] = useState<string | null>(null);
@@ -314,6 +383,26 @@ const App: React.FC = () => {
           localStorage.setItem('xrd_bragg_history', JSON.stringify(updated));
           return updated;
         });
+
+        if (user) {
+          const path = `braggHistory/${newItem.id}`;
+          const resultsJson = JSON.stringify(computed);
+          const docData: any = {
+            id: newItem.id,
+            userId: user.uid,
+            timestamp: newItem.timestamp,
+            wavelength: newItem.wavelength,
+            rawPeaks: newItem.rawPeaks,
+            rawHKL: newItem.rawHKL,
+            resultsJson: resultsJson
+          };
+          if (newItem.sampleId) {
+            docData.sampleId = newItem.sampleId;
+          }
+          setDoc(doc(db, 'braggHistory', newItem.id), docData).catch((error) => {
+            handleFirestoreError(error, OperationType.CREATE, path);
+          });
+        }
       }
     }, 3800);
   };
@@ -327,9 +416,21 @@ const App: React.FC = () => {
     setResults(item.results);
   };
 
-  const clearHistory = () => {
+  const clearHistory = async () => {
+    const listToDelete = [...braggHistory];
     setBraggHistory([]);
     localStorage.removeItem('xrd_bragg_history');
+
+    if (user && listToDelete.length > 0) {
+      for (const item of listToDelete) {
+        const path = `braggHistory/${item.id}`;
+        try {
+          await deleteDoc(doc(db, 'braggHistory', item.id));
+        } catch (error) {
+          handleFirestoreError(error, OperationType.DELETE, path);
+        }
+      }
+    }
   };
 
   const handleAILoad = (peaks: number[], newWavelength?: number, hkls?: string[], material?: string) => {
