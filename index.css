@@ -353,3 +353,72 @@ body {
 .oceanic .from-indigo-500, .oceanic .via-slate-200, .oceanic .to-slate-400 { background-image: linear-gradient(to right, var(--color-oceanic-accent), var(--color-oceanic-accent2)) !important; color: transparent !important; background-clip: text !important; -webkit-background-clip: text !important; }
 .oceanic .text-transparent.bg-clip-text { background-clip: text !important; -webkit-background-clip: text !important; }
 .oceanic .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-oceanic-muted); }
+
+/* Gruvbox Theme */
+:root {
+  --color-gruvbox-bg: #282828;
+  --color-gruvbox-curr: #3c3836;
+  --color-gruvbox-fg: #ebdbb2;
+  --color-gruvbox-comment: #928374;
+  --color-gruvbox-cyan: #689d6a;
+  --color-gruvbox-green: #98971a;
+  --color-gruvbox-orange: #d65d0e;
+  --color-gruvbox-pink: #b16286;
+  --color-gruvbox-purple: #d3869b;
+  --color-gruvbox-red: #cc241d;
+  --color-gruvbox-yellow: #d79921;
+}
+.gruvbox {
+  --chart-bar: #d3869b;
+  --chart-ref: #d79921;
+  background-color: var(--color-gruvbox-bg);
+  color: var(--color-gruvbox-fg);
+}
+.gruvbox aside { background-color: #1d2021 !important; border-right-color: var(--color-gruvbox-curr) !important; }
+.gruvbox .bg-white, .gruvbox .bg-slate-50, .gruvbox .bg-slate-100 { background-color: #1d2021 !important; }
+.gruvbox .text-slate-900, .gruvbox .text-slate-800, .gruvbox .text-slate-700 { color: var(--color-gruvbox-fg) !important; }
+.gruvbox .border-slate-200, .gruvbox .border-slate-800 { border-color: var(--color-gruvbox-curr) !important; }
+.gruvbox .bg-indigo-600, .gruvbox .bg-violet-500, .gruvbox .bg-violet-600 { background-color: var(--color-gruvbox-purple) !important; color: #fbf1c7 !important; }
+.gruvbox .text-indigo-600, .gruvbox .text-violet-600, .gruvbox .text-violet-500, .gruvbox .text-violet-400 { color: var(--color-gruvbox-purple) !important; }
+.gruvbox .text-indigo-400 { color: var(--color-gruvbox-cyan) !important; }
+.gruvbox .bg-slate-900, .gruvbox .bg-slate-950, .gruvbox .bg-black { background-color: #1b1b1b !important; border: 1px solid var(--color-gruvbox-curr) !important; }
+.gruvbox input, .gruvbox textarea, .gruvbox select { background-color: var(--color-gruvbox-bg) !important; border: 1px solid var(--color-gruvbox-comment) !important; color: var(--color-gruvbox-fg) !important; }
+.gruvbox input:focus, .gruvbox textarea:focus { border-color: var(--color-gruvbox-yellow) !important; outline: none !important; }
+.gruvbox .text-slate-400, .gruvbox .text-slate-500, .gruvbox .text-slate-300 { color: var(--color-gruvbox-comment) !important; }
+.gruvbox .from-indigo-500, .gruvbox .via-slate-200, .gruvbox .to-slate-400 { background-image: linear-gradient(to right, var(--color-gruvbox-purple), var(--color-gruvbox-yellow)) !important; color: transparent !important; background-clip: text !important; -webkit-background-clip: text !important; }
+.gruvbox .text-transparent.bg-clip-text { background-clip: text !important; -webkit-background-clip: text !important; }
+.gruvbox .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-gruvbox-comment); }
+
+/* Monokai Theme */
+:root {
+  --color-monokai-bg: #272822;
+  --color-monokai-curr: #3e3d32;
+  --color-monokai-fg: #f8f8f2;
+  --color-monokai-comment: #75715e;
+  --color-monokai-cyan: #66d9ef;
+  --color-monokai-green: #a6e22e;
+  --color-monokai-orange: #fd971f;
+  --color-monokai-pink: #f92672;
+  --color-monokai-purple: #ae81ff;
+  --color-monokai-yellow: #e6db74;
+}
+.monokai {
+  --chart-bar: #f92672;
+  --chart-ref: #a6e22e;
+  background-color: var(--color-monokai-bg);
+  color: var(--color-monokai-fg);
+}
+.monokai aside { background-color: #1e1f1c !important; border-right-color: var(--color-monokai-curr) !important; }
+.monokai .bg-white, .monokai .bg-slate-50, .monokai .bg-slate-100 { background-color: #1e1f1c !important; }
+.monokai .text-slate-900, .monokai .text-slate-800, .monokai .text-slate-700 { color: var(--color-monokai-fg) !important; }
+.monokai .border-slate-200, .monokai .border-slate-800 { border-color: var(--color-monokai-curr) !important; }
+.monokai .bg-indigo-600, .monokai .bg-violet-500, .monokai .bg-violet-600 { background-color: var(--color-monokai-pink) !important; color: #f8f8f2 !important; }
+.monokai .text-indigo-600, .monokai .text-violet-600, .monokai .text-violet-500, .monokai .text-violet-400 { color: var(--color-monokai-pink) !important; }
+.monokai .text-indigo-400 { color: var(--color-monokai-cyan) !important; }
+.monokai .bg-slate-900, .monokai .bg-slate-950, .monokai .bg-black { background-color: #1b1c18 !important; border: 1px solid var(--color-monokai-curr) !important; }
+.monokai input, .monokai textarea, .monokai select { background-color: var(--color-monokai-bg) !important; border: 1px solid var(--color-monokai-comment) !important; color: var(--color-monokai-fg) !important; }
+.monokai input:focus, .monokai textarea:focus { border-color: var(--color-monokai-green) !important; outline: none !important; }
+.monokai .text-slate-400, .monokai .text-slate-500, .monokai .text-slate-300 { color: var(--color-monokai-comment) !important; }
+.monokai .from-indigo-500, .monokai .via-slate-200, .monokai .to-slate-400 { background-image: linear-gradient(to right, var(--color-monokai-pink), var(--color-monokai-yellow)) !important; color: transparent !important; background-clip: text !important; -webkit-background-clip: text !important; }
+.monokai .text-transparent.bg-clip-text { background-clip: text !important; -webkit-background-clip: text !important; }
+.monokai .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-monokai-comment); }

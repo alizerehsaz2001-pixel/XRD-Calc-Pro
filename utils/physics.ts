@@ -226,7 +226,9 @@ export const simulatePeak = (
   eta: number, // mixing factor for PV, or shape parameter (m) for Pearson VII
   amplitude: number,
   range: [number, number],
-  steps: number = 200
+  steps: number = 200,
+  background: number = 0,
+  noiseLevel: number = 0
 ) => {
   const points = [];
   const start = range[0];
@@ -263,8 +265,12 @@ export const simulatePeak = (
     if (type === 'Pearson VII') {
       y = amplitude * Math.pow(1 + Math.pow((x - center) / PVII_w, 2), -m);
     }
+    
+    // Apply background and simulated Poisson-like random noise
+    const bg = background;
+    const noisyY = y + bg + (Math.random() - 0.5) * noiseLevel * Math.sqrt(y + bg + 1) * 2;
 
-    points.push({ x, y });
+    points.push({ x, y: noisyY, _cleanY: y + bg });
   }
 
   // Calculate Integral Breadth Area

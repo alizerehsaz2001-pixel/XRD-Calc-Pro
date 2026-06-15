@@ -14,8 +14,8 @@ import { playSynthTone } from '../utils/sound';
 import LanguageSelector from './LanguageSelector';
 
 interface SettingsModuleProps {
-  theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic';
-  setTheme: (theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic') => void;
+  theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic' | 'gruvbox' | 'monokai';
+  setTheme: (theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic' | 'gruvbox' | 'monokai') => void;
   precision: number;
   setPrecision: (precision: number) => void;
   animationsEnabled: boolean;
@@ -213,8 +213,35 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
 
   useEffect(() => {
     const checkSystemKeyAndVerify = async () => {
+      let retries = 3;
+      const delayMs = 1500;
+      let res: Response | null = null;
+      let fetchError: any = null;
+
+      while (retries > 0) {
+        try {
+          res = await fetch('/api/gemini/config');
+          if (res && res.ok) {
+            break;
+          }
+        } catch (err: any) {
+          fetchError = err;
+          retries--;
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
+        }
+      }
+
+      if (!res || !res.ok) {
+        console.warn("Auto key configuration check error (Failed to fetch, offline fallback active):", fetchError);
+        setAuthStatus('missing');
+        setAuthFeedback('System database offline or slow initialization. Local calculations are fully operational.');
+        addLog('System Startup Verification', 'ERROR', fetchError?.message || 'Network timeout');
+        return;
+      }
+
       try {
-        const res = await fetch('/api/gemini/config');
         const configData = await res.json();
         const systemKeyActive = !!configData?.hasEnvKey;
         setHasSystemKey(systemKeyActive);
@@ -251,8 +278,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           addLog('System Startup', 'ERROR', 'No credentials available');
         }
       } catch (err: any) {
-        console.error("Auto key configuration check error:", err);
-        addLog('System Startup Verification', 'ERROR', err.message || 'Network timeout');
+        console.error("Auto key configuration parsing error:", err);
+        addLog('System Startup Verification', 'ERROR', err.message || 'Data parse error');
       }
     };
     checkSystemKeyAndVerify();
@@ -488,7 +515,9 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     { id: 'terminal', label: 'Mainframe', color: 'bg-black', text: 'text-green-500', border: 'border-green-500' },
     { id: 'synthwave', label: 'Neon City', color: 'bg-indigo-950', text: 'text-pink-500', border: 'border-pink-500' },
     { id: 'dracula', label: 'Vampire Night', color: 'bg-[#282a36]', text: 'text-[#bd93f9]', border: 'border-[#ff79c6]' },
-    { id: 'oceanic', label: 'Deep Ocean', color: 'bg-[#0f172a]', text: 'text-[#38bdf8]', border: 'border-[#818cf8]' }
+    { id: 'oceanic', label: 'Deep Ocean', color: 'bg-[#0f172a]', text: 'text-[#38bdf8]', border: 'border-[#818cf8]' },
+    { id: 'gruvbox', label: 'Gruvbox', color: 'bg-[#282828]', text: 'text-[#ebdbb2]', border: 'border-[#d3869b]' },
+    { id: 'monokai', label: 'Monokai', color: 'bg-[#272822]', text: 'text-[#f8f8f2]', border: 'border-[#f92672]' }
   ];
 
   const wavelengthPresets = [

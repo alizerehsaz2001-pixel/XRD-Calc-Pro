@@ -68,7 +68,8 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
   
   const [crystalSystem, setCrystalSystem] = useState<CrystalSystem>('Cubic');
   const [selectedReflectionIndex, setSelectedReflectionIndex] = useState<number>(0);
-  
+  const [targetDSpacing, setTargetDSpacing] = useState<string>('');
+
   // Extract reflections with valid, non-zero parsed HKL values
   const validReflections = useMemo(() => {
     return results
@@ -348,6 +349,46 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
 
   }, [validReflections, crystalSystem]);
 
+  const hklSuggestions = useMemo(() => {
+    if (!fitResults || fitResults.hasDiverged) return [];
+    const target = parseFloat(targetDSpacing);
+    if (isNaN(target) || target <= 0) return [];
+
+    const { a, b, c } = fitResults;
+    const results: { h: number, k: number, l: number, dCalc: number, error: number }[] = [];
+    const maxIndex = 6;
+
+    for (let h = 0; h <= maxIndex; h++) {
+      for (let k = 0; k <= maxIndex; k++) {
+        for (let l = 0; l <= maxIndex; l++) {
+          if (h === 0 && k === 0 && l === 0) continue;
+
+          let dCalc = 0;
+          if (crystalSystem === 'Cubic') {
+            dCalc = a / Math.sqrt(h * h + k * k + l * l);
+          } else if (crystalSystem === 'Tetragonal') {
+            const term = (h * h + k * k) / (a * a) + (l * l) / (c * c);
+            dCalc = 1 / Math.sqrt(term);
+          } else if (crystalSystem === 'Hexagonal') {
+            const term = (4 / 3) * (h * h + h * k + k * k) / (a * a) + (l * l) / (c * c);
+            dCalc = 1 / Math.sqrt(term);
+          } else if (crystalSystem === 'Orthorhombic') {
+            const term = (h * h) / (a * a) + (k * k) / (b * b) + (l * l) / (c * c);
+            dCalc = 1 / Math.sqrt(term);
+          }
+
+          const error = Math.abs(dCalc - target);
+          if (error < 0.2) {
+            results.push({ h, k, l, dCalc, error });
+          }
+        }
+      }
+    }
+
+    results.sort((r1, r2) => r1.error - r2.error);
+    return results.slice(0, 5);
+  }, [targetDSpacing, fitResults, crystalSystem]);
+
 
 
   if (results.length === 0) {
@@ -523,6 +564,51 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
             <Cpu className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
             Select a reflection row to track d-spacings and calculated angle residuals in real-time.
           </p>
+
+          <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6">
+            <h3 className="text-xs font-black text-slate-800 dark:text-slate-100 flex items-center gap-2 tracking-tight uppercase mb-3">
+              <Compass className="h-4 w-4 text-indigo-500 shrink-0" />
+              Target d-Spacing HKL Search
+            </h3>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="w-full sm:w-64">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                  Target d-Spacing (Å)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="e.g. 2.50"
+                    value={targetDSpacing}
+                    onChange={(e) => setTargetDSpacing(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-lg outline-none font-bold font-mono text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-mono font-bold pointer-events-none">Å</div>
+                </div>
+              </div>
+              
+              <div className="flex-1 w-full">
+                {targetDSpacing && !isNaN(parseFloat(targetDSpacing)) ? (
+                  hklSuggestions.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {hklSuggestions.map((sug, i) => (
+                        <div key={i} className="flex flex-col p-2 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800/50 rounded-lg shrink-0">
+                          <span className="text-[11px] font-black font-mono text-indigo-700 dark:text-indigo-300">({sug.h} {sug.k} {sug.l})</span>
+                          <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5 tracking-wide">d = {sug.dCalc.toFixed(4)} Å</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 italic">No close HKL planes found within 0.2 Å error range.</span>
+                  )
+                ) : (
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">Enter a target d-spacing to see suggested planes.</span>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

@@ -22,6 +22,8 @@ export const FWHMModule: React.FC = () => {
   const [fwhmManual, setFwhmManual] = useState<number>(0.5);
   const [eta, setEta] = useState<number>(0.5);
   const [amplitude, setAmplitude] = useState<number>(100);
+  const [background, setBackground] = useState<number>(10);
+  const [noiseLevel, setNoiseLevel] = useState<number>(2);
   
   const [useCaglioti, setUseCaglioti] = useState<boolean>(false);
   const [cagliotiPreset, setCagliotiPreset] = useState<string>('Lab (Cu Kα)');
@@ -52,6 +54,8 @@ export const FWHMModule: React.FC = () => {
     setFwhmManual(0.5);
     setEta(0.5);
     setAmplitude(100);
+    setBackground(10);
+    setNoiseLevel(2);
     setUseCaglioti(false);
     setCagliotiPreset('Lab (Cu Kα)');
     setCagliotiParams({ u: 0.04, v: -0.02, w: 0.04 });
@@ -62,10 +66,10 @@ export const FWHMModule: React.FC = () => {
 
   useEffect(() => {
     const range: [number, number] = [center - fwhm * 4, center + fwhm * 4];
-    const { points, stats } = simulatePeak(type, center, fwhm, eta, amplitude, range);
+    const { points, stats } = simulatePeak(type, center, fwhm, eta, amplitude, range, 200, background, noiseLevel);
     setChartData(points);
     setStats(stats);
-  }, [type, center, fwhm, eta, amplitude]);
+  }, [type, center, fwhm, eta, amplitude, background, noiseLevel]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!chartContainerRef.current) return;
@@ -358,6 +362,43 @@ export const FWHMModule: React.FC = () => {
                   )}
                 </div>
               </div>
+              <div className="group pt-4 border-t border-slate-200/60 dark:border-slate-800/60">
+                <div className="flex justify-between items-end mb-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">
+                    Background Level
+                  </label>
+                  <div className="bg-white px-2 py-1 xl:px-2.5 rounded-md shadow-sm border border-slate-200 flex items-center relative overflow-hidden">
+                    <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold relative z-10">
+                      {background.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="range" min="0" max="100" step="1"
+                  value={background} 
+                  onChange={(e) => setBackground(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-600 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
+
+              <div className="group">
+                <div className="flex justify-between items-end mb-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">
+                    Poisson Noise
+                  </label>
+                  <div className="bg-white px-2 py-1 xl:px-2.5 rounded-md shadow-sm border border-slate-200 flex items-center relative overflow-hidden">
+                    <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold relative z-10">
+                      {(noiseLevel * 10).toFixed(0)}%
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="range" min="0" max="10" step="0.5"
+                  value={noiseLevel} 
+                  onChange={(e) => setNoiseLevel(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-600 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
+              </div>
             </div>
 
             <div className="pt-6 border-t border-slate-100 dark:border-slate-800/60 mt-4">
@@ -535,8 +576,12 @@ export const FWHMModule: React.FC = () => {
                              </div>
                              <div className="space-y-3 relative z-10">
                                <div className="flex justify-between gap-4 items-center">
-                                 <span className="text-slate-400 font-medium tracking-wide flex items-center gap-1.5"><Activity className="w-3 h-3"/> I(2θ)</span>
+                                 <span className="text-slate-400 font-medium tracking-wide flex items-center gap-1.5"><Activity className="w-3 h-3"/> Measured I(2θ)</span>
                                  <span className="font-mono font-bold text-white drop-shadow-[0_0_8px_rgba(232,121,249,0.8)] px-1">{dataPoint.y.toFixed(1)}</span>
+                               </div>
+                               <div className="flex justify-between gap-4 items-center">
+                                 <span className="text-slate-400 font-medium tracking-wide flex items-center gap-1.5"><Activity className="w-3 h-3 text-slate-500"/> True I(2θ)</span>
+                                 <span className="font-mono font-bold text-slate-300 px-1">{dataPoint._cleanY?.toFixed(1) || '-'}</span>
                                </div>
                                <div className="flex justify-between gap-4 items-center">
                                  <span className="text-slate-400 font-medium tracking-wide flex items-center gap-1.5"><Scan className="w-3 h-3"/> Scale FWHM</span>
@@ -638,12 +683,23 @@ export const FWHMModule: React.FC = () => {
                    <Area 
                       type="monotone" 
                       dataKey="y" 
+                      stroke="#818cf8" 
+                      strokeWidth={2}
+                      strokeOpacity={0.6}
+                      fillOpacity={0} 
+                      fill="none" 
+                      isAnimationActive={false}
+                      activeDot={false}
+                   />
+                   <Area 
+                      type="monotone" 
+                      dataKey="_cleanY" 
                       stroke={mousePos ? "#d946ef" : "#8b5cf6"} 
                       strokeWidth={4}
                       fillOpacity={1} 
                       fill={mousePos ? "url(#colorYHover)" : "url(#colorY)"} 
                       isAnimationActive={false}
-                      activeDot={false}
+                      activeDot={{r: 6, fill: '#f0abfc', stroke: '#c026d3', strokeWidth: 2}}
                       className="transition-all duration-300"
                    />
                  </ComposedChart>
@@ -727,7 +783,15 @@ export const FWHMModule: React.FC = () => {
         </div>
 
         {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+           <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-colors" />
+              <div className="relative z-10">
+                <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><CheckCircle className="w-3 h-3 text-emerald-500" /> Peak Area</span>
+                <span className="text-2xl font-black text-slate-800 dark:text-slate-100 font-mono tracking-tight">{stats?.area.toFixed(2)}</span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed font-medium">Calculated total area under the peak.</p>
+              </div>
+           </div>
            <div className="bg-indigo-50/50 dark:bg-indigo-900/20 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -top-4 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-colors" />
               <div className="relative z-10">

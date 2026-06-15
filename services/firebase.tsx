@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { initializeFirestore, doc, getDocFromServer, collection, addDoc, serverTimestamp, getDocs, query, where, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer, collection, addDoc, serverTimestamp, getDocs, query, where, updateDoc, deleteDoc, setDoc, setLogLevel } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
@@ -8,6 +8,10 @@ const app = initializeApp(firebaseConfig);
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 }, firebaseConfig.firestoreDatabaseId);
+
+// Silence internal Firestore warning/info logs from being treated as fatal application errors
+setLogLevel('silent');
+
 export const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
@@ -23,7 +27,7 @@ export async function testConnection() {
     if (isOffline) {
       console.warn("Firestore client is offline. Cache-first operations enabled.");
     } else {
-      console.error("Firestore test connection error:", error?.message || error);
+      console.warn("Firestore test connection error:", error?.message || error);
     }
   }
 }

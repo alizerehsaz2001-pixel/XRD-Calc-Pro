@@ -826,7 +826,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       {/* Theme Switcher Shared with App */}
       <div className="fixed top-24 right-6 z-[110] flex flex-col gap-2 bg-slate-900/90 backdrop-blur-2xl p-2.5 rounded-2xl border border-white/10 shadow-2xl opacity-70 hover:opacity-100 transition-opacity duration-300">
         <span className="text-[8px] font-black tracking-widest text-[#94a3b8] text-center uppercase mb-1">Theme</span>
-        {['light', 'dark', 'cyberpunk', 'terminal', 'synthwave', 'dracula', 'oceanic'].map((t) => (
+        {['light', 'dark', 'cyberpunk', 'terminal', 'synthwave', 'dracula', 'oceanic', 'gruvbox', 'monokai'].map((t) => (
           <button
             key={t}
             onClick={() => setTheme(t as any)}

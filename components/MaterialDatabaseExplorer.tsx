@@ -2346,13 +2346,17 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 </p>
 
                 {/* Database Registry Choice Cards */}
-                <div className="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-5 gap-2.5">
+                <div className="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5">
                   {[
                     { id: 'materials_project', name: 'Materials Project', type: 'Academic', status: 'FREE ACCESS' },
                     { id: 'cod', name: 'COD Crystallography', type: 'Open-Source', status: 'FREE ACCESS' },
                     { id: 'pubchem', name: 'PubChem Substance', type: 'Public', status: 'FREE ACCESS' },
+                    { id: 'nist', name: 'NIST WebBook', type: 'Public', status: 'FREE ACCESS' },
+                    { id: 'aflow', name: 'AFLOW', type: 'Academic', status: 'FREE ACCESS' },
+                    { id: 'oqmd', name: 'OQMD', type: 'Academic', status: 'FREE ACCESS' },
                     { id: 'springer_materials', name: 'SpringerMaterials', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true },
-                    { id: 'icsd', name: 'ICSD Inorganic', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true }
+                    { id: 'icsd', name: 'ICSD Inorganic', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true },
+                    { id: 'ccdc', name: 'CCDC Crystallography', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true }
                   ].map(dbItem => {
                     const active = selectedGlobalDB === dbItem.id;
                     return (
@@ -2365,13 +2369,14 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                           }
                           setSelectedGlobalDB(dbItem.id);
                         }}
-                        className={`p-2.5 rounded-xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between h-[64px] ${active ? 'bg-blue-900/45 border-blue-500/60 shadow-[0_0_8px_rgba(59,130,246,0.3)]' : 'bg-black/30 border-white/5 hover:border-white/10'}`}
+                        className={`p-3 rounded-xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between min-h-[72px] relative overflow-hidden group ${active ? 'bg-gradient-to-br from-blue-900/40 to-indigo-900/40 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-black/30 border-white/5 hover:bg-white/5 hover:border-white/20'}`}
                       >
-                        <div>
-                          <span className="block text-[8px] font-black uppercase text-slate-400 tracking-wider leading-none">{dbItem.type}</span>
-                          <span className="block text-[10px] font-bold text-white tracking-tight mt-1 truncate">{dbItem.name}</span>
+                        {active && <div className="absolute top-0 right-0 w-12 h-12 bg-blue-500/20 blur-xl rounded-full" />}
+                        <div className="relative z-10">
+                          <span className={`block text-[8px] font-black uppercase tracking-wider leading-none mb-1 ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
+                          <span className={`block text-[10px] font-bold tracking-tight truncate ${active ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>{dbItem.name}</span>
                         </div>
-                        <span className={`block text-[8.5px] font-mono leading-none ${dbItem.status === 'LOCKED' ? 'text-red-400 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : 'text-blue-300'}`}>{dbItem.status}</span>
+                        <span className={`block text-[8.5px] font-mono leading-none relative z-10 mt-1 ${dbItem.status === 'LOCKED' ? 'text-red-400/80 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : active ? 'text-blue-200 font-bold' : 'text-blue-400/70 font-bold'}`}>{dbItem.status}</span>
                       </div>
                     );
                   })}
@@ -2397,27 +2402,27 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
                 {/* Query Input Grid */}
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1 flex flex-col gap-1.5">
-                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1">
+                  <div className="flex-1 flex flex-col gap-1.5 focus-within:text-blue-400 transition-colors">
+                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 transition-colors">
                       {t('Search keywords or molecular category', 'Search keywords or molecular category')}
                     </label>
-                    <div className="relative">
+                    <div className="relative group">
                       <input
                         type="text"
                         placeholder={t('e.g. SrTiO3 cubic perovskite, conducting polymers, heavy fermions...', 'e.g. SrTiO3 cubic perovskite, conducting polymers, heavy fermions...')}
                         value={globalSearch}
                         onChange={e => setGlobalSearch(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleGlobalSearch(); }}
-                        className="w-full pl-10 pr-4 py-2.5 bg-black/60 border border-white/10 placeholder-slate-500 text-slate-200 outline-none rounded-xl text-[11.5px] font-mono"
+                        className="w-full pl-11 pr-4 py-3 bg-black/60 border border-white/10 hover:border-white/20 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder-slate-500 text-slate-200 outline-none rounded-xl text-[12px] font-mono shadow-inner"
                       />
-                      <Search className="w-4 h-4 text-slate-600 absolute left-3.5 top-3" />
+                      <Search className="w-4 h-4 text-slate-500 group-focus-within:text-blue-400 transition-colors absolute left-4 top-3.5" />
                     </div>
                   </div>
 
                   <button
                     onClick={handleGlobalSearch}
                     disabled={isGlobalSearching}
-                    className="sm:self-end px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-900/60 disabled:text-slate-500 text-slate-950 font-black uppercase text-[10px] tracking-widest rounded-xl transition-all h-[38px] cursor-pointer flex items-center justify-center gap-2 border border-blue-500/20 active:scale-95"
+                    className="sm:self-end px-7 py-3 bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 disabled:from-blue-900/60 disabled:to-slate-800 disabled:text-slate-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 border border-blue-400/30 active:scale-95"
                   >
                     {isGlobalSearching ? (
                       <>

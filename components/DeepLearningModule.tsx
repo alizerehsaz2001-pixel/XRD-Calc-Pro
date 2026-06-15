@@ -1396,15 +1396,37 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from pymatgen.core import Structure
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 # XRD-Calc Pro - Scientific PyTorch Phase ID Engine Script
 # Configuration used in simulation:
+# Context Depth: ${engineConfig.depth || 50} Layers | Dropout: ${(engineConfig as any).dropout || 0} | Scaling: ${engineConfig.multiScale ? 'True' : 'False'}
 # Kernel Size: ${engineConfig.kernelSize}
 # Multi-Scale: ${engineConfig.multiScale}
 # Batch Norm: ${engineConfig.batchNorm}
 # Dropout: ${(engineConfig as any).dropout}
 # Attention: ${(engineConfig as any).attentionMechanism}
+
+class XRDDataAugmentation(nn.Module):
+    """Stochastic Data Augmentation for XRD Profiles"""
+    def __init__(self, noise_std=0.02, mask_prob=0.05):
+        super().__init__()
+        self.noise_std = noise_std
+        self.mask_prob = mask_prob
+
+    def forward(self, x):
+        if self.training:
+            # Add structural noise equivalent to detector counting variations
+            noise = torch.randn_like(x) * self.noise_std
+            # Random artifact masking to force robust peak learning
+            mask = (torch.rand_like(x) > self.mask_prob).float()
+            return (x + noise) * mask
+        return x
 
 class ResidualBlock1D(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, dropout=${(engineConfig as any).dropout || 0}):
@@ -1425,6 +1447,7 @@ class ResidualBlock1D(nn.Module):
 class XRDPhaseIDModel(nn.Module):
     def __init__(self, num_classes=${MATERIAL_DB.length}, kernel_size=${engineConfig.kernelSize}):
         super().__init__()
+        self.augment = XRDDataAugmentation()
         self.attn = nn.MultiheadAttention(1, 1) if ${(engineConfig as any).attentionMechanism ? 'True' : 'False'} else None
         self.initial_conv = nn.Conv1d(1, ${engineConfig.filters || 32}, kernel_size, padding='same')
         
@@ -1438,6 +1461,7 @@ class XRDPhaseIDModel(nn.Module):
         self.fc = nn.Linear((${engineConfig.filters || 32} * 100), num_classes) # Approximate representation
         
     def forward(self, x):
+        x = self.augment(x)
         # x shape: (batch_size, 1, seq_length)
         if self.attn:
             x_permuted = x.permute(2, 0, 1) # seq_len, batch_size, channels
@@ -7702,7 +7726,11 @@ if __name__ == '__main__':
                           <span className="text-fuchsia-400">import</span> torch.nn.functional <span className="text-fuchsia-400">as</span> F{"\n"}
                           <span className="text-fuchsia-400">import</span> torch.optim <span className="text-fuchsia-400">as</span> optim{"\n"}
                           <span className="text-fuchsia-400">import</span> torch.optim.lr_scheduler <span className="text-fuchsia-400">as</span> lr_scheduler{"\n"}
-                          <span className="text-fuchsia-400">import</span> numpy <span className="text-fuchsia-400">as</span> np{"\n\n"}
+                          <span className="text-fuchsia-400">import</span> numpy <span className="text-fuchsia-400">as</span> np{"\n"}
+                          <span className="text-fuchsia-400">import</span> pandas <span className="text-fuchsia-400">as</span> pd{"\n"}
+                          <span className="text-fuchsia-400">from</span> sklearn.model_selection <span className="text-fuchsia-400">import</span> train_test_split{"\n"}
+                          <span className="text-fuchsia-400">from</span> pymatgen.core <span className="text-fuchsia-400">import</span> Structure{"\n"}
+                          <span className="text-fuchsia-400">from</span> pymatgen.symmetry.analyzer <span className="text-fuchsia-400">import</span> SpacegroupAnalyzer{"\n\n"}
                           
                           <span className="text-slate-500"># Configuration Profile:</span>{"\n"}
                           <span className="text-slate-500"># Context Depth: {engineConfig.depth || 50} Layers | Dropout: {(engineConfig as any).dropout || 0} | Scaling: {engineConfig.multiScale ? 'True' : 'False'}</span>{"\n\n"}

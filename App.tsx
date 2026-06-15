@@ -70,7 +70,7 @@ const App: React.FC = () => {
   const [isExplained, setIsExplained] = useState<boolean>(false);
 
   // Load persistent configurations from localStorage with robust safety fallbacks
-  const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic'>(() => {
+  const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic' | 'gruvbox' | 'monokai'>(() => {
     return (localStorage.getItem('xrd_theme') as any) || 'light';
   });
   const [precision, setPrecision] = useState<number>(() => {
@@ -346,7 +346,7 @@ const App: React.FC = () => {
   // Apply theme classes to document element
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove('dark', 'cyberpunk', 'terminal', 'synthwave', 'dracula', 'oceanic');
+    root.classList.remove('dark', 'cyberpunk', 'terminal', 'synthwave', 'dracula', 'oceanic', 'gruvbox', 'monokai');
     if (theme !== 'light') {
       root.classList.add(theme);
     }
@@ -851,6 +851,8 @@ const App: React.FC = () => {
                   <option value="synthwave">Synth</option>
                   <option value="dracula">Drac</option>
                   <option value="oceanic">Ocean</option>
+                  <option value="gruvbox">Gruv</option>
+                  <option value="monokai">Mono</option>
                 </select>
               </div>
             </div>
@@ -996,6 +998,8 @@ const App: React.FC = () => {
                   <option value="synthwave">🌆 Synth</option>
                   <option value="dracula">🦇 Drac</option>
                   <option value="oceanic">🌊 Ocean</option>
+                  <option value="gruvbox">📦 Gruvbox</option>
+                  <option value="monokai">🎨 Monokai</option>
                 </select>
               </div>
             </div>
