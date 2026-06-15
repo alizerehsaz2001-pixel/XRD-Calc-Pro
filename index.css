@@ -422,3 +422,24 @@ body {
 .monokai .from-indigo-500, .monokai .via-slate-200, .monokai .to-slate-400 { background-image: linear-gradient(to right, var(--color-monokai-pink), var(--color-monokai-yellow)) !important; color: transparent !important; background-clip: text !important; -webkit-background-clip: text !important; }
 .monokai .text-transparent.bg-clip-text { background-clip: text !important; -webkit-background-clip: text !important; }
 .monokai .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-monokai-comment); }
+
+/* Google Translate styling integration to keep visual design pristine */
+.skiptranslate, 
+.goog-te-banner-frame, 
+.goog-te-banner-frame.skiptranslate, 
+.goog-te-gadget-icon,
+iframe.goog-te-banner-frame,
+#goog-gt-tt,
+.goog-te-balloon-frame {
+  display: none !important;
+  visibility: hidden !important;
+}
+body {
+  top: 0 !important;
+}
+.goog-te-combo {
+  display: none !important;
+}
+#google_translate_element {
+  display: none !important;
+}

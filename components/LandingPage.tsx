@@ -809,6 +809,12 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       module: 'scherrer'
     },
     {
+      title: "Diffraction Compare",
+      description: "Overlay and visually inspect diffraction profiles between custom samples. Identify crystal structure variations, line shifts, and peak intensity anomalies.",
+      icon: Layers,
+      module: 'compare'
+    },
+    {
       title: "Academic Interactive Hub",
       description: "Premium educational libraries covering systematic absences, selection rules, and XRD diffraction fundamentals.",
       icon: FileText,

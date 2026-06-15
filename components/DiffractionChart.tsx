@@ -1,5 +1,6 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   XAxis,
   YAxis,
@@ -11,7 +12,7 @@ import {
   Scatter,
   ReferenceArea
 } from 'recharts';
-import { Activity, Terminal, RotateCcw, Tag } from 'lucide-react';
+import { Activity, Terminal, RotateCcw, Tag, Camera } from 'lucide-react';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
 
@@ -21,7 +22,9 @@ interface DiffractionChartProps {
 }
 
 export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, materialName }) => {
+  const { t } = useTranslation();
   const { precision } = useSettings();
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Zooming states
   const [left, setLeft] = useState<number | string>('dataMin - 5');
@@ -31,6 +34,49 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
 
   // HKL labels toggle
   const [showHKL, setShowHKL] = useState(true);
+
+  const takeSnapshot = () => {
+    if (!containerRef.current) return;
+    const svgEl = containerRef.current.querySelector('svg');
+    if (!svgEl) return;
+
+    try {
+      const svgString = new XMLSerializer().serializeToString(svgEl);
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const blobURL = URL.createObjectURL(svgBlob);
+      
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        const bbox = svgEl.getBoundingClientRect();
+        // Scale by 2 for ultra-sharp snapshot
+        canvas.width = (bbox.width || 800) * 2;
+        canvas.height = (bbox.height || 400) * 2;
+        
+        const context = canvas.getContext('2d');
+        if (context) {
+          // Fill chart background color
+          context.fillStyle = '#0f172a';
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const dlLink = document.createElement('a');
+              dlLink.download = `${materialName ? materialName.replace(/\s+/g, '_') : 'XRD'}_Diffraction_Spectrum.png`;
+              dlLink.href = URL.createObjectURL(blob);
+              document.body.appendChild(dlLink);
+              dlLink.click();
+              document.body.removeChild(dlLink);
+            }
+          }, 'image/png');
+        }
+      };
+      image.src = blobURL;
+    } catch (error) {
+      console.error('Error capturing chart snapshot:', error);
+    }
+  };
 
   const zoom = () => {
     let zoomLeft = refAreaLeft;
@@ -163,7 +209,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   };
 
   return (
-    <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 h-[400px] w-full flex flex-col relative overflow-hidden group/chart">
+    <div ref={containerRef} className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 h-[400px] w-full flex flex-col relative overflow-hidden group/chart">
       <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl group-hover/chart:bg-indigo-500/10 transition-all duration-1000" />
       
       <div className="flex items-center justify-between mb-8 relative z-10">
@@ -172,10 +218,10 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             <Activity className="w-5 h-5 text-indigo-400" />
           </div>
           <div>
-            <h3 className="text-xl font-black text-white tracking-tight uppercase">Spectral Visualizer</h3>
+            <h3 className="text-xl font-black text-white tracking-tight uppercase">{t('Spectral Visualizer', 'Spectral Visualizer')}</h3>
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 flex gap-2 items-center">
-              <span>Calculated Diffraction Profile</span>
-              <span className="px-1.5 py-0.5 bg-slate-800 rounded font-mono text-[8px] text-slate-400 border border-slate-700">Drag to Zoom</span>
+              <span>{t('Calculated Diffraction Profile', 'Calculated Diffraction Profile')}</span>
+              <span className="px-1.5 py-0.5 bg-slate-800 rounded font-mono text-[8px] text-slate-400 border border-slate-700">{t('Drag to Zoom', 'Drag to Zoom')}</span>
             </p>
           </div>
         </div>
@@ -190,7 +236,14 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             }`}
           >
             <Tag className="w-3 h-3" />
-            HKL Labels
+            {t('HKL Labels', 'HKL Labels')}
+          </button>
+          <button 
+            onClick={takeSnapshot}
+            className="flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30"
+          >
+            <Camera className="w-3 h-3" />
+            {t('Take Snapshot', 'Take Snapshot')}
           </button>
           {isZoomedIn && (
             <button 
@@ -198,12 +251,12 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               className="flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30"
             >
               <RotateCcw className="w-3 h-3" />
-              Reset Zoom
+              {t('Reset Zoom', 'Reset Zoom')}
             </button>
           )}
           <div className="flex items-center gap-3 bg-black/40 px-4 py-1.5 rounded-2xl border border-slate-800/50">
              <Terminal className="w-3 h-3 text-slate-600" />
-             <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Pattern Synthesis Active</span>
+             <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{t('Pattern Synthesis Active', 'Pattern Synthesis Active')}</span>
           </div>
         </div>
       </div>

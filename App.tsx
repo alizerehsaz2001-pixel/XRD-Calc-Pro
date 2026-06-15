@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { BraggInput } from './components/BraggInput';
 import { ResultsTable } from './components/ResultsTable';
 import { DiffractionChart } from './components/DiffractionChart';
+import { DiffractionCompareModule } from './components/DiffractionCompareModule';
 import { SelectionRulesModule } from './components/SelectionRulesModule';
 import { ScherrerModule } from './components/ScherrerModule';
 import { WilliamsonHallModule } from './components/WilliamsonHallModule';
@@ -46,7 +47,7 @@ import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'fireb
 import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOfflineMaterial, OfflineAnalysisResult, clearOfflineAnalyses } from './utils/offlineDb';
 import { syncOfflineHelper } from './utils/materialsHelper';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -577,6 +578,7 @@ const App: React.FC = () => {
     { id: 'bragg', label: t('Bragg Basics'), group: t('Fundamentals') },
     { id: 'fwhm', label: t('FWHM Analysis'), group: t('Fundamentals') },
     { id: 'selection', label: t('Selection Rules'), group: t('Fundamentals') },
+    { id: 'compare', label: t('Diffraction Compare'), group: t('Fundamentals') },
     { id: 'scherrer', label: t('Scherrer Method'), group: t('Size & Strain') },
     { id: 'wh', label: t('Williamson-Hall'), group: t('Size & Strain') },
     { id: 'integral', label: t('Integral Breadth'), group: t('Size & Strain') },
@@ -1078,6 +1080,7 @@ const App: React.FC = () => {
 
                   {activeModule === 'fwhm' && <FWHMModule />}
                   {activeModule === 'selection' && <SelectionRulesModule />}
+                  {activeModule === 'compare' && <DiffractionCompareModule />}
                   {activeModule === 'scherrer' && <ScherrerModule />}
                   {activeModule === 'wh' && <WilliamsonHallModule />}
                   {activeModule === 'integral' && <IntegralBreadthModule />}

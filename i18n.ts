@@ -14,6 +14,13 @@ const resources = {
       "Bragg Basics": "Bragg Basics",
       "FWHM Analysis": "FWHM Analysis",
       "Selection Rules": "Selection Rules",
+      "Diffraction Compare": "Diffraction Compare",
+      "Preferred Orientation": "Preferred Orientation",
+      "Python Generator": "Python Generator",
+      "Material Registry": "Material Registry",
+      "Take Snapshot": "Take Snapshot",
+      "Reset Zoom": "Reset Zoom",
+      "Spectral Visualizer": "Spectral Visualizer",
       "Scherrer Method": "Scherrer Method",
       "Williamson-Hall": "Williamson-Hall",
       "Integral Breadth": "Integral Breadth",
@@ -87,6 +94,7 @@ const resources = {
       "Bragg Basics": "Basi di Bragg",
       "FWHM Analysis": "Analisi FWHM",
       "Selection Rules": "Regole di Selezione",
+      "Diffraction Compare": "Confronta Diffrazione",
       "Scherrer Method": "Metodo Scherrer",
       "Williamson-Hall": "Williamson-Hall",
       "Integral Breadth": "Larghezza Integrale",
@@ -157,6 +165,7 @@ const resources = {
       "Bragg Basics": "布拉格基础",
       "FWHM Analysis": "半高宽分析",
       "Selection Rules": "选择定则",
+      "Diffraction Compare": "衍射对比",
       "Scherrer Method": "谢乐公式",
       "Williamson-Hall": "W-H 绘图法",
       "Integral Breadth": "积分宽度",
@@ -227,6 +236,7 @@ const resources = {
       "Bragg Basics": "ブラッグの基礎",
       "FWHM Analysis": "FWHM解析",
       "Selection Rules": "選択則",
+      "Diffraction Compare": "回折比較",
       "Scherrer Method": "シェラー法",
       "Williamson-Hall": "ウィリアムソン・ホール法",
       "Integral Breadth": "積分幅",
@@ -297,6 +307,7 @@ const resources = {
       "Bragg Basics": "Bragg Temelleri",
       "FWHM Analysis": "FWHM Analizi",
       "Selection Rules": "Seçim Kuralları",
+      "Diffraction Compare": "Kırınım Karşılaştırma",
       "Scherrer Method": "Scherrer Yöntemi",
       "Williamson-Hall": "Williamson-Hall",
       "Integral Breadth": "İntegral Genişlik",
@@ -367,6 +378,7 @@ const resources = {
       "Bragg Basics": "Bragg-Grundlagen",
       "FWHM Analysis": "FWHM-Analyse",
       "Selection Rules": "Auswahlregeln",
+      "Diffraction Compare": "Beugungsvergleich",
       "Scherrer Method": "Scherrer-Methode",
       "Williamson-Hall": "Williamson-Hall",
       "Integral Breadth": "Integrale Breite",
@@ -440,6 +452,7 @@ const resources = {
       "Bragg Basics": "Bases de Bragg",
       "FWHM Analysis": "Analyse FWHM",
       "Selection Rules": "Règles de Sélection",
+      "Diffraction Compare": "Comparaison de Diffraction",
       "Scherrer Method": "Méthode Scherrer",
       "Williamson-Hall": "Williamson-Hall",
       "Integral Breadth": "Largeur Intégrale",
@@ -513,6 +526,7 @@ const resources = {
       "Bragg Basics": "Bases de Bragg",
       "FWHM Analysis": "Análise FWHM",
       "Selection Rules": "Regras de Seleção",
+      "Diffraction Compare": "Comparação de Difração",
       "Scherrer Method": "Método Scherrer",
       "Williamson-Hall": "Williamson-Hall",
       "Integral Breadth": "Largura Integral",
@@ -583,6 +597,7 @@ const resources = {
       "Bragg Basics": "Bases de Bragg",
       "FWHM Analysis": "Análisis FWHM",
       "Selection Rules": "Reglas de Selección",
+      "Diffraction Compare": "Comparar Difracción",
       "Scherrer Method": "Método de Scherrer",
       "Williamson-Hall": "Williamson-Hall",
       "Integral Breadth": "Ancho Integral",
@@ -653,6 +668,7 @@ const resources = {
       "Bragg Basics": "Основы Брэгга",
       "FWHM Analysis": "Анализ FWHM",
       "Selection Rules": "Правила отбора",
+      "Diffraction Compare": "Сравнение дифракции",
       "Scherrer Method": "Метод Шеррера",
       "Williamson-Hall": "Метод Вильямсона-Холла",
       "Integral Breadth": "Интегральная ширина",
@@ -723,6 +739,7 @@ const resources = {
       "Bragg Basics": "مبانی براگ",
       "FWHM Analysis": "آنالیز FWHM",
       "Selection Rules": "قوانین انتخاب",
+      "Diffraction Compare": "مقایسه پراش",
       "Scherrer Method": "روش شرر",
       "Williamson-Hall": "ویلیامسون-هال",
       "Integral Breadth": "عرض انتگرالی",
@@ -793,6 +810,7 @@ const resources = {
       "Bragg Basics": "أساسيات براج",
       "FWHM Analysis": "تحليل FWHM",
       "Selection Rules": "قواعد الاختيار",
+      "Diffraction Compare": "مقارنة الحيود",
       "Scherrer Method": "طريقة شيرر",
       "Williamson-Hall": "ويليامسون هول",
       "Integral Breadth": "العرض التكاملي",
@@ -863,6 +881,7 @@ const resources = {
       "Bragg Basics": "브래그 기초",
       "FWHM Analysis": "FWHM 분석",
       "Selection Rules": "선택 규칙",
+      "Diffraction Compare": "회절 비교",
       "Scherrer Method": "셰러 법",
       "Williamson-Hall": "윌리엄슨-홀",
       "Integral Breadth": "적분 폭",
@@ -8008,6 +8027,13 @@ const resources = {
       "Bragg Basics": "Bragg's ABCs",
       "FWHM Analysis": "Peak-Raxin Analysis",
       "Selection Rules": "Coader Rules",
+      "Diffraction Compare": "Diffraction Overlay-Map",
+      "Preferred Orientation": "Leaning-Way Patterns",
+      "Python Generator": "Scribbler Engine",
+      "Material Registry": "Crystally Registry",
+      "Take Snapshot": "Grab a Snap",
+      "Reset Zoom": "Reset Zoomie",
+      "Spectral Visualizer": "Rainbow Profile Peeker",
       "Scherrer Method": "Scherrer's Way",
       "Williamson-Hall": "Williamson-Hall Sketch",
       "Integral Breadth": "Hale Breadth",
@@ -8081,6 +8107,13 @@ const resources = {
       "Bragg Basics": "Regula Bragg",
       "FWHM Analysis": "Latitudo FWHM",
       "Selection Rules": "Leges Selectionis",
+      "Diffraction Compare": "Comparatio Diffractiva",
+      "Preferred Orientation": "Orientatio Preferentialis",
+      "Python Generator": "Calculator Pythonis",
+      "Material Registry": "Catalogus Metallorum",
+      "Take Snapshot": "Cape Imaginem",
+      "Reset Zoom": "Reduc Visum",
+      "Spectral Visualizer": "Visualisator Spectri",
       "Scherrer Method": "Formula Scherrer",
       "Williamson-Hall": "Graphica Williamson-Hall",
       "Integral Breadth": "Amplitudo Integra",
@@ -8154,6 +8187,13 @@ const resources = {
       "Bragg Basics": "Bragg Ba-Na-Na",
       "FWHM Analysis": "Peak-Biggy Check",
       "Selection Rules": "Bello Rules",
+      "Diffraction Compare": "Bello-Bello Compare",
+      "Preferred Orientation": "Banana Direction System",
+      "Python Generator": "Python Toy Marker",
+      "Material Registry": "Shiny Rock Cabinet",
+      "Take Snapshot": "Peel-Peel Photo",
+      "Reset Zoom": "Back-to-Normal!",
+      "Spectral Visualizer": "Wavy Color Finder",
       "Scherrer Method": "Scherrer's Toy",
       "Williamson-Hall": "Williamson-Hall Map",
       "Integral Breadth": "Wide-Wide Width",
@@ -8228,5 +8268,29 @@ i18n
       escapeValue: false
     }
   });
+
+// Programmatic Sync with Google Translate fallback engine
+i18n.on('languageChanged', (lng) => {
+  if (typeof window === 'undefined') return;
+  const customLanguages = ['pirate', 'tlh', 'sjn', 'sco', 'alc', 'min'];
+  let googleLang = lng;
+  if (lng === 'zh') googleLang = 'zh-CN';
+  if (customLanguages.includes(lng)) googleLang = 'en';
+
+  try {
+    // Set cookie for Google Translate element to pick up
+    document.cookie = `googtrans=/en/${googleLang}; path=/;`;
+    document.cookie = `googtrans=/en/${googleLang}; path=/; domain=${window.location.hostname};`;
+    
+    // Programmatically select language in Google Translate select dropdown if rendered
+    const selectEl = document.querySelector('select.goog-te-combo') as HTMLSelectElement;
+    if (selectEl) {
+      selectEl.value = googleLang;
+      selectEl.dispatchEvent(new Event('change'));
+    }
+  } catch (err) {
+    console.error('Failed to trigger Google Translate sync:', err);
+  }
+});
 
 export default i18n;

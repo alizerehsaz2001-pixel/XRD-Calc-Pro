@@ -95,6 +95,23 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; tag: 
       </div>
     )
   },
+  compare: {
+    title: "Diffraction Compare Lab",
+    tag: "Comparative Spectroscopy",
+    icon: Layers,
+    color: "from-blue-500 to-emerald-500",
+    description: "Overlay and visually inspect diffraction profiles between custom samples. Identify crystal structure variations, line shifts, and residual strains.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Relative Intensity Ratio">
+          <M>I</M><sub>rel</sub> = <Fraction num={<>I<sub>A</sub></>} den={<>I<sub>B</sub></>} />
+        </FormulaContainer>
+        <FormulaContainer label="Peak Centroid Shift">
+          Δ(2θ) = 2θ<sub>A</sub> − 2θ<sub>B</sub>
+        </FormulaContainer>
+      </div>
+    )
+  },
   scherrer: {
     title: "Scherrer Size Estimation",
     tag: "Microstructural",
