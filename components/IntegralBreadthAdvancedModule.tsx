@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { parseIBAdvancedInput, calculateIBAdvanced, XRAY_WAVELENGTHS } from '../utils/physics';
 import { IBAdvancedResult } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 import {
   ComposedChart,
   Line,
@@ -1053,28 +1055,31 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                       </p>
                     </div>
 
-                    <div className="bg-black/30 p-3 rounded-xl border border-white/5 space-y-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block font-mono">Governing Equations:</span>
-                      <div className="text-slate-400 text-[10.5px] space-y-2">
+                    <div className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-3">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block font-mono border-b border-white/5 pb-1">Governing Equations & Models:</span>
+                      <div className="text-slate-400 text-[10.5px] space-y-3">
                         <div>
-                          The Scherrer model for size effect:
-                          <code className="block my-1 px-2 py-1 bg-black/50 text-emerald-400 rounded text-[10px] font-mono text-center">
-                            β_size = (K · λ) / (D · cos θ)
-                          </code>
+                          <span className="text-[10px] font-medium text-slate-300">The Scherrer model for size effect:</span>
+                          <div 
+                            className="my-1.5 p-2 bg-black/50 text-emerald-400 rounded-lg border border-emerald-500/10 overflow-x-auto text-center font-sans"
+                            dangerouslySetInnerHTML={{ __html: katex.renderToString('\\beta_{\\text{size}} = \\frac{K \\cdot \\lambda}{D_v \\cdot \\cos(\\theta)}', { throwOnError: false, displayMode: true }) }}
+                          />
                         </div>
                         <div>
-                          The Wilson equation for inhomogeneous microstrain:
-                          <code className="block my-1 px-2 py-1 bg-black/50 text-cyan-400 rounded text-[10px] font-mono text-center">
-                            β_strain = 4 · ε · tan θ
-                          </code>
+                          <span className="text-[10px] font-medium text-slate-300">The Wilson equation for inhomogeneous microstrain:</span>
+                          <div 
+                            className="my-1.5 p-2 bg-black/50 text-cyan-400 rounded-lg border border-cyan-500/10 overflow-x-auto text-center font-sans"
+                            dangerouslySetInnerHTML={{ __html: katex.renderToString('\\beta_{\\text{strain}} = 4 \\cdot \\varepsilon \\cdot \\tan(\\theta)', { throwOnError: false, displayMode: true }) }}
+                          />
                         </div>
                         <div>
-                          By assuming Lorentzian peak shapes, we combine them linearly:
-                          <code className="block mt-1 px-2 py-1 bg-black/50 text-pink-400 rounded text-[10px] font-mono text-center">
-                            β_total · cos θ = (K · λ / D) + 4 · ε · sin θ
-                          </code>
+                          <span className="text-[10px] font-medium text-slate-300">Lorentzian peak deconvolution linear combination:</span>
+                          <div 
+                            className="my-1.5 p-2 bg-black/50 text-pink-400 rounded-lg border border-pink-500/10 overflow-x-auto text-center font-sans"
+                            dangerouslySetInnerHTML={{ __html: katex.renderToString('\\beta_{\\text{total}} \\cdot \\cos(\\theta) = \\frac{K \\cdot \\lambda}{D} + 4 \\cdot \\varepsilon \\cdot \\sin(\\theta)', { throwOnError: false, displayMode: true }) }}
+                          />
                         </div>
-                        <p className="text-[9.5px] font-sans mt-2">
+                        <p className="text-[9.5px] font-sans mt-2 leading-relaxed">
                           The slope of the linear fit is <span className="text-cyan-400 font-bold">ε</span> (Crystallographic Microstrain) and the y-intercept yields <span className="text-emerald-400 font-bold">D</span> (Unified average crystallite size).
                         </p>
                       </div>

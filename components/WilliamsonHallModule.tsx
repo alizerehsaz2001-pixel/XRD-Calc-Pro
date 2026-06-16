@@ -16,6 +16,8 @@ import {
 import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, Atom, Binary, ShieldQuestion, Download, RefreshCw, Trash2, Loader2, Database, FlaskConical, Activity, Layers, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ScientificMathControl } from './ScientificMathControl';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -1118,10 +1120,13 @@ export const WilliamsonHallModule: React.FC = () => {
                 <Atom className="w-3.5 h-3.5 text-cyan-400" />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Master Equation</span>
               </div>
-              <div className="bg-[#0A101C] p-4 rounded-xl font-mono text-sm text-cyan-400 overflow-x-auto border border-white/5 text-center">
-                <div className="inline-flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/50 animate-pulse" />
-                  <span className="truncate">βcosθ = ε(4sinθ) + Kλ/D</span>
+              <div className="bg-[#0A101C] p-4 rounded-xl text-cyan-400 overflow-x-auto border border-white/5 text-center">
+                <div className="inline-flex items-center gap-3 w-full justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/50 animate-pulse flex-shrink-0" />
+                  <div 
+                    className="max-w-full overflow-x-auto text-center font-sans py-1"
+                    dangerouslySetInnerHTML={{ __html: katex.renderToString('\\beta \\cdot \\cos(\\theta) = 4 \\cdot \\varepsilon \\cdot \\sin(\\theta) + \\frac{K \\cdot \\lambda}{D}', { throwOnError: false, displayMode: true }) }}
+                  />
                 </div>
               </div>
             </div>

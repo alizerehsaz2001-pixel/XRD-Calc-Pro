@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
+import Markdown from 'react-markdown';
 import { 
   Database, 
   Search, 
@@ -2060,7 +2061,9 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                       <div className="flex gap-2"><ShieldAlert className="w-4 h-4 flex-shrink-0" /> {ragResponse.error}</div>
                     ) : (
                       <div className="space-y-3">
-                        <div className="text-emerald-100 font-sans text-sm">{ragResponse.answer}</div>
+                        <div id="material-rag-markdown-answer" className="text-emerald-100 font-sans text-sm prose prose-emerald max-w-none leading-relaxed">
+                          <Markdown>{ragResponse.answer}</Markdown>
+                        </div>
                         {ragResponse.retrieved_docs && ragResponse.retrieved_docs.length > 0 && (
                           <div className="pt-2 border-t border-emerald-500/20">
                             <span className="text-[10px] text-emerald-500/70 uppercase tracking-widest block mb-2">Grounded Knowledge Context </span>

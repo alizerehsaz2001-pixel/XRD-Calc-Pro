@@ -16,6 +16,7 @@
     "i18next": "^26.0.10",
     "i18next-browser-languagedetector": "^8.2.1",
     "jspdf": "^4.2.1",
+    "katex": "^0.17.0",
     "lucide-react": "^0.575.0",
     "motion": "^12.34.3",
     "react": "^19.2.4",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
+    "@types/katex": "^0.16.8",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "eslint": "^10.5.0",

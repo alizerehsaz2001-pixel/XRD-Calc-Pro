@@ -12,6 +12,7 @@ import {
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
 import { ScientificMathControl } from './ScientificMathControl';
+import { RietveldRFactorCalculator } from './RietveldRFactorCalculator';
 
 // --- Simulation Constants & Types ---
 
@@ -365,7 +366,7 @@ const toSymmetryScreenCoords = (px: number, py: number, width: number, height: n
 };
 
 export const RietveldModule: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'simulation' | 'setup' | 'log'>('simulation');
+  const [activeTab, setActiveTab ] = useState<'simulation' | 'setup' | 'log' | 'rfactor'>('simulation');
   const [showMatrix, setShowMatrix] = useState(false);
 
   // --- Simulation State ---
@@ -1642,6 +1643,20 @@ export const RietveldModule: React.FC = () => {
           Convergence Log
           {activeTab === 'log' && (
             <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-teal-600 dark:bg-teal-400 rounded-full" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('rfactor')}
+          className={`px-4 py-2 text-sm font-medium flex items-center gap-2 transition-colors relative ${
+            activeTab === 'rfactor' 
+              ? 'text-teal-600 dark:text-teal-400' 
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+          }`}
+        >
+          <Calculator className="w-4 h-4 text-indigo-400" />
+          R-Factor & Quality Lab
+          {activeTab === 'rfactor' && (
+            <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-teal-600 dark:bg-indigo-500 rounded-full" />
           )}
         </button>
       </div>
@@ -4722,6 +4737,15 @@ export const RietveldModule: React.FC = () => {
                 </div>
              </div>
           </div>
+      )}
+
+      {activeTab === 'rfactor' && (
+        <div className="animate-in fade-in duration-500">
+          <RietveldRFactorCalculator 
+            livePatternData={generatePatternData}
+            numRefinedParameters={8} 
+          />
+        </div>
       )}
     </div>
   );

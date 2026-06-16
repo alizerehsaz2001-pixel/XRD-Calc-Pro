@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Calculator, ChevronDown, CheckCircle2, Sigma, XCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Calculator, ChevronDown, CheckCircle2, Sigma } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 interface MathVariable {
   symbol: string;
@@ -30,6 +32,43 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  const renderedFormulaHtml = useMemo(() => {
+    try {
+      return katex.renderToString(formula, {
+        throwOnError: false,
+        displayMode: true,
+      });
+    } catch (e) {
+      console.error(e);
+      return `<span class="text-rose-400 font-mono">${formula}</span>`;
+    }
+  }, [formula]);
+
+  const renderSymbol = (symbol: string) => {
+    const hasMath = /[\\_{}^[\]()|+=?*./ -]/.test(symbol) || 
+                    ['η', 'β', 'λ', 'θ', 'ε', 'K', 'n', 'R_wp', 'R_{wp}', 'β_obs'].some(kw => symbol.includes(kw));
+    
+    if (hasMath) {
+      let tex = symbol;
+      if (symbol === 'η') tex = '\\eta';
+      else if (symbol === 'β') tex = '\\beta';
+      else if (symbol === 'λ') tex = '\\lambda';
+      else if (symbol === 'θ') tex = '\\theta';
+      else if (symbol === 'ε') tex = '\\varepsilon';
+      else if (symbol === 'β_obs') tex = '\\beta_{\\text{obs}}';
+      else if (symbol === 'Slope (4ε)') tex = '4\\varepsilon';
+      else if (symbol === 'R_wp' || symbol === 'R_{wp}') tex = 'R_{\\text{wp}}';
+      else if (symbol === 'd(avg)') tex = 'd_{\\text{avg}}';
+      
+      try {
+        return <span dangerouslySetInnerHTML={{ __html: katex.renderToString(tex, { throwOnError: false, displayMode: false }) }} />;
+      } catch {
+        return symbol;
+      }
+    }
+    return symbol;
+  };
+
   return (
     <div className="mt-4 border border-indigo-500/20 bg-indigo-950/10 rounded-2xl overflow-hidden shadow-inner">
       <button 
@@ -55,23 +94,26 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                   <Sigma className="w-3.5 h-3.5 text-slate-500" />
                   <span className="text-[9px] font-mono uppercase tracking-wider text-slate-500">Governing Equation</span>
                 </div>
-                <div className="mt-4 text-base font-black text-white font-mono tracking-wider drop-shadow-md py-2 px-6 bg-slate-900 rounded-lg border border-slate-800">
-                  {formula}
-                </div>
+                <div 
+                  className="mt-6 text-slate-100 max-w-full overflow-x-auto select-all"
+                  dangerouslySetInnerHTML={{ __html: renderedFormulaHtml }} 
+                />
                 <span className="text-[10px] text-slate-400 mt-3 text-center max-w-md italic">{description}</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800/50">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block mb-3 border-b border-slate-800 pb-2">Active Variables</span>
-                  <div className="flex flex-col gap-2 relative z-10">
+                  <div className="flex flex-col gap-2 relative z-10 w-full overflow-hidden">
                     {variables.map((v, i) => (
                       <div key={i} className="flex items-center justify-between font-mono text-[11px] group cursor-default">
-                        <div className="flex items-center gap-2">
-                          <span className="text-indigo-400 font-black bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">{v.symbol}</span>
-                          <span className="text-slate-400 group-hover:text-slate-300 transition-colors uppercase text-[9px]">{v.name}</span>
+                        <div className="flex items-center gap-2 max-w-[70%]">
+                          <span className="text-indigo-400 font-black bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20 inline-flex items-center justify-center min-w-[24px]">
+                            {renderSymbol(v.symbol)}
+                          </span>
+                          <span className="text-slate-400 group-hover:text-slate-300 transition-colors uppercase text-[9px] truncate">{v.name}</span>
                         </div>
-                        <div className="text-slate-300 font-bold">
+                        <div className="text-slate-300 font-bold whitespace-nowrap">
                           {typeof v.value === 'number' ? v.value.toFixed(4) : v.value} <span className="text-slate-500 font-normal">{v.unit}</span>
                         </div>
                       </div>
