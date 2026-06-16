@@ -7144,6 +7144,23 @@ if __name__ == '__main__':
                     </div>
                   </div>
                 )}
+                
+                {pythonRAGResults?.literature_docs && pythonRAGResults.literature_docs.length > 0 && (
+                  <div className="mt-2 border-t border-amber-500/15 pt-3 flex flex-col gap-2">
+                    <div className="flex items-center gap-1.5 text-amber-400 font-mono font-bold text-[10px] uppercase tracking-wider">
+                      <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                      Retrieved Literature Knowledge Base:
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {pythonRAGResults.literature_docs.map((doc: any, i: number) => (
+                        <div key={i} className="bg-[#050301] border border-amber-500/10 rounded-xl p-3 flex flex-col gap-1.5 shadow-inner">
+                          <span className="text-[10px] font-bold text-amber-300 font-mono leading-tight">{doc.title}</span>
+                          <span className="text-[9px] text-slate-400 font-sans leading-relaxed line-clamp-3">{doc.content}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

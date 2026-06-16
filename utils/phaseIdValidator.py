@@ -154,6 +154,7 @@ class CrystallineVectorDatabase:
         self.conn = sqlite3.connect(":memory:")
         self._init_db()
         self._seed_reference_materials()
+        self._init_literature_db()
 
     def _init_db(self):
         cursor = self.conn.cursor()
@@ -170,6 +171,53 @@ class CrystallineVectorDatabase:
             )
         """)
         self.conn.commit()
+
+    def _init_literature_db(self):
+        cursor = self.conn.cursor()
+        # Create a Full-Text Search Virtual Table for RAG literature retrieval
+        cursor.execute("""
+            CREATE VIRTUAL TABLE IF NOT EXISTS literature USING fts5(
+                title, content
+            )
+        """)
+        
+        # Seed literature for RAG retrieval
+        docs = [
+            ("Hydrothermal Synthesis of Anatase", "Sol-gel and hydrothermal methods are frequently used to synthesize pure anatase TiO2. Using titanium tetraisopropoxide with a pH of 3 at 180°C yields high crystallinity and small domain sizes (~10-20nm)."),
+            ("Rutile High Refractive Index Applications", "Rutile TiO2 possesses one of the highest refractive indices (n=2.7), making it a standard for optics, antireflective coatings, and white pigments. It is the most thermodynamically stable polymorph and often is the product of heating other phases past 600°C."),
+            ("Quartz Piezoelectric Oscillators", "Alpha-quartz is primarily utilized in precision oscillators and resonators due to its highly stable piezoelectric properties and low thermal expansion."),
+            ("Rock Salt Cleavage and Properties", "Halite (NaCl) exhibits a classic fcc lattice (Fm-3m). Cleavage is perfect along the {100} planes, leading to cubic structural fracturing."),
+            ("Stress and Lattice Strain in Thin Films", "In thin films, epitaxial mismatch with the substrate can cause either tensile or compressive lattice strains, evidenced by a consistent shifting in 2-theta Bragg reflections. A positive shift indicates lattice contraction (compressive strain)."),
+            ("Scherrer Broadening for Nanocrystals", "Peak broadening beyond instrumental limits is primarily driven by finite crystallite size. A large Gaussian sigma directly correlates to domain sizes roughly equivalent to a few unit cells according to the Scherrer equation.")
+        ]
+        
+        cursor.executemany("INSERT INTO literature (title, content) VALUES (?, ?)", docs)
+        self.conn.commit()
+
+    def search_literature(self, query: str, limit: int = 2) -> List[Dict]:
+        """ Uses SQLite FTS5 for hybrid keyword-based retrieval (Simulated dense RAG) """
+        cursor = self.conn.cursor()
+        # Clean query by taking only alphanumeric keywords
+        keywords = "".join([c if c.isalnum() else " " for c in query]).split()
+        if not keywords:
+            return []
+            
+        # Build OR query for FTS
+        fts_query = " OR ".join(keywords)
+        
+        try:
+            cursor.execute("""
+                SELECT title, content, rank 
+                FROM literature 
+                WHERE literature MATCH ? 
+                ORDER BY rank 
+                LIMIT ?
+            """, (fts_query, limit))
+            
+            return [{"title": row[0], "content": row[1]} for row in cursor.fetchall()]
+        except Exception as e:
+            print("FTS error:", str(e))
+            return []
 
     def _seed_reference_materials(self):
         cursor = self.conn.cursor()
@@ -282,6 +330,9 @@ class PythonCrystallineRAGPipeline:
         
         # 2. Build Grounding Context
         grounding_context = "=== DETECTOR SPECTRUM RETRIEVAL GROUNDING CONTEXT ===\n"
+        
+        # Build synthesis query string from best candidates
+        search_query_terms = []
         for idx, cand in enumerate(candidates):
             grounding_context += f"[Phase {idx+1}] Matched: {cand['name']} ({cand['formula']})\n"
             grounding_context += f"• Raw Lattice Similarity: {cand['alignment_similarity']*100:.1f}%\n"
@@ -292,10 +343,21 @@ class PythonCrystallineRAGPipeline:
             grounding_context += f"• Density: {cand['density']} g/cm³\n"
             grounding_context += f"• Description: {cand['description']}\n"
             grounding_context += f"• Reference Peaks: {cand['reference_peaks']}\n\n"
+            search_query_terms.extend([cand['name'], cand['formula']])
+            
+        # 2b. Add additional FTS Literature RAG retrieval
+        if search_query_terms:
+            literature_docs = self.db.search_literature(" ".join(search_query_terms), limit=3)
+            if literature_docs:
+                grounding_context += "=== LITERATURE KNOWLEDGE AUGMENTATION ===\n"
+                for doc in literature_docs:
+                    grounding_context += f"• {doc['title']}: {doc['content']}\n"
+                grounding_context += "\n"
             
         payload = {
             "retrieved_candidates": candidates,
             "grounding_context_text": grounding_context,
+            "literature_docs": literature_docs if search_query_terms else [],
             "ready_for_gemini": True
         }
         
@@ -310,7 +372,9 @@ class PythonCrystallineRAGPipeline:
                     "You are a Senior Crystallographer AI. Analyze the experimental XRD spectrum peak data.\n\n"
                     f"{grounding_context}\n"
                     f"User Experimental Peaks: {experimental_peaks}\n\n"
-                    "Identify the dominant mineral phase. Support your answer with continuous peak alignment arguments."
+                    "Identify the dominant mineral phase. Support your answer with continuous peak alignment arguments.\n"
+                    "Furthermore, if any LITERATURE KNOWLEDGE AUGMENTATION was retrieved, synthesize it to provide practical advice "
+                    "(e.g., synthesis parameters, practical applications, or related structural properties)."
                 )
                 
                 response = client.models.generate_content(
