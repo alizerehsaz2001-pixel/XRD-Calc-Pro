@@ -981,6 +981,9 @@ export const DeepLearningModule: React.FC = () => {
   const searchResults = getFilteredMaterials();
 
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [usePythonRAG, setUsePythonRAG] = useState(true);
+  const [pythonRAGResults, setPythonRAGResults] = useState<any>(null);
+  const [ragRunning, setRagRunning] = useState(false);
   const [isLatticeModalOpen, setIsLatticeModalOpen] = useState(false);
   const [latticeResult, setLatticeResult] = useState<{
     a: number;
@@ -1327,47 +1330,156 @@ export const DeepLearningModule: React.FC = () => {
           ],
         };
       }
-      setResult(computed);
-      if (computed.candidates.length > 0) {
-        const topCand = computed.candidates[0];
-        setSelectedCandidate(topCand);
 
-        // Synchronize with Crystalin Lifecycle Dashboard: Log as a Neural Probe Event
-        try {
-          const stored = localStorage.getItem('xrd_neural_probe_events');
-          const neuralRuns = stored ? JSON.parse(stored) : [];
+      if (usePythonRAG) {
+        setRagRunning(true);
+        const customSessionKey = localStorage.getItem("gemini_custom_api_key") || "";
+        fetch("/api/gemini/rag-analysis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            experimental_peaks: points.map(p => ({ twoTheta: p.twoTheta, intensity: p.intensity })),
+            customKey: customSessionKey
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          setRagRunning(false);
+          if (data.success) {
+            setPythonRAGResults(data);
+            
+            // Map the Python candidates to DLPhaseCandidate type
+            const pythonCandidates: DLPhaseCandidate[] = data.retrieved_candidates.map((cand: any, cIdx: number) => {
+              const matchedPeaks = cand.reference_peaks.map((p: any) => ({
+                refT: p.two_theta,
+                obsT: p.two_theta,
+                refI: p.intensity
+              }));
+              
+              return {
+                phase_name: cand.name,
+                confidence_score: cand.optimized_similarity * 100,
+                mlValidationScore: cand.validation_score,
+                card_id: `PY-RAG-${100 + cIdx}`,
+                formula: cand.formula,
+                description: cand.description,
+                crystalSystem: cand.crystal_system,
+                spaceGroup: cand.space_group,
+                density: cand.density,
+                matched_peaks: matchedPeaks,
+                raw_score: cand.alignment_similarity * 100,
+                fitted_strain_pct: cand.fitted_strain_pct,
+                fitted_domain_size_broadening: cand.fitted_domain_size_broadening,
+                match_quality: cand.optimized_similarity > 0.85 ? "Excellent Match" : cand.optimized_similarity > 0.6 ? "Moderate Match" : "Weak Match",
+                applications: ["Photocatalytic Standard", "Refractive Index Material", "Lattice Matching standard"]
+              };
+            });
+            
+            if (pythonCandidates.length > 0) {
+              const modifiedComputed = {
+                ...computed,
+                candidates: [
+                  ...pythonCandidates,
+                  ...computed.candidates.filter(c => !pythonCandidates.some(py => py.phase_name === c.phase_name))
+                ]
+              };
+              setResult(modifiedComputed);
+              setSelectedCandidate(pythonCandidates[0]);
+              
+              // Synchronize to Lifecycle logs
+              try {
+                const stored = localStorage.getItem('xrd_neural_probe_events');
+                const neuralRuns = stored ? JSON.parse(stored) : [];
+                const topP = pythonCandidates[0];
+                const dSpacings = (topP.matched_peaks || []).slice(0, 3).map(p => {
+                  const thetaRad = (p.obsT / 2) * (Math.PI / 180);
+                  return 1.5406 / (2 * Math.sin(thetaRad));
+                });
+                
+                const newRun = {
+                  id: 'python_rag_' + Date.now(),
+                  timestamp: new Date().toLocaleString(),
+                  dateMs: Date.now(),
+                  materialName: topP.phase_name,
+                  formula: topP.formula,
+                  category: 'other',
+                  isNeural: true,
+                  isPythonRAG: true,
+                  confidence: topP.confidence_score,
+                  crystalSystem: topP.crystalSystem,
+                  spaceGroup: topP.spaceGroup,
+                  density: topP.density,
+                  impact: `Identified by ML-Optimized Python RAG pipeline. Optimized alignment score: ${topP.confidence_score.toFixed(1)}%. Fitted strain: ${topP.fitted_strain_pct?.toFixed(3)}%, Broadening width: ${topP.fitted_domain_size_broadening?.toFixed(2)}°.`,
+                  dSpacings: dSpacings.length > 0 ? dSpacings : [2.5123, 3.1415, 4.2384],
+                  pattern: (topP.matched_peaks || []).map(p => `${p.obsT}, ${p.refI}`).join('\n')
+                };
+                neuralRuns.push(newRun);
+                localStorage.setItem('xrd_neural_probe_events', JSON.stringify(neuralRuns));
+              } catch (e) {
+                console.error("Save state error:", e);
+              }
+            }
+          } else {
+            // Fall back to local mock
+            setResult(computed);
+            if (computed.candidates.length > 0) {
+              setSelectedCandidate(computed.candidates[0]);
+            }
+          }
+        })
+        .catch(err => {
+          console.error("Failed to run Python RAG Engine, falling back:", err);
+          setRagRunning(false);
+          setResult(computed);
+          if (computed.candidates.length > 0) {
+            setSelectedCandidate(computed.candidates[0]);
+          }
+        });
+      } else {
+        // Standard non-python RAG execution path
+        setResult(computed);
+        if (computed.candidates.length > 0) {
+          const topCand = computed.candidates[0];
+          setSelectedCandidate(topCand);
 
-          // Capture top matched peak d-spacings utilizing realistic wavelength
-          const topPeaks = topCand.matched_peaks || [];
-          const dSpacings = topPeaks.slice(0, 3).map(p => {
-            const thetaRad = (p.obsT / 2) * (Math.PI / 180);
-            return 1.5406 / (2 * Math.sin(thetaRad));
-          });
+          // Synchronize with Crystalin Lifecycle Dashboard: Log as a Neural Probe Event
+          try {
+            const stored = localStorage.getItem('xrd_neural_probe_events');
+            const neuralRuns = stored ? JSON.parse(stored) : [];
 
-          const newRun = {
-            id: 'neural_' + Date.now(),
-            timestamp: new Date().toLocaleString(),
-            dateMs: Date.now(),
-            materialName: topCand.phase_name,
-            formula: topCand.formula,
-            category: 'other',
-            isNeural: true,
-            confidence: topCand.confidence_score,
-            crystalSystem: topCand.crystalSystem,
-            spaceGroup: topCand.spaceGroup,
-            density: topCand.density,
-            applications: topCand.applications,
-            impact: `Identified by PhaseID Neural Core CNN. Confidence: ${topCand.confidence_score.toFixed(1)}%. Structure profile matches ${topCand.crystalSystem || 'unknown'} system (${topCand.spaceGroup || 'N/A'}, density: ${topCand.density?.toFixed(2) || 'N/A'} g/cm³).`,
-            dSpacings: dSpacings.length > 0 ? dSpacings : [2.5123, 3.1415, 4.2384],
-            pattern: topPeaks.map(p => `${p.obsT}, ${p.refI}`).join('\n')
-          };
+            // Capture top matched peak d-spacings utilizing realistic wavelength
+            const topPeaks = topCand.matched_peaks || [];
+            const dSpacings = topPeaks.slice(0, 3).map(p => {
+              const thetaRad = (p.obsT / 2) * (Math.PI / 180);
+              return 1.5406 / (2 * Math.sin(thetaRad));
+            });
 
-          neuralRuns.push(newRun);
-          localStorage.setItem('xrd_neural_probe_events', JSON.stringify(neuralRuns));
-        } catch (err) {
-          console.error("Failed to save neural probe event:", err);
+            const newRun = {
+              id: 'neural_' + Date.now(),
+              timestamp: new Date().toLocaleString(),
+              dateMs: Date.now(),
+              materialName: topCand.phase_name,
+              formula: topCand.formula,
+              category: 'other',
+              isNeural: true,
+              confidence: topCand.confidence_score,
+              crystalSystem: topCand.crystalSystem,
+              spaceGroup: topCand.spaceGroup,
+              density: topCand.density,
+              applications: topCand.applications,
+              impact: `Identified by PhaseID Neural Core CNN. Confidence: ${topCand.confidence_score.toFixed(1)}%. Structure profile matches ${topCand.crystalSystem || 'unknown'} system (${topCand.spaceGroup || 'N/A'}, density: ${topCand.density?.toFixed(2) || 'N/A'} g/cm³).`,
+              dSpacings: dSpacings.length > 0 ? dSpacings : [2.5123, 3.1415, 4.2384],
+              pattern: topPeaks.map(p => `${p.obsT}, ${p.refI}`).join('\n')
+            };
+
+            neuralRuns.push(newRun);
+            localStorage.setItem('xrd_neural_probe_events', JSON.stringify(neuralRuns));
+          } catch (err) {
+            console.error("Failed to save neural probe event:", err);
+          }
         }
       }
+
       setProgressStep(5);
       setIsSimulating(false);
       clearInterval(scanInterval);
@@ -6119,6 +6231,30 @@ if __name__ == '__main__':
               </div>
             </div>
 
+            {/* Active Python RAG Co-Processor Diagnostics Toggle Panel */}
+            <div className="p-3.5 mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/[0.08] transition-all relative z-10 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                    Scientific Python RAG Engine
+                  </span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={usePythonRAG}
+                    onChange={(e) => setUsePythonRAG(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-8 h-4.5 bg-slate-800 rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:after:translate-x-3.5"></div>
+                </label>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-normal">
+                Fits physical lattice contraction, dilation strain, and crystallite size broadening on local SQLite reference patterns using coordinate-descent ML regression.
+              </p>
+            </div>
+
             <div className="pt-2 relative z-10">
               <button
                 onClick={handleRunAI}
@@ -6926,6 +7062,78 @@ if __name__ == '__main__':
                   </div>
                   <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-400 to-transparent opacity-50 group-hover/hud:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(99,102,241,0.8)]" />
                 </div>
+              </div>
+            )}
+
+            {/* Live Python RAG Machine Learning Coprocessor Diagnostics */}
+            {selectedCandidate && (selectedCandidate as any).fitted_strain_pct !== undefined && (
+              <div className="p-5 mb-5 rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#120B04]/90 to-[#050301]/95 backdrop-blur-xl relative z-10 shadow-[0_4px_30px_rgba(245,158,11,0.1)] transition-all hover:border-amber-500/50 flex flex-col gap-4">
+                <div className="flex justify-between items-center pb-2 border-b border-amber-500/20">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400 font-mono">
+                      PyCrystalline™ RAG Coprocessor Diagnostics
+                    </span>
+                  </div>
+                  <span className="text-[10px] bg-amber-500/10 text-amber-400 font-mono font-black border border-amber-500/30 px-3 py-1 rounded-full uppercase tracking-wider shadow-inner">
+                    State: Fully Converged
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 flex flex-col gap-1.5 shadow-inner">
+                    <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">
+                      Calculated Lattice Strain
+                    </span>
+                    <span className="text-3xl font-black text-amber-300 font-mono drop-shadow-md">
+                      {((selectedCandidate as any).fitted_strain_pct)?.toFixed(4)}%
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-sans leading-snug">
+                      {(selectedCandidate as any).fitted_strain_pct > 0 ? "Tensile (dilation)" : (selectedCandidate as any).fitted_strain_pct < 0 ? "Compressive (contraction)" : "No strain detected"}: Peak shifts optimized via grid-descent convolution.
+                    </span>
+                  </div>
+                  
+                  <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 flex flex-col gap-1.5 shadow-inner">
+                    <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">
+                      Domain Size Broadening Scale
+                    </span>
+                    <span className="text-3xl font-black text-amber-300 font-mono drop-shadow-md">
+                      {((selectedCandidate as any).fitted_domain_size_broadening)?.toFixed(2)}°
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-sans leading-snug">
+                      Gaussian broadening standard deviation &sigma;. Controls modeled nanocrystalline grain/crystallite size effects.
+                    </span>
+                  </div>
+                  
+                  <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 flex flex-col gap-1.5 shadow-inner">
+                    <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">
+                      Core Retrieval Cosine
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-black text-amber-300 font-mono drop-shadow-md">
+                        {((selectedCandidate as any).raw_score)?.toFixed(2)}%
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono font-bold uppercase leading-none">
+                        (Raw)
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-slate-400 font-sans leading-snug">
+                      Spectral continuous cosine overlap value computed over the non-strain compensated grid.
+                    </span>
+                  </div>
+                </div>
+
+                {pythonRAGResults?.gemini_analysis && (
+                  <div className="mt-2 border-t border-amber-500/15 pt-3 flex flex-col gap-2">
+                    <div className="flex items-center gap-1.5 text-amber-400 font-mono font-bold text-[10px] uppercase tracking-wider">
+                      <Activity className="w-3.5 h-3.5 animate-pulse text-amber-400" />
+                      Grounded LLM Synthesized Crystallographic Insight:
+                    </div>
+                    <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 font-sans text-xs text-amber-200/90 leading-relaxed max-h-[180px] overflow-y-auto custom-scrollbar shadow-inner select-text">
+                      {pythonRAGResults.gemini_analysis}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

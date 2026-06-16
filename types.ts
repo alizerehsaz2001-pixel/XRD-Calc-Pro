@@ -368,6 +368,8 @@ export interface DLPhaseCandidate {
   formula: string;
   elements?: string[];
   matched_peaks?: { refT: number; obsT: number; refI: number; h?: number; k?: number; l?: number }[];
+  fitted_strain_pct?: number;
+  fitted_domain_size_broadening?: number;
   // Material Intelligence Metadata
   description?: string;
   crystalSystem?: string;

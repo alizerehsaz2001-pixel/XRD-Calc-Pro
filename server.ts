@@ -370,6 +370,57 @@ Provide the response in structured markdown with the following specific sections
     });
   });
 
+  // Machine Learning Python RAG Analysis Endpoint
+  app.post("/api/gemini/rag-analysis", async (req, res) => {
+    const { experimental_peaks, customKey } = req.body;
+    try {
+      if (!experimental_peaks || !Array.isArray(experimental_peaks)) {
+        res.status(400).json({ success: false, error: "A valid array of experimental peaks is required." });
+        return;
+      }
+
+      // Normalize key names from twoTheta -> two_theta for Python execution
+      const normalizedPeaks = experimental_peaks.map((p: any) => ({
+        two_theta: Number(p.twoTheta !== undefined ? p.twoTheta : p.two_theta),
+        intensity: Number(p.intensity)
+      })).filter(p => !isNaN(p.two_theta) && !isNaN(p.intensity));
+
+      const apiKeyToUse = customKey || process.env.GEMINI_API_KEY || "";
+      const payloadString = JSON.stringify({
+        experimental_peaks: normalizedPeaks,
+        api_key: apiKeyToUse
+      });
+
+      const scriptPath = path.join(__dirname, "utils", "phaseIdValidator.py");
+      
+      // Escape the payload JSON string for shell consumption safely
+      const escapedPayload = JSON.stringify(payloadString);
+
+      // Dynamically run python pipeline
+      const { exec } = await import("child_process");
+      
+      exec(`python3 "${scriptPath}" --json=${escapedPayload}`, (error, stdout, stderr) => {
+        if (error) {
+          console.error("Python RAG Execution Error:", error, stderr);
+          res.status(500).json({ success: false, error: "Error executing Python RAG engine: " + stderr });
+          return;
+        }
+
+        try {
+          const results = JSON.parse(stdout);
+          res.json({ success: true, ...results });
+        } catch (parseError) {
+          console.error("Failed to parse Python RAG output:", stdout, parseError);
+          res.status(500).json({ success: false, error: "Failed to parse Python RAG output" });
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Gemini RAG Analysis Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
