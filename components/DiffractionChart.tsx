@@ -10,11 +10,14 @@ import {
   ComposedChart,
   Area,
   Scatter,
-  ReferenceArea
+  ReferenceArea,
+  Legend,
+  Line
 } from 'recharts';
-import { Activity, Terminal, RotateCcw, Tag, Camera, ArrowLeft, ArrowRight, ZoomIn, ZoomOut, MinusCircle } from 'lucide-react';
+import { Activity, Terminal, RotateCcw, Tag, Camera, ArrowLeft, ArrowRight, ZoomIn, ZoomOut, MinusCircle, Maximize, Minimize } from 'lucide-react';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
+import { getActiveMaterials } from '../utils/materialsHelper';
 
 interface DiffractionChartProps {
   results: BraggResult[];
@@ -36,6 +39,14 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   const [showHKL, setShowHKL] = useState(true);
   const [smoothChart, setSmoothChart] = useState(false);
   const [subtractBaseline, setSubtractBaseline] = useState(false);
+  const [showObserved, setShowObserved] = useState(true);
+  const [showTheoretical, setShowTheoretical] = useState(true);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  const handleLegendClick = (e: any) => {
+    if (e.dataKey === 'intensity') setShowObserved(!showObserved);
+    if (e.dataKey === 'theoreticalIntensity') setShowTheoretical(!showTheoretical);
+  };
 
   const takeSnapshot = () => {
     if (!containerRef.current) return;
@@ -185,8 +196,55 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       dSpacing: r.dSpacing,
       q: r.qVector,
       isLabelVisible: false,
-      labelLevel: 0
+      labelLevel: 0,
+      isMatch: false,
+      theoreticalHkl: '',
     })).sort((a, b) => a.twoTheta - b.twoTheta);
+
+    if (materialName) {
+      const activeMaterials = getActiveMaterials();
+      const material = activeMaterials.find(m => m.name === materialName);
+      if (material && material.pattern) {
+        const lines = material.pattern.split('\n');
+        const theoreticalPeaks = lines.map(line => {
+           const parts = line.split(',');
+           if (parts.length >= 2) {
+              return {
+                 twoTheta: parseFloat(parts[0].trim()),
+                 intensity: parseFloat(parts[1].trim()),
+                 hkl: parts.length > 2 ? parts.slice(2).map(p => p.trim()).join(',') : undefined
+              };
+           }
+           return null;
+        }).filter(Boolean) as any[];
+
+        const matchTolerance = 0.5; // degrees
+        peakData.forEach(p => {
+           const match = theoreticalPeaks.find(tp => Math.abs(tp.twoTheta - p.twoTheta) <= matchTolerance);
+           if (match) {
+             p.isMatch = true;
+             if (match.hkl) {
+                 p.theoreticalHkl = match.hkl;
+                 if (!p.hkl) {
+                    p.hkl = match.hkl;
+                 }
+             }
+           }
+        });
+        
+        points.forEach(pt => {
+           let theInt = 5;
+           theoreticalPeaks.forEach(tp => {
+             const diff = pt.twoTheta - tp.twoTheta;
+             if (Math.abs(diff) < 1.6) {
+               const peakInt = (tp.intensity * 0.95) * Math.exp(-Math.pow(diff, 2) / 0.32);
+               theInt += peakInt;
+             }
+           });
+           pt.theoreticalIntensity = theInt;
+        });
+      }
+    }
 
     // Compute label staggering to avoid overlap
     const minThetaDiffForOverlap = 2.5; // Threshold for staggered labels
@@ -271,8 +329,10 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       return (
         <div className="bg-slate-950/95 backdrop-blur-xl text-white p-5 rounded-2xl shadow-2xl border border-slate-800 min-w-[220px] shadow-black/80">
           <div className="flex items-center gap-2 mb-4 border-b border-white/5 pb-3">
-             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-             <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Spectral Analysis</span>
+             <div className={`w-2 h-2 rounded-full ${d.isMatch ? 'bg-amber-500' : 'bg-emerald-500'} animate-pulse`} />
+             <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+               {d.isMatch ? 'DB Match Verified' : 'Spectral Analysis'}
+             </span>
           </div>
           
           <div className="space-y-4">
@@ -315,7 +375,14 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   };
 
   return (
-    <div ref={containerRef} className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 h-[400px] w-full flex flex-col relative overflow-hidden group/chart">
+    <div 
+      ref={containerRef} 
+      className={`bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 flex flex-col relative overflow-hidden group/chart transition-all duration-500 ${
+        isFullScreen 
+          ? 'fixed inset-4 z-[9999] h-[calc(100vh-32px)]' 
+          : 'h-[400px] w-full'
+      }`}
+    >
       <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl group-hover/chart:bg-indigo-500/10 transition-all duration-1000" />
       
       <div className="flex items-center justify-between mb-8 relative z-10">
@@ -372,6 +439,13 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
           >
             <Camera className="w-3 h-3" />
             {t('Take Snapshot', 'Take Snapshot')}
+          </button>
+          <button 
+            onClick={() => setIsFullScreen(!isFullScreen)}
+            className="flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30"
+          >
+            {isFullScreen ? <Minimize className="w-3 h-3" /> : <Maximize className="w-3 h-3" />}
+            {isFullScreen ? t('Minimize', 'Minimize') : t('Full Screen', 'Full Screen')}
           </button>
           {isZoomedIn && (
             <div className="flex items-center gap-2 mr-2">
@@ -432,18 +506,41 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             />
             <YAxis hide domain={[0, 120]} />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#4f46e5', strokeWidth: 1, strokeDasharray: '5 5' }} />
+            <Legend 
+              verticalAlign="top" 
+              height={36} 
+              wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', cursor: 'pointer', userSelect: 'none' }}
+              onClick={handleLegendClick}
+            />
             
             {/* Background Pattern Area */}
-            <Area 
-              data={chartData.points}
-              type="monotone"
-              dataKey="intensity"
-              stroke="#6366f1"
-              strokeWidth={2}
-              fill="url(#profileGradient)"
-              isAnimationActive={!isZoomedIn}
-              animationDuration={2000}
-            />
+            {showObserved && (
+              <Area 
+                data={chartData.points}
+                type="monotone"
+                dataKey="intensity"
+                name={t('Observed Pattern', 'Observed Pattern')}
+                stroke="#6366f1"
+                strokeWidth={2}
+                fill="url(#profileGradient)"
+                isAnimationActive={!isZoomedIn}
+                animationDuration={2000}
+              />
+            )}
+
+            {showTheoretical && materialName && (
+              <Line 
+                data={chartData.points}
+                type="monotone"
+                dataKey="theoreticalIntensity"
+                name={`${materialName} (Theoretical)`}
+                stroke="#f59e0b"
+                strokeWidth={1.5}
+                dot={false}
+                strokeDasharray="4 4"
+                isAnimationActive={false}
+              />
+            )}
 
             {/* Peak Markers Scatter */}
             <Scatter 
@@ -458,11 +555,13 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 if (payload.twoTheta < l || payload.twoTheta > r) return null;
                 
                 const yOffset = cy - 12 - (payload.labelLevel * 14);
+                const isMatch = payload.isMatch;
+                const markerColor = isMatch ? "#f59e0b" : "#10b981";
                 
                 return (
                   <g>
-                    <line x1={cx} y1={cy} x2={cx} y2={cy + 300} stroke="#10b981" strokeWidth={2} strokeDasharray="3 3" opacity={0.4} />
-                    <circle cx={cx} cy={cy} r={4} fill="#10b981" stroke="#fff" strokeWidth={1} />
+                    <line x1={cx} y1={cy} x2={cx} y2={cy + 300} stroke={markerColor} strokeWidth={2} strokeDasharray="3 3" opacity={0.4} />
+                    <circle cx={cx} cy={cy} r={4} fill={markerColor} stroke="#fff" strokeWidth={1} />
                     {showHKL && payload.hkl && (
                       <g>
                         {payload.labelLevel > 0 && <line x1={cx} y1={cy - 5} x2={cx} y2={yOffset + 5} stroke="#94a3b8" strokeWidth={0.5} opacity={0.5} strokeDasharray="1 1" />}

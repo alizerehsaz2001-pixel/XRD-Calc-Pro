@@ -1080,7 +1080,12 @@ const App: React.FC = () => {
 
                   {activeModule === 'fwhm' && <FWHMModule />}
                   {activeModule === 'selection' && <SelectionRulesModule />}
-                  {activeModule === 'compare' && <DiffractionCompareModule />}
+                  {activeModule === 'compare' && (
+                    <DiffractionCompareModule 
+                      activeResults={results} 
+                      activeMaterialName={materialName} 
+                    />
+                  )}
                   {activeModule === 'scherrer' && <ScherrerModule />}
                   {activeModule === 'wh' && <WilliamsonHallModule />}
                   {activeModule === 'integral' && <IntegralBreadthModule />}

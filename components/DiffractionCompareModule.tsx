@@ -6,10 +6,61 @@ import { BraggResult } from '../types';
 import { Layers, ChevronDown, Check, ArrowLeft, ArrowRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { ResponsiveContainer, ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceArea } from 'recharts';
 
-export const DiffractionCompareModule: React.FC = () => {
+interface DiffractionCompareModuleProps {
+  activeResults?: BraggResult[];
+  activeMaterialName?: string | null;
+}
+
+export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> = ({
+  activeResults = [],
+  activeMaterialName = null
+}) => {
   const { t } = useTranslation();
-  const [materialA, setMaterialA] = useState<any>(MATERIAL_DB[1]); // Default to Quartz
-  const [materialB, setMaterialB] = useState<any>(MATERIAL_DB[5]); // Default to Corundum
+
+  const userSampleMaterial = useMemo(() => {
+    if (!activeResults || activeResults.length === 0) return null;
+    return {
+      name: 'My Synthesized Sample',
+      formula: activeMaterialName || 'Unknown Phase',
+      crystalSystem: t('Synthesized'),
+      spaceGroup: t('Custom Peaks'),
+      isUserSample: true,
+      pattern: activeResults.map(r => `${r.twoTheta}(${r.hkl || ''})`).join(', '),
+      results: activeResults
+    };
+  }, [activeResults, activeMaterialName, t]);
+
+  const [selectedMaterialAName, setSelectedMaterialAName] = useState<string>(() => {
+    if (activeResults && activeResults.length > 0) {
+      return 'active_sample';
+    }
+    return MATERIAL_DB[1].name;
+  });
+
+  const [selectedMaterialBName, setSelectedMaterialBName] = useState<string>(() => {
+    if (activeMaterialName) {
+      const match = MATERIAL_DB.find(m => m.name.toLowerCase().includes(activeMaterialName.toLowerCase()) || activeMaterialName.toLowerCase().includes(m.name.toLowerCase()));
+      if (match) return match.name;
+    }
+    // Try to find Hydroxyapatite as a generic default if available
+    const haMatch = MATERIAL_DB.find(m => m.name.toLowerCase().includes('hydroxyapatite'));
+    if (haMatch) return haMatch.name;
+    return MATERIAL_DB[5].name;
+  });
+
+  const materialA = useMemo(() => {
+    if (selectedMaterialAName === 'active_sample' && userSampleMaterial) {
+      return userSampleMaterial;
+    }
+    return MATERIAL_DB.find(m => m.name === selectedMaterialAName) || MATERIAL_DB[1];
+  }, [selectedMaterialAName, userSampleMaterial]);
+
+  const materialB = useMemo(() => {
+    if (selectedMaterialBName === 'active_sample' && userSampleMaterial) {
+      return userSampleMaterial;
+    }
+    return MATERIAL_DB.find(m => m.name === selectedMaterialBName) || MATERIAL_DB[5];
+  }, [selectedMaterialBName, userSampleMaterial]);
   
   const generateChartData = (matA: any, matB: any) => {
     // We will generate the superimposed data here
@@ -17,10 +68,18 @@ export const DiffractionCompareModule: React.FC = () => {
     const maxTheta = 90;
     const step = 0.1;
     
-    // Quick helper to generate simulated peaks for a material based on its pattern string
-    const parsePattern = (pattern: string) => {
-        if (!pattern) return [];
-        return pattern.split(',').map(s => {
+    // Quick helper to generate simulated peaks for a material
+    const parsePattern = (material: any) => {
+        if (!material) return [];
+        if (material.isUserSample) {
+            return (material.results || []).map((r: any) => ({
+                twoTheta: r.twoTheta,
+                intensity: r.intensity !== undefined ? r.intensity : 100,
+                hkl: r.hkl || ''
+            }));
+        }
+        const pattern = material.pattern || '';
+        return pattern.split(',').map((s: string) => {
             const [thetaStr, hklStr] = s.split('(');
             const theta = parseFloat(thetaStr.trim());
             return {
@@ -28,11 +87,11 @@ export const DiffractionCompareModule: React.FC = () => {
                 intensity: 100, // Normalized max intensity
                 hkl: hklStr ? hklStr.replace(')', '').trim() : ''
             };
-        }).filter(p => !isNaN(p.twoTheta));
+        }).filter((p: any) => !isNaN(p.twoTheta));
     };
 
-    const peaksA = parsePattern(matA?.pattern || '');
-    const peaksB = parsePattern(matB?.pattern || '');
+    const peaksA = parsePattern(matA);
+    const peaksB = parsePattern(matB);
     
     const points = [];
     for (let x = minTheta; x <= maxTheta; x += step) {
@@ -150,13 +209,18 @@ export const DiffractionCompareModule: React.FC = () => {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl flex flex-col md:flex-row gap-6">
         <div className="flex-1 space-y-4">
-          <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400">{t('Sample A (Base Material)', 'Sample A (Base Material)')}</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
+            {t('Sample A (Synthesized Sample / Base)', 'Sample A (Synthesized Sample / Base)')}
+          </label>
           <div className="relative">
             <select
-              value={materialA?.name}
-              onChange={(e) => setMaterialA(MATERIAL_DB.find(m => m.name === e.target.value) || MATERIAL_DB[0])}
+              value={selectedMaterialAName}
+              onChange={(e) => setSelectedMaterialAName(e.target.value)}
               className="w-full pl-4 pr-10 py-3 bg-black/60 border border-slate-800 text-slate-200 outline-none rounded-xl text-xs font-mono font-bold appearance-none hover:border-indigo-500/50 transition-colors"
             >
+              {userSampleMaterial && (
+                <option value="active_sample">🧪 {t('My Synthesized Sample', 'My Synthesized Sample')} ({userSampleMaterial.formula})</option>
+              )}
               {MATERIAL_DB.map(m => (
                 <option key={m.name} value={m.name}>{t(m.name)} ({m.formula})</option>
               ))}
@@ -174,13 +238,18 @@ export const DiffractionCompareModule: React.FC = () => {
         </div>
 
         <div className="flex-1 space-y-4">
-          <label className="text-[10px] font-black uppercase tracking-widest text-emerald-400">{t('Sample B (Comparison)', 'Sample B (Comparison)')}</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+            {t('Sample B (Comparison Database)', 'Sample B (Comparison Database)')}
+          </label>
           <div className="relative">
             <select
-              value={materialB?.name}
-              onChange={(e) => setMaterialB(MATERIAL_DB.find(m => m.name === e.target.value) || MATERIAL_DB[1])}
+              value={selectedMaterialBName}
+              onChange={(e) => setSelectedMaterialBName(e.target.value)}
               className="w-full pl-4 pr-10 py-3 bg-black/60 border border-slate-800 text-slate-200 outline-none rounded-xl text-xs font-mono font-bold appearance-none hover:border-emerald-500/50 transition-colors"
             >
+              {userSampleMaterial && (
+                <option value="active_sample">🧪 {t('My Synthesized Sample', 'My Synthesized Sample')} ({userSampleMaterial.formula})</option>
+              )}
               {MATERIAL_DB.map(m => (
                 <option key={m.name} value={m.name}>{t(m.name)} ({m.formula})</option>
               ))}
