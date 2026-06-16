@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type, Chat, GroundingChunk, ThinkingLevel } from "@google/genai";
 import { AIResponse, GroundingSource, StandardWavelength } from '../types';
+import { MATERIAL_DB } from "../utils/materialDB";
 
 // Initialize Gemini Client using process.env.GEMINI_API_KEY directly
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
@@ -321,27 +322,107 @@ export const analyzeDiffractionImage = async (imageBase64: string, userContext: 
   }
 };
 
+// A robust similarity score function for XRD spectra
+function getXrdPatternSimilarity(expPeaks: {twoTheta: number, intensity: number}[], refPatternStr: string): number {
+  if (!refPatternStr) return 0;
+  // Parse reference pattern, which is of format "25.8, 100\n31.8, 50" (newlines or commas)
+  const refPeaks = refPatternStr.split(/[,\n;]+/).map(s => {
+    const clean = s.trim();
+    if (!clean) return null;
+    const parts = clean.split(/[\s,]+/);
+    const twoTheta = parseFloat(parts[0]);
+    const intensity = parts.length > 1 ? parseFloat(parts[1]) : 100;
+    return { twoTheta, intensity };
+  }).filter((p): p is {twoTheta: number, intensity: number} => p !== null && !isNaN(p.twoTheta));
+
+  if (refPeaks.length === 0 || expPeaks.length === 0) return 0;
+
+  let score = 0;
+  const tolerance = 0.35; // 2-theta tolerance in degrees
+
+  expPeaks.forEach(ePeak => {
+    const matches = refPeaks.filter(rPeak => Math.abs(rPeak.twoTheta - ePeak.twoTheta) <= tolerance);
+    if (matches.length > 0) {
+      const closest = matches.reduce((prev, curr) => 
+        Math.abs(curr.twoTheta - ePeak.twoTheta) < Math.abs(prev.twoTheta - ePeak.twoTheta) ? curr : prev
+      );
+      const proximityFactor = 1 - (Math.abs(closest.twoTheta - ePeak.twoTheta) / tolerance);
+      const intensityRatio = Math.min(ePeak.intensity, closest.intensity) / Math.max(ePeak.intensity, closest.intensity);
+      score += proximityFactor * (0.7 + 0.3 * intensityRatio);
+    }
+  });
+
+  const potentialMax = Math.max(expPeaks.length, refPeaks.length);
+  return score / potentialMax;
+}
+
 export const analyzePhaseID = async (xrdDataText: string): Promise<string> => {
   try {
     const model = 'gemini-3.1-pro-preview';
+    
+    // Parse the experimental data text from the user
+    const expPeaks: {twoTheta: number, intensity: number}[] = [];
+    const lines = xrdDataText.split('\n');
+    lines.forEach(line => {
+      const parts = line.trim().split(/[\s,]+/);
+      if (parts.length >= 1) {
+        const twoTheta = parseFloat(parts[0]);
+        const intensity = parts.length > 1 ? parseFloat(parts[1]) : 100;
+        if (!isNaN(twoTheta)) {
+          expPeaks.push({ twoTheta, intensity });
+        }
+      }
+    });
+
+    // Score all materials in the DB
+    const matches = MATERIAL_DB.map(mat => {
+      const score = getXrdPatternSimilarity(expPeaks, mat.pattern || '');
+      return { material: mat, score };
+    })
+    .filter(m => m.score > 0.03)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4); // Top 4 matches
+
+    let ragContext = "=== CRITICAL GROUNDING CONTEXT RETRIEVED FROM LOCAL DIFFRACTION PDF-DATABASE (RAG) ===\n";
+    if (matches.length > 0) {
+      ragContext += "The RAG similarity index analyzed the experimental peak matrix and retrieved the following best-fit crystallographic reference standards. Prioritize evaluating if the sample is one of these candidate phases or a combination:\n\n";
+      matches.forEach((m, idx) => {
+        const mat = m.material;
+        ragContext += `[Candidate Class ${idx + 1}] Similarity Match Score: ${(m.score * 100).toFixed(1)}%\n`;
+        ragContext += `- Phase Name: ${mat.name}\n`;
+        ragContext += `- Formula: ${mat.formula}\n`;
+        ragContext += `- Crystal System: ${mat.crystalSystem || "Unknown"}\n`;
+        ragContext += `- Space Group: ${mat.spaceGroup || "Unknown"}\n`;
+        ragContext += `- Theoretical Calculated Density: ${mat.density || "Unknown"} g/cm³\n`;
+        ragContext += `- Reference Elastic Modulus: ${mat.elasticModulus || "Unknown"} GPa\n`;
+        ragContext += `- Practical Applications: ${mat.applications?.join(', ') || "N/A"}\n`;
+        ragContext += `- Known Reference XRD Peaks (2-thetas & intensities):\n${mat.pattern}\n`;
+        ragContext += `- Structural Info: ${mat.description}\n\n`;
+      });
+    } else {
+      ragContext += "No highly similar reference patterns were matching inside the current local PDF standard suite. Please perform full scientific inductive search.\n";
+    }
+
     const response = await ai.models.generateContent({
       model,
       contents: `You are an expert Crystallographer and Materials Science AI. Your task is to analyze the provided X-ray Diffraction (XRD) data (2-theta positions, d-spacing, and relative intensities) to identify the material phase and distinguish between closely related crystal structures.
+
+${ragContext}
 
 When evaluating the data, you must strictly apply the following crystallographic rules:
 1. **Peak Positions & Lattice Parameters:** Calculate or infer the lattice constant (a) using Bragg's Law. Even minor shifts in 2-theta positions (e.g., between GaAs and ZnSe) must be used to differentiate isostructural materials.
 2. **Extinction Rules & Space Groups:** Identify the Bravais lattice and space group based on allowed and forbidden reflections (hkl indices).
 3. **Atomic Structure Factor ($F_{hkl}$) & Peak Intensities:** Pay critical attention to relative intensities caused by differences in atomic number (Z). For isostructural materials (like Zincblende GaAs vs. ZnSe), evaluate specific weak or anomalous peaks (e.g., the (200) reflection) where the intensity depends on |f_anion - f_cation|.
 
-Input Data:
+Input Experimental Data:
 ${xrdDataText}
 
 Provide a structured analysis including:
-- Identified Material Phase(s) and Space Group.
+- Identified Material Phase(s) and Space Group (including matching candidates from the retrieved RAG context if applicable).
 - Lattice Parameter estimation.
-- Step-by-step reasoning explaining how peak intensities (especially anomalous or weak peaks) ruled out similar candidate materials.`,
+- Step-by-step reasoning explaining how peak intensities (especially anomalous or weak reflections) ruled out similar candidate materials.`,
       config: {
-        systemInstruction: "You are an expert Crystallographer and Materials Science AI.",
+        systemInstruction: "You are an expert Crystallographer and Materials Science AI. You perform Retrieval-Augmented Generation (RAG) validations.",
         tools: [{ googleSearch: {} }], // Allow grounding
         thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
       }

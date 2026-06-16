@@ -369,6 +369,44 @@ const parseElementsFromFormula = (
     .map((sym) => ({ symbol: sym, name: MATERIAL_ELEMENTS[sym].name }));
 };
 
+const colorizeLine = (line: string) => {
+  const commentIdx = line.indexOf('#');
+  let codePart = line;
+  let commentPart = '';
+  
+  if (commentIdx !== -1) {
+    codePart = line.substring(0, commentIdx);
+    commentPart = line.substring(commentIdx);
+  }
+  
+  const tokens = codePart.split(/(\s+|\(|\)|\{|\}|\[|\]|=|\+|-|\*|\/|,|:|;|\"|\')/);
+  
+  return (
+    <>
+      {tokens.map((token, i) => {
+        const trimmed = token.trim();
+        if (/^(def|class|import|from|as|return|if|else|elif|for|in|with|try|except|pass|raise|lambda)$/.test(trimmed)) {
+          return <span key={i} className="text-fuchsia-400 font-bold">{token}</span>;
+        }
+        if (/^(print|len|range|list|dict|set|tuple|str|int|float|isinstance|super|__init__|forward)$/.test(trimmed)) {
+          return <span key={i} className="text-rose-300">{token}</span>;
+        }
+        if (/^(torch|nn|F|optim|lr_scheduler|np|pd|chromadb|SentenceTransformer|genai)$/.test(trimmed)) {
+          return <span key={i} className="text-cyan-400 font-bold">{token}</span>;
+        }
+        if (trimmed.startsWith('"') || trimmed.startsWith("'") || trimmed.endsWith('"') || trimmed.endsWith("'")) {
+          return <span key={i} className="text-amber-300">{token}</span>;
+        }
+        if (/^[0-9.]+$/.test(trimmed)) {
+          return <span key={i} className="text-emerald-400">{token}</span>;
+        }
+        return <span key={i}>{token}</span>;
+      })}
+      {commentPart && <span className="text-slate-500">{commentPart}</span>}
+    </>
+  );
+};
+
 export const DeepLearningModule: React.FC = () => {
   const { t } = useTranslation();
   const [inputData, setInputData] = useState<string>("");
@@ -1391,8 +1429,347 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPythonML = () => {
-    const pythonCode = `import torch
+  const [pythonArch, setPythonArch] = useState<'cnn' | 'transformer' | 'graph_gnn' | 'rag_pipeline'>('cnn');
+
+  const getPythonEngineCode = (arch: 'cnn' | 'transformer' | 'graph_gnn' | 'rag_pipeline', config: any): string => {
+    if (arch === 'transformer') {
+      return `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import numpy as np
+
+# XRD-Calc Pro - 1D Vision-Transformer (ViT) Spectral Encoder
+# High-fidelity self-attention modeling for long-range XRD peak correlation.
+# T-Theta segments are parsed as tokens, enriched with position embeddings,
+# and analyzed via Multihead-Attention layer blocks.
+
+class PatchEmbedding1D(nn.Module):
+    """Splits continuous XRD spectra into non-overlapping patches and projects to embedding space"""
+    def __init__(self, seq_len=1000, patch_size=20, in_chans=1, embed_dim=128):
+        super().__init__()
+        self.num_patches = seq_len // patch_size
+        self.patch_size = patch_size
+        self.proj = nn.Conv1d(in_chans, embed_dim, kernel_size=patch_size, stride=patch_size)
+
+    def forward(self, x):
+        # Input shape: (B, 1, SeqLen) -> Output: (B, EmbedDim, NumPatches)
+        x = self.proj(x)
+        # Permute to (B, NumPatches, EmbedDim) for Transformer Encoder
+        return x.transpose(1, 2)
+
+class TransformerSpectrumEncoder(nn.Module):
+    """Self-Attention Transformer for Crystallographic Fingerprinting"""
+    def __init__(self, seq_len=1000, patch_size=20, num_classes=${MATERIAL_DB.length}, 
+                 embed_dim=128, depth=4, num_heads=8, mlp_ratio=4.0, dropout=${config.dropout || 0.1}):
+        super().__init__()
+        self.patch_embed = PatchEmbedding1D(seq_len, patch_size, 1, embed_dim)
+        num_patches = self.patch_embed.num_patches
+        
+        # Class token and Positional Embeddings
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
+        self.pos_drop = nn.Dropout(p=dropout)
+        
+        # Transformer Blocks
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=embed_dim, 
+            nhead=num_heads, 
+            dim_feedforward=int(embed_dim * mlp_ratio), 
+            dropout=dropout,
+            activation='gelu',
+            batch_first=True
+        )
+        self.blocks = nn.TransformerEncoder(encoder_layer, num_layers=depth)
+        self.norm = nn.LayerNorm(embed_dim)
+        
+        # Classifier Head
+        self.head = nn.Linear(embed_dim, num_classes)
+        
+        # Initialize weights
+        nn.init.trunc_normal_(self.pos_embed, std=0.02)
+        nn.init.trunc_normal_(self.cls_token, std=0.02)
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            nn.init.trunc_normal_(m.weight, std=0.01)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+
+    def forward(self, x):
+        B = x.shape[0]
+        # (B, NumPatches, EmbedDim)
+        x = self.patch_embed(x)
+        
+        # Prepend Classifier (CLS) token
+        cls_tokens = self.cls_token.expand(B, -1, -1)
+        x = torch.cat((cls_tokens, x), dim=1)
+        
+        # Inject structural positional embeddings
+        x = self.pos_drop(x + self.pos_embed)
+        
+        # Execute self-attention sequence encoding
+        x = self.blocks(x)
+        x = self.norm(x)
+        
+        # Classify based on the output at the Class token position
+        class_vector = x[:, 0]
+        return self.head(class_vector)
+
+if __name__ == '__main__':
+    model = TransformerSpectrumEncoder()
+    # Batch size: 8 sweeps of 1000 2-theta grid items
+    xrd_profiles = torch.rand((8, 1, 1000))
+    logits = model(xrd_profiles)
+    print("Spectral Vision-Transformer Initialized successfully.")
+    print("Shape output logit matrix:", logits.shape)
+`;
+    }
+
+    if (arch === 'graph_gnn') {
+      return `import torch
+import torch.nn as nn
+import torch.nn.functional as F
+try:
+    import torch_geometric
+    from torch_geometric.nn import GCNConv, global_mean_pool
+    from torch_geometric.data import Data, Batch
+except ImportError:
+    # Educational wrapper mock to ensure error-free running if package isn't preinstalled
+    print("PyTorch Geometric not found. Installing 'torch-geometric' via pip is recommended for crystalline graph modeling.")
+    # Fallback placeholders for educational execution
+    GCNConv = None
+    global_mean_pool = None
+
+# XRD-Calc Pro - Crystalline Graph Neural Network (GNN) Engine
+# CGCNN Architecture representation. Instead of analyzing raw 1D sweeps,
+# the mineral is represented as an atomic coordinate graph:
+# Coordinates/atomic numbers form node features, bond distances form edges.
+
+class CrystallineGraphGNN(nn.Module):
+    """3D Crystal Structure classification engine using Graph Neural Networks"""
+    def __init__(self, node_feature_dim=16, hidden_dim=${config.filters || 64}, num_classes=${MATERIAL_DB.length}):
+        super().__init__()
+        self.has_pyg = GCNConv is not None
+        
+        if self.has_pyg:
+            # Dual message passing layers to aggregate atomic environment spheres
+            self.conv1 = GCNConv(node_feature_dim, hidden_dim)
+            self.conv2 = GCNConv(hidden_dim, hidden_dim)
+            self.fc1 = nn.Linear(hidden_dim, hidden_dim)
+            self.fc2 = nn.Linear(hidden_dim, num_classes)
+        else:
+            self.linear = nn.Linear(node_feature_dim, num_classes)
+
+    def forward(self, x, edge_index, batch_index):
+        if self.has_pyg:
+            # 1. Message passing to resolve atomic neighborhood coordinates
+            h = self.conv1(x, edge_index)
+            h = F.relu(h)
+            h = self.conv2(h, edge_index)
+            h = F.relu(h)
+            
+            # 2. Graph Pooling to retain translation/rotation invariance in unit cell
+            pooled = global_mean_pool(h, batch_index)
+            
+            # 3. Dense classifications
+            out = F.relu(self.fc1(pooled))
+            return self.fc2(out)
+        else:
+            # Simplified mock pooling
+            mean_pooled = torch.mean(x, dim=0, keepdim=True)
+            return self.linear(mean_pooled)
+
+def generate_mock_crystal_graph():
+    """Generates a synthetic FCC Diamond Silicon unit cell graph representation"""
+    # 8 Silicon atoms in unit cell (atomic number 14)
+    # Feature vector: [atomic_number, valence_electrons, covalent_radius, electronegativity]
+    silicon_node_feats = torch.tensor([
+        [14, 4, 111, 1.9],
+        [14, 4, 111, 1.9],
+        [14, 4, 111, 1.9],
+        [14, 4, 111, 1.9],
+        [14, 4, 111, 1.9],
+        [14, 4, 111, 1.9],
+        [14, 4, 111, 1.9],
+        [14, 4, 111, 1.9]
+    ], dtype=torch.float)
+    
+    # Adjacency matrices of direct covalent bonds
+    edge_index = torch.tensor([
+        [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7],
+        [1, 0, 2, 1, 3, 2, 4, 3, 5, 4, 6, 5, 7, 6]
+    ], dtype=torch.long)
+    
+    batch_vector = torch.zeros(8, dtype=torch.long) # All nodes belong to graph 0
+    return silicon_node_feats, edge_index, batch_vector
+
+if __name__ == '__main__':
+    model = CrystallineGraphGNN()
+    feats, edges, batch = generate_mock_crystal_graph()
+    
+    # Simulating forward pass
+    outputs = model(feats, edges, batch)
+    print("Graph Crystalline Neural Engine successfully compiled.")
+    print("Output shape on unit cell classification:", outputs.shape)
+`;
+    }
+
+    if (arch === 'rag_pipeline') {
+      return `import os
+try:
+    from google import genai
+    from google.genai import types
+except ImportError:
+    genai = None
+
+try:
+    import chromadb
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    chromadb = None
+    SentenceTransformer = None
+
+# XRD-Calc Pro - Enterprise Crystalline Retrieval-Augmented Generation (RAG) Pipeline
+# Demonstrates a fully-fledged materials database query mechanism.
+# Raw experimental peaks are embedded into space vectors, candidate PDF cards are
+# retrieved from ChromaDB, and context-injected into the Gemini API framework.
+
+# Comprehensive local powder diffraction standards database
+MATERIALS_PDF_DB = [
+    {
+        "name": "Beta-Quartz (SiO2, Hexagonal, P6222)",
+        "peaks": "20.6, 25.8, 36.4, 38.8, 42.3",
+        "description": "High temperature polymorph of Quartz, major stable ceramic skeleton."
+    },
+    {
+        "name": "Rutile (TiO2, Tetragonal, P42/mnm)",
+        "peaks": "27.4, 36.1, 41.2, 54.3, 56.6",
+        "description": "Birefringent titanium oxide mineral, pristine photo-catalyst benchmark."
+    },
+    {
+        "name": "Anatase (TiO2, Tetragonal, I41/amd)",
+        "peaks": "25.3, 37.8, 48.0, 53.9, 55.1",
+        "description": "Metastable polymorph of TiO2 with heightened electron transport properties."
+    },
+    {
+        "name": "Corundum (Al2O3, Trigonal, R-3c)",
+        "peaks": "25.6, 35.1, 37.8, 43.3, 52.5, 57.5",
+        "description": "Aluminium oxide crystalline standard, extremely high structural hardness."
+    },
+    {
+        "name": "Halite (NaCl, Cubic, Fm-3m)",
+        "peaks": "27.3, 31.7, 45.4, 53.8, 56.4",
+        "description": "Rock salt octahedral crystal standard used in general peak calibrations."
+    }
+]
+
+class MaterialRAGManager:
+    def __init__(self):
+        print("Initializing SentenceTransformer Embedding Encoder (all-MiniLM-L6-v2)...")
+        self.embedding_model = SentenceTransformer("all-MiniLM-L6-v2") if SentenceTransformer else None
+        
+        if chromadb:
+            # Setup Chroma Vector DB on local ephemeral memory structure
+            self.chroma_client = chromadb.EphemeralClient()
+            self.collection = self.chroma_client.create_collection(name="diffraction_standards")
+            self._seed_database()
+        else:
+            self.collection = None
+            print("ChromaDB not installed. Standard list similarity lookups will act as safe fallback.")
+
+    def _seed_database(self):
+        """Generates dense vector embeddings for physical material descriptors"""
+        for idx, item in enumerate(MATERIALS_PDF_DB):
+            document_content = f"Material: {item['name']}. Peaks: {item['peaks']}. Description: {item['description']}"
+            embedding = self.embedding_model.encode(document_content).tolist()
+            
+            self.collection.add(
+                embeddings=[embedding],
+                documents=[document_content],
+                metadatas=[{"name": item["name"], "peaks": item["peaks"]}],
+                ids=[f"mat_{idx}"]
+            )
+        print("ChromaDB successfully seeded with PDF phase standards.")
+
+    def query_material(self, user_peaks: str, top_k=2):
+        """Retrieves best-fit candidate cards using vector distance clustering"""
+        if self.collection and self.embedding_model:
+            query_vector = self.embedding_model.encode(f"XRD peaks: {user_peaks}").tolist()
+            results = self.collection.query(
+                query_embeddings=[query_vector],
+                n_results=top_k
+            )
+            return results["documents"][0]
+        else:
+            # Simple keyword overlap fallback
+            print("Running fallback rule-based substring matching...")
+            matches = []
+            for item in MATERIALS_PDF_DB:
+                score = len(set(user_peaks.split()).intersection(set(item["peaks"].split())))
+                matches.append((item, score))
+            matches.sort(key=lambda x: x[1], reverse=True)
+            return [f"Material: {m[0]['name']}. Peaks: {m[0]['peaks']}. Description: {m[0]['description']}" for m in matches[:top_k]]
+
+def gemini_retrieval_augmented_generation(user_xrd_query: str):
+    """Connects Grounded Vector Retrieval directly into Google Gemini API Pro"""
+    # 1. Retrieve most relevant physical phase matches from Chromatography DB
+    rag_manager = MaterialRAGManager()
+    database_grounding_contexts = rag_manager.query_material(user_xrd_query, top_k=2)
+    
+    print("\\n[RAG Phase] Retrieved Grounding Context from Vector DB:")
+    for doc in database_grounding_contexts:
+        print(">> ", doc)
+        
+    combined_grounding_text = "\\n".join(database_grounding_contexts)
+    
+    # 2. Invoke Gemini Pro with our context-loaded instruction suite
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        print("\\n[ERROR] GEMINI_API_KEY environment variable missing. Please export your secret key.")
+        return
+        
+    if not genai:
+        print("\\nNote: 'google-genai' SDK is recommended. Printing compiled prompting payload:")
+        print("System Instruction: You are an expert Crystallographer executing RAG validations.")
+        print(f"Grounding Context:\\n{combined_grounding_text}")
+        print(f"User Query:\\n{user_xrd_query}")
+        return
+
+    client = genai.Client(api_key=api_key)
+    prompt = f\"\"\"
+    You are an AI Crystallography Assistant. Analyze the user's experimental diffraction peaks.
+    
+    Use the following verified Database Grounding Context to match peaks and identify phases:
+    {combined_grounding_text}
+    
+    User Experimental Peaks:
+    {user_xrd_query}
+    
+    Determine the most likely chemical phase match and explain your logical reasoning.
+    \"\"\"
+    
+    print("\\nCalling Google Gemini API model 'gemini-3.1-pro-preview'...")
+    response = client.models.generate_content(
+        model='gemini-3.1-pro-preview',
+        contents=prompt
+    )
+    print("\\n=== AI Analysis Output (Grounded RAG) ===")
+    print(response.text)
+
+if __name__ == '__main__':
+    # Simulating a user query for Rutile Titanium Oxide
+    experimental_peaks = "27.4, 36.1, 41.2"
+    gemini_retrieval_augmented_generation(experimental_peaks)
+`;
+    }
+
+    // Default 'cnn' (Residual 1D CNN)
+    return `import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -1400,17 +1777,15 @@ import torch.optim.lr_scheduler as lr_scheduler
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from pymatgen.core import Structure
-from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 # XRD-Calc Pro - Scientific PyTorch Phase ID Engine Script
 # Configuration used in simulation:
-# Context Depth: ${engineConfig.depth || 50} Layers | Dropout: ${(engineConfig as any).dropout || 0} | Scaling: ${engineConfig.multiScale ? 'True' : 'False'}
-# Kernel Size: ${engineConfig.kernelSize}
-# Multi-Scale: ${engineConfig.multiScale}
-# Batch Norm: ${engineConfig.batchNorm}
-# Dropout: ${(engineConfig as any).dropout}
-# Attention: ${(engineConfig as any).attentionMechanism}
+# Context Depth: ${config.depth || 50} Layers | Dropout: ${(config as any).dropout || 0} | Scaling: ${config.multiScale ? 'True' : 'False'}
+# Kernel Size: ${config.kernelSize}
+# Multi-Scale: ${config.multiScale}
+# Batch Norm: ${config.batchNorm}
+# Dropout: ${(config as any).dropout}
+# Attention: ${(config as any).attentionMechanism}
 
 class XRDDataAugmentation(nn.Module):
     """Stochastic Data Augmentation for XRD Profiles"""
@@ -1429,46 +1804,45 @@ class XRDDataAugmentation(nn.Module):
         return x
 
 class ResidualBlock1D(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, dropout=${(engineConfig as any).dropout || 0}):
+    def __init__(self, in_channels, out_channels, kernel_size, dropout=${(config as any).dropout || 0}):
         super().__init__()
         self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size, padding='same')
-        self.bn1 = nn.BatchNorm1d(out_channels) if ${engineConfig.batchNorm ? 'True' : 'False'} else nn.Identity()
+        self.bn1 = nn.BatchNorm1d(out_channels) if ${config.batchNorm ? 'True' : 'False'} else nn.Identity()
         self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size, padding='same')
-        self.bn2 = nn.BatchNorm1d(out_channels) if ${engineConfig.batchNorm ? 'True' : 'False'} else nn.Identity()
+        self.bn2 = nn.BatchNorm1d(out_channels) if ${config.batchNorm ? 'True' : 'False'} else nn.Identity()
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         res = x
-        x = F.${engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.bn1(self.conv1(x)))
+        x = F.${config.activation ? (config.activation.toLowerCase() === 'relu' ? 'relu' : (config.activation.toLowerCase() === 'selu' ? 'selu' : (config.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.bn1(self.conv1(x)))
         x = self.dropout(x)
         x = self.bn2(self.conv2(x))
-        return F.${engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(x + res)
+        return F.${config.activation ? (config.activation.toLowerCase() === 'relu' ? 'relu' : (config.activation.toLowerCase() === 'selu' ? 'selu' : (config.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(x + res)
 
 class XRDPhaseIDModel(nn.Module):
-    def __init__(self, num_classes=${MATERIAL_DB.length}, kernel_size=${engineConfig.kernelSize}):
+    def __init__(self, num_classes=${MATERIAL_DB.length}, kernel_size=${config.kernelSize}):
         super().__init__()
         self.augment = XRDDataAugmentation()
-        self.attn = nn.MultiheadAttention(1, 1) if ${(engineConfig as any).attentionMechanism ? 'True' : 'False'} else None
-        self.initial_conv = nn.Conv1d(1, ${engineConfig.filters || 32}, kernel_size, padding='same')
+        self.attn = nn.MultiheadAttention(1, 1) if ${(config as any).attentionMechanism ? 'True' : 'False'} else None
+        self.initial_conv = nn.Conv1d(1, ${config.filters || 32}, kernel_size, padding='same')
         
-        # Deep Residual Feature Extraction (${engineConfig.depth} layers simulated)
+        # Deep Residual Feature Extraction (${config.depth} layers simulated)
         self.blocks = nn.ModuleList([
-            ResidualBlock1D(${engineConfig.filters || 32}, ${engineConfig.filters || 32}, kernel_size)
-            for _ in range(${Math.floor((engineConfig.depth || 50) / 10)})
+            ResidualBlock1D(${config.filters || 32}, ${config.filters || 32}, kernel_size)
+            for _ in range(${Math.floor((config.depth || 50) / 10)})
         ])
         
-        self.pool = nn.${engineConfig.pooling === 'max' ? 'MaxPool1d' : 'AvgPool1d'}(2)
-        self.fc = nn.Linear((${engineConfig.filters || 32} * 100), num_classes) # Approximate representation
+        self.pool = nn.${config.pooling === 'max' ? 'MaxPool1d' : 'AvgPool1d'}(2)
+        self.fc = nn.Linear((${config.filters || 32} * 100), num_classes) # Approximate representation
         
     def forward(self, x):
         x = self.augment(x)
-        # x shape: (batch_size, 1, seq_length)
         if self.attn:
-            x_permuted = x.permute(2, 0, 1) # seq_len, batch_size, channels
+            x_permuted = x.permute(2, 0, 1)
             attn_out, _ = self.attn(x_permuted, x_permuted, x_permuted)
             x = attn_out.permute(1, 2, 0)
             
-        x = F.${engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.initial_conv(x))
+        x = F.${config.activation ? (config.activation.toLowerCase() === 'relu' ? 'relu' : (config.activation.toLowerCase() === 'selu' ? 'selu' : (config.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.initial_conv(x))
         for block in self.blocks:
             x = block(x)
             x = self.pool(x)
@@ -1478,7 +1852,7 @@ class XRDPhaseIDModel(nn.Module):
 
 def train_engine():
     model = XRDPhaseIDModel()
-    optimizer = optim.${engineConfig.optimization || 'Adam'}(model.parameters(), lr=${engineConfig.learningRate || 0.001})
+    optimizer = optim.${config.optimization || 'Adam'}(model.parameters(), lr=${config.learningRate || 0.001})
     loss_fn = nn.CrossEntropyLoss()
     
     print("PyTorch Phase ID Model Initialized.")
@@ -1488,18 +1862,20 @@ def train_engine():
 
 if __name__ == '__main__':
     model = train_engine()
-    # Mock data batch
     mock_xrd_sweep = torch.rand((16, 1, 1000)) 
     predictions = model(mock_xrd_sweep)
     print("Inference completed. Logic structure valid.")
     print("Predictions shape:", predictions.shape)
 `;
+  };
 
+  const handleExportPythonML = () => {
+    const pythonCode = getPythonEngineCode(pythonArch, engineConfig);
     const blob = new Blob([pythonCode], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `XRD_PhaseID_Neural_Engine.py`;
+    a.download = pythonArch === 'rag_pipeline' ? 'XRD_PhaseID_RAG_Pipeline.py' : `XRD_PhaseID_${pythonArch.toUpperCase()}_Engine.py`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -7704,162 +8080,81 @@ if __name__ == '__main__':
                     </div>
 
                     <div className="relative z-10 bg-black/60 rounded-2xl border border-[#1e293b]/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] overflow-hidden">
-                      <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-white/5">
-                        <div className="flex gap-2">
-                          <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                          <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                          <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-slate-900 border-b border-white/5 gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-2">
+                            <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+                            <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                            <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
+                          </div>
+                          <span className="text-xs font-mono text-slate-500 ml-2">
+                            {pythonArch === 'cnn' ? 'xrd_phase_cnn.py' :
+                             pythonArch === 'transformer' ? 'xrd_phase_transformer.py' :
+                             pythonArch === 'graph_gnn' ? 'xrd_crystall_gnn.py' :
+                             'xrd_rag_pipeline.py'}
+                          </span>
                         </div>
-                        <span className="text-xs font-mono text-slate-500">xrd_phase_id_engine.py</span>
                         <button
                           onClick={handleExportPythonML}
-                          className="text-[10px] flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1 rounded-full font-bold text-slate-300 transition-colors"
+                          className="self-start sm:self-center text-[10px] flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1 rounded-full font-bold text-slate-300 transition-colors"
                         >
                           <Download className="w-3 h-3" />
-                          Export
+                          Export Python Code
                         </button>
                       </div>
-                      <pre className="p-6 overflow-x-auto text-[11px] sm:text-xs font-mono leading-relaxed text-slate-300 custom-scrollbar max-h-[400px]">
-                        <code className="block">
-                          <span className="text-fuchsia-400">import</span> torch{"\n"}
-                          <span className="text-fuchsia-400">import</span> torch.nn <span className="text-fuchsia-400">as</span> nn{"\n"}
-                          <span className="text-fuchsia-400">import</span> torch.nn.functional <span className="text-fuchsia-400">as</span> F{"\n"}
-                          <span className="text-fuchsia-400">import</span> torch.optim <span className="text-fuchsia-400">as</span> optim{"\n"}
-                          <span className="text-fuchsia-400">import</span> torch.optim.lr_scheduler <span className="text-fuchsia-400">as</span> lr_scheduler{"\n"}
-                          <span className="text-fuchsia-400">import</span> numpy <span className="text-fuchsia-400">as</span> np{"\n"}
-                          <span className="text-fuchsia-400">import</span> pandas <span className="text-fuchsia-400">as</span> pd{"\n"}
-                          <span className="text-fuchsia-400">from</span> sklearn.model_selection <span className="text-fuchsia-400">import</span> train_test_split{"\n"}
-                          <span className="text-fuchsia-400">from</span> pymatgen.core <span className="text-fuchsia-400">import</span> Structure{"\n"}
-                          <span className="text-fuchsia-400">from</span> pymatgen.symmetry.analyzer <span className="text-fuchsia-400">import</span> SpacegroupAnalyzer{"\n\n"}
-                          
-                          <span className="text-slate-500"># Configuration Profile:</span>{"\n"}
-                          <span className="text-slate-500"># Context Depth: {engineConfig.depth || 50} Layers | Dropout: {(engineConfig as any).dropout || 0} | Scaling: {engineConfig.multiScale ? 'True' : 'False'}</span>{"\n\n"}
+                      
+                      {/* Sub-header architecture tabs */}
+                      <div className="flex flex-wrap gap-1 px-4 py-2 bg-slate-950 border-b border-white/5">
+                        <button
+                          onClick={() => setPythonArch('cnn')}
+                          className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                            pythonArch === 'cnn'
+                              ? 'bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30'
+                              : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                          }`}
+                        >
+                          Residual 1D-CNN
+                        </button>
+                        <button
+                          onClick={() => setPythonArch('transformer')}
+                          className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                            pythonArch === 'transformer'
+                              ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                              : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                          }`}
+                        >
+                          1D Spectral ViT
+                        </button>
+                        <button
+                          onClick={() => setPythonArch('graph_gnn')}
+                          className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                            pythonArch === 'graph_gnn'
+                              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                              : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                          }`}
+                        >
+                          Crystal Graph GNN (PyG)
+                        </button>
+                        <button
+                          onClick={() => setPythonArch('rag_pipeline')}
+                          className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                            pythonArch === 'rag_pipeline'
+                              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                              : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                          }`}
+                        >
+                          Crystalline RAG Pipeline
+                        </button>
+                      </div>
 
-                          <span className="text-blue-400">class</span> <span className="text-emerald-300">XRDDataAugmentation</span>(nn.Module):{"\n"}
-                          {"    "}<span className="text-slate-500">"""Stochastic Data Augmentation for XRD Profiles"""</span>{"\n"}
-                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__init__</span>(self, noise_std=0.02, mask_prob=0.05):{"\n"}
-                          {"        "}<span className="text-blue-400">super</span>().__init__(){"\n"}
-                          {"        "}self.noise_std = noise_std{"\n"}
-                          {"        "}self.mask_prob = mask_prob{"\n\n"}
-                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">forward</span>(self, x):{"\n"}
-                          {"        "}<span className="text-fuchsia-400">if</span> self.training:{"\n"}
-                          {"            "}<span className="text-slate-500"># Add structural noise equivalent to detector counting variations</span>{"\n"}
-                          {"            "}noise = torch.randn_like(x) * self.noise_std{"\n"}
-                          {"            "}<span className="text-slate-500"># Random artifact masking to force robust peak learning</span>{"\n"}
-                          {"            "}mask = (torch.rand_like(x) &gt; self.mask_prob).float(){"\n"}
-                          {"            "}<span className="text-fuchsia-400">return</span> (x + noise) * mask{"\n"}
-                          {"        "}<span className="text-fuchsia-400">return</span> x{"\n\n"}
-
-                          <span className="text-blue-400">class</span> <span className="text-emerald-300">ResidualBlock1D</span>(nn.Module):{"\n"}
-                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__init__</span>(self, in_channels, out_channels, kernel_size):{"\n"}
-                          {"        "}<span className="text-blue-400">super</span>().__init__(){"\n"}
-                          {"        "}self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size, padding=<span className="text-amber-300">'same'</span>){"\n"}
-                          {"        "}self.bn1 = nn.BatchNorm1d(out_channels) <span className="text-fuchsia-400">if</span> {engineConfig.batchNorm ? "True" : "False"} <span className="text-fuchsia-400">else</span> nn.Identity(){"\n"}
-                          {"        "}self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size, padding=<span className="text-amber-300">'same'</span>){"\n"}
-                          {"        "}self.bn2 = nn.BatchNorm1d(out_channels) <span className="text-fuchsia-400">if</span> {engineConfig.batchNorm ? "True" : "False"} <span className="text-fuchsia-400">else</span> nn.Identity(){"\n"}
-                          {"        "}self.dropout = nn.Dropout({(engineConfig as any).dropout || 0}){"\n\n"}
-                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">forward</span>(self, x):{"\n"}
-                          {"        "}res = x{"\n"}
-                          {"        "}x = F.{engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.bn1(self.conv1(x))){"\n"}
-                          {"        "}x = self.dropout(x){"\n"}
-                          {"        "}x = self.bn2(self.conv2(x)){"\n"}
-                          {"        "}<span className="text-fuchsia-400">return</span> F.{engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(x + res){"\n\n"}
-                          
-                          <span className="text-blue-400">class</span> <span className="text-emerald-300">XRDPhaseIDModel</span>(nn.Module):{"\n"}
-                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__init__</span>(self, num_classes={MATERIAL_DB.length}, kernel_size={engineConfig.kernelSize}):{"\n"}
-                          {"        "}<span className="text-blue-400">super</span>().__init__(){"\n"}
-                          {"        "}self.augment = XRDDataAugmentation(){"\n"}
-                          {"        "}self.attn = nn.MultiheadAttention(1, 1) <span className="text-fuchsia-400">if</span> {(engineConfig as any).attentionMechanism ? 'True' : 'False'} <span className="text-fuchsia-400">else</span> <span className="text-blue-400">None</span>{"\n"}
-                          {"        "}self.initial_conv = nn.Conv1d(1, {engineConfig.filters || 32}, kernel_size, padding=<span className="text-amber-300">'same'</span>){"\n"}
-                          {"        "}self.blocks = nn.ModuleList([{"\n"}
-                          {"            "}ResidualBlock1D({engineConfig.filters || 32}, {engineConfig.filters || 32}, kernel_size){"\n"}
-                          {"            "}<span className="text-fuchsia-400">for</span> _ <span className="text-fuchsia-400">in</span> <span className="text-cyan-300">range</span>({Math.floor((engineConfig.depth || 50) / 10)}){"\n"}
-                          {"        "})]{"\n"}
-                          {"        "}self.pool = nn.{engineConfig.pooling === 'max' ? 'MaxPool1d' : 'AvgPool1d'}(2){"\n"}
-                          {"        "}self.fc = nn.Linear(({engineConfig.filters || 32} * 100), num_classes){"\n\n"}
-                          
-                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">forward</span>(self, x):{"\n"}
-                          {"        "}x = self.augment(x){"\n"}
-                          {"        "}<span className="text-fuchsia-400">if</span> self.attn:{"\n"}
-                          {"            "}x_permuted = x.permute(2, 0, 1){"\n"}
-                          {"            "}attn_out, _ = self.attn(x_permuted, x_permuted, x_permuted){"\n"}
-                          {"            "}x = attn_out.permute(1, 2, 0){"\n"}
-                          {"        "}x = F.{engineConfig.activation ? (engineConfig.activation.toLowerCase() === 'relu' ? 'relu' : (engineConfig.activation.toLowerCase() === 'selu' ? 'selu' : (engineConfig.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.initial_conv(x)){"\n"}
-                          {"        "}<span className="text-fuchsia-400">for</span> block <span className="text-fuchsia-400">in</span> self.blocks:{"\n"}
-                          {"            "}x = block(x){"\n"}
-                          {"            "}x = self.pool(x){"\n"}
-                          {"        "}x = x.view(x.size(0), -1){"\n"}
-                          {"        "}<span className="text-fuchsia-400">return</span> self.fc(x){"\n\n"}
-
-                          <span className="text-slate-500"># --- Dataset & Evaluation Pipeline ---</span>{"\n"}
-                          <span className="text-blue-400">class</span> <span className="text-emerald-300">XRDDataset</span>(torch.utils.data.Dataset):{"\n"}
-                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__init__</span>(self, patterns, labels):{"\n"}
-                          {"        "}self.patterns = torch.FloatTensor(patterns).unsqueeze(1){"\n"}
-                          {"        "}self.labels = torch.LongTensor(labels){"\n\n"}
-                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__len__</span>(self):{"\n"}
-                          {"        "}<span className="text-fuchsia-400">return</span> <span className="text-cyan-300">len</span>(self.patterns){"\n\n"}
-                          {"    "}<span className="text-blue-400">def</span> <span className="text-rose-300">__getitem__</span>(self, idx):{"\n"}
-                          {"        "}<span className="text-fuchsia-400">return</span> self.patterns[idx], self.labels[idx]{"\n\n"}
-
-                          <span className="text-slate-500"># --- Advanced Training Engine ---</span>{"\n"}
-                          <span className="text-blue-400">def</span> <span className="text-rose-300">train_epoch</span>(model, dataloader, optimizer, criterion, device):{"\n"}
-                          {"    "}model.train(){"\n"}
-                          {"    "}total_loss = 0{"\n"}
-                          {"    "}<span className="text-fuchsia-400">for</span> batch_x, batch_y <span className="text-fuchsia-400">in</span> dataloader:{"\n"}
-                          {"        "}batch_x, batch_y = batch_x.to(device), batch_y.to(device){"\n"}
-                          {"        "}optimizer.zero_grad(){"\n"}
-                          {"        "}outputs = model(batch_x){"\n"}
-                          {"        "}loss = criterion(outputs, batch_y){"\n"}
-                          {"        "}loss.backward(){"\n"}
-                          {"        "}optimizer.step(){"\n"}
-                          {"        "}total_loss += loss.item(){"\n"}
-                          {"    "}<span className="text-fuchsia-400">return</span> total_loss / <span className="text-cyan-300">len</span>(dataloader){"\n\n"}
-
-                          <span className="text-slate-500"># --- Model Initialization ---</span>{"\n"}
-                          <span className="text-blue-400">def</span> <span className="text-rose-300">setup_training</span>(model):{"\n"}
-                          {"    "}<span className="text-slate-500"># AdamW optimizer with decoupled weight decay for better regularization</span>{"\n"}
-                          {"    "}optimizer = optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4){"\n"}
-                          {"    "}<span className="text-slate-500"># Cosine annealing scheduler for smooth convergence to global minima</span>{"\n"}
-                          {"    "}scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2){"\n"}
-                          {"    "}<span className="text-slate-500"># CrossEntropyLoss with Label Smoothing to counteract overconfidence</span>{"\n"}
-                          {"    "}criterion = nn.CrossEntropyLoss(label_smoothing=0.1){"\n"}
-                          {"    "}<span className="text-fuchsia-400">return</span> optimizer, scheduler, criterion{"\n\n"}
-
-                          <span className="text-slate-500"># --- Validation Pipeline ---</span>{"\n"}
-                          <span className="text-blue-400">def</span> <span className="text-rose-300">validate_model</span>(model, dataloader, criterion, device):{"\n"}
-                          {"    "}model.eval(){"\n"}
-                          {"    "}total_loss = 0{"\n"}
-                          {"    "}correct = 0{"\n"}
-                          {"    "}total = 0{"\n"}
-                          {"    "}<span className="text-fuchsia-400">with</span> torch.no_grad():{"\n"}
-                          {"        "}<span className="text-fuchsia-400">for</span> batch_x, batch_y <span className="text-fuchsia-400">in</span> dataloader:{"\n"}
-                          {"            "}batch_x, batch_y = batch_x.to(device), batch_y.to(device){"\n"}
-                          {"            "}outputs = model(batch_x){"\n"}
-                          {"            "}loss = criterion(outputs, batch_y){"\n"}
-                          {"            "}total_loss += loss.item(){"\n"}
-                          {"            "}_, predicted = torch.max(outputs.data, 1){"\n"}
-                          {"            "}total += batch_y.size(0){"\n"}
-                          {"            "}correct += (predicted == batch_y).sum().item(){"\n"}
-                          {"    "}accuracy = 100 * correct / total{"\n"}
-                          {"    "}<span className="text-fuchsia-400">return</span> total_loss / <span className="text-cyan-300">len</span>(dataloader), accuracy{"\n\n"}
-
-                          <span className="text-slate-500"># --- Execution & State Persistence ---</span>{"\n"}
-                          <span className="text-blue-400">def</span> <span className="text-rose-300">execute_training_run</span>():{"\n"}
-                          {"    "}device = torch.device(<span className="text-amber-300">"cuda"</span> <span className="text-fuchsia-400">if</span> torch.cuda.is_available() <span className="text-fuchsia-400">else</span> <span className="text-amber-300">"cpu"</span>){"\n"}
-                          {"    "}<span className="text-cyan-300">print</span>(f<span className="text-amber-300">"Initializing XRD Phase Identifier on {'{device}'}..."</span>){"\n"}
-                          {"    "}model = XRDPhaseIDModel().to(device){"\n"}
-                          {"    "}optimizer, scheduler, criterion = setup_training(model){"\n"}
-                          {"    "}best_acc = 0.0{"\n"}
-                          {"    "}epochs = 100{"\n"}
-                          {"    "}<span className="text-slate-500"># dataloaders = get_dataloaders() # Assume implemented</span>{"\n"}
-                          {"    "}<span className="text-fuchsia-400">for</span> epoch <span className="text-fuchsia-400">in</span> <span className="text-cyan-300">range</span>(epochs):{"\n"}
-                          {"        "}<span className="text-slate-500"># train_loss = train_epoch(model, dataloaders['train'], optimizer, criterion, device)</span>{"\n"}
-                          {"        "}<span className="text-slate-500"># val_loss, val_acc = validate_model(model, dataloaders['val'], criterion, device)</span>{"\n"}
-                          {"        "}scheduler.step(){"\n"}
-                          {"        "}<span className="text-slate-500"># if val_acc &gt; best_acc:</span>{"\n"}
-                          {"        "}<span className="text-slate-500">#     best_acc = val_acc</span>{"\n"}
-                          {"        "}<span className="text-slate-500">#     torch.save(model.state_dict(), "best_xrd_model.pth")</span>{"\n"}
-                          {"    "}<span className="text-cyan-300">print</span>(<span className="text-amber-300">"Training complete. Weights saved to optimal checkpoint."</span>){"\n"}
+                      <pre className="p-4 sm:p-6 overflow-x-auto text-[11px] sm:text-xs font-mono leading-relaxed text-slate-300 custom-scrollbar max-h-[450px]">
+                        <code className="block flex flex-col gap-0.5">
+                          {getPythonEngineCode(pythonArch, engineConfig).split('\n').map((line, idx) => (
+                            <div key={idx} className="hover:bg-white/5 px-2 py-0.5 rounded transition-all flex items-start">
+                              <span className="text-[10px] text-slate-600 select-none w-8 text-right pr-3 font-mono pt-0.5">{idx + 1}</span>
+                              <span className="whitespace-pre flex-1 font-mono">{colorizeLine(line)}</span>
+                            </div>
+                          ))}
                         </code>
                       </pre>
                     </div>

@@ -18,7 +18,9 @@ import {
   Sparkles, 
   FlaskConical, 
   FileText, 
-  Sliders 
+  Sliders,
+  AlertTriangle,
+  Info 
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -26,7 +28,8 @@ import {
   Line, 
   XAxis, 
   YAxis, 
-  ReferenceArea 
+  ReferenceArea,
+  ReferenceLine
 } from 'recharts';
 
 interface DiffractionCompareModuleProps {
@@ -193,6 +196,72 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   };
 
   // ----------------------------------------------------
+  // Match & Residual Diagnostics Logic
+  // ----------------------------------------------------
+  const analysis = useMemo(() => {
+    const parsePatternToPeaks = (mat: any) => {
+      if (!mat) return [];
+      if (mat.isUserSample) {
+        return (mat.results || []).map((r: any) => ({
+          twoTheta: r.twoTheta,
+          intensity: r.intensity !== undefined ? r.intensity : 100
+        }));
+      }
+      const pattern = mat.pattern || '';
+      return pattern.split(',').map((s: string) => {
+        const [thetaStr] = s.split('(');
+        return {
+          twoTheta: parseFloat(thetaStr.trim()),
+          intensity: 100
+        };
+      }).filter((p: any) => !isNaN(p.twoTheta));
+    };
+
+    const pA = parsePatternToPeaks(materialA);
+    const pB = parsePatternToPeaks(materialB);
+
+    const shifts: { peak: number; shift: number; type: string }[] = [];
+    const missingInA: number[] = [];
+    const extraInA: number[] = [];
+
+    // Find shifts and extra peaks in A compared to reference B
+    pA.forEach((peakA: any) => {
+      // Find closest reference peak in B within 1.0 degrees
+      const closestRef = pB.reduce((prev: any, curr: any) => {
+        if (!prev) return curr;
+        return Math.abs(curr.twoTheta - peakA.twoTheta) < Math.abs(prev.twoTheta - peakA.twoTheta) ? curr : prev;
+      }, null);
+
+      if (closestRef && Math.abs(closestRef.twoTheta - peakA.twoTheta) <= 0.6) {
+        const shiftVal = peakA.twoTheta - closestRef.twoTheta;
+        if (Math.abs(shiftVal) >= 0.005) {
+          shifts.push({
+            peak: peakA.twoTheta,
+            shift: shiftVal,
+            type: shiftVal > 0 ? 'higher' : 'lower'
+          });
+        }
+      } else {
+        extraInA.push(peakA.twoTheta);
+      }
+    });
+
+    // Find missing peaks in A that are expected in Reference B
+    pB.forEach((peakB: any) => {
+      const closestA = pA.reduce((prev: any, curr: any) => {
+        if (!prev) return curr;
+        return Math.abs(curr.twoTheta - peakB.twoTheta) < Math.abs(prev.twoTheta - peakB.twoTheta) ? curr : prev;
+      }, null);
+
+      if (!closestA || Math.abs(closestA.twoTheta - peakB.twoTheta) > 0.6) {
+        missingInA.push(peakB.twoTheta);
+      }
+    });
+
+    return { shifts, missingInA, extraInA };
+  }, [materialA, materialB]);
+
+  // ----------------------------------------------------
   // Simulated Pattern Generator
   // ----------------------------------------------------
   const generateChartData = (matA: any, matB: any) => {
@@ -226,10 +295,10 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
 
     const points = [];
     for (let x = minTheta; x <= maxTheta; x += step) {
-      let intensityA = Math.random() * 1.5 + 2; // simulated instrument noise floor
-      let intensityB = Math.random() * 1.5 + 2; 
+      let intensityA = Math.random() * 0.5 + 1.5; // low experimental noise
+      let intensityB = Math.random() * 0.5 + 1.5; 
 
-      const hwA = 0.08; // width factor
+      const hwA = 0.12; // narrow width
       peaksA.forEach(p => {
         const diff = x - p.twoTheta;
         if (Math.abs(diff) < 2.0) {
@@ -239,7 +308,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         }
       });
 
-      const hwB = 0.08;
+      const hwB = 0.12;
       peaksB.forEach(p => {
         const diff = x - p.twoTheta;
         if (Math.abs(diff) < 2.0) {
@@ -249,10 +318,15 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
         }
       });
 
+      const finalA = Math.min(100, intensityA);
+      const finalB = Math.min(100, intensityB);
+      const difference = finalA - finalB;
+
       points.push({
         twoTheta: Number(x.toFixed(2)),
-        intensityA: Number(intensityA.toFixed(1)),
-        intensityB: Number(intensityB.toFixed(1)),
+        intensityA: Number(finalA.toFixed(1)),
+        intensityB: Number(finalB.toFixed(1)),
+        difference: Number(difference.toFixed(1)),
       });
     }
 
@@ -633,9 +707,108 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
       </div>
 
       {/* ----------------------------------------------------
+          Diagnostics & Shift Analyzer Panel
+          ---------------------------------------------------- */}
+      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-5 h-5 text-indigo-400" />
+            <span className="text-sm font-black uppercase text-white tracking-wider">{t('Diffraction Match & Residual Diagnostics')}</span>
+          </div>
+          <span className="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 rounded-full border border-emerald-500/15 font-mono">
+            {t('Residual Analyzer v1.5')}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          {/* Position shift analysis column */}
+          <div className="bg-black/40 p-4 border border-slate-800 rounded-xl space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded bg-amber-500"></span>
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('Position Shift Analysis')}</h4>
+            </div>
+            
+            <div className="h-[120px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
+              {analysis.shifts.length > 0 ? (
+                analysis.shifts.map((s, idx) => (
+                  <div key={idx} className="flex justify-between items-center bg-slate-900/60 p-2 rounded border border-slate-800/80">
+                    <span className="text-[10px] font-mono font-bold text-slate-300">2θ ≈ {s.peak.toFixed(2)}°</span>
+                    <span className={`text-[9px] font-black font-mono px-1.5 py-0.5 rounded ${
+                      s.shift > 0 ? 'bg-amber-500/15 text-amber-400' : 'bg-rose-500/15 text-rose-400'
+                    }`}>
+                      {s.shift > 0 ? `+${s.shift.toFixed(3)}°` : `${s.shift.toFixed(3)}°`}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-[10px] text-slate-500 italic py-4 text-center">{t('No significant shift detected')}</div>
+              )}
+            </div>
+            <p className="text-[8px] text-slate-500 leading-normal">
+              {t('Peak shifts reveal systematic unit cell expansion or contraction, often due to dopant substitution or lattice strains.')}
+            </p>
+          </div>
+
+          {/* Missing / Suppressed peaks column */}
+          <div className="bg-black/40 p-4 border border-slate-800 rounded-xl space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded bg-red-500"></span>
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('Suppressed / Missing Peaks')}</h4>
+            </div>
+
+            <div className="h-[120px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
+              {analysis.missingInA.length > 0 ? (
+                analysis.missingInA.map((theta, idx) => (
+                  <div key={idx} className="flex justify-between items-center bg-slate-900/60 p-2 rounded border border-slate-800/80">
+                    <span className="text-[10px] font-mono text-slate-400 font-bold">{t('Ref Database Peak')}</span>
+                    <span className="text-[10px] font-black font-mono text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">
+                      {theta.toFixed(2)}°
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-[10px] text-slate-500 italic py-4 text-center">{t('No suppressed reference peaks')}</div>
+              )}
+            </div>
+            <p className="text-[8px] text-slate-500 leading-normal">
+              {t('Suppressed or missing peaks denote low crystallite size/crystallinity, or highly oriented sample alignment.')}
+            </p>
+          </div>
+
+          {/* Extra secondary phases column */}
+          <div className="bg-black/40 p-4 border border-slate-800 rounded-xl space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded bg-indigo-500"></span>
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('Impurities / Extra Peaks')}</h4>
+            </div>
+
+            <div className="h-[120px] overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800 pr-1">
+              {analysis.extraInA.length > 0 ? (
+                analysis.extraInA.map((theta, idx) => (
+                  <div key={idx} className="flex justify-between items-center bg-slate-900/60 p-2 rounded border border-slate-800/80">
+                    <span className="text-[10px] font-mono text-slate-450 font-bold">{t('Atypical Peak')}</span>
+                    <span className="text-[10px] font-black font-mono text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded">
+                      {theta.toFixed(2)}°
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-[10px] text-slate-500 italic py-4 text-center">{t('No secondary phases detected')}</div>
+              )}
+            </div>
+            <p className="text-[8px] text-slate-505 leading-normal">
+              {t('Atypical peaks point to unreacted precursors, secondary reaction pathways or organic mineral contaminants.')}
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ----------------------------------------------------
           Visual Spectral Diff/Compare Charts
           ---------------------------------------------------- */}
-      <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 h-[800px] w-full flex flex-col relative overflow-hidden">
+      <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 h-[960px] w-full flex flex-col relative overflow-hidden">
         <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
         
         <div className="flex items-center justify-between mb-4 relative z-10">
@@ -648,7 +821,7 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                 {t('Spectral Diff Overlay')}
               </h3>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 flex gap-2 items-center">
-                <span>{t('Experimental (Sample A) vs Reference (Sample B)')}</span>
+                <span>{t('Experimental (Sample A) vs Reference (Sample B) & Intensity Residuals')}</span>
                 <span className="px-1.5 py-0.5 bg-slate-800 rounded font-mono text-[8px] text-slate-400 border border-slate-700">{t('Drag to Zoom')}</span>
               </p>
             </div>
@@ -656,20 +829,20 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
 
           {isZoomedIn && (
             <div className="flex items-center gap-2">
-              <button onClick={panLeft} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Pan Left">
+              <button onClick={panLeft} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title={t('Pan Left')}>
                 <ArrowLeft className="w-4 h-4" />
               </button>
-              <button onClick={panRight} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Pan Right">
+              <button onClick={panRight} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title={t('Pan Right')}>
                 <ArrowRight className="w-4 h-4" />
               </button>
               <div className="w-px h-4 bg-slate-700 mx-1"></div>
-              <button onClick={zoomInStep} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Zoom In">
+              <button onClick={zoomInStep} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title={t('Zoom In')}>
                 <ZoomIn className="w-4 h-4" />
               </button>
-              <button onClick={zoomOutStep} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Zoom Out">
+              <button onClick={zoomOutStep} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title={t('Zoom Out')}>
                  <ZoomOut className="w-4 h-4" />
               </button>
-              <button onClick={zoomOut} className="flex items-center gap-1.5 ml-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30" title="Reset">
+              <button onClick={zoomOut} className="flex items-center gap-1.5 ml-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30" title={t('Reset')}>
                  <RotateCcw className="w-3 h-3" />
                  {t('Reset Zoom')}
               </button>
@@ -707,14 +880,14 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                   tick={{ fontSize: 11, fill: '#000', fontFamily: 'sans-serif' }}
                   axisLine={{ stroke: '#000' }}
                   tickLine={{ stroke: '#000' }}
-                  label={{ value: t('Position [°2Theta]'), position: 'bottom', offset: 0, fill: '#000', fontSize: 12 }}
+                  label={{ value: t('Position [°2Theta]'), position: 'bottom', offset: 0, fill: '#000', fontSize: 11 }}
                 />
                 <YAxis 
-                  domain={[0, 120]} 
+                  domain={[0, 110]} 
                   tick={{ fontSize: 11, fill: '#000' }}
                   axisLine={{ stroke: '#000' }}
                   tickLine={{ stroke: '#000' }}
-                  label={{ value: t('Counts'), angle: -90, position: 'insideTopLeft', fill: '#000', fontSize: 12, dy: 30, dx: 15 }}
+                  label={{ value: t('Counts'), angle: -90, position: 'insideTopLeft', fill: '#000', fontSize: 11, dy: 30, dx: 15 }}
                 />
                 <Line 
                   type="monotone" 
@@ -786,11 +959,11 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                   tickLine={{ stroke: '#fff' }}
                 />
                 <YAxis 
-                  domain={[0, 120]} 
+                  domain={[0, 110]} 
                   tick={{ fontSize: 11, fill: '#fff' }}
                   axisLine={{ stroke: '#fff' }}
                   tickLine={{ stroke: '#fff' }}
-                  label={{ value: t('Counts'), angle: -90, position: 'insideTopLeft', fill: '#fff', fontSize: 12, dy: 30, dx: 15 }}
+                  label={{ value: t('Counts'), angle: -90, position: 'insideTopLeft', fill: '#fff', fontSize: 11, dy: 30, dx: 15 }}
                 />
                 <Line 
                   type="monotone" 
@@ -809,6 +982,71 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
                      fillOpacity={0.5}
                    />
                  ) : null}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Third Chart Separator */}
+          <div className="bg-[#e2e8f0] border-t border-slate-400 h-1" />
+
+          <div className="bg-[#e6e6e6] text-[#333] px-2 py-0.5 text-[10px] font-sans border-x border-[#b1b1b1] font-bold flex justify-between">
+            <span>{t('Delta Residual Profile (I_Experimental - I_Reference)')}</span>
+            <span className="text-[9px] text-[#b45309] uppercase font-black tracking-widest">{t('Residual Curve')}</span>
+          </div>
+
+          {/* Third Chart: Residual / Math Difference graph */}
+          <div className="flex-[2] w-full bg-slate-900 relative border-2 border-slate-400">
+            <div className="absolute top-2 left-16 text-amber-400 text-[11px] font-mono font-black z-10 px-1.5 py-0.5 rounded bg-black/90 border border-slate-800 shadow-sm flex items-center gap-1.5">
+               <Sparkles className="w-3 h-3 text-amber-400" />
+               <span>{t('Δ Residual Intensity')}</span>
+            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                syncId="compareSync"
+                data={points}
+                margin={{ top: 25, right: 10, bottom: 20, left: 10 }}
+                onMouseDown={(e: any) => e && setRefAreaLeft(e.activeLabel)}
+                onMouseMove={(e: any) => refAreaLeft && e && setRefAreaRight(e.activeLabel)}
+                onMouseUp={zoom}
+                onMouseLeave={() => {
+                  setRefAreaLeft(null);
+                  setRefAreaRight(null);
+                }}
+              >
+                <XAxis 
+                  dataKey="twoTheta" 
+                  type="number"
+                  domain={[left, right]}
+                  allowDataOverflow={true}
+                  tick={{ fontSize: 11, fill: '#94a3b8', fontFamily: 'sans-serif' }}
+                  axisLine={{ stroke: '#cbd5e1' }}
+                  tickLine={{ stroke: '#cbd5e1' }}
+                />
+                <YAxis 
+                  domain={[-100, 100]} 
+                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  axisLine={{ stroke: '#cbd5e1' }}
+                  tickLine={{ stroke: '#cbd5e1' }}
+                  label={{ value: t('Difference'), angle: -90, position: 'insideTopLeft', fill: '#94a3b8', fontSize: 11, dy: 30, dx: 15 }}
+                />
+                <ReferenceLine y={0} stroke="#e2e8f0" strokeWidth={1} strokeDasharray="3 3"/>
+                <Line 
+                  type="monotone" 
+                  dataKey="difference" 
+                  stroke="#fbbf24" 
+                  strokeWidth={1.5}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+                {refAreaLeft && refAreaRight ? (
+                   <ReferenceArea
+                     x1={refAreaLeft}
+                     x2={refAreaRight}
+                     strokeOpacity={0.5}
+                     fill="#1d4ed8"
+                     fillOpacity={0.3}
+                   />
+                ) : null}
               </ComposedChart>
             </ResponsiveContainer>
           </div>
