@@ -370,6 +370,63 @@ Provide the response in structured markdown with the following specific sections
     });
   });
 
+  // Machine Learning Python Neural Network Training Endpoint
+  app.post("/api/gemini/train-neural-net", async (req, res) => {
+    const { 
+      epochs, 
+      learningRate, 
+      batchSize, 
+      optimizer, 
+      architecture, 
+      noiseLevel, 
+      backgroundDrift, 
+      strainRange, 
+      broadeningRange,
+      dropout,
+      activation
+    } = req.body;
+    
+    try {
+      const scriptPath = path.join(__dirname, "utils", "trainNeuralNet.py");
+      
+      const epochsVal = Number(epochs) || 40;
+      const lrVal = Number(learningRate) || 0.005;
+      const bsVal = Number(batchSize) || 32;
+      const optVal = String(optimizer) || "Adam";
+      const archVal = String(architecture) || "Deep MLP";
+      const noiseVal = (Number(noiseLevel) || 10) / 100.0;
+      const bgVal = Number(backgroundDrift) || 5.0;
+      const strainVal = (Number(strainRange) || 2) / 100.0;
+      const broadVal = Number(broadeningRange) || 0.25;
+      const dropVal = Number(dropout) || 0.0;
+      const actVal = String(activation) || "GELU";
+
+      const cmd = `python3 "${scriptPath}" --epochs=${epochsVal} --lr=${lrVal} --batch_size=${bsVal} --optimizer="${optVal}" --architecture="${archVal}" --noise_level=${noiseVal} --background_drift=${bgVal} --strain_range=${strainVal} --broadening_range=${broadVal} --dropout=${dropVal} --activation="${actVal}"`;
+
+      const { exec } = await import("child_process");
+      
+      exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+          console.error("Python Training Execution Error:", error, stderr);
+          res.status(500).json({ success: false, error: "Error executing Python Neural Net Training: " + stderr });
+          return;
+        }
+
+        try {
+          const results = JSON.parse(stdout.trim());
+          res.json(results);
+        } catch (parseError) {
+          console.error("Failed to parse Python Training output:", stdout, parseError);
+          res.status(500).json({ success: false, error: "Failed to parse Python Training output: " + stdout });
+        }
+      });
+      
+    } catch (error: any) {
+      console.error("Neural Net Training Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Machine Learning Python RAG Analysis Endpoint
   app.post("/api/gemini/rag-analysis", async (req, res) => {
     const { experimental_peaks, customKey } = req.body;

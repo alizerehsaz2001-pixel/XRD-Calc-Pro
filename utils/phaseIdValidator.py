@@ -372,6 +372,62 @@ class CrystallineVectorDatabase:
         cursor.execute("SELECT name, formula, crystal_system, space_group, density, peaks_json, description FROM material_standards")
         rows = cursor.fetchall()
         
+        # Load custom NumPy-MLP neural network weights if trained and available on server
+        mlp_probs = {}
+        has_mlp = False
+        mlp_arch = "None"
+        mlp_acc = 0.0
+        try:
+            import os
+            weights_path = "/tmp/trained_xrd_mlp_weights.json"
+            if os.path.exists(weights_path):
+                with open(weights_path, "r") as fp:
+                    model_data = json.load(fp)
+                
+                # Transform experimental peaks to continuous 1D spectrum vector matching MLP input dimensions (120 pts)
+                two_theta_grid = np.linspace(10.0, 90.0, 120)
+                spectrum = np.zeros(120, dtype=np.float32)
+                for p in experimental_peaks:
+                    pos = p['two_theta']
+                    val = p['intensity']
+                    kernel = np.exp(-0.5 * ((two_theta_grid - pos) / 0.4) ** 2)
+                    spectrum += val * kernel
+                norm = np.linalg.norm(spectrum)
+                if norm > 0:
+                    spectrum /= norm
+                
+                # Retrieve architecture matrices
+                weights = [np.array(w) for w in model_data["weights"]]
+                biases = [np.array(b) for b in model_data["biases"]]
+                act_name = model_data.get("activation_name", "GELU")
+                classes = model_data.get("classes", [])
+                mlp_arch = model_data.get("architecture", "Deep MLP")
+                mlp_acc = model_data.get("accuracy", 85.0)
+                
+                # Execute forward propagation pass
+                current = spectrum.reshape(1, -1)
+                for i in range(len(weights) - 1):
+                    z = np.dot(current, weights[i]) + biases[i]
+                    if act_name == "ReLU":
+                        current = np.maximum(0, z)
+                    elif act_name == "LeakyReLU":
+                        current = np.where(z > 0, z, z * 0.1)
+                    elif act_name == "GELU":
+                        current = 0.5 * z * (1.0 + np.tanh(np.sqrt(2.0 / np.pi) * (z + 0.044715 * (z ** 3))))
+                    else:
+                        current = 1.0 / (1.0 + np.exp(-np.clip(z, -20, 20)))
+                
+                # Softmax layer output
+                z_out = np.dot(current, weights[-1]) + biases[-1]
+                exp_vals = np.exp(z_out - np.max(z_out, axis=1, keepdims=True))
+                probs = (exp_vals / np.sum(exp_vals, axis=1, keepdims=True))[0]
+                
+                for cls_name, prob in zip(classes, probs):
+                    mlp_probs[cls_name] = float(prob)
+                has_mlp = True
+        except Exception as mlp_err:
+            print("MLP forward solver warning:", mlp_err, file=sys.stderr)
+
         results = []
         for row in rows:
             name, formula, crystal_system, space_group, density, peaks_json, description = row
@@ -387,12 +443,7 @@ class CrystallineVectorDatabase:
             val_score = validate_phase_id(experimental_peaks, ref_peaks, tolerance=0.3)
             
             # Calculate physical crystallite size via the Scherrer Equation
-            # D = K * lambda / (B * cos(theta))
-            # K = 0.94 constant shape factor, lambda = 0.154056 nm (Cu K-alpha radiation)
-            # opt_sigma is standard deviation of Gaussian in degrees. Peak FWHM approx 2.3548 * opt_sigma (degrees)
-            # convert FWHM to radians = FWHM_deg * (pi / 180)
             try:
-                # Find maximum intensity reference peak to locate dominant diffraction theta
                 max_ref_peak = max(ref_peaks, key=lambda x: x["intensity"])
                 theta_rad = math.radians(max_ref_peak["two_theta"] / 2.0)
                 fwhm_deg = 2.35482 * opt_sigma
@@ -405,6 +456,14 @@ class CrystallineVectorDatabase:
             except:
                 domain_size_nm = 0.0
             
+            # Blend continuous Bragg correlation with deep learning model's output class probability
+            mlp_prob = mlp_probs.get(name, 0.0) if has_mlp else None
+            if mlp_prob is not None:
+                # 60% weight on continuous fit similarity, 40% weight on deep neural classifier likelihood
+                combined_similarity = 0.6 * opt_similarity + 0.4 * mlp_prob
+            else:
+                combined_similarity = opt_similarity
+
             results.append({
                 "name": name,
                 "formula": formula,
@@ -414,14 +473,18 @@ class CrystallineVectorDatabase:
                 "reference_peaks": ref_peaks,
                 "alignment_similarity": similarity,
                 "optimized_similarity": opt_similarity,
+                "combined_similarity": combined_similarity,
                 "fitted_strain_pct": opt_strain * 100.0,
                 "fitted_domain_size_broadening": opt_sigma,
                 "estimated_crystallite_size_nm": float(domain_size_nm),
                 "validation_score": val_score,
-                "description": description
+                "description": description,
+                "mlp_class_probability": mlp_prob * 100.0 if mlp_prob is not None else None,
+                "mlp_trained_accuracy": mlp_acc if has_mlp else None,
+                "mlp_architecture_type": mlp_arch if has_mlp else None
             })
             
-        results.sort(key=lambda x: x["optimized_similarity"], reverse=True)
+        results.sort(key=lambda x: x["combined_similarity"], reverse=True)
         return results[:top_k]
 
 
@@ -447,6 +510,11 @@ class PythonCrystallineRAGPipeline:
             grounding_context += f"[Phase {idx+1}] Matched: {cand['name']} ({cand['formula']})\n"
             grounding_context += f"• Raw Lattice Similarity: {cand['alignment_similarity']*100:.1f}%\n"
             grounding_context += f"• Optimized Lattice Alignment Score: {cand['optimized_similarity']*100:.1f}%\n"
+            if cand.get('mlp_class_probability') is not None:
+                grounding_context += f"• Deep Learning Neural Net Classifier Probability: {cand['mlp_class_probability']:.2f}% (Model: {cand['mlp_architecture_type']}, CV Accuracy: {cand['mlp_trained_accuracy']}%) \n"
+                grounding_context += f"• Physics-ML Hybrid Combined Similarity score: {cand['combined_similarity']*100:.1f}%\n"
+            else:
+                grounding_context += f"• Physics-ML Hybrid Combined Similarity score: {cand['optimized_similarity']*100:.1f}%\n"
             grounding_context += f"• Machine Learning Fitted Lattice Strain (dL/L): {cand['fitted_strain_pct']:.3f}%\n"
             grounding_context += f"• Broadening Scale (domain size): {cand['fitted_domain_size_broadening']:.2f}°\n"
             if cand.get('estimated_crystallite_size_nm', 0.0) > 0.0:
