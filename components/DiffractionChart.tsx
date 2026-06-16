@@ -12,7 +12,7 @@ import {
   Scatter,
   ReferenceArea
 } from 'recharts';
-import { Activity, Terminal, RotateCcw, Tag, Camera } from 'lucide-react';
+import { Activity, Terminal, RotateCcw, Tag, Camera, ArrowLeft, ArrowRight, ZoomIn, ZoomOut } from 'lucide-react';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
 
@@ -103,6 +103,45 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
     setRight('dataMax + 5');
     setRefAreaLeft(null);
     setRefAreaRight(null);
+  };
+
+  const panLeft = () => {
+    if (typeof left === 'number' && typeof right === 'number') {
+      const range = right - left;
+      const shift = Math.max(5, range * 0.1);
+      setLeft(left - shift);
+      setRight(right - shift);
+    }
+  };
+
+  const panRight = () => {
+    if (typeof left === 'number' && typeof right === 'number') {
+      const range = right - left;
+      const shift = Math.max(5, range * 0.1);
+      setLeft(left + shift);
+      setRight(right + shift);
+    }
+  };
+
+  const zoomInStep = () => {
+    if (typeof left === 'number' && typeof right === 'number') {
+      const range = right - left;
+      const shift = range * 0.1;
+      setLeft(left + shift);
+      setRight(right - shift);
+    } else {
+      setLeft(10);
+      setRight(90);
+    }
+  };
+
+  const zoomOutStep = () => {
+    if (typeof left === 'number' && typeof right === 'number') {
+      const range = right - left;
+      const shift = range * 0.1;
+      setLeft(left - shift);
+      setRight(right + shift);
+    }
   };
 
   const isZoomedIn = left !== 'dataMin - 5' || right !== 'dataMax + 5';
@@ -246,13 +285,25 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             {t('Take Snapshot', 'Take Snapshot')}
           </button>
           {isZoomedIn && (
-            <button 
-              onClick={zoomOut}
-              className="flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30"
-            >
-              <RotateCcw className="w-3 h-3" />
-              {t('Reset Zoom', 'Reset Zoom')}
-            </button>
+            <div className="flex items-center gap-2 mr-2">
+              <button onClick={panLeft} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Pan Left">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <button onClick={panRight} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Pan Right">
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <div className="w-px h-4 bg-slate-700 mx-1"></div>
+              <button onClick={zoomInStep} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Zoom In">
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <button onClick={zoomOutStep} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Zoom Out">
+                 <ZoomOut className="w-4 h-4" />
+              </button>
+              <button onClick={zoomOut} className="flex items-center gap-1.5 ml-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30" title="Reset">
+                 <RotateCcw className="w-3 h-3" />
+                 {t('Reset Zoom', 'Reset Zoom')}
+              </button>
+            </div>
           )}
           <div className="flex items-center gap-3 bg-black/40 px-4 py-1.5 rounded-2xl border border-slate-800/50">
              <Terminal className="w-3 h-3 text-slate-600" />
