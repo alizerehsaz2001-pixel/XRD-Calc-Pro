@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
 import { Filter, SlidersHorizontal, RefreshCw } from 'lucide-react';
+import { ScientificMathControl } from './ScientificMathControl';
 
 interface ResultsTableProps {
   results: BraggResult[];
@@ -98,6 +99,21 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-300 dark:border-slate-800 overflow-hidden flex flex-col min-h-[400px] transition-colors ResultsTable">
+      <div className="p-2 px-4 shadow-sm z-10">
+        <ScientificMathControl
+          title="Bragg's Law Verification"
+          formula="\lambda = 2 d \sin \theta \implies d = \frac{\lambda}{2 \sin \theta}"
+          description="Verification of the core X-ray crystal scattering condition for the primary indexed peak."
+          variables={results.length > 0 ? [
+            { symbol: 'n', name: 'Order of reflection', value: 1, unit: '' },
+            { symbol: 'θ', name: 'Bragg Angle', value: ((results[0].twoTheta / 2) * Math.PI / 180), unit: 'rad' },
+            { symbol: 'λ', name: 'Scattering Wavelength', value: (2 * results[0].dSpacing * Math.sin((results[0].twoTheta / 2) * Math.PI / 180)), unit: 'Å' }
+          ] : []}
+          result={results.length > 0 ? results[0].dSpacing : 0}
+          resultUnit="Å"
+          resultName="Calculated D-Spacing"
+        />
+      </div>
       <div className="p-4 border-b border-slate-300 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/50 flex flex-col sm:flex-row gap-4 justify-between sm:items-center">
         <div className="flex items-center gap-2">
           <h3 className="font-bold text-slate-800 dark:text-slate-100">{t('Calculated Data')}</h3>

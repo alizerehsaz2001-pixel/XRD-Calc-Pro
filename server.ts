@@ -421,6 +421,48 @@ Provide the response in structured markdown with the following specific sections
     }
   });
 
+  // Machine Learning Python RAG Database Search Endpoint
+  app.post("/api/gemini/rag-database", async (req, res) => {
+    const { query, customKey } = req.body;
+    try {
+      if (!query || typeof query !== "string") {
+        res.status(400).json({ success: false, error: "A valid search query is required." });
+        return;
+      }
+
+      const apiKeyToUse = customKey || process.env.GEMINI_API_KEY || "";
+      if (!apiKeyToUse) {
+        res.status(400).json({ success: false, error: "Gemini API key is missing." });
+        return;
+      }
+
+      const scriptPath = path.join(__dirname, "utils", "dbRagAgent.py");
+      
+      const { exec } = await import("child_process");
+      
+      exec(`python3 "${scriptPath}" --query=${JSON.stringify(query)} --api_key="${apiKeyToUse}"`, (error, stdout, stderr) => {
+        if (error) {
+          console.error("Python DB RAG Execution Error:", error, stderr);
+          res.status(500).json({ success: false, error: "Error executing Python DB RAG: " + stderr });
+          return;
+        }
+
+        try {
+          // Output may contain debug logs, find the first '{' for json, but better to just parse
+          const results = JSON.parse(stdout.trim());
+          res.json(results);
+        } catch (parseError) {
+          console.error("Failed to parse Python DB RAG output:", stdout, parseError);
+          res.status(500).json({ success: false, error: "Failed to parse Python DB RAG output" });
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Gemini RAG Database Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

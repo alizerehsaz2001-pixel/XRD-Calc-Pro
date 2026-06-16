@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
+import { ScientificMathControl } from './ScientificMathControl';
 
 interface LatticeEstimatorProps {
   results: BraggResult[];
@@ -444,6 +445,19 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
         </div>
       ) : fitResults ? (
         <div className="space-y-6">
+          <ScientificMathControl
+            title="Lattice Parameters Mathematical Verification"
+            formula={crystalSystem === 'Cubic' ? "a = d \\sqrt{h^2 + k^2 + l^2}" : "\\frac{1}{d^2} = \\frac{h^2 + k^2}{a^2} + \\frac{l^2}{c^2}"}
+            description="Least-Squares Refinement regression verifying unit cell dimensions."
+            variables={[
+              { symbol: 'd(avg)', name: 'Average D-Spacing', value: validReflections.reduce((acc, curr) => acc + curr.original.dSpacing, 0)/validReflections.length, unit: 'Å' },
+              { symbol: 'Peaks', name: 'Reflections', value: validReflections.length, unit: '' }
+            ]}
+            result={fitResults.a}
+            resultUnit="Å"
+            resultName="Lattice Parameter a"
+          />
+
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {/* Lattice param a */}
             <div className="bg-slate-50 dark:bg-slate-950 p-4.5 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-inner flex flex-col justify-center">

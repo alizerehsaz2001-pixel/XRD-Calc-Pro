@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { RotateCcw, Activity, Zap, Box, Layers, Scan, CheckCircle } from 'lucide-react';
 import { simulatePeak } from '../utils/physics';
 import { FWHMResult } from '../types';
+import { ScientificMathControl } from './ScientificMathControl';
 import {
   ComposedChart,
   Area,
@@ -846,6 +847,21 @@ export const FWHMModule: React.FC = () => {
                 </div>
               </div>
            </div>
+        </div>
+
+        <div className="mb-6">
+          <ScientificMathControl
+            title="Pseudo-Voigt Peak Shape Math Verification"
+            formula="I(\theta) = \eta \cdot L(\theta) + (1-\eta) \cdot G(\theta)"
+            description="Peak Profile convolution check. Validates the analytical area integral calculated by varying Lorentzian and Gaussian domains."
+            variables={[
+              { symbol: 'η', name: 'Lorentzian Fraction', value: eta, unit: '' },
+              { symbol: 'FWHM', name: 'Full Width', value: fwhm, unit: 'deg' }
+            ]}
+            result={stats?.shapeFactor || 0}
+            resultUnit=""
+            resultName="Calculated Shape Factor (φ)"
+          />
         </div>
 
         {/* Contrast Table */}

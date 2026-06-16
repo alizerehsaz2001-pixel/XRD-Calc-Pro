@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, Atom, Binary, ShieldQuestion, Download, RefreshCw, Trash2, Loader2, Database, FlaskConical, Activity, Layers, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ScientificMathControl } from './ScientificMathControl';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -1150,6 +1151,22 @@ export const WilliamsonHallModule: React.FC = () => {
 
       {/* Results */}
       <div className="lg:col-span-8 space-y-6">
+        {result && (
+          <ScientificMathControl
+            title="Williamson-Hall Standard UDM Mathematical Verification"
+            formula="\beta \cos(\theta) = \frac{K \lambda}{D} + 4 \varepsilon \sin(\theta)"
+            description="Uniform Deformation Model (UDM) regression verification. Checking the intercept (Size) and slope (Microstrain) calculation."
+            variables={[
+              { symbol: 'Slope (4ε)', name: 'Regression Slope', value: result.regression.slope, unit: '' },
+              { symbol: 'Intercept', name: 'Y-Intercept', value: result.regression.intercept, unit: 'Å⁻¹' },
+              { symbol: 'K', name: 'Shape Factor', value: calculatedK, unit: '' },
+              { symbol: 'λ', name: 'Wavelength', value: calculatedWavelength, unit: 'Å' }
+            ]}
+            result={result.sizeInterceptNm}
+            resultUnit="nm"
+            resultName="Extrapolated Crystallite Size (D)"
+          />
+        )}
         {/* Results Summary */}
         <div className={`grid grid-cols-1 md:grid-cols-3 ${isModulusEnabled ? 'lg:grid-cols-5' : 'lg:grid-cols-3'} gap-4`}>
            <div className="bg-[#050B14]/90 backdrop-blur-xl p-6 rounded-3xl border border-cyan-500/10 hover:border-cyan-500/30 shadow-inner hover:shadow-[0_10px_40px_rgba(34,211,238,0.1)] relative overflow-hidden group flex flex-col justify-between transition-all duration-500">

@@ -5,6 +5,7 @@ import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, 
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from './SettingsContext';
+import { ScientificMathControl } from './ScientificMathControl';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -660,6 +661,22 @@ export const IntegralBreadthModule: React.FC = () => {
 
       {/* Results Section */}
       <div className="lg:col-span-8 space-y-6">
+        {results && results.length > 0 && results[0] && (
+          <ScientificMathControl
+            title="Integral Breadth Mathematical Verification"
+            formula="\beta = \frac{\text{Area}}{I_{max}}"
+            description="Integral breadth (β) measures profile width based on the ratio of integrated peak intensity to its maximum amplitude, reflecting crystalline size dispersion."
+            variables={[
+              { symbol: 'β_obs', name: 'Observed Integral Breadth', value: results[0].betaObsDeg || results[0].integralBreadthDeg, unit: 'deg' },
+              { symbol: 'β_inst', name: 'Instrumental Broadening', value: results[0].betaInstDeg || 0, unit: 'deg' },
+              { symbol: 'β_sample', name: 'Decoupled Sample Broadening', value: results[0].betaSampleDeg || 0, unit: 'deg' },
+              { symbol: 'φ', name: 'Profile Shape Factor (FWHM/β)', value: results[0].shapeFactorPhi, unit: '' }
+            ]}
+            result={results[0].calcSizeNm}
+            resultUnit="nm"
+            resultName="Crystallite Grain Size (D)"
+          />
+        )}
         {/* Summary Card */}
         <div className="bg-[#0A101C]/80 backdrop-blur-xl p-6 rounded-[2rem] shadow-[0_0_30px_rgba(34,211,238,0.05)] border border-cyan-500/20 flex flex-col sm:flex-row sm:items-center justify-between relative overflow-hidden group hover:border-cyan-500/40 transition-all">
            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-bl-full transition-all group-hover:scale-110 blur-2xl" />

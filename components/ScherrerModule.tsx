@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from './SettingsContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { MorphologyVisualizer } from './MorphologyVisualizer';
+import { ScientificMathControl } from './ScientificMathControl';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -755,6 +756,24 @@ export const ScherrerModule: React.FC = () => {
 
       {/* Results */}
       <div className="lg:col-span-8 space-y-6">
+        
+        {results && results.length > 0 && results[0] && !results[0].error && (
+          <ScientificMathControl
+            title="Scherrer Scientific Check"
+            formula="D_{v} = \frac{K \cdot \lambda}{\beta \cdot \cos(\theta)}"
+            description="Scientific mathematical verification showing exact values fed into the generalized Scherrer calculation for the first recorded diffraction peak."
+            variables={[
+              { symbol: 'K', name: 'Shape Factor', value: constantK, unit: '' },
+              { symbol: 'λ', name: 'Wavelength', value: wavelength, unit: 'Å' },
+              { symbol: 'β', name: 'Broadening', value: ((results[0].fwhmObs - instFwhm) * Math.PI / 180), unit: 'rad' },
+              { symbol: 'θ', name: 'Bragg Angle', value: ((results[0].twoTheta / 2) * Math.PI / 180), unit: 'rad' }
+            ]}
+            result={results[0].sizeNm}
+            resultUnit="nm"
+            resultName="Crystallite Size"
+          />
+        )}
+
         <div className="flex flex-col gap-6 h-full">
           {/* Average Size Summary Card */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">

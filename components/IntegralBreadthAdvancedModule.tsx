@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { parseIBAdvancedInput, calculateIBAdvanced, XRAY_WAVELENGTHS } from '../utils/physics';
 import { IBAdvancedResult } from '../types';
+import { ScientificMathControl } from './ScientificMathControl';
 import {
   ComposedChart,
   Line,
@@ -716,6 +717,22 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
 
       {/* Results */}
       <div className="lg:col-span-8 space-y-6">
+        {result && (
+          <ScientificMathControl
+            title="Advanced Integral Breadth / UDM Verification"
+            formula="\beta \cos(\theta) = \frac{K \lambda}{D} + 4 \varepsilon \sin(\theta)"
+            description="Uniform Deformation Model (UDM) formulation displaying the linear regression line parameters (slope translates to strain, intercept translates to crystallite size)."
+            variables={[
+              { symbol: 'Slope (4ε)', name: 'Microstrain Regression Factor', value: result.regression.slope, unit: '' },
+              { symbol: 'Intercept (c)', name: 'Reciprocal Dimension Intercept', value: result.regression.intercept, unit: 'Å⁻¹' },
+              { symbol: 'R²', name: 'Least-Squares Fit Confidence', value: result.regression.rSquared, unit: '' },
+              { symbol: 'E', name: 'Material Young\'s Modulus', value: youngsModulusGPa, unit: 'GPa' }
+            ]}
+            result={result.sizeInterceptNm}
+            resultUnit="nm"
+            resultName="Crystallite Grain Size (D)"
+          />
+        )}
         {/* Results Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
            {/* Card 1: Microstrain */}

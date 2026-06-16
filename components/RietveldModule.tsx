@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
+import { ScientificMathControl } from './ScientificMathControl';
 
 // --- Simulation Constants & Types ---
 
@@ -2911,6 +2912,22 @@ export const RietveldModule: React.FC = () => {
                           {rFactor < 15 ? 'High Quality Fit' : rFactor < 30 ? 'Moderate Variations' : 'Significant Mismatch'}
                         </span>
                       </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <ScientificMathControl
+                        title="Rietveld Alignment & R-factor Verification"
+                        formula="R_{wp} = \left[ \frac{\sum w_i (y_{i,\text{obs}} - y_{i,\text{calc}})^2}{\sum w_i y_{i,\text{obs}}^2} \right]^{1/2}"
+                        description="Weighted Profile R-factor mathematical estimation. Validates observed vs calculated raw point intensity vectors."
+                        variables={[
+                          { symbol: 'R_wp', name: 'Weighted Profile Residual', value: rFactor, unit: '%' },
+                          { symbol: 'R_exp', name: 'Expected Statistical Minimum', value: referenceRwp, unit: '%' },
+                          { symbol: 'χ²', name: 'Goodness of Fit (GoF / Chi²)', value: Math.pow(rFactor / referenceRwp, 2), unit: '' }
+                        ]}
+                        result={rFactor}
+                        resultUnit="%"
+                        resultName="Observed Quality Index (Rwp)"
+                      />
                     </div>
                     
                     <div className="flex flex-col gap-2.5 relative z-10 pt-2 mb-4 border-t border-slate-800/60 mt-2">
