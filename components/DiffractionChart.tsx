@@ -12,7 +12,7 @@ import {
   Scatter,
   ReferenceArea
 } from 'recharts';
-import { Activity, Terminal, RotateCcw, Tag, Camera, ArrowLeft, ArrowRight, ZoomIn, ZoomOut } from 'lucide-react';
+import { Activity, Terminal, RotateCcw, Tag, Camera, ArrowLeft, ArrowRight, ZoomIn, ZoomOut, MinusCircle } from 'lucide-react';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
 
@@ -34,6 +34,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
 
   // HKL labels toggle
   const [showHKL, setShowHKL] = useState(true);
+  const [smoothChart, setSmoothChart] = useState(false);
+  const [subtractBaseline, setSubtractBaseline] = useState(false);
 
   const takeSnapshot = () => {
     if (!containerRef.current) return;
@@ -182,8 +184,25 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       hkl: r.hkl,
       dSpacing: r.dSpacing,
       q: r.qVector,
-      isLabelVisible: false
-    }));
+      isLabelVisible: false,
+      labelLevel: 0
+    })).sort((a, b) => a.twoTheta - b.twoTheta);
+
+    // Compute label staggering to avoid overlap
+    const minThetaDiffForOverlap = 2.5; // Threshold for staggered labels
+    for (let i = 0; i < peakData.length; i++) {
+        let level = 0;
+        const activeLevels = new Set();
+        for (let j = Math.max(0, i - 10); j < i; j++) {
+            if (Math.abs(peakData[i].twoTheta - peakData[j].twoTheta) < minThetaDiffForOverlap) {
+                activeLevels.add(peakData[j].labelLevel);
+            }
+        }
+        while (activeLevels.has(level)) {
+            level++;
+        }
+        peakData[i].labelLevel = level % 6; // Max 6 levels
+    }
 
     // Identify the top 5 most intense peaks
     const sortedPeaks = [...peakData].sort((a, b) => b.intensity - a.intensity);
@@ -194,8 +213,56 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       isLabelVisible: topPeakThetas.has(p.twoTheta)
     }));
 
-    return { points, peakData };
-  }, [results]);
+    let processedPoints = [...points];
+
+    if (subtractBaseline) {
+      // Rolling-ball baseline subtraction (approx. morphological opening)
+      const windowSize = 25; // 2.5 degrees window (25 * 0.1 step)
+      
+      // Step 1: Erosion (min filter)
+      const mins = processedPoints.map((point, i) => {
+        let min = point.intensity;
+        for (let j = Math.max(0, i - windowSize); j <= Math.min(processedPoints.length - 1, i + windowSize); j++) {
+          if (processedPoints[j].intensity < min) min = processedPoints[j].intensity;
+        }
+        return min;
+      });
+
+      // Step 2: Dilation (max filter)
+      const background = mins.map((minVal, i) => {
+        let max = minVal;
+        for (let j = Math.max(0, i - windowSize); j <= Math.min(mins.length - 1, i + windowSize); j++) {
+          if (mins[j] > max) max = mins[j];
+        }
+        return max;
+      });
+
+      // Step 3: Subtraction
+      processedPoints = processedPoints.map((point, i) => ({
+        ...point,
+        intensity: Math.max(0, point.intensity - background[i])
+      }));
+    }
+
+    if (smoothChart) {
+      const windowSize = 5;
+      const smoothedPoints = processedPoints.map((point, i) => {
+        let sum = 0;
+        let count = 0;
+        for (let j = Math.max(0, i - windowSize); j <= Math.min(processedPoints.length - 1, i + windowSize); j++) {
+          sum += processedPoints[j].intensity;
+          count++;
+        }
+        return {
+          ...point,
+          intensity: sum / count,
+        };
+      });
+      return { points: smoothedPoints, peakData };
+    }
+
+    return { points: processedPoints, peakData };
+  }, [results, smoothChart, subtractBaseline]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -276,6 +343,28 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
           >
             <Tag className="w-3 h-3" />
             {t('HKL Labels', 'HKL Labels')}
+          </button>
+          <button 
+            onClick={() => setSubtractBaseline(!subtractBaseline)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border ${
+              subtractBaseline 
+                ? 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border-purple-500/30' 
+                : 'bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 border-slate-700'
+            }`}
+          >
+            <MinusCircle className="w-3 h-3" />
+            {t('Baseline', 'Baseline')}
+          </button>
+          <button 
+            onClick={() => setSmoothChart(!smoothChart)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border ${
+              smoothChart 
+                ? 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border-blue-500/30' 
+                : 'bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 border-slate-700'
+            }`}
+          >
+            <Activity className="w-3 h-3" />
+            {t('Smooth', 'Smooth')}
           </button>
           <button 
             onClick={takeSnapshot}
@@ -368,14 +457,19 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 let r = typeof right === 'string' ? payload.twoTheta + 100 : Number(right);
                 if (payload.twoTheta < l || payload.twoTheta > r) return null;
                 
+                const yOffset = cy - 12 - (payload.labelLevel * 14);
+                
                 return (
                   <g>
                     <line x1={cx} y1={cy} x2={cx} y2={cy + 300} stroke="#10b981" strokeWidth={2} strokeDasharray="3 3" opacity={0.4} />
                     <circle cx={cx} cy={cy} r={4} fill="#10b981" stroke="#fff" strokeWidth={1} />
                     {showHKL && payload.hkl && (
-                      <text x={cx} y={cy - 12} textAnchor="middle" fill="#94a3b8" fontSize="10" className="font-bold font-mono tracking-widest drop-shadow-md">
-                        ({payload.hkl})
-                      </text>
+                      <g>
+                        {payload.labelLevel > 0 && <line x1={cx} y1={cy - 5} x2={cx} y2={yOffset + 5} stroke="#94a3b8" strokeWidth={0.5} opacity={0.5} strokeDasharray="1 1" />}
+                        <text x={cx} y={yOffset} textAnchor="middle" fill="#94a3b8" fontSize="10" className="font-bold font-mono tracking-widest drop-shadow-md bg-slate-900">
+                          ({payload.hkl})
+                        </text>
+                      </g>
                     )}
                   </g>
                 )
