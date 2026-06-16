@@ -4,6 +4,7 @@ import { createSupportChat, isQuotaError, isPermissionError } from '../services/
 import { Chat, GenerateContentResponse, GroundingChunk } from '@google/genai';
 import ReactMarkdown from 'react-markdown';
 import { GroundingSource } from '../types';
+import { Sparkles, Database, RefreshCw, Info } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -14,6 +15,9 @@ interface Message {
 
 export const AIChatSupport: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeResult, setActiveResult] = useState<any>(null);
+  const [includeActiveContext, setIncludeActiveContext] = useState(true);
+
   const [messages, setMessages] = useState<Message[]>([
     { 
       id: 'init-0',
@@ -96,6 +100,23 @@ export const AIChatSupport: React.FC = () => {
     chatSession.current = createSupportChat(isSmart);
   }, [isSmart]);
 
+  const refreshActiveResult = () => {
+    try {
+      const stored = localStorage.getItem("xrd_current_deep_learning_selected");
+      if (stored) {
+        setActiveResult(JSON.parse(stored));
+      } else {
+        setActiveResult(null);
+      }
+    } catch (err) {
+      console.error("Failed to parse active deep learning result:", err);
+    }
+  };
+
+  useEffect(() => {
+    refreshActiveResult();
+  }, [isOpen]);
+
   useEffect(() => {
     // Auto-scroll to bottom
     if (isOpen) {
@@ -114,7 +135,34 @@ export const AIChatSupport: React.FC = () => {
     setLoading(true);
 
     try {
-      const response: GenerateContentResponse = await chatSession.current.sendMessage({ message: userMsg });
+      let finalMsg = userMsg;
+      if (includeActiveContext && activeResult) {
+        const peaksStr = (activeResult.matched_peaks || [])
+          .slice(0, 5)
+          .map((p: any) => `2-theta: ${p.obsT}° (theoretical reference angle: ${p.refT}°, relative intensity: ${p.refI}%)`)
+          .join('\n');
+
+        finalMsg = `[SYSTEM CONTEXT INGESTED: The user is currently inspecting a specific crystalline material identified from their experimental XRD diffraction results:
+- Material Name: ${activeResult.phase_name || 'N/A'}
+- Chemical Formula: ${activeResult.formula || 'N/A'}
+- Neural Match Confidence Score: ${(activeResult.confidence_score || 0).toFixed(1)}%
+- Match Quality Label: ${activeResult.match_quality || 'N/A'}
+- Crystallography properties:
+  • Space Group: ${activeResult.spaceGroup || 'N/A'}
+  • Crystal System Lattice: ${activeResult.crystalSystem || 'N/A'}
+  • Theoretical Density: ${activeResult.density !== undefined ? `${activeResult.density} g/cm³` : 'N/A'}
+${activeResult.fitted_strain_pct !== undefined ? `  • Fitted Lattice Contraction/Expansion Strain (dL/L): ${activeResult.fitted_strain_pct.toFixed(4)}%` : ''}
+${activeResult.fitted_domain_size_broadening !== undefined ? `  • Fitted Peak Broadening Standard Deviation (sigma): ${activeResult.fitted_domain_size_broadening.toFixed(2)}°` : ''}
+- Selected Peaks Matched:
+${peaksStr || 'No matched peaks listed.'}
+- Material Description: ${activeResult.description || 'N/A'}
+
+Please use this specific material context, structural factors, fitted strain parameters, and peak profiles to offer highly accurate, tailored, and expert-level materials science support, identification tips, synthesis ideas, or theoretical advice to the user's following message. Do not mention that this context was injected unless they ask, but use it as grounding context.]
+
+User message: ${userMsg}`;
+      }
+
+      const response: GenerateContentResponse = await chatSession.current.sendMessage({ message: finalMsg });
       
       const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
       const sources: GroundingSource[] = groundingMetadata?.groundingChunks 
@@ -200,6 +248,69 @@ export const AIChatSupport: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {/* Active Diffraction context panel */}
+          {activeResult ? (
+            <div className="bg-slate-50 border-b border-slate-200 px-3.5 py-2.5 flex flex-col gap-1.5 shrink-0 select-none">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className="flex relative">
+                    <Database className="w-3.5 h-3.5 text-indigo-500" />
+                    <Sparkles className="w-2.5 h-2.5 text-amber-500 absolute -top-1 -right-1 animate-pulse" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider truncate">
+                    Ingested: {activeResult.phase_name} ({activeResult.formula})
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={refreshActiveResult}
+                    type="button"
+                    className="p-1 rounded-full text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                    title="Refresh alignment data"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                  </button>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeActiveContext}
+                      onChange={(e) => setIncludeActiveContext(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-7 h-4 bg-slate-200 rounded-full peer peer-checked:bg-indigo-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-3"></div>
+                  </label>
+                </div>
+              </div>
+              
+              {includeActiveContext ? (
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[9px] text-slate-500 font-mono bg-white p-2 rounded-lg border border-slate-100 shadow-sm">
+                  <div className="truncate"><span className="text-slate-400">Match Conf:</span> <span className="font-bold text-indigo-600">{activeResult.confidence_score?.toFixed(1)}%</span></div>
+                  <div className="truncate"><span className="text-slate-400">Space Group:</span> <span className="font-bold text-slate-700">{activeResult.spaceGroup || 'N/A'}</span></div>
+                  {activeResult.fitted_strain_pct !== undefined && (
+                    <div className="truncate col-span-2"><span className="text-slate-400">Strain (dL/L):</span> <span className="font-bold text-amber-600">{activeResult.fitted_strain_pct?.toFixed(4)}%</span></div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-[9px] text-slate-400 italic">
+                  Results excluded from chat prompt context.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-slate-50 border-b border-sidebar-border px-3.5 py-1.5 flex items-center justify-between shrink-0 text-[10px] text-slate-400 font-mono select-none">
+              <span className="flex items-center gap-1">
+                <Info className="w-3.5 h-3.5 text-slate-400" /> No active diffraction results.
+              </span>
+              <button 
+                onClick={refreshActiveResult}
+                className="hover:text-indigo-600 transition-colors px-1.5 py-0.5 rounded border border-slate-200 bg-white hover:bg-slate-50"
+              >
+                Scan Now
+              </button>
+            </div>
+          )}
 
           {/* Messages Area */}
           <div className="flex-1 bg-slate-50 overflow-y-auto p-4 space-y-4 custom-scrollbar">

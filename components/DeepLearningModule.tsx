@@ -415,6 +415,16 @@ export const DeepLearningModule: React.FC = () => {
   const [progressStep, setProgressStep] = useState(0); // 0: Idle, 1: Preproc, 2: CNN, 3: DB, 4: Done
   const [selectedCandidate, setSelectedCandidate] =
     useState<DLPhaseCandidate | null>(null);
+  
+  // Synchronize active predicted candidate with localStorage for AI Context support
+  useEffect(() => {
+    if (selectedCandidate) {
+      localStorage.setItem("xrd_current_deep_learning_selected", JSON.stringify(selectedCandidate));
+    } else {
+      localStorage.removeItem("xrd_current_deep_learning_selected");
+    }
+  }, [selectedCandidate]);
+
   const [scanPos, setScanPos] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
