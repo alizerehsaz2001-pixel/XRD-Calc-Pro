@@ -162,10 +162,10 @@ async function ensurePythonDependencies() {
       logToPythonStatus(`--- Processing package: ${pkg} ---`);
       
       const commands = [
-        `python3 -m pip install --break-system-packages ${pkg}`,
-        `python3 -m pip install --user --break-system-packages ${pkg}`,
-        `pip3 install --break-system-packages ${pkg}`,
-        `pip3 install --user ${pkg}`
+        `python3 -m pip install --break-system-packages --root-user-action=ignore ${pkg}`,
+        `python3 -m pip install --user --break-system-packages --root-user-action=ignore ${pkg}`,
+        `pip3 install --break-system-packages --root-user-action=ignore ${pkg}`,
+        `pip3 install --user --root-user-action=ignore ${pkg}`
       ];
       
       let installed = false;

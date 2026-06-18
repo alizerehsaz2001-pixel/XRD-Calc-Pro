@@ -5123,11 +5123,72 @@ if __name__ == '__main__':
                           desc: "Tetragonal titanium dioxide polymorph peaks",
                           pattern: "27.4, 100\n36.1, 52\n41.2, 28\n54.3, 62\n56.6, 22\n69.0, 18\n69.8, 12",
                         },
+                        {
+                          name: "Continuous XRD Scan (Alumina)",
+                          formula: "α-Al₂O₃ Scan",
+                          desc: "Continuous NIST SRM 1976 Alumina scan with 0.5° resolution, baseline drift & background noise",
+                          pattern: () => {
+                            const peaks = [
+                              { twoTheta: 25.58, intensity: 100 },
+                              { twoTheta: 35.15, intensity: 90 },
+                              { twoTheta: 37.78, intensity: 40 },
+                              { twoTheta: 43.35, intensity: 80 },
+                              { twoTheta: 52.55, intensity: 45 },
+                              { twoTheta: 57.50, intensity: 90 },
+                              { twoTheta: 61.30, intensity: 15 },
+                              { twoTheta: 66.52, intensity: 40 },
+                              { twoTheta: 68.21, intensity: 50 },
+                            ];
+                            let out = "";
+                            for (let x = 20; x <= 80; x += 0.5) {
+                              let intensity = 0;
+                              for (const p of peaks) {
+                                const val = p.intensity * Math.exp(-Math.pow(x - p.twoTheta, 2) / (2 * Math.pow(0.35, 2)));
+                                intensity += val;
+                              }
+                              const bg = 5 + 12 * Math.exp(-Math.pow(x - 30, 2) / (2 * Math.pow(15, 2)));
+                              const noise = (Math.random() - 0.5) * 4;
+                              const finalVal = Math.max(0.1, intensity + bg + noise);
+                              out += `${x.toFixed(2)}, ${finalVal.toFixed(1)}\n`;
+                            }
+                            return out.trim();
+                          }
+                        },
+                        {
+                          name: "Continuous XRD Scan (Silicon)",
+                          formula: "Si (Continuous)",
+                          desc: "Continuous NIST SRM 640 Silicon scan with 0.5° resolution, standard thermal broadening & noise floor",
+                          pattern: () => {
+                            const peaks = [
+                              { twoTheta: 28.44, intensity: 100 },
+                              { twoTheta: 47.30, intensity: 55 },
+                              { twoTheta: 56.12, intensity: 35 },
+                              { twoTheta: 69.13, intensity: 40 },
+                              { twoTheta: 76.38, intensity: 25 },
+                              { twoTheta: 88.03, intensity: 30 },
+                              { twoTheta: 94.95, intensity: 20 },
+                            ];
+                            let out = "";
+                            for (let x = 20; x <= 100; x += 0.5) {
+                              let intensity = 0;
+                              for (const p of peaks) {
+                                const val = p.intensity * Math.exp(-Math.pow(x - p.twoTheta, 2) / (2 * Math.pow(0.35, 2)));
+                                intensity += val;
+                              }
+                              const bg = 4 + 8 * Math.exp(-Math.pow(x - 40, 2) / (2 * Math.pow(20, 2)));
+                              const noise = (Math.random() - 0.5) * 3;
+                              const finalVal = Math.max(0.1, intensity + bg + noise);
+                              out += `${x.toFixed(2)}, ${finalVal.toFixed(1)}\n`;
+                            }
+                            return out.trim();
+                          }
+                        }
                       ].map((preset) => (
                         <button
                           key={preset.name}
                           onClick={() => {
-                            setInputData(preset.pattern);
+                            const pat = typeof preset.pattern === "function" ? preset.pattern() : preset.pattern;
+                            setInputData(pat);
                             setSearchTerm(preset.name);
                             setActiveInputTool("preview");
                             playSynthTone("success");

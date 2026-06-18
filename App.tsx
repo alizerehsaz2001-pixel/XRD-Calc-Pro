@@ -39,7 +39,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext } from './components/SettingsContext';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity } from 'lucide-react';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
 import { useAuth, db, handleFirestoreError, OperationType } from './services/firebase';
@@ -142,6 +142,11 @@ const App: React.FC = () => {
   const [cachedMaterialsCount, setCachedMaterialsCount] = useState<number>(0);
   const [showOfflineHub, setShowOfflineHub] = useState<boolean>(false);
 
+  // Python Engine States
+  const [pythonReady, setPythonReady] = useState<boolean>(false);
+  const [pythonLogs, setPythonLogs] = useState<string[]>([]);
+  const [showPythonStatus, setShowPythonStatus] = useState<boolean>(false);
+
   const refreshOfflineAnalyses = async () => {
     try {
       const analyses = await getOfflineAnalyses();
@@ -187,11 +192,31 @@ const App: React.FC = () => {
       .then(() => updateOfflineData())
       .catch(console.error);
 
+    // Initial check for Python Engine
+    const checkPythonStatus = async () => {
+      try {
+        const res = await fetch("/api/python/status");
+        if (res.ok) {
+          const data = await res.json();
+          setPythonReady(data.ready);
+          setPythonLogs(data.logs || []);
+        }
+      } catch (e) {
+        console.error("Python status check failed:", e);
+      }
+    };
+
+    checkPythonStatus();
+    const interval = setInterval(() => {
+      if (!pythonReady) checkPythonStatus();
+    }, 5000);
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
     };
-  }, []);
+  }, [pythonReady]);
 
   // Fetch Bragg history when user logs in
   useEffect(() => {
@@ -897,6 +922,22 @@ const App: React.FC = () => {
               }`}>
                 {modules.find(m => m.id === activeModule)?.label || activeModule}
               </span>
+
+              {/* Python Status Indicator */}
+              <button
+                onClick={() => setShowPythonStatus(true)}
+                className={`flex items-center gap-2 px-2.5 py-1 rounded-full border transition-all active:scale-95 whitespace-nowrap cursor-pointer ${
+                  pythonReady
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse'
+                }`}
+              >
+                <div className={`w-1.5 h-1.5 rounded-full ${pythonReady ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'}`} />
+                <span className="text-[10px] font-black uppercase tracking-wider">
+                  {pythonReady ? 'Python Engine Ready' : 'Initializing Engine...'}
+                </span>
+              </button>
+
               <span className={`hidden lg:inline-block text-[10px] uppercase tracking-wider font-mono px-2.5 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 shrink-0 ${
                 theme === 'cyberpunk' ? 'text-cyber-pink bg-black border-cyber-pink/30' : 'text-slate-400'
               }`}>
@@ -1381,6 +1422,128 @@ const App: React.FC = () => {
                       <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
                       Service Worker actively intercepting static resources.
                     </span>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* Python Engine Status Hub overlay */}
+          <AnimatePresence>
+            {showPythonStatus && (
+              <div 
+                className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 text-left"
+                onClick={() => setShowPythonStatus(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-slate-900 border border-white/10 rounded-[2.5rem] p-8 max-w-2xl w-full shadow-[0_0_100px_rgba(0,0,0,0.5)] relative overflow-hidden"
+                >
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-indigo-500" />
+                  
+                  <button
+                    onClick={() => setShowPythonStatus(false)}
+                    className="absolute top-6 right-6 p-2 rounded-full hover:bg-white/5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+
+                  <div className="flex items-center gap-5 border-b border-white/5 pb-6 mb-6">
+                    <div className={`w-14 h-14 rounded-3xl flex items-center justify-center shadow-lg ${pythonReady ? 'bg-emerald-500/20 text-emerald-400 shadow-emerald-500/20' : 'bg-amber-500/20 text-amber-400 shadow-amber-500/20 animate-pulse'}`}>
+                      <Terminal className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xl font-black text-white uppercase tracking-tighter">
+                          Computational Engine Status
+                        </h3>
+                        {pythonReady ? (
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30 font-black tracking-widest uppercase">Operational</span>
+                        ) : (
+                          <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/30 font-black tracking-widest uppercase animate-pulse">Initializing</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 font-medium mt-1">
+                        High-performance Python backend for Rietveld, Phase-ID, and Neural Net Training
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Environment</span>
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${pythonReady ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                          <span className="text-sm font-bold text-slate-200">Python 3.10 Runtime</span>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Compiler</span>
+                        <div className="mt-1 flex items-center gap-2">
+                          <Terminal className="w-3.5 h-3.5 text-indigo-400" />
+                          <span className="text-sm font-bold text-slate-200">Pip Package Manager</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-3 px-1 text-left">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <RefreshCw className={`w-3 h-3 ${!pythonReady ? 'animate-spin' : ''}`} />
+                          System Boot Sequential Log
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-500">
+                          {pythonLogs.length} entries captured
+                        </span>
+                      </div>
+                      <div className="bg-black/60 rounded-3xl p-5 border border-white/5 font-mono text-[11px] h-64 overflow-y-auto custom-scrollbar shadow-inner text-left">
+                        {pythonLogs.length === 0 ? (
+                          <div className="h-full flex items-center justify-center text-slate-600 italic">
+                            Waiting for log stream...
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {pythonLogs.map((log, i) => (
+                              <div key={i} className="flex gap-3 leading-relaxed">
+                                <span className="text-slate-600 shrink-0 select-none">[{i+1}]</span>
+                                <span className={
+                                  log.toLowerCase().includes('error') ? 'text-rose-400' : 
+                                  log.toLowerCase().includes('warning') ? 'text-amber-400' : 
+                                  log.toLowerCase().includes('success') ? 'text-emerald-400' :
+                                  'text-slate-300'
+                                }>
+                                  {log}
+                                </span>
+                              </div>
+                            ))}
+                            {!pythonReady && (
+                              <div className="flex gap-3 text-indigo-400 animate-pulse mt-2">
+                                <span className="shrink-0 select-none">...</span>
+                                <span>Processing background installation task...</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+                      <div className="flex gap-3">
+                        <div className="shrink-0 mt-0.5">
+                          <Activity className="w-4 h-4 text-indigo-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-white uppercase tracking-wide text-left">Analysis Ready Status</h4>
+                          <p className="text-[11px] text-slate-400 mt-1 leading-relaxed text-left">
+                            Most analysis modules require scientific libraries (NumPy, SciPy, Pandas). If your module is not responding, check the logs above to ensure the setup is complete.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               </div>
