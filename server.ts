@@ -5,6 +5,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { exec, execSync } from "child_process";
+import https from "https";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,7 +32,193 @@ function getGeminiClient() {
   return aiInstance;
 }
 
+let pythonDepsReady = false;
+let pythonInstallLog: string[] = ["Initializing python environment checking..."];
+
+function logToPythonStatus(message: string) {
+  console.log(message);
+  pythonInstallLog.push(message);
+  try {
+    fs.appendFileSync(path.join(process.cwd(), "python_install_status.log"), message + "\n");
+  } catch (err) {
+    // Ignore log write errors
+  }
+}
+
+function execCommandAsync(cmd: string): Promise<{ success: boolean; stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    exec(cmd, { timeout: 180000 }, (error, stdout, stderr) => {
+      resolve({
+        success: !error,
+        stdout: stdout || "",
+        stderr: stderr || ""
+      });
+    });
+  });
+}
+
+function downloadFile(url: string, destPath: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const file = fs.createWriteStream(destPath);
+    https.get(url, (response) => {
+      response.pipe(file);
+      file.on("finish", () => {
+        file.close(() => resolve(true));
+      });
+    }).on("error", (err) => {
+      fs.unlink(destPath, () => {}); // delete the file on error
+      resolve(false);
+    });
+  });
+}
+
+async function ensurePythonDependencies() {
+  const logPath = path.join(process.cwd(), "python_install_status.log");
+  try {
+    fs.writeFileSync(logPath, "=== Python Environment Verification started at " + new Date().toISOString() + " ===\n");
+  } catch (err) {}
+
+  logToPythonStatus("Checking Python dependencies...");
+  const depsCheck = [
+    { module: "numpy", pkg: "numpy" },
+    { module: "pandas", pkg: "pandas" },
+    { module: "scipy", pkg: "scipy" },
+    { module: "PIL", pkg: "Pillow" },
+    { module: "cv2", pkg: "opencv-python-headless" },
+    { module: "matplotlib", pkg: "matplotlib" },
+    { checkCmd: "from google import genai", pkg: "google-genai" }
+  ];
+
+  // Check if pip is available
+  let pipAvailable = false;
+  try {
+    execSync("python3 -m pip --version", { stdio: "ignore" });
+    pipAvailable = true;
+    logToPythonStatus("Pip is already available.");
+  } catch (e) {
+    logToPythonStatus("Pip is NOT available. Attempting pip bootstrap...");
+  }
+
+  if (!pipAvailable) {
+    // Attempt 1: ensurepip
+    logToPythonStatus("Attempting python3 -m ensurepip...");
+    const epResult = await execCommandAsync("python3 -m ensurepip --default-pip");
+    logToPythonStatus(`ensurepip status: ${epResult.success}`);
+    if (epResult.success) {
+      try {
+        execSync("python3 -m pip --version", { stdio: "ignore" });
+        pipAvailable = true;
+      } catch (err) {}
+    }
+
+    if (!pipAvailable) {
+      // Attempt 2: download get-pip.py and run it
+      logToPythonStatus("Downloading get-pip.py via https...");
+      const dest = path.join(process.cwd(), "get-pip.py");
+      const downloaded = await downloadFile("https://bootstrap.pypa.io/get-pip.py", dest);
+      logToPythonStatus(`get-pip.py downloaded: ${downloaded}`);
+      if (downloaded) {
+        logToPythonStatus("Running get-pip.py with --break-system-packages...");
+        const runPip = await execCommandAsync(`python3 "${dest}" --break-system-packages`);
+        logToPythonStatus(`get-pip.py run status: ${runPip.success}`);
+        if (runPip.stdout) logToPythonStatus(`get-pip.py stdout: ${runPip.stdout}`);
+        if (runPip.stderr) logToPythonStatus(`get-pip.py stderr: ${runPip.stderr}`);
+
+        if (!runPip.success) {
+          logToPythonStatus("Running get-pip.py with --user --break-system-packages...");
+          const runPipUser = await execCommandAsync(`python3 "${dest}" --user --break-system-packages`);
+          logToPythonStatus(`get-pip.py user run status: ${runPipUser.success}`);
+          if (runPipUser.stdout) logToPythonStatus(`get-pip.py user stdout: ${runPipUser.stdout}`);
+          if (runPipUser.stderr) logToPythonStatus(`get-pip.py user stderr: ${runPipUser.stderr}`);
+        }
+        
+        try {
+          execSync("python3 -m pip --version", { stdio: "ignore" });
+          pipAvailable = true;
+          logToPythonStatus("Pip was successfully bootstrapped!");
+        } catch (err) {
+          logToPythonStatus("Pip is still unavailable after running get-pip.py.");
+        }
+      }
+    }
+  }
+
+  const toInstall: string[] = [];
+  for (const dep of depsCheck) {
+    try {
+      const checkStr = dep.checkCmd ? dep.checkCmd : `import ${dep.module}`;
+      execSync(`python3 -c "${checkStr}"`, { stdio: "ignore" });
+      logToPythonStatus(`Python dependency '${dep.pkg}' is satisfied.`);
+    } catch (e) {
+      logToPythonStatus(`Python dependency '${dep.pkg}' is missing.`);
+      toInstall.push(dep.pkg);
+    }
+  }
+
+  if (toInstall.length > 0) {
+    logToPythonStatus(`Packages to install: ${toInstall.join(", ")}`);
+    
+    for (const pkg of toInstall) {
+      logToPythonStatus(`--- Processing package: ${pkg} ---`);
+      
+      const commands = [
+        `python3 -m pip install --break-system-packages ${pkg}`,
+        `python3 -m pip install --user --break-system-packages ${pkg}`,
+        `pip3 install --break-system-packages ${pkg}`,
+        `pip3 install --user ${pkg}`
+      ];
+      
+      let installed = false;
+      for (const cmd of commands) {
+        logToPythonStatus(`Executing: ${cmd}`);
+        const result = await execCommandAsync(cmd);
+        logToPythonStatus(`Result success: ${result.success}`);
+        if (result.stdout) logToPythonStatus(`Stdout: ${result.stdout}`);
+        if (result.stderr) logToPythonStatus(`Stderr: ${result.stderr}`);
+        
+        if (result.success) {
+          logToPythonStatus(`Success installing ${pkg} with command: ${cmd}`);
+          installed = true;
+          break;
+        }
+      }
+      
+      if (!installed) {
+        logToPythonStatus(`WARNING: Failed to install package ${pkg} after all attempts.`);
+      }
+    }
+  }
+
+  // Final verification check
+  logToPythonStatus("Final verification check...");
+  let vitalReady = true;
+  for (const dep of depsCheck) {
+    try {
+      const checkStr = dep.checkCmd ? dep.checkCmd : `import ${dep.module}`;
+      execSync(`python3 -c "${checkStr}"`, { stdio: "ignore" });
+      logToPythonStatus(`Final Verification: '${dep.pkg}' is SUCCESS.`);
+    } catch (e) {
+      logToPythonStatus(`Final Verification: '${dep.pkg}' is STILL MISSING.`);
+      if (dep.pkg === "numpy" || dep.pkg === "google-genai") {
+        vitalReady = false;
+      }
+    }
+  }
+
+  if (vitalReady) {
+    pythonDepsReady = true;
+    logToPythonStatus("Python environment configuration complete (vital packages verified).");
+  } else {
+    logToPythonStatus("Python environment config completed with errors. Vital libraries are missing.");
+  }
+}
+
 async function startServer() {
+  // Check and install missing Python packages in background during boot
+  ensurePythonDependencies().catch(err => {
+    console.error("Background python dependency validation error:", err);
+  });
+
   const app = express();
   const PORT = 3000;
 
@@ -63,6 +251,13 @@ async function startServer() {
     } else {
       res.json([]);
     }
+  });
+
+  app.get("/api/python/status", (req, res) => {
+    res.json({
+      ready: pythonDepsReady,
+      logs: pythonInstallLog
+    });
   });
 
   app.post("/api/gemini/advisor", async (req, res) => {
