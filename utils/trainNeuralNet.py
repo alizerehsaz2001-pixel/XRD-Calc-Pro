@@ -5,6 +5,15 @@ import math
 import time
 from typing import List, Dict, Tuple
 
+# Detect PyTorch runtime acceleration
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+
 # Class dictionary mapping identifiers to indexing positions
 CLASS_NAMES = [
     "Quartz (Alpha-SiO2)",
@@ -161,7 +170,7 @@ def generate_augmented_dataset(samples_per_class: int = 60, noise_level: float =
             
     return np.array(X_data, dtype=np.float32), np.array(y_data, dtype=np.int32)
 
-# Custom High-Fidelity Numpy MLP Neural Network
+# Custom High-Fidelity Numpy MLP Neural Network (Retained for 100% stable fallback)
 class NumpyMLPClassifier:
     def __init__(self, input_dim: int, hidden_layers: List[int], output_dim: int, 
                  activation: str = "GELU", dropout: float = 0.0):
@@ -193,7 +202,6 @@ class NumpyMLPClassifier:
         elif self.activation_name == "LeakyReLU":
             return np.where(x > 0, x, x * 0.1)
         elif self.activation_name == "GELU":
-            # Fast approximation of GELU: 0.5x * (1 + tanh(sqrt(2/pi) * (x + 0.044715 * x^3)))
             return 0.5 * x * (1.0 + np.tanh(np.sqrt(2.0 / np.pi) * (x + 0.044715 * (x ** 3))))
         else: # Sigmoid
             return 1.0 / (1.0 + np.exp(-np.clip(x, -20, 20)))
@@ -204,9 +212,6 @@ class NumpyMLPClassifier:
         elif self.activation_name == "LeakyReLU":
             return np.where(cached_activated > 0, 1.0, 0.1)
         elif self.activation_name == "GELU" and x is not None:
-            # High-fidelity analytic derivative approximation for GELU
-            # erf-approx: 0.5 * (1 + tanh(z))
-            # d_GELU = 0.5 * (1.0 + tanh) + 0.5 * x * sech^2(...) * (constant terms)
             tanh_factor = np.tanh(np.sqrt(2.0 / np.pi) * (x + 0.044715 * (x ** 3)))
             sech2_factor = 1.0 - tanh_factor ** 2
             internal_derivative = np.sqrt(2.0 / np.pi) * (1.0 + 3 * 0.044715 * (x ** 2))
@@ -220,7 +225,7 @@ class NumpyMLPClassifier:
 
     def forward(self, x: np.ndarray, training: bool = True) -> Tuple[List[np.ndarray], List[np.ndarray]]:
         activations = [x]
-        raw_inputs = [] # cache for GELU derivatives
+        raw_inputs = []
         
         current_input = x
         for i in range(len(self.weights) - 1):
@@ -228,7 +233,6 @@ class NumpyMLPClassifier:
             raw_inputs.append(z)
             a = self._activate(z)
             
-            # Apply dropout regularization during training
             if training and self.dropout_rate > 0.0:
                 mask = (np.random.rand(*a.shape) >= self.dropout_rate) / (1.0 - self.dropout_rate)
                 a = a * mask
@@ -236,7 +240,6 @@ class NumpyMLPClassifier:
             activations.append(a)
             current_input = a
             
-        # Final output layer uses Softmax activation function
         z_out = np.dot(current_input, self.weights[-1]) + self.biases[-1]
         raw_inputs.append(z_out)
         a_out = self._softmax(z_out)
@@ -247,37 +250,30 @@ class NumpyMLPClassifier:
     def backpropagate(self, activations: List[np.ndarray], raw_inputs: List[np.ndarray], 
                        y_batch: np.ndarray, lr: float, optimizer: str = "Adam") -> None:
         num_samples = y_batch.shape[0]
-        self.t += 1 # update optimizer time step
+        self.t += 1
         
-        # Output layer error (Categorical Cross-Entropy + Softmax delta is matched output - one-hot reference)
         one_hot = np.zeros_like(activations[-1])
         one_hot[np.arange(num_samples), y_batch] = 1.0
         
-        # dZ of final layer
         dZ = (activations[-1] - one_hot) / num_samples
         
-        # Backprop through layers
         for i in reversed(range(len(self.weights))):
             dW = np.dot(activations[i].T, dZ)
             dB = np.sum(dZ, axis=0, keepdims=True)
             
-            # Gradient checks and weight updates
             if i > 0:
                 da = np.dot(dZ, self.weights[i].T)
                 deriv = self._activate_derivative(activations[i], raw_inputs[i-1])
                 dZ = da * deriv
                 
-            # Perform optimization upgrades
             if optimizer == "Adam":
                 beta1, beta2, eps = 0.9, 0.999, 1e-8
-                # Weight update
                 self.m_w[i] = beta1 * self.m_w[i] + (1 - beta1) * dW
                 self.v_w[i] = beta2 * self.v_w[i] + (1 - beta2) * (dW ** 2)
                 m_w_corrected = self.m_w[i] / (1 - beta1 ** self.t)
                 v_w_corrected = self.v_w[i] / (1 - beta2 ** self.t)
                 self.weights[i] -= lr * m_w_corrected / (np.sqrt(v_w_corrected) + eps)
                 
-                # Bias update
                 self.m_b[i] = beta1 * self.m_b[i] + (1 - beta1) * dB
                 self.v_b[i] = beta2 * self.v_b[i] + (1 - beta2) * (dB ** 2)
                 m_b_corrected = self.m_b[i] / (1 - beta1 ** self.t)
@@ -328,88 +324,216 @@ def train_model(epochs: int = 50, lr: float = 0.005, batch_size: int = 32,
         hidden_dims = [64]
     elif architecture == "Deep MLP":
         hidden_dims = [128, 64]
-    else: # "Residual MLP" (simulated with skip elements and wider layout)
+    else: # "Residual MLP" / Others
         hidden_dims = [128, 128, 64]
-        
-    model = NumpyMLPClassifier(
-        input_dim=120, 
-        hidden_layers=hidden_dims, 
-        output_dim=7, 
-        activation=activation,
-        dropout=dropout
-    )
-    
+
+    pytorch_trained_successfully = False
     epoch_history = []
-    
-    # 3. Model Training Epoch Loop
-    for ep in range(1, epochs + 1):
-        # Shuffle train data for active mini-batches
-        shuffled_train = np.random.permutation(X_train.shape[0])
-        X_train_shuf = X_train[shuffled_train]
-        y_train_shuf = y_train[shuffled_train]
-        
-        train_losses = []
-        train_corrects = 0
-        
-        # Mini-batch solver
-        for b_start in range(0, X_train.shape[0], batch_size):
-            b_end = min(b_start + batch_size, X_train.shape[0])
-            X_batch = X_train_shuf[b_start:b_end]
-            y_batch = y_train_shuf[b_start:b_end]
-            
-            if X_batch.shape[0] == 0:
-                continue
-                
-            activations, raw_inputs = model.forward(X_batch, training=True)
-            y_pred = activations[-1]
-            
-            # Categorical cross entropy loss evaluation
-            eps_clip = 1e-15
-            y_pred_clipped = np.clip(y_pred, eps_clip, 1.0 - eps_clip)
-            loss_val = -np.mean(np.log(y_pred_clipped[np.arange(X_batch.shape[0]), y_batch]))
-            train_losses.append(loss_val)
-            
-            # Counting accurate guesses
-            train_corrects += np.sum(np.argmax(y_pred, axis=1) == y_batch)
-            
-            # Backpropagation step
-            model.backpropagate(activations, raw_inputs, y_batch, lr, optimizer)
-            
-        avg_train_loss = float(np.mean(train_losses))
-        train_acc = float(train_corrects / X_train.shape[0])
-        
-        # Validation evaluation pass
-        val_activations, _ = model.forward(X_val, training=False)
-        y_pred_val = val_activations[-1]
-        y_pred_val_clipped = np.clip(y_pred_val, eps_clip, 1.0 - eps_clip)
-        avg_val_loss = float(-np.mean(np.log(y_pred_val_clipped[np.arange(X_val.shape[0]), y_val])))
-        val_acc = float(np.sum(np.argmax(y_pred_val, axis=1) == y_val) / X_val.shape[0])
-        
-        # Simulating slight decaying convergence updates
-        epoch_history.append({
-            "epoch": ep,
-            "loss": round(avg_train_loss, 4),
-            "val_loss": round(avg_val_loss, 4),
-            "acc": round(train_acc * 100.0, 2),
-            "val_acc": round(val_acc * 100.0, 2)
-        })
-        
-    # Calculate final Confusion Matrix
-    val_preds_final = np.argmax(val_activations[-1], axis=1)
     confusion = np.zeros((7, 7), dtype=int)
-    for true_label, pred_label in zip(y_val, val_preds_final):
-        confusion[true_label, pred_label] += 1
+    weights_dump = []
+    biases_dump = []
+    val_acc_final = 0.0
+    avg_train_loss_final = 0.0
+    avg_val_loss_final = 0.0
+    train_acc_final = 0.0
+
+    # Try PyTorch First
+    if HAS_TORCH:
+        try:
+            print("[PyTorch Core Initiated] Setting up neural model layers, device tensors, and backprop graphs.", file=sys.stderr)
+            
+            X_train_t = torch.FloatTensor(X_train)
+            y_train_t = torch.LongTensor(y_train)
+            X_val_t = torch.FloatTensor(X_val)
+            y_val_t = torch.LongTensor(y_val)
+            
+            def get_pt_activation(act_name: str):
+                if act_name == "ReLU":
+                    return nn.ReLU()
+                elif act_name == "LeakyReLU":
+                    return nn.LeakyReLU(0.1)
+                elif act_name == "GELU":
+                    return nn.GELU()
+                else:
+                    return nn.Sigmoid()
+
+            # Dynamic sequential neural generator
+            class PyTorchSeqNet(nn.Module):
+                def __init__(self, input_dim: int, hidden_layers: List[int], output_dim: int, 
+                             act_name: str, dropout_rate: float):
+                    super().__init__()
+                    layers = []
+                    prev_dim = input_dim
+                    for h_dim in hidden_layers:
+                        layers.append(nn.Linear(prev_dim, h_dim))
+                        layers.append(get_pt_activation(act_name))
+                        if dropout_rate > 0.0:
+                            layers.append(nn.Dropout(dropout_rate))
+                        prev_dim = h_dim
+                    layers.append(nn.Linear(prev_dim, output_dim))
+                    self.network = nn.Sequential(*layers)
+                    
+                def forward(self, x):
+                    return self.network(x)
+
+            model_pt = PyTorchSeqNet(
+                input_dim=120,
+                hidden_layers=hidden_dims,
+                output_dim=7,
+                act_name=activation,
+                dropout_rate=dropout
+            )
+            
+            criterion_pt = nn.CrossEntropyLoss()
+            
+            # Match optimizer configs
+            if optimizer == "Adam":
+                optimizer_pt = optim.Adam(model_pt.parameters(), lr=lr)
+            elif optimizer == "RMSprop":
+                optimizer_pt = optim.RMSprop(model_pt.parameters(), lr=lr)
+            else: # SGD
+                optimizer_pt = optim.SGD(model_pt.parameters(), lr=lr, momentum=0.9)
+
+            for ep in range(1, epochs + 1):
+                model_pt.train()
+                # Simulate mini-batch loader
+                shuffled_train_idx = np.random.permutation(X_train.shape[0])
+                train_losses = []
+                train_corrects = 0
+                
+                for b_start in range(0, X_train.shape[0], batch_size):
+                    b_end = min(b_start + batch_size, X_train.shape[0])
+                    if b_start == b_end:
+                        continue
+                    X_batch = X_train_t[shuffled_train_idx[b_start:b_end]]
+                    y_batch = y_train_t[shuffled_train_idx[b_start:b_end]]
+                    
+                    optimizer_pt.zero_grad()
+                    out = model_pt(X_batch)
+                    loss = criterion_pt(out, y_batch)
+                    loss.backward()
+                    optimizer_pt.step()
+                    
+                    train_losses.append(loss.item())
+                    preds = torch.argmax(out, dim=1)
+                    train_corrects += torch.sum(preds == y_batch).item()
+                    
+                avg_train_loss = float(np.mean(train_losses))
+                train_acc = float(train_corrects / X_train.shape[0])
+                
+                # Evaluation step
+                model_pt.eval()
+                with torch.no_grad():
+                    val_out = model_pt(X_val_t)
+                    avg_val_loss = float(criterion_pt(val_out, y_val_t).item())
+                    val_preds_labels = torch.argmax(val_out, dim=1)
+                    val_corrects = torch.sum(val_preds_labels == y_val_t).item()
+                    val_acc = float(val_corrects / X_val.shape[0])
+                    
+                epoch_history.append({
+                    "epoch": ep,
+                    "loss": round(avg_train_loss, 4),
+                    "val_loss": round(avg_val_loss, 4),
+                    "acc": round(train_acc * 100.0, 2),
+                    "val_acc": round(val_acc * 100.0, 2)
+                })
+
+            # Calculate final outputs
+            avg_train_loss_final = avg_train_loss
+            avg_val_loss_final = avg_val_loss
+            train_acc_final = train_acc
+            val_acc_final = val_acc
+            
+            # Confusion Matrix
+            for true_label, pred_label in zip(y_val, val_preds_labels.cpu().numpy()):
+                confusion[true_label, pred_label] += 1
+                
+            # Copy layer weights for standard JSON sequential inference format
+            for layer in model_pt.network:
+                if isinstance(layer, nn.Linear):
+                    weights_dump.append(layer.weight.detach().cpu().numpy().T.tolist())
+                    biases_dump.append(layer.bias.detach().cpu().numpy().reshape(1, -1).tolist())
+
+            pytorch_trained_successfully = True
+            print(f"[PyTorch Engine Success] Finished PyTorch training successfully in {time.time() - start_time:.3f}s.", file=sys.stderr)
+        except Exception as pt_err:
+            print(f"Warning: PyTorch trainer raised error, starting NumPy fallback solver: {pt_err}", file=sys.stderr)
+            pytorch_trained_successfully = False
+
+    # Fall back to high-fidelity Numpy solver if PyTorch was not available or raised exceptions
+    if not pytorch_trained_successfully:
+        model = NumpyMLPClassifier(
+            input_dim=120, 
+            hidden_layers=hidden_dims, 
+            output_dim=7, 
+            activation=activation,
+            dropout=dropout
+        )
         
+        epoch_history = []
+        
+        for ep in range(1, epochs + 1):
+            shuffled_train = np.random.permutation(X_train.shape[0])
+            X_train_shuf = X_train[shuffled_train]
+            y_train_shuf = y_train[shuffled_train]
+            
+            train_losses = []
+            train_corrects = 0
+            
+            for b_start in range(0, X_train.shape[0], batch_size):
+                b_end = min(b_start + batch_size, X_train.shape[0])
+                X_batch = X_train_shuf[b_start:b_end]
+                y_batch = y_train_shuf[b_start:b_end]
+                
+                if X_batch.shape[0] == 0:
+                    continue
+                    
+                activations, raw_inputs = model.forward(X_batch, training=True)
+                y_pred = activations[-1]
+                
+                eps_clip = 1e-15
+                y_pred_clipped = np.clip(y_pred, eps_clip, 1.0 - eps_clip)
+                loss_val = -np.mean(np.log(y_pred_clipped[np.arange(X_batch.shape[0]), y_batch]))
+                train_losses.append(loss_val)
+                train_corrects += np.sum(np.argmax(y_pred, axis=1) == y_batch)
+                
+                model.backpropagate(activations, raw_inputs, y_batch, lr, optimizer)
+                
+            avg_train_loss = float(np.mean(train_losses))
+            train_acc = float(train_corrects / X_train.shape[0])
+            
+            val_activations, _ = model.forward(X_val, training=False)
+            y_pred_val = val_activations[-1]
+            y_pred_val_clipped = np.clip(y_pred_val, eps_clip, 1.0 - eps_clip)
+            avg_val_loss = float(-np.mean(np.log(y_pred_val_clipped[np.arange(X_val.shape[0]), y_val])))
+            val_acc = float(np.sum(np.argmax(y_pred_val, axis=1) == y_val) / X_val.shape[0])
+            
+            epoch_history.append({
+                "epoch": ep,
+                "loss": round(avg_train_loss, 4),
+                "val_loss": round(avg_val_loss, 4),
+                "acc": round(train_acc * 100.0, 2),
+                "val_acc": round(val_acc * 100.0, 2)
+            })
+
+        avg_train_loss_final = avg_train_loss
+        avg_val_loss_final = avg_val_loss
+        train_acc_final = train_acc
+        val_acc_final = val_acc
+        
+        val_preds_final = np.argmax(val_activations[-1], axis=1)
+        confusion = np.zeros((7, 7), dtype=int)
+        for true_label, pred_label in zip(y_val, val_preds_final):
+            confusion[true_label, pred_label] += 1
+            
+        for w in model.weights:
+            weights_dump.append(w.tolist())
+        for b in model.biases:
+            biases_dump.append(b.tolist())
+            
     training_time = time.time() - start_time
     
     # Save the weights to a serialized model file so they can be loaded by the RAG inference code
-    weights_dump = []
-    biases_dump = []
-    for w in model.weights:
-        weights_dump.append(w.tolist())
-    for b in model.biases:
-        biases_dump.append(b.tolist())
-        
     model_export_path = "/tmp/trained_xrd_mlp_weights.json"
     try:
         with open(model_export_path, "w") as fp:
@@ -419,7 +543,7 @@ def train_model(epochs: int = 50, lr: float = 0.005, batch_size: int = 32,
                 "activation_name": activation,
                 "architecture": architecture,
                 "classes": CLASS_NAMES,
-                "accuracy": round(val_acc * 100.2, 2)
+                "accuracy": round(val_acc_final * 100.2, 2)
             }, fp)
     except Exception as save_err:
         print(f"Warning: could not write weights to {model_export_path}: {save_err}", file=sys.stderr)
@@ -433,11 +557,12 @@ def train_model(epochs: int = 50, lr: float = 0.005, batch_size: int = 32,
             "training_samples": X_train.shape[0],
             "validation_samples": X_val.shape[0],
             "total_epochs": epochs,
-            "final_train_loss": round(avg_train_loss, 5),
-            "final_val_loss": round(avg_val_loss, 5),
-            "final_train_acc": round(train_acc * 100.0, 2),
-            "final_val_acc": round(val_acc * 100.0, 2),
-            "training_time_sec": round(training_time, 3)
+            "final_train_loss": round(avg_train_loss_final, 5),
+            "final_val_loss": round(avg_val_loss_final, 5),
+            "final_train_acc": round(train_acc_final * 100.0, 2),
+            "final_val_acc": round(val_acc_final * 100.0, 2),
+            "training_time_sec": round(training_time, 3),
+            "accelerator": "PyTorch (CPU)" if pytorch_trained_successfully else "NumPy Model Solver"
         }
     }
 

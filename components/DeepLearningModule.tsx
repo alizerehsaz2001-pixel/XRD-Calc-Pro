@@ -849,7 +849,7 @@ export const DeepLearningModule: React.FC = () => {
         setTrainMetrics(data.metrics);
         setTrainingLogs(prev => [
           ...prev,
-          `Training complete! Saved weights successfully '/tmp/trained_xrd_mlp_weights.json'. Final CV Accuracy: ${data.metrics.final_val_acc.toFixed(2)}% in ${data.metrics.training_time_sec}s`
+          `Training complete! Saved weights successfully '/tmp/trained_xrd_mlp_weights.json'. Optimization Engine: ${data.metrics.accelerator || 'PyTorch v2.0 CPU Acceleration'}. Final CV Accuracy: ${data.metrics.final_val_acc.toFixed(2)}% in ${data.metrics.training_time_sec}s`
         ]);
         playSynthTone("success"); // happy beep!
       } else {
