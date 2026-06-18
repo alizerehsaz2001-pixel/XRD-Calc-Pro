@@ -34,7 +34,7 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: "25mb" }));
 
   // API routes
   app.post("/api/register", (req, res) => {
@@ -507,6 +507,108 @@ Provide the response in structured markdown with the following specific sections
 
     } catch (error: any) {
       console.error("Rietveld Refinement Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Python + Matplotlib Scientific Illustrator Script Execution Endpoint
+  app.post("/api/image/matplotlib", async (req, res) => {
+    const { code } = req.body;
+    try {
+      if (!code || typeof code !== "string") {
+        res.status(400).json({ success: false, error: "Python matplotlib script is required." });
+        return;
+      }
+
+      const scriptPath = path.join(__dirname, "utils", "matplotlibGenerator.py");
+      const { spawn } = await import("child_process");
+      
+      const child = spawn("python3", [scriptPath]);
+      
+      let stdout = "";
+      let stderr = "";
+      
+      child.stdout.on("data", (data) => {
+        stdout += data.toString();
+      });
+      
+      child.stderr.on("data", (data) => {
+        stderr += data.toString();
+      });
+      
+      child.on("close", (code) => {
+        if (code !== 0) {
+          console.error("Python Matplotlib Generator Error:", stderr);
+          res.status(500).json({ success: false, error: "Error executing Python Matplotlib script: " + (stderr || "exit code " + code) });
+          return;
+        }
+
+        try {
+          const results = JSON.parse(stdout.trim());
+          res.json(results);
+        } catch (parseError) {
+          console.error("Failed to parse Python Matplotlib output:", stdout, parseError);
+          res.status(500).json({ success: false, error: "Failed to parse Python Matplotlib output." });
+        }
+      });
+      
+      // Feed python code payload to standard input
+      child.stdin.write(JSON.stringify({ code }));
+      child.stdin.end();
+
+    } catch (error: any) {
+      console.error("Matplotlib Generator Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Machine Learning Python + OpenCV Image Solver Endpoint
+  app.post("/api/image/analyze-cv", async (req, res) => {
+    const { image, params } = req.body;
+    try {
+      if (!image) {
+        res.status(400).json({ success: false, error: "A valid base64 image is required." });
+        return;
+      }
+
+      const scriptPath = path.join(__dirname, "utils", "imageAnalysis.py");
+      const { spawn } = await import("child_process");
+      
+      const child = spawn("python3", [scriptPath]);
+      
+      let stdout = "";
+      let stderr = "";
+      
+      child.stdout.on("data", (data) => {
+        stdout += data.toString();
+      });
+      
+      child.stderr.on("data", (data) => {
+        stderr += data.toString();
+      });
+      
+      child.on("close", (code) => {
+        if (code !== 0) {
+          console.error("Python CV Analyzer Error:", stderr);
+          res.status(500).json({ success: false, error: "Error executing Python CV: " + (stderr || "exit code " + code) });
+          return;
+        }
+
+        try {
+          const results = JSON.parse(stdout.trim());
+          res.json(results);
+        } catch (parseError) {
+          console.error("Failed to parse Python CV output:", stdout, parseError);
+          res.status(500).json({ success: false, error: "Failed to parse Python CV output." });
+        }
+      });
+      
+      // Feed base64 string to python over standard input (avoids CLI ARG_MAX shell errors)
+      child.stdin.write(JSON.stringify({ image, params: params || {} }));
+      child.stdin.end();
+
+    } catch (error: any) {
+      console.error("Image Analysis CV Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
   });

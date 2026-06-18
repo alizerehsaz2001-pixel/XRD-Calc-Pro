@@ -478,6 +478,48 @@ Output ONLY the enhanced prompt as a single paragraph. Do not include any introd
   }
 };
 
+export const generateMatplotlibCode = async (prompt: string, presetType?: string): Promise<string> => {
+  try {
+    const model = 'gemini-3.5-flash';
+    const presetContext = presetType ? `The user is starting from a preset plot type of: "${presetType}". ` : '';
+    
+    // Create dynamic customer AI client
+    const dynamicAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+    
+    const response = await dynamicAi.models.generateContent({
+      model,
+      contents: `You are an expert scientific data visualizer who writes high-quality Python code using Matplotlib and NumPy.
+      Write a complete, professional, and visually stunning Python script to generate a scientific plot or mathematical model illustration based on this prompt: "${prompt}".
+      ${presetContext}
+      
+      STRICT DESIGN & FUNCTIONAL RULES:
+      1. Color Palette: Use a clean, professional dark slate/cyber theme for academic presentation (Dark background: '#0f172a' or transparent, axes labels: '#94a3b8', grid: '#1e293b', lines/curves: use high-contrast vibrant colors like '#38bdf8', '#f43f5e', '#10b981', '#f59e0b').
+      2. Set figure and axes background explicitly to match the slate/dark theme:
+         fig, ax = plt.subplots(figsize=(6.5, 5))
+         fig.patch.set_facecolor('#0f172a')
+         ax.set_facecolor('#0f172a')
+         ax.tick_params(colors='#94a3b8', labelsize=9)
+         ax.xaxis.label.set_color('#94a3b8')
+         ax.yaxis.label.set_color('#94a3b8')
+         ax.title.set_color('#f1f5f9')
+         ax.grid(True, color='#1e293b', linestyle='--', alpha=0.7)
+         for spine in ax.spines.values():
+             spine.set_color('#334155')
+      3. Use a high DPI or clean line/marker style to present clear scientific data points.
+      4. DO NOT call plt.show(). The backend runner is responsible for extracting the active figure.
+      5. Output ONLY the raw executable Python code.
+      6. Remove any markdown triple backtick fences (\`\`\`) in your output. Just output pure Python code blocks.`,
+    });
+    
+    let text = response.text || "";
+    text = text.replace(/```python\n?/g, "").replace(/\n?```/g, "").trim();
+    return text;
+  } catch (error) {
+    console.error("Error generating Matplotlib code:", error);
+    throw error;
+  }
+};
+
 export const createSupportChat = (isSmart: boolean = false): Chat => {
   return ai.chats.create({
     model: 'gemini-3.5-flash',
