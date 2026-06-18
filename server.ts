@@ -478,6 +478,39 @@ Provide the response in structured markdown with the following specific sections
     }
   });
 
+  // Machine Learning Python + Pandas Rietveld Solver Endpoint
+  app.post("/api/rietveld/refine", async (req, res) => {
+    const payload = req.body;
+    try {
+      const scriptPath = path.join(__dirname, "utils", "rietveldRefinement.py");
+      
+      // Escape the payload JSON string safely
+      const escapedPayload = JSON.stringify(JSON.stringify(payload));
+
+      const { exec } = await import("child_process");
+      
+      exec(`python3 "${scriptPath}" --json=${escapedPayload}`, (error, stdout, stderr) => {
+        if (error) {
+          console.error("Python Rietveld Solver Execution Error:", error, stderr);
+          res.status(500).json({ success: false, error: "Error executing Python Rietveld Solver: " + stderr });
+          return;
+        }
+
+        try {
+          const results = JSON.parse(stdout);
+          res.json({ success: true, ...results });
+        } catch (parseError) {
+          console.error("Failed to parse Python Rietveld output:", stdout, parseError);
+          res.status(500).json({ success: false, error: "Failed to parse Python Rietveld output: " + stdout });
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Rietveld Refinement Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Machine Learning Python RAG Database Search Endpoint
   app.post("/api/gemini/rag-database", async (req, res) => {
     const { query, customKey } = req.body;

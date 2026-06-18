@@ -7,7 +7,7 @@ import {
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
   Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, AlertTriangle, 
   Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2,
-  Globe, ChevronDown, Grid, Lock, Unlock, Edit2, Check, Trash2
+  Globe, ChevronDown, Grid, Lock, Unlock, Edit2, Check, Trash2, Cpu
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
@@ -478,6 +478,79 @@ export const RietveldModule: React.FC = () => {
 
   const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
   const [editingPhaseName, setEditingPhaseName] = useState<string>('');
+
+  // Python & Pandas Refinement state
+  const [pythonRefineResult, setPythonRefineResult] = useState<any>(null);
+  const [isPythonRefining, setIsPythonRefining] = useState<boolean>(false);
+  const [pythonRefineError, setPythonRefineError] = useState<string | null>(null);
+  const [pythonHistory, setPythonHistory] = useState<any[]>([]);
+
+  const runPythonRietveldRefinement = async () => {
+    setIsPythonRefining(true);
+    setPythonRefineError(null);
+    try {
+      const response = await fetch('/api/rietveld/refine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phases: simPhases.filter(p => p.enabled),
+          background_model: 'Chebyshev',
+          bg_terms: 6,
+          wavelength: wavelength || 1.5406,
+          two_theta_min: SIMULATION_RANGE.start,
+          two_theta_max: SIMULATION_RANGE.end,
+          step_size: SIMULATION_RANGE.step,
+          refine_scale: true,
+          refine_lattice: true,
+          refine_fwhm: true,
+          refine_eta: true,
+          refine_zero_shift: true
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setPythonRefineResult(data);
+        
+        // Push to local log history
+        setPythonHistory(prev => [
+          {
+            timestamp: new Date().toLocaleTimeString(),
+            r_wp_initial: data.r_factors.r_wp_initial,
+            r_wp_final: data.r_factors.r_wp_final,
+            chi_squared: data.r_factors.chi_squared,
+            gof: data.r_factors.gof,
+            status: data.optimizer_status,
+            phases: data.phases
+          },
+          ...prev
+        ]);
+
+        // Reactively update simPhases parameters with refined parameters
+        setSimPhases(prevPhases => {
+          return prevPhases.map(p => {
+            const refined = data.phases.find((rp: any) => rp.name === p.name);
+            if (refined) {
+              return {
+                ...p,
+                a: refined.refined_a,
+                scale: refined.refined_scale,
+                fwhm: refined.refined_fwhm,
+                eta: refined.refined_eta
+              };
+            }
+            return p;
+          });
+        });
+      } else {
+        setPythonRefineError(data.error || 'Unknown optimizer error');
+      }
+    } catch (err: any) {
+      setPythonRefineError(err.message || 'Network communication failure');
+    } finally {
+      setIsPythonRefining(false);
+    }
+  };
   
   const [selectedPhaseSubTab, setSelectedPhaseSubTab] = useState<'params' | 'symmetry'>('params');
   const [symmetryProbeX, setSymmetryProbeX] = useState<number>(0.2);
@@ -1722,14 +1795,27 @@ export const RietveldModule: React.FC = () => {
                      <Grid className="w-4 h-4" />
                      Matrix
                    </button>
-                   <button 
-                    onClick={() => setIsAutoRefining(!isAutoRefining)}
-                    className={`px-4 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${isAutoRefining ? 'text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20' : 'text-teal-400 bg-teal-500/10 border-teal-500/30 hover:bg-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]'}`}
-                    title="Live Engine"
-                   >
-                     <PlayCircle className={`w-4 h-4 ${isAutoRefining ? 'animate-pulse' : ''}`} />
-                     {isAutoRefining ? 'Halt Engine' : 'Live Tuning'}
-                   </button>
+                    <button 
+                     onClick={runPythonRietveldRefinement}
+                     disabled={isPythonRefining}
+                     className={`px-4 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${isPythonRefining ? 'text-amber-500 bg-amber-500/20 border-amber-500/30 cursor-wait' : 'text-amber-400 bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)] border-amber-500/50'}`}
+                     title="Python + Pandas Server Optimizer"
+                    >
+                      {isPythonRefining ? (
+                        <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                      ) : (
+                        <Cpu className="w-4 h-4 text-amber-400" />
+                      )}
+                      {isPythonRefining ? 'Refining...' : 'Python + Pandas Solver'}
+                    </button>
+                    <button 
+                     onClick={() => setIsAutoRefining(!isAutoRefining)}
+                     className={`px-4 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${isAutoRefining ? 'text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20' : 'text-teal-400 bg-teal-500/10 border-teal-500/30 hover:bg-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]'}`}
+                     title="Live Engine"
+                    >
+                      <PlayCircle className={`w-4 h-4 ${isAutoRefining ? 'animate-pulse' : ''}`} />
+                      {isAutoRefining ? 'Halt Engine' : 'Live Tuning'}
+                    </button>
                 </div>
               </div>
 
@@ -3300,6 +3386,142 @@ export const RietveldModule: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Python and Pandas Refinement Report */}
+          {(isPythonRefining || pythonRefineResult || pythonRefineError) && (
+            <div className="mt-8 bg-slate-950/90 rounded-[2rem] border border-amber-500/20 p-8 shadow-[0_0_50px_rgba(245,158,11,0.08)] relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none" />
+              
+              <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+                    <Cpu className="w-5 h-5 text-amber-400 animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-100 font-sans tracking-tight">Python & Pandas Refinement Metrics</h3>
+                    <p className="text-xs text-amber-400/80 font-mono tracking-widest mt-0.5">SCIPY.OPTIMIZE // POWELL LE MODELLING</p>
+                  </div>
+                </div>
+                {pythonRefineResult?.pandas_dataframe_enabled && (
+                  <span className="px-3 py-1 bg-teal-500/15 border border-teal-500/30 text-teal-400 rounded-full text-[9px] font-black uppercase tracking-widest font-mono shadow-[0_0_10px_rgba(20,184,166,0.1)]">
+                    Pandas DataFrame Active
+                  </span>
+                )}
+              </div>
+
+              {isPythonRefining && (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <RefreshCw className="w-10 h-10 text-amber-400 animate-spin" />
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-bold text-slate-200">Refining Multi-Phase Pattern...</p>
+                    <p className="text-xs text-slate-500 font-mono text-center">Running non-linear coordinate descent on parameter covariance matrix via Pandas DataFrames</p>
+                  </div>
+                </div>
+              )}
+
+              {pythonRefineError && (
+                <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-4 py-3 rounded-2xl text-xs font-mono flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+                  <span>{pythonRefineError}</span>
+                </div>
+              )}
+
+              {pythonRefineResult && !isPythonRefining && (
+                <div className="space-y-6 animate-fadeIn">
+                  
+                  {/* Quality factors grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5 text-center shadow-lg hover:border-amber-500/20 transition-all">
+                      <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Initial Rwp</span>
+                      <span className="text-lg font-mono font-black text-slate-300">{pythonRefineResult.r_factors.r_wp_initial?.toFixed(2)}%</span>
+                    </div>
+                    <div className="bg-amber-500/5 p-4 rounded-2xl border border-amber-500/20 text-center shadow-lg shadow-amber-500/5">
+                      <span className="block text-[8px] font-black text-amber-500 uppercase tracking-widest mb-1.5">Refined Rwp</span>
+                      <span className="text-xl font-mono font-black text-amber-400 animate-pulse">{pythonRefineResult.r_factors.r_wp_final?.toFixed(2)}%</span>
+                    </div>
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5 text-center shadow-lg hover:border-teal-500/20 transition-all">
+                      <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Expected Rexp</span>
+                      <span className="text-lg font-mono font-black text-teal-400">{pythonRefineResult.r_factors.r_exp?.toFixed(2)}%</span>
+                    </div>
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5 text-center shadow-lg hover:border-indigo-500/20 transition-all">
+                      <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Goodness-of-Fit</span>
+                      <span className="text-lg font-mono font-black text-indigo-400">{pythonRefineResult.r_factors.gof?.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-black/40 p-4 rounded-2xl border border-white/5 text-center shadow-lg hover:border-rose-500/30 transition-all col-span-2 md:col-span-1 text-ellipsis overflow-hidden">
+                      <span className="block text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Reduced χ²</span>
+                      <span className="text-lg font-mono font-black text-rose-400">{pythonRefineResult.r_factors.chi_squared?.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Statistical Pandas report */}
+                  <div className="bg-[#0B1221] rounded-2xl border border-white/5 p-5 relative overflow-hidden">
+                    <h4 className="text-[10px] font-black tracking-widest text-slate-400 mb-3 uppercase font-mono flex items-center gap-2">
+                      <Database className="w-3.5 h-3.5 text-teal-400" /> Pandas Tabular Residual Analytics
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Mean Residual Error</span>
+                        <span className="text-xs font-mono font-extrabold text-slate-300">{pythonRefineResult.statistics.mean_residual?.toExponential(3)}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Residual Std Dev</span>
+                        <span className="text-xs font-mono font-extrabold text-slate-300">{pythonRefineResult.statistics.std_residual?.toFixed(3)}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Max Absolute Error</span>
+                        <span className="text-xs font-mono font-extrabold text-slate-300">{pythonRefineResult.statistics.max_error?.toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="block text-[8px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pearson Correlation (R)</span>
+                        <span className="text-xs font-mono font-extrabold text-teal-400">{(pythonRefineResult.statistics.correlation_coefficient * 100).toFixed(4)}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Parameter comparisons table */}
+                  <div className="overflow-x-auto rounded-2xl border border-white/5 bg-black/20">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/5 bg-white/5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                          <th className="py-3 px-4">Phase Name</th>
+                          <th className="py-3 px-4">Symmetry Type</th>
+                          <th className="py-3 px-4 text-right">Lattice a (Init → Opt)</th>
+                          <th className="py-3 px-4 text-right">Scale (Init → Opt)</th>
+                          <th className="py-3 px-4 text-right">FWHM (Init → Opt)</th>
+                          <th className="py-3 px-4 text-right">Cell Vol (Å³)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 text-xs">
+                        {pythonRefineResult.phases.map((ph: any, i: number) => (
+                          <tr key={i} className="hover:bg-white/5 transition-colors">
+                            <td className="py-3 px-4 font-bold text-slate-200">{ph.name}</td>
+                            <td className="py-4 px-4"><span className="px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded text-[9px] font-black uppercase tracking-widest">{ph.phaseType}</span></td>
+                            <td className="py-3 px-4 text-right font-mono font-black text-teal-400">
+                              {ph.initial_a.toFixed(3)} → <span className="text-white text-sm bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-500/20">{ph.refined_a.toFixed(5)}</span>
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono font-bold text-slate-400">
+                              {ph.initial_scale.toFixed(0)} → {ph.refined_scale.toFixed(1)}
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono font-bold text-slate-300">
+                              {ph.initial_fwhm.toFixed(3)} → {ph.refined_fwhm.toFixed(4)}
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono font-black text-amber-400">{ph.volume.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Status report message */}
+                  <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono uppercase tracking-wider bg-white/5 px-4 py-2 rounded-xl">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Optimizer report: {pythonRefineResult.optimizer_status}
+                  </div>
+
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
       
