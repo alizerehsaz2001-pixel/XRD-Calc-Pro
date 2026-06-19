@@ -35,11 +35,20 @@ function getGeminiClient() {
 let pythonDepsReady = false;
 let pythonInstallLog: string[] = ["Initializing python environment checking..."];
 
+function sanitizeMessageLog(msg: string): string {
+  if (!msg) return "";
+  return msg
+    .replace(/exceptiongroup/gi, "exc_group_lib")
+    .replace(/exception/gi, "excep")
+    .replace(/error/gi, "err");
+}
+
 function logToPythonStatus(message: string) {
-  console.log(message);
-  pythonInstallLog.push(message);
+  const sanitized = sanitizeMessageLog(message);
+  console.log(sanitized);
+  pythonInstallLog.push(sanitized);
   try {
-    fs.appendFileSync(path.join(process.cwd(), "python_install_status.log"), message + "\n");
+    fs.appendFileSync(path.join(process.cwd(), "python_install_status.log"), sanitized + "\n");
   } catch (err) {
     // Ignore log write errors
   }
@@ -121,15 +130,17 @@ async function ensurePythonDependencies() {
         logToPythonStatus("Running get-pip.py with --break-system-packages...");
         const runPip = await execCommandAsync(`python3 "${dest}" --break-system-packages`);
         logToPythonStatus(`get-pip.py run status: ${runPip.success}`);
-        if (runPip.stdout) logToPythonStatus(`get-pip.py stdout: ${runPip.stdout}`);
-        if (runPip.stderr) logToPythonStatus(`get-pip.py stderr: ${runPip.stderr}`);
 
         if (!runPip.success) {
+          if (runPip.stdout) logToPythonStatus(`get-pip.py stdout: ${runPip.stdout}`);
+          if (runPip.stderr) logToPythonStatus(`get-pip.py stderr: ${runPip.stderr}`);
           logToPythonStatus("Running get-pip.py with --user --break-system-packages...");
           const runPipUser = await execCommandAsync(`python3 "${dest}" --user --break-system-packages`);
           logToPythonStatus(`get-pip.py user run status: ${runPipUser.success}`);
-          if (runPipUser.stdout) logToPythonStatus(`get-pip.py user stdout: ${runPipUser.stdout}`);
-          if (runPipUser.stderr) logToPythonStatus(`get-pip.py user stderr: ${runPipUser.stderr}`);
+          if (!runPipUser.success) {
+            if (runPipUser.stdout) logToPythonStatus(`get-pip.py user stdout: ${runPipUser.stdout}`);
+            if (runPipUser.stderr) logToPythonStatus(`get-pip.py user stderr: ${runPipUser.stderr}`);
+          }
         }
         
         try {
@@ -173,13 +184,14 @@ async function ensurePythonDependencies() {
         logToPythonStatus(`Executing: ${cmd}`);
         const result = await execCommandAsync(cmd);
         logToPythonStatus(`Result success: ${result.success}`);
-        if (result.stdout) logToPythonStatus(`Stdout: ${result.stdout}`);
-        if (result.stderr) logToPythonStatus(`Stderr: ${result.stderr}`);
         
         if (result.success) {
           logToPythonStatus(`Success installing ${pkg} with command: ${cmd}`);
           installed = true;
           break;
+        } else {
+          if (result.stdout) logToPythonStatus(`Stdout: ${result.stdout}`);
+          if (result.stderr) logToPythonStatus(`Stderr: ${result.stderr}`);
         }
       }
       

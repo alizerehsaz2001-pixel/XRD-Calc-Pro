@@ -907,6 +907,51 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
     }
   }), []);
 
+  // Overrides for editing element/material properties
+  const [customOverrides, setCustomOverrides] = useState<Record<number, Partial<CrystalElement>>>(() => {
+    try {
+      const saved = localStorage.getItem('xrd_periodic_custom_overrides');
+      return saved ? JSON.parse(saved) : {};
+    } catch (_) {
+      return {};
+    }
+  });
+
+  const updateCustomOverride = (num: number, updatedFields: Partial<CrystalElement>) => {
+    setCustomOverrides(prev => {
+      const next = {
+        ...prev,
+        [num]: {
+          ...prev[num],
+          ...updatedFields
+        }
+      };
+      try {
+        localStorage.setItem('xrd_periodic_custom_overrides', JSON.stringify(next));
+      } catch (_) {}
+      return next;
+    });
+  };
+
+  const [isEditingElement, setIsEditingElement] = useState<boolean>(false);
+
+  // Form states for active element editing
+  const [formName, setFormName] = useState<string>('');
+  const [formSymbol, setFormSymbol] = useState<string>('');
+  const [formWeight, setFormWeight] = useState<number>(0);
+  const [formStructure, setFormStructure] = useState<CrystalElement['crystalStructure']>('Cubic');
+  const [formSpaceGroup, setFormSpaceGroup] = useState<string>('');
+  const [formDensity, setFormDensity] = useState<number>(0);
+  const [formMeltingPoint, setFormMeltingPoint] = useState<number>(0);
+  const [formA, setFormA] = useState<number>(0);
+  const [formB, setFormB] = useState<number | undefined>(undefined);
+  const [formC, setFormC] = useState<number | undefined>(undefined);
+  const [formElectronConfig, setFormElectronConfig] = useState<string>('');
+
+  useEffect(() => {
+    setIsEditingElement(false);
+  }, [selectedElement]);
+
   // Standard elements coordinates for standard 18-col Periodic Table
   const fullElementsGrid = useMemo(() => {
     const baseList: { num: number; sym: string; name: string; x: number; y: number; s: string }[] = [
@@ -992,7 +1037,9 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
     ];
 
     return baseList.map(item => {
-      const detailed = elementsDb[item.num] || {};
+      const dbInfo = elementsDb[item.num] || {};
+      const overrideInfo = customOverrides[item.num] || {};
+      const detailed = { ...dbInfo, ...overrideInfo };
       
       let category: CrystalElement['category'] = detailed.category || 'transition_metal';
       if (item.num === 1 || item.num === 6 || item.num === 7 || item.num === 8 || item.num === 15 || item.num === 16 || item.num === 34) category = 'nonmetal';
@@ -1004,15 +1051,15 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
       else if (item.num >= 89) category = 'actinoid';
       else if (item.num === 13 || item.num === 31 || item.num === 49 || item.num === 50 || item.num === 81 || item.num === 82 || item.num === 83) category = 'post_transition';
 
-      const weight = detailed.weight || (item.num * 2.05 + 1.8);
-      const density = detailed.density || (item.num * 0.17 + 0.95);
-      const meltingPoint = detailed.meltingPoint || (item.num * 22);
+      const weight = detailed.weight !== undefined ? detailed.weight : (item.num * 2.05 + 1.8);
+      const density = detailed.density !== undefined ? detailed.density : (item.num * 0.17 + 0.95);
+      const meltingPoint = detailed.meltingPoint !== undefined ? detailed.meltingPoint : (item.num * 22);
       const electronConfig = detailed.electronConfig || `[Inert] Config ${item.num}`;
 
       return {
         number: item.num,
-        symbol: item.sym,
-        name: item.name,
+        symbol: detailed.symbol || item.sym,
+        name: detailed.name || item.name,
         weight,
         category,
         gridX: item.x,
@@ -1031,7 +1078,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
         famousCompounds: detailed.famousCompounds || []
       } as CrystalElement;
     });
-  }, [elementsDb]);
+  }, [elementsDb, customOverrides]);
 
   // Handle single compounds simulation loading
   const handleLoadPeaks = (compound: FamousCompound) => {
@@ -1061,6 +1108,55 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const activeElementInfo = useMemo(() => {
     return fullElementsGrid.find(el => el.number === selectedElement) || null;
   }, [fullElementsGrid, selectedElement]);
+
+  useEffect(() => {
+    if (activeElementInfo) {
+      setFormName(activeElementInfo.name);
+      setFormSymbol(activeElementInfo.symbol);
+      setFormWeight(activeElementInfo.weight);
+      setFormStructure(activeElementInfo.crystalStructure);
+      setFormSpaceGroup(activeElementInfo.spaceGroup);
+      setFormDensity(activeElementInfo.density);
+      setFormMeltingPoint(activeElementInfo.meltingPoint);
+      setFormA(activeElementInfo.a);
+      setFormB(activeElementInfo.b);
+      setFormC(activeElementInfo.c);
+      setFormElectronConfig(activeElementInfo.electronConfig);
+    }
+  }, [activeElementInfo, isEditingElement]);
+
+  const handleSaveProperties = () => {
+    if (!activeElementInfo) return;
+    updateCustomOverride(activeElementInfo.number, {
+      name: formName,
+      symbol: formSymbol,
+      weight: Number(formWeight),
+      crystalStructure: formStructure,
+      spaceGroup: formSpaceGroup,
+      density: Number(formDensity),
+      meltingPoint: Number(formMeltingPoint),
+      a: Number(formA),
+      b: formB ? Number(formB) : undefined,
+      c: formC ? Number(formC) : undefined,
+      electronConfig: formElectronConfig
+    });
+    setIsEditingElement(false);
+    playSynthTone('success');
+  };
+
+  const handleResetToStandard = () => {
+    if (!activeElementInfo) return;
+    setCustomOverrides(prev => {
+      const next = { ...prev };
+      delete next[activeElementInfo.number];
+      try {
+        localStorage.setItem('xrd_periodic_custom_overrides', JSON.stringify(next));
+      } catch (_) {}
+      return next;
+    });
+    setIsEditingElement(false);
+    playSynthTone('tick');
+  };
 
   const compareItems = useMemo(() => {
     const items: {
@@ -1625,54 +1721,241 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   </div>
                 </div>
 
-                {/* Animated 3D projection widget */}
-                <CrystallineLattice3D 
-                  structure={activeElementInfo.crystalStructure}
-                  a={activeElementInfo.a}
-                  b={activeElementInfo.b}
-                  c={activeElementInfo.c}
-                  colorClass={categoryColor(activeElementInfo.category)}
-                />
+                {/* Adjust Material Properties Toggle Bar */}
+                <div className="flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-850/80">
+                  <span className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-500 pl-1">Adjust Material Properties</span>
+                  <button
+                    onClick={() => {
+                      setIsEditingElement(!isEditingElement);
+                      playSynthTone('tick');
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-black uppercase tracking-wider rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 transition-all cursor-pointer"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    {isEditingElement ? "View Details" : "Edit Properties"}
+                  </button>
+                </div>
 
-                {/* Deep Crystallographic Parameters */}
-                <div className="space-y-2">
-                  <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                    <Info className="w-3 text-indigo-400" /> Ground State Lattice Constants
-                  </span>
-
-                  <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-850 shadow-inner text-xs font-mono">
-                    <div className="space-y-0.5">
-                      <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">Space Group:</div>
-                      <div className="text-indigo-400 font-bold text-[10.5px]">
-                        {activeElementInfo.spaceGroup === 'Unknown' ? 'P-1 (No. 1)' : activeElementInfo.spaceGroup}
-                      </div>
-                    </div>
-                    <div className="space-y-0.5">
-                      <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">X-Ray Density:</div>
-                      <div className="text-emerald-400 font-bold text-[10.5px]">
-                        {activeElementInfo.density.toFixed(3)} <span className="text-[8px] text-slate-500">g/cm³</span>
-                      </div>
-                    </div>
-
-                    <div className="space-y-0.5 col-span-2 border-t border-slate-900/60 pt-1.5 label-section">
-                      <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">Lattice Length metrics (a, b, c):</div>
-                      <div className="text-slate-300 font-bold text-[10.5px] tracking-tight">
-                        a = {activeElementInfo.a.toFixed(3)} Å 
-                        {activeElementInfo.b ? `, b = ${activeElementInfo.b.toFixed(3)} Å` : ''} 
-                        {activeElementInfo.c ? `, c = ${activeElementInfo.c.toFixed(3)} Å` : ''}
-                      </div>
+                {isEditingElement ? (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-slate-800/40 pb-2">
+                      <span className="text-xs font-black uppercase text-indigo-400 tracking-wider font-mono">Property Editor</span>
+                      <button
+                        onClick={handleResetToStandard}
+                        className="px-2.5 py-1 text-[9px] font-bold text-rose-400 border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 rounded-md transition-all cursor-pointer"
+                        title="Revert all changes for this element to initial scientific constants"
+                      >
+                        Reset to Default
+                      </button>
                     </div>
 
-                    <div className="space-y-0.5 col-span-2 border-t border-slate-900/60 pt-1.5 label-section">
-                      <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">Melting Point / Configuration:</div>
-                      <div className="text-[10px] space-x-1.5">
-                        <span className="text-amber-400 font-bold">{activeElementInfo.meltingPoint.toFixed(1)} °C</span>
-                        <span className="text-slate-500">•</span>
-                        <span className="text-indigo-300 font-bold">{activeElementInfo.electronConfig}</span>
+                    <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                      {/* Name & Symbol */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-400">Element Name</label>
+                          <input
+                            type="text"
+                            value={formName}
+                            onChange={(e) => setFormName(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-400">Chemical Symbol</label>
+                          <input
+                            type="text"
+                            value={formSymbol}
+                            onChange={(e) => setFormSymbol(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors font-bold"
+                          />
+                        </div>
                       </div>
+
+                      {/* Weight & Density */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-400">At. Weight (u)</label>
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={formWeight || ''}
+                            onChange={(e) => setFormWeight(parseFloat(e.target.value) || 0)}
+                            className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-400">Density (g/cm³)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={formDensity || ''}
+                            onChange={(e) => setFormDensity(parseFloat(e.target.value) || 0)}
+                            className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Crystal Structure Select */}
+                      <div className="space-y-1 border-t border-slate-900/60 pt-2.5">
+                        <label className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-400">Crystal Layout</label>
+                        <select
+                          value={formStructure}
+                          onChange={(e) => setFormStructure(e.target.value as any)}
+                          className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors cursor-pointer font-bold"
+                        >
+                          {['BCC', 'FCC', 'HCP', 'Diamond', 'Cubic', 'Hexagonal', 'Orthorhombic', 'Rhombohedral', 'Tetragonal', 'Monoclinic', 'Amorphous'].map(str => (
+                            <option key={str} value={str}>{str}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Space Group */}
+                      <div className="space-y-1">
+                        <label className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-400">Space Group</label>
+                        <input
+                          type="text"
+                          value={formSpaceGroup}
+                          onChange={(e) => setFormSpaceGroup(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors font-mono"
+                        />
+                      </div>
+
+                      {/* Lattice Length constants */}
+                      <div className="space-y-1 border-t border-slate-900/60 pt-2.5 font-sans">
+                        <label className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-400 flex justify-between">
+                          <span>Lattice Length Metrics (Å)</span>
+                          <span className="text-slate-500">Normal range 2.0 - 15.0</span>
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-0.5">
+                            <span className="text-[8px] font-mono text-slate-500">a</span>
+                            <input
+                              type="number"
+                              step="0.001"
+                              value={formA || ''}
+                              onChange={(e) => setFormA(parseFloat(e.target.value) || 0)}
+                              className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg p-2 text-xs outline-none transition-colors font-mono"
+                            />
+                          </div>
+                          <div className="space-y-0.5">
+                            <span className="text-[8px] font-mono text-slate-500">b (optional)</span>
+                            <input
+                              type="number"
+                              step="0.001"
+                              value={formB || ''}
+                              onChange={(e) => setFormB(e.target.value ? parseFloat(e.target.value) : undefined)}
+                              className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg p-2 text-xs outline-none transition-colors font-mono"
+                              placeholder="N/A"
+                            />
+                          </div>
+                          <div className="space-y-0.5">
+                            <span className="text-[8px] font-mono text-slate-500">c (optional)</span>
+                            <input
+                              type="number"
+                              step="0.001"
+                              value={formC || ''}
+                              onChange={(e) => setFormC(e.target.value ? parseFloat(e.target.value) : undefined)}
+                              className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg p-2 text-xs outline-none transition-colors font-mono"
+                              placeholder="N/A"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Melting point & Electron config */}
+                      <div className="grid grid-cols-2 gap-2 border-t border-slate-900/60 pt-2.5">
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-400">Melting Pt (°C)</label>
+                          <input
+                            type="number"
+                            value={formMeltingPoint || ''}
+                            onChange={(e) => setFormMeltingPoint(parseFloat(e.target.value) || 0)}
+                            className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-400">Elec. Config</label>
+                          <input
+                            type="text"
+                            value={formElectronConfig}
+                            onChange={(e) => setFormElectronConfig(e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 border-t border-slate-800/60 pt-3">
+                      <button
+                        onClick={() => {
+                          setIsEditingElement(false);
+                          playSynthTone('tick');
+                        }}
+                        className="w-full py-2 border border-slate-800 hover:bg-slate-850 text-slate-300 text-xs font-black uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveProperties}
+                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-mono font-black uppercase tracking-wider rounded-lg shadow-md hover:shadow-indigo-500/20 active:scale-98 transition-all cursor-pointer"
+                      >
+                        Save Changes
+                      </button>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {/* Animated 3D projection widget */}
+                    <CrystallineLattice3D 
+                      structure={activeElementInfo.crystalStructure}
+                      a={activeElementInfo.a}
+                      b={activeElementInfo.b}
+                      c={activeElementInfo.c}
+                      colorClass={categoryColor(activeElementInfo.category)}
+                    />
+
+                    {/* Deep Crystallographic Parameters */}
+                    <div className="space-y-2">
+                      <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
+                        <Info className="w-3 text-indigo-400" /> Ground State Lattice Constants
+                      </span>
+
+                      <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-850 shadow-inner text-xs font-mono">
+                        <div className="space-y-0.5">
+                          <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">Space Group:</div>
+                          <div className="text-indigo-400 font-bold text-[10.5px]">
+                            {activeElementInfo.spaceGroup === 'Unknown' ? 'P-1 (No. 1)' : activeElementInfo.spaceGroup}
+                          </div>
+                        </div>
+                        <div className="space-y-0.5">
+                          <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">X-Ray Density:</div>
+                          <div className="text-emerald-400 font-bold text-[10.5px]">
+                            {activeElementInfo.density.toFixed(3)} <span className="text-[8px] text-slate-500">g/cm³</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-0.5 col-span-2 border-t border-slate-900/60 pt-1.5 label-section">
+                          <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">Lattice Length metrics (a, b, c):</div>
+                          <div className="text-slate-300 font-bold text-[10.5px] tracking-tight">
+                            a = {activeElementInfo.a.toFixed(3)} Å 
+                            {activeElementInfo.b ? `, b = ${activeElementInfo.b.toFixed(3)} Å` : ''} 
+                            {activeElementInfo.c ? `, c = ${activeElementInfo.c.toFixed(3)} Å` : ''}
+                          </div>
+                        </div>
+
+                        <div className="space-y-0.5 col-span-2 border-t border-slate-900/60 pt-1.5 label-section">
+                          <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">Melting Point / Configuration:</div>
+                          <div className="text-[10px] space-x-1.5">
+                            <span className="text-amber-400 font-bold">{activeElementInfo.meltingPoint.toFixed(1)} °C</span>
+                            <span className="text-slate-500">•</span>
+                            <span className="text-indigo-300 font-bold">{activeElementInfo.electronConfig}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Celebrated Crystal Alloys / Compounds section */}
                 <div className="space-y-3 pt-2">
