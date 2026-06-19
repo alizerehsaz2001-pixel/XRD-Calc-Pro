@@ -2451,14 +2451,20 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 </p>
 
                 {/* Database Registry Choice Cards */}
-                <div className="grid grid-cols-2 xs:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5">
+                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2.5">
                   {[
-                    { id: 'materials_project', name: 'Materials Project', type: 'Academic', status: 'FREE ACCESS' },
+                    { id: 'materials_project', name: 'UC Berkeley Materials', type: 'UC Berkeley / LBNL', status: 'FREE ACCESS' },
                     { id: 'cod', name: 'COD Crystallography', type: 'Open-Source', status: 'FREE ACCESS' },
                     { id: 'pubchem', name: 'PubChem Substance', type: 'Public', status: 'FREE ACCESS' },
                     { id: 'nist', name: 'NIST WebBook', type: 'Public', status: 'FREE ACCESS' },
                     { id: 'aflow', name: 'AFLOW', type: 'Academic', status: 'FREE ACCESS' },
                     { id: 'oqmd', name: 'OQMD', type: 'Academic', status: 'FREE ACCESS' },
+                    { id: 'epfl_materials_cloud', name: 'EPFL Materials Cloud', type: 'EPFL (Switzerland)', status: 'FREE ACCESS' },
+                    { id: 'mit_mgi', name: 'MIT Materials Genome', type: 'MIT / MGI', status: 'FREE ACCESS' },
+                    { id: 'harvard_cep', name: 'Harvard Clean Energy', type: 'Harvard / CEP', status: 'FREE ACCESS' },
+                    { id: 'nomad_discovery', name: 'NOMAD Lab', type: 'Max Planck (Germany)', status: 'FREE ACCESS' },
+                    { id: 'nims_atomwork', name: 'NIMS AtomWork', type: 'Japan / NIMS', status: 'FREE ACCESS' },
+                    { id: 'cern_opendata', name: 'CERN Nuclear & Space', type: 'CERN OpenData', status: 'FREE ACCESS' },
                     { id: 'springer_materials', name: 'SpringerMaterials', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true },
                     { id: 'icsd', name: 'ICSD Inorganic', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true },
                     { id: 'ccdc', name: 'CCDC Crystallography', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true }
@@ -2474,14 +2480,14 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                           }
                           setSelectedGlobalDB(dbItem.id);
                         }}
-                        className={`p-3 rounded-xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between min-h-[72px] relative overflow-hidden group ${active ? 'bg-gradient-to-br from-blue-900/40 to-indigo-900/40 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-black/30 border-white/5 hover:bg-white/5 hover:border-white/20'}`}
+                        className={`p-3 rounded-xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between min-h-[84px] relative overflow-hidden group ${active ? 'bg-gradient-to-br from-blue-900/40 to-indigo-900/40 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-black/30 border-white/5 hover:bg-white/5 hover:border-white/20'}`}
                       >
                         {active && <div className="absolute top-0 right-0 w-12 h-12 bg-blue-500/20 blur-xl rounded-full" />}
-                        <div className="relative z-10">
-                          <span className={`block text-[8px] font-black uppercase tracking-wider leading-none mb-1 ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
-                          <span className={`block text-[10px] font-bold tracking-tight truncate ${active ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>{dbItem.name}</span>
+                        <div className="relative z-10-wrapper space-y-1">
+                          <span className={`block text-[7.5px] font-black uppercase tracking-wider leading-none ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
+                          <span className={`block text-[10px] font-bold tracking-tight leading-snug ${active ? 'text-white font-extrabold' : 'text-slate-300 group-hover:text-white'}`}>{dbItem.name}</span>
                         </div>
-                        <span className={`block text-[8.5px] font-mono leading-none relative z-10 mt-1 ${dbItem.status === 'LOCKED' ? 'text-red-400/80 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : active ? 'text-blue-200 font-bold' : 'text-blue-400/70 font-bold'}`}>{dbItem.status}</span>
+                        <span className={`block text-[8px] font-mono leading-none relative z-10 mt-2 ${dbItem.status === 'LOCKED' ? 'text-red-400/80 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : active ? 'text-blue-200 font-bold' : 'text-blue-400/70 font-bold'}`}>{dbItem.status}</span>
                       </div>
                     );
                   })}

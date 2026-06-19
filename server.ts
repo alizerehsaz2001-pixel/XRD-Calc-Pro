@@ -440,7 +440,27 @@ Provide the response in structured markdown with the following specific sections
         }
       });
 
-      const prompt = `Find and compile high-fidelity, peer-reviewed crystallography and material science properties for phases or minerals matching the query: "${query}" from the scientific database registry: "${databaseId}".
+      const dbMapping: Record<string, string> = {
+        materials_project: "UC Berkeley Materials Project (LBNL)",
+        cod: "Crystallography Open Database (COD)",
+        pubchem: "PubChem Substance Database (NIH)",
+        nist: "National Institute of Standards and Technology (NIST) WebBook",
+        aflow: "AFLOW (Automatic - FLOW) Consortium",
+        oqmd: "Open Quantum Materials Database (OQMD) at Northwestern University",
+        springer_materials: "SpringerMaterials",
+        icsd: "Inorganic Crystal Structure Database (ICSD)",
+        ccdc: "Cambridge Structural Database (CCDC / Cambridge Crystallographic Data Centre)",
+        epfl_materials_cloud: "EPFL Materials Cloud (Switzerland)",
+        mit_mgi: "MIT Materials Genome Initiative (MGI)",
+        harvard_cep: "Harvard Clean Energy Project (CEP)",
+        nomad_discovery: "NOMAD Laboratory (Novel Materials Discovery Cluster)",
+        nims_atomwork: "NIMS AtomWork Crystallographic Database (Japan)",
+        cern_opendata: "CERN Open Data Nuclear & High Energy Space Materials"
+      };
+
+      const resolvedDbName = dbMapping[databaseId] || databaseId;
+
+      const prompt = `Find and compile high-fidelity, peer-reviewed crystallography and material science properties for phases or minerals matching the query: "${query}" from the scientific database registry: "${resolvedDbName}".
       You MUST provide authentic material specifications. Compile up to 4 prominent and distinct structural matches.
       For each material, compile:
       - Correct chemical name (e.g., Titanium Dioxide Rutile)

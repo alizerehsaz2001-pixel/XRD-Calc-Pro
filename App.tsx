@@ -203,7 +203,7 @@ const App: React.FC = () => {
           setPythonLogs(data.logs || []);
         }
       } catch (e) {
-        console.error("Python status check failed:", e);
+        console.log("Python engine status pending (waiting for server boot)...");
       }
     };
 
