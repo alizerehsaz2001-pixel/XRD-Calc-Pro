@@ -5,6 +5,10 @@ import {
   Info, Sparkles, Activity, Layers, Compass, Play, Search, 
   HelpCircle, Orbit, RotateCw, Settings, ShieldAlert, Zap, Cpu
 } from 'lucide-react';
+import { 
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
+  ResponsiveContainer, Legend, Tooltip as RechartsTooltip
+} from 'recharts';
 import { playSynthTone } from '../utils/sound';
 
 export interface FamousCompound {
@@ -432,6 +436,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [loadedBanner, setLoadedBanner] = useState<string | null>(null);
+
+  // Comparison Module states
+  const [activeTab, setActiveTab] = useState<'grid' | 'compare'>('grid');
+  const [compareSubjectAId, setCompareSubjectAId] = useState<string>('element-14');
+  const [compareSubjectBId, setCompareSubjectBId] = useState<string>('compound-SiO2 (Quartz)');
 
   // Deep scientific properties of crystallographic elements
   const elementsDb = useMemo<Record<number, Partial<CrystalElement>>>(() => ({
@@ -1053,6 +1062,185 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
     return fullElementsGrid.find(el => el.number === selectedElement) || null;
   }, [fullElementsGrid, selectedElement]);
 
+  const compareItems = useMemo(() => {
+    const items: {
+      id: string;
+      symbolOrFormula: string;
+      name: string;
+      type: 'element' | 'compound';
+      density: number;
+      meltingPoint: number;
+      primaryPeak: number;
+      latticeA: number;
+      weight: number;
+      info: string;
+    }[] = [];
+
+    fullElementsGrid.forEach(el => {
+      if (isCrystalMaterial(el.number)) {
+        let peakTemp = 30;
+        if (el.number === 14) peakTemp = 28.44;
+        else if (el.number === 22) peakTemp = 35.09;
+        else if (el.number === 26) peakTemp = 44.67;
+        else if (el.number === 29) peakTemp = 43.3;
+        else if (el.number === 79) peakTemp = 38.18;
+        else if (el.number === 12) peakTemp = 32.19;
+        else if (el.number === 13) peakTemp = 38.47;
+        else if (el.number === 20) peakTemp = 29.41;
+        else if (el.number === 11) peakTemp = 31.72;
+        else if (el.number === 6) peakTemp = 43.9;
+        else if (el.number === 92) peakTemp = 35.15;
+
+        items.push({
+          id: `element-${el.number}`,
+          symbolOrFormula: el.symbol,
+          name: `${el.name} (Element)`,
+          type: 'element',
+          density: el.density,
+          meltingPoint: el.meltingPoint,
+          primaryPeak: peakTemp,
+          latticeA: el.a,
+          weight: el.weight,
+          info: `${el.crystalStructure} crystal structure, space group ${el.spaceGroup}.`
+        });
+
+        el.famousCompounds.forEach(comp => {
+          let cDensity = 3.0;
+          let cMelting = 1500;
+          let cWeight = 100;
+          
+          if (comp.formula.includes('NaCl')) { cDensity = 2.16; cMelting = 801; cWeight = 58.44; }
+          else if (comp.formula.includes('SiO2') || comp.name.includes('Quartz')) { cDensity = 2.65; cMelting = 1713; cWeight = 60.08; }
+          else if (comp.formula.includes('SiC') || comp.name.includes('Moissanite')) { cDensity = 3.21; cMelting = 2730; cWeight = 40.11; }
+          else if (comp.formula.includes('Al2O3') || comp.name.includes('Corundum')) { cDensity = 3.98; cMelting = 2072; cWeight = 101.96; }
+          else if (comp.formula.includes('MgO')) { cDensity = 3.58; cMelting = 2852; cWeight = 40.30; }
+          else if (comp.formula.includes('TiO2') || comp.name.includes('Rutile')) { cDensity = 4.23; cMelting = 1843; cWeight = 79.87; }
+          else if (comp.formula.includes('BaTiO3')) { cDensity = 6.02; cMelting = 1625; cWeight = 233.19; }
+          else if (comp.formula.includes('Fe2O3') || comp.name.includes('Hematite')) { cDensity = 5.24; cMelting = 1565; cWeight = 159.69; }
+          else if (comp.formula.includes('Fe3O4') || comp.name.includes('Magnetite')) { cDensity = 5.17; cMelting = 1590; cWeight = 231.53; }
+          else if (comp.formula.includes('Cu2O') || comp.name.includes('Cuprite')) { cDensity = 6.0; cMelting = 1235; cWeight = 143.09; }
+          else if (comp.formula.includes('CuFeS2') || comp.name.includes('Chalcopyrite')) { cDensity = 4.19; cMelting = 950; cWeight = 183.53; }
+          else if (comp.formula.includes('WC')) { cDensity = 15.6; cMelting = 2870; cWeight = 195.85; }
+          else if (comp.formula.includes('FeS2') || comp.name.includes('Pyrite')) { cDensity = 5.01; cMelting = 1100; cWeight = 119.98; }
+          else if (comp.formula.includes('CaCO3') || comp.name.includes('Calcite')) { cDensity = 2.71; cMelting = 1339; cWeight = 100.09; }
+          else if (comp.formula.includes('CaF2') || comp.name.includes('Fluorite')) { cDensity = 3.18; cMelting = 1418; cWeight = 78.07; }
+          else if (comp.formula.includes('UO2') || comp.name.includes('Uraninite')) { cDensity = 10.97; cMelting = 2865; cWeight = 270.03; }
+          else if (comp.formula.includes('H2O') || comp.name.includes('Ice')) { cDensity = 0.92; cMelting = 0; cWeight = 18.015; }
+
+          items.push({
+            id: `compound-${comp.formula}`,
+            symbolOrFormula: comp.formula,
+            name: `${comp.name} (Compound)`,
+            type: 'compound',
+            density: cDensity,
+            meltingPoint: cMelting,
+            primaryPeak: comp.typicalPeaks[0]?.twoTheta || 30.0,
+            latticeA: comp.latticeParams.a,
+            weight: cWeight,
+            info: `Dynamic crystallographic phase of ${comp.name} with ${comp.crystalSystem} symmetry (${comp.spaceGroup}).`
+          });
+        });
+      }
+    });
+
+    const uniqueItems: typeof items = [];
+    const idSet = new Set<string>();
+    items.forEach(it => {
+      if (!idSet.has(it.id)) {
+        idSet.add(it.id);
+        uniqueItems.push(it);
+      }
+    });
+
+    return uniqueItems;
+  }, [fullElementsGrid]);
+
+  const minMaxRanges = useMemo(() => {
+    const densities = compareItems.map(i => i.density);
+    const meltingPoints = compareItems.map(i => i.meltingPoint);
+    const peaks = compareItems.map(i => i.primaryPeak);
+    const lattices = compareItems.map(i => i.latticeA);
+    const weights = compareItems.map(i => i.weight);
+
+    return {
+      density: { min: Math.min(...densities), max: Math.max(...densities) },
+      meltingPoint: { min: Math.min(...meltingPoints), max: Math.max(...meltingPoints) },
+      peak: { min: Math.min(...peaks), max: Math.max(...peaks) },
+      lattice: { min: Math.min(...lattices), max: Math.max(...lattices) },
+      weight: { min: Math.min(...weights), max: Math.max(...weights) },
+    };
+  }, [compareItems]);
+
+  const subjectA = useMemo(() => {
+    return compareItems.find(it => it.id === compareSubjectAId) || compareItems[0];
+  }, [compareItems, compareSubjectAId]);
+
+  const subjectB = useMemo(() => {
+    return compareItems.find(it => it.id === compareSubjectBId) || compareItems[1];
+  }, [compareItems, compareSubjectBId]);
+
+  const currentCompareData = useMemo(() => {
+    if (!subjectA || !subjectB) return [];
+
+    const norm = (val: number, min: number, max: number) => {
+      if (max === min) return 50;
+      return 15 + ((val - min) / (max - min)) * 85;
+    };
+
+    return [
+      {
+        property: 'Density',
+        label: 'Density',
+        subjectAName: subjectA.symbolOrFormula,
+        subjectBName: subjectB.symbolOrFormula,
+        aRawValue: `${subjectA.density.toFixed(2)} g/cm³`,
+        bRawValue: `${subjectB.density.toFixed(2)} g/cm³`,
+        [subjectA.symbolOrFormula]: norm(subjectA.density, minMaxRanges.density.min, minMaxRanges.density.max),
+        [subjectB.symbolOrFormula]: norm(subjectB.density, minMaxRanges.density.min, minMaxRanges.density.max),
+      },
+      {
+        property: 'Melting Point',
+        label: 'Melting Pt',
+        subjectAName: subjectA.symbolOrFormula,
+        subjectBName: subjectB.symbolOrFormula,
+        aRawValue: `${subjectA.meltingPoint.toFixed(0)} °C`,
+        bRawValue: `${subjectB.meltingPoint.toFixed(0)} °C`,
+        [subjectA.symbolOrFormula]: norm(subjectA.meltingPoint, minMaxRanges.meltingPoint.min, minMaxRanges.meltingPoint.max),
+        [subjectB.symbolOrFormula]: norm(subjectB.meltingPoint, minMaxRanges.meltingPoint.min, minMaxRanges.meltingPoint.max),
+      },
+      {
+        property: 'Primary Peak',
+        label: 'Primary Peak 2θ',
+        subjectAName: subjectA.symbolOrFormula,
+        subjectBName: subjectB.symbolOrFormula,
+        aRawValue: `${subjectA.primaryPeak.toFixed(2)}°`,
+        bRawValue: `${subjectB.primaryPeak.toFixed(2)}°`,
+        [subjectA.symbolOrFormula]: norm(subjectA.primaryPeak, minMaxRanges.peak.min, minMaxRanges.peak.max),
+        [subjectB.symbolOrFormula]: norm(subjectB.primaryPeak, minMaxRanges.peak.min, minMaxRanges.peak.max),
+      },
+      {
+        property: 'Lattice Constant a',
+        label: 'Lattice Size (a)',
+        subjectAName: subjectA.symbolOrFormula,
+        subjectBName: subjectB.symbolOrFormula,
+        aRawValue: `${subjectA.latticeA.toFixed(3)} Å`,
+        bRawValue: `${subjectB.latticeA.toFixed(3)} Å`,
+        [subjectA.symbolOrFormula]: norm(subjectA.latticeA, minMaxRanges.lattice.min, minMaxRanges.lattice.max),
+        [subjectB.symbolOrFormula]: norm(subjectB.latticeA, minMaxRanges.lattice.min, minMaxRanges.lattice.max),
+      },
+      {
+        property: 'Formula Weight',
+        label: 'Mass Weight',
+        subjectAName: subjectA.symbolOrFormula,
+        subjectBName: subjectB.symbolOrFormula,
+        aRawValue: `${subjectA.weight.toFixed(2)} u`,
+        bRawValue: `${subjectB.weight.toFixed(2)} u`,
+        [subjectA.symbolOrFormula]: norm(subjectA.weight, minMaxRanges.weight.min, minMaxRanges.weight.max),
+        [subjectB.symbolOrFormula]: norm(subjectB.weight, minMaxRanges.weight.min, minMaxRanges.weight.max),
+      }
+    ];
+  }, [subjectA, subjectB, minMaxRanges]);
+
   const categoryColor = (cat: string) => {
     switch (cat) {
       case 'alkali': return 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20';
@@ -1145,8 +1333,46 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
         </div>
       )}
 
-      {/* Grid Controller, Filters and Inputs bar */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900 border border-slate-800 p-4.5 rounded-2xl shadow-lg">
+      {/* Module Mode Control Tabs */}
+      <div className="flex border-b border-slate-800/60 mb-6 gap-6 text-[11px] font-black pb-3 uppercase tracking-wider">
+        <button
+          onClick={() => {
+            setActiveTab('grid');
+            playSynthTone('tick');
+          }}
+          className={`pb-2 transition-all duration-200 relative ${
+            activeTab === 'grid' 
+              ? 'text-indigo-400 border-b-2 border-indigo-500 font-extrabold' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Compass className="w-4 h-4 text-indigo-400" />
+            Lattice Explorer Grid
+          </div>
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('compare');
+            playSynthTone('tick');
+          }}
+          className={`pb-2 transition-all duration-200 relative ${
+            activeTab === 'compare' 
+              ? 'text-rose-400 border-b-2 border-rose-500 font-extrabold' 
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Activity className="w-4.5 h-4.5 text-rose-400" />
+            Lattice Radar Comparator
+          </div>
+        </button>
+      </div>
+
+      {activeTab === 'grid' ? (
+        <>
+          {/* Grid Controller, Filters and Inputs bar */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900 border border-slate-800 p-4.5 rounded-2xl shadow-lg">
         <div className="relative col-span-1 md:col-span-2">
           <input
             type="text"
@@ -1534,6 +1760,188 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
           </AnimatePresence>
         </div>
       </div>
+    </>
+  ) : (
+    <div className="space-y-6">
+      {/* Top Panel: Comparables Selector Box */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
+        {/* Subject A selector */}
+        <div className="space-y-2">
+          <label className="text-[10.5px] font-black uppercase tracking-wider text-indigo-400 block">Compare Material A</label>
+          <select
+            value={compareSubjectAId}
+            onChange={(e) => {
+              setCompareSubjectAId(e.target.value);
+              playSynthTone('switch');
+            }}
+            className="w-full bg-slate-950 text-slate-200 border border-slate-800 hover:border-indigo-500/40 focus:border-indigo-500 rounded-xl py-3 px-4 text-xs font-semibold outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all cursor-pointer"
+          >
+            {compareItems.map(it => (
+              <option key={`a-${it.id}`} value={it.id}>
+                [{it.symbolOrFormula}] {it.name}
+              </option>
+            ))}
+          </select>
+          <div className="text-[10px] font-mono text-slate-500 bg-slate-950/60 p-3 rounded-lg border border-slate-900/40 leading-relaxed font-semibold">
+            {subjectA?.info}
+          </div>
+        </div>
+
+        {/* Subject B selector */}
+        <div className="space-y-2">
+          <label className="text-[10.5px] font-black uppercase tracking-wider text-rose-400 block">Compare Material B</label>
+          <select
+            value={compareSubjectBId}
+            onChange={(e) => {
+              setCompareSubjectBId(e.target.value);
+              playSynthTone('switch');
+            }}
+            className="w-full bg-slate-950 text-slate-200 border border-slate-800 hover:border-rose-500/40 focus:border-rose-500 rounded-xl py-3 px-4 text-xs font-semibold outline-none focus:ring-4 focus:ring-rose-500/10 transition-all cursor-pointer"
+          >
+            {compareItems.map(it => (
+              <option key={`b-${it.id}`} value={it.id}>
+                [{it.symbolOrFormula}] {it.name}
+              </option>
+            ))}
+          </select>
+          <div className="text-[10px] font-mono text-slate-500 bg-slate-950/60 p-3 rounded-lg border border-slate-900/40 leading-relaxed font-semibold">
+            {subjectB?.info}
+          </div>
+        </div>
+      </div>
+
+      {/* Central Grid: Radar Chart and Detailed Matrix side-by-side */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Radar Chart (Col span 7) */}
+        <div className="col-span-1 lg:col-span-12 xl:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl min-h-[440px]">
+          <div className="border-b border-slate-800/80 pb-3 mb-2 flex justify-between items-center">
+            <div>
+              <h3 className="text-xs font-black text-white tracking-widest uppercase">Crystallographic Fingerprint</h3>
+              <p className="text-[9.5px] text-slate-500 font-semibold leading-none mt-1">Spider Web projection comparing 5 crucial physical dimension variables</p>
+            </div>
+            <div className="flex gap-2.5">
+              <span className="text-[9.5px] px-2.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold font-mono border border-indigo-500/25">
+                {subjectA?.symbolOrFormula}
+              </span>
+              <span className="text-[9.5px] px-2.5 py-0.5 rounded bg-rose-500/10 text-rose-400 font-bold font-mono border border-rose-500/25">
+                {subjectB?.symbolOrFormula}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex-1 flex items-center justify-center py-4 bg-slate-950/20 rounded-xl border border-slate-850/30 my-2">
+            <ResponsiveContainer width="100%" height={320}>
+              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={currentCompareData}>
+                <PolarGrid stroke="#1e293b" />
+                <PolarAngleAxis 
+                  dataKey="label" 
+                  tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} 
+                />
+                <PolarRadiusAxis 
+                  angle={30} 
+                  domain={[0, 100]} 
+                  tick={false} 
+                  stroke="#0f172a" 
+                />
+                <Radar
+                  name={`[${subjectA?.symbolOrFormula}] ${subjectA?.name.replace(' (Element)', '').replace(' (Compound)', '')}`}
+                  dataKey={subjectA?.symbolOrFormula || 'SubjectA'}
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  fill="#6366f1"
+                  fillOpacity={0.25}
+                />
+                <Radar
+                  name={`[${subjectB?.symbolOrFormula}] ${subjectB?.name.replace(' (Element)', '').replace(' (Compound)', '')}`}
+                  dataKey={subjectB?.symbolOrFormula || 'SubjectB'}
+                  stroke="#ec4899"
+                  strokeWidth={2}
+                  fill="#ec4899"
+                  fillOpacity={0.25}
+                />
+                <Legend wrapperStyle={{ color: '#f8fafc', fontSize: '10px', marginTop: '10px' }} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Parameter comparison Matrix (Col span 5) */}
+        <div className="col-span-1 lg:col-span-12 xl:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl">
+          <div>
+            <h3 className="text-xs font-black text-white tracking-widest uppercase border-b border-slate-800/80 pb-3 mb-4">
+              Comparison Matrix
+            </h3>
+
+            <div className="space-y-4">
+              {currentCompareData.map((row, idx) => {
+                const valA = parseFloat(row.aRawValue);
+                const valB = parseFloat(row.bRawValue);
+                const isHigherA = row.property === 'Primary Peak' 
+                  ? false 
+                  : valA > valB;
+                const isHigherB = row.property === 'Primary Peak' 
+                  ? false 
+                  : valB > valA;
+
+                return (
+                  <div key={idx} className="bg-slate-950 p-3 rounded-xl border border-slate-850 space-y-1.5 font-mono text-xs">
+                    <div className="flex justify-between items-center text-[10px] text-slate-500 uppercase tracking-widest font-black">
+                      <span>{row.property}</span>
+                      <span className="text-[8px] text-indigo-500/85">Relative Scaling</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Subject A column */}
+                      <div className={`p-2 rounded-lg border ${
+                        isHigherA ? 'bg-indigo-950/20 border-indigo-500/30' : 'bg-slate-900/40 border-slate-900'
+                      }`}>
+                        <div className="text-[9px] text-slate-500 uppercase">A: {subjectA?.symbolOrFormula}</div>
+                        <div className={`text-sm font-black mt-1 ${isHigherA ? 'text-indigo-400' : 'text-slate-300'}`}>
+                          {row.aRawValue}
+                        </div>
+                      </div>
+
+                      {/* Subject B column */}
+                      <div className={`p-2 rounded-lg border ${
+                        isHigherB ? 'bg-rose-950/20 border-rose-500/30' : 'bg-slate-900/40 border-slate-900'
+                      }`}>
+                        <div className="text-[9px] text-slate-500 uppercase">B: {subjectB?.symbolOrFormula}</div>
+                        <div className={`text-sm font-black mt-1 ${isHigherB ? 'text-rose-400' : 'text-slate-300'}`}>
+                          {row.bRawValue}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Differential comparison sentence helper */}
+                    <div className="text-[9.5px] text-slate-400 pt-1 border-t border-slate-900 flex justify-between items-center font-bold">
+                      {row.property === 'Primary Peak' ? (
+                        <span>Angle Offset: {Math.abs((subjectA?.primaryPeak || 0) - (subjectB?.primaryPeak || 0)).toFixed(2)}° 2θ</span>
+                      ) : isHigherA ? (
+                        <span className="text-indigo-400/85">{subjectA?.symbolOrFormula} is {(valA / (valB || 1)).toFixed(2)}x denser/larger</span>
+                      ) : isHigherB ? (
+                        <span className="text-rose-400/85">{subjectB?.symbolOrFormula} is {(valB / (valA || 1)).toFixed(2)}x denser/larger</span>
+                      ) : (
+                        <span className="text-slate-500">Values are structurally equal</span>
+                      )}
+                      <span className="text-[8px] px-1 bg-slate-900 rounded font-bold text-slate-400 uppercase tracking-tight">
+                        Diff
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          <div className="pt-4 mt-4 border-t border-slate-805/60">
+            <span className="text-[9.5px] text-slate-500 leading-normal font-semibold">
+              * Dynamic crystallographic properties extracted directly from chemical database records.
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
     </div>
   );
 };
