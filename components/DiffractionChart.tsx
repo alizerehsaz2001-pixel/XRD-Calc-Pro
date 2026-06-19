@@ -379,8 +379,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       ref={containerRef} 
       className={`bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 flex flex-col relative overflow-hidden group/chart transition-all duration-500 ${
         isFullScreen 
-          ? 'fixed inset-4 z-[9999] h-[calc(100vh-32px)]' 
-          : 'h-[400px] w-full'
+          ? 'fixed inset-4 z-[9999] h-[calc(100vh-32px)] text-lg' 
+          : 'h-[600px] w-full'
       }`}
     >
       <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl group-hover/chart:bg-indigo-500/10 transition-all duration-1000" />
@@ -499,10 +499,10 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               type="number"
               domain={[left, right]} 
               allowDataOverflow={true}
-              tick={{ fontSize: 10, fontWeight: 'black', fill: '#475569', fontFamily: 'monospace' }}
-              axisLine={{ stroke: '#334155' }}
-              tickLine={{ stroke: '#334155' }}
-              label={{ value: '2θ (Degrees)', position: 'bottom', offset: 0, fill: '#475569', fontSize: 10, fontWeight: 'bold' }}
+              tick={{ fontSize: 12, fontWeight: 'black', fill: '#94a3b8', fontFamily: 'monospace' }}
+              axisLine={{ stroke: '#475569', strokeWidth: 2 }}
+              tickLine={{ stroke: '#475569', strokeWidth: 2 }}
+              label={{ value: '2θ (Degrees)', position: 'bottom', offset: 0, fill: '#cbd5e1', fontSize: 14, fontWeight: 'bold' }}
             />
             <YAxis hide domain={[0, 120]} />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#4f46e5', strokeWidth: 1, strokeDasharray: '5 5' }} />
@@ -520,8 +520,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 type="monotone"
                 dataKey="intensity"
                 name={t('Observed Pattern', 'Observed Pattern')}
-                stroke="#6366f1"
-                strokeWidth={2}
+                stroke="#818cf8"
+                strokeWidth={3}
                 fill="url(#profileGradient)"
                 isAnimationActive={!isZoomedIn}
                 animationDuration={2000}
@@ -534,8 +534,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 type="monotone"
                 dataKey="theoreticalIntensity"
                 name={`${materialName} (Theoretical)`}
-                stroke="#f59e0b"
-                strokeWidth={1.5}
+                stroke="#fbbf24"
+                strokeWidth={2.5}
                 dot={false}
                 strokeDasharray="4 4"
                 isAnimationActive={false}

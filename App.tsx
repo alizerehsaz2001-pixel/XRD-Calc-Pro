@@ -37,6 +37,7 @@ import { BraggVisualization } from './components/BraggVisualization';
 import { LatticeEstimator } from './components/LatticeEstimator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext } from './components/SettingsContext';
+import { PeriodicTableModule } from './components/PeriodicTableModule';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity } from 'lucide-react';
@@ -47,7 +48,7 @@ import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'fireb
 import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOfflineMaterial, OfflineAnalysisResult, clearOfflineAnalyses } from './utils/offlineDb';
 import { syncOfflineHelper } from './utils/materialsHelper';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -618,6 +619,7 @@ const App: React.FC = () => {
     { id: 'image_gen', label: t('Scientific Illustrator'), group: t('AI Tools') },
     { id: 'python_export', label: t('Python Generator'), group: t('Advanced Sim') },
     { id: 'learn', label: t('Protocol Guide'), group: t('Intelligence') },
+    { id: 'periodic_table', label: t('Periodic Table'), group: t('Intelligence') },
     { id: 'database', label: t('Material Registry'), group: t('Intelligence') },
     { id: 'profile', label: t('Laboratory Director'), group: t('Intelligence') },
     { id: 'settings', label: t('Settings'), group: t('Intelligence') },
@@ -1142,6 +1144,16 @@ const App: React.FC = () => {
                   {activeModule === 'python_export' && <PythonExportModule />}
                   {activeModule === 'learn' && <LearnModule />}
                   {activeModule === 'database' && <MaterialDatabaseExplorer />}
+                  {activeModule === 'periodic_table' && (
+                    <PeriodicTableModule
+                      onLoadPeaks={(peaksStr, hklStr, matName) => {
+                        setRawPeaks(peaksStr);
+                        setRawHKL(hklStr);
+                        setMaterialName(matName);
+                        setActiveModule('bragg');
+                      }}
+                    />
+                  )}
                   {activeModule === 'profile' && <ProfilePage />}
                   {activeModule === 'settings' && (
                     <SettingsModule 

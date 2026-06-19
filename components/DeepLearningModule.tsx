@@ -4888,41 +4888,45 @@ if __name__ == '__main__':
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-slate-800 flex items-center gap-2 flex-wrap">
-              <Brain className="w-6 h-6 text-violet-600" />
-              PhaseID Neural Net
-              <span className="text-xs font-semibold bg-violet-100 text-violet-800 px-2.5 py-0.5 rounded-full border border-violet-200 flex items-center gap-1.5 shadow-sm">
-                <Database className="w-3 h-3" />
+        <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 transition-all duration-500 group/phaseid relative overflow-hidden">
+          <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl group-hover/phaseid:bg-violet-500/10 transition-all duration-1000" />
+          <div className="flex justify-between items-center mb-8 relative z-10">
+            <h2 className="text-2xl font-black text-white flex flex-col md:flex-row items-start md:items-center gap-3 tracking-tight">
+              <div className="bg-violet-500/20 p-2.5 rounded-2xl border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
+                <Brain className="w-7 h-7 text-violet-400 drop-shadow flex-shrink-0" />
+              </div>
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">PhaseID Neural Net</span>
+              <span className="text-xs font-semibold bg-indigo-500/10 text-indigo-300 px-3 py-1.5 rounded-full border border-indigo-500/30 flex items-center gap-1.5 shadow-sm mt-1 md:mt-0 uppercase tracking-wider">
+                <Database className="w-3.5 h-3.5" />
                 {MATERIAL_DB.length} Materials Indexed
               </span>
             </h2>
             {isSimulating && (
-              <span className="text-xs font-bold text-violet-600 animate-pulse bg-violet-50 px-2 py-1 rounded-full border border-violet-100 shadow-sm">
+              <span className="text-[10px] uppercase tracking-widest font-black text-violet-300 animate-pulse bg-violet-500/20 px-3 py-1.5 rounded-full border border-violet-500/30 shadow-sm flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full"></div>
                 Running...
               </span>
             )}
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6 relative z-10">
             {/* Material Search */}
             <div className="relative" ref={searchRef}>
-              <div className="flex flex-col gap-1 mb-2">
-                <label className="block text-sm font-bold text-slate-700">
+              <div className="flex flex-col gap-2 mb-3">
+                <label className="block text-sm font-black text-slate-300 tracking-tight">
                   Unified DB Search Engine{" "}
-                  <span className="text-emerald-500 ml-1 font-mono text-[10px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 uppercase tracking-tighter font-black">
+                  <span className="text-emerald-400 ml-2 font-mono text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-tighter">
                     COD + MP SYNCED
                   </span>
                 </label>
-                <div className="flex items-center gap-2 text-slate-500">
+                <div className="flex items-center gap-2 text-slate-400">
                   <span className="text-[10px] font-bold uppercase tracking-wider">
                     Global Verification:
                   </span>
-                  <div className="w-8 h-4 bg-emerald-500 rounded-full relative cursor-help" title="All database materials are strictly cross-verified with Crystallography Open Database (COD) and Materials Project.">
-                    <div className="absolute left-4 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+                  <div className="w-8 h-4 bg-emerald-500 rounded-full relative cursor-help shadow-inner border border-emerald-600" title="All database materials are strictly cross-verified with Crystallography Open Database (COD) and Materials Project.">
+                    <div className="absolute left-4 top-0.5 w-3 h-3 bg-white rounded-full shadow-sm"></div>
                   </div>
-                  <span className="text-[9px] font-mono font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded">
+                  <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(52,211,153,0.1)]">
                     COD/MP VERIFIED
                   </span>
                 </div>
@@ -4942,52 +4946,52 @@ if __name__ == '__main__':
                     }
                   }}
                   placeholder="Search local database by formula, name, or peaks (e.g. 28.4, 47.3)..."
-                  className="w-full px-4 py-3 pl-10 pr-24 bg-slate-50 border border-slate-300 hover:border-violet-400 rounded-xl text-sm focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all shadow-inner"
+                  className="w-full px-5 py-4 pl-12 pr-32 bg-slate-800/80 border border-slate-700 hover:border-violet-500/50 rounded-2xl text-sm text-slate-200 focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500/80 outline-none transition-all placeholder:text-slate-500 font-medium"
                 />
-                <Search className="w-4 h-4 absolute left-4 top-3.5 text-slate-400" />
+                <Search className="w-5 h-5 absolute left-4 top-4 text-slate-400" />
 
                 <button
                   onClick={handleSmartSearch}
                   disabled={!searchTerm.trim()}
-                  className="absolute right-2 top-2 bottom-2 px-4 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-95 disabled:bg-slate-300 disabled:shadow-none flex items-center gap-2 group w-auto min-w-[90px] justify-center"
+                  className="absolute right-2 top-2 bottom-2 px-6 bg-violet-600 hover:bg-violet-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg hover:shadow-violet-500/20 active:translate-y-0.5 disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none flex items-center gap-2 group w-auto justify-center"
                 >
-                  <Database className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                  <Database className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
                   <span>Search DB</span>
                 </button>
               </div>
 
               {/* Suggestions Dropdown */}
               {showSuggestions && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+                <div className="absolute top-full left-0 right-0 mt-3 bg-slate-800 rounded-2xl shadow-[0_15px_40px_-5px_rgba(0,0,0,0.5)] border border-slate-700 z-50 max-h-[400px] overflow-y-auto animate-in slide-in-from-top-2 duration-200 custom-scrollbar">
                   {searchResults.length > 0 ? (
-                    <div className="p-1">
+                    <div className="p-2">
                       {searchResults.map((material: any, idx: number) => (
                         <button
                           key={`${material.name}-${idx}`}
                           onClick={() => handleMaterialSelect(material)}
-                          className="w-full text-left px-4 py-3 hover:bg-violet-50 flex items-center justify-between group rounded-lg transition-colors border border-transparent hover:border-violet-100 mb-1 last:mb-0"
+                          className="w-full text-left px-5 py-4 hover:bg-slate-700/80 flex items-center justify-between group rounded-xl transition-colors border border-transparent hover:border-slate-600 mb-1 last:mb-0"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold group-hover:bg-violet-200 group-hover:text-violet-700 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-400 text-sm font-black group-hover:bg-violet-500/20 group-hover:text-violet-300 group-hover:border-violet-500/30 transition-all shadow-inner">
                               {material.formula.substring(0, 2)}
                             </div>
                             <div>
-                              <span className="font-bold text-slate-700 block text-sm group-hover:text-violet-700 transition-colors">
+                              <span className="font-bold text-slate-200 block text-sm group-hover:text-violet-300 transition-colors">
                                 {material.name}
                               </span>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
                                   {material.type}
                                 </span>
                                 {material.elements && material.elements.length > 0 && (
                                   <div className="flex gap-1">
                                     {material.elements.slice(0, 5).map((el: string, elIdx: number) => (
-                                      <span key={elIdx} className="text-[9px] px-1 py-0.5 font-bold rounded bg-blue-50 text-blue-600 border border-blue-100">
+                                      <span key={elIdx} className="text-[9px] px-1 py-0.5 font-bold rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                         {el}
                                       </span>
                                     ))}
                                     {material.elements.length > 5 && (
-                                      <span className="text-[9px] px-1 py-0.5 font-bold rounded bg-slate-50 text-slate-400">
+                                      <span className="text-[9px] px-1 py-0.5 font-bold rounded bg-slate-800 text-slate-500 border border-slate-700">
                                         +{material.elements.length - 5}
                                       </span>
                                     )}
@@ -4996,21 +5000,23 @@ if __name__ == '__main__':
                               </div>
                             </div>
                           </div>
-                          <span className="text-xs font-mono text-slate-500 bg-slate-100 border border-slate-200 px-2 py-1 rounded shadow-sm group-hover:bg-white group-hover:border-violet-300 group-hover:text-violet-600 transition-all">
+                          <span className="text-xs font-mono text-slate-400 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded shadow-sm group-hover:bg-slate-800 group-hover:border-violet-500/50 group-hover:text-violet-300 transition-all">
                             {material.crystalSystem}
                           </span>
                         </button>
                       ))}
                     </div>
                   ) : (
-                    <div className="p-6 flex flex-col items-center justify-center text-center">
-                      <Search className="w-8 h-8 text-slate-300 mb-2" />
-                      <p className="text-slate-500 text-sm font-semibold mb-1">
+                    <div className="p-8 flex flex-col items-center justify-center text-center">
+                      <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-3 border border-slate-700">
+                        <Search className="w-8 h-8 text-slate-500/50" />
+                      </div>
+                      <p className="text-slate-300 text-sm font-bold mb-1">
                         Not in local database
                       </p>
-                      <p className="text-slate-400 text-xs">
-                        The network can still analyze raw peak patterns to
-                        identify potential matches via similarity hashing.
+                      <p className="text-slate-500 text-xs max-w-xs leading-relaxed">
+                        The neural network can still analyze raw peak patterns to
+                        identify potential structure matches via probability hashing.
                       </p>
                     </div>
                   )}
@@ -5018,12 +5024,12 @@ if __name__ == '__main__':
               )}
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 relative z-10">
               <div className="flex flex-col gap-2 mb-3">
-                <label className="block text-sm font-bold text-slate-700">
+                <label className="block text-sm font-black text-slate-300 tracking-tight">
                   Diffraction Pattern Input
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 relative z-10">
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -5036,9 +5042,9 @@ if __name__ == '__main__':
                       fileInputRef.current?.click();
                       playSynthTone("tick");
                     }}
-                    className="text-xs flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-lg font-bold transition-all hover:shadow-sm active:scale-95"
+                    className="text-xs flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 px-4 py-2 rounded-xl font-bold transition-all hover:shadow-lg active:scale-95"
                   >
-                    <Upload className="w-3.5 h-3.5" /> Upload File
+                    <Upload className="w-4 h-4 text-violet-400" /> Upload Scan
                   </button>
                   <button
                     onClick={() => {
@@ -5049,15 +5055,15 @@ if __name__ == '__main__':
                       setSearchTerm("");
                       playSynthTone("tick");
                     }}
-                    className="text-xs flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-600 px-3 py-1.5 rounded-lg font-bold transition-all hover:shadow-sm active:scale-95"
+                    className="text-xs flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 px-4 py-2 rounded-xl font-bold transition-all hover:shadow-lg active:scale-95"
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Clear Input
+                    <Trash2 className="w-4 h-4" /> Clear Cache
                   </button>
                 </div>
               </div>
 
               {/* Enhanced Diffraction Input Sub-Tools Control Deck */}
-              <div className="bg-slate-100 dark:bg-slate-900/40 p-1 rounded-xl flex gap-1 mb-3 border border-slate-200/50 dark:border-white/5">
+              <div className="bg-slate-900/60 p-1.5 rounded-xl flex gap-1 mb-3 border border-slate-700/50 relative z-10 backdrop-blur-sm shadow-inner">
                 {[
                   { id: "presets", label: "Presets", icon: Sparkles },
                   { id: "preview", label: "Live Plot", icon: Activity },
@@ -5073,14 +5079,14 @@ if __name__ == '__main__':
                         setActiveInputTool(tool.id as any);
                         playSynthTone("tick");
                       }}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2
                         ${isActive 
-                          ? "bg-white dark:bg-slate-800 text-violet-600 dark:text-violet-400 shadow-sm border border-slate-200/40 dark:border-white/5" 
-                          : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white/40 dark:hover:bg-slate-850"
+                          ? "bg-slate-800 text-violet-300 shadow-md border border-slate-700 font-black" 
+                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
                         }
                       `}
                     >
-                      <ToolIcon className="w-3.5 h-3.5" />
+                      <ToolIcon className="w-4 h-4" />
                       <span>{tool.label}</span>
                     </button>
                   );
@@ -5088,14 +5094,14 @@ if __name__ == '__main__':
               </div>
 
               {/* Sub-tool panels */}
-              <div className="mb-4">
+              <div className="mb-4 relative z-10">
                 {activeInputTool === "presets" && (
-                  <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black text-violet-600 uppercase tracking-widest flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5" /> Fast Demo Presets
+                  <div className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-4 space-y-3 shadow-inner">
+                    <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
+                      <span className="text-[10px] font-black text-violet-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-violet-500" /> Fast Demo Presets
                       </span>
-                      <span className="text-[8px] font-mono text-slate-400">Loads key material references</span>
+                      <span className="text-[9px] font-mono font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded">Loads key material references</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {[
@@ -5193,13 +5199,13 @@ if __name__ == '__main__':
                             setActiveInputTool("preview");
                             playSynthTone("success");
                           }}
-                          className="p-2.5 text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl hover:border-violet-500 dark:hover:border-violet-500 hover:shadow-sm transition-all focus:outline-none"
+                          className="p-3 text-left bg-slate-800/80 border border-slate-700/50 rounded-xl hover:border-violet-500/50 hover:bg-slate-800 hover:shadow-lg transition-all focus:outline-none"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-100">{preset.name}</span>
-                            <span className="text-[9px] font-mono bg-violet-50 dark:bg-violet-950 text-violet-600 dark:text-violet-400 px-1 py-0.5 rounded font-bold">{preset.formula}</span>
+                            <span className="text-[11px] font-black text-slate-200 tracking-tight">{preset.name}</span>
+                            <span className="text-[9px] font-mono bg-violet-500/20 text-violet-300 border border-violet-500/30 px-1.5 py-0.5 rounded font-bold">{preset.formula}</span>
                           </div>
-                          <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1 leading-normal">{preset.desc}</p>
+                          <p className="text-[9px] text-slate-400 mt-1.5 leading-relaxed">{preset.desc}</p>
                         </button>
                       ))}
                     </div>
@@ -5207,19 +5213,19 @@ if __name__ == '__main__':
                 )}
 
                 {activeInputTool === "preview" && (
-                  <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1">
-                        <Activity className="w-3.5 h-3.5" /> Real-time Diffraction Plot
+                  <div className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
+                    <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
+                      <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
+                        <Activity className="w-4 h-4 text-blue-500" /> Real-time Diffraction Plot
                       </span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-bold font-mono">
+                      <span className="text-[9px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold font-mono border border-blue-500/30">
                         Simulated {parsedPoints.length} Peaks
                       </span>
                     </div>
 
                     {parsedPoints.length > 0 ? (
-                      <div className="space-y-3">
-                        <div className="h-36 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg p-2 relative w-full">
+                      <div className="space-y-4">
+                        <div className="h-40 bg-slate-900 border border-slate-700 rounded-xl p-3 relative w-full shadow-inner">
                           <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart
                               data={liveChartData}
@@ -5229,44 +5235,45 @@ if __name__ == '__main__':
                                 dataKey="twoTheta"
                                 type="number"
                                 domain={['auto', 'auto']}
-                                tick={{ fill: '#94a3b8', fontSize: 9 }}
+                                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }}
                                 tickLine={false}
+                                axisLine={{ stroke: '#334155' }}
                               />
                               <YAxis hide domain={[0, 'auto']} />
-                              <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                              <CartesianGrid strokeDasharray="3 3" opacity={0.1} stroke="#94a3b8" />
                               <Area
                                 type="monotone"
                                 dataKey="intensity"
                                 stroke="#8b5cf6"
-                                fill="#c084fc"
-                                fillOpacity={0.15}
-                                strokeWidth={1.5}
+                                fill="url(#colorUv)" 
+                                fillOpacity={0.2}
+                                strokeWidth={2}
                               />
                             </ComposedChart>
                           </ResponsiveContainer>
                         </div>
 
                         {/* Analytic Peak spacing registry */}
-                        <div className="max-h-24 overflow-y-auto custom-scrollbar border border-slate-200 dark:border-white/5 rounded-lg bg-white dark:bg-slate-950 p-2 text-[10px] font-mono">
+                        <div className="max-h-32 overflow-y-auto custom-scrollbar border border-slate-700 rounded-xl bg-slate-900 p-3 text-[10px] font-mono shadow-inner">
                           <table className="w-full text-left">
                             <thead>
-                              <tr className="border-b border-slate-100 dark:border-white/5 text-slate-400">
-                                <th className="p-1">2θ Angle</th>
-                                <th className="p-1">d-spacing (Å)</th>
-                                <th className="p-1 text-right">Rel. Int. (%)</th>
+                              <tr className="border-b border-slate-700 text-slate-400">
+                                <th className="p-1.5 pb-2 font-bold tracking-wider text-xs">2θ Angle</th>
+                                <th className="p-1.5 pb-2 font-bold tracking-wider text-xs">d-spacing (Å)</th>
+                                <th className="p-1.5 pb-2 font-bold tracking-wider text-xs text-right">Rel. Int. (%)</th>
                               </tr>
                             </thead>
-                            <tbody className="text-slate-650 dark:text-slate-300">
+                            <tbody className="text-slate-300">
                               {[...parsedPoints]
                                 .sort((a, b) => a.twoTheta - b.twoTheta)
                                 .map((pk, idx) => {
                                   const rad = (pk.twoTheta / 2) * (Math.PI / 180);
                                   const d = 1.5406 / (2 * Math.sin(rad));
                                   return (
-                                    <tr key={idx} className="border-b border-slate-50 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5">
-                                      <td className="p-1 font-bold text-indigo-600 dark:text-indigo-400">{pk.twoTheta.toFixed(3)}°</td>
-                                      <td className="p-1">{isNaN(d) ? 'N/A' : d.toFixed(4)}</td>
-                                      <td className="p-1 text-right text-purple-600 dark:text-purple-400 font-bold">{(pk.intensity).toFixed(0)}</td>
+                                    <tr key={idx} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/80 transition-colors">
+                                      <td className="p-1.5 font-bold text-violet-400">{pk.twoTheta.toFixed(3)}°</td>
+                                      <td className="p-1.5 text-slate-400">{isNaN(d) ? 'N/A' : d.toFixed(4)}</td>
+                                      <td className="p-1.5 text-right text-emerald-400 font-bold">{(pk.intensity).toFixed(0)}</td>
                                     </tr>
                                   );
                                 })}
@@ -5275,35 +5282,37 @@ if __name__ == '__main__':
                         </div>
                       </div>
                     ) : (
-                      <div className="h-36 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg flex flex-col items-center justify-center text-center p-4">
-                        <Activity className="w-8 h-8 text-slate-300 dark:text-slate-700 animate-pulse mb-1" />
-                        <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Diffractogram is Empty</p>
-                        <p className="text-[9px] text-slate-400 mt-1 max-w-[200px]">Paste 2θ intensity patterns or click standard presets to plot real-time spectra</p>
+                      <div className="h-40 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-center p-6 bg-slate-800/30">
+                        <Activity className="w-10 h-10 text-slate-600 animate-pulse mb-3" />
+                        <p className="text-xs font-bold text-slate-400 mb-1 tracking-wide">Diffractogram is Empty</p>
+                        <p className="text-[10px] text-slate-500 max-w-[220px] leading-relaxed">Paste 2θ intensity patterns or click standard presets to plot real-time spectra</p>
                       </div>
                     )}
                   </div>
                 )}
 
                 {activeInputTool === "denoise" && (
-                  <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 space-y-3">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
-                        <SlidersHorizontal className="w-3.5 h-3.5" /> Savitzky-Golay Filter Panel
-                      </span>
+                  <div className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
+                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                          <SlidersHorizontal className="w-4 h-4 text-emerald-500" /> Savitzky-Golay Filter Panel
+                        </span>
+                      </div>
                       <button
                         disabled={parsedPoints.length < 5}
                         onClick={handleCommitSmoothing}
-                        className="text-[9px] w-full bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded font-black uppercase tracking-wider transition-all hover:shadow-xs active:scale-95 disabled:opacity-40"
+                        className="text-[10px] w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-black uppercase tracking-widest transition-all hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        Apply In-Place
+                        Apply Smoothing In-Place
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 bg-white dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-white/5">
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[9px] font-semibold text-slate-550">
+                    <div className="grid grid-cols-2 gap-4 bg-slate-900 p-4 rounded-xl border border-slate-700 shadow-inner">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                           <span>Window Size (Odd)</span>
-                          <span className="text-emerald-500 font-bold">{inputSgWindow} pts</span>
+                          <span className="text-emerald-400 font-black">{inputSgWindow} pts</span>
                         </div>
                         <input
                           type="range"
@@ -5312,13 +5321,13 @@ if __name__ == '__main__':
                           step="2"
                           value={inputSgWindow}
                           onChange={(e) => setInputSgWindow(parseInt(e.target.value))}
-                          className="w-full accent-emerald-600 my-1"
+                          className="w-full accent-emerald-500 mt-2"
                         />
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[9px] font-semibold text-slate-550">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                           <span>Polynomial Degree</span>
-                          <span className="text-emerald-500 font-bold">{inputSgDegree}</span>
+                          <span className="text-emerald-400 font-black">{inputSgDegree}</span>
                         </div>
                         <input
                           type="range"
@@ -5330,13 +5339,13 @@ if __name__ == '__main__':
                             const val = parseInt(e.target.value);
                             if (val < inputSgWindow) setInputSgDegree(val);
                           }}
-                          className="w-full accent-emerald-600 my-1"
+                          className="w-full accent-emerald-500 mt-2"
                         />
                       </div>
                     </div>
 
                     {parsedPoints.length > 3 ? (
-                      <div className="h-28 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-lg p-2.5">
+                      <div className="h-32 bg-slate-900 border border-slate-700/50 rounded-xl p-3 shadow-inner">
                         <ResponsiveContainer width="100%" height="100%">
                           <ComposedChart
                             data={sgPreviewData}
@@ -5344,38 +5353,42 @@ if __name__ == '__main__':
                           >
                             <XAxis dataKey="twoTheta" type="number" hide />
                             <YAxis hide />
-                            <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                            <Line type="monotone" dataKey="raw" stroke="#94a3b8" dot={false} strokeOpacity={0.5} strokeWidth={1} name="Raw" />
-                            <Line type="monotone" dataKey="smoothed" stroke="#10b981" dot={false} strokeWidth={2} name="Smoothed" />
+                            <CartesianGrid strokeDasharray="3 3" opacity={0.1} stroke="#94a3b8" />
+                            <Line type="monotone" dataKey="raw" stroke="#475569" dot={false} strokeOpacity={0.8} strokeWidth={1.5} name="Raw" />
+                            <Line type="monotone" dataKey="smoothed" stroke="#10b981" dot={false} strokeWidth={2.5} name="Smoothed" />
                           </ComposedChart>
                         </ResponsiveContainer>
                       </div>
                     ) : (
-                      <p className="text-[9px] text-slate-400 text-center py-2">Need at least 4 raw points to preview S-G smoothing.</p>
+                      <div className="py-4 border border-slate-700/50 border-dashed rounded-xl bg-slate-800/30">
+                        <p className="text-[10px] uppercase font-bold text-slate-500 text-center tracking-widest">Need at least 4 points to preview smoothing.</p>
+                      </div>
                     )}
                   </div>
                 )}
 
                 {activeInputTool === "noise" && (
-                  <div className="bg-slate-50 dark:bg-slate-900/20 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 space-y-3">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-1">
-                        <Cpu className="w-3.5 h-3.5" /> Diffractogram Noise Synthesizer
-                      </span>
+                  <div className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
+                        <span className="text-[10px] font-black text-fuchsia-400 uppercase tracking-widest flex items-center gap-1.5">
+                          <Cpu className="w-4 h-4 text-fuchsia-500" /> Diffractogram Synthesizer
+                        </span>
+                      </div>
                       <button
                         disabled={parsedPoints.length === 0}
                         onClick={handleSynthesizeNoisyPattern}
-                        className="text-[9px] w-full bg-purple-600 hover:bg-purple-500 text-white py-1.5 rounded font-black uppercase tracking-wider transition-all hover:shadow-xs active:scale-95 disabled:opacity-40"
+                        className="text-[10px] w-full bg-fuchsia-600 hover:bg-fuchsia-500 text-white py-2.5 rounded-lg font-black uppercase tracking-widest transition-all hover:shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         Synthesize pattern
                       </button>
                     </div>
 
-                    <div className="space-y-2 bg-white dark:bg-slate-950 p-2.5 rounded-lg border border-slate-200 dark:border-white/5">
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[9px] font-semibold">
+                    <div className="space-y-4 bg-slate-900 p-4 rounded-xl border border-slate-700 shadow-inner">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                           <span>Thermal Broadening (FWHM)</span>
-                          <span className="text-purple-500 font-bold">{inputBroadening.toFixed(2)}°</span>
+                          <span className="text-fuchsia-400 font-black">{inputBroadening.toFixed(2)}°</span>
                         </div>
                         <input
                           type="range"
@@ -5384,15 +5397,15 @@ if __name__ == '__main__':
                           step="0.05"
                           value={inputBroadening}
                           onChange={(e) => setInputBroadening(parseFloat(e.target.value))}
-                          className="w-full accent-purple-600"
+                          className="w-full accent-fuchsia-500 mt-1"
                         />
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 pt-1">
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-[9px] font-semibold">
+                      <div className="grid grid-cols-2 gap-4 pb-1">
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                             <span>Statistical Noise</span>
-                            <span className="text-purple-500 font-bold">{inputNoiseLevel}</span>
+                            <span className="text-fuchsia-400 font-black">{inputNoiseLevel}</span>
                           </div>
                           <input
                             type="range"
@@ -5401,13 +5414,13 @@ if __name__ == '__main__':
                             step="2"
                             value={inputNoiseLevel}
                             onChange={(e) => setInputNoiseLevel(parseInt(e.target.value))}
-                            className="w-full accent-purple-600"
+                            className="w-full accent-fuchsia-500 mt-1"
                           />
                         </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-[9px] font-semibold">
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                             <span>Amorphous Baseline</span>
-                            <span className="text-purple-500 font-bold">{inputBgAmorphous}</span>
+                            <span className="text-fuchsia-400 font-black">{inputBgAmorphous}</span>
                           </div>
                           <input
                             type="range"
@@ -5416,7 +5429,7 @@ if __name__ == '__main__':
                             step="5"
                             value={inputBgAmorphous}
                             onChange={(e) => setInputBgAmorphous(parseInt(e.target.value))}
-                            className="w-full accent-purple-600"
+                            className="w-full accent-fuchsia-500 mt-1"
                           />
                         </div>
                       </div>
@@ -5427,37 +5440,37 @@ if __name__ == '__main__':
 
               {/* Warning/Error validation banner */}
               {formatErrorLog && (
-                <div className="mb-3 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-lg text-[9px] font-mono text-amber-700 dark:text-amber-400 flex items-start gap-1.5 animate-bounce">
-                  <div className="w-1.5 h-1.5 bg-amber-500 rounded-full mt-1 shrink-0" />
+                <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-[10px] font-mono text-rose-400 flex items-start gap-2 animate-bounce">
+                  <div className="w-2 h-2 bg-rose-500 rounded-full mt-1 shrink-0" />
                   <span>{formatErrorLog}</span>
                 </div>
               )}
 
               <div
-                className={`relative border-2 border-dashed rounded-xl transition-all duration-300 overflow-hidden group
-                  ${inputData ? "border-violet-300 bg-violet-50/40 shadow-inner" : "border-slate-300 bg-slate-50 hover:border-violet-400 hover:bg-violet-50/50 hover:shadow-md"}
+                className={`relative border-2 border-dashed rounded-xl transition-all duration-500 overflow-hidden group
+                  ${inputData ? "border-violet-500/50 bg-slate-800/90 shadow-[0_0_20px_rgba(139,92,246,0.15)]" : "border-slate-600 bg-slate-900/60 hover:border-violet-500/50 hover:bg-slate-800/80 hover:shadow-lg"}
                 `}
                 onDragOver={(e) => {
                   e.preventDefault();
                   e.currentTarget.classList.add(
-                    "border-violet-500",
-                    "bg-violet-100",
+                    "border-violet-400",
+                    "bg-slate-800",
                     "shadow-lg",
                   );
                 }}
                 onDragLeave={(e) => {
                   e.preventDefault();
                   e.currentTarget.classList.remove(
-                    "border-violet-500",
-                    "bg-violet-100",
+                    "border-violet-400",
+                    "bg-slate-800",
                     "shadow-lg",
                   );
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
                   e.currentTarget.classList.remove(
-                    "border-violet-500",
-                    "bg-violet-100",
+                    "border-violet-400",
+                    "bg-slate-800",
                     "shadow-lg",
                   );
                   const file = e.dataTransfer.files?.[0];
@@ -5473,14 +5486,14 @@ if __name__ == '__main__':
                 }}
               >
                 {!inputData && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-400 group-hover:text-violet-500 transition-colors">
-                    <div className="p-3 bg-white rounded-full shadow-sm border border-slate-100 mb-2 group-hover:scale-110 group-hover:shadow-md transition-all">
-                      <Upload className="w-5 h-5 text-slate-400 group-hover:text-violet-500" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-slate-500 group-hover:text-violet-400 transition-colors">
+                    <div className="p-4 bg-slate-800 rounded-full shadow-inner border border-slate-700 mb-3 group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(139,92,246,0.2)] group-hover:border-violet-500/30 transition-all duration-300">
+                      <Upload className="w-6 h-6 text-slate-400 group-hover:text-violet-400" />
                     </div>
-                    <p className="text-xs font-bold text-slate-600">
+                    <p className="text-xs font-black tracking-wide text-slate-300">
                       Drag & drop raw XY pattern data
                     </p>
-                    <p className="text-[10px] text-slate-400 mt-1">
+                    <p className="text-[10px] text-slate-500 mt-1 font-semibold">
                       or paste table entries here
                     </p>
                   </div>
@@ -5491,22 +5504,22 @@ if __name__ == '__main__':
                   placeholder={
                     inputData ? "" : "\n\n\n\n\n\n28.44, 100\n47.30, 55"
                   }
-                  className={`w-full h-44 px-5 py-4 bg-transparent text-slate-800 focus:ring-0 outline-none transition-colors font-mono text-[13px] leading-relaxed resize-none z-10 relative
+                  className={`w-full h-48 px-5 py-4 bg-transparent text-slate-200 focus:ring-0 outline-none transition-colors font-mono text-[13px] leading-relaxed resize-none z-10 relative custom-scrollbar
                     ${!inputData ? "placeholder:text-transparent" : ""}
                   `}
                   spellCheck={false}
                 />
               </div>
 
-              <div className="flex flex-col gap-3 mt-3 px-1 bg-slate-100/50 dark:bg-slate-900/25 p-3.5 rounded-xl border border-slate-200/40">
-                <div className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 uppercase tracking-wider font-black">
-                  <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
+              <div className="flex flex-col gap-3 mt-4 px-2 bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10">
+                <div className="text-[10px] font-mono font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
+                  <div className="w-1.5 h-1.5 bg-slate-500 rounded-full" />
                   Expected Dataset Format:{" "}
-                  <span className="text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded ml-0.5 font-bold">
+                  <span className="text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded ml-1 font-black">
                     2θ (deg)
                   </span>{" "}
                   ,{" "}
-                  <span className="text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-1.5 py-0.5 rounded font-bold">
+                  <span className="text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded font-black">
                     Intensity (a.u.)
                   </span>
                 </div>
@@ -5516,16 +5529,16 @@ if __name__ == '__main__':
                       setIsMixMode(!isMixMode);
                       if (!isMixMode) setMixtureList([]);
                     }}
-                    className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-md transition-all border
-                      ${isMixMode ? "bg-indigo-600 text-white border-indigo-700 shadow-md ring-2 ring-indigo-500/25" : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"}
+                    className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-lg transition-all border
+                      ${isMixMode ? "bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]" : "bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700/80"}
                     `}
                   >
-                    <Layers className="w-3 h-3" />
+                    <Layers className="w-3.5 h-3.5" />
                     {isMixMode ? "Mix Mode ACTIVE" : "Enable Mix Mode"}
                   </button>
                   {inputData && (
-                    <div className="text-[10px] font-black uppercase tracking-widest text-violet-600 bg-violet-100 border border-violet-200 px-2.5 py-1.5 rounded-md shadow-sm flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 bg-violet-500 rounded-full animate-pulse" />
+                    <div className="text-[10px] font-black uppercase tracking-widest text-violet-300 bg-violet-500/20 border border-violet-500/30 px-3 py-2 rounded-lg shadow-[0_0_10px_rgba(139,92,246,0.15)] flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
                       {inputData.split("\n").filter((l) => l.trim()).length}{" "}
                       Data Points Loaded
                     </div>
@@ -5534,14 +5547,14 @@ if __name__ == '__main__':
               </div>
 
               {isMixMode && mixtureList.length > 0 && (
-                <div className="mt-4 p-3 bg-indigo-50/50 border border-indigo-200 rounded-xl animate-in zoom-in-95 duration-300">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                <div className="mt-4 p-4 bg-slate-800/80 border border-indigo-500/30 rounded-xl animate-in zoom-in-95 duration-300 shadow-inner relative z-10">
+                  <div className="flex items-center justify-between mb-3 border-b border-slate-700/50 pb-2">
+                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">
                       Mixture Components
                     </span>
                     <button
                       onClick={() => setMixtureList([])}
-                      className="text-[10px] font-bold text-rose-500 hover:underline"
+                      className="text-[10px] font-bold text-rose-400 hover:text-rose-300 transition-colors"
                     >
                       Reset
                     </button>
@@ -5550,7 +5563,7 @@ if __name__ == '__main__':
                     {mixtureList.map((m, mIdx) => (
                       <div
                         key={`mix-${m}-${mIdx}`}
-                        className="flex items-center gap-1 bg-white border border-indigo-200 px-2.5 py-1 rounded-lg text-xs font-bold text-indigo-700 shadow-sm"
+                        className="flex items-center gap-2 bg-slate-900 border border-indigo-500/50 px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-300 shadow-sm"
                       >
                         {m}
                         <button
@@ -5560,45 +5573,45 @@ if __name__ == '__main__':
                             generateMixturePattern(nl);
                           }}
                         >
-                          <X className="w-3 h-3 text-rose-400 hover:text-rose-600" />
+                          <X className="w-3.5 h-3.5 text-rose-500/80 hover:text-rose-400 transition-colors" />
                         </button>
                       </div>
                     ))}
-                    <div className="px-2.5 py-1 bg-indigo-100/50 border border-dashed border-indigo-300 rounded-lg text-[10px] text-indigo-400 font-bold flex items-center gap-1">
-                      <Plus className="w-3 h-3" /> Add from DB
+                    <div className="px-3 py-1.5 bg-indigo-500/10 border border-dashed border-indigo-500/30 rounded-lg text-[10px] text-indigo-400 font-bold flex items-center gap-1.5 hover:bg-indigo-500/20 transition-colors cursor-pointer">
+                      <Plus className="w-3.5 h-3.5" /> Add from DB
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="mt-5 space-y-2.5">
-                <div className="flex flex-col gap-2">
+              <div className="mt-6 space-y-3 relative z-10">
+                <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 animate-pulse">
-                      <Database className="w-3.5 h-3.5 text-indigo-400 animate-spin" style={{ animationDuration: '6s' }} /> Standard Reference Registries
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Database className="w-4 h-4 text-violet-400 animate-pulse" /> Standard Reference Registries
                     </span>
-                    <span className="text-[8px] font-mono bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded-full font-bold">
+                    <span className="text-[9px] font-mono bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded-full font-bold">
                       ICDD / COD / RRUFF / ICSD / CSD
                     </span>
                   </div>
 
                   {/* Interactive filter & search deck */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5">
+                  <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4 space-y-3 shadow-inner">
                     <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Fast Filter Keys:</span>
-                      <div className="flex gap-1 flex-wrap">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-wider">Fast Filter Keys:</span>
+                      <div className="flex gap-1.5 flex-wrap">
                         {[
-                          { name: "ICDD", style: "bg-amber-50 hover:bg-amber-100 border-amber-200 text-amber-700 font-bold" },
-                          { name: "COD", style: "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700 font-bold" },
-                          { name: "RRUFF", style: "bg-cyan-50 hover:bg-cyan-100 border-cyan-200 text-cyan-700 font-bold" },
-                          { name: "ICSD", style: "bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-700 font-bold" },
-                          { name: "CSD", style: "bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 font-bold" }
+                          { name: "ICDD", style: "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-400 font-bold" },
+                          { name: "COD", style: "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400 font-bold" },
+                          { name: "RRUFF", style: "bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/30 text-cyan-400 font-bold" },
+                          { name: "ICSD", style: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/30 text-indigo-400 font-bold" },
+                          { name: "CSD", style: "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-rose-400 font-bold" }
                         ].map(badge => (
                           <button
                             key={badge.name}
                             type="button"
                             onClick={() => setDbSearch(badge.name)}
-                            className={`px-1.5 py-0.5 text-[8px] rounded border transition-all ${badge.style}`}
+                            className={`px-2 py-1 text-[9px] rounded-lg border transition-all shadow-sm ${badge.style}`}
                           >
                             {badge.name}
                           </button>
@@ -5612,15 +5625,15 @@ if __name__ == '__main__':
                         value={dbSearch}
                         onChange={(e) => setDbSearch(e.target.value)}
                         placeholder="Search formulas or indexing databases (e.g. NIST, Oxide, Fe)..."
-                        className="w-full bg-white text-slate-800 border border-slate-300 hover:border-violet-400 rounded-lg py-1.5 pl-8 pr-8 text-xs focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all shadow-inner"
+                        className="w-full bg-slate-800 text-slate-200 border border-slate-700 hover:border-violet-500/50 rounded-lg py-2 pl-9 pr-9 text-xs focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/80 outline-none transition-all shadow-inner placeholder:text-slate-500 font-medium"
                       />
-                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" />
+                      <Search className="w-4 h-4 absolute left-3 top-[10px] text-slate-500" />
                       {dbSearch && (
                         <button
                           key="clear-db-search"
                           type="button"
                           onClick={() => setDbSearch("")}
-                          className="absolute right-2.5 top-2 p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all active:scale-95"
+                          className="absolute right-3 top-2.5 p-0.5 hover:bg-slate-700 rounded text-slate-400 hover:text-violet-400 transition-all active:scale-95"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -5629,7 +5642,7 @@ if __name__ == '__main__':
                   </div>
                 </div>
 
-                <div className="h-[300px] overflow-y-auto pr-3 pl-1 pb-4 custom-scrollbar bg-slate-50/50 border border-slate-200 rounded-xl shadow-inner relative space-y-4">
+                <div className="h-[320px] overflow-y-auto pr-3 pl-1 pb-4 custom-scrollbar bg-slate-900 border border-slate-700 rounded-xl shadow-inner relative space-y-4 pt-3">
                 {(() => {
                   const rawCategoriesList = [
                     {
@@ -6424,19 +6437,19 @@ if __name__ == '__main__':
                     .filter(cat => cat.items.length > 0);
                   
                   return filteredCategories.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400 gap-2">
-                      <SlidersHorizontal className="w-8 h-8 text-slate-300 stroke-1" />
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">No reference materials match filter</span>
-                      <span className="text-[10px] text-slate-400 font-sans">Try searching for other formulas or database indexes</span>
+                    <div className="h-full flex flex-col items-center justify-center p-8 text-center text-slate-500 gap-3">
+                      <SlidersHorizontal className="w-10 h-10 text-slate-600 stroke-1" />
+                      <span className="text-xs font-black uppercase tracking-wider text-slate-400">No reference materials match filter</span>
+                      <span className="text-[10px] text-slate-500 font-semibold max-w-[200px]">Try searching for other formulas or database indexes</span>
                     </div>
                   ) : (
                     filteredCategories.map((categoryObj, idx) => (
                       <div key={idx} className="mt-2">
-                        <h4 className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500 mb-2 border-b border-slate-200 pb-1 sticky top-0 bg-[#f8fafc]/90 backdrop-blur-sm z-10 p-1 flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-violet-400"></div>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-3 border-b border-slate-700/50 pb-2 sticky top-0 bg-slate-900/95 backdrop-blur-sm z-10 p-2 flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-violet-500"></div>
                           {categoryObj.category}
                         </h4>
-                        <div className="flex flex-wrap gap-1.5 px-1 py-1">
+                        <div className="flex flex-wrap gap-2 px-2 py-1">
                           {categoryObj.items.map((ex) => {
                             const isSearchMatch = dbSearch.trim() !== "" && (
                               ex.label.toLowerCase().includes(dbSearch.toLowerCase()) ||
@@ -6446,10 +6459,10 @@ if __name__ == '__main__':
                               <button
                                 key={ex.id}
                                 onClick={() => loadExample(ex.id as any)}
-                                className={`text-[10px] font-semibold px-2.5 py-1 rounded-md border transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)] active:scale-95 ${
+                                className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all shadow-sm active:scale-95 ${
                                   isSearchMatch 
-                                    ? "bg-violet-600 text-white border-violet-700 shadow-md ring-2 ring-violet-500/20"
-                                    : "bg-white text-slate-600 hover:text-white hover:bg-violet-600 border-slate-300 hover:border-violet-600"
+                                    ? "bg-violet-600/90 text-white border-violet-500/80 shadow-[0_0_15px_rgba(139,92,246,0.3)] ring-2 ring-violet-500/40"
+                                    : "bg-slate-800 text-slate-300 hover:text-white hover:bg-violet-600/80 border-slate-700 hover:border-violet-500/60"
                                 }`}
                               >
                                 {ex.label}
@@ -6466,11 +6479,14 @@ if __name__ == '__main__':
             </div>
 
             {/* Active Python RAG Co-Processor Diagnostics Toggle Panel */}
-            <div className="p-3.5 mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/[0.08] transition-all relative z-10 flex flex-col gap-2">
+            <div className="px-4 py-3.5 mb-6 rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-amber-500/[0.02] hover:from-amber-500/10 hover:to-amber-500/[0.05] transition-all relative z-10 flex flex-col gap-2.5 shadow-inner backdrop-blur-sm">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative flex items-center justify-center">
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400 absolute animate-ping opacity-75" />
+                    <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)] relative z-10" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 drop-shadow-sm">
                     Scientific Python RAG Engine
                   </span>
                 </div>
@@ -6481,10 +6497,10 @@ if __name__ == '__main__':
                     onChange={(e) => setUsePythonRAG(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-8 h-4.5 bg-slate-800 rounded-full peer peer-checked:bg-amber-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:after:translate-x-3.5"></div>
+                  <div className="w-9 h-5 bg-slate-800 border border-slate-700/50 rounded-full peer peer-checked:bg-amber-500 peer-checked:border-amber-400 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-all peer-checked:after:translate-x-4"></div>
                 </label>
               </div>
-              <p className="text-[10px] text-slate-400 leading-normal">
+              <p className="text-[10px] text-amber-500/60 leading-relaxed font-medium max-w-[90%] tracking-wide">
                 Fits physical lattice contraction, dilation strain, and crystallite size broadening on local SQLite reference patterns using coordinate-descent ML regression.
               </p>
             </div>
