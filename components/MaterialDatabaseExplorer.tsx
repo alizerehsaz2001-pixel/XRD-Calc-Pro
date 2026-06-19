@@ -193,6 +193,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
   const [isGlobalSearching, setIsGlobalSearching] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [isDbUnlocked, setIsDbUnlocked] = useState(false);
+  const [dbCategoryFilter, setDbCategoryFilter] = useState<string>('all');
 
   // Edit Mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -2450,48 +2451,113 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                   {t('Directly sync and procure verified crystallographic structures, thermal densities, mechanical moduli, and peak intensities from global public and enterprise registries. Select a registry, enter terms (e.g. "conductive polymers", "superconductor BST perovskite", "GaN wide-bandgap"), and download records directly.', 'Directly sync and procure verified crystallographic structures, thermal densities, mechanical moduli, and peak intensities from global public and enterprise registries. Select a registry, enter terms (e.g. "conductive polymers", "superconductor BST perovskite", "GaN wide-bandgap"), and download records directly.')}
                 </p>
 
-                {/* Database Registry Choice Cards */}
-                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2.5">
-                  {[
-                    { id: 'materials_project', name: 'UC Berkeley Materials', type: 'UC Berkeley / LBNL', status: 'FREE ACCESS' },
-                    { id: 'cod', name: 'COD Crystallography', type: 'Open-Source', status: 'FREE ACCESS' },
-                    { id: 'pubchem', name: 'PubChem Substance', type: 'Public', status: 'FREE ACCESS' },
-                    { id: 'nist', name: 'NIST WebBook', type: 'Public', status: 'FREE ACCESS' },
-                    { id: 'aflow', name: 'AFLOW', type: 'Academic', status: 'FREE ACCESS' },
-                    { id: 'oqmd', name: 'OQMD', type: 'Academic', status: 'FREE ACCESS' },
-                    { id: 'epfl_materials_cloud', name: 'EPFL Materials Cloud', type: 'EPFL (Switzerland)', status: 'FREE ACCESS' },
-                    { id: 'mit_mgi', name: 'MIT Materials Genome', type: 'MIT / MGI', status: 'FREE ACCESS' },
-                    { id: 'harvard_cep', name: 'Harvard Clean Energy', type: 'Harvard / CEP', status: 'FREE ACCESS' },
-                    { id: 'nomad_discovery', name: 'NOMAD Lab', type: 'Max Planck (Germany)', status: 'FREE ACCESS' },
-                    { id: 'nims_atomwork', name: 'NIMS AtomWork', type: 'Japan / NIMS', status: 'FREE ACCESS' },
-                    { id: 'cern_opendata', name: 'CERN Nuclear & Space', type: 'CERN OpenData', status: 'FREE ACCESS' },
-                    { id: 'springer_materials', name: 'SpringerMaterials', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true },
-                    { id: 'icsd', name: 'ICSD Inorganic', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true },
-                    { id: 'ccdc', name: 'CCDC Crystallography', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true }
-                  ].map(dbItem => {
-                    const active = selectedGlobalDB === dbItem.id;
-                    return (
-                      <div
-                        key={dbItem.id}
-                        onClick={() => {
-                          if (dbItem.premium && !isDbUnlocked) {
-                            alert(t('This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.', 'This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.'));
-                            return;
-                          }
-                          setSelectedGlobalDB(dbItem.id);
-                        }}
-                        className={`p-3 rounded-xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between min-h-[84px] relative overflow-hidden group ${active ? 'bg-gradient-to-br from-blue-900/40 to-indigo-900/40 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-black/30 border-white/5 hover:bg-white/5 hover:border-white/20'}`}
-                      >
-                        {active && <div className="absolute top-0 right-0 w-12 h-12 bg-blue-500/20 blur-xl rounded-full" />}
-                        <div className="relative z-10-wrapper space-y-1">
-                          <span className={`block text-[7.5px] font-black uppercase tracking-wider leading-none ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
-                          <span className={`block text-[10px] font-bold tracking-tight leading-snug ${active ? 'text-white font-extrabold' : 'text-slate-300 group-hover:text-white'}`}>{dbItem.name}</span>
-                        </div>
-                        <span className={`block text-[8px] font-mono leading-none relative z-10 mt-2 ${dbItem.status === 'LOCKED' ? 'text-red-400/80 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : active ? 'text-blue-200 font-bold' : 'text-blue-400/70 font-bold'}`}>{dbItem.status}</span>
+                {/* Database Category Filter Tabs */}
+                {(() => {
+                  const allDatabases = [
+                    { id: 'materials_project', name: 'Materials Project (UCB)', type: 'UC Berkeley / LBNL', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'stanford_ssrl', name: 'Stanford SSRL Sync', type: 'Stanford University', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'caltech_mat', name: 'Caltech Predictions', type: 'Caltech Research', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'cornell_chess', name: 'Cornell CHESS Lib', type: 'Cornell University', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'gatech_mgi', name: 'GT Materials Genome', type: 'Georgia Tech', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'princeton_tmd', name: 'Princeton Topological', type: 'Princeton Univ.', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'oxford_ocgd', name: 'Oxford OCGD', type: 'Oxford University', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'imperial_imph', name: 'Imperial IMPH Hub', type: 'Imperial College', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'grenoble_gcd', name: 'Grenoble Louis Néel', type: 'CNRS (France)', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'saclay_psqm', name: 'Paris-Saclay PSQM', type: 'Saclay (France)', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'mpi_cpfs', name: 'MPI-CPfS SolidState', type: 'Max Planck (Germany)', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'kit_mat', name: 'KIT Informatics', type: 'Karlsruhe (Germany)', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'tum_cryst', name: 'TUM Crystallography', type: 'TUM (Germany)', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'pku_cryst', name: 'PKU-Cryst Registry', type: 'Peking University', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'tsinghua_mgi', name: 'Tsinghua MatGenome', type: 'Tsinghua University', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'cas_solid', name: 'CAS Inorganic DB', type: 'CAS (China)', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'sjtu_mat', name: 'SJTU MatInformatics', type: 'SJTU (Shanghai)', status: 'FREE ACCESS', group: 'academic' },
+
+                    // Top Research Institutes & National Labs
+                    { id: 'riken_mat', name: 'RIKEN MatInformatics', type: 'RIKEN Institute (Japan)', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'psi_sls', name: 'PSI Swiss Light Source', type: 'Paul Scherrer Inst.', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'lbl_als', name: 'LBNL Advanced Light', type: 'LBNL / Berkeley Lab', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'anl_aps', name: 'Argonne Photon Source', type: 'Argonne NatLab', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'ornl_sns', name: 'Oak Ridge Spallation', type: 'Oak Ridge NatLab', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'cea_cristal', name: 'CEA French Atomic DB', type: 'CEA (France)', status: 'FREE ACCESS', group: 'institute' },
+
+                    { id: 'amcsd', name: 'AMCSD Mineralogist', type: 'AMCSD / Mineral', status: 'FREE ACCESS', group: 'public' },
+                    { id: 'cod', name: 'COD Crystallography', type: 'Open-Source', status: 'FREE ACCESS', group: 'public' },
+                    { id: 'pubchem', name: 'PubChem Substance', type: 'Public', status: 'FREE ACCESS', group: 'public' },
+                    { id: 'nist', name: 'NIST WebBook', type: 'Public', status: 'FREE ACCESS', group: 'public' },
+                    { id: 'aflow', name: 'AFLOW', type: 'Academic', status: 'FREE ACCESS', group: 'public' },
+                    { id: 'oqmd', name: 'OQMD', type: 'Academic', status: 'FREE ACCESS', group: 'public' },
+                    { id: 'epfl_materials_cloud', name: 'EPFL Materials Cloud', type: 'EPFL (Switzerland)', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'mit_mgi', name: 'MIT Materials Genome', type: 'MIT / MGI', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'harvard_cep', name: 'Harvard Clean Energy', type: 'Harvard / CEP', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'nomad_discovery', name: 'NOMAD Lab', type: 'Max Planck (Germany)', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'nims_atomwork', name: 'NIMS AtomWork', type: 'Japan / NIMS', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'cern_opendata', name: 'CERN Nuclear & Space', type: 'CERN OpenData', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'icdd', name: 'ICDD PDF Standard', type: 'ICDD / PDF-5', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
+                    { id: 'springer_materials', name: 'SpringerMaterials', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
+                    { id: 'icsd', name: 'ICSD Inorganic', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
+                    { id: 'ccdc', name: 'CCDC Crystallography', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' }
+                  ];
+
+                  return (
+                    <>
+                      <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-950/60 border border-white/5 rounded-xl">
+                        {[
+                          { id: 'all', label: t('All Registries', 'All Registries'), count: allDatabases.length },
+                          { id: 'academic', label: t('Academic & Universities', 'Academic & Universities'), count: allDatabases.filter(d => d.group === 'academic').length },
+                          { id: 'institute', label: t('Research Institutes & Labs', 'Research Institutes & Labs'), count: allDatabases.filter(d => d.group === 'institute').length },
+                          { id: 'public', label: t('Public & Open-Source', 'Public & Open-Source'), count: allDatabases.filter(d => d.group === 'public').length },
+                          { id: 'premium', label: t('Premium & Industry Standards', 'Premium & Industry Standards'), count: allDatabases.filter(d => d.group === 'premium').length }
+                        ].map(cat => {
+                          const active = dbCategoryFilter === cat.id;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => setDbCategoryFilter(cat.id)}
+                              className={`px-3 py-1.5 text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                                active
+                                  ? 'bg-blue-600 text-white shadow-sm'
+                                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                              }`}
+                            >
+                              {cat.label}
+                              <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-mono font-bold leading-none ${active ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'}`}>
+                                {cat.count}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Database Registry Choice Cards */}
+                      <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2.5">
+                        {allDatabases.filter(dbItem => dbCategoryFilter === 'all' || dbItem.group === dbCategoryFilter).map(dbItem => {
+                          const active = selectedGlobalDB === dbItem.id;
+                          return (
+                            <div
+                              key={dbItem.id}
+                              onClick={() => {
+                                if (dbItem.premium && !isDbUnlocked) {
+                                  alert(t('This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.', 'This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.'));
+                                  return;
+                                }
+                                setSelectedGlobalDB(dbItem.id);
+                              }}
+                              className={`p-3 rounded-xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between min-h-[84px] relative overflow-hidden group ${active ? 'bg-gradient-to-br from-blue-900/40 to-indigo-900/40 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-black/30 border-white/5 hover:bg-white/5 hover:border-white/20'}`}
+                            >
+                              {active && <div className="absolute top-0 right-0 w-12 h-12 bg-blue-500/20 blur-xl rounded-full" />}
+                              <div className="relative z-10 space-y-1">
+                                <span className={`block text-[7.5px] font-black uppercase tracking-wider leading-none ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
+                                <span className={`block text-[10px] font-bold tracking-tight leading-snug ${active ? 'text-white font-extrabold' : 'text-slate-300 group-hover:text-white'}`}>{dbItem.name}</span>
+                              </div>
+                              <span className={`block text-[8px] font-mono leading-none relative z-10 mt-2 ${dbItem.status === 'LOCKED' ? 'text-red-400/80 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : active ? 'text-blue-200 font-bold' : 'text-blue-400/70 font-bold'}`}>{dbItem.status}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {/* API Key Form Option (If Springer or ICSD selected or custom key toggle) */}
                 {selectedGlobalDB && (

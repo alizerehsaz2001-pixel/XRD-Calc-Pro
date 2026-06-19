@@ -22,7 +22,7 @@ export const PythonExportModule: React.FC = () => {
   const [scriptContent, setScriptContent] = useState<string>("");
   const [isCopied, setIsCopied] = useState(false);
   const [selectedLibrary, setSelectedLibrary] = useState<
-    "pysyn" | "lmfit" | "xrayutilities" | "gsas2"
+    "pysyn" | "lmfit" | "xrayutilities" | "gsas2" | "pymatgen"
   >("pysyn");
   const [selectedTemplate, setSelectedTemplate] =
     useState<string>("basic_analysis");
@@ -68,7 +68,7 @@ export const PythonExportModule: React.FC = () => {
   ];
 
   const aiSuggestionsByLibrary: Record<
-    "pysyn" | "lmfit" | "xrayutilities" | "gsas2",
+    "pysyn" | "lmfit" | "xrayutilities" | "gsas2" | "pymatgen",
     string[]
   > = {
     pysyn: [
@@ -94,6 +94,12 @@ export const PythonExportModule: React.FC = () => {
       "Define multi-layer substrate Crystal materials & Bragg reflection angles",
       "Calculate 3D Q-vector transformations for asymmetric triple-axis reflections",
       "Construct diffractometer component with non-planar sample tilt corrections",
+    ],
+    pymatgen: [
+      "Load structural configurations from CIF files and extract lattices",
+      "Calculate simulated XRD patterns using different target anode wavelengths (Cu, Mo, Co)",
+      "Deconvolve 2-Theta peak angles, intensities, and planes indices automatically",
+      "Retrieve detailed Spacegroup and Crystal System properties using pymatgen tools",
     ],
   };
 
@@ -530,6 +536,152 @@ for two_theta in peaks_2theta:
     q = 4 * np.pi * np.sin(theta_rad) / WAVELENGTH
     print(f"2θ = {two_theta:5.2f}° -> Q = {q:6.4f} Å^-1")
 `;
+      } else if (selectedLibrary === "pymatgen") {
+        let inlineCifs = "";
+        let phasePaths = "";
+        phases.forEach((p: any, idx: number) => {
+          let cif = `data_${p.name.replace(/\s+/g, "_")}\n`;
+          cif += `_cell_length_a ${p.a || 5.430}\n`;
+          cif += `_cell_length_b ${p.b || p.a || 5.430}\n`;
+          cif += `_cell_length_c ${p.c || p.a || 5.430}\n`;
+          cif += `_cell_angle_alpha ${p.alpha || 90}\n`;
+          cif += `_cell_angle_beta ${p.beta || 90}\n`;
+          cif += `_cell_angle_gamma ${p.gamma || 90}\n`;
+          if (p.spaceGroup) {
+            cif += `_symmetry_space_group_name_H-M '${p.spaceGroup}'\n`;
+          }
+          cif += `loop_\n_atom_site_label\n_atom_site_type_symbol\n_atom_site_fract_x\n_atom_site_fract_y\n_atom_site_fract_z\n_atom_site_occupancy\n_atom_site_b_iso_or_equiv\n`;
+          if (p.atoms && p.atoms.length > 0) {
+            p.atoms.forEach((atom: any, aIdx: number) => {
+              cif += `${atom.element}${aIdx + 1} ${atom.element} ${atom.x || 0} ${atom.y || 0} ${atom.z || 0} ${atom.occupancy || 1} ${atom.bIso || 0.4}\n`;
+            });
+          } else {
+            cif += `X1 X 0 0 0 1 0.4\n`;
+          }
+          inlineCifs += `
+# Local CIF file content for phase ${p.name}
+CIF_DATA_${idx} = """${cif}"""
+with open("${p.name.replace(/\s+/g, "_")}.cif", "w") as f:
+    f.write(CIF_DATA_${idx})
+`;
+          phasePaths += `"${p.name.replace(/\s+/g, "_")}.cif", `;
+        });
+
+        pythonCode += `import os
+import matplotlib.pyplot as plt
+import numpy as np
+
+try:
+    from pymatgen.core import Structure
+    from pymatgen.analysis.diffraction.xrd import XRDCalculator
+except ImportError:
+    print("This XRD simulation requires 'pymatgen'. Install it using: pip install pymatgen")
+    Structure = None
+    XRDCalculator = None
+
+# Write inline crystal structure CIFs from configured phases
+${inlineCifs || `
+# Default template chemical CIF structure (Silicon reference)
+SILICON_CIF = """data_Si
+_cell_length_a 5.430
+_cell_length_b 5.430
+_cell_length_c 5.430
+_cell_angle_alpha 90
+_cell_angle_beta 90
+_cell_angle_gamma 90
+_symmetry_space_group_name_H-M 'F d -3 m'
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+_atom_site_b_iso_or_equiv
+Si1 Si 0.000 0.000 0.000 1.0 0.4
+Si2 Si 0.250 0.250 0.250 1.0 0.4
+"""
+with open("silicon.cif", "w") as f:
+    f.write(SILICON_CIF)
+`}
+
+# Targets for XRD Calculation
+CIF_FILES = [${phasePaths || '"silicon.cif"'}]
+TARGET_WAVELENGTHS = {
+    "CuKa": 1.54056,  # Copper K-alpha (Standard laboratory)
+    "MoKa": 0.70930,  # Molybdenum K-alpha (High energy)
+    "CoKa": 1.78897,  # Cobalt K-alpha (For iron-rich samples)
+    "CrKa": 2.28970   # Chromium K-alpha
+}
+
+def simulate_and_compare_xrd():
+    if Structure is None or XRDCalculator is None:
+        print("Please install pymatgen to run this CIF XRD simulation locally.")
+        return
+
+    print("--- Pymatgen CIF-Reader & XRD Simulation Suite ---")
+    for file_path in CIF_FILES:
+        # Strip trailing comma if any
+        actual_path = file_path.strip().rstrip(",")
+        if not os.path.exists(actual_path):
+            print(f"File not found: {actual_path}")
+            continue
+
+        print(f"\\n[Phase] Reading and Parsing: {actual_path}")
+        structure = Structure.from_file(actual_path)
+        print(f"Formula: {structure.composition.reduced_formula}")
+        print(f"Lattice: a={structure.lattice.a:.4f}Å, b={structure.lattice.b:.4f}Å, e={structure.lattice.c:.4f}Å")
+        print(f"Density: {structure.density:.3f} g/cm³")
+
+        # Create plot to compare wavelengths
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        for name, wavelength in TARGET_WAVELENGTHS.items():
+            # Initialize XRD Calculator with specified wavelength
+            calculator = XRDCalculator(wavelength=wavelength)
+            
+            # Simulate the powder XRD pattern (limit degrees to 10-90)
+            pattern = calculator.get_pattern(structure, two_theta_range=(10, 90))
+            
+            print(f"  └─ Simulating Wavelength: {name} ({wavelength} Å) -> Calculated {len(pattern.x)} peaks")
+            
+            # Display prominent simulated peaks
+            sorted_peaks = sorted(zip(pattern.x, pattern.y, pattern.hkls), key=lambda x: x[1], reverse=True)[:5]
+            print(f"     Top 5 simulated peaks (2Theta, Intensity %, hkl):")
+            for t_theta, intensity, hkl_list in sorted_peaks:
+                hkl = hkl_list[0]['hkl'] if hkl_list else 'N/A'
+                print(f"       * {t_theta:6.2f}° | Intensity: {intensity:5.1f}% | HKL: {hkl}")
+
+            # Plot Simulated XRD peaks
+            # Stem plot mimics standard needle diffraction patterns
+            markerline, stemlines, baseline = ax.stem(
+                pattern.x, pattern.y, 
+                linefmt='-', 
+                basefmt=" ",
+                label=f"{name} (lam={wavelength} A)"
+            )
+            # Style distinct series with custom colors
+            color_map = {"CuKa": "#E15759", "MoKa": "#4E79A7", "CoKa": "#59A14F", "CrKa": "#F28E2B"}
+            plt.setp(stemlines, 'color', color_map.get(name, '#666666'), 'linewidth', 1.5, 'alpha', 0.7)
+            plt.setp(markerline, 'color', color_map.get(name, '#666666'), 'markersize', 4, 'alpha', 0.9)
+
+        ax.set_title(f"PyMatGen Powder Diffraction Simulation Comparison: {structure.composition.reduced_formula}", fontsize=12, fontweight='bold')
+        ax.set_xlabel('2theta (degrees)', fontsize=10)
+        ax.set_ylabel('Relative Intensity (%)', fontsize=10)
+        ax.set_xlim(10, 90)
+        ax.set_ylim(0, 110)
+        ax.legend(frameon=True, facecolor='white', framealpha=0.9)
+        ax.grid(True, linestyle=':', alpha=0.6)
+        
+        plot_name = f"simulated_xrd_{structure.composition.reduced_formula}.png"
+        plt.tight_layout()
+        plt.savefig(plot_name, dpi=300)
+        print(f"     XRD Simulation Plot saved: {plot_name}")
+        plt.show()
+
+if __name__ == "__main__":
+    simulate_and_compare_xrd()
+`;
       }
 
       setScriptContent(pythonCode);
@@ -611,6 +763,7 @@ for two_theta in peaks_2theta:
                 <option value="lmfit">LMFIT (Peak Profiling)</option>
                 <option value="gsas2">GSAS-II (Rietveld API)</option>
                 <option value="xrayutilities">xrayutilities</option>
+                <option value="pymatgen">Pymatgen (CIF & XRD Simulation)</option>
               </select>
             )}
 

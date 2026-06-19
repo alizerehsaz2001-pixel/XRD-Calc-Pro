@@ -455,7 +455,31 @@ Provide the response in structured markdown with the following specific sections
         harvard_cep: "Harvard Clean Energy Project (CEP)",
         nomad_discovery: "NOMAD Laboratory (Novel Materials Discovery Cluster)",
         nims_atomwork: "NIMS AtomWork Crystallographic Database (Japan)",
-        cern_opendata: "CERN Open Data Nuclear & High Energy Space Materials"
+        cern_opendata: "CERN Open Data Nuclear & High Energy Space Materials",
+        amcsd: "American Mineralogist Crystal Structure Database (AMCSD)",
+        icdd: "ICDD PDF-4+ / PDF-5 Standard Powder Diffraction Database",
+        pku_cryst: "Peking University Crystallography & Material Structure Database (PKU-Cryst)",
+        tsinghua_mgi: "Tsinghua University Materials Genome Initiative Database",
+        cas_solid: "Chinese Academy of Sciences (CAS) Inorganic Crystallographic Materials Database",
+        sjtu_mat: "Shanghai Jiao Tong University Materials Informatics Platform",
+        stanford_ssrl: "Stanford Synchrotron Radiation Lightsource (SSRL) Materials Database",
+        caltech_mat: "Caltech Materials Prediction & Synthesis Registry",
+        cornell_chess: "Cornell High Energy Synchrotron Source (CHESS) Diffraction Library",
+        gatech_mgi: "Georgia Tech Materials Genome Initiative (MGI) Repo",
+        princeton_tmd: "Princeton Topological Materials Crystallographic Database",
+        oxford_ocgd: "Oxford Crystallography Group Database (OCGD, UK)",
+        imperial_imph: "Imperial College London Material Properties Hub (IMPH, UK)",
+        grenoble_gcd: "Grenoble Crystallography / Louis Néel Database (CNRS, France)",
+        saclay_psqm: "Paris-Saclay Quantum Materials Repository (PSQM, France)",
+        mpi_cpfs: "Max Planck Institute Solid State Chemical Physics Research Database (Germany)",
+        kit_mat: "Karlsruhe Institute of Technology (KIT) Materials Informatics Library (Germany)",
+        tum_cryst: "Technical University of Munich (TUM) Crystallographic Database (Germany)",
+        riken_mat: "RIKEN Materials Informatics Database (Japan)",
+        psi_sls: "PSI Swiss Light Source Crystallography Hub (Switzerland)",
+        lbl_als: "LBNL Advanced Light Source Diffraction Database (United States)",
+        anl_aps: "Argonne Advanced Photon Source Crystallographic Archive (United States)",
+        ornl_sns: "Oak Ridge Spallation Neutron Source Crystal Database (United States)",
+        cea_cristal: "CEA Cristal French Atomic Energy Commission Database (France)"
       };
 
       const resolvedDbName = dbMapping[databaseId] || databaseId;
