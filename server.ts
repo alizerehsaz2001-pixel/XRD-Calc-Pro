@@ -534,7 +534,7 @@ Provide the response in structured markdown with the following specific sections
       
       // Try a very quick low-cost single token response to thoroughly test authentication rights
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: "State only 'ONLINE' to confirm connection.",
         config: {
           maxOutputTokens: 5
@@ -645,16 +645,13 @@ Provide the response in structured markdown with the following specific sections
 
       const scriptPath = path.join(__dirname, "utils", "phaseIdValidator.py");
       
-      // Escape the payload JSON string for shell consumption safely
-      const escapedPayload = JSON.stringify(payloadString);
-
-      // Dynamically run python pipeline
-      const { exec } = await import("child_process");
+      // Pass the payload directly without shell escaping since we use execFile
+      const { execFile } = await import("child_process");
       
-      exec(`python3 "${scriptPath}" --json=${escapedPayload}`, (error, stdout, stderr) => {
+      execFile("python3", [scriptPath, "--json=" + payloadString], (error, stdout, stderr) => {
         if (error) {
-          console.error("Python RAG Execution Error:", error, stderr);
-          res.status(500).json({ success: false, error: "Error executing Python RAG engine: " + stderr });
+          console.error("Python RAG Execution Error:", error, stdout, stderr);
+          res.status(500).json({ success: false, error: "Error executing Python RAG engine: " + (stderr || stdout || "exit code " + error.code) });
           return;
         }
 
@@ -825,12 +822,12 @@ Provide the response in structured markdown with the following specific sections
 
       const scriptPath = path.join(__dirname, "utils", "dbRagAgent.py");
       
-      const { exec } = await import("child_process");
+      const { execFile } = await import("child_process");
       
-      exec(`python3 "${scriptPath}" --query=${JSON.stringify(query)} --api_key="${apiKeyToUse}"`, (error, stdout, stderr) => {
+      execFile("python3", [scriptPath, "--query", query, "--api_key", apiKeyToUse], (error, stdout, stderr) => {
         if (error) {
-          console.error("Python DB RAG Execution Error:", error, stderr);
-          res.status(500).json({ success: false, error: "Error executing Python DB RAG: " + stderr });
+          console.error("Python DB RAG Execution Error:", error, stdout, stderr);
+          res.status(500).json({ success: false, error: "Error executing Python DB RAG: " + (stderr || stdout || "exit code " + error.code) });
           return;
         }
 

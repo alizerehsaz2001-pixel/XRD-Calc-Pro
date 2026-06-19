@@ -955,14 +955,14 @@ export const WarrenAverbachModule: React.FC = () => {
                     tick={{ fill: '#475569', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
                     axisLine={{ stroke: '#334155' }}
                     tickLine={{ stroke: '#334155' }}
-                    tickFormatter={(val) => val.toExponential(1)}
+                    tickFormatter={(val: any) => Number(val).toExponential(1)}
                   />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '12px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}
                     itemStyle={{ color: '#22d3ee', fontSize: '11px', fontWeight: 'bold' }}
                     labelStyle={{ color: '#64748b', fontSize: '10px', marginBottom: '8px', fontWeight: 'bold' }}
                     cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 4' }}
-                    formatter={(val) => val.toExponential(4)}
+                    formatter={(val: any) => Number(val).toExponential(4)}
                   />
                   <Area 
                     type="monotone" 

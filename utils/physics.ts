@@ -862,7 +862,10 @@ export const calculateWarrenAverbach = (
   
   if (Math.abs(dx) < 1e-9) return { sizeDistribution: [], strainDistribution: [] };
   
-  for (const p of points) {
+  // Ensure points are sorted by L_nm so monotonic constraint works forward
+  const sortedPoints = [...points].sort((a, b) => a.L_nm - b.L_nm);
+  
+  for (const p of sortedPoints) {
     if (p.A1 <= 0 || p.A2 <= 0) continue;
     
     // 1. Background Correction / Base Level offset adjustment
@@ -908,9 +911,14 @@ export const calculateWarrenAverbach = (
     // 3. Warren-Averbach size estimation
     const slope = (Math.log(rawA2) - Math.log(rawA1)) / dx;
     const intercept = Math.log(rawA1) - slope * x1;
-    const A_size = Math.exp(intercept);
+    let A_size = Math.exp(intercept) * shapeFactor;
     
-    sizeDist.push({ L_nm: p.L_nm, A_size: Math.min(1.0, A_size * shapeFactor) });
+    // Hook-effect early truncation / Enforce strict monotonic decrease
+    if (sizeDist.length > 0 && A_size > sizeDist[sizeDist.length - 1].A_size) {
+        A_size = sizeDist[sizeDist.length - 1].A_size;
+    }
+
+    sizeDist.push({ L_nm: p.L_nm, A_size: Math.max(0.001, Math.min(1.0, A_size)) });
     
     // 4. Microstrain Distribution calculations
     if (p.L_nm > 0) {
