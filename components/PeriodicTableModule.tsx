@@ -10,6 +10,7 @@ import {
   ResponsiveContainer, Legend, Tooltip as RechartsTooltip
 } from 'recharts';
 import { playSynthTone } from '../utils/sound';
+import { getFactualProperties, ScientificProperties } from './ChemicalPhysicalPropertiesDb';
 
 export interface FamousCompound {
   formula: string;
@@ -22,7 +23,7 @@ export interface FamousCompound {
   shortDesc: string;
 }
 
-export interface CrystalElement {
+export interface CrystalElement extends ScientificProperties {
   number: number;
   symbol: string;
   name: string;
@@ -288,10 +289,10 @@ const CrystallineLattice3D: React.FC<{
             setIsRotating(!isRotating);
             playSynthTone('tick');
           }}
-          className={`p-1.5 rounded-md border text-[10px] uppercase font-black tracking-wider flex items-center gap-1.5 transition-colors ${
+          className={`px-2 py-1.5 rounded border text-[10px] font-medium transition-colors flex items-center gap-1.5 ${
             isRotating 
-              ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/20 hover:bg-indigo-600/40' 
-              : 'bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-850'
+              ? 'bg-slate-800/50 text-indigo-300 border-slate-700 hover:bg-slate-700' 
+              : 'bg-slate-900/50 text-slate-400 border-slate-800 hover:bg-slate-800'
           }`}
           title="Pause or spin crystal rotational alignment"
         >
@@ -300,11 +301,8 @@ const CrystallineLattice3D: React.FC<{
         </button>
       </div>
 
-      <div className="absolute left-3 top-3 z-20 pointer-events-none">
-        <span className="text-[8.5px] font-bold uppercase tracking-[0.15em] font-mono text-slate-500 block">
-          Visual Core Lattice Probe
-        </span>
-        <span className="text-rose-400 text-[10.5px] font-black font-mono">
+      <div className="absolute left-4 top-4 z-20 pointer-events-none">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500 block mb-0.5">
           {structure} Unit Cell
         </span>
       </div>
@@ -441,6 +439,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [activeTab, setActiveTab] = useState<'grid' | 'compare'>('grid');
   const [compareSubjectAId, setCompareSubjectAId] = useState<string>('element-14');
   const [compareSubjectBId, setCompareSubjectBId] = useState<string>('compound-SiO2 (Quartz)');
+  const [detailSubTab, setDetailSubTab] = useState<'lattice' | 'chemical' | 'physical'>('lattice');
 
   // Deep scientific properties of crystallographic elements
   const elementsDb = useMemo<Record<number, Partial<CrystalElement>>>(() => ({
@@ -1051,10 +1050,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
       else if (item.num >= 89) category = 'actinoid';
       else if (item.num === 13 || item.num === 31 || item.num === 49 || item.num === 50 || item.num === 81 || item.num === 82 || item.num === 83) category = 'post_transition';
 
+      const factualProps = getFactualProperties(item.num);
       const weight = detailed.weight !== undefined ? detailed.weight : (item.num * 2.05 + 1.8);
       const density = detailed.density !== undefined ? detailed.density : (item.num * 0.17 + 0.95);
       const meltingPoint = detailed.meltingPoint !== undefined ? detailed.meltingPoint : (item.num * 22);
-      const electronConfig = detailed.electronConfig || `[Inert] Config ${item.num}`;
+      const electronConfig = detailed.electronConfig || factualProps.electronConfig || `[Inert] Config ${item.num}`;
 
       return {
         number: item.num,
@@ -1075,7 +1075,20 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
         density,
         meltingPoint,
         electronConfig,
-        famousCompounds: detailed.famousCompounds || []
+        famousCompounds: detailed.famousCompounds || [],
+
+        // Scientific properties mapping
+        valenceElectrons: detailed.valenceElectrons !== undefined ? detailed.valenceElectrons : factualProps.valenceElectrons,
+        electronegativity: detailed.electronegativity !== undefined ? detailed.electronegativity : factualProps.electronegativity,
+        ionizationEnergy: detailed.ionizationEnergy !== undefined ? detailed.ionizationEnergy : factualProps.ionizationEnergy,
+        electronAffinity: detailed.electronAffinity !== undefined ? detailed.electronAffinity : factualProps.electronAffinity,
+        metallicCharacter: detailed.metallicCharacter !== undefined ? detailed.metallicCharacter : factualProps.metallicCharacter,
+        nonMetallicCharacter: detailed.nonMetallicCharacter !== undefined ? detailed.nonMetallicCharacter : factualProps.nonMetallicCharacter,
+        atomicRadius: detailed.atomicRadius !== undefined ? detailed.atomicRadius : factualProps.atomicRadius,
+        ionicRadius: detailed.ionicRadius !== undefined ? detailed.ionicRadius : factualProps.ionicRadius,
+        boilingPoint: detailed.boilingPoint !== undefined ? detailed.boilingPoint : factualProps.boilingPoint,
+        electricalConductivity: detailed.electricalConductivity !== undefined ? detailed.electricalConductivity : factualProps.electricalConductivity,
+        thermalConductivity: detailed.thermalConductivity !== undefined ? detailed.thermalConductivity : factualProps.thermalConductivity
       } as CrystalElement;
     });
   }, [elementsDb, customOverrides]);
@@ -1354,62 +1367,48 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
   const activeBadgeColor = (cat: string) => {
     switch (cat) {
-      case 'alkali': return 'bg-red-500/20 text-red-300 border border-red-500/40 shadow-[0_0_10px_rgba(239,68,68,0.15)]';
-      case 'alkaline_earth': return 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 shadow-[0_0_10px_rgba(234,179,8,0.15)]';
-      case 'transition_metal': return 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.15)]';
-      case 'post_transition': return 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.15)]';
-      case 'metalloid': return 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.15)]';
-      case 'nonmetal': return 'bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 shadow-[0_0_10px_rgba(217,70,239,0.15)]';
-      case 'noble_gas': return 'bg-slate-500/20 text-slate-200 border border-slate-700/40';
-      case 'lanthanoid': return 'bg-amber-500/20 text-amber-200 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.15)]';
-      case 'actinoid': return 'bg-rose-500/20 text-rose-200 border border-rose-500/40 shadow-[0_0_10px_rgba(244,63,94,0.15)]';
-      default: return 'bg-slate-700 text-slate-300';
+      case 'alkali': return 'bg-red-500/10 text-red-400 border border-red-500/20';
+      case 'alkaline_earth': return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
+      case 'transition_metal': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+      case 'post_transition': return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+      case 'metalloid': return 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20';
+      case 'nonmetal': return 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20';
+      case 'noble_gas': return 'bg-slate-500/10 text-slate-300 border border-slate-500/20';
+      case 'lanthanoid': return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
+      case 'actinoid': return 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
+      default: return 'bg-slate-800 text-slate-300';
     }
   };
 
   const getStructLabelColor = (struct: string) => {
     switch (struct) {
-      case 'FCC': return 'text-sky-400 bg-sky-500/15 border border-sky-400/30';
-      case 'BCC': return 'text-purple-400 bg-purple-500/15 border border-purple-400/30';
-      case 'HCP': return 'text-emerald-400 bg-emerald-500/15 border border-emerald-400/30';
-      case 'Diamond': return 'text-amber-400 bg-amber-500/15 border border-amber-400/30';
-      default: return 'text-slate-300 bg-slate-800 border border-slate-750';
+      case 'FCC': return 'text-sky-300 bg-sky-900/40 border border-sky-800/60';
+      case 'BCC': return 'text-purple-300 bg-purple-900/40 border border-purple-800/60';
+      case 'HCP': return 'text-emerald-300 bg-emerald-900/40 border border-emerald-800/60';
+      case 'Diamond': return 'text-amber-300 bg-amber-900/40 border border-amber-800/60';
+      default: return 'text-slate-300 bg-slate-800 border border-slate-700';
     }
   };
 
   return (
     <div id="crystallography-periodic-table-suite" className="space-y-6">
-      {/* Premium Cyber/Scientific Header Unit */}
-      <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/40 p-6 backdrop-blur-xl">
-        <div className="absolute right-0 top-0 -mr-12 -mt-12 h-44 w-44 rounded-full bg-gradient-to-br from-indigo-500/10 to-violet-500/0 blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-xl border border-slate-800/60 bg-slate-900/40 p-6 md:p-8">
+        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/10 to-transparent blur-3xl pointer-events-none" />
         
-        <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
-          <div className="space-y-2 max-w-2xl">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start justify-between relative z-10">
+          <div className="space-y-3 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-indigo-400 shadow-sm animate-pulse">
-                <Compass className="h-3 w-3 animate-spin" style={{ animationDuration: '10s' }} />
-                Atomic Crystal Registry
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-400 shadow-sm">
-                <Cpu className="h-3 w-3" />
-                Live 3D Unit Cell Projections
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800/50 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-slate-300">
+                Lattice Explorer
               </span>
             </div>
             
-            <h2 className="text-2xl font-black text-white tracking-tight sm:text-3xl">
-              Crystallographic Periodic Table
+            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              Periodic Table & Crystallography
             </h2>
-            <p className="text-xs text-slate-400 leading-relaxed font-medium">
-              Explore structural lattices, Bravais symmetries, space groups, and atomic constant geometries for core crystal elements. Click any element to generate, rotate, and interact with its unit cell projections, as well as load celebrated alloy compounds directly into the spectrometer simulation engine.
+            <p className="text-sm text-slate-400 leading-relaxed max-w-xl">
+              Explore structural lattices, Bravais symmetries, space groups, and atomic geometries. Select elements to view unit cell projections, edit properties, and load compound data into the spectrometer.
             </p>
-          </div>
-
-          {/* Interactive quick insight bubble */}
-          <div className="hidden xl:flex flex-col items-center justify-center p-4 bg-slate-950/80 border border-slate-850 rounded-xl text-center max-w-[190px] h-32 relative">
-            <RotateCw className="w-8 h-8 text-indigo-500/30 absolute animate-spin opacity-50" style={{ animationDuration: '30s' }} />
-            <span className="text-[22px] font-black text-indigo-400 font-mono tracking-tighter leading-none">100%</span>
-            <span className="text-[9.5px] font-bold uppercase tracking-wider text-slate-300 mt-2 block">Durable Lattice</span>
-            <span className="text-[8.5px] text-slate-500 mt-0.5 leading-tight">No simulated code placeholders</span>
           </div>
         </div>
       </div>
@@ -1468,37 +1467,41 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
       {activeTab === 'grid' ? (
         <>
           {/* Grid Controller, Filters and Inputs bar */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900 border border-slate-800 p-4.5 rounded-2xl shadow-lg">
-        <div className="relative col-span-1 md:col-span-2">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search elements by symbol, name, or crystal system structure (FCC, HCP)..."
-            className="w-full bg-slate-950 text-slate-100 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 rounded-xl py-2.5 pl-10 pr-4 text-xs font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-500"
-          />
-          <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl shadow-xl backdrop-blur-md">
+            <div className="relative col-span-1 md:col-span-2 group">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search elements by symbol, name, or crystal system structure (FCC, HCP)..."
+                className="w-full bg-slate-950 text-slate-100 border border-slate-800/80 hover:border-slate-700/80 focus:border-indigo-500 rounded-xl py-2.5 pl-10 pr-4 text-xs font-medium outline-none transition-all placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500/10"
+              />
+              <Search className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500 group-hover:text-slate-400 focus-within:text-indigo-400 transition-colors" />
+            </div>
 
-        <div className="col-span-1 md:col-span-2">
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="w-full bg-slate-950 text-slate-200 border border-slate-800 hover:border-slate-700 mr-2 rounded-xl py-2.5 px-3.5 text-xs font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer"
-          >
-            <option value="all">Filter: All Crystallographic Series</option>
-            <option value="alkali">Alkali Metals (BCC structures)</option>
-            <option value="alkaline_earth">Alkaline Earth (HCP/FCC types)</option>
-            <option value="transition_metal">Transition Metals (Refractory lattices)</option>
-            <option value="post_transition">Post-Transition Metals</option>
-            <option value="metalloid">Metalloids / Chalcogen Phase</option>
-            <option value="nonmetal">Reactive Nonmetals</option>
-            <option value="noble_gas">Noble Gases (Cryo FCC lattices)</option>
-            <option value="lanthanoid">Lanthanoids Series</option>
-            <option value="actinoid">Actinoids Series</option>
-          </select>
-        </div>
-      </div>
+            <div className="col-span-1 md:col-span-2 relative group">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full bg-slate-950 text-slate-200 border border-slate-800/80 hover:border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-xs font-medium outline-none transition-all cursor-pointer focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none"
+              >
+                <option value="all">Filter: All Crystallographic Series</option>
+                <option value="alkali">Alkali Metals (BCC structures)</option>
+                <option value="alkaline_earth">Alkaline Earth (HCP/FCC types)</option>
+                <option value="transition_metal">Transition Metals (Refractory lattices)</option>
+                <option value="post_transition">Post-Transition Metals</option>
+                <option value="metalloid">Metalloids / Chalcogen Phase</option>
+                <option value="nonmetal">Reactive Nonmetals</option>
+                <option value="noble_gas">Noble Gases (Cryo FCC lattices)</option>
+                <option value="lanthanoid">Lanthanoids Series</option>
+                <option value="actinoid">Actinoids Series</option>
+              </select>
+              <Layers className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500 group-hover:text-slate-400 transition-colors pointer-events-none" />
+              <div className="absolute right-4 top-4 pointer-events-none border-l border-slate-800 pl-2">
+                <svg className="w-3 h-3 text-slate-500 group-hover:text-slate-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+              </div>
+            </div>
+          </div>
 
       {/* Principal Splitted Workspace Grid Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -1529,11 +1532,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   if (!isXtal) {
                     borderClasses = 'bg-slate-950/30 border-slate-900/50 text-slate-600 opacity-20 cursor-not-allowed select-none scale-98';
                   } else if (isActive) {
-                    borderClasses = 'border-indigo-400 ring-2 ring-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.45)] bg-slate-900/90 z-20 scale-102 font-black cursor-pointer';
+                    borderClasses = 'border-indigo-400 ring-1 ring-indigo-500 shadow-md shadow-indigo-500/20 bg-slate-800 z-20 scale-102 font-bold cursor-pointer text-white';
                   } else if (isMatch) {
-                    borderClasses = 'bg-slate-900/60 border-slate-800/80 text-white hover:border-indigo-500/50 hover:bg-slate-850 hover:scale-[1.03] cursor-pointer';
+                    borderClasses = 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-indigo-500 hover:bg-slate-800 cursor-pointer transition-colors duration-150 relative z-10';
                   } else {
-                    borderClasses = 'opacity-20 bg-slate-950/20 border-slate-950 text-slate-600 blur-[0.2px] scale-98 pointer-events-none';
+                    borderClasses = 'opacity-30 bg-slate-950/20 border-slate-900 text-slate-600 scale-98 pointer-events-none';
                   }
 
                   return (
@@ -1584,11 +1587,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               if (!isXtal) {
                 borderClasses = 'bg-slate-950/30 border-slate-900/50 text-slate-600 opacity-20 cursor-not-allowed select-none scale-98';
               } else if (isActive) {
-                borderClasses = 'border-amber-400 ring-2 ring-amber-500/50 shadow-lg bg-slate-900 scale-102 z-20 font-black cursor-pointer';
+                borderClasses = 'border-amber-400 ring-1 ring-amber-500 shadow-md bg-slate-800 scale-102 z-20 font-bold cursor-pointer text-white';
               } else if (isMatch) {
-                borderClasses = 'bg-slate-900/60 border-slate-800 text-slate-200 hover:border-amber-500/45 hover:bg-slate-850 hover:scale-[1.03] cursor-pointer';
+                borderClasses = 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-amber-500 hover:bg-slate-800 cursor-pointer transition-colors duration-150 relative z-10';
               } else {
-                borderClasses = 'opacity-20 bg-slate-950/20 border-slate-950 text-slate-600 blur-[0.2px] scale-98 pointer-events-none';
+                borderClasses = 'opacity-30 bg-slate-950/20 border-slate-900 text-slate-600 scale-98 pointer-events-none';
               }
 
               return (
@@ -1628,11 +1631,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               if (!isXtal) {
                 borderClasses = 'bg-slate-950/30 border-slate-900/50 text-slate-600 opacity-20 cursor-not-allowed select-none scale-98';
               } else if (isActive) {
-                borderClasses = 'border-rose-400 ring-2 ring-rose-500/50 shadow-lg bg-slate-900 scale-102 z-20 font-black cursor-pointer';
+                borderClasses = 'border-rose-400 ring-1 ring-rose-500 shadow-md bg-slate-800 scale-102 z-20 font-bold cursor-pointer text-white';
               } else if (isMatch) {
-                borderClasses = 'bg-slate-905/60 border-slate-800 text-slate-200 hover:border-rose-500/45 hover:bg-slate-850 hover:scale-[1.03] cursor-pointer';
+                borderClasses = 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-rose-500 hover:bg-slate-800 cursor-pointer transition-colors duration-150 relative z-10';
               } else {
-                borderClasses = 'opacity-20 bg-slate-950 border-slate-950 text-slate-600 blur-[0.2px] scale-98 pointer-events-none';
+                borderClasses = 'opacity-30 bg-slate-950/20 border-slate-900 text-slate-600 scale-98 pointer-events-none';
               }
 
               return (
@@ -1721,15 +1724,14 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   </div>
                 </div>
 
-                {/* Adjust Material Properties Toggle Bar */}
-                <div className="flex justify-between items-center bg-slate-950 p-2 rounded-xl border border-slate-850/80">
-                  <span className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-500 pl-1">Adjust Material Properties</span>
+                <div className="flex justify-between items-center bg-slate-900 border-b border-slate-800/80 pb-2">
+                  <span className="text-xs font-semibold text-slate-300">Material Properties</span>
                   <button
                     onClick={() => {
                       setIsEditingElement(!isEditingElement);
                       playSynthTone('tick');
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-black uppercase tracking-wider rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider rounded-lg border border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:text-white text-slate-300 transition-colors cursor-pointer"
                   >
                     <Settings className="w-3.5 h-3.5" />
                     {isEditingElement ? "View Details" : "Edit Properties"}
@@ -1738,11 +1740,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
                 {isEditingElement ? (
                   <div className="space-y-4 animate-fadeIn">
-                    <div className="flex items-center justify-between border-b border-slate-800/40 pb-2">
-                      <span className="text-xs font-black uppercase text-indigo-400 tracking-wider font-mono">Property Editor</span>
+                    <div className="flex items-center justify-between pb-2">
+                      <span className="text-sm font-medium text-slate-200">Property Editor</span>
                       <button
                         onClick={handleResetToStandard}
-                        className="px-2.5 py-1 text-[9px] font-bold text-rose-400 border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 rounded-md transition-all cursor-pointer"
+                        className="px-2.5 py-1 text-[10px] font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-900/20 rounded-md transition-colors cursor-pointer"
                         title="Revert all changes for this element to initial scientific constants"
                       >
                         Reset to Default
@@ -1906,61 +1908,275 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   </div>
                 ) : (
                   <>
-                    {/* Animated 3D projection widget */}
-                    <CrystallineLattice3D 
-                      structure={activeElementInfo.crystalStructure}
-                      a={activeElementInfo.a}
-                      b={activeElementInfo.b}
-                      c={activeElementInfo.c}
-                      colorClass={categoryColor(activeElementInfo.category)}
-                    />
+                    {/* Sub-tab navigation bar for detail views */}
+                    <div className="flex border-b border-slate-800 pb-0 gap-1 mt-1 justify-between">
+                      {([
+                        { id: 'lattice', label: 'Lattice', icon: Orbit },
+                        { id: 'chemical', label: 'Chemical', icon: Sparkles },
+                        { id: 'physical', label: 'Physical', icon: Activity }
+                      ] as const).map((tab) => {
+                        const Icon = tab.icon;
+                        const active = detailSubTab === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => {
+                              setDetailSubTab(tab.id);
+                              playSynthTone('tick');
+                            }}
+                            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-[10px] font-mono font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+                              active
+                                ? 'border-indigo-500 text-indigo-450 bg-indigo-950/20 rounded-t-lg'
+                                : 'border-transparent text-slate-500 hover:text-slate-350'
+                            }`}
+                          >
+                            <Icon className="w-3.5 h-3.5" />
+                            <span>{tab.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
 
-                    {/* Deep Crystallographic Parameters */}
-                    <div className="space-y-2">
-                      <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                        <Info className="w-3 text-indigo-400" /> Ground State Lattice Constants
-                      </span>
+                    {detailSubTab === 'lattice' && (
+                      <div className="space-y-3.5 animate-fadeIn">
+                        {/* Animated 3D projection widget */}
+                        <CrystallineLattice3D 
+                          structure={activeElementInfo.crystalStructure}
+                          a={activeElementInfo.a}
+                          b={activeElementInfo.b}
+                          c={activeElementInfo.c}
+                          colorClass={categoryColor(activeElementInfo.category)}
+                        />
 
-                      <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-850 shadow-inner text-xs font-mono">
-                        <div className="space-y-0.5">
-                          <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">Space Group:</div>
-                          <div className="text-indigo-400 font-bold text-[10.5px]">
-                            {activeElementInfo.spaceGroup === 'Unknown' ? 'P-1 (No. 1)' : activeElementInfo.spaceGroup}
-                          </div>
-                        </div>
-                        <div className="space-y-0.5">
-                          <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">X-Ray Density:</div>
-                          <div className="text-emerald-400 font-bold text-[10.5px]">
-                            {activeElementInfo.density.toFixed(3)} <span className="text-[8px] text-slate-500">g/cm³</span>
-                          </div>
-                        </div>
+                        {/* Deep Crystallographic Parameters */}
+                        <div className="space-y-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <Info className="w-3 text-slate-400" /> Lattice Constants
+                          </span>
 
-                        <div className="space-y-0.5 col-span-2 border-t border-slate-900/60 pt-1.5 label-section">
-                          <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">Lattice Length metrics (a, b, c):</div>
-                          <div className="text-slate-300 font-bold text-[10.5px] tracking-tight">
-                            a = {activeElementInfo.a.toFixed(3)} Å 
-                            {activeElementInfo.b ? `, b = ${activeElementInfo.b.toFixed(3)} Å` : ''} 
-                            {activeElementInfo.c ? `, c = ${activeElementInfo.c.toFixed(3)} Å` : ''}
-                          </div>
-                        </div>
+                          <div className="grid grid-cols-2 gap-2 bg-slate-950/50 p-3 rounded-xl border border-slate-800 text-xs">
+                            <div className="space-y-0.5">
+                              <div className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Space Group:</div>
+                              <div className="text-slate-300 font-medium text-[11px]">
+                                {activeElementInfo.spaceGroup === 'Unknown' ? 'P-1 (No. 1)' : activeElementInfo.spaceGroup}
+                              </div>
+                            </div>
+                            <div className="space-y-0.5">
+                              <div className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">X-Ray Density:</div>
+                              <div className="text-emerald-400 font-medium text-[11px]">
+                                {activeElementInfo.density.toFixed(3)} <span className="text-[9px] text-slate-500">g/cm³</span>
+                              </div>
+                            </div>
 
-                        <div className="space-y-0.5 col-span-2 border-t border-slate-900/60 pt-1.5 label-section">
-                          <div className="text-[8px] text-slate-500 uppercase tracking-wider font-bold">Melting Point / Configuration:</div>
-                          <div className="text-[10px] space-x-1.5">
-                            <span className="text-amber-400 font-bold">{activeElementInfo.meltingPoint.toFixed(1)} °C</span>
-                            <span className="text-slate-500">•</span>
-                            <span className="text-indigo-300 font-bold">{activeElementInfo.electronConfig}</span>
+                            <div className="space-y-0.5 col-span-2 border-t border-slate-800/80 pt-1.5 label-section">
+                              <div className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Lattice Length (a, b, c):</div>
+                              <div className="text-slate-300 font-medium text-[11px] tracking-tight">
+                                a = {activeElementInfo.a.toFixed(3)} Å 
+                                {activeElementInfo.b ? `, b = ${activeElementInfo.b.toFixed(3)} Å` : ''} 
+                                {activeElementInfo.c ? `, c = ${activeElementInfo.c.toFixed(3)} Å` : ''}
+                              </div>
+                            </div>
+
+                            <div className="space-y-0.5 col-span-2 border-t border-slate-800/80 pt-1.5 label-section">
+                              <div className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Melting Point / Configuration:</div>
+                              <div className="text-[11px] space-x-1.5 flex items-center">
+                                <span className="text-amber-400 font-medium">{activeElementInfo.meltingPoint.toFixed(1)} °C</span>
+                                <span className="text-slate-600">•</span>
+                                <span className="text-slate-300 font-medium">{activeElementInfo.electronConfig}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    )}
+
+                    {detailSubTab === 'chemical' && (
+                      <div className="space-y-3 animate-fadeIn">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                          <Sparkles className="w-3 text-indigo-400" /> Chemical Properties (Scientific Facts)
+                        </span>
+
+                        <div className="space-y-3.5 bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-xs">
+                          {/* Valence Electrons */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 font-mono text-[9px] uppercase font-bold tracking-wider">Valence Electrons</span>
+                              <span className="text-white font-mono font-black">{activeElementInfo.valenceElectrons} e⁻</span>
+                            </div>
+                            <div className="h-2 bg-slate-900 rounded-full overflow-hidden flex gap-0.5">
+                              {Array.from({ length: 8 }).map((_, i) => (
+                                <div 
+                                  key={i} 
+                                  className={`h-full flex-1 rounded-sm transition-all duration-300 ${
+                                    i < activeElementInfo.valenceElectrons 
+                                      ? 'bg-gradient-to-r from-indigo-505 to-indigo-400' 
+                                      : 'bg-slate-800'
+                                  }`} 
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Electronegativity (Pauling) */}
+                          <div className="space-y-1.5 border-t border-slate-900/60 pt-2.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 font-mono text-[9px] uppercase font-bold tracking-wider">Electronegativity (Pauling)</span>
+                              <span className="text-amber-400 font-mono font-black">
+                                {activeElementInfo.electronegativity > 0 ? activeElementInfo.electronegativity.toFixed(2) : 'N/A (Inert)'}
+                              </span>
+                            </div>
+                            {activeElementInfo.electronegativity > 0 ? (
+                              <div className="relative h-2 bg-slate-900 rounded-lg">
+                                <div 
+                                  className="absolute h-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-lg"
+                                  style={{ width: `${Math.min(100, (activeElementInfo.electronegativity / 4.0) * 100)}%` }}
+                                />
+                                <span className="absolute -bottom-3.5 left-0 text-[7px] text-slate-500 font-bold">0.7 (Cs)</span>
+                                <span className="absolute -bottom-3.5 right-0 text-[7px] text-slate-500 font-bold">4.0 (F)</span>
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-slate-500 italic">No electronegativity as valence shell is complete.</div>
+                            )}
+                          </div>
+
+                          {/* Ionization Energy & Electron Affinity Row */}
+                          <div className="grid grid-cols-2 gap-4 border-t border-slate-900/60 pt-4 pb-0.5">
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">1st Ionization Energy</span>
+                              <div className="text-slate-100 font-bold font-mono text-sm flex items-baseline gap-1">
+                                {activeElementInfo.ionizationEnergy.toFixed(3)}
+                                <span className="text-[8px] text-slate-500 font-normal">eV</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Electron Affinity</span>
+                              <div className="text-slate-100 font-bold font-mono text-sm flex items-baseline gap-1">
+                                {activeElementInfo.electronAffinity.toFixed(3)}
+                                <span className="text-[8px] text-slate-500 font-normal">eV</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Metallic vs Non-metallic character */}
+                          <div className="grid grid-cols-2 gap-3 border-t border-slate-900/60 pt-3">
+                            <div className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                              <span className="text-[8.5px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Metallic Ch.</span>
+                              <span className={`text-[11px] font-black uppercase tracking-wide ${
+                                activeElementInfo.metallicCharacter === 'Very High' || activeElementInfo.metallicCharacter === 'High'
+                                  ? 'text-emerald-450'
+                                  : activeElementInfo.metallicCharacter === 'Moderate'
+                                  ? 'text-teal-400'
+                                  : 'text-slate-400'
+                              }`}>
+                                {activeElementInfo.metallicCharacter}
+                              </span>
+                            </div>
+                            <div className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                              <span className="text-[8.5px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Non-Metallic Ch.</span>
+                              <span className={`text-[11px] font-black uppercase tracking-wide ${
+                                activeElementInfo.nonMetallicCharacter === 'Extreme' || activeElementInfo.nonMetallicCharacter === 'Very High' || activeElementInfo.nonMetallicCharacter === 'High'
+                                  ? 'text-rose-450'
+                                  : activeElementInfo.nonMetallicCharacter === 'Moderate'
+                                  ? 'text-pink-400'
+                                  : 'text-slate-400'
+                              }`}>
+                                {activeElementInfo.nonMetallicCharacter}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {detailSubTab === 'physical' && (
+                      <div className="space-y-3 animate-fadeIn">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                          <Activity className="w-3 text-emerald-400" /> Physical Properties (Scientific Facts)
+                        </span>
+
+                        <div className="space-y-3.5 bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-xs text-slate-200">
+                          {/* Atomic & Ionic Radius */}
+                          <div className="grid grid-cols-2 gap-3 pb-0.5">
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Atomic Radius</span>
+                              <div className="text-white font-bold font-mono text-sm flex items-baseline gap-1">
+                                {activeElementInfo.atomicRadius}
+                                <span className="text-[8px] text-slate-500 font-normal">pm</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Ionic Radius</span>
+                              <div className="text-sky-300 font-bold font-mono text-sm leading-tight">
+                                {activeElementInfo.ionicRadius}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Melting & Boiling Points */}
+                          <div className="grid grid-cols-2 gap-3 border-t border-slate-900/60 pt-3">
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Melting Point</span>
+                              <div className="text-amber-400 font-bold font-mono text-sm">
+                                {activeElementInfo.meltingPoint > -273.15 ? `${activeElementInfo.meltingPoint.toFixed(1)} °C` : 'N/A'}
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Boiling Point</span>
+                              <div className="text-rose-450 font-bold font-mono text-sm">
+                                {activeElementInfo.boilingPoint > -273.15 ? `${activeElementInfo.boilingPoint.toFixed(1)} °C` : 'N/A'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Density & Electron Config */}
+                          <div className="grid grid-cols-2 gap-3 border-t border-slate-900/60 pt-3">
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Scientific Density</span>
+                              <div className="text-emerald-400 font-semibold font-mono text-sm flex items-baseline gap-1">
+                                {activeElementInfo.density.toFixed(3)}
+                                <span className="text-[8px] text-slate-500 font-normal">g/cm³</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Configuration</span>
+                              <div className="text-slate-300 font-bold font-mono text-[10px] truncate" title={activeElementInfo.electronConfig}>
+                                {activeElementInfo.electronConfig}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Conductivities */}
+                          <div className="grid grid-cols-2 gap-3 border-t border-slate-900/60 pt-3">
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Elect. Conductivity</span>
+                              <div className="text-sky-400 font-bold font-mono text-sm flex items-baseline gap-1">
+                                {activeElementInfo.electricalConductivity > 0 
+                                  ? activeElementInfo.electricalConductivity >= 1
+                                    ? activeElementInfo.electricalConductivity.toFixed(2)
+                                    : activeElementInfo.electricalConductivity.toExponential(2)
+                                  : '0'}
+                                <span className="text-[8px] text-slate-500 font-normal">MS/m</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Thermal Conductivity</span>
+                              <div className="text-teal-400 font-bold font-mono text-sm flex items-baseline gap-1">
+                                {activeElementInfo.thermalConductivity.toFixed(1)}
+                                <span className="text-[8px] text-slate-500 font-normal">W/m·K</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
 
                 {/* Celebrated Crystal Alloys / Compounds section */}
                 <div className="space-y-3 pt-2">
-                  <span className="text-[8.5px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                    <Layers className="w-3 text-indigo-400" /> Famous Isomorphous Compounds
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Layers className="w-3 text-slate-400" /> Famous Isomorphous Compounds
                   </span>
 
                   {activeElementInfo.famousCompounds && activeElementInfo.famousCompounds.length > 0 ? (
@@ -1968,17 +2184,17 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                       {activeElementInfo.famousCompounds.map((comp, cIdx) => (
                         <div 
                           key={cIdx} 
-                          className="bg-slate-950 border border-slate-850 hover:border-slate-700/80 p-3.5 rounded-xl space-y-2.5 transition-all duration-200 shadow-sm relative group/comp"
+                          className="bg-slate-950/50 border border-slate-800 hover:border-slate-700 p-3.5 rounded-xl space-y-2.5 transition-all duration-200 shadow-sm relative group/comp"
                         >
-                          <div className="flex items-center justify-between border-b border-slate-900/80 pb-2">
+                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                             <div>
-                              <div className="text-xs font-black text-rose-400 tracking-wide">{comp.formula}</div>
-                              <div className="text-[9px] font-semibold text-slate-400">{comp.name}</div>
+                              <div className="text-sm font-bold text-rose-400 tracking-wide">{comp.formula}</div>
+                              <div className="text-[10px] font-medium text-slate-400">{comp.name}</div>
                             </div>
                             
                             <button
                               onClick={() => handleLoadPeaks(comp)}
-                              className="text-[9.5px] bg-indigo-600 hover:bg-indigo-700 text-white font-black px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-md hover:shadow-indigo-500/20 active:scale-95 transition-all"
+                              className="text-[10px] bg-slate-800 hover:bg-indigo-600 border border-slate-700 hover:border-indigo-500 text-slate-200 hover:text-white font-medium px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
                               title="Simulate this compound's diffraction spectrum in XRD spectrometer"
                             >
                               <Play className="w-2.5 h-2.5 fill-current" />
@@ -1986,17 +2202,17 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             </button>
                           </div>
                           
-                          <p className="text-[10px] text-slate-400 leading-normal font-medium">{comp.shortDesc}</p>
+                          <p className="text-[11px] text-slate-400 leading-normal">{comp.shortDesc}</p>
                           
-                          <div className="bg-slate-900/60 p-2 rounded-lg border border-slate-900/40">
+                          <div className="bg-slate-900/40 p-2 rounded-lg border border-slate-800/60">
                             <table className="w-full font-mono text-[9px]">
                               <tbody>
                                 <tr>
-                                  <td className="py-0.5 text-slate-500 font-medium">Symmetry System:</td>
-                                  <td className="py-0.5 text-right text-indigo-300 font-bold">{comp.crystalSystem} ({comp.spaceGroup})</td>
+                                  <td className="py-0.5 text-slate-500">Symmetry System:</td>
+                                  <td className="py-0.5 text-right text-slate-300 font-medium">{comp.crystalSystem} ({comp.spaceGroup})</td>
                                 </tr>
                                 <tr>
-                                  <td className="py-0.5 text-slate-500 font-medium font-bold">Lattice Constants:</td>
+                                  <td className="py-0.5 text-slate-500">Lattice Constants:</td>
                                   <td className="py-0.5 text-right text-slate-300">
                                     a={comp.latticeParams.a.toFixed(2)}
                                     {comp.latticeParams.b ? `, b=${comp.latticeParams.b.toFixed(2)}` : ''}
@@ -2004,8 +2220,8 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td className="py-0.5 text-slate-500 font-medium">Primary Peak 2θ:</td>
-                                  <td className="py-0.5 text-right text-emerald-400 font-black">
+                                  <td className="py-0.5 text-slate-500">Primary Peak 2θ:</td>
+                                  <td className="py-0.5 text-right text-emerald-400 font-medium">
                                     {comp.typicalPeaks[0]?.twoTheta.toFixed(2)}° (Int: 100%)
                                   </td>
                                 </tr>
@@ -2013,8 +2229,8 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             </table>
                           </div>
                           
-                          <div className="text-[8.5px] text-slate-500 leading-normal border-t border-slate-900/60 pt-2 font-medium">
-                            <span className="font-bold uppercase tracking-wider text-[8px] text-indigo-400 block mb-0.5">XRD Relevance</span>
+                          <div className="text-[10px] text-slate-500 leading-normal border-t border-slate-800/80 pt-2">
+                            <span className="font-medium uppercase tracking-wider text-[9px] text-slate-500 block mb-0.5">XRD Relevance</span>
                             {comp.relevance}
                           </div>
                         </div>
@@ -2050,14 +2266,14 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl">
         {/* Subject A selector */}
         <div className="space-y-2">
-          <label className="text-[10.5px] font-black uppercase tracking-wider text-indigo-400 block">Compare Material A</label>
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-indigo-400 block">Compare Material A</label>
           <select
             value={compareSubjectAId}
             onChange={(e) => {
               setCompareSubjectAId(e.target.value);
               playSynthTone('switch');
             }}
-            className="w-full bg-slate-950 text-slate-200 border border-slate-800 hover:border-indigo-500/40 focus:border-indigo-500 rounded-xl py-3 px-4 text-xs font-semibold outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all cursor-pointer"
+            className="w-full bg-slate-950 text-slate-200 border border-slate-800 hover:border-slate-700 rounded-xl py-3 px-4 text-xs font-medium outline-none transition-colors cursor-pointer"
           >
             {compareItems.map(it => (
               <option key={`a-${it.id}`} value={it.id}>
@@ -2065,21 +2281,21 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               </option>
             ))}
           </select>
-          <div className="text-[10px] font-mono text-slate-500 bg-slate-950/60 p-3 rounded-lg border border-slate-900/40 leading-relaxed font-semibold">
+          <div className="text-[11px] text-slate-400 bg-slate-950/50 p-3 rounded-lg border border-slate-800/80 leading-relaxed font-medium">
             {subjectA?.info}
           </div>
         </div>
 
         {/* Subject B selector */}
         <div className="space-y-2">
-          <label className="text-[10.5px] font-black uppercase tracking-wider text-rose-400 block">Compare Material B</label>
+          <label className="text-[11px] font-semibold uppercase tracking-wider text-rose-400 block">Compare Material B</label>
           <select
             value={compareSubjectBId}
             onChange={(e) => {
               setCompareSubjectBId(e.target.value);
               playSynthTone('switch');
             }}
-            className="w-full bg-slate-950 text-slate-200 border border-slate-800 hover:border-rose-500/40 focus:border-rose-500 rounded-xl py-3 px-4 text-xs font-semibold outline-none focus:ring-4 focus:ring-rose-500/10 transition-all cursor-pointer"
+            className="w-full bg-slate-950 text-slate-200 border border-slate-800 hover:border-slate-700 rounded-xl py-3 px-4 text-xs font-medium outline-none transition-colors cursor-pointer"
           >
             {compareItems.map(it => (
               <option key={`b-${it.id}`} value={it.id}>
@@ -2087,7 +2303,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               </option>
             ))}
           </select>
-          <div className="text-[10px] font-mono text-slate-500 bg-slate-950/60 p-3 rounded-lg border border-slate-900/40 leading-relaxed font-semibold">
+          <div className="text-[11px] text-slate-400 bg-slate-950/50 p-3 rounded-lg border border-slate-800/80 leading-relaxed font-medium">
             {subjectB?.info}
           </div>
         </div>
@@ -2099,14 +2315,14 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
         <div className="col-span-1 lg:col-span-12 xl:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between shadow-xl min-h-[440px]">
           <div className="border-b border-slate-800/80 pb-3 mb-2 flex justify-between items-center">
             <div>
-              <h3 className="text-xs font-black text-white tracking-widest uppercase">Crystallographic Fingerprint</h3>
-              <p className="text-[9.5px] text-slate-500 font-semibold leading-none mt-1">Spider Web projection comparing 5 crucial physical dimension variables</p>
+              <h3 className="text-sm font-semibold text-white tracking-widest uppercase">Crystallographic Fingerprint</h3>
+              <p className="text-[11px] text-slate-500 font-medium leading-none mt-1">Projection comparing physical properties</p>
             </div>
             <div className="flex gap-2.5">
-              <span className="text-[9.5px] px-2.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 font-bold font-mono border border-indigo-500/25">
+              <span className="text-[10px] px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 font-medium border border-indigo-500/25">
                 {subjectA?.symbolOrFormula}
               </span>
-              <span className="text-[9.5px] px-2.5 py-0.5 rounded bg-rose-500/10 text-rose-400 font-bold font-mono border border-rose-500/25">
+              <span className="text-[10px] px-2.5 py-1 rounded bg-rose-500/10 text-rose-400 font-medium border border-rose-500/25">
                 {subjectB?.symbolOrFormula}
               </span>
             </div>

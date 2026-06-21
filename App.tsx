@@ -856,14 +856,14 @@ const App: React.FC = () => {
         <SideSeekBar targetRef={mainContentRef} theme={theme} />
 
         <div className={`flex-1 flex flex-col h-full overflow-hidden ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 transition-colors duration-300`}>
-          <div className={`md:hidden ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'} border-b px-3 py-2 flex flex-col gap-2 z-20 shrink-0 shadow-sm`}>
+          <div className={`md:hidden ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-slate-200/85 dark:border-white/5'} border-b px-4 py-3 flex flex-col gap-2.5 z-20 shrink-0 shadow-sm transition-colors`}>
             <div className="flex justify-between items-center w-full">
-              <div className="flex items-center gap-2 shrink-0">
-                <div className={`w-7 h-7 ${theme === 'cyberpunk' ? 'bg-cyber-pink' : 'bg-indigo-600'} rounded-lg flex items-center justify-center text-white font-bold text-base shadow-sm`}>
+              <div className="flex items-center gap-2.5 shrink-0">
+                <div className={`w-8 h-8 ${theme === 'cyberpunk' ? 'bg-cyber-pink' : 'bg-gradient-to-tr from-indigo-600 to-violet-500'} rounded-lg flex items-center justify-center text-white font-semibold text-lg shadow-sm shadow-indigo-500/20`}>
                   λ
                 </div>
-                <span className={`font-black text-lg italic tracking-tighter ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} leading-none`}>
-                   XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400'}>Pro</span>
+                <span className={`font-bold text-lg tracking-tight ${theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'} leading-none`}>
+                   XRD-Calc<span className={theme === 'cyberpunk' ? 'text-cyber-pink' : 'text-indigo-600 dark:text-indigo-400 font-bold'}>Pro</span>
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -871,7 +871,7 @@ const App: React.FC = () => {
                  <select
                   value={theme}
                   onChange={(e) => setTheme(e.target.value as any)}
-                  className={`block w-[75px] rounded-md border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1 px-1 text-[10px] outline-none font-bold uppercase tracking-wider`}
+                  className={`block w-[80px] rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200'} py-1 px-1.5 text-[10px] outline-none font-medium uppercase tracking-wider bg-transparent hover:border-slate-400 transition-colors cursor-pointer`}
                 >
                   <option value="light">Light</option>
                   <option value="dark">Dark</option>
@@ -892,15 +892,15 @@ const App: React.FC = () => {
                     setActiveModule(e.target.value as Module);
                     playSynthTone('switch');
                   }}
-                  className={`block w-full rounded-md border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 px-3 text-xs outline-none font-bold shadow-sm appearance-none bg-no-repeat`}
+                  className={`block w-full rounded-xl border ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent text-cyber-accent' : 'bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'} py-2 px-3 text-xs outline-none font-medium shadow-inner appearance-none bg-no-repeat transition-all`}
                   style={{
                     backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                    backgroundPosition: `right 0.5rem center`,
+                    backgroundPosition: `right 0.75rem center`,
                     backgroundSize: `1em 1em`
                   }}
                 >
                   {Array.from(new Set(modules.map(m => m.group || ''))).map(group => (
-                    <optgroup key={group} label={group}>
+                    <optgroup key={group} label={group} className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900">
                       {modules.filter(m => (m.group || '') === group).map(m => (
                         <option key={m.id} value={m.id}>{m.label}</option>
                       ))}
@@ -911,65 +911,70 @@ const App: React.FC = () => {
           </div>
 
           {/* Desktop Top Header Bar containing context-aware tools, help and theme guides */}
-          <header className={`hidden md:flex items-center px-6 lg:px-10 py-3 lg:py-4 border-b ${
+          <header className={`hidden md:flex items-center px-8 lg:px-10 py-3.5 border-b z-20 font-sans transition-all duration-300 shrink-0 ${
             theme === 'cyberpunk'
-              ? 'bg-black border-cyber-accent/30 text-cyber-accent'
-              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10'
-          } z-20 font-sans transition-colors shrink-0`}>
+              ? 'bg-black border-cyber-accent/30 text-cyber-accent shadow-md shadow-cyber-accent/5'
+              : 'bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-slate-200/80 dark:border-slate-800/60 shadow-sm'
+          }`}>
             
             {/* Left: Title & Badge */}
             <div className="flex-1 flex items-center gap-4 justify-start overflow-hidden">
-              <span className={`text-base font-black uppercase tracking-[0.15em] shrink-0 ${
-                theme === 'cyberpunk' ? 'text-cyber-accent' : 'text-slate-900 dark:text-white'
-              }`}>
-                {modules.find(m => m.id === activeModule)?.label || activeModule}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className={`h-4.5 w-1 rounded-full ${
+                  theme === 'cyberpunk' ? 'bg-cyber-accent' : 'bg-gradient-to-b from-indigo-500 to-violet-600'
+                }`} />
+                <span className={`text-base font-semibold tracking-tight shrink-0 ${
+                  theme === 'cyberpunk' ? 'text-cyber-accent font-black uppercase tracking-wider' : 'text-slate-900 dark:text-white'
+                }`}>
+                  {modules.find(m => m.id === activeModule)?.label || activeModule}
+                </span>
+              </div>
 
               {/* Python Status Indicator */}
               <button
                 onClick={() => setShowPythonStatus(true)}
-                className={`flex items-center gap-2 px-2.5 py-1 rounded-full border transition-all active:scale-95 whitespace-nowrap cursor-pointer ${
+                className={`flex items-center gap-2 px-2.5 py-1 rounded-lg border transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap cursor-pointer ${
                   pythonReady
                     ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                     : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse'
                 }`}
               >
                 <div className={`w-1.5 h-1.5 rounded-full ${pythonReady ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'}`} />
-                <span className="text-[10px] font-black uppercase tracking-wider">
+                <span className="text-[10px] font-medium uppercase tracking-wider">
                   {pythonReady ? 'Python Engine Ready' : 'Initializing Engine...'}
                 </span>
               </button>
 
-              <span className={`hidden lg:inline-block text-[10px] uppercase tracking-wider font-mono px-2.5 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 shrink-0 ${
-                theme === 'cyberpunk' ? 'text-cyber-pink bg-black border-cyber-pink/30' : 'text-slate-400'
+              <span className={`hidden lg:inline-block text-[10px] uppercase tracking-wider font-mono px-2.5 py-1 rounded bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 shrink-0 ${
+                theme === 'cyberpunk' ? 'text-cyber-pink bg-black border-cyber-pink/30 font-bold' : 'text-slate-400 dark:text-slate-500'
               }`}>
                 {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' ? t('Computational Module', 'Computational Suite') : t('System Console', 'System Console')}
               </span>
             </div>
             
             {/* Center: Theoretical Guide */}
-            <div className="flex-1 flex justify-center items-center opacity-90 hover:opacity-100 transition-opacity whitespace-nowrap">
+            <div className="flex-1 flex justify-center items-center opacity-90 hover:opacity-100 transition-all duration-200 whitespace-nowrap">
               {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
                 <button
                   onClick={() => {
                     setIsExplained(false);
                     playSynthTone('switch');
                   }}
-                  className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-2 shadow-sm ${
+                  className={`px-4 py-1.5 rounded-full border text-xs font-semibold tracking-wide cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-1.5 shadow-sm ${
                     theme === 'cyberpunk'
                       ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10 bg-black'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                      : 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-300'
                   }`}
                   title="Open the mathematical and theoretical introduction for this module"
                 >
-                  <Sparkles className="w-3 h-3 text-indigo-500" />
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
                   {t('Theoretical Guide', 'Theoretical Guide')}
                 </button>
               )}
             </div>
             
             {/* Right: Actions */}
-            <div className="flex-1 flex items-center justify-end gap-3 shrink-0">
+            <div className="flex-1 flex items-center justify-end gap-2.5 shrink-0">
               {/* Skip Intros Quick Toggle */}
               {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
                 <button
@@ -979,10 +984,10 @@ const App: React.FC = () => {
                     localStorage.setItem('xrd_skip_intros', nextVal.toString());
                     playSynthTone('switch');
                   }}
-                  className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg border text-[11px] font-medium tracking-wide cursor-pointer transition-all flex items-center gap-1.5 ${
                     skipIntros 
-                      ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800/50 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 shadow-sm shadow-indigo-500/5'
-                      : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                      ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/80 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/60 shadow-sm'
+                      : 'bg-slate-100/60 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                   }`}
                   title="Toggle whether module explanations are shown automatically when switching tabs"
                 >
@@ -996,10 +1001,10 @@ const App: React.FC = () => {
                   setShowShortcutsModal(true);
                   playSynthTone('switch');
                 }}
-                className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg border text-[11px] font-medium tracking-wide cursor-pointer transition-all flex items-center gap-1.5 ${
                   theme === 'cyberpunk'
                     ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10 bg-black'
-                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm shadow-indigo-500/5'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm'
                 }`}
                 title="View keyboard hotkeys (Cmd+/)"
               >
@@ -1014,10 +1019,10 @@ const App: React.FC = () => {
                   refreshOfflineAnalyses();
                   playSynthTone('switch');
                 }}
-                className={`px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg border text-[11px] font-medium tracking-wide cursor-pointer transition-all flex items-center gap-1.5 ${
                   isOnline 
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 shadow-sm'
-                    : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 shadow-sm animate-pulse'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 shadow-sm'
+                    : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 shadow-sm animate-pulse'
                 }`}
                 title="Click to open Offline Sync & IndexedDB Caching Hub"
               >
@@ -1034,7 +1039,7 @@ const App: React.FC = () => {
                     setTheme(e.target.value as any);
                     playSynthTone('switch');
                   }}
-                  className={`block rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white'} py-1.5 px-2 text-[10px] outline-none font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors`}
+                  className={`block rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-705 text-white' : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'} py-1.5 px-2.5 text-[11px] outline-none font-medium uppercase tracking-wider cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:border-slate-400 transition-colors`}
                 >
                   <option value="light">☀️ Light</option>
                   <option value="dark">🌙 Dark</option>
