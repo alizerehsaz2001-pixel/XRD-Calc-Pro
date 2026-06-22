@@ -475,6 +475,23 @@ export const LearnModule: React.FC = () => {
     converged: false
   });
 
+  // Specimen Displacement Mismatch states
+  const [dispHeight, setDispHeight] = useState<number>(0.08); // in mm, range -0.5 to 0.5
+  const [gonioRadius, setGonioRadius] = useState<number>(240); // in mm, range 150 to 250
+  const [dispThetaTrue, setDispThetaTrue] = useState<number>(38); // true peak 2theta position, range 15 to 90
+
+  // Symmetry mapping states
+  const [symCoordZ, setSymCoordZ] = useState<number>(0.45);
+  const [symmetryPlane, setSymmetryPlane] = useState<'ab' | 'bc' | 'ac'>('ab');
+
+  // True ternary Phase C setup states for QPA
+  const [qpaPhase3Enabled, setQpaPhase3Enabled] = useState<boolean>(true);
+  const [qpaPhase3Name, setQpaPhase3Name] = useState<string>('Quartz SiO2');
+  const [qpaPhase3Scale, setQpaPhase3Scale] = useState<number>(0.0005);
+  const [qpaPhase3Volume, setQpaPhase3Volume] = useState<number>(113.0);
+  const [qpaPhase3Mass, setQpaPhase3Mass] = useState<number>(60.084);
+  const [qpaPhase3Z, setQpaPhase3Z] = useState<number>(3);
+
   const [symmetryActiveGroup, setSymmetryActiveGroup] = useState<string>('Simple Cubic');
   const [symCoordX, setSymCoordX] = useState<number>(0.25);
   const [symCoordY, setSymCoordY] = useState<number>(0.35);
@@ -637,6 +654,12 @@ export const LearnModule: React.FC = () => {
 
   const checklistCount = checklist.filter(Boolean).length;
   const checklistScore = Math.round((checklistCount / checklistSteps.length) * 100);
+
+  // Specimen displacement mathematically derived variables
+  const thetaRadVal = ((dispThetaTrue / 2) * Math.PI) / 180;
+  const dispDeltaRad = - (2 * dispHeight * Math.cos(thetaRadVal)) / gonioRadius;
+  const dispDeltaDeg = (dispDeltaRad * 180) / Math.PI;
+  const dispThetaShifted = dispThetaTrue + dispDeltaDeg;
 
   // Topic 2: Formatting Sandbox state
   const [customText, setCustomText] = useState<string>('28.44, 0.25\n47.30, 0.28\n56.12, 0.31');
@@ -1000,6 +1023,279 @@ export const LearnModule: React.FC = () => {
                            </div>
                          </button>
                        ))}
+                     </div>
+                  </div>
+
+                  {/* Specimen Displacement Simulator Block */}
+                  <div className="bg-slate-50 dark:bg-slate-950 rounded-[2rem] border border-slate-150 dark:border-slate-850 p-6 space-y-6 mt-8 font-sans">
+                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-850 pb-4">
+                        <div>
+                           <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 bg-rose-500/10 text-rose-650 dark:text-rose-400 text-[8px] font-black uppercase tracking-widest rounded-md border border-rose-500/20 font-mono">Physical Aberration Simulator</span>
+                              <span className="text-[10px] text-slate-400 font-bold font-mono">Goniometer Alignment</span>
+                           </div>
+                           <h3 className="text-sm font-black text-slate-905 dark:text-white uppercase tracking-tight mt-1">
+                              Specimen Displacement Calibration
+                           </h3>
+                           <p className="text-[10.5px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed mt-1 max-w-2xl">
+                              Mounting the sample even fractions of a millimeter away from the goniometer's exact center of rotation induces a severe peak shift aberration: <code className="text-rose-500 font-mono bg-rose-500/5 px-1 py-0.2 rounded font-black text-[9px]">&Delta;2&theta; = -2(s/R)cos&theta;</code>.
+                           </p>
+                        </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                        {/* Sliders on left */}
+                        <div className="xl:col-span-4 space-y-5 flex flex-col justify-between">
+                           
+                           {/* Height offset (s) slider */}
+                           <div className="space-y-1">
+                              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                 <span>Displacement Height s</span>
+                                 <span className={`font-mono font-black ${dispHeight === 0 ? 'text-emerald-505' : 'text-rose-550 dark:text-rose-450'}`}>
+                                    {dispHeight > 0 ? '+' : ''}{dispHeight.toFixed(3)} mm ({Math.round(dispHeight * 1000)} &micro;m)
+                                 </span>
+                              </div>
+                              <input
+                                 type="range"
+                                 min="-0.3"
+                                 max="0.3"
+                                 step="0.005"
+                                 value={dispHeight}
+                                 onChange={(e) => setDispHeight(parseFloat(e.target.value))}
+                                 className="w-full h-1.5 bg-slate-201 dark:bg-slate-800 rounded-lg appearance-none accent-rose-500 cursor-pointer"
+                              />
+                              <div className="flex justify-between text-[8px] text-slate-400 font-black">
+                                 <span>-300 &micro;m (LOW)</span>
+                                 <span>Flush (0.00)</span>
+                                 <span>+300 &micro;m (HIGH)</span>
+                              </div>
+                           </div>
+
+                           {/* Goniometer Radius (R) slider */}
+                           <div className="space-y-1">
+                              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                 <span>Goniometer Radius R</span>
+                                 <span className="font-mono text-indigo-505 dark:text-indigo-400 font-black">{gonioRadius} mm</span>
+                              </div>
+                              <input
+                                 type="range"
+                                 min="150"
+                                 max="250"
+                                 step="5"
+                                 value={gonioRadius}
+                                 onChange={(e) => setGonioRadius(parseInt(e.target.value))}
+                                 className="w-full h-1.5 bg-slate-201 dark:bg-slate-800 rounded-lg appearance-none accent-indigo-500 cursor-pointer"
+                              />
+                              <div className="flex justify-between text-[8px] text-slate-400 font-black">
+                                 <span>150 mm (Small)</span>
+                                 <span>Standard (240 mm)</span>
+                                 <span>250 mm (Large)</span>
+                              </div>
+                           </div>
+
+                           {/* True peak angle (2theta) */}
+                           <div className="space-y-1">
+                              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                 <span>Analyzed Peak Angle 2θ</span>
+                                 <span className="font-mono text-indigo-505 dark:text-indigo-400 font-black">{dispThetaTrue.toFixed(1)}&deg;</span>
+                              </div>
+                              <input
+                                 type="range"
+                                 min="15"
+                                 max="90"
+                                 step="1"
+                                 value={dispThetaTrue}
+                                 onChange={(e) => setDispThetaTrue(parseInt(e.target.value))}
+                                 className="w-full h-1.5 bg-slate-201 dark:bg-slate-800 rounded-lg appearance-none accent-indigo-505 cursor-pointer"
+                              />
+                           </div>
+
+                           {/* Diagnostic status readout */}
+                           <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 mt-2">
+                              <div className="flex items-center gap-1.5 text-slate-400 uppercase font-black tracking-widest text-[8px]">
+                                 <Info size={11} className="text-rose-500 shrink-0" />
+                                 <span>Shift Severity Diagnosis</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                 <div className={`w-2 h-2 rounded-full ${Math.abs(dispDeltaDeg) > 0.05 ? 'bg-red-500 animate-pulse' : Math.abs(dispDeltaDeg) > 0.015 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-705 dark:text-slate-355">
+                                    {Math.abs(dispDeltaDeg) === 0 
+                                       ? 'Perfect Zero-Height Alignment' 
+                                       : Math.abs(dispDeltaDeg) > 0.05 
+                                          ? 'Fatal Peak-Shift Aberration' 
+                                          : Math.abs(dispDeltaDeg) > 0.015 
+                                             ? 'Moderate Fit Degradation' 
+                                             : 'Acceptable Trace Error'}
+                                 </span>
+                              </div>
+                              <p className="text-[9.5px] leading-relaxed text-slate-500 dark:text-slate-400 font-semibold font-sans">
+                                 {Math.abs(dispDeltaDeg) > 0.05 
+                                    ? '⚠️ This displacement height exceeds limits. Shift is greater than critical FWHM, causing Rietveld models to completely fail or diverge during refinement.' 
+                                    : Math.abs(dispDeltaDeg) > 0.015
+                                       ? 'This level of offset leads to unphysical lattice parameter shifts. Fix height or add refinement displacement coefficient.'
+                                       : 'Typical experimental error. Easily handled by standard sample-displacement parameter fitting.'}
+                              </p>
+                           </div>
+                        </div>
+
+                        {/* Visual graph and instrumentation path in col-span-8 */}
+                        <div className="xl:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch font-sans">
+                           {/* Mini spectrum plot */}
+                           <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-855 rounded-2xl p-4 flex flex-col justify-between">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 font-sans block mb-2">Simulated Shift: Spectrum View</span>
+                              <div className="h-44 w-full relative bg-slate-950 dark:bg-slate-933 rounded-xl overflow-hidden px-2 pt-2 border border-slate-850">
+                                 {/* Grid lines */}
+                                 <div className="absolute inset-0 flex flex-col justify-between p-2 pointer-events-none opacity-10">
+                                    <div className="h-px bg-white w-full" />
+                                    <div className="h-px bg-white w-full" />
+                                    <div className="h-px bg-white w-full" />
+                                 </div>
+                                 <div className="absolute inset-x-0 bottom-0 top-0 flex justify-between px-6 pointer-events-none opacity-10">
+                                    <div className="w-px bg-white h-full" />
+                                    <div className="w-px bg-white h-full" />
+                                    <div className="w-px bg-white h-full" />
+                                 </div>
+
+                                 {/* Custom SVG Peak curves */}
+                                 <svg className="w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                    {(() => {
+                                       const pixelShift = dispDeltaDeg * 35;
+                                       const shiftedX = 50 + pixelShift;
+
+                                       // True Gaussian shape: center=50, width=5
+                                       const trueYPoints = Array.from({ length: 111 }, (_, idx) => {
+                                          const x = idx - 5;
+                                          const y = 80 * Math.exp(-Math.pow(x - 50, 2) / (2 * Math.pow(5, 2)));
+                                          return `${x},${90 - y}`;
+                                       }).join(' ');
+
+                                       // Shifted Gaussian Shape: center=shiftedX, width=5
+                                       const shiftedYPoints = Array.from({ length: 111 }, (_, idx) => {
+                                          const x = idx - 5;
+                                          const y = 80 * Math.exp(-Math.pow(x - shiftedX, 2) / (2 * Math.pow(5, 2)));
+                                          return `${x},${90 - y}`;
+                                       }).join(' ');
+
+                                       return (
+                                          <>
+                                             {/* True Peak in Emerald */}
+                                             <polyline
+                                                fill="none"
+                                                stroke="#10b981"
+                                                strokeWidth="2"
+                                                points={trueYPoints}
+                                             />
+                                             <line x1="50" y1="10" x2="50" y2="90" stroke="#10b981" strokeWidth="1" strokeDasharray="2,2" opacity="0.6" />
+
+                                             {/* Shifted Peak in Rose */}
+                                             {dispHeight !== 0 && (
+                                                <>
+                                                   <polyline
+                                                      fill="none"
+                                                      stroke="#f43f5e"
+                                                      strokeWidth="2"
+                                                      points={shiftedYPoints}
+                                                   />
+                                                   <line x1={shiftedX} y1="10" x2={shiftedX} y2="90" stroke="#f43f5e" strokeWidth="1" strokeDasharray="2,2" opacity="0.6" />
+                                                   
+                                                   {/* Arrow showing direction of shift */}
+                                                   <line x1="50" y1="35" x2={shiftedX} y2="35" stroke="#a78bfa" strokeWidth="1.5" markerEnd="url(#arrow)" />
+                                                </>
+                                             )}
+                                          </>
+                                       );
+                                    })()}
+                                 </svg>
+
+                                 {/* Arrow marker definition */}
+                                 <svg className="absolute w-0 h-0">
+                                    <defs>
+                                       <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                          <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa" />
+                                       </marker>
+                                    </defs>
+                                 </svg>
+
+                                 {/* Dynamic overlays */}
+                                 <div className="absolute top-2 right-2 text-[9px] font-mono font-bold flex flex-col items-end gap-1 pointer-events-none">
+                                    <span className="text-emerald-500">&#9679; True Peak</span>
+                                    {dispHeight !== 0 && <span className="text-rose-555">&#9679; Shifted Peak</span>}
+                                 </div>
+                              </div>
+
+                              <div className="grid grid-cols-3 gap-2 mt-3 font-mono text-[9px] text-center bg-slate-50 dark:bg-slate-950 p-2.5 rounded-xl border border-slate-150 dark:border-slate-850 leading-tight shrink-0 font-bold">
+                                 <div>
+                                    <p className="text-slate-400 uppercase text-[7.5px] tracking-wider">True 2&theta;</p>
+                                    <p className="text-emerald-500 tracking-tight">{dispThetaTrue.toFixed(3)}&deg;</p>
+                                 </div>
+                                 <div className="border-l border-r border-slate-200 dark:border-slate-800">
+                                    <p className="text-slate-400 uppercase text-[7.5px] tracking-wider">Shift &Delta;2&theta;</p>
+                                    <p className={`tracking-tight ${dispHeight === 0 ? 'text-slate-500' : 'text-rose-500'}`}>
+                                       {dispDeltaDeg > 0 ? '+' : ''}{dispDeltaDeg.toFixed(4)}&deg;
+                                    </p>
+                                 </div>
+                                 <div>
+                                    <p className="text-slate-400 uppercase text-[7.5px] tracking-wider">Shifted 2&theta;</p>
+                                    <p className={`tracking-tight ${dispHeight === 0 ? 'text-emerald-555' : 'text-rose-550'}`}>{dispThetaShifted.toFixed(3)}&deg;</p>
+                                 </div>
+                              </div>
+                           </div>
+
+                           {/* Stage visualization */}
+                           <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-855 rounded-2xl p-4 flex flex-col justify-between">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 font-sans block mb-1">Crystallographic Ray Mismatch</span>
+                              <div className="h-44 w-full relative bg-slate-950 dark:bg-slate-933 rounded-xl overflow-hidden border border-slate-850">
+                                 <svg className="w-full h-full p-2" viewBox="0 0 160 100">
+                                    {/* Goniometer reference circle */}
+                                    <path d="M 10,80 A 70,70 0 0,1 150,80" fill="none" stroke="#10b981" strokeWidth="0.5" strokeDasharray="3,3" className="opacity-25" />
+                                    
+                                    {/* X-ray Source & Detector housings */}
+                                    <circle cx="20" cy="70" r="4.5" fill="#a78bfa" className="opacity-80" />
+                                    <text x="20" y="81" className="text-[7.5px] font-black fill-slate-400 uppercase tracking-widest" textAnchor="middle">Source</text>
+
+                                    <circle cx="140" cy="70" r="4.5" fill="#38bdf8" className="opacity-80" />
+                                    <text x="140" y="81" className="text-[7.5px] font-black fill-slate-400 uppercase tracking-widest" textAnchor="middle">Detector</text>
+
+                                    {/* True Specimen plane center line */}
+                                    <line x1="50" y1="50" x2="110" y2="50" stroke="#10b981" strokeWidth="1" opacity="0.6" />
+                                    <circle cx="80" cy="50" r="2" fill="#10b981" />
+                                    <text x="80" y="38" className="text-[6.5px] fill-emerald-500 font-mono font-black uppercase tracking-wider" textAnchor="middle">Center axis</text>
+
+                                    {/* Rayleigh Beam lines - True Path in green */}
+                                    <line x1="20" y1="70" x2="80" y2="50" stroke="#10b981" strokeWidth="1" strokeDasharray="1,1" opacity="0.7" />
+                                    <line x1="80" y1="50" x2="140" y2="70" stroke="#10b981" strokeWidth="1" strokeDasharray="1,1" opacity="0.7" />
+
+                                    {/* Displaced Sample stage and Ray path */}
+                                    {(() => {
+                                       const svgHeightShift = dispHeight * 40;
+                                       const dispY = 50 - svgHeightShift; // shift UP on screen is subtract Y
+
+                                       return (
+                                          <>
+                                             {/* Displaced Plane stage (Red / Rose) */}
+                                             <line x1="50" y1={dispY} x2="110" y2={dispY} stroke="#f43f5e" strokeWidth="1.5" />
+                                             <circle cx="80" cy={dispY} r="2" fill="#f43f5e" />
+
+                                             {/* Ray paths reflection off displaced plane */}
+                                             <line x1="20" y1="70" x2="80" y2={dispY} stroke="#f43f5e" strokeWidth="0.8" opacity="0.8" />
+                                             
+                                             {/* Reflected Ray direction */}
+                                             <line x1="80" y1={dispY} x2="140" y2="70" stroke="#f43f5e" strokeWidth="0.8" strokeDasharray="3,2" opacity="0.4" />
+                                             <line x1="80" y1={dispY} x2="135" y2="77" stroke="#f43f5e" strokeWidth="1" opacity="0.9" />
+
+                                             <path d={`M 80,${dispY} L 80,50`} stroke="#6366f1" strokeWidth="1" strokeDasharray="2,2" />
+                                          </>
+                                       );
+                                    })()}
+                                 </svg>
+                              </div>
+                              <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-150 dark:border-slate-850 mt-2">
+                                 <p className="text-[9px] text-slate-455 font-bold leading-normal font-sans">
+                                    <span className="font-extrabold uppercase text-rose-500">Geometry Alert:</span> The physical focusing circle deforms when the sample surface sits out-of-plane. In extreme conditions, you may have standard instrumental broadening profile shifts of up to 0.1&deg; 2&theta;.
+                                 </p>
+                              </div>
+                           </div>
+                        </div>
                      </div>
                   </div>
 

@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
 import LanguageSelector from './LanguageSelector';
+import { openOfflineDB } from '../utils/offlineDb';
 
 interface SettingsModuleProps {
   theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic' | 'gruvbox' | 'monokai';
@@ -59,6 +60,44 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const { t, i18n } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<'general'|'calibration'|'identity'|'databases'|'system'>('general');
+
+  const [offlineCounts, setOfflineCounts] = useState({ materials: 0, analysisResults: 0 });
+  const [storageStats, setStorageStats] = useState({
+    registrationSize: 0,
+    databaseSize: 0,
+    customKeySize: 0,
+    logsSize: 0,
+    historySize: 0,
+    totalSize: 0
+  });
+
+  useEffect(() => {
+    const fetchOfflineStats = async () => {
+      try {
+        const db = await openOfflineDB();
+        const tx = db.transaction(['materials', 'analysisResults'], 'readonly');
+        
+        const matStore = tx.objectStore('materials');
+        const analysisStore = tx.objectStore('analysisResults');
+        
+        const matCountReq = matStore.count();
+        const analysisCountReq = analysisStore.count();
+        
+        matCountReq.onsuccess = () => {
+          analysisCountReq.onsuccess = () => {
+            setOfflineCounts({
+              materials: matCountReq.result,
+              analysisResults: analysisCountReq.result
+            });
+          };
+        };
+      } catch (e) {
+        console.warn("IndexedDB offline stats checking error: ", e);
+      }
+    };
+    
+    fetchOfflineStats();
+  }, []);
 
   // Load and manage Operator identity linked with registration storage
   const [operator, setOperator] = useState(() => {
@@ -210,6 +249,32 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       return updated;
     });
   };
+
+  const updateStorageStats = () => {
+    try {
+      const registrationSize = (localStorage.getItem('xrd_user_registration') || '').length * 2;
+      const databaseSize = (localStorage.getItem('xrd_database_configs') || '').length * 2;
+      const customKeySize = (localStorage.getItem('xrd_custom_gemini_key') || '').length * 2;
+      const logsSize = (localStorage.getItem('xrd_api_diagnostic_logs') || '').length * 2;
+      const historySize = (localStorage.getItem('xrd_bragg_history') || '').length * 2;
+      const totalSize = registrationSize + databaseSize + customKeySize + logsSize + historySize;
+      
+      setStorageStats({
+        registrationSize,
+        databaseSize,
+        customKeySize,
+        logsSize,
+        historySize,
+        totalSize
+      });
+    } catch {
+      // safe fallback
+    }
+  };
+
+  useEffect(() => {
+    updateStorageStats();
+  }, [operator, dbConfigs, customApiKey, apiLogs]);
 
   useEffect(() => {
     const checkSystemKeyAndVerify = async () => {
@@ -962,13 +1027,69 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     <div>
                       <div className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 tracking-widest">Correction Auditor Status</div>
                       <div className="text-[10px] font-bold text-slate-500 font-mono mt-1">
-                        2θ_cal = 2θ_obs - ({zeroShift >= 0 ? '+' : ''}{zeroShift.toFixed(3)}°)
+                        2θ_cal = 2θ_obs - ({zeroShift >= 0 ? '+' : ''}{zeroShift.toFixed(3)}°) - Δ_displacement(2θ_obs)
                       </div>
                     </div>
                   </div>
                   <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shrink-0 ${sampleOffsetThetaMock ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'}`}>
                     {sampleOffsetThetaMock ? 'Applied Compensations' : 'Ideal Alignments'}
                   </span>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden mt-8">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 border border-indigo-500/20">
+                      <Sliders className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-200">Real-Time Offset Auditor Matrix</h3>
+                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Simulate calibrated output shift across various angular positions</p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11px] font-mono border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 text-left">
+                          <th className="pb-3 uppercase tracking-widest font-black pr-4">Observed 2θ</th>
+                          <th className="pb-3 uppercase tracking-widest font-black pr-4">Zero Shift (Δ)</th>
+                          <th className="pb-3 uppercase tracking-widest font-black pr-4">Displacement Shift (s)</th>
+                          <th className="pb-3 uppercase tracking-widest font-black text-rose-500 pr-4">Net Offset</th>
+                          <th className="pb-3 uppercase tracking-widest font-black text-emerald-500">Calibrated 2θ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                        {[15, 30, 45, 60, 90, 120].map((twoThetaObs) => {
+                          const thetaRad = (twoThetaObs / 2) * (Math.PI / 180);
+                          const dispCorrection = goniometerRadius > 0 
+                            ? (2 * sampleDisplacement * Math.cos(thetaRad) / goniometerRadius) * (180 / Math.PI)
+                            : 0;
+                          const netOffset = zeroShift + dispCorrection;
+                          const calibrated = twoThetaObs - netOffset;
+                          return (
+                            <tr key={twoThetaObs} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                              <td className="py-3 font-bold text-slate-900 dark:text-white pr-4">{twoThetaObs.toFixed(1)}°</td>
+                              <td className="py-3 text-slate-600 dark:text-slate-400 pr-4">
+                                {zeroShift >= 0 ? '+' : ''}{zeroShift.toFixed(4)}°
+                              </td>
+                              <td className="py-3 text-slate-600 dark:text-slate-400 pr-4">
+                                {dispCorrection >= 0 ? '+' : ''}{dispCorrection.toFixed(4)}°
+                              </td>
+                              <td className="py-3 font-bold text-rose-500 pr-4">
+                                {netOffset >= 0 ? '+' : ''}{netOffset.toFixed(4)}°
+                              </td>
+                              <td className="py-3 font-bold text-emerald-500">
+                                {calibrated.toFixed(4)}°
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-[9.5px] text-slate-400 dark:text-slate-500 italic mt-4 font-sans font-medium">
+                    *Note: The displacement shift term uses goniometer radius limit R = {goniometerRadius.toFixed(1)}mm and follows &theta;-dependent cosine decay. Real broadening and peak indexes adapt on-the-fly dynamically.
+                  </p>
                 </div>
               </motion.div>
             )}
@@ -1267,6 +1388,29 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                    </div>
                 </div>
 
+                {/* Local Offline Database Cache Stats */}
+                <div className="bg-slate-50 dark:bg-slate-950 rounded-[2rem] border border-slate-200 dark:border-white/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-full border border-emerald-500/20">
+                      <CheckCircle2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 tracking-widest">Local Offline Crystal Store Cache</div>
+                      <div className="text-[10px] font-bold text-slate-500 font-mono mt-1">
+                        IndexedDB synchronizations for lightning-fast offline structure lookup
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] shrink-0">
+                    <span className="px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest rounded-lg border border-emerald-500/20 font-mono">
+                      {offlineCounts.materials} Materials Compiled
+                    </span>
+                    <span className="px-3 py-1.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest rounded-lg border border-indigo-500/20 font-mono">
+                      {offlineCounts.analysisResults} Runs Saved
+                    </span>
+                  </div>
+                </div>
+
                 {/* Cognitive Engine (Gemini API) */}
                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden relative">
                    <div className="absolute top-0 left-0 w-80 h-80 bg-fuchsia-500/5 blur-[120px] rounded-full -ml-40 -mt-40 pointer-events-none" />
@@ -1420,6 +1564,56 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                             <option value={0}>Disabled / Freeze</option>
                           </select>
                           {autosaveInterval > 0 && <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 font-mono mt-2 pl-1">Active Loop: {(autosaveInterval/1000).toFixed(0)}s interval</p>}
+                        </div>
+
+                        <div className="p-6 bg-slate-50 dark:bg-slate-950 rounded-[2rem] border-2 border-slate-200 dark:border-white/5 space-y-4 shadow-sm">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Local Data Volume Footprint</label>
+                          <div className="space-y-3 pt-2">
+                            <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex border border-slate-200 dark:border-slate-700">
+                              <div 
+                                className="h-full bg-indigo-500 transition-all duration-500" 
+                                style={{ width: `${storageStats.totalSize > 0 ? (storageStats.registrationSize / storageStats.totalSize) * 100 : 0}%` }} 
+                                title={`Identity: ${storageStats.registrationSize} B`}
+                              />
+                              <div 
+                                className="h-full bg-violet-500 transition-all duration-500" 
+                                style={{ width: `${storageStats.totalSize > 0 ? (storageStats.databaseSize / storageStats.totalSize) * 100 : 0}%` }} 
+                                title={`Databases: ${storageStats.databaseSize} B`}
+                              />
+                              <div 
+                                className="h-full bg-pink-500 transition-all duration-500" 
+                                style={{ width: `${storageStats.totalSize > 0 ? (storageStats.logsSize / storageStats.totalSize) * 100 : 0}%` }} 
+                                title={`Diagnostic Logs: ${storageStats.logsSize} B`}
+                              />
+                              <div 
+                                className="h-full bg-teal-500 transition-all duration-500" 
+                                style={{ width: `${storageStats.totalSize > 0 ? (storageStats.historySize / storageStats.totalSize) * 100 : 0}%` }} 
+                                title={`Bragg History: ${storageStats.historySize} B`}
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-[9px] font-mono text-slate-500 leading-relaxed pt-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="w-2 h-2 bg-indigo-500 rounded-full shrink-0" />
+                                <span className="truncate">Identity: <strong>{storageStats.registrationSize} B</strong></span>
+                              </div>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="w-2 h-2 bg-violet-500 rounded-full shrink-0" />
+                                <span className="truncate">Priorities: <strong>{storageStats.databaseSize} B</strong></span>
+                              </div>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="w-2 h-2 bg-pink-500 rounded-full shrink-0" />
+                                <span className="truncate">Logs: <strong>{storageStats.logsSize} B</strong></span>
+                              </div>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="w-2 h-2 bg-teal-500 rounded-full shrink-0" />
+                                <span className="truncate">History: <strong>{storageStats.historySize} B</strong></span>
+                              </div>
+                            </div>
+                            <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-2 border-t border-slate-100 dark:border-white/5 pt-2 flex justify-between">
+                              <span>Total Workspace footprint:</span>
+                              <span className="text-indigo-500 font-bold font-mono">{storageStats.totalSize} Bytes</span>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="p-6 bg-rose-500/5 rounded-[2rem] border-2 border-rose-500/20 space-y-4 shadow-sm">

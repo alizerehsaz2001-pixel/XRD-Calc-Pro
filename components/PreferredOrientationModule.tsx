@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Rotate3d } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { calculateMarchDollase, calculateCubicAngle, calculateInterplanarAngle } from '../utils/physics';
 import { 
@@ -32,6 +33,33 @@ interface Preset {
 
 export const PreferredOrientationModule: React.FC = () => {
   const { precision } = useSettings();
+  
+  // 3D Crystallite Habit rotation
+  const [habitRotX, setHabitRotX] = useState(20);
+  const [habitRotY, setHabitRotY] = useState(35);
+  const [isDraggingHabit, setIsDraggingHabit] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0, rotX: 20, rotY: 35 });
+
+  // Polar ODF interactive hover tracking
+  const [polarHover, setPolarHover] = useState(null);
+
+  const handlePolarMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const svgX = (x / rect.width) * 200;
+    const svgY = (y / rect.height) * 200;
+    const dx = svgX - 100;
+    const dy = 100 - svgY;
+    let rad = Math.atan2(dx, dy);
+    let deg = (rad * 180) / Math.PI;
+    if (deg < 0) deg += 360;
+    
+    const alphaAngle = deg > 180 ? 360 - deg : deg;
+    const finalAlpha = alphaAngle > 90 ? 180 - alphaAngle : alphaAngle;
+    const pVal = calculateMarchDollase(rValue, finalAlpha, fraction);
+    setPolarHover({ x: svgX, y: svgY, angle: deg, pVal });
+  };
   
   // States
   const [habitModel, setHabitModel] = useState<'Platelet' | 'Cylindrical'>('Platelet');
@@ -741,7 +769,7 @@ export const PreferredOrientationModule: React.FC = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Visual ODF Polar Contour */}
-            <div className="lg:col-span-4 bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between backdrop-blur-md z-0 group">
+            <div className="lg:col-span-6 bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between backdrop-blur-md z-0 group">
               <div className="absolute top-0 left-0 p-32 opacity-5 bg-gradient-to-br from-teal-400 to-emerald-400 rounded-br-[100px] pointer-events-none group-hover:opacity-10 group-hover:scale-110 transition-all duration-700"></div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-3">
@@ -758,7 +786,21 @@ export const PreferredOrientationModule: React.FC = () => {
               </div>
               
               <div className="flex justify-center items-center py-6 bg-black/60 rounded-[2rem] border border-white/5 relative shadow-inner z-10 mt-auto">
-                <svg width="200" height="200" className="overflow-visible filter drop-shadow-lg">
+                <svg 
+                  width="200" 
+                  height="200" 
+                  className="overflow-visible filter drop-shadow-lg cursor-crosshair"
+                  onMouseMove={handlePolarMouseMove}
+                  onMouseLeave={() => setPolarHover(null)}
+                >
+                  <defs>
+                    <radialGradient id="odfRadialGlow" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="#2dd4bf" stopOpacity={0.3}/>
+                      <stop offset="80%" stopColor="#2dd4bf" stopOpacity={0.05}/>
+                      <stop offset="100%" stopColor="#2dd4bf" stopOpacity={0}/>
+                    </radialGradient>
+                  </defs>
+
                   <circle cx="100" cy="100" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
                   <circle cx="100" cy="100" r="25" fill="none" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
                   <circle cx="100" cy="100" r="75" fill="none" stroke="rgba(255,255,255,0.05)" strokeDasharray="3 3" />
@@ -773,39 +815,324 @@ export const PreferredOrientationModule: React.FC = () => {
                   
                   <path 
                     d={polarOdfPath} 
-                    fill="rgba(45, 212, 191, 0.15)" 
+                    fill="url(#odfRadialGlow)" 
                     stroke="#2dd4bf" 
                     strokeWidth="2.5" 
                     className="transition-all duration-300 ease-out" 
                   />
+
+                  {polarHover && (
+                    <>
+                      {/* Interactive hover sweep line */}
+                      <line 
+                        x1="100" 
+                        y1="100" 
+                        x2={polarHover.x} 
+                        y2={polarHover.y} 
+                        stroke="#2dd4bf" 
+                        strokeWidth="1.5" 
+                        strokeDasharray="2 2" 
+                      />
+                      {/* Pulse circle at hover cursor */}
+                      <circle 
+                        cx={polarHover.x} 
+                        cy={polarHover.y} 
+                        r="5" 
+                        fill="#2dd4bf" 
+                        className="animate-ping" 
+                      />
+                      <circle 
+                        cx={polarHover.x} 
+                        cy={polarHover.y} 
+                        r="3.5" 
+                        fill="#0c4a6e" 
+                        stroke="#2dd4bf" 
+                        strokeWidth="1.5" 
+                      />
+                    </>
+                  )}
                 </svg>
               </div>
 
-              <div className="mt-6 text-[10px] text-slate-400 font-sans leading-relaxed text-center px-4 bg-teal-500/5 rounded-xl border border-teal-500/10 py-3 relative z-10 shadow-inner">
+              {/* Polar Hover HUD readout */}
+              <div className="h-10 mt-4 flex items-center justify-center">
+                {polarHover ? (
+                  <div className="w-full bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-xl border border-teal-500/20 flex justify-between items-center text-[10px] font-mono shadow-inner">
+                    <span className="text-slate-400">Angle (α): <strong className="text-teal-400">{polarHover.angle.toFixed(0)}°</strong></span>
+                    <span className="text-slate-400">P(α): <strong className="text-teal-400">{polarHover.pVal.toFixed(3)}x</strong></span>
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-500 font-sans italic text-center w-full">
+                    Hover over chart to explore probability density
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 text-[10px] text-slate-400 font-sans leading-relaxed text-center px-4 bg-teal-500/5 rounded-xl border border-teal-500/10 py-2.5 relative z-10 shadow-inner">
                 The <span className="text-teal-400 font-bold px-1 rounded bg-teal-500/10">teal contour</span> maps probability. Dashed grey represents random powder.
               </div>
             </div>
 
-            {/* Intensity Profile Chart */}
-            <div className="lg:col-span-8 bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl flex flex-col justify-between backdrop-blur-md relative z-0 group">
-              <div className="absolute top-0 right-0 p-40 opacity-[0.03] bg-gradient-to-bl from-rose-500 to-indigo-500 rounded-bl-[150px] pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+            {/* Interactive 3D Crystal Habit Card */}
+            <div 
+              className="lg:col-span-6 bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between backdrop-blur-md z-0 group"
+              onMouseMove={(e) => {
+                if (!isDraggingHabit) return;
+                const dx = e.clientX - dragStart.current.x;
+                const dy = e.clientY - dragStart.current.y;
+                setHabitRotY(dragStart.current.rotY + dx * 0.5);
+                setHabitRotX(dragStart.current.rotX - dy * 0.5);
+              }}
+              onMouseUp={() => setIsDraggingHabit(false)}
+              onMouseLeave={() => setIsDraggingHabit(false)}
+            >
+              <div className="absolute top-0 left-0 p-32 opacity-5 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-br-[100px] pointer-events-none group-hover:opacity-10 group-hover:scale-110 transition-all duration-700"></div>
               <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="p-1.5 py-1.5 max-w-fit bg-rose-500/10 rounded-lg border border-rose-500/20 shadow-inner">
-                    <Activity className="w-4 h-4 text-rose-400" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-1.5 py-1.5 max-w-fit bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-inner">
+                      <Rotate3d className="w-4 h-4 text-indigo-400" />
+                    </div>
+                    <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+                      Habit 3D Node
+                    </h3>
                   </div>
-                  <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
-                    Simulated Intensity Anomalies
-                  </h3>
+                  <span className="text-[9px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-lg font-mono font-bold tracking-wider">
+                    Drag to Orbit
+                  </span>
                 </div>
-                <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold mb-8">
-                  Theoretical Random vs March-Dollase Modeled
+                <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
+                  Interactive Geometric Representation
                 </p>
               </div>
 
-              <div className="h-[280px] w-full relative z-10 bg-black/40 p-4 rounded-3xl border border-white/5 shadow-inner">
+              {/* 3D Render Canvas Box */}
+              <div 
+                className="flex justify-center items-center py-6 bg-black/60 rounded-[2rem] border border-white/5 relative shadow-inner z-10 mt-auto select-none cursor-grab active:cursor-grabbing"
+                onMouseDown={(e) => {
+                  setIsDraggingHabit(true);
+                  dragStart.current = {
+                    x: e.clientX,
+                    y: e.clientY,
+                    rotX: habitRotX,
+                    rotY: habitRotY
+                  };
+                }}
+              >
+                <svg width="200" height="200" className="overflow-visible filter drop-shadow-lg">
+                  <defs>
+                    <radialGradient id="prismLightGlow" cx="50%" cy="40%" r="60%">
+                      <stop offset="0%" stopColor="#ffffff" stopOpacity={0.25} />
+                      <stop offset="50%" stopColor="#6366f1" stopOpacity={0.08} />
+                      <stop offset="100%" stopColor="#000000" stopOpacity={0.3} />
+                    </radialGradient>
+                  </defs>
+                  
+                  {/* Axis indicators in background */}
+                  <g opacity="0.4">
+                    <line x1="20" y1="180" x2="50" y2="180" stroke="#ef4444" strokeWidth="1.5" />
+                    <text x="55" y="183" fill="#ef4444" fontSize="8" fontWeight="bold" fontFamily="monospace">x</text>
+
+                    <line x1="20" y1="180" x2="20" y2="150" stroke="#2dd4bf" strokeWidth="1.5" />
+                    <text x="18" y="145" fill="#2dd4bf" fontSize="8" fontWeight="bold" fontFamily="monospace">z</text>
+
+                    <line x1="20" y1="180" x2="40" y2="165" stroke="#3b82f6" strokeWidth="1.5" />
+                    <text x="44" y="163" fill="#3b82f6" fontSize="8" fontWeight="bold" fontFamily="monospace">y</text>
+                  </g>
+
+                  {/* Dynamic 3D Projected Prism faces */}
+                  {(() => {
+                    let radius = 38;
+                    let height = 24;
+
+                    if (rValue < 1.0) {
+                      // Platelet: wider radius, thinner disk
+                      radius = 42 + (1 - rValue) * 15;
+                      height = Math.max(5, 20 * rValue);
+                    } else if (rValue > 1.0) {
+                      // Cylinder: narrow radius, tall column
+                      radius = Math.max(14, 28 / Math.sqrt(rValue));
+                      height = Math.min(75, 16 * rValue);
+                    }
+
+                    const vertices3D = [];
+
+                    // Base hexagon (z = -height)
+                    for (let i = 0; i < 6; i++) {
+                      const angle = (i * 60 * Math.PI) / 180;
+                      vertices3D.push({
+                        x: radius * Math.cos(angle),
+                        y: radius * Math.sin(angle),
+                        z: -height
+                      });
+                    }
+                    // Top hexagon (z = height)
+                    for (let i = 0; i < 6; i++) {
+                      const angle = (i * 60 * Math.PI) / 180;
+                      vertices3D.push({
+                        x: radius * Math.cos(angle),
+                        y: radius * Math.sin(angle),
+                        z: height
+                      });
+                    }
+
+                    const projectPoint = (x, y, z, rx, ry) => {
+                      const pitch = (rx * Math.PI) / 180;
+                      const yaw = (ry * Math.PI) / 180;
+                      
+                      const x1 = x * Math.cos(yaw) - z * Math.sin(yaw);
+                      const z1 = x * Math.sin(yaw) + z * Math.cos(yaw);
+                      
+                      const y2 = y * Math.cos(pitch) - z1 * Math.sin(pitch);
+                      const z2 = y * Math.sin(pitch) + z1 * Math.cos(pitch);
+                      
+                      const d = 300;
+                      const factor = d / (d + z2);
+                      
+                      const center = 100;
+                      return { x: center + x1 * factor, y: center - y2 * factor, depth: z2 };
+                    };
+
+                    const pts = vertices3D.map(v => projectPoint(v.x, v.y, v.z, habitRotX, habitRotY));
+
+                    const faces = [
+                      // Bottom face
+                      { indices: [5, 4, 3, 2, 1, 0], color: 'rgba(99, 102, 241, 0.12)', stroke: 'rgba(99, 102, 241, 0.45)', id: 'bottom' },
+                      // Top face
+                      { indices: [6, 7, 8, 9, 10, 11], color: rValue < 1.0 ? 'rgba(45, 212, 191, 0.3)' : 'rgba(45, 212, 191, 0.15)', stroke: '#2dd4bf', id: 'top' },
+                      // Side faces
+                      ...[0, 1, 2, 3, 4, 5].map(i => {
+                        const next = (i + 1) % 6;
+                        return {
+                          indices: [i, next, next + 6, i + 6],
+                          color: rValue < 1.0 ? 'rgba(30, 41, 59, 0.45)' : 'rgba(99, 102, 241, 0.15)',
+                          stroke: rValue < 1.0 ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.22)',
+                          id: `side-${i}`
+                        };
+                      })
+                    ];
+
+                    const sortedFaces = faces.map(face => {
+                      const avgDepth = face.indices.reduce((sum, idx) => sum + pts[idx].depth, 0) / face.indices.length;
+                      return { ...face, avgDepth };
+                    }).sort((a, b) => b.avgDepth - a.avgDepth);
+
+                    const axisTop = projectPoint(0, 0, height + 40, habitRotX, habitRotY);
+                    const axisBottom = projectPoint(0, 0, -(height + 40), habitRotX, habitRotY);
+
+                    return (
+                      <>
+                        <line 
+                          x1={axisBottom.x} y1={axisBottom.y} 
+                          x2={100} y2={100} 
+                          stroke="rgba(45, 212, 191, 0.3)" 
+                          strokeWidth="1.5" 
+                          strokeDasharray="3 3" 
+                        />
+
+                        {sortedFaces.map((face, fIdx) => {
+                          const pointsStr = face.indices.map(idx => `${pts[idx].x.toFixed(1)},${pts[idx].y.toFixed(1)}`).join(' ');
+                          const isTop = face.id === 'top';
+                          return (
+                            <polygon
+                              key={fIdx}
+                              points={pointsStr}
+                              fill={isTop && rValue < 1.0 ? 'url(#prismLightGlow)' : face.color}
+                              stroke={face.stroke}
+                              strokeWidth={isTop ? "2" : "1"}
+                              strokeLinejoin="round"
+                            />
+                          );
+                        })}
+
+                        <g>
+                          <line 
+                            x1={100} y1={100} 
+                            x2={axisTop.x} y2={axisTop.y} 
+                            stroke="#2dd4bf" 
+                            strokeWidth="2.5" 
+                            className="filter drop-shadow-[0_0_8px_rgba(45,212,191,0.6)]"
+                          />
+                          <circle cx={axisTop.x} cy={axisTop.y} r="3" fill="#2dd4bf" />
+                          <text 
+                            x={axisTop.x + 8} y={axisTop.y - 4} 
+                            fill="#2dd4bf" 
+                            fontSize="8" 
+                            fontWeight="black" 
+                            fontFamily="monospace"
+                            className="filter drop-shadow-[0_2px_4px_rgba(0,0,0,1)]"
+                          >
+                            [{targetHKL}] Axis
+                          </text>
+                        </g>
+
+                        {rValue < 1.0 && (
+                          <line 
+                            x1={projectPoint(0, 0, height, habitRotX, habitRotY).x} 
+                            y1={projectPoint(0, 0, height, habitRotX, habitRotY).y}
+                            x2={axisTop.x}
+                            y2={axisTop.y}
+                            stroke="#fb7185"
+                            strokeWidth="1.5"
+                            strokeDasharray="2 2"
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
+                </svg>
+              </div>
+
+              <div className="mt-4 text-[10px] text-slate-400 font-sans leading-relaxed text-center px-4 bg-indigo-500/5 rounded-xl border border-indigo-500/10 py-2.5 relative z-10 shadow-inner flex flex-col items-center gap-1">
+                <span>
+                  Aspect ratio matches r = <strong className="text-indigo-400">{rValue.toFixed(3)}</strong>.
+                </span>
+                <span className="text-slate-500">
+                  {rValue < 1.0 
+                    ? "Compact platelet geometries, basal plane aligns with target plane normal." 
+                    : rValue > 1.0 
+                      ? "Acicular needle geometries, longitudinal axis aligns with fiber direction."
+                      : "Isotropic distribution (sphere-like random packing)."}
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Intensity Profile Chart Card */}
+          <div className="bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl flex flex-col justify-between backdrop-blur-md relative z-0 group">
+            <div className="absolute top-0 right-0 p-40 opacity-[0.03] bg-gradient-to-bl from-rose-500 to-indigo-500 rounded-bl-[150px] pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 py-1.5 max-w-fit bg-rose-500/10 rounded-lg border border-rose-500/20 shadow-inner">
+                  <Activity className="w-4 h-4 text-rose-400" />
+                </div>
+                <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+                  Simulated Intensity Anomalies
+                </h3>
+              </div>
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold mb-8">
+                Theoretical Random vs March-Dollase Modeled
+              </p>
+            </div>
+
+            <div className="h-[280px] w-full relative z-10 bg-black/40 p-4 rounded-3xl border border-white/5 shadow-inner">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <BarChart data={chartData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorStandard" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#64748b" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#1e293b" stopOpacity={0.2}/>
+                      </linearGradient>
+                      <linearGradient id="colorMarch" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.85}/>
+                        <stop offset="95%" stopColor="#312e81" stopOpacity={0.25}/>
+                      </linearGradient>
+                      <linearGradient id="colorMeasured" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ec4899" stopOpacity={0.85}/>
+                        <stop offset="95%" stopColor="#500724" stopOpacity={0.25}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                     <XAxis 
                       dataKey="name" 
@@ -828,17 +1155,16 @@ export const PreferredOrientationModule: React.FC = () => {
                       itemStyle={{ fontSize: '11px', padding: '5px 0', fontFamily: 'monospace', fontWeight: 600 }}
                       cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                     />
-                    <Legend wrapperStyle={{ fontSize: '10px', marginTop: '20px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} />
-                    <Bar dataKey="Random standard" fill="#475569" name="Standard (Random)" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="Model (March-Dollase)" fill="#6366f1" name="March Model" radius={[8, 8, 0, 0]} />
+                    <Legend wrapperStyle={{ fontSize: '10px', marginTop: '25px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} />
+                    <Bar dataKey="Random standard" fill="url(#colorStandard)" name="Standard (Random)" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="Model (March-Dollase)" fill="url(#colorMarch)" name="March Model" radius={[8, 8, 0, 0]} />
                     {results.some(r => r.iMeas !== r.iTh) && (
-                      <Bar dataKey="Measured Experimental" fill="#ec4899" name="Experimental Data" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="Measured Experimental" fill="url(#colorMeasured)" name="Experimental Data" radius={[8, 8, 0, 0]} />
                     )}
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
-          </div>
 
           {/* Data Table */}
           <div className="bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl space-y-6 backdrop-blur-md relative z-0">

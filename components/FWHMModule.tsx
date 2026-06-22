@@ -663,12 +663,12 @@ export const FWHMModule: React.FC = () => {
 
                    {/* Imax Line */}
                    <ReferenceLine y={amplitude + background} stroke="#334155" strokeWidth={1.5} strokeDasharray="2 4">
-                      <Label value="I(max)" position="insideLeft" fill="#64748b" fontSize={10} fontWeight="black" offset={15} />
+                      <Label value={`I(max) = ${(amplitude + background).toFixed(1)} cps`} position="insideLeft" fill="#64748b" fontSize={10} fontWeight="black" offset={15} />
                    </ReferenceLine>
 
                    {/* Half Max Line */}
                    <ReferenceLine y={amplitude / 2 + background} stroke="#334155" strokeWidth={1.5} strokeDasharray="2 4">
-                      <Label value="I(max)/2" position="insideLeft" fill="#64748b" fontSize={10} fontWeight="black" offset={15} />
+                      <Label value={`I(max)/2 = ${(amplitude / 2 + background).toFixed(1)} cps`} position="insideLeft" fill="#64748b" fontSize={10} fontWeight="black" offset={15} />
                    </ReferenceLine>
 
                    {/* FWHM Arrow Segment */}

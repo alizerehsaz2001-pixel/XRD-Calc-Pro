@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { jsPDF } from 'jspdf';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip as ChartTooltip, CartesianGrid } from 'recharts';
 import { 
   Mail, 
   Linkedin, 
@@ -33,7 +35,10 @@ import {
   User,
   Save,
   CheckCircle,
-  FileBadge
+  FileBadge,
+  Fingerprint,
+  Lock,
+  Loader2
 } from 'lucide-react';
 
 interface Skill {
@@ -220,6 +225,43 @@ const PRESETS: Record<string, ProfileData> = {
   }
 };
 
+const getTrendData = (firstName: string) => {
+  const norm = firstName.toLowerCase();
+  
+  if (norm.includes('elizabeth') || norm.includes('bragg')) {
+    return [
+      { year: '2020', citations: 800, papers: 10, hindex: 32 },
+      { year: '2021', citations: 1200, papers: 14, hindex: 36 },
+      { year: '2022', citations: 1650, papers: 18, hindex: 41 },
+      { year: '2023', citations: 2100, papers: 22, hindex: 45 },
+      { year: '2024', citations: 2500, papers: 25, hindex: 48 },
+      { year: '2025', citations: 2900, papers: 29, hindex: 52 },
+      { year: '2026', citations: 3120, papers: 32, hindex: 56 },
+    ];
+  }
+  if (norm.includes('joseph') || norm.includes('rietveld')) {
+    return [
+      { year: '2020', citations: 2500, papers: 30, hindex: 48 },
+      { year: '2021', citations: 3200, papers: 36, hindex: 53 },
+      { year: '2022', citations: 4050, papers: 42, hindex: 59 },
+      { year: '2023', citations: 4800, papers: 48, hindex: 64 },
+      { year: '2024', citations: 5400, papers: 52, hindex: 69 },
+      { year: '2025', citations: 6050, papers: 58, hindex: 74 },
+      { year: '2026', citations: 6490, papers: 63, hindex: 78 },
+    ];
+  }
+  // Default to Ali Zerehsaz
+  return [
+    { year: '2020', citations: 400, papers: 3, hindex: 21 },
+    { year: '2021', citations: 650, papers: 5, hindex: 25 },
+    { year: '2022', citations: 910, papers: 8, hindex: 30 },
+    { year: '2023', citations: 1120, papers: 10, hindex: 34 },
+    { year: '2024', citations: 1400, papers: 12, hindex: 38 },
+    { year: '2025', citations: 1650, papers: 14, hindex: 41 },
+    { year: '2026', citations: 1840, papers: 16, hindex: 42 },
+  ];
+};
+
 export const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dossier' | 'configurator' | 'credentials'>('dossier');
   const [profileImage, setProfileImage] = useState<string | null>(() => {
@@ -227,6 +269,17 @@ export const ProfilePage: React.FC = () => {
   });
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Connection Ping / Security Latency state
+  const [dbLatencies, setDbLatencies] = useState<Record<string, string>>({});
+  const [isPinging, setIsPinging] = useState(false);
+
+  // Badge Verification status scanner mock
+  const [verifiedBadges, setVerifiedBadges] = useState<Record<string, 'idle' | 'scanning' | 'verified'>>({});
+  const [verificationLogs, setVerificationLogs] = useState<Record<string, string[]>>({});
+
+  // jsPDF dynamic download state
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   // Core profile data loaded from localStorage or default
   const [profile, setProfile] = useState<ProfileData>(() => {
@@ -240,6 +293,165 @@ export const ProfilePage: React.FC = () => {
     }
     return PRESETS.ali;
   });
+
+  const handlePingDatabases = async () => {
+    setIsPinging(true);
+    setDbLatencies({});
+    const keys = ['ICDD', 'COD', 'RRUFF', 'ICSD', 'CSD'] as const;
+    for (const k of keys) {
+      await new Promise(r => setTimeout(r, 180 + Math.random() * 200));
+      setDbLatencies(prev => ({
+        ...prev,
+        [k]: `${(3 + Math.random() * 12).toFixed(1)} ms`
+      }));
+    }
+    setIsPinging(false);
+  };
+
+  const handleVerifyBadge = async (badgeId: string) => {
+    setVerifiedBadges(prev => ({ ...prev, [badgeId]: 'scanning' }));
+    setVerificationLogs(prev => ({ 
+      ...prev, 
+      [badgeId]: ['[SCAN] Initiating quantum-secured biometric handshake...', '[SCAN] Overlapping current physical lattice coordinates...'] 
+    }));
+    
+    await new Promise(r => setTimeout(r, 500));
+    setVerificationLogs(prev => ({ 
+      ...prev, 
+      [badgeId]: [...(prev[badgeId] || []), '[DECRYPT] Reading encrypted custom security chip payload...', '[DECRYPT] Verifying matching identity references...'] 
+    }));
+    
+    await new Promise(r => setTimeout(r, 600));
+    setVerificationLogs(prev => ({ 
+      ...prev, 
+      [badgeId]: [...(prev[badgeId] || []), '[AUTH] Handshaking securely with ICDD signature directory...', '[AUTH] Generating real-time SHA-256 certificate validation hash...'] 
+    }));
+    
+    await new Promise(r => setTimeout(r, 500));
+    setVerifiedBadges(prev => ({ ...prev, [badgeId]: 'verified' }));
+    setVerificationLogs(prev => ({ 
+      ...prev, 
+      [badgeId]: [...(prev[badgeId] || []), '[OK] VERIFIED POSITIVE - CLEARANCE PROTOCOLS STATUS: FULLY GRANTED'] 
+    }));
+  };
+
+  const handleExportPDF = () => {
+    setIsExportingPDF(true);
+    try {
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const width = doc.internal.pageSize.getWidth(); // 297 mm
+      const height = doc.internal.pageSize.getHeight(); // 210 mm
+
+      // Inner borders
+      doc.setDrawColor(30, 41, 59);
+      doc.setLineWidth(1.5);
+      doc.rect(8, 8, width - 16, height - 16);
+
+      doc.setDrawColor(196, 154, 108);
+      doc.setLineWidth(0.5);
+      doc.rect(11, 11, width - 22, height - 22);
+
+      // Border corner crosses
+      const cs = 4;
+      doc.setDrawColor(196, 154, 108);
+      doc.setLineWidth(1);
+      doc.line(11, 11 + cs, 11 + cs, 11);
+      doc.line(width - 11, 11 + cs, width - 11 - cs, 11);
+      doc.line(11, height - 11 - cs, 11 + cs, height - 11);
+      doc.line(width - 11, height - 11 - cs, width - 11 - cs, height - 11);
+
+      // Text elements
+      doc.setTextColor(79, 70, 229);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('UNIVERSAL CRYSTALLOGRAPHIC COMMISSION', width / 2, 28, { align: 'center' });
+
+      doc.setTextColor(30, 41, 59);
+      doc.setFont('Times', 'italic');
+      doc.setFontSize(28);
+      doc.text('Certificate of Analytical Eminence', width / 2, 45, { align: 'center' });
+
+      doc.setDrawColor(196, 154, 108);
+      doc.setLineWidth(0.75);
+      doc.line(width / 2 - 40, 52, width / 2 + 40, 52);
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(11);
+      doc.text('THIS DECREE CONFIRMS THE DIGNITY AND TITLE OF', width / 2, 65, { align: 'center' });
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('Times', 'bolditalic');
+      doc.setFontSize(36);
+      doc.text(`${profile.firstName} ${profile.lastName}`, width / 2, 85, { align: 'center' });
+
+      doc.setDrawColor(79, 70, 229);
+      doc.setLineWidth(1.5);
+      doc.line(width / 2 - 60, 92, width / 2 + 60, 92);
+
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(10.5);
+      const dec = `RECOGNIZED INTERNATIONALLY AS A PREEMINENT LABORATORY DIRECTOR, EXPERT IN THE COMPOSITION OF SOLID-STATE MATTER AND DIFFRACTION PHASES, DEMONSTRATING EXTRAORDINARY CAPABILITIES IN AUTOMATED AND FULL-PROFILE MATHEMATICAL REFINEMENTS.`;
+      const splitDec = doc.splitTextToSize(dec, width - 80);
+      doc.text(splitDec, width / 2, 105, { align: 'center', lineHeightFactor: 1.4 });
+
+      // Info Footer
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(9.5);
+      doc.text(`ID REFERENCE: ${profile.idReference}`, 40, 142);
+      doc.text(`CLASSIFICATION: ${profile.classification}`, 40, 148);
+      doc.text(`CLEARANCE DECREE: LEVEL L-5 SUPERIOR`, 40, 154);
+
+      // Impact indices panel
+      doc.rect(width - 130, 135, 90, 24);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text('VERIFIED LAB RECORD INDEX', width - 125, 140);
+      doc.setFont('Courier', 'bold');
+      doc.setFontSize(8);
+      doc.text(`H-INDEX METRIC: ${profile.stats.hIndex}`, width - 125, 146);
+      doc.text(`CITATION INDEX: ${profile.stats.citations}`, width - 125, 151);
+      doc.text(`SCANS COMPILED : ${profile.stats.scansAnalyzed}`, width - 125, 156);
+
+      // Signs
+      doc.setDrawColor(148, 163, 184);
+      doc.setLineWidth(0.5);
+      doc.line(40, 182, 110, 182);
+      doc.setFont('Times', 'italic');
+      doc.setFontSize(11);
+      doc.setTextColor(51, 65, 85);
+      doc.text('International XRD Board Representative', 75, 188, { align: 'center' });
+
+      // Seal
+      doc.setDrawColor(79, 70, 229);
+      doc.setLineWidth(1);
+      doc.circle(width / 2, 180, 10);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(6.5);
+      doc.setTextColor(79, 70, 229);
+      doc.text('SECURE SEAL', width / 2, 178, { align: 'center' });
+      doc.text('L-5 APPROVED', width / 2, 183, { align: 'center' });
+
+      doc.line(width - 110, 182, width - 40, 182);
+      doc.setFont('Times', 'italic');
+      doc.setFontSize(11);
+      doc.text('Crystallography Commission Secretary', width - 75, 188, { align: 'center' });
+
+      doc.save(`UCC_Certificate_${profile.firstName}_${profile.lastName}.pdf`);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
 
   // Load standard database configurations
   const [profileDbConfigs, setProfileDbConfigs] = useState(() => {
@@ -630,7 +842,54 @@ export const ProfilePage: React.FC = () => {
                      ))}
                    </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   {/* Analytical Performance Tracking Trend Chart */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] p-6 lg:p-8 shadow-sm space-y-6 relative overflow-hidden group mb-8">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[40px] rounded-full pointer-events-none" />
+                    <div className="flex justify-between items-center flex-wrap gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-indigo-500/10 rounded-xl animate-pulse">
+                          <Activity className="w-5 h-5 text-indigo-500" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Analytical Output & Citation Performance</h4>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Historical Scopus/Nature diffraction citation & index trends</p>
+                        </div>
+                      </div>
+                      <div className="px-3 py-1 bg-indigo-500/5 dark:bg-indigo-550/10 border border-indigo-550/20 rounded-md text-[9px] font-mono font-bold text-indigo-500">
+                        ACTIVE NODE: UCC-{profile.firstName.toUpperCase()}-VERIFIED
+                      </div>
+                    </div>
+
+                    <div className="h-64 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={getTrendData(profile.firstName)} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorCitations" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" className="dark:hidden" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" className="hidden dark:block" />
+                          <XAxis dataKey="year" stroke="#94a3b8" fontSize={10} fontFamily="JetBrains Mono" />
+                          <YAxis stroke="#94a3b8" fontSize={10} fontFamily="JetBrains Mono" />
+                          <ChartTooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                              borderColor: '#6366f1', 
+                              borderRadius: '1rem',
+                              padding: '0.75rem',
+                              color: '#fff',
+                            }}
+                            labelStyle={{ fontFamily: 'JetBrains Mono', fontSize: '10px', color: '#6366f1', fontWeight: 'bold' }}
+                          />
+                          <Area type="monotone" dataKey="citations" name="Total Citations" stroke="#6366f1" strokeWidth={2.5} fillOpacity={1} fill="url(#colorCitations)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      
                      {/* Skills list cards */}
                      <div className="group p-8 bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 hover:border-indigo-500/30 transition-all shadow-sm space-y-6">
@@ -785,9 +1044,21 @@ export const ProfilePage: React.FC = () => {
                              </div>
                           </div>
                           
-                          <div className="flex gap-2 text-[8px] font-black uppercase tracking-widest leading-none shrink-0">
-                             <div className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded font-mono font-black">
-                                SYSTEM CONVERGENCE: STABLE
+                          <div className="flex gap-2 items-center text-[8px] font-black uppercase tracking-widest leading-none shrink-0" id="verify-latency-container">
+                             <button
+                                onClick={handlePingDatabases}
+                                disabled={isPinging}
+                                className="px-4 py-2 bg-indigo-650 hover:bg-indigo-600 border border-indigo-500/30 text-white rounded-xl transition-all cursor-pointer font-black font-sans uppercase flex items-center gap-1.5 shadow-md shadow-indigo-650/20 disabled:opacity-50"
+                             >
+                               {isPinging ? (
+                                 <Loader2 size={10} className="animate-spin text-white" />
+                               ) : (
+                                 <RefreshCw size={10} className="text-white" />
+                               )}
+                               <span>{isPinging ? 'Pinging Nodes...' : 'Verify API Latencies'}</span>
+                             </button>
+                             <div className="px-3 py-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-xl font-mono font-black">
+                                CONVERGENCE: ACTIVE
                              </div>
                           </div>
                        </div>
@@ -849,6 +1120,16 @@ export const ProfilePage: React.FC = () => {
                                             {item.path}
                                          </span>
                                       </div>
+
+                                      {/* Latency verified indicator overlay */}
+                                      {dbLatencies[dbKey] && (
+                                         <div className="space-y-1 pt-1.5 border-t border-dashed border-slate-200 dark:border-slate-800">
+                                            <span className="block text-[7.5px] font-black text-indigo-400 uppercase">LATENCY RESPONSE:</span>
+                                            <span className="block text-[9.5px] font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 dark:bg-emerald-555/10 py-1 px-1.5 rounded-xl truncate flex items-center justify-center gap-1">
+                                               ⚡ {dbLatencies[dbKey]}
+                                            </span>
+                                         </div>
+                                      )}
                                    </div>
                                 </div>
                              );
