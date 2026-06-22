@@ -1079,7 +1079,16 @@ export function getElectronConfig(number: number): string {
     118: '[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶'
   };
 
-  return exactConfigs[number] || `[Inert] Config ${number}`;
+  const str = exactConfigs[number] || `[Inert] Config ${number}`;
+  
+  // Expand noble gas notation
+  return str
+    .replace('[He]', '1s²')
+    .replace('[Ne]', '1s² 2s² 2p⁶')
+    .replace('[Ar]', '1s² 2s² 2p⁶ 3s² 3p⁶')
+    .replace('[Kr]', '1s² 2s² 2p⁶ 3s² 3p⁶ 3d¹⁰ 4s² 4p⁶')
+    .replace('[Xe]', '1s² 2s² 2p⁶ 3s² 3p⁶ 3d¹⁰ 4s² 4p⁶ 4d¹⁰ 5s² 5p⁶')
+    .replace('[Rn]', '1s² 2s² 2p⁶ 3s² 3p⁶ 3d¹⁰ 4s² 4p⁶ 4d¹⁰ 5s² 5p⁶ 4f¹⁴ 5d¹⁰ 6s² 6p⁶');
 }
 
 // Returns standard properties or derives approximation if not listed

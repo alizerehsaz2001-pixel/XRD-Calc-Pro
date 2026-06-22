@@ -10,7 +10,7 @@ import {
   ResponsiveContainer, Legend, Tooltip as RechartsTooltip
 } from 'recharts';
 import { playSynthTone } from '../utils/sound';
-import { getFactualProperties, ScientificProperties } from './ChemicalPhysicalPropertiesDb';
+import { getFactualProperties, getElectronConfig, ScientificProperties } from './ChemicalPhysicalPropertiesDb';
 
 export interface FamousCompound {
   formula: string;
@@ -58,8 +58,26 @@ export const isCrystalMaterial = (number: number): boolean => {
 
 export const getPhysicalStateLabel = (number: number): string => {
   if (number === 35 || number === 80) return 'LIQ';
-  if ([1, 2, 7, 8, 9, 10, 17, 18, 36, 54].includes(number)) return 'GAS';
+  if ([1, 2, 7, 8, 9, 10, 17, 18, 36, 54, 86].includes(number)) return 'GAS';
   return 'SOLID';
+};
+
+export const getPhysicalStateAtTemp = (number: number, meltingPoint: number, boilingPoint: number | undefined, currentTemperatureCelcius: number): 'solid' | 'liquid' | 'gas' | 'unknown' => {
+  if (meltingPoint === undefined || isNaN(meltingPoint)) return 'unknown';
+  
+  if (currentTemperatureCelcius < meltingPoint) return 'solid';
+  
+  // If we don't have boiling point but we know it's above melting point
+  if (boilingPoint === undefined || isNaN(boilingPoint)) {
+    if (number === 35 && currentTemperatureCelcius >= 58.8) return 'gas'; // Br
+    if (number === 80 && currentTemperatureCelcius >= 356.7) return 'gas'; // Hg
+    // Helium special case (mp is at high pressure, normally it doesn't freeze at 1atm)
+    if (number === 2 && currentTemperatureCelcius >= -268.9) return 'gas';
+    return 'liquid'; 
+  }
+  
+  if (currentTemperatureCelcius >= boilingPoint) return 'gas';
+  return 'liquid';
 };
 
 // 3D Point presentation format helper
@@ -440,6 +458,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [compareSubjectAId, setCompareSubjectAId] = useState<string>('element-14');
   const [compareSubjectBId, setCompareSubjectBId] = useState<string>('compound-SiO2 (Quartz)');
   const [detailSubTab, setDetailSubTab] = useState<'lattice' | 'chemical' | 'physical'>('lattice');
+  const [temperature, setTemperature] = useState<number>(25); // °C
 
   // Deep scientific properties of crystallographic elements
   const elementsDb = useMemo<Record<number, Partial<CrystalElement>>>(() => ({
@@ -1365,6 +1384,34 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
     }
   };
 
+  const getElementColorClasses = (cat: string, status: 'active' | 'match' | 'normal' | 'disabled') => {
+    // Generate color-specific gorgeous styles
+    const colors: Record<string, { active: string, match: string, disabled: string }> = {
+      'alkali': { active: 'ring-red-400 bg-red-900/80 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.6)] text-white', match: 'border-red-500/40 bg-red-950/40 hover:border-red-400 hover:bg-red-900/60 hover:shadow-[0_0_10px_rgba(239,68,68,0.2)] text-red-200', disabled: 'border-red-500/10 bg-red-950/10 text-red-400/40 opacity-30' },
+      'alkaline_earth': { active: 'ring-yellow-400 bg-yellow-900/80 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.6)] text-white', match: 'border-yellow-500/40 bg-yellow-950/40 hover:border-yellow-400 hover:bg-yellow-900/60 hover:shadow-[0_0_10px_rgba(234,179,8,0.2)] text-yellow-200', disabled: 'border-yellow-500/10 bg-yellow-950/10 text-yellow-400/40 opacity-30' },
+      'transition_metal': { active: 'ring-blue-400 bg-blue-900/80 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)] text-white', match: 'border-blue-500/40 bg-blue-950/40 hover:border-blue-400 hover:bg-blue-900/60 hover:shadow-[0_0_10px_rgba(59,130,246,0.2)] text-blue-200', disabled: 'border-blue-500/10 bg-blue-950/10 text-blue-400/40 opacity-30' },
+      'post_transition': { active: 'ring-emerald-400 bg-emerald-900/80 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.6)] text-white', match: 'border-emerald-500/40 bg-emerald-950/40 hover:border-emerald-400 hover:bg-emerald-900/60 hover:shadow-[0_0_10px_rgba(16,185,129,0.2)] text-emerald-200', disabled: 'border-emerald-500/10 bg-emerald-950/10 text-emerald-400/40 opacity-30' },
+      'metalloid': { active: 'ring-cyan-400 bg-cyan-900/80 border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.6)] text-white', match: 'border-cyan-500/40 bg-cyan-950/40 hover:border-cyan-400 hover:bg-cyan-900/60 hover:shadow-[0_0_10px_rgba(6,182,212,0.2)] text-cyan-200', disabled: 'border-cyan-500/10 bg-cyan-950/10 text-cyan-400/40 opacity-30' },
+      'nonmetal': { active: 'ring-fuchsia-400 bg-fuchsia-900/80 border-fuchsia-500 shadow-[0_0_15px_rgba(217,70,239,0.6)] text-white', match: 'border-fuchsia-500/40 bg-fuchsia-950/40 hover:border-fuchsia-400 hover:bg-fuchsia-900/60 hover:shadow-[0_0_10px_rgba(217,70,239,0.2)] text-fuchsia-200', disabled: 'border-fuchsia-500/10 bg-fuchsia-950/10 text-fuchsia-400/40 opacity-30' },
+      'noble_gas': { active: 'ring-slate-400 bg-slate-700 border-slate-300 shadow-[0_0_15px_rgba(148,163,184,0.6)] text-white', match: 'border-slate-500/40 bg-slate-800/50 hover:border-slate-400 hover:bg-slate-700/60 hover:shadow-[0_0_10px_rgba(148,163,184,0.2)] text-slate-200', disabled: 'border-slate-600/20 bg-slate-900/50 text-slate-400/40 opacity-30' },
+      'lanthanoid': { active: 'ring-amber-400 bg-amber-900/80 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.6)] text-white', match: 'border-amber-500/40 bg-amber-950/40 hover:border-amber-400 hover:bg-amber-900/60 hover:shadow-[0_0_10px_rgba(245,158,11,0.2)] text-amber-200', disabled: 'border-amber-500/10 bg-amber-950/10 text-amber-400/40 opacity-30' },
+      'actinoid': { active: 'ring-rose-400 bg-rose-900/80 border-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.6)] text-white', match: 'border-rose-500/40 bg-rose-950/40 hover:border-rose-400 hover:bg-rose-900/60 hover:shadow-[0_0_10px_rgba(244,63,94,0.2)] text-rose-200', disabled: 'border-rose-500/10 bg-rose-950/10 text-rose-400/40 opacity-30' },
+    };
+    
+    const mapped = colors[cat] || { active: 'ring-slate-400 bg-slate-800 border-slate-400 text-white', match: 'border-slate-600 bg-slate-800 text-slate-300 hover:border-slate-500 hover:shadow-lg', disabled: 'border-slate-800 bg-slate-900/50 text-slate-600/50 opacity-30' };
+
+    switch (status) {
+      case 'active':
+        return `ring-1 z-30 scale-[1.08] font-bold cursor-pointer transition-all duration-300 ${mapped.active}`;
+      case 'match':
+        return `z-10 cursor-pointer transition-all duration-500 hover:scale-[1.03] hover:z-20 border-[0.5px] ${mapped.match}`;
+      case 'normal':
+        return `border-[0.5px] pointer-events-none scale-98 transition-all duration-700 ${mapped.disabled}`;
+      case 'disabled':
+        return `border-[0.5px] border-slate-800 bg-slate-950/20 text-slate-600/20 scale-95 cursor-not-allowed select-none opacity-20 transition-all duration-700 grayscale`;
+    }
+  };
+
   const activeBadgeColor = (cat: string) => {
     switch (cat) {
       case 'alkali': return 'bg-red-500/10 text-red-400 border border-red-500/20';
@@ -1392,21 +1439,22 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
   return (
     <div id="crystallography-periodic-table-suite" className="space-y-6">
-      <div className="relative overflow-hidden rounded-xl border border-slate-800/60 bg-slate-900/40 p-6 md:p-8">
-        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/10 to-transparent blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-[24px] border border-white/5 bg-[#0B0F19] p-6 md:p-8 shadow-2xl isolate">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-[#0B0F19] to-[#0B0F19] pointer-events-none" />
+        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/20 to-transparent blur-[80px] pointer-events-none" />
         
         <div className="flex flex-col gap-4 md:flex-row md:items-start justify-between relative z-10">
           <div className="space-y-3 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800/50 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-slate-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-indigo-300">
                 Lattice Explorer
               </span>
             </div>
             
-            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            <h2 className="text-2xl font-bold tracking-tight text-white sm:text-4xl bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400">
               Periodic Table & Crystallography
             </h2>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-xl">
+            <p className="text-sm text-slate-400 leading-relaxed max-w-xl font-medium">
               Explore structural lattices, Bravais symmetries, space groups, and atomic geometries. Select elements to view unit cell projections, edit properties, and load compound data into the spectrometer.
             </p>
           </div>
@@ -1467,7 +1515,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
       {activeTab === 'grid' ? (
         <>
           {/* Grid Controller, Filters and Inputs bar */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl shadow-xl backdrop-blur-md">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl shadow-xl backdrop-blur-md mb-2">
             <div className="relative col-span-1 md:col-span-2 group">
               <input
                 type="text"
@@ -1501,6 +1549,46 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                 <svg className="w-3 h-3 text-slate-500 group-hover:text-slate-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
               </div>
             </div>
+            
+            {/* Added: State of Matter Temperature Slider */}
+            <div className="col-span-1 md:col-span-4 bg-slate-950/50 rounded-xl px-4 py-3 border border-slate-800 flex flex-col sm:flex-row items-center gap-4">
+              <div className="flex-shrink-0 min-w-[200px]">
+                <div className="flex justify-between items-center text-xs font-black uppercase tracking-wider text-slate-400 mb-2">
+                  <span>Temperature / State</span>
+                  <span className="text-white bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700">
+                    {Math.round(temperature)} °C <span className="text-slate-500 ml-1">({Math.round(temperature + 273.15)} K)</span>
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="-273.15"
+                  max="6000"
+                  step="1"
+                  value={temperature}
+                  onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                  className="w-full accent-emerald-500 h-1.5 bg-slate-900 rounded-lg cursor-pointer appearance-none"
+                />
+              </div>
+              
+              <div className="flex-1 flex justify-evenly sm:justify-start gap-4 text-[10px] uppercase font-bold tracking-widest text-slate-500 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-slate-400"></div>
+                  <span>Solid</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                  <span className="text-blue-400">Liquid</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]"></div>
+                  <span className="text-rose-400">Gas</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]"></div>
+                  <span className="text-purple-400">Unknown / Presumed</span>
+                </div>
+              </div>
+            </div>
           </div>
 
       {/* Principal Splitted Workspace Grid Area */}
@@ -1509,10 +1597,15 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
         {/* Left Column (Span 8): Interactive Periodic Table Layout with Glowing Frames */}
         <div className="col-span-1 lg:col-span-8 space-y-5 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
           <div 
-            className="grid gap-1.5 p-5 bg-slate-950/90 border border-slate-850 rounded-2xl shadow-2xl relative min-w-[780px] select-none"
+            className="grid gap-1.5 p-6 bg-[#0B0F19] border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.5)] rounded-[24px] relative min-w-[780px] select-none"
             style={{ gridTemplateColumns: 'repeat(18, minmax(0, 1fr))' }}
           >
-            {/* Grid Coordinates Generator Loops */}
+            {/* Ambient Background Glow for the Table Container */}
+            <div className="absolute inset-x-0 -top-40 h-80 bg-indigo-500/10 blur-[100px] pointer-events-none" />
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+
+            <div className="relative z-10 grid gap-1.5 w-full" style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(18, minmax(0, 1fr))' }}>
+              {/* Grid Coordinates Generator Loops */}
             {Array.from({ length: 7 }, (_, rowIndex) => rowIndex + 1).map(row => (
               <React.Fragment key={`row-${row}`}>
                 {Array.from({ length: 18 }, (_, colIndex) => colIndex + 1).map(col => {
@@ -1526,18 +1619,22 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
                   const isActive = selectedElement === el.number;
                   const isXtal = isCrystalMaterial(el.number);
+                  const stateAtTemp = getPhysicalStateAtTemp(el.number, el.meltingPoint, (el as any).boilingPoint, temperature);
                   
-                  // Calculate dynamic visual borders basing on categories
-                  let borderClasses = '';
-                  if (!isXtal) {
-                    borderClasses = 'bg-slate-950/30 border-slate-900/50 text-slate-600 opacity-20 cursor-not-allowed select-none scale-98';
-                  } else if (isActive) {
-                    borderClasses = 'border-indigo-400 ring-1 ring-indigo-500 shadow-md shadow-indigo-500/20 bg-slate-800 z-20 scale-102 font-bold cursor-pointer text-white';
-                  } else if (isMatch) {
-                    borderClasses = 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-indigo-500 hover:bg-slate-800 cursor-pointer transition-colors duration-150 relative z-10';
-                  } else {
-                    borderClasses = 'opacity-30 bg-slate-950/20 border-slate-900 text-slate-600 scale-98 pointer-events-none';
-                  }
+                  let stateStatus: 'active' | 'match' | 'normal' | 'disabled' = 'normal';
+                  if (isActive) stateStatus = 'active';
+                  else if (isMatch && isXtal) stateStatus = 'match';
+                  else if (isMatch && !isXtal) stateStatus = 'disabled';
+                  else stateStatus = 'normal';
+
+                  const borderClasses = getElementColorClasses(el.category, stateStatus);
+
+                  // Temperature state styling
+                  let stateDotClasses = 'bg-slate-500';
+                  if (stateAtTemp === 'solid') stateDotClasses = 'bg-slate-400';
+                  if (stateAtTemp === 'liquid') stateDotClasses = 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]';
+                  if (stateAtTemp === 'gas') stateDotClasses = 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]';
+                  if (stateAtTemp === 'unknown') stateDotClasses = 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.6)]';
 
                   return (
                     <button
@@ -1547,13 +1644,15 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                         playSynthTone('switch');
                       } : undefined}
                       disabled={!isXtal}
-                      className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative ${borderClasses}`}
-                      title={isXtal ? `${el.name} (${el.crystalStructure} lattice)` : `${el.name} (Non-crystalline ${getPhysicalStateLabel(el.number).toLowerCase()})`}
+                      className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
+                      title={isXtal ? `${el.name} (${el.crystalStructure} lattice) - ${stateAtTemp}` : `${el.name} (Non-crystalline ${getPhysicalStateLabel(el.number).toLowerCase()}) - ${stateAtTemp}`}
                     >
+                      <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-slate-950 ${stateDotClasses} transition-colors duration-500 z-20`} />
+                      
                       <div className="flex justify-between items-center w-full">
                         <span className="text-[7.5px] font-mono text-slate-500 font-black">{el.number}</span>
                         {isXtal && el.famousCompounds && el.famousCompounds.length > 0 && (
-                          <span className="w-1 h-1 rounded-full bg-rose-400" title="Has famous XRD library components" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 opacity-80" title="Has famous XRD library components" />
                         )}
                       </div>
                       
@@ -1562,7 +1661,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                       <div className="flex justify-between items-center w-full mt-auto">
                         <span className="text-[6.5px] truncate max-w-[70%] text-slate-400 leading-none">{el.name}</span>
                         <span className={`text-[5.5px] font-mono font-black scale-90 tracking-tighter px-0.5 rounded bg-slate-950/60 ${isXtal ? 'text-indigo-300' : 'text-slate-500'}`}>
-                          {isXtal ? el.crystalStructure.substring(0, 3) : getPhysicalStateLabel(el.number)}
+                          {isXtal ? el.crystalStructure.substring(0, 3) : stateAtTemp === 'solid' ? 'SOL' : stateAtTemp === 'liquid' ? 'LIQ' : stateAtTemp === 'gas' ? 'GAS' : getPhysicalStateLabel(el.number)}
                         </span>
                       </div>
                     </button>
@@ -1583,16 +1682,21 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               const isMatch = filteredElements.some(f => f.number === el.number);
               const isActive = selectedElement === el.number;
               const isXtal = isCrystalMaterial(el.number);
-              let borderClasses = '';
-              if (!isXtal) {
-                borderClasses = 'bg-slate-950/30 border-slate-900/50 text-slate-600 opacity-20 cursor-not-allowed select-none scale-98';
-              } else if (isActive) {
-                borderClasses = 'border-amber-400 ring-1 ring-amber-500 shadow-md bg-slate-800 scale-102 z-20 font-bold cursor-pointer text-white';
-              } else if (isMatch) {
-                borderClasses = 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-amber-500 hover:bg-slate-800 cursor-pointer transition-colors duration-150 relative z-10';
-              } else {
-                borderClasses = 'opacity-30 bg-slate-950/20 border-slate-900 text-slate-600 scale-98 pointer-events-none';
-              }
+              const stateAtTemp = getPhysicalStateAtTemp(el.number, el.meltingPoint, (el as any).boilingPoint, temperature);
+              
+              let stateStatus: 'active' | 'match' | 'normal' | 'disabled' = 'normal';
+              if (isActive) stateStatus = 'active';
+              else if (isMatch && isXtal) stateStatus = 'match';
+              else if (isMatch && !isXtal) stateStatus = 'disabled';
+              else stateStatus = 'normal';
+
+              const borderClasses = getElementColorClasses(el.category, stateStatus);
+
+              let stateDotClasses = 'bg-slate-500';
+              if (stateAtTemp === 'solid') stateDotClasses = 'bg-slate-400';
+              if (stateAtTemp === 'liquid') stateDotClasses = 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]';
+              if (stateAtTemp === 'gas') stateDotClasses = 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]';
+              if (stateAtTemp === 'unknown') stateDotClasses = 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.6)]';
 
               return (
                 <button
@@ -1602,16 +1706,18 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                     playSynthTone('switch');
                   } : undefined}
                   disabled={!isXtal}
-                  className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 ${borderClasses}`}
-                  title={isXtal ? `${el.name} - ${el.crystalStructure}` : `${el.name} (Non-crystalline ${getPhysicalStateLabel(el.number).toLowerCase()})`}
+                  className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
+                  title={isXtal ? `${el.name} - ${el.crystalStructure} - ${stateAtTemp}` : `${el.name} (Non-crystalline ${getPhysicalStateLabel(el.number).toLowerCase()}) - ${stateAtTemp}`}
                 >
-                  <span className="text-[7px] font-mono text-slate-500 font-bold">{el.number}</span>
+                  <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-slate-950 ${stateDotClasses} transition-colors duration-500 z-20`} />
+                  
+                  <span className="text-[7px] font-mono text-slate-500 font-bold text-left">{el.number}</span>
                   <span className="text-sm font-black tracking-tight text-center block my-0.5">{el.symbol}</span>
                   
                   <div className="flex justify-between items-center w-full mt-auto">
                     <span className="text-[6px] truncate max-w-[70%] text-slate-400 leading-none">{el.name}</span>
                     <span className={`text-[5.5px] font-mono font-black scale-90 tracking-tighter px-0.5 rounded bg-slate-950/60 ${isXtal ? 'text-indigo-300' : 'text-slate-500'}`}>
-                      {isXtal ? el.crystalStructure.substring(0, 3) : getPhysicalStateLabel(el.number)}
+                      {isXtal ? el.crystalStructure.substring(0, 3) : stateAtTemp === 'solid' ? 'SOL' : stateAtTemp === 'liquid' ? 'LIQ' : stateAtTemp === 'gas' ? 'GAS' : getPhysicalStateLabel(el.number)}
                     </span>
                   </div>
                 </button>
@@ -1627,16 +1733,21 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               const isMatch = filteredElements.some(f => f.number === el.number);
               const isActive = selectedElement === el.number;
               const isXtal = isCrystalMaterial(el.number);
-              let borderClasses = '';
-              if (!isXtal) {
-                borderClasses = 'bg-slate-950/30 border-slate-900/50 text-slate-600 opacity-20 cursor-not-allowed select-none scale-98';
-              } else if (isActive) {
-                borderClasses = 'border-rose-400 ring-1 ring-rose-500 shadow-md bg-slate-800 scale-102 z-20 font-bold cursor-pointer text-white';
-              } else if (isMatch) {
-                borderClasses = 'bg-slate-900/80 border-slate-700 text-slate-300 hover:border-rose-500 hover:bg-slate-800 cursor-pointer transition-colors duration-150 relative z-10';
-              } else {
-                borderClasses = 'opacity-30 bg-slate-950/20 border-slate-900 text-slate-600 scale-98 pointer-events-none';
-              }
+              const stateAtTemp = getPhysicalStateAtTemp(el.number, el.meltingPoint, (el as any).boilingPoint, temperature);
+              
+              let stateStatus: 'active' | 'match' | 'normal' | 'disabled' = 'normal';
+              if (isActive) stateStatus = 'active';
+              else if (isMatch && isXtal) stateStatus = 'match';
+              else if (isMatch && !isXtal) stateStatus = 'disabled';
+              else stateStatus = 'normal';
+
+              const borderClasses = getElementColorClasses(el.category, stateStatus);
+
+              let stateDotClasses = 'bg-slate-500';
+              if (stateAtTemp === 'solid') stateDotClasses = 'bg-slate-400';
+              if (stateAtTemp === 'liquid') stateDotClasses = 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.6)]';
+              if (stateAtTemp === 'gas') stateDotClasses = 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]';
+              if (stateAtTemp === 'unknown') stateDotClasses = 'bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.6)]';
 
               return (
                 <button
@@ -1646,21 +1757,24 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                     playSynthTone('switch');
                   } : undefined}
                   disabled={!isXtal}
-                  className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 ${borderClasses}`}
-                  title={isXtal ? `${el.name} - ${el.crystalStructure}` : `${el.name} (Non-crystalline ${getPhysicalStateLabel(el.number).toLowerCase()})`}
+                  className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
+                  title={isXtal ? `${el.name} - ${el.crystalStructure} - ${stateAtTemp}` : `${el.name} (Non-crystalline ${getPhysicalStateLabel(el.number).toLowerCase()}) - ${stateAtTemp}`}
                 >
-                  <span className="text-[7px] font-mono text-slate-500 font-bold">{el.number}</span>
+                  <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-slate-950 ${stateDotClasses} transition-colors duration-500 z-20`} />
+                  
+                  <span className="text-[7px] font-mono text-slate-500 font-bold text-left">{el.number}</span>
                   <span className="text-sm font-black tracking-tight text-center block my-0.5">{el.symbol}</span>
                   
                   <div className="flex justify-between items-center w-full mt-auto">
                     <span className="text-[6px] truncate max-w-[75%] text-slate-400 leading-none">{el.name}</span>
-                    <span className={`text-[5.5px] font-mono font-black scale-90 tracking-tighter px-0.5 rounded bg-slate-950/60 ${isXtal ? 'text-indigo-300' : 'text-slate-500'}`}>
-                      {isXtal ? el.crystalStructure.substring(0, 3) : getPhysicalStateLabel(el.number)}
+                    <span className={`text-[5.5px] font-mono font-black scale-90 tracking-tighter px-0.5 rounded bg-slate-950/60 ${isXtal ? 'text-rose-300' : 'text-slate-500'}`}>
+                      {isXtal ? el.crystalStructure.substring(0, 3) : stateAtTemp === 'solid' ? 'SOL' : stateAtTemp === 'liquid' ? 'LIQ' : stateAtTemp === 'gas' ? 'GAS' : getPhysicalStateLabel(el.number)}
                     </span>
                   </div>
                 </button>
               );
             })}
+            </div>
           </div>
 
           {/* Color Key block legends mapping */}
@@ -1696,23 +1810,25 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -15 }}
                 transition={{ duration: 0.18 }}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-2xl relative"
+                className="bg-[#0B0F19]/80 backdrop-blur-2xl border border-white/5 rounded-[24px] p-6 space-y-5 shadow-[0_0_40px_rgba(0,0,0,0.5)] relative overflow-hidden ring-1 ring-white/5"
               >
                 {/* Element Profiler Ribbon Header */}
-                <div className="flex items-start justify-between border-b border-slate-800/80 pb-4">
-                  <div className="space-y-1 max-w-[65%]">
+                <div className="flex items-start justify-between border-b border-white/5 pb-5 relative">
+                  <div className="absolute inset-x-0 -top-10 h-32 bg-indigo-500/10 blur-[50px] pointer-events-none" />
+                  
+                  <div className="space-y-1.5 max-w-[65%] relative z-10">
                     <span className={`inline-block text-[8px] px-2 py-0.5 rounded-full uppercase tracking-widest font-black leading-none ${activeBadgeColor(activeElementInfo.category)}`}>
                       {activeElementInfo.category.replace('_', ' ')}
                     </span>
-                    <h3 className="text-xl font-bold text-white tracking-tight">{activeElementInfo.name}</h3>
+                    <h3 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-white to-slate-400 tracking-tight">{activeElementInfo.name}</h3>
                     <p className="text-[9.5px] font-mono text-slate-500 font-bold uppercase tracking-wider">
                       At. Weight: {activeElementInfo.weight.toFixed(4)} u
                     </p>
                   </div>
 
                   {/* Large Element Logo Plate */}
-                  <div className="relative w-16 h-16 bg-slate-950 border border-slate-800 rounded-xl flex flex-col items-center justify-center p-1.5 shadow-inner">
-                    <span className="text-[8px] font-black font-mono text-slate-500 self-start leading-none absolute top-1.5 left-1.5">
+                  <div className="relative w-16 h-16 bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 rounded-xl flex flex-col items-center justify-center p-1.5 shadow-[inset_0_2px_10px_rgba(255,255,255,0.05)] z-10">
+                    <span className="text-[8px] font-black font-mono text-slate-400 self-start leading-none absolute top-1.5 left-1.5">
                       {activeElementInfo.number}
                     </span>
                     <span className="text-2xl font-black text-white leading-none tracking-tight mt-1">
@@ -1909,11 +2025,12 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                 ) : (
                   <>
                     {/* Sub-tab navigation bar for detail views */}
-                    <div className="flex border-b border-slate-800 pb-0 gap-1 mt-1 justify-between">
+                    <div className="flex bg-[#0B0F19] p-1.5 rounded-xl border border-white/5 gap-1 mt-1 justify-between shadow-inner relative isolate overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-fuchsia-500/5 to-emerald-500/0 pointer-events-none" />
                       {([
-                        { id: 'lattice', label: 'Lattice', icon: Orbit },
-                        { id: 'chemical', label: 'Chemical', icon: Sparkles },
-                        { id: 'physical', label: 'Physical', icon: Activity }
+                        { id: 'lattice', label: 'Lattice', icon: Orbit, color: 'text-rose-400', activeBg: 'bg-rose-500/10 border-rose-500/20' },
+                        { id: 'chemical', label: 'Chemical', icon: Sparkles, color: 'text-indigo-400', activeBg: 'bg-indigo-500/10 border-indigo-500/20' },
+                        { id: 'physical', label: 'Physical', icon: Activity, color: 'text-emerald-400', activeBg: 'bg-emerald-500/10 border-emerald-500/20' }
                       ] as const).map((tab) => {
                         const Icon = tab.icon;
                         const active = detailSubTab === tab.id;
@@ -1925,13 +2042,13 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                               setDetailSubTab(tab.id);
                               playSynthTone('tick');
                             }}
-                            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 text-[10px] font-mono font-black uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
+                            className={`flex-[1] flex items-center justify-center gap-1.5 px-2 py-2 text-[10px] font-mono font-bold uppercase tracking-widest rounded-lg border-[0.5px] transition-all duration-300 cursor-pointer z-10 ${
                               active
-                                ? 'border-indigo-500 text-indigo-450 bg-indigo-950/20 rounded-t-lg'
-                                : 'border-transparent text-slate-500 hover:text-slate-350'
+                                ? `${tab.color} ${tab.activeBg} shadow-[inset_0_1px_3px_rgba(255,255,255,0.05)]`
+                                : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-white/[0.02]'
                             }`}
                           >
-                            <Icon className="w-3.5 h-3.5" />
+                            <Icon className={`w-3.5 h-3.5 ${active ? '' : 'opacity-70'}`} />
                             <span>{tab.label}</span>
                           </button>
                         );
@@ -1939,7 +2056,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                     </div>
 
                     {detailSubTab === 'lattice' && (
-                      <div className="space-y-3.5 animate-fadeIn">
+                      <div className="space-y-4 animate-fadeIn">
                         {/* Animated 3D projection widget */}
                         <CrystallineLattice3D 
                           structure={activeElementInfo.crystalStructure}
@@ -1955,7 +2072,9 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             <Info className="w-3 text-slate-400" /> Lattice Constants
                           </span>
 
-                          <div className="grid grid-cols-2 gap-2 bg-slate-950/50 p-3 rounded-xl border border-slate-800 text-xs">
+                          <div className="grid grid-cols-2 gap-3 bg-[#0B0F19] p-4 rounded-2xl border border-white/5 text-xs shadow-inner isolate relative">
+                            <div className="absolute inset-x-0 -top-12 h-20 bg-indigo-500/5 blur-[30px] pointer-events-none" />
+                            
                             <div className="space-y-0.5">
                               <div className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Space Group:</div>
                               <div className="text-slate-300 font-medium text-[11px]">
@@ -1969,21 +2088,32 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                               </div>
                             </div>
 
-                            <div className="space-y-0.5 col-span-2 border-t border-slate-800/80 pt-1.5 label-section">
+                            <div className="space-y-0.5 col-span-2 border-t border-white/5 pt-2 label-section">
+                              <div className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Crystal System & Angles:</div>
+                              <div className="text-slate-300 font-medium text-[11px] tracking-tight flex justify-between">
+                                <span className="text-indigo-300">{activeElementInfo.crystalStructure === 'BCC' ? 'Body-Centered Cubic (BCC)' : activeElementInfo.crystalStructure === 'FCC' ? 'Face-Centered Cubic (FCC)' : activeElementInfo.crystalStructure === 'HCP' ? 'Hexagonal Close-Packed (HCP)' : activeElementInfo.crystalStructure}</span>
+                                <span>
+                                  α={activeElementInfo.alpha || 90}°, β={activeElementInfo.beta || 90}°, γ={activeElementInfo.gamma || (activeElementInfo.crystalStructure === 'HCP' || activeElementInfo.crystalStructure === 'Hexagonal' ? 120 : 90)}°
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-0.5 col-span-2 border-t border-white/5 pt-2 label-section">
                               <div className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Lattice Length (a, b, c):</div>
                               <div className="text-slate-300 font-medium text-[11px] tracking-tight">
                                 a = {activeElementInfo.a.toFixed(3)} Å 
                                 {activeElementInfo.b ? `, b = ${activeElementInfo.b.toFixed(3)} Å` : ''} 
                                 {activeElementInfo.c ? `, c = ${activeElementInfo.c.toFixed(3)} Å` : ''}
+                                <span className="ml-2 text-slate-500 text-[9px]">V ≈ {((activeElementInfo.a * (activeElementInfo.b || activeElementInfo.a) * (activeElementInfo.c || activeElementInfo.a)) * (activeElementInfo.crystalStructure === 'HCP' ? 0.866 : 1)).toFixed(2)} Å³</span>
                               </div>
                             </div>
 
-                            <div className="space-y-0.5 col-span-2 border-t border-slate-800/80 pt-1.5 label-section">
+                            <div className="space-y-0.5 col-span-2 border-t border-white/5 pt-2 label-section">
                               <div className="text-[9px] text-slate-500 font-medium uppercase tracking-wider">Melting Point / Configuration:</div>
                               <div className="text-[11px] space-x-1.5 flex items-center">
                                 <span className="text-amber-400 font-medium">{activeElementInfo.meltingPoint.toFixed(1)} °C</span>
                                 <span className="text-slate-600">•</span>
-                                <span className="text-slate-300 font-medium">{activeElementInfo.electronConfig}</span>
+                                <span className="text-slate-300 font-medium">{getElectronConfig(activeElementInfo.number)}</span>
                               </div>
                             </div>
                           </div>
@@ -1997,92 +2127,137 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           <Sparkles className="w-3 text-indigo-400" /> Chemical Properties (Scientific Facts)
                         </span>
 
-                        <div className="space-y-3.5 bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-xs">
-                          {/* Valence Electrons */}
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <span className="text-slate-400 font-mono text-[9px] uppercase font-bold tracking-wider">Valence Electrons</span>
-                              <span className="text-white font-mono font-black">{activeElementInfo.valenceElectrons} e⁻</span>
+                        <div className="space-y-4 bg-[#0B0F19]/60 backdrop-blur-xl p-5 rounded-2xl border border-white/5 shadow-inner relative isolate overflow-hidden text-xs">
+                          {/* Ambient glow for the chemical section */}
+                          <div className="absolute inset-y-0 right-0 w-40 bg-indigo-500/5 blur-[40px] pointer-events-none" />
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-fuchsia-500/5 blur-[40px] pointer-events-none" />
+                          
+                          {/* Valence & Oxidation */}
+                          <div className="grid grid-cols-2 gap-4 pb-1">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 font-mono text-[9px] uppercase font-bold tracking-wider">Valence e⁻</span>
+                                <span className="text-white font-mono font-black">{activeElementInfo.valenceElectrons}</span>
+                              </div>
+                              <div className="h-2.5 bg-slate-900/80 rounded-full overflow-hidden flex gap-0.5 shadow-inner">
+                                {Array.from({ length: 8 }).map((_, i) => (
+                                  <div 
+                                    key={i} 
+                                    className={`h-full flex-1 rounded-sm transition-all duration-500 ${
+                                      i < activeElementInfo.valenceElectrons 
+                                        ? 'bg-gradient-to-r from-indigo-500 to-indigo-400 shadow-[0_0_8px_rgba(99,102,241,0.5)]' 
+                                        : 'bg-white/5'
+                                    }`} 
+                                  />
+                                ))}
+                              </div>
                             </div>
-                            <div className="h-2 bg-slate-900 rounded-full overflow-hidden flex gap-0.5">
-                              {Array.from({ length: 8 }).map((_, i) => (
-                                <div 
-                                  key={i} 
-                                  className={`h-full flex-1 rounded-sm transition-all duration-300 ${
-                                    i < activeElementInfo.valenceElectrons 
-                                      ? 'bg-gradient-to-r from-indigo-505 to-indigo-400' 
-                                      : 'bg-slate-800'
-                                  }`} 
-                                />
-                              ))}
+                            <div className="space-y-2 border-l border-white/5 pl-4">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400 font-mono text-[9px] uppercase font-bold tracking-wider">Common Oxidation</span>
+                              </div>
+                              <div className="inline-flex items-center justify-center bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-md text-indigo-300 font-mono font-bold text-sm tracking-widest shadow-[inset_0_0_10px_rgba(99,102,241,0.1)]">
+                                {activeElementInfo.category === 'alkali' ? '+1' : 
+                                 activeElementInfo.category === 'alkaline_earth' ? '+2' : 
+                                 activeElementInfo.category === 'noble_gas' ? '0' : 
+                                 activeElementInfo.category === 'nonmetal' || activeElementInfo.category === 'metalloid' ? `-${8 - activeElementInfo.valenceElectrons}, +${activeElementInfo.valenceElectrons}` : 
+                                 `+2, +3, +${activeElementInfo.valenceElectrons}`}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Block & Category Info */}
+                          <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4 pb-1">
+                            <div className="space-y-1.5">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Group & Period</span>
+                              <div className="text-white font-bold font-mono text-[11px] uppercase tracking-widest flex items-center gap-1.5">
+                                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">G{activeElementInfo.gridX}</span>
+                                <span className="text-slate-600">•</span>
+                                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded">P{activeElementInfo.gridY}</span>
+                                <span className="text-slate-400 font-normal ml-1 border-l border-white/10 pl-2">
+                                  {activeElementInfo.electronConfig.includes('f') ? 'f' : activeElementInfo.electronConfig.includes('d') ? 'd' : activeElementInfo.electronConfig.includes('p') ? 'p' : 's'}-block
+                                </span>
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Chemical Series</span>
+                              <div className="text-[#a8b8d8] font-bold font-mono text-[11px] truncate capitalize">
+                                {activeElementInfo.category.replace('_', ' ')}
+                              </div>
                             </div>
                           </div>
 
                           {/* Electronegativity (Pauling) */}
-                          <div className="space-y-1.5 border-t border-slate-900/60 pt-2.5">
+                          <div className="space-y-2 border-t border-white/5 pt-3.5">
                             <div className="flex items-center justify-between">
                               <span className="text-slate-400 font-mono text-[9px] uppercase font-bold tracking-wider">Electronegativity (Pauling)</span>
-                              <span className="text-amber-400 font-mono font-black">
+                              <span className="text-amber-400 font-mono font-black text-sm drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]">
                                 {activeElementInfo.electronegativity > 0 ? activeElementInfo.electronegativity.toFixed(2) : 'N/A (Inert)'}
                               </span>
                             </div>
                             {activeElementInfo.electronegativity > 0 ? (
-                              <div className="relative h-2 bg-slate-900 rounded-lg">
+                              <div className="relative h-2.5 bg-slate-950 rounded-lg shadow-inner border border-white/5">
                                 <div 
-                                  className="absolute h-full bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-lg"
+                                  className="absolute h-full bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 rounded-lg shadow-[0_0_10px_rgba(249,115,22,0.8)]"
                                   style={{ width: `${Math.min(100, (activeElementInfo.electronegativity / 4.0) * 100)}%` }}
                                 />
-                                <span className="absolute -bottom-3.5 left-0 text-[7px] text-slate-500 font-bold">0.7 (Cs)</span>
-                                <span className="absolute -bottom-3.5 right-0 text-[7px] text-slate-500 font-bold">4.0 (F)</span>
+                                <span className="absolute -bottom-4 left-0 text-[8px] text-slate-500 font-bold">0.7 (Cs)</span>
+                                <span className="absolute -bottom-4 right-0 text-[8px] text-slate-500 font-bold">4.0 (F)</span>
                               </div>
                             ) : (
-                              <div className="text-[10px] text-slate-500 italic">No electronegativity as valence shell is complete.</div>
+                              <div className="text-[10px] text-slate-500 italic bg-white/5 rounded-md p-1.5 border border-white/5">No electronegativity as valence shell is complete.</div>
                             )}
                           </div>
 
                           {/* Ionization Energy & Electron Affinity Row */}
-                          <div className="grid grid-cols-2 gap-4 border-t border-slate-900/60 pt-4 pb-0.5">
-                            <div className="space-y-1">
+                          <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-5 pb-1">
+                            <div className="space-y-1.5">
                               <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">1st Ionization Energy</span>
-                              <div className="text-slate-100 font-bold font-mono text-sm flex items-baseline gap-1">
+                              <div className="text-white font-bold font-mono text-sm flex items-baseline gap-1">
                                 {activeElementInfo.ionizationEnergy.toFixed(3)}
-                                <span className="text-[8px] text-slate-500 font-normal">eV</span>
+                                <span className="text-[9px] text-indigo-400 font-bold">eV</span>
                               </div>
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-1.5 flex flex-col items-end text-right">
                               <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Electron Affinity</span>
-                              <div className="text-slate-100 font-bold font-mono text-sm flex items-baseline gap-1">
+                              <div className="text-white font-bold font-mono text-sm flex items-baseline gap-1">
                                 {activeElementInfo.electronAffinity.toFixed(3)}
-                                <span className="text-[8px] text-slate-500 font-normal">eV</span>
+                                <span className="text-[9px] text-indigo-400 font-bold">eV</span>
                               </div>
                             </div>
                           </div>
 
                           {/* Metallic vs Non-metallic character */}
-                          <div className="grid grid-cols-2 gap-3 border-t border-slate-900/60 pt-3">
-                            <div className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
-                              <span className="text-[8.5px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Metallic Ch.</span>
-                              <span className={`text-[11px] font-black uppercase tracking-wide ${
+                          <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-4">
+                            <div className="bg-[#0B0F19] p-3 rounded-xl border border-white/5 flex flex-col justify-between items-center text-center shadow-inner relative overflow-hidden">
+                              <span className="text-[8.5px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1.5 z-10">Metallic Ch.</span>
+                              <span className={`text-xs font-black uppercase tracking-widest z-10 ${
                                 activeElementInfo.metallicCharacter === 'Very High' || activeElementInfo.metallicCharacter === 'High'
-                                  ? 'text-emerald-450'
+                                  ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]'
                                   : activeElementInfo.metallicCharacter === 'Moderate'
                                   ? 'text-teal-400'
-                                  : 'text-slate-400'
+                                  : 'text-slate-500'
                               }`}>
                                 {activeElementInfo.metallicCharacter}
                               </span>
+                              {(activeElementInfo.metallicCharacter === 'Very High' || activeElementInfo.metallicCharacter === 'High') && (
+                                <div className="absolute inset-x-0 bottom-0 top-1/2 bg-emerald-500/10 blur-[15px]" />
+                              )}
                             </div>
-                            <div className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
-                              <span className="text-[8.5px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Non-Metallic Ch.</span>
-                              <span className={`text-[11px] font-black uppercase tracking-wide ${
+                            <div className="bg-[#0B0F19] p-3 rounded-xl border border-white/5 flex flex-col justify-between items-center text-center shadow-inner relative overflow-hidden">
+                              <span className="text-[8.5px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1.5 z-10">Non-Metallic Ch.</span>
+                              <span className={`text-xs font-black uppercase tracking-widest z-10 ${
                                 activeElementInfo.nonMetallicCharacter === 'Extreme' || activeElementInfo.nonMetallicCharacter === 'Very High' || activeElementInfo.nonMetallicCharacter === 'High'
-                                  ? 'text-rose-450'
+                                  ? 'text-rose-400 drop-shadow-[0_0_8px_rgba(251,113,133,0.5)]'
                                   : activeElementInfo.nonMetallicCharacter === 'Moderate'
                                   ? 'text-pink-400'
-                                  : 'text-slate-400'
+                                  : 'text-slate-500'
                               }`}>
                                 {activeElementInfo.nonMetallicCharacter}
                               </span>
+                              {(activeElementInfo.nonMetallicCharacter === 'Extreme' || activeElementInfo.nonMetallicCharacter === 'Very High' || activeElementInfo.nonMetallicCharacter === 'High') && (
+                                <div className="absolute inset-x-0 bottom-0 top-1/2 bg-rose-500/10 blur-[15px]" />
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2095,17 +2270,42 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           <Activity className="w-3 text-emerald-400" /> Physical Properties (Scientific Facts)
                         </span>
 
-                        <div className="space-y-3.5 bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-xs text-slate-200">
+                        <div className="space-y-4 bg-[#0B0F19]/60 backdrop-blur-xl p-5 rounded-2xl border border-white/5 shadow-inner relative isolate overflow-hidden text-xs text-slate-200">
+                          {/* Ambient glow for the physical section */}
+                          <div className="absolute inset-y-0 right-0 w-40 bg-emerald-500/5 blur-[40px] pointer-events-none" />
+                          <div className="absolute inset-x-0 bottom-0 h-40 bg-teal-500/5 blur-[40px] pointer-events-none" />
+                          
+                          {/* Standard State & Molar Mass */}
+                          <div className="grid grid-cols-2 gap-4 pb-1">
+                            <div className="space-y-1.5">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Standard State (STP)</span>
+                              <div className="text-white font-bold font-mono text-[13px] flex items-baseline gap-1">
+                                {(() => {
+                                  if (activeElementInfo.number === 35 || activeElementInfo.number === 80) return <span className="text-blue-400">Liquid</span>;
+                                  if ([1, 2, 7, 8, 9, 10, 17, 18, 36, 54, 86].includes(activeElementInfo.number)) return <span className="text-sky-300">Gas</span>;
+                                  return <span className="text-slate-300">Solid</span>;
+                                })()}
+                              </div>
+                            </div>
+                            <div className="space-y-1.5 flex flex-col items-end text-right">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Molar Mass</span>
+                              <div className="text-rose-300 font-bold font-mono text-sm leading-tight flex items-baseline gap-1">
+                                {activeElementInfo.weight.toFixed(3)}
+                                <span className="text-[9px] text-slate-500 font-normal">g/mol</span>
+                              </div>
+                            </div>
+                          </div>
+
                           {/* Atomic & Ionic Radius */}
-                          <div className="grid grid-cols-2 gap-3 pb-0.5">
-                            <div className="space-y-1">
+                          <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4 pb-1">
+                            <div className="space-y-1.5">
                               <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Atomic Radius</span>
                               <div className="text-white font-bold font-mono text-sm flex items-baseline gap-1">
                                 {activeElementInfo.atomicRadius}
-                                <span className="text-[8px] text-slate-500 font-normal">pm</span>
+                                <span className="text-[9px] text-emerald-400/70 font-bold">pm</span>
                               </div>
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-1.5 flex flex-col items-end text-right">
                               <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Ionic Radius</span>
                               <div className="text-sky-300 font-bold font-mono text-sm leading-tight">
                                 {activeElementInfo.ionicRadius}
@@ -2114,16 +2314,16 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           </div>
 
                           {/* Melting & Boiling Points */}
-                          <div className="grid grid-cols-2 gap-3 border-t border-slate-900/60 pt-3">
-                            <div className="space-y-1">
+                          <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4 pb-1">
+                            <div className="space-y-1.5 border-l-2 border-amber-500/30 pl-3">
                               <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Melting Point</span>
-                              <div className="text-amber-400 font-bold font-mono text-sm">
+                              <div className="text-amber-400 font-bold font-mono text-sm drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]">
                                 {activeElementInfo.meltingPoint > -273.15 ? `${activeElementInfo.meltingPoint.toFixed(1)} °C` : 'N/A'}
                               </div>
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-1.5 border-l-2 border-rose-500/30 pl-3">
                               <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Boiling Point</span>
-                              <div className="text-rose-450 font-bold font-mono text-sm">
+                              <div className="text-rose-450 font-bold font-mono text-sm drop-shadow-[0_0_8px_rgba(244,63,94,0.3)]">
                                 {activeElementInfo.boilingPoint > -273.15 ? `${activeElementInfo.boilingPoint.toFixed(1)} °C` : 'N/A'}
                               </div>
                             </div>
@@ -2140,8 +2340,8 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             </div>
                             <div className="space-y-1">
                               <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Configuration</span>
-                              <div className="text-slate-300 font-bold font-mono text-[10px] truncate" title={activeElementInfo.electronConfig}>
-                                {activeElementInfo.electronConfig}
+                              <div className="text-slate-300 font-bold font-mono text-[10px] truncate" title={getElectronConfig(activeElementInfo.number)}>
+                                {getElectronConfig(activeElementInfo.number)}
                               </div>
                             </div>
                           </div>

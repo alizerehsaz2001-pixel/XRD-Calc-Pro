@@ -34,6 +34,7 @@ import {
   Pause,
   Activity,
   Compass,
+  Sparkles,
 } from "lucide-react";
 
 const Symmetry3DVisualizer = ({
@@ -2062,86 +2063,90 @@ export const SelectionRulesModule: React.FC = () => {
             </div>
 
             {/* Reciprocal Space 3D interactive grid */}
-            <div className="space-y-4 p-4 bg-[#050B14] rounded-2xl border border-[#1e293b]">
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-4 p-5 bg-[#0B0F19] rounded-2xl border border-white/5 shadow-[0_0_30px_rgba(0,0,0,0.5)] relative isolate overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/10 via-[#0B0F19] to-[#0B0F19] pointer-events-none" />
+              <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/5 blur-[60px] pointer-events-none" />
+              
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between relative z-10">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] font-black font-mono text-emerald-400 uppercase tracking-widest flex items-center">
-                    <Activity className="w-3.5 h-3.5 text-emerald-500 mr-1 animate-pulse" />
+                  <span className="text-[11px] font-black font-mono text-emerald-400 uppercase tracking-widest flex items-center drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]">
+                    <Activity className="w-4 h-4 text-emerald-400 mr-1.5 animate-pulse" />
                     3D Reciprocal Space Probe
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => setIsOrbiting(!isOrbiting)}
-                    className={`px-2 py-1 rounded border font-mono text-[9px] flex items-center transition-all uppercase tracking-wider ${
+                    className={`px-2.5 py-1.5 rounded-lg border font-mono text-[9px] flex items-center transition-all uppercase tracking-widest font-bold shadow-inner ${
                       isOrbiting
-                        ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
-                        : "bg-black border-[#1e293b] text-slate-400 hover:text-white"
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-[inset_0_1px_4px_rgba(52,211,153,0.1)]"
+                        : "bg-black/50 border-white/10 text-slate-400 hover:text-white hover:border-white/20"
                     }`}
                   >
                     {isOrbiting ? (
-                      <Pause className="w-2.5 h-2.5 mr-1" />
+                      <Pause className="w-3 h-3 mr-1.5 text-emerald-400" />
                     ) : (
-                      <Play className="w-2.5 h-2.5 mr-1" />
+                      <Play className="w-3 h-3 mr-1.5" />
                     )}
                     {isOrbiting ? "Orbiting" : "Auto-Orbit"}
                   </button>
                   <button
                     type="button"
                     onClick={() => setRecipRotation({ x: 25, y: -45 })}
-                    className="px-2 py-1 bg-black rounded border border-[#1e293b] text-[9px] text-slate-400 font-mono flex items-center hover:text-white hover:border-slate-700 transition-colors uppercase tracking-wider font-semibold"
+                    className="px-2.5 py-1.5 bg-black/50 rounded-lg border border-white/10 text-[9px] text-slate-400 font-mono flex items-center hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest font-bold shadow-inner"
                   >
-                    <RotateCw className="w-2.5 h-2.5 mr-1 text-emerald-500" />{" "}
+                    <RotateCw className="w-3 h-3 mr-1.5 text-slate-400" />{" "}
                     Reset View
                   </button>
                 </div>
               </div>
 
               {/* Quick View Orienteer */}
-              <div className="flex flex-wrap items-center gap-1 bg-black/40 p-1.5 rounded-xl border border-[#1e293b]/60">
-                <span className="text-[8px] font-bold font-mono text-slate-500 uppercase tracking-widest mr-1.5 pl-1">
-                  View Alignment Presets:
+              <div className="flex flex-wrap items-center gap-1.5 bg-[#010308]/60 p-2 rounded-xl border border-white/5 relative z-10 shadow-inner">
+                <span className="text-[9px] font-bold font-mono text-slate-500 uppercase tracking-widest mr-2 pl-1">
+                  Alignment:
                 </span>
                 <button
                   type="button"
                   onClick={() => { setRecipRotation({ x: 0, y: 0 }); setIsOrbiting(false); }}
-                  className="px-2 py-0.5 bg-black hover:bg-slate-900 border border-[#1e293b] hover:border-emerald-500/30 rounded text-[8.5px] font-mono text-slate-300 hover:text-emerald-400 transition-all font-semibold uppercase"
+                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-lg text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
                 >
                   [100] Front
                 </button>
                 <button
                   type="button"
                   onClick={() => { setRecipRotation({ x: 0, y: 90 }); setIsOrbiting(false); }}
-                  className="px-2 py-0.5 bg-black hover:bg-slate-900 border border-[#1e293b] hover:border-emerald-500/30 rounded text-[8.5px] font-mono text-slate-300 hover:text-emerald-400 transition-all font-semibold uppercase"
+                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-lg text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
                 >
                   [010] Side
                 </button>
                 <button
                   type="button"
                   onClick={() => { setRecipRotation({ x: 90, y: 0 }); setIsOrbiting(false); }}
-                  className="px-2 py-0.5 bg-black hover:bg-slate-900 border border-[#1e293b] hover:border-emerald-500/30 rounded text-[8.5px] font-mono text-slate-300 hover:text-emerald-400 transition-all font-semibold uppercase"
+                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-lg text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
                 >
                   [001] Top
                 </button>
                 <button
                   type="button"
                   onClick={() => { setRecipRotation({ x: 35.26, y: -45 }); setIsOrbiting(false); }}
-                  className="px-2 py-0.5 bg-black hover:bg-slate-900 border border-[#1e293b] hover:border-emerald-500/30 rounded text-[8.5px] font-mono text-slate-300 hover:text-emerald-400 transition-all font-semibold uppercase"
+                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-lg text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider"
                 >
                   [111] Diag
                 </button>
                 <button
                   type="button"
                   onClick={() => { setRecipRotation({ x: 25, y: -45 }); setIsOrbiting(false); }}
-                  className="px-2 py-0.5 bg-black hover:bg-slate-900 border border-[#1e293b] hover:border-emerald-500/30 rounded text-[8.5px] font-mono text-slate-300 hover:text-emerald-400 transition-all font-semibold uppercase animate-pulse"
+                  className="px-2.5 py-1 bg-black/50 hover:bg-emerald-950/40 border border-white/5 hover:border-emerald-500/30 rounded-lg text-[9px] font-mono text-slate-400 hover:text-emerald-300 transition-all font-bold uppercase tracking-wider relative overflow-hidden"
                 >
                   Isometric
+                  <span className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
                 </button>
               </div>
 
               {/* 3D Canvas Box */}
-              <div className="relative rounded-xl border border-[#1e293b]/80 overflow-hidden cursor-grab active:cursor-grabbing bg-[#010308] group">
+              <div className="relative rounded-xl border border-white/5 overflow-hidden cursor-grab active:cursor-grabbing bg-gradient-to-b from-[#010308] to-[#050B14] group shadow-[inset_0_4px_20px_rgba(0,0,0,0.8)] z-10">
                 <canvas
                   ref={recipCanvasRef}
                   onMouseDown={handleRecipMouseDown}
@@ -2151,29 +2156,30 @@ export const SelectionRulesModule: React.FC = () => {
                     setIsRecipDragging(false);
                     setHoveredNode(null);
                   }}
-                  className="w-full h-[210px] block"
+                  className="w-full h-[240px] block"
                 />
-                <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="px-1.5 py-0.5 bg-black/80 text-[7px] text-slate-500 font-mono rounded border border-[#1e293b]">
+                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-md border border-white/10 shadow-lg">
                     DRAG TO ROTATE
                   </span>
-                  <span className="px-1.5 py-0.5 bg-black/80 text-[7px] text-slate-500 font-mono rounded border border-[#1e293b]">
+                  <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-md border border-white/10 shadow-lg">
                     CLICK TO TOGGLE HKL
                   </span>
                 </div>
                 {(hoveredNode || manualProbe) && (
-                  <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/95 border border-purple-500/40 rounded-lg text-[9px] font-mono text-purple-400 animate-pulse flex items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mr-1.5 animate-ping" />
+                  <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/80 backdrop-blur-md border border-purple-500/30 rounded-lg text-[10px] font-mono text-purple-300 flex items-center shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-all">
+                    <span className="w-2 h-2 rounded-full bg-purple-400 mr-2 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
                     Probe: ({(hoveredNode || manualProbe).join(" ")}) • Click to Toggle
                   </div>
                 )}
               </div>
 
               {/* Direct HKL Micro-Probe Selector Console */}
-              <div className="p-3 bg-black/40 rounded-xl border border-[#1e293b]/50 space-y-3">
-                <div className="text-[10px] uppercase font-black tracking-wider text-slate-400 border-b border-[#1e293b]/30 pb-1.5 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Compass className="w-3.5 h-3.5 text-purple-400 animate-spin-slow animate-pulse" />
+              <div className="p-4 bg-black/40 rounded-xl border border-white/5 space-y-4 shadow-inner relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none" />
+                <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 border-b border-white/5 pb-2 flex items-center justify-between relative z-10">
+                  <div className="flex items-center gap-2">
+                    <Compass className="w-4 h-4 text-purple-400 animate-spin-slow shadow-[0_0_8px_rgba(168,85,247,0.5)] rounded-full" />
                     <span>PRECISION HKL PROBE DIAL</span>
                   </div>
                   <span className="text-[8px] font-mono text-slate-500 uppercase">
@@ -2181,11 +2187,12 @@ export const SelectionRulesModule: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-3 gap-3 relative z-10">
                   {/* H Index selector */}
-                  <div className="bg-[#030712] p-1.5 rounded-lg border border-[#1e293b]/50 flex flex-col items-center">
-                    <span className="text-[8px] font-mono font-bold text-slate-500 mb-1 uppercase tracking-wider">Index h</span>
-                    <div className="flex items-center gap-2">
+                  <div className="bg-[#0B0F19] p-2 rounded-xl border border-white/5 flex flex-col items-center shadow-inner relative overflow-hidden">
+                    <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent rounded-t-xl" />
+                    <span className="text-[9px] font-mono font-bold text-slate-500 mb-2 uppercase tracking-widest z-10">Index h</span>
+                    <div className="flex items-center gap-2 z-10">
                       <button
                         type="button"
                         onClick={() => {
@@ -2193,11 +2200,11 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextH = Math.max(-limit, manualProbe[0] - 1);
                           setManualProbe([nextH, manualProbe[1], manualProbe[2]]);
                         }}
-                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         -
                       </button>
-                      <span className="text-xs font-mono font-black text-emerald-400 w-6 text-center">
+                      <span className="text-sm font-mono font-black text-emerald-400 w-6 text-center drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">
                         {manualProbe[0]}
                       </span>
                       <button
@@ -2207,7 +2214,7 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextH = Math.min(limit, manualProbe[0] + 1);
                           setManualProbe([nextH, manualProbe[1], manualProbe[2]]);
                         }}
-                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         +
                       </button>
@@ -2215,9 +2222,10 @@ export const SelectionRulesModule: React.FC = () => {
                   </div>
 
                   {/* K Index selector */}
-                  <div className="bg-[#030712] p-1.5 rounded-lg border border-[#1e293b]/50 flex flex-col items-center">
-                    <span className="text-[8px] font-mono font-bold text-slate-500 mb-1 uppercase tracking-wider">Index k</span>
-                    <div className="flex items-center gap-2">
+                  <div className="bg-[#0B0F19] p-2 rounded-xl border border-white/5 flex flex-col items-center shadow-inner relative overflow-hidden">
+                    <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent rounded-t-xl" />
+                    <span className="text-[9px] font-mono font-bold text-slate-500 mb-2 uppercase tracking-widest z-10">Index k</span>
+                    <div className="flex items-center gap-2 z-10">
                       <button
                         type="button"
                         onClick={() => {
@@ -2225,11 +2233,11 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextK = Math.max(-limit, manualProbe[1] - 1);
                           setManualProbe([manualProbe[0], nextK, manualProbe[2]]);
                         }}
-                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         -
                       </button>
-                      <span className="text-xs font-mono font-black text-emerald-400 w-6 text-center">
+                      <span className="text-sm font-mono font-black text-emerald-400 w-6 text-center drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">
                         {manualProbe[1]}
                       </span>
                       <button
@@ -2239,7 +2247,7 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextK = Math.min(limit, manualProbe[1] + 1);
                           setManualProbe([manualProbe[0], nextK, manualProbe[2]]);
                         }}
-                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         +
                       </button>
@@ -2247,9 +2255,10 @@ export const SelectionRulesModule: React.FC = () => {
                   </div>
 
                   {/* L Index selector */}
-                  <div className="bg-[#030712] p-1.5 rounded-lg border border-[#1e293b]/50 flex flex-col items-center">
-                    <span className="text-[8px] font-mono font-bold text-slate-500 mb-1 uppercase tracking-wider">Index l</span>
-                    <div className="flex items-center gap-2">
+                  <div className="bg-[#0B0F19] p-2 rounded-xl border border-white/5 flex flex-col items-center shadow-inner relative overflow-hidden">
+                    <div className="absolute top-0 inset-x-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent rounded-t-xl" />
+                    <span className="text-[9px] font-mono font-bold text-slate-500 mb-2 uppercase tracking-widest z-10">Index l</span>
+                    <div className="flex items-center gap-2 z-10">
                       <button
                         type="button"
                         onClick={() => {
@@ -2257,11 +2266,11 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextL = Math.max(-limit, manualProbe[2] - 1);
                           setManualProbe([manualProbe[0], manualProbe[1], nextL]);
                         }}
-                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         -
                       </button>
-                      <span className="text-xs font-mono font-black text-emerald-400 w-6 text-center">
+                      <span className="text-sm font-mono font-black text-emerald-400 w-6 text-center drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">
                         {manualProbe[2]}
                       </span>
                       <button
@@ -2271,7 +2280,7 @@ export const SelectionRulesModule: React.FC = () => {
                           const nextL = Math.min(limit, manualProbe[2] + 1);
                           setManualProbe([manualProbe[0], manualProbe[1], nextL]);
                         }}
-                        className="w-5 h-5 rounded bg-black hover:bg-slate-900 border border-[#1e293b] text-[10px] font-black text-slate-300 hover:text-white transition-colors text-center flex items-center justify-center font-mono"
+                        className="w-6 h-6 rounded-md bg-black/80 hover:bg-slate-800 border border-white/10 text-[12px] font-black text-slate-400 hover:text-white transition-all text-center flex items-center justify-center font-mono shadow-sm hover:border-slate-500"
                       >
                         +
                       </button>
@@ -2285,13 +2294,13 @@ export const SelectionRulesModule: React.FC = () => {
                     if (manualProbe[0] === 0 && manualProbe[1] === 0 && manualProbe[2] === 0) return;
                     toggleHKLNode(manualProbe[0], manualProbe[1], manualProbe[2]);
                   }}
-                  className={`w-full py-2 px-3 rounded-xl border text-[9px] font-mono font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 ${
+                  className={`w-full py-2.5 px-3 rounded-xl border text-[10px] font-mono font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 relative z-10 ${
                     (() => {
                       const parsed = parseHKLString(hklInput);
                       const exists = parsed.some((p) => p[0] === manualProbe[0] && p[1] === manualProbe[1] && p[2] === manualProbe[2]);
                       return exists 
-                        ? "bg-red-500/10 hover:bg-red-500/20 border-red-500/30 text-red-400"
-                        : "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                        ? "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-rose-300 shadow-[inset_0_1px_5px_rgba(244,63,94,0.1)]"
+                        : "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-300 shadow-[inset_0_1px_5px_rgba(52,211,153,0.1)]"
                     })()
                   }`}
                 >
@@ -2299,35 +2308,39 @@ export const SelectionRulesModule: React.FC = () => {
                   {(() => {
                     const parsed = parseHKLString(hklInput);
                     const exists = parsed.some((p) => p[0] === manualProbe[0] && p[1] === manualProbe[1] && p[2] === manualProbe[2]);
-                    return exists ? "Remove reflection from analysis list" : "Add reflection to analysis list";
+                    return exists ? "Remove from analysis buffer" : "Inject into analysis buffer";
                   })()}
                 </button>
               </div>
 
               {/* Probe Calibration Panel */}
-              <div className="p-3 bg-black/40 rounded-xl border border-[#1e293b]/50 space-y-3.5">
-                <div className="text-[10px] uppercase font-black tracking-wider text-slate-400 border-b border-[#1e293b]/50 pb-1.5 flex items-center justify-between">
+              <div className="p-4 bg-[#0B0F19] rounded-xl border border-white/5 space-y-4 shadow-[0_0_20px_rgba(0,0,0,0.5)_inset] relative isolate overflow-hidden">
+                {/* ambient core glow */}
+                <div className="absolute left-1/2 top-0 blur-[50px] -translate-x-1/2 w-48 h-20 bg-sky-500/10 pointer-events-none" />
+                <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 border-b border-white/5 pb-2 flex items-center justify-between z-10 relative">
                   <span>PROBE CONTROLS</span>
-                  <span className="text-[9px] font-mono font-bold text-sky-400 uppercase bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded">
+                  <span className="text-[9px] font-mono font-bold text-sky-400 uppercase bg-sky-500/10 border border-sky-500/20 px-2 flex items-center gap-1 py-1 rounded shadow-sm">
+                    <Sparkles className="w-2.5 h-2.5" />
                     EWALD CORE
+
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Left Column Controls */}
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {/* Projection Mode */}
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
                         Projection:
                       </span>
-                      <div className="flex rounded-lg border border-[#1e293b] p-0.5 bg-black/50">
+                      <div className="flex rounded-lg border border-white/10 p-0.5 bg-black/50 shadow-inner">
                         <button
                           type="button"
                           onClick={() => setProjectionMode("ortho")}
-                          className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all ${
+                          className={`px-3 py-1 rounded-md text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
                             projectionMode === "ortho"
-                              ? "bg-emerald-500/15 text-emerald-400 font-black"
+                              ? "bg-emerald-500/15 text-emerald-400 font-black shadow-[inset_0_1px_4px_rgba(52,211,153,0.1)] border-emerald-500/20"
                               : "text-slate-500 hover:text-slate-300"
                           }`}
                         >
@@ -2336,9 +2349,9 @@ export const SelectionRulesModule: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setProjectionMode("perspective")}
-                          className={`px-2 py-0.5 rounded text-[9px] font-mono font-bold transition-all ${
+                          className={`px-3 py-1 rounded-md text-[9px] font-mono font-bold transition-all uppercase tracking-widest ${
                             projectionMode === "perspective"
-                              ? "bg-emerald-500/15 text-emerald-400 font-black"
+                              ? "bg-emerald-500/15 text-emerald-400 font-black shadow-[inset_0_1px_4px_rgba(52,211,153,0.1)] border-emerald-500/20"
                               : "text-slate-500 hover:text-slate-300"
                           }`}
                         >
@@ -2355,10 +2368,10 @@ export const SelectionRulesModule: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowEwaldSphere(!showEwaldSphere)}
-                        className={`px-2.5 py-0.5 rounded border text-[9px] font-mono font-bold transition-all ${
+                        className={`px-3 py-1 rounded-lg border text-[9px] font-mono font-bold transition-all shadow-inner uppercase tracking-widest ${
                           showEwaldSphere
-                            ? "bg-sky-500/15 border-sky-500/30 text-sky-400"
-                            : "bg-black/50 border-[#1e293b] text-slate-500"
+                            ? "bg-sky-500/15 border-sky-500/30 text-sky-400 shadow-[inset_0_1px_4px_rgba(56,189,248,0.2)]"
+                            : "bg-black/50 border-white/10 text-slate-500 hover:text-slate-300 hover:border-white/20"
                         }`}
                       >
                         {showEwaldSphere ? "VISIBLE" : "HIDDEN"}
@@ -2367,14 +2380,14 @@ export const SelectionRulesModule: React.FC = () => {
                   </div>
 
                   {/* Right Column Sliders */}
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {/* Wavelength */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[9px] font-mono">
-                        <span className="text-slate-500 uppercase tracking-wider">
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[10px] font-mono">
+                        <span className="text-slate-500 uppercase tracking-widest font-bold">
                           Wavelength (λ):
                         </span>
-                        <span className="text-sky-400 font-bold">
+                        <span className="text-sky-400 font-black drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">
                           {wavelength.toFixed(4)} Å
                         </span>
                       </div>
@@ -2387,17 +2400,17 @@ export const SelectionRulesModule: React.FC = () => {
                         onChange={(e) =>
                           setWavelength(parseFloat(e.target.value))
                         }
-                        className="w-full h-1 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-sky-500 transition-all hover:bg-slate-600"
+                        className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-sky-400 transition-all hover:bg-slate-800 border border-white/5 shadow-inner"
                       />
                     </div>
 
                     {/* Lattice constant a */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[9px] font-mono">
-                        <span className="text-slate-500 uppercase tracking-wider">
-                          Lattice Parameter (a):
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[10px] font-mono">
+                        <span className="text-slate-500 uppercase tracking-widest font-bold">
+                          Lattice Param (a):
                         </span>
-                        <span className="text-emerald-400 font-bold">
+                        <span className="text-emerald-400 font-black drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]">
                           {latticeParameter.toFixed(3)} Å
                         </span>
                       </div>
@@ -2410,7 +2423,7 @@ export const SelectionRulesModule: React.FC = () => {
                         onChange={(e) =>
                           setLatticeParameter(parseFloat(e.target.value))
                         }
-                        className="w-full h-1 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all hover:bg-slate-600"
+                        className="w-full h-1.5 bg-black rounded-lg appearance-none cursor-pointer accent-emerald-400 transition-all hover:bg-slate-800 border border-white/5 shadow-inner"
                       />
                     </div>
                   </div>

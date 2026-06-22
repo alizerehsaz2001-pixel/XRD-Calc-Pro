@@ -62,7 +62,12 @@ export const FWHMModule: React.FC = () => {
     setCagliotiParams({ u: 0.04, v: -0.02, w: 0.04 });
   };
   
-  const [mousePos, setMousePos] = useState<{ x: number, y: number } | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const crossXRef = useRef<HTMLDivElement>(null);
+  const crossYRef = useRef<HTMLDivElement>(null);
+  const crossTargetRef = useRef<HTMLDivElement>(null);
+  const crossCenterRef = useRef<HTMLDivElement>(null);
+  const crosshairContainerRef = useRef<HTMLDivElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,10 +80,11 @@ export const FWHMModule: React.FC = () => {
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!chartContainerRef.current) return;
     const rect = chartContainerRef.current.getBoundingClientRect();
-    setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
+    if (crosshairContainerRef.current) crosshairContainerRef.current.style.opacity = '0.9';
+    if (crossXRef.current) crossXRef.current.style.transform = `translate3d(${e.clientX - rect.left}px, 0, 0)`;
+    if (crossYRef.current) crossYRef.current.style.transform = `translate3d(0, ${e.clientY - rect.top}px, 0)`;
+    if (crossTargetRef.current) crossTargetRef.current.style.transform = `translate3d(${e.clientX - rect.left - 10}px, ${e.clientY - rect.top - 10}px, 0)`;
+    if (crossCenterRef.current) crossCenterRef.current.style.transform = `translate3d(${e.clientX - rect.left - 2.5}px, ${e.clientY - rect.top - 2.5}px, 0)`;
   };
 
   const analyzeProfile = () => {
@@ -182,7 +188,7 @@ export const FWHMModule: React.FC = () => {
           
           <div className="flex items-center justify-between mb-6 relative z-10">
             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Line Profile Simulator
@@ -201,7 +207,7 @@ export const FWHMModule: React.FC = () => {
             <div className="space-y-4">
               <label className="block text-xs font-black text-slate-500 uppercase tracking-[0.2em] flex items-center justify-between">
                 <span>Profile Kernel</span>
-                <span className="text-[9px] bg-indigo-50 leading-[0] text-indigo-500 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-200 dark:border-indigo-500/30 shadow-sm flex items-center gap-1">
+                <span className="text-[9px] bg-indigo-50 leading-[0] text-cyan-400 dark:bg-indigo-500/10 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-200 dark:border-indigo-500/30 shadow-sm flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
                   {type === 'Pseudo-Voigt' || type === 'Pearson VII' ? 'Hybrid Mode' : 'Single Kernel'}
                 </span>
@@ -227,7 +233,7 @@ export const FWHMModule: React.FC = () => {
                     <span className={`text-[11px] font-black uppercase tracking-wider mb-1 transition-colors text-center ${type === t ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'}`}>
                       {t === 'Pseudo-Voigt' ? 'P-Voigt' : t === 'Pearson VII' ? 'Pearson VII' : t}
                     </span>
-                    <span className={`text-[9px] font-mono tracking-tight text-center ${type === t ? 'text-indigo-500/80 dark:text-indigo-400/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                    <span className={`text-[9px] font-mono tracking-tight text-center ${type === t ? 'text-cyan-400/80 dark:text-indigo-400/80' : 'text-slate-400 dark:text-slate-500'}`}>
                       {t === 'Gaussian' ? 'η = 0' : t === 'Lorentzian' ? 'η = 1' : t === 'Pearson VII' ? 'm > 1' : '0 < η < 1'}
                     </span>
                     
@@ -246,7 +252,7 @@ export const FWHMModule: React.FC = () => {
             <div className="bg-slate-50 border-slate-200 dark:bg-slate-950/40 p-5 rounded-2xl border dark:border-slate-800/60 space-y-6 shadow-inner ring-1 ring-white/50 dark:ring-transparent">
               <div className="group">
                 <div className="flex justify-between items-end mb-3">
-                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">Peak Center (2θ)</label>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">Peak Center (2θ)</label>
                   <div className="bg-white dark:bg-slate-900 px-2.5 py-1 rounded-md shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
                     <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold relative z-10">{center.toFixed(2)}°</span>
                     <div className="absolute inset-0 bg-indigo-500/5 dark:bg-indigo-500/10" />
@@ -261,18 +267,18 @@ export const FWHMModule: React.FC = () => {
 
               <div className="group">
                 <div className="flex justify-between items-center mb-3">
-                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">
                     FWHM {useCaglioti ? '(Caglioti Calculated)' : '(Δ2θ)'}
                   </label>
                   <div className="flex gap-2">
                     <button 
                       onClick={() => setUseCaglioti(!useCaglioti)}
-                      className={`text-[9px] px-2 py-1 rounded border font-bold uppercase tracking-wider transition-colors ${useCaglioti ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+                      className={`text-[9px] px-2 py-1 rounded border font-bold uppercase tracking-wider transition-colors ${useCaglioti ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
                     >
                       Instrumental
                     </button>
                     <div className="bg-white dark:bg-slate-900 px-2.5 py-1 rounded-md shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden flex items-center">
-                      <span className={`text-xs font-mono font-bold relative z-10 ${useCaglioti ? 'text-slate-500 dark:text-slate-400' : 'text-indigo-600 dark:text-indigo-400'}`}>{fwhm.toFixed(3)}°</span>
+                      <span className={`text-xs font-mono font-bold relative z-10 ${useCaglioti ? 'text-slate-500' : 'text-indigo-600 dark:text-indigo-400'}`}>{fwhm.toFixed(3)}°</span>
                       <div className={`absolute inset-0 ${useCaglioti ? 'bg-slate-100 dark:bg-slate-800' : 'bg-indigo-500/5 dark:bg-indigo-500/10'}`} />
                     </div>
                   </div>
@@ -352,13 +358,13 @@ export const FWHMModule: React.FC = () => {
                 <div className="flex justify-between text-[9px] text-slate-400 mt-3 font-black uppercase tracking-widest">
                   {type === 'Pearson VII' ? (
                     <>
-                      <span className={`transition-colors ${eta < 0.5 ? 'text-indigo-500 dark:text-indigo-400' : ''}`}>m=1 (Lorentzian)</span>
-                      <span className={`transition-colors ${eta > 0.5 ? 'text-indigo-500 dark:text-indigo-400' : ''}`}>m=10 (Gaussian)</span>
+                      <span className={`transition-colors ${eta < 0.5 ? 'text-cyan-400 dark:text-indigo-400' : ''}`}>m=1 (Lorentzian)</span>
+                      <span className={`transition-colors ${eta > 0.5 ? 'text-cyan-400 dark:text-indigo-400' : ''}`}>m=10 (Gaussian)</span>
                     </>
                   ) : (
                     <>
-                      <span className={`transition-colors ${type === 'Pseudo-Voigt' && eta < 0.5 ? 'text-indigo-500 dark:text-indigo-400' : ''}`}>Gaussian (0)</span>
-                      <span className={`transition-colors ${type === 'Pseudo-Voigt' &&  eta > 0.5 ? 'text-indigo-500 dark:text-indigo-400' : ''}`}>Lorentzian (1)</span>
+                      <span className={`transition-colors ${type === 'Pseudo-Voigt' && eta < 0.5 ? 'text-cyan-400 dark:text-indigo-400' : ''}`}>Gaussian (0)</span>
+                      <span className={`transition-colors ${type === 'Pseudo-Voigt' &&  eta > 0.5 ? 'text-cyan-400 dark:text-indigo-400' : ''}`}>Lorentzian (1)</span>
                     </>
                   )}
                 </div>
@@ -481,46 +487,47 @@ export const FWHMModule: React.FC = () => {
       {/* Visualizer and Stats */}
       <div className="lg:col-span-8 space-y-6">
         <div 
-          className="bg-white dark:bg-slate-950 p-1 lg:p-1.5 rounded-[2rem] border border-slate-200 dark:border-slate-800/80 min-h-[600px] lg:min-h-[800px] h-[70vh] lg:h-[85vh] flex flex-col relative overflow-hidden cursor-none group/visualizer shadow-[0_0_40px_rgba(99,102,241,0.1)]"
+          className="bg-[#050B14] p-1 lg:p-1.5 rounded-[2rem] border border-white/5 min-h-[600px] lg:min-h-[800px] h-[70vh] lg:h-[85vh] flex flex-col relative overflow-hidden cursor-none group/visualizer shadow-[0_0_40px_rgba(99,102,241,0.1)]"
           ref={chartContainerRef}
           onMouseMove={handleMouseMove}
-          onMouseLeave={() => setMousePos(null)}
+          onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => { setIsHovered(false); if (crosshairContainerRef.current) crosshairContainerRef.current.style.opacity = '0'; }}
         >
            {/* Inner container with glossy background */}
-           <div className="bg-slate-50 dark:bg-slate-900/50 w-full h-full rounded-[1.75rem] border border-white/50 dark:border-white/5 relative overflow-hidden flex flex-col p-5 lg:p-6 group/inner">
+           <div className="bg-[#0B0F19]/90 backdrop-blur-3xl w-full h-full rounded-[1.75rem] border border-white/5 relative overflow-hidden flex flex-col p-5 lg:p-6 group/inner shadow-[inset_0_0_80px_rgba(0,0,0,0.8)]">
              
              {/* Background Grid Pattern */}
-             <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.06)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
-             <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none" />
+             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none mix-blend-screen" />
+             <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none mix-blend-screen" />
              
              {/* Dynamic lighting effects */}
-             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-32 bg-indigo-500/15 dark:bg-indigo-500/20 blur-[100px] pointer-events-none" />
-             <div className="absolute bottom-0 left-0 w-full h-[60%] bg-gradient-to-t from-slate-50 dark:from-slate-950 to-transparent pointer-events-none z-0" />
+             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-32 bg-indigo-500/15 blur-[100px] pointer-events-none" />
+             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-40 bg-cyan-500/10 blur-[120px] pointer-events-none" />
+             <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F19] via-transparent to-transparent pointer-events-none z-0" />
 
              {/* Animated Scanline overlay */}
-             <div className="absolute inset-0 overflow-hidden rounded-[1.75rem] pointer-events-none z-20">
-               <div className="w-full h-40 bg-gradient-to-b from-transparent via-indigo-500/10 dark:via-indigo-400/10 to-transparent -translate-y-full group-hover/inner:translate-y-[800px] transition-transform duration-[3000ms] ease-linear" />
+             <div className="absolute inset-0 overflow-hidden rounded-[1.75rem] pointer-events-none z-20 mix-blend-screen">
+               <div className="w-full h-40 bg-gradient-to-b from-transparent via-cyan-400/5 to-transparent -translate-y-full group-hover/inner:translate-y-[800px] transition-transform duration-[3000ms] ease-linear shadow-[0_0_30px_rgba(34,211,238,0.2)]" />
              </div>
 
              {/* Header Layer */}
              <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-               <h3 className="text-xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
-                 <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 shadow-inner">
-                   <Activity className="w-4 h-4 text-indigo-500" />
+               <h3 className="text-xl font-black text-white tracking-widest uppercase flex items-center gap-3 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                   <Activity className="w-5 h-5 text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
                  </div>
                  High-Resolution Peak Visualizer
                </h3>
 
                {/* Floating Stats Pill */}
-               <div className="flex items-center gap-4 px-4 py-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-full shadow-[0_0_15px_rgba(99,102,241,0.1)] border border-slate-200/50 dark:border-slate-700/50">
-                 <div className="flex items-center gap-1.5">
-                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.5)]"></span>
-                   <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest">Live Scan</span>
-                 </div>
-                 <div className="w-px h-3 bg-slate-300 dark:bg-slate-700" />
+               <div className="flex items-center gap-4 px-5 py-2.5 bg-black/40 backdrop-blur-xl rounded-full shadow-[inset_0_0_15px_rgba(0,0,0,0.5),0_0_20px_rgba(99,102,241,0.15)] border border-white/10 text-slate-300">
                  <div className="flex items-center gap-2">
-                   <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Res:</span>
-                   <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{chartData.length}</span>
+                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]"></span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]">Live Scan</span>
+                 </div>
+                 <div className="w-px h-4 bg-white/10" />
+                 <div className="flex items-center gap-2">
+                   <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Res:</span>
+                   <span className="text-xs font-mono font-bold text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">{chartData.length}</span>
                  </div>
                </div>
              </div>
@@ -533,20 +540,20 @@ export const FWHMModule: React.FC = () => {
                  >
                    <defs>
                      <linearGradient id="colorY" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.6}/>
-                       <stop offset="50%" stopColor="#6366f1" stopOpacity={0.2}/>
-                       <stop offset="100%" stopColor="#6366f1" stopOpacity={0}/>
-                     </linearGradient>
+                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.6}/>
+                        <stop offset="50%" stopColor="#0ea5e9" stopOpacity={0.15}/>
+                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0}/>
+                      </linearGradient>
                      <linearGradient id="colorYHover" x1="0" y1="0" x2="0" y2="1">
-                       <stop offset="0%" stopColor="#d946ef" stopOpacity={0.7}/>
-                       <stop offset="50%" stopColor="#a855f7" stopOpacity={0.3}/>
-                       <stop offset="100%" stopColor="#a855f7" stopOpacity={0}/>
-                     </linearGradient>
+                        <stop offset="0%" stopColor="#2dd4bf" stopOpacity={0.7}/>
+                        <stop offset="50%" stopColor="#2dd4bf" stopOpacity={0.2}/>
+                        <stop offset="100%" stopColor="#2dd4bf" stopOpacity={0}/>
+                      </linearGradient>
                      <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                       <rect width="2" height="6" transform="translate(0,0)" fill="#64748b" opacity="0.15"></rect>
+                       <rect width="2" height="6" transform="translate(0,0)" fill="#475569" opacity="0.4"></rect>
                      </pattern>
                    </defs>
-                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.4} />
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" strokeOpacity={0.8} />
                    
                    <XAxis 
                      dataKey="x" 
@@ -555,8 +562,8 @@ export const FWHMModule: React.FC = () => {
                      tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}}
                      label={{ value: 'Diffraction Angle 2θ (°)', position: 'bottom', offset: 25, fill: '#475569', fontSize: 11, fontWeight: 800, textAnchor: 'middle', letterSpacing: '0.05em' }}
                      tickFormatter={(val) => val.toFixed(1)}
-                     axisLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
-                     tickLine={{ stroke: '#cbd5e1', strokeWidth: 2 }}
+                     axisLine={{ stroke: '#1e293b', strokeWidth: 2 }}
+                     tickLine={{ stroke: '#1e293b', strokeWidth: 2 }}
                    />
                    <YAxis hide domain={[0, amplitude * 1.35]} />
                    
@@ -568,17 +575,17 @@ export const FWHMModule: React.FC = () => {
                          const localSize = 0.15406 * 0.9 / ((fwhm * Math.PI / 180) * Math.cos(thetaRad));
                          
                          return (
-                           <div className="bg-slate-900/95 backdrop-blur-xl text-white p-4 rounded-2xl shadow-2xl shadow-indigo-500/40 text-xs border border-indigo-500/20 min-w-[220px] transform scale-105 transition-transform duration-75 relative overflow-hidden">
-                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-fuchsia-500 to-indigo-500" />
-                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-fuchsia-500/10 rounded-full blur-xl pointer-events-none" />
+                           <div className="bg-[#0B0F19]/95 backdrop-blur-3xl text-slate-200 p-5 rounded-2xl shadow-[0_0_40px_rgba(34,211,238,0.15)] text-xs border border-white/10 min-w-[220px] transform scale-105 transition-transform duration-75 relative overflow-hidden">
+                             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-400 via-sky-500 to-indigo-500" />
+                             <div className="absolute -top-10 -right-10 w-24 h-24 bg-cyan-500/10 rounded-full blur-xl pointer-events-none" />
                              <div className="flex items-center gap-2 font-black mb-3 border-b border-slate-700/50 pb-2 uppercase tracking-widest text-[10px] relative z-10">
-                               <Zap className="w-3.5 h-3.5 text-fuchsia-400" />
+                               <Zap className="w-3.5 h-3.5 text-cyan-400" />
                                <span>2θ Scan: {dataPoint.x.toFixed(4)}°</span>
                              </div>
                              <div className="space-y-3 relative z-10">
                                <div className="flex justify-between gap-4 items-center">
                                  <span className="text-slate-400 font-medium tracking-wide flex items-center gap-1.5"><Activity className="w-3 h-3"/> Measured I(2θ)</span>
-                                 <span className="font-mono font-bold text-white drop-shadow-[0_0_8px_rgba(232,121,249,0.8)] px-1">{dataPoint.y.toFixed(1)}</span>
+                                 <span className="font-mono font-bold text-white drop-shadow-[0_0_8px_rgba(56,189,248,0.8)] px-1">{dataPoint.y.toFixed(1)}</span>
                                </div>
                                <div className="flex justify-between gap-4 items-center">
                                  <span className="text-slate-400 font-medium tracking-wide flex items-center gap-1.5"><Activity className="w-3 h-3 text-slate-500"/> True I(2θ)</span>
@@ -600,7 +607,7 @@ export const FWHMModule: React.FC = () => {
                                )}
                                {type === 'Pearson VII' && (
                                  <div className="flex justify-between gap-4 items-center">
-                                   <span className="text-slate-400 font-medium tracking-wide text-[9px] bg-fuchsia-500/10 px-1.5 py-0.5 rounded text-fuchsia-300">Pearson m</span>
+                                   <span className="text-slate-400 font-medium tracking-wide text-[9px] bg-cyan-500/10 px-1.5 py-0.5 rounded text-fuchsia-300">Pearson m</span>
                                    <span className="font-mono text-fuchsia-300 font-bold text-[10px] px-1">{(Math.max(1, eta * 10)).toFixed(2)}</span>
                                  </div>
                                )}
@@ -625,7 +632,7 @@ export const FWHMModule: React.FC = () => {
                        x1={chartData[0].x} 
                        x2={chartData[chartData.length - 1].x} 
                        y1={0} 
-                       y2={amplitude * 0.05} 
+                       y2={background} 
                        fill="url(#hatch)" 
                        stroke="none"
                      >
@@ -638,8 +645,7 @@ export const FWHMModule: React.FC = () => {
                      <ReferenceArea 
                        x1={center - stats.integralBreadth / 2} 
                        x2={center + stats.integralBreadth / 2} 
-                       y1={0} 
-                       y2={amplitude} 
+                       y1={background} y2={amplitude + background} 
                        fill="rgba(56, 189, 248, 0.05)"
                        stroke="#0ea5e9"
                        strokeDasharray="4 4"
@@ -650,41 +656,38 @@ export const FWHMModule: React.FC = () => {
                    )}
 
                    {/* Peak Position Line */}
-                   <ReferenceLine x={center} stroke="#8b5cf6" strokeDasharray="3 3" opacity={0.8} strokeWidth={2}>
-                      <Label value="Centroid" position="top" fill="#8b5cf6" fontSize={11} fontWeight="black" offset={15} letterSpacing="0.05em" className="drop-shadow-sm" />
+                   <ReferenceLine x={center} stroke="#0ea5e9" strokeDasharray="3 3" opacity={0.8} strokeWidth={2}>
+                      <Label value="Centroid" position="top" fill="#0ea5e9" fontSize={11} fontWeight="black" offset={15} letterSpacing="0.05em" className="drop-shadow-sm" />
                    </ReferenceLine>
-                   <ReferenceDot x={center} y={amplitude} r={5} fill="#8b5cf6" stroke="#fff" strokeWidth={2} className="drop-shadow-md" />
+                   <ReferenceDot x={center} y={amplitude + background} r={5} fill="#0ea5e9" stroke="#0B0F19" strokeWidth={2} className="drop-shadow-md" />
 
                    {/* Imax Line */}
-                   <ReferenceLine y={amplitude} stroke="#cbd5e1" strokeWidth={1.5} strokeDasharray="2 4">
+                   <ReferenceLine y={amplitude + background} stroke="#334155" strokeWidth={1.5} strokeDasharray="2 4">
                       <Label value="I(max)" position="insideLeft" fill="#64748b" fontSize={10} fontWeight="black" offset={15} />
                    </ReferenceLine>
 
                    {/* Half Max Line */}
-                   <ReferenceLine y={amplitude / 2} stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="2 4">
+                   <ReferenceLine y={amplitude / 2 + background} stroke="#334155" strokeWidth={1.5} strokeDasharray="2 4">
                       <Label value="I(max)/2" position="insideLeft" fill="#64748b" fontSize={10} fontWeight="black" offset={15} />
                    </ReferenceLine>
 
                    {/* FWHM Arrow Segment */}
                    <ReferenceLine 
-                     segment={[
-                       { x: center - fwhm / 2, y: amplitude / 2 }, 
-                       { x: center + fwhm / 2, y: amplitude / 2 }
-                     ]} 
+                     segment={[{ x: center - fwhm / 2, y: amplitude / 2 + background }, { x: center + fwhm / 2, y: amplitude / 2 + background }]} 
                      stroke="#0ea5e9" 
                      strokeWidth={3}
                      className="drop-shadow-sm"
                    >
                      <Label value={`FWHM: ${fwhm.toFixed(4)}°`} position="top" fill="#0ea5e9" fontSize={12} fontWeight="900" offset={8} />
                    </ReferenceLine>
-                   <ReferenceDot x={center - fwhm / 2} y={amplitude / 2} r={6} fill="#0ea5e9" stroke="white" strokeWidth={2.5} className="drop-shadow-sm" />
-                   <ReferenceDot x={center + fwhm / 2} y={amplitude / 2} r={6} fill="#0ea5e9" stroke="white" strokeWidth={2.5} className="drop-shadow-sm" />
+                   <ReferenceDot x={center - fwhm / 2} y={amplitude / 2 + background} r={6} fill="#0ea5e9" stroke="white" strokeWidth={2.5} className="drop-shadow-sm" />
+                   <ReferenceDot x={center + fwhm / 2} y={amplitude / 2 + background} r={6} fill="#0ea5e9" stroke="white" strokeWidth={2.5} className="drop-shadow-sm" />
 
                    {/* Main Peak Area */}
                    <Area 
                       type="monotone" 
                       dataKey="y" 
-                      stroke="#818cf8" 
+                      stroke="#f43f5e" 
                       strokeWidth={2}
                       strokeOpacity={0.6}
                       fillOpacity={0} 
@@ -695,12 +698,12 @@ export const FWHMModule: React.FC = () => {
                    <Area 
                       type="monotone" 
                       dataKey="_cleanY" 
-                      stroke={mousePos ? "#d946ef" : "#8b5cf6"} 
+                      stroke={isHovered ? "#2dd4bf" : "#0ea5e9"} 
                       strokeWidth={4}
                       fillOpacity={1} 
-                      fill={mousePos ? "url(#colorYHover)" : "url(#colorY)"} 
+                      fill={isHovered ? "url(#colorYHover)" : "url(#colorY)"} 
                       isAnimationActive={false}
-                      activeDot={{r: 6, fill: '#f0abfc', stroke: '#c026d3', strokeWidth: 2}}
+                      activeDot={{r: 6, fill: '#2dd4bf', stroke: '#0f766e', strokeWidth: 2}}
                       className="transition-all duration-300"
                    />
                  </ComposedChart>
@@ -708,21 +711,21 @@ export const FWHMModule: React.FC = () => {
                
                {/* Custom Annotations Overlay */}
                <div className="absolute top-24 lg:top-28 right-8 lg:right-12 flex flex-col items-end gap-3 pointer-events-none transition-opacity z-20 hidden md:flex">
-                  <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl shadow-indigo-500/5 text-slate-800 dark:text-white font-mono tracking-tight max-w-[260px] lg:max-w-[320px]">
-                    <div className="text-[12px] lg:text-[14px] flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300 text-center leading-relaxed">
+                  <div className="bg-[#050B14]/80 backdrop-blur-2xl px-5 py-4 rounded-2xl border border-white/5 shadow-[inset_0_0_20px_rgba(0,0,0,0.8),0_0_30px_rgba(56,189,248,0.1)] text-white font-mono tracking-tight max-w-[260px] lg:max-w-[320px]">
+                    <div className="text-[12px] lg:text-[14px] flex items-center justify-center font-bold text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.6)] text-center leading-relaxed">
                       {type === 'Gaussian' && <span>I(2θ) = Iₘₐₓ · exp[-ln(2)·((2θ-2θ₀)/w)²]</span>}
                       {type === 'Lorentzian' && <span>I(2θ) = Iₘₐₓ / [1 + ((2θ-2θ₀)/w)²]</span>}
                       {type === 'Pseudo-Voigt' && <span>I(2θ) = Iₘₐₓ · <br/>[η·L(2θ) + (1-η)·G(2θ)]</span>}
                       {type === 'Pearson VII' && <span>I(2θ) = Iₘₐₓ / <br/>[1 + (2^(1/m)-1)·((2θ-2θ₀)/w)²]^m</span>}
                     </div>
-                    <div className="text-[8px] lg:text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-2 text-center font-sans font-black flex items-center justify-center gap-1.5 opacity-80 border-t border-slate-300/50 dark:border-slate-600/50 pt-2">
-                      <Zap className="w-3 h-3 text-fuchsia-500" /> Current Convolution Kernel
+                    <div className="text-[8px] lg:text-[9px] text-slate-500 uppercase tracking-widest mt-2 text-center font-sans font-black flex items-center justify-center gap-1.5 opacity-80 border-t border-slate-300/50 dark:border-slate-600/50 pt-2">
+                      <Zap className="w-3 h-3 text-cyan-400" /> Current Convolution Kernel
                     </div>
                   </div>
 
-                  <div className="text-[9px] lg:text-[10px] font-black text-slate-500 dark:text-slate-400 flex items-center gap-2 pointer-events-none tracking-[0.2em] uppercase bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                  <div className="text-[9px] lg:text-[10px] font-black text-slate-500 flex items-center gap-2 pointer-events-none tracking-[0.2em] uppercase bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-inner shadow-sm">
                     <span>Integrated Area ∫I(θ)dθ</span>
-                    <svg className="w-3 h-3 lg:w-4 lg:h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-3 h-3 lg:w-4 lg:h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                     </svg>
                   </div>
@@ -732,55 +735,18 @@ export const FWHMModule: React.FC = () => {
            </div>
            
            {/* Advanced Crosshair Cursor Overlay */}
-           {mousePos && (
-             <svg 
-               className="absolute inset-0 pointer-events-none z-50 mix-blend-difference opacity-90 transition-opacity duration-150" 
-               width="100%" 
-               height="100%"
-             >
-               {/* Horizontal Line */}
-               <line 
-                 x1="0" 
-                 y1={mousePos.y} 
-                 x2="100%" 
-                 y2={mousePos.y} 
-                 stroke="#f472b6" 
-                 strokeWidth="1" 
-                 strokeDasharray="4 4"
-               />
-               {/* Vertical Line */}
-               <line 
-                 x1={mousePos.x} 
-                 y1="0" 
-                 x2={mousePos.x} 
-                 y2="100%" 
-                 stroke="#f472b6" 
-                 strokeWidth="1" 
-                 strokeDasharray="4 4"
-               />
-               {/* Target Ring */}
-               <circle 
-                 cx={mousePos.x} 
-                 cy={mousePos.y} 
-                 r="10" 
-                 fill="none" 
-                 stroke="#f472b6"
-                 strokeWidth="1.5"
-                 opacity="0.8"
-               />
-               <circle 
-                 cx={mousePos.x} 
-                 cy={mousePos.y} 
-                 r="2.5" 
-                 fill="#f472b6" 
-               />
-               {/* Precision Reticle Marks */}
-               <line x1={mousePos.x - 18} y1={mousePos.y} x2={mousePos.x - 6} y2={mousePos.y} stroke="#f472b6" strokeWidth="1.5" />
-               <line x1={mousePos.x + 6} y1={mousePos.y} x2={mousePos.x + 18} y2={mousePos.y} stroke="#f472b6" strokeWidth="1.5" />
-               <line x1={mousePos.x} y1={mousePos.y - 18} x2={mousePos.x} y2={mousePos.y - 6} stroke="#f472b6" strokeWidth="1.5" />
-               <line x1={mousePos.x} y1={mousePos.y + 6} x2={mousePos.x} y2={mousePos.y + 18} stroke="#f472b6" strokeWidth="1.5" />
-             </svg>
-           )}
+           {/* Advanced Crosshair Cursor Overlay */}
+           <div 
+             ref={crosshairContainerRef}
+             className="absolute inset-0 pointer-events-none z-50 mix-blend-difference transition-opacity duration-150" 
+             style={{ opacity: 0 }}
+           >
+             <div ref={crossXRef} className="absolute top-0 bottom-0 border-l border-dashed border-cyan-400 w-px will-change-transform" />
+             <div ref={crossYRef} className="absolute left-0 right-0 border-t border-dashed border-cyan-400 h-px will-change-transform" />
+             <div ref={crossTargetRef} className="absolute w-5 h-5 rounded-full border-[1.5px] border-cyan-400 opacity-80 will-change-transform" />
+             <div ref={crossCenterRef} className="absolute w-[5px] h-[5px] rounded-full bg-cyan-400 will-change-transform" />
+             
+           </div>
         </div>
 
         {/* Info Cards */}
@@ -788,34 +754,34 @@ export const FWHMModule: React.FC = () => {
            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl group-hover:bg-emerald-500/20 transition-colors" />
               <div className="relative z-10">
-                <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><CheckCircle className="w-3 h-3 text-emerald-500" /> Peak Area</span>
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><CheckCircle className="w-3 h-3 text-emerald-500" /> Peak Area</span>
                 <span className="text-2xl font-black text-slate-800 dark:text-slate-100 font-mono tracking-tight">{stats?.area.toFixed(2)}</span>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed font-medium">Calculated total area under the peak.</p>
+                <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed font-medium">Calculated total area under the peak.</p>
               </div>
            </div>
            <div className="bg-indigo-50/50 dark:bg-indigo-900/20 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -top-4 w-16 h-16 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-colors" />
               <div className="relative z-10">
-                <span className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Box className="w-3 h-3" /> Integral Breadth (β)</span>
+                <span className="text-[9px] font-black text-cyan-400 dark:text-indigo-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Box className="w-3 h-3" /> Integral Breadth (β)</span>
                 <span className="text-2xl font-black text-slate-800 dark:text-slate-100 font-mono tracking-tight">{stats?.integralBreadth.toFixed(4)}°</span>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed font-medium">Line width of a rectangle with equivalent integrated area & maximum height.</p>
+                <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed font-medium">Line width of a rectangle with equivalent integrated area & maximum height.</p>
               </div>
            </div>
            <div className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm relative overflow-hidden group">
               <div className="absolute -right-4 -top-4 w-16 h-16 bg-slate-500/10 rounded-full blur-xl group-hover:bg-slate-500/20 transition-colors" />
               <div className="relative z-10">
-                <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> Shape Factor (φ)</span>
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Layers className="w-3 h-3" /> Shape Factor (φ)</span>
                 <span className="text-2xl font-black text-slate-800 dark:text-slate-100 font-mono tracking-tight">{stats?.shapeFactor.toFixed(3)}</span>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed font-medium">FWHM / β ratio. Pure Gaussian ≈ 0.94, Pure Lorentzian ≈ 0.64.</p>
+                <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed font-medium">FWHM / β ratio. Pure Gaussian ≈ 0.94, Pure Lorentzian ≈ 0.64.</p>
               </div>
            </div>
            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 w-16 h-16 bg-fuchsia-500/10 rounded-full blur-xl group-hover:bg-fuchsia-500/20 transition-colors" />
+              <div className="absolute -right-4 -top-4 w-16 h-16 bg-cyan-500/10 rounded-full blur-xl group-hover:bg-fuchsia-500/20 transition-colors" />
               <div className="relative z-10 flex flex-col h-full justify-between">
                 <div>
-                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Activity className="w-3 h-3 text-fuchsia-500" /> Lorentzian %</span>
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Activity className="w-3 h-3 text-cyan-400" /> Lorentzian %</span>
                   <div className="flex items-end gap-3 mb-2">
-                     <span className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white font-mono tracking-tighter">
+                     <span className="text-2xl lg:text-3xl font-black text-white font-mono tracking-tighter">
                        {type === 'Pseudo-Voigt' ? (eta * 100).toFixed(0) : type === 'Lorentzian' ? '100' : '0'}%
                      </span>
                   </div>
@@ -824,7 +790,7 @@ export const FWHMModule: React.FC = () => {
                   <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-2 border border-slate-200 dark:border-slate-700">
                      <div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500" style={{ width: `${type === 'Pseudo-Voigt' ? eta * 100 : type === 'Lorentzian' ? 100 : 0}%` }} />
                   </div>
-                  <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">Finite size & defects limit.</p>
+                  <p className="text-[9px] text-slate-500 leading-relaxed font-medium">Finite size & defects limit.</p>
                 </div>
               </div>
            </div>
@@ -832,9 +798,9 @@ export const FWHMModule: React.FC = () => {
               <div className="absolute -right-4 -top-4 w-16 h-16 bg-cyan-500/10 rounded-full blur-xl group-hover:bg-cyan-500/20 transition-colors" />
               <div className="relative z-10 flex flex-col h-full justify-between">
                 <div>
-                  <span className="text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Scan className="w-3 h-3 text-cyan-500" /> Gaussian %</span>
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5"><Scan className="w-3 h-3 text-cyan-500" /> Gaussian %</span>
                   <div className="flex items-end gap-3 mb-2">
-                     <span className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white font-mono tracking-tighter">
+                     <span className="text-2xl lg:text-3xl font-black text-white font-mono tracking-tighter">
                        {type === 'Pseudo-Voigt' ? ((1 - eta) * 100).toFixed(0) : type === 'Gaussian' ? '100' : '0'}%
                      </span>
                   </div>
@@ -843,7 +809,7 @@ export const FWHMModule: React.FC = () => {
                   <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mb-2 border border-slate-200 dark:border-slate-700">
                      <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500" style={{ width: `${type === 'Pseudo-Voigt' ? (1 - eta) * 100 : type === 'Gaussian' ? 100 : 0}%` }} />
                   </div>
-                  <p className="text-[9px] text-slate-500 dark:text-slate-400 leading-relaxed font-medium">Instrumental & strain.</p>
+                  <p className="text-[9px] text-slate-500 leading-relaxed font-medium">Instrumental & strain.</p>
                 </div>
               </div>
            </div>
