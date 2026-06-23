@@ -699,32 +699,33 @@ export const NeutronModule: React.FC = () => {
 
               {activeRightTab === 'projection' && (
                  <div className="flex flex-col lg:flex-row gap-6 items-center flex-1 py-2">
-                    <div className="relative w-[280px] h-[280px] bg-slate-950/60 rounded-3xl border border-slate-850 flex items-center justify-center p-2 shadow-inner scale-100 shrink-0">
+                    <div className="relative w-[280px] h-[280px] bg-slate-50 dark:bg-slate-950/60 rounded-3xl border border-slate-200 dark:border-slate-850 flex items-center justify-center p-2 shadow-sm dark:shadow-inner scale-100 shrink-0 overflow-hidden group/projection transition-all hover:shadow-md dark:hover:shadow-[inset_0_0_40px_rgba(0,0,0,0.4)]">
+                       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.03)_0%,transparent_70%)] dark:bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.05)_0%,transparent_70%)] pointer-events-none opacity-0 group-hover/projection:opacity-100 transition-opacity duration-700" />
                        {/* SVG grid renderer */}
-                       <svg width="260" height="260" viewBox="0 0 300 300" className="w-full h-full">
+                       <svg width="260" height="260" viewBox="0 0 300 300" className="w-full h-full drop-shadow-sm">
                           {/* Outer cell wireframe box */}
-                          <rect x="40" y="40" width="220" height="220" fill="none" stroke="#334155" strokeWidth="2.5" />
-                          <rect x="40" y="40" width="220" height="220" fill="none" stroke="#10b981" strokeWidth="1.5" strokeDasharray="4 4" className="opacity-40 animate-pulse" />
+                          <rect x="40" y="40" width="220" height="220" fill="rgba(255,255,255,0.02)" stroke="#94a3b8" strokeWidth="2.5" className="dark:stroke-[#334155] dark:fill-none" />
+                          <rect x="40" y="40" width="220" height="220" fill="none" stroke="#059669" strokeWidth="1.5" strokeDasharray="4 4" className="opacity-60 dark:opacity-40 animate-pulse dark:stroke-[#10b981]" />
                           
                           {/* Inner grid lines representing 0.25 steps */}
                           {[0.25, 0.5, 0.75].map((g) => (
                              <React.Fragment key={g}>
-                               <line x1={40 + g*220} y1="40" x2={40 + g*220} y2="260" stroke="#1e293b" strokeWidth="1" strokeDasharray="2 2" />
-                               <line x1="40" y1={40 + g*220} x2="260" y2={40 + g*220} stroke="#1e293b" strokeWidth="1" strokeDasharray="2 2" />
+                               <line x1={40 + g*220} y1="40" x2={40 + g*220} y2="260" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="2 2" className="dark:stroke-[#1e293b]" />
+                               <line x1="40" y1={40 + g*220} x2="260" y2={40 + g*220} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="2 2" className="dark:stroke-[#1e293b]" />
                              </React.Fragment>
                           ))}
 
                           {/* Axes indicators */}
-                          <text x="32" y="275" fill="#475569" className="text-[10px] font-mono font-bold uppercase">
+                          <text x="32" y="275" fill="#64748b" className="text-[10px] font-mono font-bold uppercase dark:fill-[#475569]">
                              {projectionPlane === 'ab' ? 'X' : projectionPlane === 'bc' ? 'Y' : 'Z'}
                           </text>
-                          <text x="20" y="50" fill="#475569" className="text-[10px] font-mono font-bold uppercase">
+                          <text x="20" y="50" fill="#64748b" className="text-[10px] font-mono font-bold uppercase dark:fill-[#475569]">
                              {projectionPlane === 'ab' ? 'Y' : projectionPlane === 'bc' ? 'Z' : 'X'}
                           </text>
 
                           {/* Directional small arrows on axes */}
-                          <path d="M 40 260 L 60 260 M 55 257 L 60 260 L 55 263" fill="none" stroke="#475569" strokeWidth="1.5" />
-                          <path d="M 40 260 L 40 240 M 37 245 L 40 240 L 43 245" fill="none" stroke="#475569" strokeWidth="1.5" />
+                          <path d="M 40 260 L 60 260 M 55 257 L 60 260 L 55 263" fill="none" stroke="#64748b" strokeWidth="1.5" className="dark:stroke-[#475569]" />
+                          <path d="M 40 260 L 40 240 M 37 245 L 40 240 L 43 245" fill="none" stroke="#64748b" strokeWidth="1.5" className="dark:stroke-[#475569]" />
 
                           {/* Atoms rendering */}
                           {atoms.map((atom, idx) => {
@@ -752,14 +753,16 @@ export const NeutronModule: React.FC = () => {
                                   {isNegative ? (
                                     <>
                                       {/* Negative width scatterer gets dashed indicators */}
-                                      <circle cx={cx} cy={cy} r={r + 4} fill="none" stroke="#f43f5e" strokeWidth="1" strokeDasharray="3 3" className="opacity-60 animate-ping" style={{ animationDuration: '3s' }} />
-                                      <circle cx={cx} cy={cy} r={r} fill="url(#negGrad)" stroke="#f43f5e" strokeWidth="2.5" />
+                                      <circle cx={cx} cy={cy} r={r * 1.6} fill="url(#negGlow)" opacity="0" className="group-hover/projection-atom:opacity-100 transition-opacity duration-300" />
+                                      <circle cx={cx} cy={cy} r={r + 5} fill="none" stroke="#e11d48" strokeWidth="1.5" strokeDasharray="3 4" className="opacity-80 animate-[spin_6s_linear_infinite]" />
+                                      <circle cx={cx} cy={cy} r={r} fill="url(#negGrad)" stroke="#be123c" strokeWidth="2.5" className="dark:stroke-[#f43f5e] group-hover/projection-atom:scale-110 transition-transform duration-300 drop-shadow-md" />
                                     </>
                                   ) : (
                                     <>
                                       {/* Positive width scatterers get gorgeous cyan/emerald gradients */}
-                                      <circle cx={cx} cy={cy} r={r + 3} fill="none" stroke="#10b981" strokeWidth="0.8" className="opacity-30" />
-                                      <circle cx={cx} cy={cy} r={r} fill="url(#posGrad)" stroke="#10b981" strokeWidth="2.5" />
+                                      <circle cx={cx} cy={cy} r={r * 1.6} fill="url(#posGlow)" opacity="0" className="group-hover/projection-atom:opacity-100 transition-opacity duration-300" />
+                                      <circle cx={cx} cy={cy} r={r + 4} fill="none" stroke="#059669" strokeWidth="1.2" className="opacity-40 animate-[spin_8s_linear_infinite]" strokeDasharray="8 4" />
+                                      <circle cx={cx} cy={cy} r={r} fill="url(#posGrad)" stroke="#047857" strokeWidth="2.5" className="dark:stroke-[#10b981] group-hover/projection-atom:scale-110 transition-transform duration-300 drop-shadow-md" />
                                     </>
                                   )}
                                   
@@ -769,7 +772,7 @@ export const NeutronModule: React.FC = () => {
                                     y={cy + 3.5} 
                                     textAnchor="middle" 
                                     fill="#ffffff" 
-                                    className="text-[10px] font-black font-sans pointer-events-none select-none text-center drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)]"
+                                    className="text-[10px] font-black font-sans pointer-events-none select-none text-center drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.8)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
                                   >
                                      {atom.element}
                                   </text>
@@ -787,14 +790,22 @@ export const NeutronModule: React.FC = () => {
                           {/* SVG Definitions for rich gradients */}
                           <defs>
                              <radialGradient id="posGrad" cx="30%" cy="30%" r="70%">
-                                <stop offset="0%" stopColor="#34d399" />
-                                <stop offset="70%" stopColor="#059669" />
-                                <stop offset="100%" stopColor="#064e3b" />
+                                <stop offset="0%" stopColor="#6ee7b7" className="dark:stop-color-[#34d399]" />
+                                <stop offset="50%" stopColor="#10b981" className="dark:stop-color-[#059669]" />
+                                <stop offset="100%" stopColor="#047857" className="dark:stop-color-[#064e3b]" />
                              </radialGradient>
                              <radialGradient id="negGrad" cx="30%" cy="30%" r="70%">
-                                <stop offset="0%" stopColor="#fca5a5" />
-                                <stop offset="70%" stopColor="#e11d48" />
-                                <stop offset="100%" stopColor="#881337" />
+                                <stop offset="0%" stopColor="#fca5a5" className="dark:stop-color-[#fca5a5]" />
+                                <stop offset="50%" stopColor="#e11d48" className="dark:stop-color-[#e11d48]" />
+                                <stop offset="100%" stopColor="#9f1239" className="dark:stop-color-[#881337]" />
+                             </radialGradient>
+                             <radialGradient id="posGlow" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+                                <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                             </radialGradient>
+                             <radialGradient id="negGlow" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stopColor="#e11d48" stopOpacity="0.4" />
+                                <stop offset="100%" stopColor="#e11d48" stopOpacity="0" />
                              </radialGradient>
                           </defs>
                        </svg>
@@ -802,30 +813,34 @@ export const NeutronModule: React.FC = () => {
 
                     <div className="flex-1 flex flex-col justify-center gap-4 text-left">
                        <div className="space-y-1">
-                          <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.25em]">Nuclear Projection</h4>
-                          <h3 className="text-base font-black text-white capitalize leading-tight">Unit Cell Perspective Looking Down</h3>
-                          <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                          <h4 className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.25em]">Nuclear Projection</h4>
+                          <h3 className="text-base font-black text-slate-800 dark:text-white capitalize leading-tight">Unit Cell Perspective Looking Down</h3>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-semibold">
                              This visual map projects the exact $(x, y, z)$ coordinates inside your unit cell onto a 2D plane. 
                           </p>
                        </div>
                        
-                       <div className="space-y-2.5 bg-black/40 p-4 border border-slate-850 rounded-2xl">
-                          <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
-                             <span className="font-bold flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"/> Positive b (fm)</span>
-                             <span className="text-white font-black">Solid Emerald Spheres</span>
+                       <div className="space-y-2.5 bg-white dark:bg-black/40 p-4 border border-slate-200 dark:border-slate-850 rounded-2xl shadow-sm dark:shadow-none">
+                          <div className="flex justify-between items-center text-[10px] font-mono text-slate-600 dark:text-slate-400">
+                             <span className="font-bold flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow-sm"/> Positive b (fm)</span>
+                             <span className="text-slate-800 dark:text-white font-black">Solid Emerald Spheres</span>
                           </div>
-                          <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
-                             <span className="font-bold flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"/> Negative b (fm)</span>
-                             <span className="text-rose-400 font-extrabold">Dashed Glowing Pink Spheres</span>
+                          <div className="flex justify-between items-center text-[10px] font-mono text-slate-600 dark:text-slate-400">
+                             <span className="font-bold flex items-center gap-1.5">
+                               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block shadow-sm relative">
+                                 <span className="absolute inset-0 rounded-full border border-rose-500 animate-ping"></span>
+                               </span> Negative b (fm)
+                             </span>
+                             <span className="text-rose-600 dark:text-rose-400 font-extrabold">Dashed Glowing Pink Spheres</span>
                           </div>
-                          <div className="w-full h-px bg-slate-800/80 my-1" />
-                          <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                          <div className="w-full h-px bg-slate-200 dark:bg-slate-800/80 my-1" />
+                          <div className="flex justify-between items-center text-[10px] font-mono text-slate-600 dark:text-slate-400">
                              <span className="font-bold">Calculated Volume</span>
-                             <span className="text-blue-400 font-black">{calculateCellVolume ? calculateCellVolume(lattice).toFixed(2) : (lattice.a*lattice.b*lattice.c).toFixed(2)} Å³</span>
+                             <span className="text-blue-600 dark:text-blue-400 font-black bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-500/20">{calculateCellVolume ? calculateCellVolume(lattice).toFixed(2) : (lattice.a*lattice.b*lattice.c).toFixed(2)} Å³</span>
                           </div>
                        </div>
-                       <p className="text-[10px] italic text-slate-500 font-medium">
-                           *Hint: Negative scattering length means the nucleus scatters neutrons out-of-phase (180° shift) relative to positive cores. This only happens with specific isotopes like 1H, 48Ti, or 55Mn!
+                       <p className="text-[10px] italic text-slate-500 font-medium bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                           <span className="font-bold text-amber-600 dark:text-amber-500">*Hint:</span> Negative scattering length means the nucleus scatters neutrons out-of-phase (180° shift) relative to positive cores. This only happens with specific isotopes like 1H, 48Ti, or 55Mn!
                         </p>
                     </div>
                  </div>

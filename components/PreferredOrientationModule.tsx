@@ -438,24 +438,36 @@ export const PreferredOrientationModule: React.FC = () => {
   return (
     <div className="space-y-6 flex flex-col pt-4 min-h-[90vh] relative z-10 w-full mb-32 custom-scrollbar">
       {/* Top Description Hub */}
-      <div className="bg-black/40 p-8 rounded-[2rem] border border-white/5 hover:border-white/10 transition-all relative overflow-hidden shadow-2xl backdrop-blur-md">
-        <div className="absolute top-0 right-0 p-32 opacity-10 bg-gradient-to-br from-indigo-500 to-sky-500 rounded-bl-full pointer-events-none"></div>
+      <div className="bg-white dark:bg-black/40 p-8 rounded-[2.5rem] border border-slate-200 dark:border-white/5 hover:border-indigo-500/30 transition-all relative overflow-hidden shadow-sm dark:shadow-2xl backdrop-blur-md group">
+        <div className="absolute top-0 right-0 p-32 opacity-10 dark:opacity-10 bg-gradient-to-br from-indigo-500 to-sky-500 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-1000"></div>
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px] font-mono tracking-widest text-indigo-400 font-extrabold uppercase flex items-center gap-2">
+              <div className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-xl text-[10px] font-mono tracking-widest text-indigo-600 dark:text-indigo-400 font-extrabold uppercase flex items-center gap-2 shadow-sm">
                 <Sparkles className="w-3.5 h-3.5" /> Texture-Rich Sample Suite
               </div>
-              <div className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[10px] font-mono tracking-widest text-emerald-400 font-extrabold uppercase flex items-center gap-2">
+              <div className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl text-[10px] font-mono tracking-widest text-emerald-600 dark:text-emerald-400 font-extrabold uppercase flex items-center gap-2 shadow-sm animate-pulse">
                 <Activity className="w-3.5 h-3.5" /> March-Dollase Active
               </div>
             </div>
-            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 uppercase tracking-tight font-sans">
+            <h1 className="text-3xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight font-sans">
               Preferred Orientation Analyzer
             </h1>
-            <p className="text-sm text-slate-500 mt-3 max-w-2xl leading-relaxed">
-              Analyze crystallite fiber texture and correct diffraction peak intensity anomalies using the industry-standard <strong className="text-slate-300">March-Dollase Model</strong>. Simulate platelets, needle configurations, and run interactive Rwp numeric optimization on physical data.
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-3 max-w-2xl leading-relaxed">
+              Analyze crystallite fiber texture and correct diffraction peak intensity anomalies using the industry-standard <strong className="text-slate-700 dark:text-slate-200">March-Dollase Model</strong>. Simulate platelets, needle configurations, and run interactive <span className="font-serif italic font-bold">R<sub className="font-sans not-italic text-[10px] mb-1">wp</sub></span> numeric optimization on physical data.
             </p>
+          </div>
+          <div className="hidden md:flex flex-col items-end gap-2 text-right">
+             <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-inner">
+               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping absolute"></div>
+               <div className="w-2 h-2 rounded-full bg-emerald-500 relative"></div>
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 font-mono">
+                 Engine Online
+               </span>
+             </div>
+             <div className="text-[9px] font-mono font-bold text-slate-400 dark:text-slate-500 tracking-wider">
+               SOLVER KERNEL V2.1
+             </div>
           </div>
         </div>
       </div>
@@ -467,12 +479,12 @@ export const PreferredOrientationModule: React.FC = () => {
         <div className="xl:col-span-4 space-y-6">
           
           {/* Quick Preset Demonstrations */}
-          <div className="bg-black/40 p-6 rounded-[2rem] border border-white/5 hover:border-indigo-500/30 transition-all backdrop-blur-md relative z-0 group">
+          <div className="bg-white dark:bg-black/40 p-6 rounded-[2rem] border border-slate-200 dark:border-white/5 hover:border-indigo-500/30 transition-all backdrop-blur-md relative z-0 group shadow-sm dark:shadow-none">
             <div className="flex items-center gap-2 mb-5">
-              <div className="p-1.5 max-w-fit bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-inner group-hover:scale-110 transition-transform">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
+              <div className="p-1.5 max-w-fit bg-indigo-50 dark:bg-indigo-500/10 rounded-lg border border-indigo-100 dark:border-indigo-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest group-hover:text-indigo-400 transition-colors">
+              <h3 className="text-xs uppercase font-black text-slate-800 dark:text-slate-200 tracking-widest group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 Demonstrations
               </h3>
             </div>
@@ -481,20 +493,20 @@ export const PreferredOrientationModule: React.FC = () => {
                 <button
                   key={index}
                   onClick={() => selectPreset(p)}
-                  className="group/btn flex flex-col text-left p-4 rounded-2xl border border-white/5 hover:border-indigo-500/30 bg-black/40 hover:bg-indigo-500/10 transition-all duration-300 shadow-sm"
+                  className="group/btn flex flex-col text-left p-4 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-indigo-500/30 bg-slate-50 dark:bg-black/40 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all duration-300 shadow-sm"
                 >
                   <div className="flex items-center justify-between w-full mb-1">
-                    <span className="font-bold text-slate-300 text-xs flex items-center gap-2 transition-colors">
-                      <div className="text-indigo-400 group-hover/btn:scale-110 transition-transform">
+                    <span className="font-bold text-slate-800 dark:text-slate-300 text-xs flex items-center gap-2 transition-colors">
+                      <div className="text-indigo-500 dark:text-indigo-400 group-hover/btn:scale-110 transition-transform">
                         {p.icon}
                       </div>
                       {p.name}
                     </span>
-                    <span className="font-mono text-[10px] font-black text-indigo-400 bg-black/40 border border-indigo-500/20 px-2 py-1 rounded-lg shadow-inner group-hover/btn:bg-indigo-500/20 transition-colors">
+                    <span className="font-mono text-[10px] font-black text-indigo-600 dark:text-indigo-400 bg-white dark:bg-black/40 border border-indigo-200 dark:border-indigo-500/20 px-2 py-1 rounded-lg shadow-inner group-hover/btn:bg-indigo-50 dark:group-hover/btn:bg-indigo-500/20 transition-colors">
                       r = {p.r.toFixed(2)}
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-500 group-hover/btn:text-slate-400 font-sans leading-relaxed transition-colors mt-1">
+                  <p className="text-[10px] text-slate-500 group-hover/btn:text-slate-600 dark:group-hover/btn:text-slate-400 font-sans leading-relaxed transition-colors mt-1">
                     {p.description}
                   </p>
                 </button>
@@ -503,30 +515,30 @@ export const PreferredOrientationModule: React.FC = () => {
           </div>
 
           {/* Adjust Texture Model */}
-          <div className="bg-black/40 p-6 rounded-[2rem] border border-white/5 hover:border-white/10 transition-all backdrop-blur-md space-y-6 relative z-0">
+          <div className="bg-white dark:bg-black/40 p-6 rounded-[2rem] border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 transition-all backdrop-blur-md space-y-6 relative z-0 shadow-sm dark:shadow-none">
             <div className="flex items-center gap-2 mb-5">
-              <div className="p-1.5 max-w-fit bg-sky-500/10 rounded-lg border border-sky-500/20 shadow-inner">
-                <Sliders className="w-4 h-4 text-sky-400" />
+              <div className="p-1.5 max-w-fit bg-sky-50 dark:bg-sky-500/10 rounded-lg border border-sky-100 dark:border-sky-500/20 shadow-inner">
+                <Sliders className="w-4 h-4 text-sky-600 dark:text-sky-400" />
               </div>
-              <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+              <h3 className="text-xs uppercase font-black text-slate-800 dark:text-slate-200 tracking-widest">
                 Adjust Texture Model
               </h3>
             </div>
             
             {/* March Slider */}
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-sky-500/30 transition-all group/slider shadow-inner">
+            <div className="bg-slate-50 dark:bg-black/40 p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-sky-200 dark:hover:border-sky-500/30 transition-all group/slider shadow-inner">
               <div className="flex justify-between items-center text-xs mb-4">
-                <span className="font-bold text-slate-500 group-hover/slider:text-sky-400 transition-colors uppercase tracking-widest text-[9px] font-mono">Habit Distribution Model</span>
+                <span className="font-bold text-slate-500 group-hover/slider:text-sky-600 dark:group-hover/slider:text-sky-400 transition-colors uppercase tracking-widest text-[9px] font-mono">Habit Distribution Model</span>
               </div>
               
-              <div className="flex bg-black/60 border border-white/10 rounded-xl p-1 mb-5">
+              <div className="flex bg-white dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-xl p-1 mb-5">
                  <button
                    onClick={() => {
                      setHabitModel('Platelet');
                      if (rValue > 1.0) setRValue(0.5);
                      setSolverResult(null);
                    }}
-                   className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2 rounded-lg transition-all ${habitModel === 'Platelet' ? 'bg-sky-500/20 text-sky-400 shadow-sm border border-sky-500/20' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent'}`}
+                   className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2 rounded-lg transition-all ${habitModel === 'Platelet' ? 'bg-sky-50 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 shadow-sm border border-sky-200 dark:border-sky-500/20' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'}`}
                  >
                    Platelet (Platy)
                  </button>
@@ -536,7 +548,7 @@ export const PreferredOrientationModule: React.FC = () => {
                      if (rValue < 1.0) setRValue(2.0);
                      setSolverResult(null);
                    }}
-                   className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2 rounded-lg transition-all ${habitModel === 'Cylindrical' ? 'bg-sky-500/20 text-sky-400 shadow-sm border border-sky-500/20' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent'}`}
+                   className={`flex-1 text-[9px] font-black uppercase tracking-widest py-2 rounded-lg transition-all ${habitModel === 'Cylindrical' ? 'bg-sky-50 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400 shadow-sm border border-sky-200 dark:border-sky-500/20' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent'}`}
                  >
                    Cylindrical (Needle)
                  </button>
@@ -544,8 +556,8 @@ export const PreferredOrientationModule: React.FC = () => {
 
               <div className="flex flex-col space-y-3">
                  <div className="flex justify-between items-center text-xs">
-                   <span className="font-bold text-slate-400 text-[11px]">March r parameter</span>
-                   <span className="font-mono text-sky-400 bg-sky-500/10 border border-sky-500/20 px-3 py-1 rounded-lg font-black text-[11px] shadow-inner">
+                   <span className="font-bold text-slate-600 dark:text-slate-400 text-[11px]">March r parameter</span>
+                   <span className="font-mono text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 px-3 py-1 rounded-lg font-black text-[11px] shadow-inner">
                      {rValue.toFixed(3)}
                    </span>
                  </div>
@@ -561,7 +573,7 @@ export const PreferredOrientationModule: React.FC = () => {
                    }}
                    className="w-full accent-sky-500 py-2 cursor-ew-resize opacity-80 hover:opacity-100 transition-opacity"
                  />
-                 <div className="flex justify-between text-[9px] font-black font-mono text-slate-600 mt-2 uppercase tracking-widest">
+                 <div className="flex justify-between text-[9px] font-black font-mono text-slate-400 dark:text-slate-600 mt-2 uppercase tracking-widest">
                    {habitModel === 'Platelet' ? (
                      <><span>r ≪ 1.0 (Plates)</span><span>Iso (≈1.0)</span></>
                    ) : (
@@ -572,12 +584,12 @@ export const PreferredOrientationModule: React.FC = () => {
             </div>
 
             {/* Preferred Direction Vector */}
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-indigo-500/30 transition-all group/vector flex flex-col space-y-4 shadow-inner">
+            <div className="bg-slate-50 dark:bg-black/40 p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all group/vector flex flex-col space-y-4 shadow-inner">
               <div className="flex justify-between items-center text-xs">
-                 <span className="font-bold text-slate-500 group-hover/vector:text-indigo-400 transition-colors uppercase tracking-widest text-[9px] font-mono flex items-center gap-1.5">
+                 <span className="font-bold text-slate-500 group-hover/vector:text-indigo-600 dark:group-hover/vector:text-indigo-400 transition-colors uppercase tracking-widest text-[9px] font-mono flex items-center gap-1.5">
                    <MoveRight className="w-4 h-4" /> Preferred Axis [H, K, L]
                  </span>
-                 <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Fiber Normal</span>
+                 <span className="text-[9px] text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest">Fiber Normal</span>
               </div>
               <input
                 type="text"
@@ -587,16 +599,16 @@ export const PreferredOrientationModule: React.FC = () => {
                   setSolverResult(null);
                 }}
                 placeholder="0, 0, 1"
-                className="w-full px-4 py-2.5 bg-black/60 text-slate-200 focus:text-indigo-400 border border-white/10 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500/30 focus:border-indigo-500/30 transition-all font-mono shadow-inner font-bold text-sm"
+                className="w-full px-4 py-2.5 bg-white dark:bg-black/60 text-slate-800 dark:text-slate-200 focus:text-indigo-600 dark:focus:text-indigo-400 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-1 focus:ring-indigo-500/30 focus:border-indigo-500/30 transition-all font-mono shadow-inner font-bold text-sm"
               />
             </div>
 
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-emerald-500/30 transition-all group/fraction flex flex-col space-y-4 shadow-inner">
+            <div className="bg-slate-50 dark:bg-black/40 p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-emerald-300 dark:hover:border-emerald-500/30 transition-all group/fraction flex flex-col space-y-4 shadow-inner">
               <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-500 group-hover/fraction:text-emerald-400 transition-colors uppercase tracking-widest text-[9px] font-mono flex items-center gap-1.5">
+                <span className="font-bold text-slate-500 group-hover/fraction:text-emerald-600 dark:group-hover/fraction:text-emerald-400 transition-colors uppercase tracking-widest text-[9px] font-mono flex items-center gap-1.5">
                    <Activity className="w-4 h-4" /> Textured Fraction (f)
                 </span>
-                <span className="font-mono font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg text-[11px] shadow-inner">
+                <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-3 py-1 rounded-lg text-[11px] shadow-inner">
                   {(fraction * 100).toFixed(0)}%
                 </span>
               </div>
@@ -617,9 +629,9 @@ export const PreferredOrientationModule: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 hover:border-pink-500/30 transition-all group/crystal flex flex-col space-y-4 shadow-inner">
+            <div className="bg-slate-50 dark:bg-black/40 p-5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-pink-300 dark:hover:border-pink-500/30 transition-all group/crystal flex flex-col space-y-4 shadow-inner">
               <div className="flex justify-between items-center text-xs mb-1">
-                 <span className="font-bold text-slate-500 group-hover/crystal:text-pink-400 transition-colors uppercase tracking-widest text-[9px] font-mono flex items-center gap-1.5">
+                 <span className="font-bold text-slate-500 group-hover/crystal:text-pink-600 dark:group-hover/crystal:text-pink-400 transition-colors uppercase tracking-widest text-[9px] font-mono flex items-center gap-1.5">
                    <Layers className="w-4 h-4" /> Crystal System
                  </span>
               </div>
@@ -629,12 +641,12 @@ export const PreferredOrientationModule: React.FC = () => {
                   setCrystalSystem(e.target.value as any);
                   setSolverResult(null);
                 }}
-                className="w-full px-4 py-2.5 bg-black/60 text-slate-200 border border-white/10 rounded-xl outline-none focus:ring-1 focus:ring-pink-500/30 focus:border-pink-500/30 transition-all shadow-inner font-bold text-xs"
+                className="w-full px-4 py-2.5 bg-white dark:bg-black/60 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:ring-1 focus:ring-pink-500/30 focus:border-pink-500/30 transition-all shadow-inner font-bold text-xs"
               >
-                <option value="Cubic" className="bg-slate-900 text-slate-200">Cubic / Isomeric (a=b=c)</option>
-                <option value="Tetragonal" className="bg-slate-900 text-slate-200">Tetragonal (a=b≠c)</option>
-                <option value="Hexagonal" className="bg-slate-900 text-slate-200">Hexagonal (a=b≠c, γ=120°)</option>
-                <option value="Orthorhombic" className="bg-slate-900 text-slate-200">Orthorhombic (a≠b≠c)</option>
+                <option value="Cubic" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Cubic / Isomeric (a=b=c)</option>
+                <option value="Tetragonal" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Tetragonal (a=b≠c)</option>
+                <option value="Hexagonal" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Hexagonal (a=b≠c, γ=120°)</option>
+                <option value="Orthorhombic" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Orthorhombic (a≠b≠c)</option>
               </select>
               
               {crystalSystem !== 'Cubic' && (
@@ -644,7 +656,7 @@ export const PreferredOrientationModule: React.FC = () => {
                     <input 
                       type="number" step="0.01" min="0.1" value={latticeA} 
                       onChange={(e) => { setLatticeA(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
-                      className="w-full px-2 py-2 bg-black/60 text-pink-400 border border-white/10 rounded-lg outline-none focus:border-pink-500/50 shadow-inner font-mono text-xs text-center font-bold"
+                      className="w-full px-2 py-2 bg-white dark:bg-black/60 text-pink-600 dark:text-pink-400 border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:border-pink-400 dark:focus:border-pink-500/50 shadow-inner font-mono text-xs text-center font-bold"
                     />
                   </div>
                   <div className="space-y-2">
@@ -653,7 +665,7 @@ export const PreferredOrientationModule: React.FC = () => {
                        type="number" step="0.01" min="0.1" value={crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? latticeA : latticeB} 
                        onChange={(e) => { setLatticeB(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
                        disabled={crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal'}
-                       className={`w-full px-2 py-2 font-mono text-xs font-bold text-center border rounded-lg outline-none shadow-inner ${crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? 'bg-black/30 text-slate-600 border-transparent cursor-not-allowed' : 'bg-black/60 text-pink-400 border-white/10 focus:border-pink-500/50'}`}
+                       className={`w-full px-2 py-2 font-mono text-xs font-bold text-center border rounded-lg outline-none shadow-inner ${crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? 'bg-slate-100 dark:bg-black/30 text-slate-400 dark:text-slate-600 border-transparent cursor-not-allowed' : 'bg-white dark:bg-black/60 text-pink-600 dark:text-pink-400 border-slate-200 dark:border-white/10 focus:border-pink-400 dark:focus:border-pink-500/50'}`}
                      />
                   </div>
                   <div className="space-y-2">
@@ -661,56 +673,56 @@ export const PreferredOrientationModule: React.FC = () => {
                      <input 
                        type="number" step="0.01" min="0.1" value={latticeC} 
                        onChange={(e) => { setLatticeC(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
-                       className="w-full px-2 py-2 bg-black/60 text-pink-400 border border-white/10 rounded-lg outline-none focus:border-pink-500/50 shadow-inner font-mono text-xs text-center font-bold"
+                       className="w-full px-2 py-2 bg-white dark:bg-black/60 text-pink-600 dark:text-pink-400 border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:border-pink-400 dark:focus:border-pink-500/50 shadow-inner font-mono text-xs text-center font-bold"
                      />
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 space-y-3 shadow-inner">
-              <div className="text-slate-500 font-black uppercase text-[9px] tracking-widest font-mono mb-3">
+            <div className="bg-slate-50 dark:bg-black/40 p-5 rounded-2xl border border-slate-200 dark:border-white/5 space-y-3 shadow-inner">
+              <div className="text-slate-500 dark:text-slate-400 font-black uppercase text-[9px] tracking-widest font-mono mb-3">
                 Crystallographic Diagnostics
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-white/5">
-                <span className="text-slate-400 text-[11px] font-sans">Parallel Intensity (P_0°)</span>
-                <span className={`font-mono font-black text-xs px-2 py-0.5 rounded shadow-inner ${rValue < 1 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+              <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-white/5">
+                <span className="text-slate-600 dark:text-slate-400 text-[11px] font-sans">Parallel Intensity (P_0°)</span>
+                <span className={`font-mono font-black text-xs px-2 py-0.5 rounded shadow-inner ${rValue < 1 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20'}`}>
                   {(maxCorrection).toFixed(3)}x
                 </span>
               </div>
-              <div className="flex justify-between items-center py-2 border-b border-white/5">
-                <span className="text-slate-400 text-[11px] font-sans">Transverse Intensity (P_90°)</span>
-                <span className={`font-mono font-black text-xs px-2 py-0.5 rounded shadow-inner ${rValue > 1 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+              <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-white/5">
+                <span className="text-slate-600 dark:text-slate-400 text-[11px] font-sans">Transverse Intensity (P_90°)</span>
+                <span className={`font-mono font-black text-xs px-2 py-0.5 rounded shadow-inner ${rValue > 1 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20'}`}>
                   {(minCorrection).toFixed(3)}x
                 </span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="text-slate-400 text-[11px] font-sans">Habit Class</span>
-                <span className={`font-mono font-black uppercase text-[9px] tracking-widest px-2 py-1 rounded shadow-inner ${rValue === 1.0 ? 'bg-white/5 text-slate-300 border border-white/10' : rValue < 1.0 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                <span className="text-slate-600 dark:text-slate-400 text-[11px] font-sans">Habit Class</span>
+                <span className={`font-mono font-black uppercase text-[9px] tracking-widest px-2 py-1 rounded shadow-inner ${rValue === 1.0 ? 'bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-300 border border-slate-200 dark:border-white/10' : rValue < 1.0 ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20'}`}>
                   {rValue === 1.0 ? 'Isotropic' : rValue < 1.0 ? 'Platelet' : 'Needle'}
                 </span>
               </div>
             </div>
 
             {fitQuality && (
-              <div className="bg-indigo-500/5 border border-indigo-500/20 p-5 rounded-2xl backdrop-blur-md shadow-inner relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-16 opacity-10 bg-gradient-to-bl from-emerald-400 to-emerald-600 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
-                <div className="text-emerald-400 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 mb-4 font-mono relative z-10">
+              <div className="bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20 p-5 rounded-2xl backdrop-blur-md shadow-inner relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-16 opacity-10 dark:opacity-10 bg-gradient-to-bl from-emerald-400 to-emerald-600 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform"></div>
+                <div className="text-emerald-600 dark:text-emerald-400 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 mb-4 font-mono relative z-10">
                   <Activity className="w-4 h-4" /> Quality of Fit
                 </div>
                 <div className="space-y-3 relative z-10">
-                  <div className="flex justify-between items-center py-2 border-b border-indigo-500/10">
-                    <span className="text-slate-300 text-xs">R<sub className="pointer-events-none mb-1">wp</sub> Factor</span>
-                    <span className="font-mono text-emerald-400 font-black text-sm">
+                  <div className="flex justify-between items-center py-2 border-b border-indigo-200 dark:border-indigo-500/10">
+                    <span className="text-slate-700 dark:text-slate-300 text-xs">R<sub className="pointer-events-none mb-1">wp</sub> Factor</span>
+                    <span className="font-mono text-emerald-600 dark:text-emerald-400 font-black text-sm">
                       {fitQuality.Rwp.toFixed(2)}%
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                      <span className="flex flex-col gap-1">
-                        <span className="text-slate-300 text-xs">Reduced Chi-Squared (<span className="font-serif italic font-bold">χ²<sub className="font-sans not-italic text-[10px]">r</sub></span>)</span>
+                        <span className="text-slate-700 dark:text-slate-300 text-xs">Reduced Chi-Squared (<span className="font-serif italic font-bold">χ²<sub className="font-sans not-italic text-[10px]">r</sub></span>)</span>
                         <span className="text-[10px] text-slate-500 font-sans">Ideal ≈ 1.0 (DOF: {fitQuality.dof})</span>
                      </span>
-                     <span className={`font-mono font-black text-sm px-2 py-1 rounded shadow-inner ${fitQuality.reducedChiSquared < 2 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : fitQuality.reducedChiSquared < 5 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                     <span className={`font-mono font-black text-sm px-2 py-1 rounded shadow-inner ${fitQuality.reducedChiSquared < 2 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' : fitQuality.reducedChiSquared < 5 ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20'}`}>
                        {fitQuality.reducedChiSquared.toFixed(2)}
                      </span>
                   </div>
@@ -721,38 +733,38 @@ export const PreferredOrientationModule: React.FC = () => {
             <div className="pt-2">
               <button
                 onClick={runParameterRefinement}
-                className="w-full py-4 px-4 bg-gradient-to-br from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 active:scale-[0.98] text-white text-[11px] uppercase font-black tracking-widest rounded-2xl shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_30px_rgba(99,102,241,0.3)] transition-all duration-300 flex items-center justify-center gap-2 border border-white/10"
+                className="w-full py-4 px-4 bg-gradient-to-br from-indigo-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 active:scale-[0.98] text-white text-[11px] uppercase font-black tracking-widest rounded-2xl shadow-[0_0_20px_rgba(99,102,241,0.2)] hover:shadow-[0_0_30px_rgba(99,102,241,0.3)] transition-all duration-300 flex items-center justify-center gap-2 border border-slate-200 dark:border-white/10"
               >
                 <RefreshCw className="w-4 h-4" /> Global Refinement
               </button>
               
               {solverResult && (
-                <div className="mt-4 bg-emerald-500/10 p-5 rounded-2xl border border-emerald-500/30 space-y-3 relative overflow-hidden backdrop-blur-md shadow-inner">
-                  <div className="absolute top-0 right-0 p-16 opacity-10 bg-gradient-to-bl from-emerald-400 to-teal-400 rounded-bl-full pointer-events-none"></div>
-                  <div className="text-[10px] text-emerald-400 font-black uppercase tracking-widest flex items-center gap-2 mb-3 font-mono relative z-10">
+                <div className="mt-4 bg-emerald-50 dark:bg-emerald-500/10 p-5 rounded-2xl border border-emerald-200 dark:border-emerald-500/30 space-y-3 relative overflow-hidden backdrop-blur-md shadow-inner">
+                  <div className="absolute top-0 right-0 p-16 opacity-10 dark:opacity-10 bg-gradient-to-bl from-emerald-400 to-teal-400 rounded-bl-full pointer-events-none"></div>
+                  <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest flex items-center gap-2 mb-3 font-mono relative z-10">
                     <Sparkles className="w-4 h-4" /> Refinement Successful
                   </div>
                   <div className="flex flex-col gap-2 relative z-10">
-                    <div className="flex justify-between text-xs py-2 border-b border-emerald-500/10 items-center">
-                      <span className="text-slate-300">New R<sub>wp</sub> Value</span>
-                      <span className="font-mono font-black text-white bg-black/40 px-2 py-1 rounded shadow-inner text-sm">
+                    <div className="flex justify-between text-xs py-2 border-b border-emerald-200 dark:border-emerald-500/10 items-center">
+                      <span className="text-slate-700 dark:text-slate-300">New R<sub>wp</sub> Value</span>
+                      <span className="font-mono font-black text-slate-800 dark:text-white bg-white dark:bg-black/40 px-2 py-1 rounded shadow-inner text-sm border border-slate-200 dark:border-transparent">
                         {solverResult.finalRwp.toFixed(2)}%
                       </span>
                     </div>
-                    <div className="flex justify-between text-xs py-2 border-b border-emerald-500/10 items-center">
-                      <span className="text-slate-300">Fitted Extent (r)</span>
-                      <span className="font-mono font-black text-emerald-400 text-sm">
+                    <div className="flex justify-between text-xs py-2 border-b border-emerald-200 dark:border-emerald-500/10 items-center">
+                      <span className="text-slate-700 dark:text-slate-300">Fitted Extent (r)</span>
+                      <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
                         {solverResult.refinedR.toFixed(3)}
                       </span>
                     </div>
                     <div className="flex justify-between text-xs py-2 items-center">
-                       <span className="text-slate-300">Fraction (f)</span>
-                       <span className="font-mono font-black text-emerald-400 text-sm">{(solverResult.refinedFraction * 100).toFixed(0)}%</span>
+                       <span className="text-slate-700 dark:text-slate-300">Fraction (f)</span>
+                       <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">{(solverResult.refinedFraction * 100).toFixed(0)}%</span>
                     </div>
                   </div>
-                  <div className="mt-3 bg-black/40 px-3 py-2.5 rounded-xl border border-emerald-500/20 shadow-inner relative z-10 flex gap-2 items-start">
-                    <span className="text-emerald-500 font-mono text-sm mt-0.5">&gt;</span>
-                    <p className="text-[10px] text-emerald-200/80 font-mono leading-relaxed">
+                  <div className="mt-3 bg-white dark:bg-black/40 px-3 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-500/20 shadow-inner relative z-10 flex gap-2 items-start">
+                    <span className="text-emerald-600 dark:text-emerald-500 font-mono text-sm mt-0.5">&gt;</span>
+                    <p className="text-[10px] text-emerald-700 dark:text-emerald-200/80 font-mono leading-relaxed">
                        {solverResult.message}
                     </p>
                   </div>
@@ -769,14 +781,14 @@ export const PreferredOrientationModule: React.FC = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Visual ODF Polar Contour */}
-            <div className="lg:col-span-6 bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between backdrop-blur-md z-0 group">
-              <div className="absolute top-0 left-0 p-32 opacity-5 bg-gradient-to-br from-teal-400 to-emerald-400 rounded-br-[100px] pointer-events-none group-hover:opacity-10 group-hover:scale-110 transition-all duration-700"></div>
+            <div className="lg:col-span-6 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 hover:border-teal-300 dark:hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-sm dark:shadow-2xl relative overflow-hidden flex flex-col justify-between backdrop-blur-md z-0 group">
+              <div className="absolute top-0 left-0 p-32 opacity-10 dark:opacity-5 bg-gradient-to-br from-teal-400 to-emerald-400 rounded-br-[100px] pointer-events-none group-hover:opacity-20 dark:group-hover:opacity-10 group-hover:scale-110 transition-all duration-700"></div>
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="p-1.5 py-1.5 max-w-fit bg-teal-500/10 rounded-lg border border-teal-500/20 shadow-inner">
-                    <CircleDot className="w-4 h-4 text-teal-400" />
+                  <div className="p-1.5 py-1.5 max-w-fit bg-teal-50 dark:bg-teal-500/10 rounded-lg border border-teal-200 dark:border-teal-500/20 shadow-inner">
+                    <CircleDot className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                   </div>
-                  <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+                  <h3 className="text-xs uppercase font-black text-slate-800 dark:text-slate-200 tracking-widest">
                     Polar ODF Figure
                   </h3>
                 </div>
@@ -785,11 +797,11 @@ export const PreferredOrientationModule: React.FC = () => {
                 </p>
               </div>
               
-              <div className="flex justify-center items-center py-6 bg-black/60 rounded-[2rem] border border-white/5 relative shadow-inner z-10 mt-auto">
+              <div className="flex justify-center items-center py-6 bg-white dark:bg-black/60 rounded-[2rem] border border-slate-200 dark:border-white/5 relative shadow-inner z-10 mt-auto">
                 <svg 
                   width="200" 
                   height="200" 
-                  className="overflow-visible filter drop-shadow-lg cursor-crosshair"
+                  className="overflow-visible filter drop-shadow-sm dark:drop-shadow-lg cursor-crosshair"
                   onMouseMove={handlePolarMouseMove}
                   onMouseLeave={() => setPolarHover(null)}
                 >
@@ -857,9 +869,9 @@ export const PreferredOrientationModule: React.FC = () => {
               {/* Polar Hover HUD readout */}
               <div className="h-10 mt-4 flex items-center justify-center">
                 {polarHover ? (
-                  <div className="w-full bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-xl border border-teal-500/20 flex justify-between items-center text-[10px] font-mono shadow-inner">
-                    <span className="text-slate-400">Angle (α): <strong className="text-teal-400">{polarHover.angle.toFixed(0)}°</strong></span>
-                    <span className="text-slate-400">P(α): <strong className="text-teal-400">{polarHover.pVal.toFixed(3)}x</strong></span>
+                  <div className="w-full bg-white/90 dark:bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-xl border border-teal-200 dark:border-teal-500/20 flex justify-between items-center text-[10px] font-mono shadow-inner">
+                    <span className="text-slate-600 dark:text-slate-400">Angle (α): <strong className="text-teal-600 dark:text-teal-400">{polarHover.angle.toFixed(0)}°</strong></span>
+                    <span className="text-slate-600 dark:text-slate-400">P(α): <strong className="text-teal-600 dark:text-teal-400">{polarHover.pVal.toFixed(3)}x</strong></span>
                   </div>
                 ) : (
                   <div className="text-[10px] text-slate-500 font-sans italic text-center w-full">
@@ -868,14 +880,14 @@ export const PreferredOrientationModule: React.FC = () => {
                 )}
               </div>
 
-              <div className="mt-4 text-[10px] text-slate-400 font-sans leading-relaxed text-center px-4 bg-teal-500/5 rounded-xl border border-teal-500/10 py-2.5 relative z-10 shadow-inner">
-                The <span className="text-teal-400 font-bold px-1 rounded bg-teal-500/10">teal contour</span> maps probability. Dashed grey represents random powder.
+              <div className="mt-4 text-[10px] text-slate-600 dark:text-slate-400 font-sans leading-relaxed text-center px-4 bg-teal-50 dark:bg-teal-500/5 rounded-xl border border-teal-100 dark:border-teal-500/10 py-2.5 relative z-10 shadow-inner">
+                The <span className="text-teal-600 dark:text-teal-400 font-bold px-1 rounded bg-teal-100 dark:bg-teal-500/10">teal contour</span> maps probability. Dashed grey represents random powder.
               </div>
             </div>
 
             {/* Interactive 3D Crystal Habit Card */}
             <div 
-              className="lg:col-span-6 bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl relative overflow-hidden flex flex-col justify-between backdrop-blur-md z-0 group"
+              className="lg:col-span-6 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 hover:border-indigo-300 dark:hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-sm dark:shadow-2xl relative overflow-hidden flex flex-col justify-between backdrop-blur-md z-0 group"
               onMouseMove={(e) => {
                 if (!isDraggingHabit) return;
                 const dx = e.clientX - dragStart.current.x;
@@ -886,20 +898,26 @@ export const PreferredOrientationModule: React.FC = () => {
               onMouseUp={() => setIsDraggingHabit(false)}
               onMouseLeave={() => setIsDraggingHabit(false)}
             >
-              <div className="absolute top-0 left-0 p-32 opacity-5 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-br-[100px] pointer-events-none group-hover:opacity-10 group-hover:scale-110 transition-all duration-700"></div>
+              <div className="absolute top-0 left-0 p-32 opacity-10 dark:opacity-5 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-br-[100px] pointer-events-none group-hover:opacity-20 dark:group-hover:opacity-10 group-hover:scale-110 transition-all duration-700"></div>
               <div className="relative z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="p-1.5 py-1.5 max-w-fit bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-inner">
-                      <Rotate3d className="w-4 h-4 text-indigo-400" />
+                    <div className="p-1.5 py-1.5 max-w-fit bg-indigo-50 dark:bg-indigo-500/10 rounded-lg border border-indigo-200 dark:border-indigo-500/20 shadow-inner">
+                      <Rotate3d className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     </div>
-                    <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+                    <h3 className="text-xs uppercase font-black text-slate-800 dark:text-slate-200 tracking-widest">
                       Habit 3D Node
                     </h3>
                   </div>
-                  <span className="text-[9px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2.5 py-1 rounded-lg font-mono font-bold tracking-wider">
-                    Drag to Orbit
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20 px-2.5 py-1 rounded-lg font-mono font-bold tracking-wider animate-pulse flex items-center gap-1.5">
+                      <div className="w-1 h-1 rounded-full bg-indigo-400"></div>
+                      SIMULATING LATTICE
+                    </span>
+                    <span className="text-[9px] bg-slate-200/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-white/5 px-2.5 py-1 rounded-lg font-mono font-bold tracking-wider hidden sm:block">
+                      Drag to Orbit
+                    </span>
+                  </div>
                 </div>
                 <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
                   Interactive Geometric Representation
@@ -908,7 +926,7 @@ export const PreferredOrientationModule: React.FC = () => {
 
               {/* 3D Render Canvas Box */}
               <div 
-                className="flex justify-center items-center py-6 bg-black/60 rounded-[2rem] border border-white/5 relative shadow-inner z-10 mt-auto select-none cursor-grab active:cursor-grabbing"
+                className="flex justify-center items-center py-6 bg-white dark:bg-black/60 rounded-[2rem] border border-slate-200 dark:border-white/5 relative shadow-inner z-10 mt-auto select-none cursor-grab active:cursor-grabbing"
                 onMouseDown={(e) => {
                   setIsDraggingHabit(true);
                   dragStart.current = {
@@ -1083,9 +1101,9 @@ export const PreferredOrientationModule: React.FC = () => {
                 </svg>
               </div>
 
-              <div className="mt-4 text-[10px] text-slate-400 font-sans leading-relaxed text-center px-4 bg-indigo-500/5 rounded-xl border border-indigo-500/10 py-2.5 relative z-10 shadow-inner flex flex-col items-center gap-1">
+              <div className="mt-4 text-[10px] text-slate-600 dark:text-slate-400 font-sans leading-relaxed text-center px-4 bg-indigo-50 dark:bg-indigo-500/5 rounded-xl border border-indigo-100 dark:border-indigo-500/10 py-2.5 relative z-10 shadow-inner flex flex-col items-center gap-1">
                 <span>
-                  Aspect ratio matches r = <strong className="text-indigo-400">{rValue.toFixed(3)}</strong>.
+                  Aspect ratio matches r = <strong className="text-indigo-600 dark:text-indigo-400">{rValue.toFixed(3)}</strong>.
                 </span>
                 <span className="text-slate-500">
                   {rValue < 1.0 
@@ -1100,14 +1118,14 @@ export const PreferredOrientationModule: React.FC = () => {
           </div>
 
           {/* Intensity Profile Chart Card */}
-          <div className="bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl flex flex-col justify-between backdrop-blur-md relative z-0 group">
-            <div className="absolute top-0 right-0 p-40 opacity-[0.03] bg-gradient-to-bl from-rose-500 to-indigo-500 rounded-bl-[150px] pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+          <div className="bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 hover:border-rose-300 dark:hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-sm dark:shadow-2xl flex flex-col justify-between backdrop-blur-md relative z-0 group">
+            <div className="absolute top-0 right-0 p-40 opacity-10 dark:opacity-[0.03] bg-gradient-to-bl from-rose-500 to-indigo-500 rounded-bl-[150px] pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-3">
-                <div className="p-1.5 py-1.5 max-w-fit bg-rose-500/10 rounded-lg border border-rose-500/20 shadow-inner">
-                  <Activity className="w-4 h-4 text-rose-400" />
+                <div className="p-1.5 py-1.5 max-w-fit bg-rose-50 dark:bg-rose-500/10 rounded-lg border border-rose-200 dark:border-rose-500/20 shadow-inner">
+                  <Activity className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                 </div>
-                <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+                <h3 className="text-xs uppercase font-black text-slate-800 dark:text-slate-200 tracking-widest">
                   Simulated Intensity Anomalies
                 </h3>
               </div>
@@ -1116,7 +1134,7 @@ export const PreferredOrientationModule: React.FC = () => {
               </p>
             </div>
 
-            <div className="h-[280px] w-full relative z-10 bg-black/40 p-4 rounded-3xl border border-white/5 shadow-inner">
+            <div className="h-[280px] w-full relative z-10 bg-white dark:bg-black/40 p-4 rounded-3xl border border-slate-200 dark:border-white/5 shadow-inner">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
                     <defs>
@@ -1167,14 +1185,14 @@ export const PreferredOrientationModule: React.FC = () => {
             </div>
 
           {/* Data Table */}
-          <div className="bg-black/40 border border-white/5 hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-2xl space-y-6 backdrop-blur-md relative z-0">
-            <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 border-b border-white/5 pb-5">
+          <div className="bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-sm dark:shadow-2xl space-y-6 backdrop-blur-md relative z-0">
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 border-b border-slate-200 dark:border-white/5 pb-5">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                   <div className="p-1.5 py-1.5 max-w-fit bg-indigo-500/10 rounded-lg border border-indigo-500/20 shadow-inner">
-                     <Layers className="w-4 h-4 text-indigo-400" />
+                   <div className="p-1.5 py-1.5 max-w-fit bg-indigo-50 dark:bg-indigo-500/10 rounded-lg border border-indigo-200 dark:border-indigo-500/20 shadow-inner">
+                     <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                    </div>
-                   <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest">
+                   <h3 className="text-xs uppercase font-black text-slate-800 dark:text-slate-200 tracking-widest">
                      Reflection Detail
                    </h3>
                 </div>
@@ -1184,13 +1202,13 @@ export const PreferredOrientationModule: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap gap-4 items-center">
-                <span className="text-[10px] bg-black/60 text-indigo-400 border border-white/10 px-4 py-2 rounded-xl font-mono font-black tracking-widest shadow-inner">
+                <span className="text-[10px] bg-white dark:bg-black/60 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-white/10 px-4 py-2 rounded-xl font-mono font-black tracking-widest shadow-inner">
                   Target Normal: [{targetHKL}]
                 </span>
                 <button 
                   onClick={exportToCSV}
                   disabled={overlayResults.length === 0}
-                  className="px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-[0.98] disabled:bg-white/5 disabled:text-slate-600 disabled:border-transparent disabled:shadow-none text-emerald-400 border border-emerald-500/30 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all duration-300 flex items-center gap-2 shadow-lg"
+                  className="px-5 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 active:scale-[0.98] disabled:bg-slate-100 dark:disabled:bg-white/5 disabled:text-slate-400 dark:disabled:text-slate-600 disabled:border-transparent disabled:shadow-none text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 rounded-xl text-[10px] uppercase tracking-widest font-black transition-all duration-300 flex items-center gap-2 shadow-lg"
                 >
                   <Download className="w-4 h-4" /> Export CSV
                 </button>
@@ -1200,13 +1218,13 @@ export const PreferredOrientationModule: React.FC = () => {
             <div className="overflow-x-auto custom-scrollbar pb-3">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-slate-500 uppercase font-black tracking-widest text-[9px] font-mono whitespace-nowrap">
+                  <tr className="text-slate-500 uppercase font-black tracking-widest text-[9px] font-mono whitespace-nowrap border-b border-slate-200 dark:border-white/5">
                     <th className="pb-4 px-4 font-mono w-[15%]">hkl</th>
                     <th className="pb-4 px-4 font-mono w-[15%]">Angle (α)</th>
                     <th className="pb-4 px-4 font-mono w-[20%]">P(α) Correction</th>
                     <th className="pb-4 px-4 font-mono w-[15%]">Standard I</th>
                     <th className="pb-4 px-4 font-mono w-[15%]">Measured I</th>
-                    <th className="pb-4 px-4 font-mono text-right text-indigo-400 w-[20%]">Modeled I</th>
+                    <th className="pb-4 px-4 font-mono text-right text-indigo-600 dark:text-indigo-400 w-[20%]">Modeled I</th>
                   </tr>
                 </thead>
                 <tbody className="text-xs font-mono">
@@ -1214,22 +1232,22 @@ export const PreferredOrientationModule: React.FC = () => {
                     const isEnhancement = r.correction > 1.0;
                     const percentDiff = Math.abs((r.correction - 1.0) * 100);
                     return (
-                      <tr key={i} className="border-t border-white/5 hover:bg-white/[0.03] transition-colors group/row">
-                        <td className="py-4 px-4 text-white font-black tracking-wider">
-                          <span className="bg-white/5 px-2 py-1 rounded shadow-inner inline-block min-w-[70px] text-center border border-white/5">
+                      <tr key={i} className="border-t border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/[0.03] transition-colors group/row">
+                        <td className="py-4 px-4 text-slate-800 dark:text-white font-black tracking-wider">
+                          <span className="bg-white dark:bg-white/5 px-2 py-1 rounded shadow-inner inline-block min-w-[70px] text-center border border-slate-200 dark:border-white/5">
                             {r.hkl}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-slate-400 font-bold">
+                        <td className="py-4 px-4 text-slate-600 dark:text-slate-400 font-bold">
                           {r.angle.toFixed(1)}°
                         </td>
                         <td className="py-4 px-4">
                           <span className={`px-3 py-1.5 rounded-lg font-black text-[10px] tracking-wider shadow-inner inline-flex items-center gap-2 ${
                             r.correction === 1.0 
-                              ? 'bg-black/60 border border-white/10 text-slate-400' 
+                              ? 'bg-slate-100 dark:bg-black/60 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400' 
                               : isEnhancement 
-                                ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' 
-                                : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+                                ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400' 
+                                : 'bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400'
                           }`}>
                             {r.correction.toFixed(4)}
                             {percentDiff > 0.5 && (
@@ -1239,14 +1257,14 @@ export const PreferredOrientationModule: React.FC = () => {
                             )}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-slate-400 font-bold">
+                        <td className="py-4 px-4 text-slate-600 dark:text-slate-400 font-bold">
                           {r.iTh.toFixed(1)}
                         </td>
-                        <td className="py-4 px-4 text-slate-300 font-black">
+                        <td className="py-4 px-4 text-slate-800 dark:text-slate-300 font-black">
                           {r.iMeas.toFixed(1)}
                         </td>
                         <td className="py-4 px-4 text-right">
-                           <span className="text-indigo-400 font-black text-sm bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-xl shadow-inner inline-block min-w-[60px] text-center">
+                           <span className="text-indigo-600 dark:text-indigo-400 font-black text-sm bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 px-4 py-1.5 rounded-xl shadow-inner inline-block min-w-[60px] text-center">
                              {r.iModeledScaled.toFixed(1)}
                            </span>
                         </td>
@@ -1255,10 +1273,10 @@ export const PreferredOrientationModule: React.FC = () => {
                   })}
                   {overlayResults.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-16 text-center text-slate-500 uppercase font-black tracking-widest text-[10px] font-mono border-t border-white/5 bg-black/20 rounded-b-3xl">
+                      <td colSpan={6} className="py-16 text-center text-slate-500 uppercase font-black tracking-widest text-[10px] font-mono border-t border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-black/20 rounded-b-3xl">
                         <div className="flex flex-col items-center justify-center gap-4">
-                           <div className="p-4 bg-white/5 rounded-full shadow-inner">
-                             <Activity className="w-8 h-8 text-slate-600" />
+                           <div className="p-4 bg-white dark:bg-white/5 rounded-full shadow-inner border border-slate-200 dark:border-transparent">
+                             <Activity className="w-8 h-8 text-slate-400 dark:text-slate-600" />
                            </div>
                            No valid measurement entries detected.
                         </div>
@@ -1269,17 +1287,17 @@ export const PreferredOrientationModule: React.FC = () => {
               </table>
             </div>
 
-            <div className="bg-black/60 p-6 rounded-[2rem] border border-white/5 space-y-4 shadow-inner group/edit hover:border-white/10 transition-colors">
+            <div className="bg-slate-50 dark:bg-black/60 p-6 rounded-[2rem] border border-slate-200 dark:border-white/5 space-y-4 shadow-inner group/edit hover:border-slate-300 dark:hover:border-white/10 transition-colors">
               <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div className="flex items-center gap-2">
-                   <div className="p-1 bg-white/5 rounded border border-white/10">
-                      <BookOpen className="w-3.5 h-3.5 text-slate-400" />
+                   <div className="p-1 bg-white dark:bg-white/5 rounded border border-slate-200 dark:border-white/10">
+                      <BookOpen className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                    </div>
-                   <span className="font-mono font-black text-slate-300 group-hover/edit:text-white transition-colors uppercase tracking-widest text-[10px]">
+                   <span className="font-mono font-black text-slate-700 dark:text-slate-300 group-hover/edit:text-slate-900 dark:group-hover/edit:text-white transition-colors uppercase tracking-widest text-[10px]">
                      Measurement Input Matrix
                    </span>
                 </div>
-                <span className="text-[10px] bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg font-mono font-bold tracking-widest shadow-inner border border-white/5">
+                <span className="text-[10px] bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300 px-3 py-1.5 rounded-lg font-mono font-bold tracking-widest shadow-inner border border-slate-200 dark:border-white/5">
                   Format: h, k, l, standard_i, measured_i
                 </span>
               </div>
@@ -1289,7 +1307,7 @@ export const PreferredOrientationModule: React.FC = () => {
                   setInputData(e.target.value);
                   setSolverResult(null);
                 }}
-                className="w-full h-32 px-5 py-4 bg-black/40 outline-none font-mono text-[13px] border border-white/5 text-slate-300 focus:text-white rounded-2xl resize-none custom-scrollbar leading-loose focus:ring-1 focus:ring-indigo-500/30 transition-all shadow-inner placeholder:text-slate-600"
+                className="w-full h-32 px-5 py-4 bg-white dark:bg-black/40 outline-none font-mono text-[13px] border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-300 focus:text-slate-900 dark:focus:text-white rounded-2xl resize-none custom-scrollbar leading-loose focus:ring-1 focus:ring-indigo-500/30 transition-all shadow-inner placeholder:text-slate-400 dark:placeholder:text-slate-600"
                 placeholder="0, 0, 1, 100, 100"
               />
             </div>
@@ -1297,30 +1315,36 @@ export const PreferredOrientationModule: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Angle Calculator Mini Tool */}
-            <div className="bg-black/40 border border-white/5 hover:border-white/10 transition-all p-8 rounded-[2rem] flex flex-col justify-between backdrop-blur-md relative overflow-hidden shadow-xl z-0 group">
-               <div className="absolute top-0 right-0 p-32 opacity-10 bg-gradient-to-bl from-amber-400 to-amber-600 rounded-bl-[100px] pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
-               <div className="relative z-10 mb-8">
-                 <div className="flex items-center gap-2 mb-3">
-                   <div className="p-1.5 bg-amber-500/10 rounded-lg border border-amber-500/20 shadow-inner group-hover:scale-110 transition-transform">
-                     <BookOpen className="w-4 h-4 text-amber-400" />
+            <div className="bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 hover:border-amber-300 dark:hover:border-white/10 transition-all p-8 rounded-[2rem] flex flex-col justify-between backdrop-blur-md relative overflow-hidden shadow-sm dark:shadow-xl z-0 group">
+               <div className="absolute top-0 right-0 p-32 opacity-10 dark:opacity-10 bg-gradient-to-bl from-amber-400 to-amber-600 rounded-bl-[100px] pointer-events-none group-hover:opacity-20 dark:group-hover:opacity-10 group-hover:scale-110 transition-transform duration-700"></div>
+               <div className="relative z-10 mb-8 flex justify-between items-start">
+                 <div>
+                   <div className="flex items-center gap-2 mb-3">
+                     <div className="p-1.5 bg-amber-50 dark:bg-amber-500/10 rounded-lg border border-amber-200 dark:border-amber-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                       <BookOpen className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                     </div>
+                     <h3 className="text-xs uppercase font-black text-slate-800 dark:text-slate-200 tracking-widest group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                       Dot Product Angle Solver
+                     </h3>
                    </div>
-                   <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest group-hover:text-amber-400 transition-colors">
-                     Dot Product Angle Solver
-                   </h3>
+                   <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
+                     Compute arbitrary structural index pairs
+                   </p>
                  </div>
-                 <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
-                   Compute arbitrary structural index pairs
-                 </p>
+                 <div className="w-8 h-8 rounded-full border border-amber-200 dark:border-amber-500/30 flex items-center justify-center bg-amber-50 dark:bg-amber-500/5 shadow-[0_0_15px_rgba(245,158,11,0.15)] relative">
+                    <div className="absolute inset-0 rounded-full border-t border-amber-500 dark:border-amber-400 animate-spin opacity-50" style={{ animationDuration: '3s' }}></div>
+                    <div className="w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400 animate-pulse"></div>
+                 </div>
                </div>
                
-               <div className="flex flex-wrap items-center gap-4 mb-8 relative z-10 bg-black/40 p-5 rounded-2xl border border-white/5 shadow-inner">
+               <div className="flex flex-wrap items-center gap-4 mb-8 relative z-10 bg-white dark:bg-black/40 p-5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-inner">
                  <div className="space-y-2 flex-1 min-w-[60px]">
                    <label className="text-[9px] uppercase font-black text-slate-500 font-mono tracking-widest">Index h</label>
                    <input 
                      type="number" 
                      value={testH} 
                      onChange={(e) => setTestH(parseInt(e.target.value) || 0)} 
-                     className="w-full px-3 py-2.5 bg-black/60 text-white font-mono font-bold text-center rounded-xl border border-white/10 shadow-inner focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
+                     className="w-full px-3 py-2.5 bg-slate-50 dark:bg-black/60 text-slate-800 dark:text-white font-mono font-bold text-center rounded-xl border border-slate-200 dark:border-white/10 shadow-inner focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
                    />
                  </div>
                  <div className="space-y-2 flex-1 min-w-[60px]">
@@ -1329,7 +1353,7 @@ export const PreferredOrientationModule: React.FC = () => {
                      type="number" 
                      value={testK} 
                      onChange={(e) => setTestK(parseInt(e.target.value) || 0)} 
-                     className="w-full px-3 py-2.5 bg-black/60 text-white font-mono font-bold text-center rounded-xl border border-white/10 shadow-inner focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
+                     className="w-full px-3 py-2.5 bg-slate-50 dark:bg-black/60 text-slate-800 dark:text-white font-mono font-bold text-center rounded-xl border border-slate-200 dark:border-white/10 shadow-inner focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
                    />
                  </div>
                  <div className="space-y-2 flex-1 min-w-[60px]">
@@ -1338,60 +1362,71 @@ export const PreferredOrientationModule: React.FC = () => {
                      type="number" 
                      value={testL} 
                      onChange={(e) => setTestL(parseInt(e.target.value) || 0)} 
-                     className="w-full px-3 py-2.5 bg-black/60 text-white font-mono font-bold text-center rounded-xl border border-white/10 shadow-inner focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
+                     className="w-full px-3 py-2.5 bg-slate-50 dark:bg-black/60 text-slate-800 dark:text-white font-mono font-bold text-center rounded-xl border border-slate-200 dark:border-white/10 shadow-inner focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
                    />
                  </div>
                </div>
 
-               <div className="bg-black/60 p-6 rounded-2xl border border-amber-500/20 text-xs space-y-4 shadow-inner relative z-10 font-mono font-black tracking-widest mt-auto">
-                 <div className="flex justify-between items-center pb-3 border-b border-amber-500/10">
-                   <span className="text-amber-500/70 text-[10px] uppercase font-sans">Angle With [{targetHKL}]</span>
-                   <span className="text-amber-400 text-sm bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-500/20">{userTestAngle.toFixed(1)}°</span>
+               <div className="bg-slate-50 dark:bg-black/60 p-6 rounded-2xl border border-amber-200 dark:border-amber-500/20 text-xs space-y-4 shadow-inner relative z-10 font-mono font-black tracking-widest mt-auto">
+                 <div className="flex justify-between items-center pb-3 border-b border-amber-200 dark:border-amber-500/10">
+                   <span className="text-amber-600 dark:text-amber-500/70 text-[10px] uppercase font-sans">Angle With [{targetHKL}]</span>
+                   <span className="text-amber-600 dark:text-amber-400 text-sm bg-amber-100 dark:bg-amber-500/10 px-3 py-1 rounded-lg border border-amber-200 dark:border-amber-500/20">{userTestAngle.toFixed(1)}°</span>
                  </div>
                  <div className="flex justify-between items-center">
-                   <span className="text-emerald-500/70 text-[10px] uppercase font-sans">Correction P(α)</span>
-                   <span className="text-emerald-400 text-sm bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20">{userTestCorrection.toFixed(4)}x</span>
+                   <span className="text-emerald-600 dark:text-emerald-500/70 text-[10px] uppercase font-sans">Correction P(α)</span>
+                   <span className="text-emerald-600 dark:text-emerald-400 text-sm bg-emerald-100 dark:bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-200 dark:border-emerald-500/20">{userTestCorrection.toFixed(4)}x</span>
                  </div>
                </div>
             </div>
 
             {/* Core Scientific Panel */}
-            <div className="bg-black/40 border border-white/5 hover:border-white/10 transition-all p-8 rounded-[2rem] backdrop-blur-md relative overflow-hidden shadow-xl z-0 group flex flex-col justify-between">
-              <div className="absolute top-0 left-0 p-40 opacity-[0.03] bg-gradient-to-br from-blue-400 to-indigo-600 rounded-br-[150px] pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+            <div className="bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 hover:border-blue-300 dark:hover:border-white/10 transition-all p-8 rounded-[2rem] backdrop-blur-md relative overflow-hidden shadow-sm dark:shadow-xl z-0 group flex flex-col justify-between">
+              <div className="absolute top-0 left-0 p-40 opacity-10 dark:opacity-[0.03] bg-gradient-to-br from-blue-400 to-indigo-600 rounded-br-[150px] pointer-events-none group-hover:opacity-20 dark:group-hover:opacity-[0.05] group-hover:scale-110 transition-transform duration-700"></div>
               
-              <div className="relative z-10 mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1.5 bg-blue-500/10 rounded-lg border border-blue-500/20 shadow-inner group-hover:scale-110 transition-transform">
-                    <Info className="w-4 h-4 text-blue-400" />
+              <div className="relative z-10 mb-6 flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-blue-200 dark:border-blue-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                      <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h3 className="text-xs uppercase font-black text-slate-800 dark:text-slate-200 tracking-widest group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      Interpretation Node
+                    </h3>
                   </div>
-                  <h3 className="text-xs uppercase font-black text-slate-200 tracking-widest group-hover:text-blue-400 transition-colors">
-                    Interpretation Node
-                  </h3>
+                  <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
+                     Active State Physics Analysis
+                  </p>
                 </div>
-                <p className="text-[9px] text-slate-500 uppercase tracking-widest font-mono font-bold">
-                   Active State Physics Analysis
-                </p>
+                <div className="flex gap-1">
+                   {[...Array(5)].map((_, i) => (
+                      <div 
+                        key={i} 
+                        className="w-1.5 bg-blue-500/40 rounded-full animate-pulse" 
+                        style={{ height: `${Math.random() * 16 + 8}px`, animationDelay: `${i * 0.1}s`, animationDuration: '0.8s' }}
+                      />
+                   ))}
+                </div>
               </div>
 
-              <div className="relative z-10 bg-black/60 p-6 rounded-2xl border border-white/5 shadow-inner flex-1 flex flex-col">
-                 <p className="text-[11px] text-slate-400 leading-relaxer font-sans mb-6">
+              <div className="relative z-10 bg-white dark:bg-black/60 p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-inner flex-1 flex flex-col">
+                 <p className="text-[11px] text-slate-700 dark:text-slate-400 leading-relaxed font-sans mb-6">
                     {rValue === 1.0 ? (
                       <>
-                        Parameter <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-500/20">r = 1.00</span> maps an <strong className="text-slate-200">Ideal Isotropic Powder</strong>. All grains randomly oriented; zero anomalous intensities; correction <span className="font-mono text-cyan-400 font-bold bg-cyan-500/10 px-1.5 py-0.5 rounded shadow-sm border border-cyan-500/20">P(α) = 1.000</span> for all facets.
+                        Parameter <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-200 dark:border-emerald-500/20">r = 1.00</span> maps an <strong className="text-slate-800 dark:text-slate-200">Ideal Isotropic Powder</strong>. All grains randomly oriented; zero anomalous intensities; correction <span className="font-mono text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-50 dark:bg-cyan-500/10 px-1.5 py-0.5 rounded shadow-sm border border-cyan-200 dark:border-cyan-500/20">P(α) = 1.000</span> for all facets.
                       </>
                     ) : rValue < 1.0 ? (
                       <>
-                        At <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-500/20">r = {rValue.toFixed(2)}</span>, the system constructs an active <strong className="text-cyan-400">Platelet Habit alignment</strong>. Flat plates orient their normals parallel to the compact axis [{targetHKL}], deeply scaling parallel peaks (<span className="text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-500/20">{(maxCorrection).toFixed(1)}x</span>) while damping transverse geometry (<span className="text-rose-400 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded shadow-sm border border-rose-500/20">{(minCorrection).toFixed(1)}x</span>).
+                        At <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-200 dark:border-emerald-500/20">r = {rValue.toFixed(2)}</span>, the system constructs an active <strong className="text-cyan-600 dark:text-cyan-400">Platelet Habit alignment</strong>. Flat plates orient their normals parallel to the compact axis [{targetHKL}], deeply scaling parallel peaks (<span className="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-200 dark:border-emerald-500/20">{(maxCorrection).toFixed(1)}x</span>) while damping transverse geometry (<span className="text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded shadow-sm border border-rose-200 dark:border-rose-500/20">{(minCorrection).toFixed(1)}x</span>).
                       </>
                     ) : (
                       <>
-                        At <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-500/20">r = {rValue.toFixed(2)}</span>, the system evaluates <strong className="text-amber-400">Acicular / Needle Habit alignment</strong>. Linear extrusions parallel the target axis [{targetHKL}], radically amplifying transverse reflection planes up to (<span className="text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-500/20">{(minCorrection).toFixed(1)}x</span>) while destroying cross-sections down to (<span className="text-rose-400 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded shadow-sm border border-rose-500/20">{(maxCorrection).toFixed(1)}x</span>).
+                        At <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-200 dark:border-emerald-500/20">r = {rValue.toFixed(2)}</span>, the system evaluates <strong className="text-amber-600 dark:text-amber-400">Acicular / Needle Habit alignment</strong>. Linear extrusions parallel the target axis [{targetHKL}], radically amplifying transverse reflection planes up to (<span className="text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded shadow-sm border border-emerald-200 dark:border-emerald-500/20">{(minCorrection).toFixed(1)}x</span>) while destroying cross-sections down to (<span className="text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded shadow-sm border border-rose-200 dark:border-rose-500/20">{(maxCorrection).toFixed(1)}x</span>).
                       </>
                     )}
                  </p>
-                 <div className="mt-auto bg-blue-500/5 border-l-4 border-blue-500 p-4 rounded-r-xl shadow-inner border-y border-r border-y-blue-500/10 border-r-blue-500/10">
-                    <p className="text-[10px] text-blue-200/80 leading-relaxed font-sans">
-                      <strong className="text-blue-400 font-black uppercase tracking-widest text-[9px] block mb-1">Conservation Law</strong> Crystallographic texture doesn't destroy or generate total intensity—it purely routes reflections radially, behaving as a probability redistribution filter over reciprocal space.
+                 <div className="mt-auto bg-blue-50 dark:bg-blue-500/5 border-l-4 border-blue-500 p-4 rounded-r-xl shadow-inner border-y border-r border-y-blue-200 dark:border-y-blue-500/10 border-r-blue-200 dark:border-r-blue-500/10">
+                    <p className="text-[10px] text-blue-800 dark:text-blue-200/80 leading-relaxed font-sans">
+                      <strong className="text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest text-[9px] block mb-1">Conservation Law</strong> Crystallographic texture doesn't destroy or generate total intensity—it purely routes reflections radially, behaving as a probability redistribution filter over reciprocal space.
                     </p>
                  </div>
               </div>

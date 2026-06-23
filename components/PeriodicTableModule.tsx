@@ -300,39 +300,65 @@ const CrystallineLattice3D: React.FC<{
   }, [colorClass]);
 
   return (
-    <div className="bg-slate-950 rounded-xl border border-slate-800/80 p-3.5 relative overflow-hidden group shadow-inner">
-      <div className="absolute right-3 top-3 flex items-center gap-1.5 z-20">
+    <div className="bg-slate-50 dark:bg-slate-950 rounded-[1.5rem] border border-slate-200 dark:border-slate-800/80 p-5 relative overflow-hidden group shadow-sm dark:shadow-inner transition-all hover:shadow-md dark:hover:shadow-[inset_0_0_40px_rgba(0,0,0,0.5)]">
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute right-4 top-4 flex items-center gap-2 z-20">
         <button
           onClick={() => {
             setIsRotating(!isRotating);
             playSynthTone('tick');
           }}
-          className={`px-2 py-1.5 rounded border text-[10px] font-medium transition-colors flex items-center gap-1.5 ${
+          className={`px-3 py-1.5 rounded-lg border text-[10px] font-medium transition-all duration-300 flex items-center gap-1.5 shadow-sm ${
             isRotating 
-              ? 'bg-slate-800/50 text-indigo-300 border-slate-700 hover:bg-slate-700' 
-              : 'bg-slate-900/50 text-slate-400 border-slate-800 hover:bg-slate-800'
+              ? 'bg-slate-100 dark:bg-slate-800/80 text-indigo-600 dark:text-indigo-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700' 
+              : 'bg-white dark:bg-slate-900/80 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
           }`}
           title="Pause or spin crystal rotational alignment"
         >
-          <Orbit className={`w-3 h-3 ${isRotating ? 'animate-spin text-indigo-400' : ''}`} style={{ animationDuration: '4s' }} />
+          <Orbit className={`w-3 h-3 ${isRotating ? 'animate-spin text-indigo-500 dark:text-indigo-400' : ''}`} style={{ animationDuration: '4s' }} />
           {isRotating ? 'Orbiting' : 'Paused'}
         </button>
       </div>
 
-      <div className="absolute left-4 top-4 z-20 pointer-events-none">
-        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-500 block mb-0.5">
+      <div className="absolute left-5 top-5 z-20 pointer-events-none">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2 drop-shadow-sm">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: atomColor }} />
           {structure} Unit Cell
         </span>
       </div>
 
       {/* Main interactive Projection viewport */}
-      <div className="w-full flex justify-center items-center h-48 relative">
-        <svg viewBox="0 0 200 190" className="w-full h-full max-w-[220px]">
+      <div className="w-full flex justify-center items-center h-48 relative cursor-move"
+           onMouseMove={(e) => {
+             if (e.buttons === 1) {
+                setYaw(y => y + e.movementX * 0.5);
+                setPitch(p => Math.max(-90, Math.min(90, p + e.movementY * 0.5)));
+                setIsRotating(false);
+             }
+           }}
+      >
+        <svg viewBox="0 0 200 190" className="w-full h-full max-w-[220px] drop-shadow-md">
+          <defs>
+            <radialGradient id={`atom-grad`} cx="30%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+              <stop offset="50%" stopColor={atomColor} stopOpacity="1" />
+              <stop offset="100%" stopColor={atomColor} stopOpacity="0.8" />
+            </radialGradient>
+            <radialGradient id={`atom-glow`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor={atomColor} stopOpacity="0.4" />
+              <stop offset="100%" stopColor={atomColor} stopOpacity="0" />
+            </radialGradient>
+          </defs>
+
           {/* Edge links rendering */}
           {edges.map(([p1, p2], idx) => {
             const start = structure === 'HCP' ? projectedAtoms[p1] : projectedBox[p1];
             const end = structure === 'HCP' ? projectedAtoms[p2] : projectedBox[p2];
             if (!start || !end) return null;
+            
+            // Fade lines based on depth to create atmospheric perspective
+            const avgZ = (start.zDepth + end.zDepth) / 2;
+            const opacity = Math.max(0.1, Math.min(0.8, (avgZ + 100) / 200));
 
             return (
               <line
@@ -341,9 +367,10 @@ const CrystallineLattice3D: React.FC<{
                 y1={start.y}
                 x2={end.x}
                 y2={end.y}
-                stroke={isRotating ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.4)'}
-                strokeWidth={1}
-                strokeDasharray={structure === 'Amorphous' ? '1.5 2.5' : undefined}
+                stroke={isRotating ? `rgba(99,102,241,${opacity * 0.5})` : `rgba(99,102,241,${opacity})`}
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeDasharray={structure === 'Amorphous' ? '2 4' : undefined}
                 className="transition-all duration-300"
               />
             );
@@ -354,25 +381,26 @@ const CrystallineLattice3D: React.FC<{
             .sort((a, b) => a.zDepth - b.zDepth) // Depth sorting (painters algorithm)
             .map((atom, idx) => {
               const isSelected = selectedAtom === atom.id;
-              const nodeRadius = isSelected ? 4.8 : (atom.id === 'Body-Center' || atom.id?.includes('Int') ? 3.5 : 2.8);
+              const isCenter = atom.id === 'Body-Center' || atom.id?.includes('Int');
+              const nodeRadius = isSelected ? 5.5 : (isCenter ? 4.5 : 3.5);
 
               return (
                 <g 
                   key={`atom-${idx}`} 
-                  onClick={() => {
+                  onMouseEnter={() => {
                     setSelectedAtom(atom.id || null);
                     playSynthTone('tick');
-                    setTimeout(() => setSelectedAtom(null), 3000);
                   }}
-                  className="cursor-pointer"
+                  onMouseLeave={() => setSelectedAtom(null)}
+                  className="cursor-pointer group/atom"
                 >
                   {/* Outer subtle glow */}
                   <circle
                     cx={atom.x}
                     cy={atom.y}
-                    r={nodeRadius * 2}
-                    fill={atomColor}
-                    opacity={isSelected ? 0.45 : 0.08}
+                    r={nodeRadius * 4}
+                    fill={`url(#atom-glow)`}
+                    opacity={isSelected ? 1 : 0.2}
                     className="transition-all duration-300"
                   />
                   {/* Central solid node */}
@@ -380,10 +408,10 @@ const CrystallineLattice3D: React.FC<{
                     cx={atom.x}
                     cy={atom.y}
                     r={nodeRadius}
-                    fill={atom.id?.includes('Center') ? '#ffffff' : atomColor}
-                    stroke="#0b0f19"
-                    strokeWidth={0.8}
-                    className="transition-all duration-300 hover:scale-125"
+                    fill={isCenter ? '#ffffff' : `url(#atom-grad)`}
+                    stroke={isCenter ? atomColor : "rgba(0,0,0,0.4)"}
+                    strokeWidth={isSelected ? 1.5 : 0.8}
+                    className="transition-all duration-300 group-hover/atom:scale-125 drop-shadow-sm"
                   />
                 </g>
               );
@@ -394,23 +422,24 @@ const CrystallineLattice3D: React.FC<{
         <AnimatePresence>
           {selectedAtom && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-900 border border-indigo-500/30 px-2.5 py-1 rounded-md text-[9px] font-mono text-indigo-300 text-center shadow-md whitespace-nowrap z-20 backdrop-blur-md"
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 border border-indigo-200 dark:border-indigo-500/30 px-3 py-1.5 rounded-lg text-[10px] font-mono text-indigo-700 dark:text-indigo-300 text-center shadow-lg whitespace-nowrap z-20 backdrop-blur-md"
             >
-              <span className="text-white font-bold">Node Probe:</span> {selectedAtom}
+              <span className="text-slate-800 dark:text-white font-bold mr-1">Node:</span> {selectedAtom}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
       {/* Manual interactive pitch/yaw calibration slides */}
-      <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-900/60 z-20 relative">
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-[8px] text-slate-500 font-mono font-bold uppercase tracking-wider">
-            <span>Rotational Yaw</span>
-            <span className="text-white">{Math.round(yaw)}°</span>
+      <div className="grid grid-cols-2 gap-4 mt-3 pt-4 border-t border-slate-200 dark:border-slate-800/80 z-20 relative">
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-mono font-bold uppercase tracking-wider">
+            <span>Yaw (Azimuth)</span>
+            <span className="text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded">{Math.round(yaw)}°</span>
           </div>
           <input
             type="range"
@@ -421,13 +450,13 @@ const CrystallineLattice3D: React.FC<{
               setYaw(parseFloat(e.target.value));
               setIsRotating(false);
             }}
-            className="w-full accent-indigo-500 h-1 bg-slate-900 rounded-lg cursor-pointer appearance-none"
+            className="w-full accent-indigo-500 h-1.5 bg-slate-200 dark:bg-slate-900 rounded-lg cursor-pointer appearance-none transition-all hover:h-2"
           />
         </div>
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-[8px] text-slate-500 font-mono font-bold uppercase tracking-wider">
-            <span>Projection Tilt</span>
-            <span className="text-white">{Math.round(pitch)}°</span>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center text-[9px] text-slate-500 dark:text-slate-400 font-mono font-bold uppercase tracking-wider">
+            <span>Pitch (Elevation)</span>
+            <span className="text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-800/50 px-1.5 py-0.5 rounded">{Math.round(pitch)}°</span>
           </div>
           <input
             type="range"
@@ -438,7 +467,7 @@ const CrystallineLattice3D: React.FC<{
               setPitch(parseFloat(e.target.value));
               setIsRotating(false);
             }}
-            className="w-full accent-indigo-500 h-1 bg-slate-900 rounded-lg cursor-pointer appearance-none"
+            className="w-full accent-indigo-500 h-1.5 bg-slate-200 dark:bg-slate-900 rounded-lg cursor-pointer appearance-none transition-all hover:h-2"
           />
         </div>
       </div>
