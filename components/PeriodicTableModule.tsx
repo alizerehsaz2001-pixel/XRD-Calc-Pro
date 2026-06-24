@@ -475,6 +475,147 @@ const CrystallineLattice3D: React.FC<{
   );
 };
 
+/* =========================================================================
+   ElectronCloud3D: Interactive electron configuration visualization
+   ========================================================================= */
+const ElectronCloud3D: React.FC<{ 
+  electronConfig: string;
+  atomicNumber: number;
+  colorClass: string;
+}> = ({ electronConfig, atomicNumber, colorClass }) => {
+  const [rotationX, setRotationX] = useState(0);
+  const [rotationY, setRotationY] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+
+  useEffect(() => {
+    let animationFrame: number;
+    let start = performance.now();
+
+    const animate = (time: number) => {
+      if (!isHovering) {
+        setRotationX((time - start) * 0.005);
+        setRotationY((time - start) * 0.003);
+      } else {
+        start = time - rotationX * 200; // Keep continuous offset
+      }
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [isHovering]);
+
+  // Extract base atom color from the class string for inline styles
+  const atomColor = useMemo(() => {
+    if (colorClass.includes('fuchsia')) return '#d946ef';
+    if (colorClass.includes('indigo')) return '#6366f1';
+    if (colorClass.includes('amber')) return '#f59e0b';
+    if (colorClass.includes('blue')) return '#3b82f6';
+    if (colorClass.includes('emerald')) return '#10b981';
+    if (colorClass.includes('rose')) return '#f43f5e';
+    if (colorClass.includes('cyan')) return '#06b6d4';
+    if (colorClass.includes('violet')) return '#8b5cf6';
+    if (colorClass.includes('orange')) return '#f97316';
+    if (colorClass.includes('teal')) return '#14b8a6';
+    return '#6366f1'; // fallback
+  }, [colorClass]);
+
+  // Parse total electrons per shell from configuration (simplified logic based on atomic number)
+  // For a truly precise orbital model we'd parse the string, but a simple shell model (Bohr-like but in 3D) works beautifully
+  const shells = useMemo(() => {
+    const capacities = [2, 8, 18, 32, 32, 18, 8];
+    let remaining = atomicNumber;
+    const computedShells: number[] = [];
+    for (let cap of capacities) {
+      if (remaining <= 0) break;
+      computedShells.push(Math.min(remaining, cap));
+      remaining -= cap;
+    }
+    return computedShells;
+  }, [atomicNumber]);
+
+  return (
+    <div 
+      className="bg-slate-50 dark:bg-[#0B0F19]/80 rounded-[1.5rem] border border-slate-200 dark:border-white/5 p-4 relative overflow-hidden group shadow-sm dark:shadow-inner transition-all h-64 flex flex-col justify-between cursor-pointer"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      <div className="flex items-center justify-between z-10 relative">
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2 drop-shadow-sm">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: atomColor }} />
+          Electron Cloud
+        </span>
+        <span className="text-[9px] font-mono text-slate-500 bg-white dark:bg-black/40 px-2 py-0.5 rounded border border-slate-200 dark:border-white/5">
+          {shells.length} Shell{shells.length > 1 ? 's' : ''}
+        </span>
+      </div>
+
+      <div className="w-full flex-1 flex justify-center items-center relative perspective-[800px]">
+        <div 
+          className="relative w-full h-full flex justify-center items-center preserve-3d"
+          style={{ transform: `rotateX(${rotationX}deg) rotateY(${rotationY}deg)` }}
+        >
+          {/* Nucleus */}
+          <div 
+             className="absolute w-4 h-4 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.8)] z-10"
+             style={{ 
+               background: `radial-gradient(circle at 30% 30%, #fff, ${atomColor})`,
+               transform: `rotateY(${-rotationY}deg) rotateX(${-rotationX}deg)` // Billboard nucleus
+             }}
+          />
+
+          {/* Electron Shells */}
+          {shells.map((electrons, shellIdx) => {
+             const radius = 25 + (shellIdx * 20); // Scale shells outward
+             const orbitAngleX = (shellIdx * 45) % 180;
+             const orbitAngleY = (shellIdx * 60) % 180;
+             
+             return (
+                <div 
+                  key={`shell-${shellIdx}`} 
+                  className="absolute rounded-full border border-slate-400/30 dark:border-white/20 preserve-3d"
+                  style={{
+                    width: `${radius * 2}px`,
+                    height: `${radius * 2}px`,
+                    transform: `rotateX(${orbitAngleX}deg) rotateY(${orbitAngleY}deg)`
+                  }}
+                >
+                   {/* Electrons in this shell */}
+                   {Array.from({ length: electrons }).map((_, eIdx) => {
+                      const angle = (eIdx / electrons) * 360;
+                      // Determine position on the ring
+                      return (
+                         <div
+                           key={`e-${shellIdx}-${eIdx}`}
+                           className="absolute w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]"
+                           style={{
+                              color: atomColor,
+                              backgroundColor: '#fff',
+                              left: '50%',
+                              top: '50%',
+                              transform: `translate(-50%, -50%) rotate(${angle}deg) translateX(${radius}px)`,
+                              transformOrigin: '0 0'
+                           }}
+                         />
+                      )
+                   })}
+                </div>
+             );
+          })}
+        </div>
+      </div>
+
+      <div className="z-10 relative mt-2 text-center">
+        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+           {electronConfig}
+        </span>
+      </div>
+    </div>
+  );
+};
+
 export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoadPeaks }) => {
   const { t } = useTranslation();
   const [selectedElement, setSelectedElement] = useState<number | null>(14); // Default to Silicon (Si)
@@ -2163,6 +2304,13 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           
                           {/* Valence & Oxidation */}
                           <div className="grid grid-cols-2 gap-4 pb-1">
+                            <div className="col-span-2 mb-2">
+                              <ElectronCloud3D
+                                electronConfig={getElectronConfig(activeElementInfo.number)}
+                                atomicNumber={activeElementInfo.number}
+                                colorClass={categoryColor(activeElementInfo.category)}
+                              />
+                            </div>
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
                                 <span className="text-slate-400 font-mono text-[9px] uppercase font-bold tracking-wider">Valence e⁻</span>
