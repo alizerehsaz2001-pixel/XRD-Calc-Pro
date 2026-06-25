@@ -29,7 +29,10 @@ import {
   Trash2,
   Undo,
   Atom,
-  RefreshCcw
+  RefreshCcw,
+  DownloadCloud,
+  UploadCloud,
+  Flame
 } from 'lucide-react';
 import { MATERIAL_DB } from '../utils/materialDB';
 import { calculateThermodynamics, generateTemperatureSweep } from '../utils/thermodynamics';
@@ -172,17 +175,25 @@ export const MaterialDatabaseExplorer: React.FC = () => {
   const [activeDetailTab, setActiveDetailTab] = useState<'spectrum' | 'lattice' | 'composition' | 'thermo'>('spectrum');
   const [thermoTemperature, setThermoTemperature] = useState<number>(298);
 
-  // Smooth continuous spin duration for 3D crystal lattice visualizer
-  const [spinTime, setSpinTime] = useState<number>(0);
+  // Smooth continuous spin duration & manual drag-to-rotate for 3D crystal lattice visualizer
+  const [dragRotX, setDragRotX] = useState<number>(0.40);
+  const [dragRotY, setDragRotY] = useState<number>(0);
+  const [isDraggingLattice, setIsDraggingLattice] = useState<boolean>(false);
+  const [latticeStyle, setLatticeStyle] = useState<'wireframe' | 'ball-stick' | 'space-filling'>('ball-stick');
+  
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const dragStartRot = useRef({ x: 0, y: 0 });
+
   useEffect(() => {
+    if (isDraggingLattice) return;
     let frameId: number;
     const tick = () => {
-      setSpinTime(prev => (prev + 0.008) % (Math.PI * 2));
+      setDragRotY(prev => (prev + 0.008) % (Math.PI * 2));
       frameId = requestAnimationFrame(tick);
     };
     frameId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frameId);
-  }, []);
+  }, [isDraggingLattice]);
 
   // Global Sync & Database Portal states
   const [showGlobalPortal, setShowGlobalPortal] = useState(false);
@@ -1571,13 +1582,13 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     setEditApplications(editApplications.filter(t => t !== tag));
   };
 
-  // Mathematically projects and renders the 3D rotating Crystal Lattice system wireframe
+  // Mathematically projects and renders the 3D rotating Crystal Lattice system wireframe with drag-to-rotate support
   const renderCrystalLattice = (system: string) => {
     const norm = (system || '').toLowerCase();
     
-    // Euler rotation angles based on spinTime
-    const rotX = 0.40; // Fixed tilt on X to get standard isometric-like angle
-    const rotY = spinTime; // Continuous rotation on Y
+    // Euler rotation angles based on manual drag values
+    const rotX = dragRotX;
+    const rotY = dragRotY;
     
     // Helper projection function
     const project = (x: number, y: number, z: number) => {
@@ -1727,14 +1738,82 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
     const projected = vertices.map(v => project(v[0], v[1], v[2]));
 
+    // Mouse drag handlers
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+      setIsDraggingLattice(true);
+      dragStartPos.current = { x: e.clientX, y: e.clientY };
+      dragStartRot.current = { x: dragRotX, y: dragRotY };
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isDraggingLattice) return;
+      const dx = e.clientX - dragStartPos.current.x;
+      const dy = e.clientY - dragStartPos.current.y;
+      setDragRotY(dragStartRot.current.y + dx * 0.012);
+      setDragRotX(Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, dragStartRot.current.x + dy * 0.012)));
+    };
+
+    const handleMouseUpOrLeave = () => {
+      setIsDraggingLattice(false);
+    };
+
+    // Touch drag handlers
+    const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+      if (e.touches.length === 0) return;
+      setIsDraggingLattice(true);
+      dragStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      dragStartRot.current = { x: dragRotX, y: dragRotY };
+    };
+
+    const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+      if (!isDraggingLattice || e.touches.length === 0) return;
+      const dx = e.touches[0].clientX - dragStartPos.current.x;
+      const dy = e.touches[0].clientY - dragStartPos.current.y;
+      setDragRotY(dragStartRot.current.y + dx * 0.012);
+      setDragRotX(Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, dragStartRot.current.x + dy * 0.012)));
+    };
+
     return (
-      <div className="flex flex-col items-center justify-center p-5 bg-slate-950/70 rounded-2xl border border-slate-800/80 aspect-square relative max-w-[280px] mx-auto overflow-hidden">
-        <div className="absolute top-3 left-3 flex flex-col gap-0.5">
+      <div 
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUpOrLeave}
+        onMouseLeave={handleMouseUpOrLeave}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleMouseUpOrLeave}
+        className={`flex flex-col items-center justify-center p-5 bg-slate-950/70 rounded-3xl border ${isDraggingLattice ? 'border-indigo-500/60 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'border-slate-800/80'} aspect-square relative max-w-[280px] mx-auto overflow-hidden select-none cursor-grab active:cursor-grabbing transition-all group`}
+      >
+        <div className="absolute top-3 left-3 flex flex-col gap-0.5 pointer-events-none">
           <span className="text-[10px] font-black uppercase text-indigo-400 font-mono tracking-tight">{title}</span>
           <span className="text-[8px] text-slate-500 font-mono tracking-wide">{desc}</span>
         </div>
 
-        <svg className="w-48 h-48 mt-4" viewBox="0 0 200 200">
+        <div className="absolute top-3 right-3 flex gap-1 z-20 bg-black/60 p-0.5 rounded-lg border border-slate-800/80">
+          <button
+            onClick={(e) => { e.stopPropagation(); setLatticeStyle('wireframe'); }}
+            className={`px-1.5 py-0.5 rounded text-[7px] font-mono font-bold transition-all ${latticeStyle === 'wireframe' ? 'bg-indigo-600/90 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+            title="Wireframe Render"
+          >
+            Wire
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setLatticeStyle('ball-stick'); }}
+            className={`px-1.5 py-0.5 rounded text-[7px] font-mono font-bold transition-all ${latticeStyle === 'ball-stick' ? 'bg-indigo-600/90 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+            title="Ball & Stick Render"
+          >
+            Ball
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setLatticeStyle('space-filling'); }}
+            className={`px-1.5 py-0.5 rounded text-[7px] font-mono font-bold transition-all ${latticeStyle === 'space-filling' ? 'bg-indigo-600/90 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+            title="Space Filling Packing"
+          >
+            Space
+          </button>
+        </div>
+
+        <svg className="w-48 h-48 mt-4 pointer-events-none" viewBox="0 0 200 200">
           <circle cx="100" cy="100" r="82" fill="none" stroke="rgba(99,102,241,0.06)" strokeDasharray="3,5" />
 
           {/* Core definitions */}
@@ -1752,12 +1831,14 @@ export const MaterialDatabaseExplorer: React.FC = () => {
           </defs>
 
           {/* Draw Edges */}
-          {edges.map(([p1, p2], idx) => {
+          {latticeStyle !== 'space-filling' && edges.map(([p1, p2], idx) => {
             const v1 = projected[p1];
             const v2 = projected[p2];
             if (!v1 || !v2) return null;
             const avgZ = (v1.z + v2.z) / 2;
             const opacity = Math.max(0.15, Math.min(0.85, (avgZ + 1.2) / 2));
+            const strokeWidth = latticeStyle === 'ball-stick' ? "2.5" : "1.2";
+            const strokeColor = latticeStyle === 'ball-stick' ? "#818CF8" : "#4F46E5";
             return (
               <line
                 key={`e-${idx}`}
@@ -1765,8 +1846,8 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 y1={v1.y.toFixed(1)}
                 x2={v2.x.toFixed(1)}
                 y2={v2.y.toFixed(1)}
-                stroke="#6366f1"
-                strokeWidth="1.5"
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
                 strokeOpacity={opacity}
                 strokeLinecap="round"
               />
@@ -1775,7 +1856,16 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
           {/* Draw Atoms */}
           {projected.map((v, idx) => {
-            const radius = Math.max(4.5, Math.min(9, 7.5 + v.z * 3));
+            let baseRadius = 7.5;
+            let range = 3;
+            if (latticeStyle === 'wireframe') {
+              baseRadius = 4.5;
+              range = 1.5;
+            } else if (latticeStyle === 'space-filling') {
+              baseRadius = 22;
+              range = 8;
+            }
+            const radius = Math.max(baseRadius - range, Math.min(baseRadius + range, baseRadius + v.z * range));
             const opacity = Math.max(0.3, Math.min(1, (v.z + 1.2) / 2));
             const isAnchor = idx === 0;
             return (
@@ -1785,7 +1875,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                   cy={v.y.toFixed(1)}
                   r={radius.toFixed(1)}
                   fill={isAnchor ? "url(#anchorAtomGrad)" : "url(#standardAtomGrad)"}
-                  fillOpacity={opacity}
+                  fillOpacity={latticeStyle === 'space-filling' ? opacity * 0.95 : opacity}
                 />
                 <circle
                   cx={v.x.toFixed(1)}
@@ -1801,8 +1891,13 @@ export const MaterialDatabaseExplorer: React.FC = () => {
           })}
         </svg>
 
+        <div className="absolute bottom-3 left-3 px-2 py-0.5 rounded bg-black/60 border border-slate-900/60 text-[7px] text-slate-500 font-mono uppercase tracking-widest select-none pointer-events-none flex items-center gap-1">
+          <span className="w-1 h-1 bg-indigo-500 rounded-full animate-ping" />
+          Drag to inspect
+        </div>
+
         <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-black/60 border border-slate-900/60 text-[7px] text-slate-500 font-mono uppercase tracking-widest select-none pointer-events-none">
-          Rot X/Y: 23° / {(rotY * 180 / Math.PI).toFixed(1)}°
+          Rot X/Y: {(rotX * 180 / Math.PI).toFixed(0)}° / {(rotY * 180 / Math.PI).toFixed(0)}°
         </div>
       </div>
     );
@@ -2002,14 +2097,43 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                 )}
               </div>
 
-              <button
-                onClick={handleStartCreate}
-                className="flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-[0_4px_25px_rgba(79,70,229,0.5)] border border-indigo-400 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[46px] select-none"
-                title={t('Create a novel custom standard to index in the database', 'Create a novel custom standard to index in the database')}
-              >
-                <Plus className="w-5 h-5 text-white stroke-[3px]" />
-                <span>Add New Custom Material</span>
-              </button>
+              <div className="flex gap-2 items-center">
+                <button
+                  onClick={handleStartCreate}
+                  className="flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-[0_4px_25px_rgba(79,70,229,0.5)] border border-indigo-400 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer whitespace-nowrap h-[46px] select-none"
+                  title={t('Create a novel custom standard to index in the database', 'Create a novel custom standard to index in the database')}
+                >
+                  <Plus className="w-5 h-5 text-white stroke-[3px]" />
+                  <span>Add New Custom Material</span>
+                </button>
+                
+                <div className="flex items-center gap-1 bg-black/40 border border-slate-700/50 p-1 rounded-2xl h-[46px]">
+                  <button
+                    onClick={handleExportJSON}
+                    className="h-full px-3 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-center"
+                    title="Export Material Registry to JSON"
+                  >
+                    <DownloadCloud className="w-4 h-4" />
+                  </button>
+                  <label className="h-full px-3 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-colors flex items-center justify-center cursor-pointer" title="Import Material Registry from JSON">
+                    <UploadCloud className="w-4 h-4" />
+                    <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
+                  </label>
+                  <div className="w-[1px] h-3/5 bg-slate-700/50 mx-1"></div>
+                  <button
+                    onClick={() => {
+                      if (confirm("Are you sure you want to reset the Material Registry to its factory default state? All custom materials will be lost.")) {
+                        setMaterials(MATERIAL_DB);
+                        localStorage.removeItem(LOCAL_STORAGE_KEY);
+                      }
+                    }}
+                    className="h-full px-3 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-xl transition-colors flex items-center justify-center"
+                    title="Reset Registry to Default"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Python RAG Database Search */}
@@ -2733,8 +2857,8 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
                 // Color classes
                 const activeBorderColor = isSelected 
-                  ? 'border-indigo-500 shadow-[0_0_30px_rgba(99,102,241,0.2)] bg-indigo-950/20' 
-                  : 'border-white/5 hover:border-indigo-500/30 bg-black/40 hover:bg-black/60';
+                  ? 'border-indigo-500/80 shadow-[0_8px_32px_-4px_rgba(99,102,241,0.25),inset_0_1px_1px_rgba(255,255,255,0.1)] bg-gradient-to-b from-indigo-950/30 to-indigo-950/10 scale-[1.01]' 
+                  : 'border-white/5 hover:border-indigo-500/40 bg-gradient-to-b from-slate-900/40 to-black/60 hover:from-slate-900/60 hover:to-black/80 hover:-translate-y-1';
 
                 const indicatorBadgeTheme: any = {
                   amber: 'text-amber-300 bg-amber-500/20 border-amber-500/30 text-shadow-amber',
@@ -3397,30 +3521,34 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                   </div>
 
                   {/* Scientific Tabs Switcher */}
-                  <div className="border-b border-slate-800/80 flex gap-2">
+                  <div className="border border-white/5 bg-black/45 p-1 rounded-2xl flex gap-1 flex-wrap mb-4 shadow-inner">
                     <button
                       onClick={() => setActiveDetailTab('spectrum')}
-                      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${activeDetailTab === 'spectrum' ? 'border-cyan-500 text-cyan-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                      className={`flex items-center gap-2 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${activeDetailTab === 'spectrum' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)]' : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
                     >
-                      📊 Analyzed XRD Spectrum
+                      <Activity className="w-3.5 h-3.5" />
+                      Spectrum
                     </button>
                     <button
                       onClick={() => setActiveDetailTab('lattice')}
-                      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${activeDetailTab === 'lattice' ? 'border-indigo-500 text-indigo-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                      className={`flex items-center gap-2 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${activeDetailTab === 'lattice' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
                     >
-                      💎 Lattice Unit Cell
+                      <Box className="w-3.5 h-3.5" />
+                      Lattice Unit Cell
                     </button>
                     <button
                       onClick={() => setActiveDetailTab('composition')}
-                      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${activeDetailTab === 'composition' ? 'border-amber-500 text-amber-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                      className={`flex items-center gap-2 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${activeDetailTab === 'composition' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]' : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
                     >
-                      🧪 Composition & Roles
+                      <FlaskConical className="w-3.5 h-3.5" />
+                      Composition
                     </button>
                     <button
                       onClick={() => setActiveDetailTab('thermo')}
-                      className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all ${activeDetailTab === 'thermo' ? 'border-orange-500 text-orange-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                      className={`flex items-center gap-2 px-3.5 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all duration-300 ${activeDetailTab === 'thermo' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.15)]' : 'border border-transparent text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
                     >
-                      🔥 Thermodynamics & Stability
+                      <Flame className="w-3.5 h-3.5" />
+                      Thermodynamics
                     </button>
                   </div>
 

@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Info, Sparkles, Activity, Layers, Compass, Play, Search, 
-  HelpCircle, Orbit, RotateCw, Settings, ShieldAlert, Zap, Cpu
+  HelpCircle, Orbit, RotateCw, Settings, ShieldAlert, Zap, Cpu,
+  Droplets, Cloud, DownloadCloud
 } from 'lucide-react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
@@ -476,34 +477,15 @@ const CrystallineLattice3D: React.FC<{
 };
 
 /* =========================================================================
-   ElectronCloud3D: Interactive electron configuration visualization
+   ElectronCloud3D: Interactive electron configuration visualization (Canvas)
    ========================================================================= */
 const ElectronCloud3D: React.FC<{ 
   electronConfig: string;
   atomicNumber: number;
   colorClass: string;
 }> = ({ electronConfig, atomicNumber, colorClass }) => {
-  const [rotationX, setRotationX] = useState(0);
-  const [rotationY, setRotationY] = useState(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-
-  useEffect(() => {
-    let animationFrame: number;
-    let start = performance.now();
-
-    const animate = (time: number) => {
-      if (!isHovering) {
-        setRotationX((time - start) * 0.005);
-        setRotationY((time - start) * 0.003);
-      } else {
-        start = time - rotationX * 200; // Keep continuous offset
-      }
-      animationFrame = requestAnimationFrame(animate);
-    };
-
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [isHovering]);
 
   // Extract base atom color from the class string for inline styles
   const atomColor = useMemo(() => {
@@ -520,8 +502,7 @@ const ElectronCloud3D: React.FC<{
     return '#6366f1'; // fallback
   }, [colorClass]);
 
-  // Parse total electrons per shell from configuration (simplified logic based on atomic number)
-  // For a truly precise orbital model we'd parse the string, but a simple shell model (Bohr-like but in 3D) works beautifully
+  // Parse total electrons per shell from configuration
   const shells = useMemo(() => {
     const capacities = [2, 8, 18, 32, 32, 18, 8];
     let remaining = atomicNumber;
@@ -534,84 +515,281 @@ const ElectronCloud3D: React.FC<{
     return computedShells;
   }, [atomicNumber]);
 
+  const handleExportCSV = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const headers = ['Shell_n', 'Electrons', 'Relative_Energy_Ratio'];
+      const rows = shells.map((electrons, i) => {
+        const n = i + 1;
+        const relativeEnergy = (n / shells.length).toFixed(4);
+        return `${n},${electrons},${relativeEnergy}`;
+      });
+      
+      const csvContent = [headers.join(','), ...rows].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `atom_${atomicNumber}_electron_shells.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export CSV', err);
+    }
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let time = 0;
+    
+    // Resize handler for crisp rendering on high-DPI displays
+    const updateSize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.parentElement?.getBoundingClientRect();
+      if (rect) {
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+      }
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+
+    // Pre-calculate orbit parameters
+    const orbits = shells.map((electronCount, i) => {
+      return {
+        electrons: electronCount,
+        rx: 30 + (i * 18),
+        ry: 10 + (i * 6),
+        angle: (i * Math.PI / shells.length) + (Math.PI / 6),
+        speed: 0.015 - (i * 0.0015),
+        direction: i % 2 === 0 ? 1 : -1
+      };
+    });
+
+    const draw = () => {
+      const width = canvas.width / (window.devicePixelRatio || 1);
+      const height = canvas.height / (window.devicePixelRatio || 1);
+      const cx = width / 2;
+      const cy = height / 2;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, width, height);
+      
+      // Time progression (speeds up on hover)
+      time += isHovering ? 2.5 : 1;
+
+      // 1. Draw Ambient Cloud (Electron probability density)
+      const cloudGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, width / 2);
+      cloudGrad.addColorStop(0, `${atomColor}25`); // Hex alpha for 15% opacity
+      cloudGrad.addColorStop(0.5, `${atomColor}0A`);
+      cloudGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = cloudGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // 2. Draw Nucleus Glow
+      const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 14);
+      coreGrad.addColorStop(0, '#ffffff');
+      coreGrad.addColorStop(0.3, atomColor);
+      coreGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = coreGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Inner bright spot
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Draw Orbits & Electrons
+      orbits.forEach((orbit, i) => {
+        ctx.save();
+        ctx.translate(cx, cy);
+        
+        // Orbital precession (the orbit itself slowly rotates)
+        const precessionAngle = orbit.angle + (time * 0.001 * orbit.direction);
+        ctx.rotate(precessionAngle);
+
+        // Draw Path
+        ctx.beginPath();
+        ctx.ellipse(0, 0, orbit.rx, orbit.ry, 0, 0, Math.PI * 2);
+        
+        // Energy level visual indicator based on principal quantum number (shell index)
+        const energyRatio = (i + 1) / shells.length; // From small fraction to 1.0
+        
+        // Higher energy shells are brighter and slightly thicker
+        const baseAlpha = isHovering ? 60 : 30;
+        const additionalAlpha = isHovering ? 40 : 20;
+        const currentAlpha = Math.floor(baseAlpha + (energyRatio * additionalAlpha));
+        ctx.strokeStyle = `${atomColor}${currentAlpha.toString(16).padStart(2, '0')}`;
+        ctx.lineWidth = 1 + (energyRatio * 0.75);
+        
+        if (isHovering) {
+          ctx.shadowColor = atomColor;
+          ctx.shadowBlur = 3 + (energyRatio * 5); // Glow increases with energy level
+        }
+        
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset
+
+        // Draw Electrons
+        for (let e = 0; e < orbit.electrons; e++) {
+          const eOffset = (Math.PI * 2 / orbit.electrons) * e;
+          const eAngle = (time * orbit.speed * orbit.direction) + eOffset;
+          
+          const ex = Math.cos(eAngle) * orbit.rx;
+          const ey = Math.sin(eAngle) * orbit.ry;
+          
+          // Calculate Z-depth for 3D effect (size and opacity scaling)
+          const z = Math.sin(eAngle); // -1 (back) to 1 (front)
+          const scale = 1 + (z * 0.35); 
+          const alpha = Math.max(0.2, 0.5 + (z * 0.5)); // 0.2 in back, 1.0 in front
+
+          ctx.beginPath();
+          ctx.arc(ex, ey, 2 * scale, 0, Math.PI * 2);
+          
+          // Theming for dark/light mode context - use solid colors with alpha
+          // Canvas rendering operates outside React's context, so we manually
+          // set styling that looks good on both backgrounds.
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          
+          // Electron glow - higher energy electrons glow brighter
+          ctx.shadowColor = atomColor;
+          const baseGlow = 4;
+          const energyGlow = 4 * energyRatio;
+          ctx.shadowBlur = (baseGlow + energyGlow) * scale * (isHovering ? 1.5 : 1);
+          
+          ctx.fill();
+          ctx.shadowBlur = 0; // reset
+        }
+
+        ctx.restore();
+      });
+
+      animationFrameId = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', updateSize);
+    };
+  }, [shells, atomColor, isHovering]);
+
   return (
     <div 
-      className="bg-slate-50 dark:bg-[#0B0F19]/80 rounded-[1.5rem] border border-slate-200 dark:border-white/5 p-4 relative overflow-hidden group shadow-sm dark:shadow-inner transition-all h-64 flex flex-col justify-between cursor-pointer"
+      className="bg-slate-50 dark:bg-[#0B0F19]/80 rounded-[1.5rem] border border-slate-200 dark:border-white/5 p-4 relative overflow-hidden group shadow-sm dark:shadow-inner transition-all h-64 flex flex-col justify-between cursor-pointer hover:shadow-md dark:hover:shadow-[inset_0_0_40px_rgba(0,0,0,0.5)]"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
       
       <div className="flex items-center justify-between z-10 relative">
         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2 drop-shadow-sm">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: atomColor }} />
+          <div className="w-2 h-2 rounded-full animate-pulse shadow-[0_0_8px_currentColor]" style={{ backgroundColor: atomColor, color: atomColor }} />
           Electron Cloud
         </span>
-        <span className="text-[9px] font-mono text-slate-500 bg-white dark:bg-black/40 px-2 py-0.5 rounded border border-slate-200 dark:border-white/5">
-          {shells.length} Shell{shells.length > 1 ? 's' : ''}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <button 
+            onClick={handleExportCSV}
+            className="p-1 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded border border-transparent hover:border-indigo-500/20 transition-all opacity-0 group-hover:opacity-100"
+            title="Export Electron Shells to CSV"
+          >
+            <DownloadCloud className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-[9px] font-mono font-bold text-slate-500 bg-white dark:bg-white/5 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-white/10 shadow-sm">
+            {shells.length} Shell{shells.length > 1 ? 's' : ''}
+          </span>
+        </div>
       </div>
 
-      <div className="w-full flex-1 flex justify-center items-center relative perspective-[800px]">
-        <div 
-          className="relative w-full h-full flex justify-center items-center preserve-3d"
-          style={{ transform: `rotateX(${rotationX}deg) rotateY(${rotationY}deg)` }}
-        >
-          {/* Nucleus */}
-          <div 
-             className="absolute w-4 h-4 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.8)] z-10"
-             style={{ 
-               background: `radial-gradient(circle at 30% 30%, #fff, ${atomColor})`,
-               transform: `rotateY(${-rotationY}deg) rotateX(${-rotationX}deg)` // Billboard nucleus
-             }}
-          />
-
-          {/* Electron Shells */}
-          {shells.map((electrons, shellIdx) => {
-             const radius = 25 + (shellIdx * 20); // Scale shells outward
-             const orbitAngleX = (shellIdx * 45) % 180;
-             const orbitAngleY = (shellIdx * 60) % 180;
-             
-             return (
+      <div className="w-full flex-1 relative my-2 overflow-hidden flex justify-center items-center">
+        <canvas 
+          ref={canvasRef} 
+          className="w-full h-full absolute inset-0"
+        />
+        
+        {/* Energy Shells Legend */}
+        <div className="absolute left-0 bottom-0 z-10 flex flex-col gap-1 pointer-events-none p-1 max-h-full justify-end">
+          {shells.map((count, i) => {
+            const energyRatio = (i + 1) / shells.length;
+            const currentAlpha = Math.floor(60 + (energyRatio * 40));
+            const legendColor = `${atomColor}${currentAlpha.toString(16).padStart(2, '0')}`;
+            
+            return (
+              <div key={`legend-${i}`} className="flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
                 <div 
-                  key={`shell-${shellIdx}`} 
-                  className="absolute rounded-full border border-slate-400/30 dark:border-white/20 preserve-3d"
-                  style={{
-                    width: `${radius * 2}px`,
-                    height: `${radius * 2}px`,
-                    transform: `rotateX(${orbitAngleX}deg) rotateY(${orbitAngleY}deg)`
-                  }}
-                >
-                   {/* Electrons in this shell */}
-                   {Array.from({ length: electrons }).map((_, eIdx) => {
-                      const angle = (eIdx / electrons) * 360;
-                      // Determine position on the ring
-                      return (
-                         <div
-                           key={`e-${shellIdx}-${eIdx}`}
-                           className="absolute w-2 h-2 rounded-full shadow-[0_0_8px_currentColor]"
-                           style={{
-                              color: atomColor,
-                              backgroundColor: '#fff',
-                              left: '50%',
-                              top: '50%',
-                              transform: `translate(-50%, -50%) rotate(${angle}deg) translateX(${radius}px)`,
-                              transformOrigin: '0 0'
-                           }}
-                         />
-                      )
-                   })}
-                </div>
-             );
+                  className="w-3 h-0.5 rounded-full" 
+                  style={{ 
+                    backgroundColor: atomColor, 
+                    opacity: currentAlpha / 100, // Approximate for DOM
+                    boxShadow: `0 0 4px ${atomColor}` 
+                  }} 
+                />
+                <span className="text-[8.5px] font-mono text-slate-500 dark:text-slate-400 font-medium">
+                  n={i + 1} <span className="opacity-50">({count}e⁻)</span>
+                </span>
+              </div>
+            );
           })}
         </div>
       </div>
 
-      <div className="z-10 relative mt-2 text-center">
-        <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+      <div className="z-10 relative mt-2 text-center bg-slate-100 dark:bg-black/40 rounded-xl p-2.5 border border-slate-200 dark:border-white/5 backdrop-blur-sm shadow-inner transition-colors duration-300 group-hover:border-indigo-500/30">
+        <span className="text-[10px] font-mono text-slate-700 dark:text-slate-300 font-bold tracking-widest">
            {electronConfig}
         </span>
       </div>
+    </div>
+  );
+};
+
+/* =========================================================================
+   ElementTooltip: Quantum State Tooltip for Periodic Table Grid
+   ========================================================================= */
+const ElementTooltip: React.FC<{ el: CrystalElement; isXtal: boolean; stateAtTemp: string }> = ({ el, isXtal, stateAtTemp }) => {
+  const valenceShell = el.electronConfig.split(' ').pop();
+  return (
+    <div className="absolute opacity-0 group-hover/el:opacity-100 transition-opacity duration-200 pointer-events-none z-50 -top-2 left-1/2 -translate-x-1/2 -translate-y-full w-52 bg-slate-900 border border-slate-700 rounded-xl p-3 shadow-2xl flex flex-col gap-2">
+      <div className="flex justify-between items-center border-b border-slate-800 pb-1.5">
+        <span className="font-bold text-white text-xs">{el.name} <span className="text-slate-400 font-normal">({el.symbol})</span></span>
+        <span className="text-[9px] font-mono text-slate-400 bg-slate-950 px-1 rounded border border-slate-800">Z={el.number}</span>
+      </div>
+      <div className="space-y-1 text-left">
+        <div className="flex justify-between">
+          <span className="text-[9px] text-slate-500 font-mono">Valence Shell</span>
+          <span className="text-[9px] text-indigo-300 font-bold font-mono">{valenceShell}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[9px] text-slate-500 font-mono mb-0.5">Quantum Config</span>
+          <span className="text-[9px] text-slate-300 font-mono break-words leading-tight">{el.electronConfig}</span>
+        </div>
+        <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1">
+          <span className="text-[9px] text-slate-500 font-mono">1st Ionization</span>
+          <span className="text-[9px] text-rose-300 font-mono font-bold">
+            {el.ionizationEnergy > 0 ? `${el.ionizationEnergy.toFixed(2)} eV` : 'N/A'}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-[9px] text-slate-500 font-mono">State at {stateAtTemp}</span>
+          <span className={`text-[9px] font-mono font-bold uppercase ${stateAtTemp === 'solid' ? 'text-slate-400' : stateAtTemp === 'liquid' ? 'text-blue-400' : stateAtTemp === 'gas' ? 'text-rose-400' : 'text-purple-400'}`}>
+            {stateAtTemp}
+          </span>
+        </div>
+      </div>
+      <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900 border-b border-r border-slate-700 transform rotate-45" />
     </div>
   );
 };
@@ -1815,8 +1993,9 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                       } : undefined}
                       disabled={!isXtal}
                       className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
-                      title={isXtal ? `${el.name} (${el.crystalStructure} lattice) - ${stateAtTemp}` : `${el.name} (Non-crystalline ${getPhysicalStateLabel(el.number).toLowerCase()}) - ${stateAtTemp}`}
                     >
+                      <ElementTooltip el={el as any} isXtal={isXtal} stateAtTemp={stateAtTemp} />
+                      
                       <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-slate-950 ${stateDotClasses} transition-colors duration-500 z-20`} />
                       
                       <div className="flex justify-between items-center w-full">
@@ -1877,8 +2056,9 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   } : undefined}
                   disabled={!isXtal}
                   className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
-                  title={isXtal ? `${el.name} - ${el.crystalStructure} - ${stateAtTemp}` : `${el.name} (Non-crystalline ${getPhysicalStateLabel(el.number).toLowerCase()}) - ${stateAtTemp}`}
                 >
+                  <ElementTooltip el={el as any} isXtal={isXtal} stateAtTemp={stateAtTemp} />
+                  
                   <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-slate-950 ${stateDotClasses} transition-colors duration-500 z-20`} />
                   
                   <span className="text-[7px] font-mono text-slate-500 font-bold text-left">{el.number}</span>
@@ -1928,8 +2108,9 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   } : undefined}
                   disabled={!isXtal}
                   className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
-                  title={isXtal ? `${el.name} - ${el.crystalStructure} - ${stateAtTemp}` : `${el.name} (Non-crystalline ${getPhysicalStateLabel(el.number).toLowerCase()}) - ${stateAtTemp}`}
                 >
+                  <ElementTooltip el={el as any} isXtal={isXtal} stateAtTemp={stateAtTemp} />
+                  
                   <div className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-slate-950 ${stateDotClasses} transition-colors duration-500 z-20`} />
                   
                   <span className="text-[7px] font-mono text-slate-500 font-bold text-left">{el.number}</span>
@@ -2454,19 +2635,21 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           
                           {/* Standard State & Molar Mass */}
                           <div className="grid grid-cols-2 gap-4 pb-1">
-                            <div className="space-y-1.5">
-                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Standard State (STP)</span>
-                              <div className="text-white font-bold font-mono text-[13px] flex items-baseline gap-1">
+                            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/40 border border-white/5 relative overflow-hidden">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider relative z-10 flex items-center gap-1.5">
+                                <Activity className="w-3 h-3 text-slate-400" /> State (STP)
+                              </span>
+                              <div className="text-white font-bold font-mono text-[13px] flex items-baseline gap-1 relative z-10 pt-1">
                                 {(() => {
-                                  if (activeElementInfo.number === 35 || activeElementInfo.number === 80) return <span className="text-blue-400">Liquid</span>;
-                                  if ([1, 2, 7, 8, 9, 10, 17, 18, 36, 54, 86].includes(activeElementInfo.number)) return <span className="text-sky-300">Gas</span>;
-                                  return <span className="text-slate-300">Solid</span>;
+                                  if (activeElementInfo.number === 35 || activeElementInfo.number === 80) return <span className="text-blue-400 flex items-center gap-1.5"><Droplets className="w-3.5 h-3.5" /> Liquid</span>;
+                                  if ([1, 2, 7, 8, 9, 10, 17, 18, 36, 54, 86].includes(activeElementInfo.number)) return <span className="text-sky-300 flex items-center gap-1.5"><Cloud className="w-3.5 h-3.5" /> Gas</span>;
+                                  return <span className="text-slate-300 flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Solid</span>;
                                 })()}
                               </div>
                             </div>
-                            <div className="space-y-1.5 flex flex-col items-end text-right">
-                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Molar Mass</span>
-                              <div className="text-rose-300 font-bold font-mono text-sm leading-tight flex items-baseline gap-1">
+                            <div className="space-y-1.5 p-3 rounded-xl bg-slate-900/40 border border-white/5 relative overflow-hidden">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider relative z-10">Molar Mass</span>
+                              <div className="text-rose-300 font-bold font-mono text-[13px] leading-tight flex items-baseline gap-1 relative z-10 pt-1">
                                 {activeElementInfo.weight.toFixed(3)}
                                 <span className="text-[9px] text-slate-500 font-normal">g/mol</span>
                               </div>
@@ -2490,28 +2673,63 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             </div>
                           </div>
 
-                          {/* Melting & Boiling Points */}
-                          <div className="grid grid-cols-2 gap-4 border-t border-white/5 pt-4 pb-1">
-                            <div className="space-y-1.5 border-l-2 border-amber-500/30 pl-3">
-                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Melting Point</span>
-                              <div className="text-amber-400 font-bold font-mono text-sm drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]">
-                                {activeElementInfo.meltingPoint > -273.15 ? `${activeElementInfo.meltingPoint.toFixed(1)} °C` : 'N/A'}
-                              </div>
+                          {/* Visual Thermometer for Phase Transitions */}
+                          <div className="border-t border-white/5 pt-4 pb-1">
+                            <div className="flex justify-between items-center mb-3">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Phase Transitions</span>
+                              <span className="text-[9px] font-mono text-slate-600 bg-slate-900/80 px-2 py-0.5 rounded">°C</span>
                             </div>
-                            <div className="space-y-1.5 border-l-2 border-rose-500/30 pl-3">
-                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Boiling Point</span>
-                              <div className="text-rose-450 font-bold font-mono text-sm drop-shadow-[0_0_8px_rgba(244,63,94,0.3)]">
-                                {activeElementInfo.boilingPoint > -273.15 ? `${activeElementInfo.boilingPoint.toFixed(1)} °C` : 'N/A'}
-                              </div>
+                            
+                            <div className="relative h-2.5 bg-slate-950 rounded-full shadow-inner border border-white/5 my-6">
+                              {/* Temperature Gradient Bar */}
+                              {(() => {
+                                const minT = -273.15; // Absolute zero
+                                const maxT = 6000; // Roughly highest boiling point (Tungsten is ~5930)
+                                const totalRange = maxT - minT;
+                                
+                                const hasMelting = activeElementInfo.meltingPoint > -273.15;
+                                const hasBoiling = activeElementInfo.boilingPoint > -273.15;
+                                
+                                const meltPct = hasMelting ? ((activeElementInfo.meltingPoint - minT) / totalRange) * 100 : 0;
+                                const boilPct = hasBoiling ? ((activeElementInfo.boilingPoint - minT) / totalRange) * 100 : 0;
+                                
+                                return (
+                                  <>
+                                    <div className="absolute inset-y-0 left-0 bg-blue-500/20 rounded-l-full" style={{ width: `${Math.max(0, meltPct)}%` }} />
+                                    <div className="absolute inset-y-0 bg-amber-500/20" style={{ left: `${Math.max(0, meltPct)}%`, width: `${Math.max(0, boilPct - meltPct)}%` }} />
+                                    <div className="absolute inset-y-0 right-0 bg-rose-500/20 rounded-r-full" style={{ left: `${Math.max(0, boilPct)}%`, right: 0 }} />
+                                    
+                                    {/* Melting Point Marker */}
+                                    {hasMelting && (
+                                      <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-amber-400 border-2 border-[#0B0F19] shadow-[0_0_8px_rgba(251,191,36,0.6)] z-10 group/marker cursor-help" style={{ left: `calc(${Math.min(98, Math.max(2, meltPct))}% - 6px)` }}>
+                                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 border border-amber-500/30 text-amber-400 font-mono text-[9px] px-1.5 py-0.5 rounded opacity-100 whitespace-nowrap">
+                                          {activeElementInfo.meltingPoint.toFixed(0)}°
+                                        </div>
+                                        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-slate-500 font-mono text-[8px] uppercase font-bold tracking-wider">Melt</div>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Boiling Point Marker */}
+                                    {hasBoiling && (
+                                      <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-rose-500 border-2 border-[#0B0F19] shadow-[0_0_8px_rgba(244,63,94,0.6)] z-10 group/marker cursor-help" style={{ left: `calc(${Math.min(98, Math.max(2, boilPct))}% - 6px)` }}>
+                                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 border border-rose-500/30 text-rose-400 font-mono text-[9px] px-1.5 py-0.5 rounded opacity-100 whitespace-nowrap">
+                                          {activeElementInfo.boilingPoint.toFixed(0)}°
+                                        </div>
+                                        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-slate-500 font-mono text-[8px] uppercase font-bold tracking-wider">Boil</div>
+                                      </div>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
 
                           {/* Density & Electron Config */}
-                          <div className="grid grid-cols-2 gap-3 border-t border-slate-900/60 pt-3">
+                          <div className="grid grid-cols-2 gap-3 border-t border-slate-900/60 pt-4 mt-2">
                             <div className="space-y-1">
                               <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Scientific Density</span>
                               <div className="text-emerald-400 font-semibold font-mono text-sm flex items-baseline gap-1">
-                                {activeElementInfo.density.toFixed(3)}
+                                {activeElementInfo.density > 0 ? activeElementInfo.density.toFixed(3) : 'N/A'}
                                 <span className="text-[8px] text-slate-500 font-normal">g/cm³</span>
                               </div>
                             </div>
