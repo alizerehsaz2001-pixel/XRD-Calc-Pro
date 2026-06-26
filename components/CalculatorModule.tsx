@@ -27,10 +27,14 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
   const [mechArea, setMechArea] = useState<string>('10'); // mm^2
   const [mechLength, setMechLength] = useState<string>('50'); // mm
   const [mechDeltaLength, setMechDeltaLength] = useState<string>('0.1'); // mm
+  const [mechWidth, setMechWidth] = useState<string>('10'); // mm
+  const [mechDeltaWidth, setMechDeltaWidth] = useState<string>('-0.006'); // mm
   
   const [calcStress, setCalcStress] = useState<string>('0.00'); // MPa
   const [calcStrainMech, setCalcStrainMech] = useState<string>('0.0000'); 
   const [calcModulus, setCalcModulus] = useState<string>('0.00'); // GPa
+  const [calcStrainTransverse, setCalcStrainTransverse] = useState<string>('0.0000');
+  const [calcPoissonsRatio, setCalcPoissonsRatio] = useState<string>('0.300');
 
   const [mechCrackLength, setMechCrackLength] = useState<string>('2'); // mm
   const [mechGeoFactor, setMechGeoFactor] = useState<string>('1.12'); 
@@ -74,6 +78,15 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
   const parseNum = (val: string) => {
     const parsed = parseFloat(val);
     return isNaN(parsed) ? 0 : parsed;
+  };
+
+  const getPoissonRatioCategory = (nu: number) => {
+    if (nu < 0) return { label: 'Auxetic Behavior', color: 'text-rose-500 bg-rose-500/10 border-rose-500/20', desc: 'Expands laterally when stretched. Extremely rare.' };
+    if (nu === 0) return { label: 'Zero Transverse Strain', color: 'text-amber-500 bg-amber-500/10 border-amber-500/20', desc: 'No lateral expansion or contraction (e.g. Cork).' };
+    if (nu > 0 && nu < 0.2) return { label: 'Highly Porous / Concrete', color: 'text-orange-500 bg-orange-500/10 border-orange-500/20', desc: 'Low lateral contraction (e.g., foams, concrete).' };
+    if (nu >= 0.2 && nu < 0.38) return { label: 'Ductile Metallic / Alloys', color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20', desc: 'Standard ductile metal alloy/crystal lateral behavior.' };
+    if (nu >= 0.38 && nu <= 0.5) return { label: 'Incompressible Elastomer', color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20', desc: 'Near constant-volume behavior under load (e.g. Rubber).' };
+    return { label: 'Extreme Fluidic/Ideal Limit', color: 'text-purple-500 bg-purple-500/10 border-purple-500/20', desc: 'Beyond normal solid limits.' };
   };
 
   // Unit Cell Volume / Density State
@@ -296,6 +309,8 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
     const A = parseNum(mechArea);
     const L0 = parseNum(mechLength);
     const dL = parseNum(mechDeltaLength);
+    const w0 = parseNum(mechWidth);
+    const dw = parseNum(mechDeltaWidth);
 
     let stress = 0;
     let strain = 0;
@@ -320,6 +335,22 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
       setCalcModulus((modulus / 1000).toFixed(2)); // GPa
     } else {
       setCalcModulus('0.00');
+    }
+
+    // Poisson's Ratio Calculation
+    let strainTransverse = 0;
+    if (w0 > 0) {
+      strainTransverse = dw / w0;
+      setCalcStrainTransverse(strainTransverse.toExponential(4));
+    } else {
+      setCalcStrainTransverse('0.0000');
+    }
+
+    if (Math.abs(strain) > 0 && Math.abs(strainTransverse) > 0) {
+      const pr = -strainTransverse / strain;
+      setCalcPoissonsRatio(pr.toFixed(3));
+    } else {
+      setCalcPoissonsRatio('0.000');
     }
 
     const a = parseNum(mechCrackLength); // mm
@@ -352,18 +383,26 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
       setCalcFatigueLife('0');
     }
 
-  }, [mechForce, mechArea, mechLength, mechDeltaLength, mechCrackLength, mechGeoFactor, mechFatigueStrengthCoef, mechFatigueExponent]);
+  }, [mechForce, mechArea, mechLength, mechDeltaLength, mechWidth, mechDeltaWidth, mechCrackLength, mechGeoFactor, mechFatigueStrengthCoef, mechFatigueExponent]);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div>
-          <h2 className="text-2xl font-black tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-3">
-            <Calculator className="w-6 h-6 text-indigo-500" />
+    <div className="space-y-6 max-w-5xl mx-auto relative">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 right-1/4 w-[30rem] h-[30rem] bg-violet-500/10 dark:bg-violet-500/20 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
+
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] relative overflow-hidden">
+        {/* Subtle inner gradient */}
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-50/50 to-transparent dark:from-indigo-900/10 dark:to-transparent pointer-events-none"></div>
+        <div className="relative z-10">
+          <h2 className="text-3xl font-black tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-4">
+            <div className="p-3 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl shadow-lg shadow-indigo-500/30">
+              <Calculator className="w-6 h-6 text-white" />
+            </div>
             Crystallography Calculator
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Compute essential XRD and crystallographic parameters.
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
+            Compute essential XRD, crystallographic, and mechanical parameters with high precision.
           </p>
         </div>
       </div>
@@ -371,130 +410,45 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
         {/* Navigation Sidebar */}
-        <div className="md:col-span-3 space-y-2">
-          <button
-            onClick={() => setActiveCalc('bragg')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
-              activeCalc === 'bragg' 
-                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-            }`}
-          >
-            <Activity className="w-4 h-4" />
-            Bragg's Law
-            {activeCalc === 'bragg' && <ChevronRight className="w-4 h-4 ml-auto" />}
-          </button>
-          
-          <button
-            onClick={() => setActiveCalc('energy')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
-              activeCalc === 'energy' 
-                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-            }`}
-          >
-            <Zap className="w-4 h-4" />
-            Energy / Wavelength
-            {activeCalc === 'energy' && <ChevronRight className="w-4 h-4 ml-auto" />}
-          </button>
-
-          <button
-            onClick={() => setActiveCalc('dspacing')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
-              activeCalc === 'dspacing' 
-                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-            }`}
-          >
-            <Box className="w-4 h-4" />
-            d-Spacing / Cell
-            {activeCalc === 'dspacing' && <ChevronRight className="w-4 h-4 ml-auto" />}
-          </button>
-
-          <button
-            onClick={() => setActiveCalc('volume')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
-              activeCalc === 'volume' 
-                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            Volume & Density
-            {activeCalc === 'volume' && <ChevronRight className="w-4 h-4 ml-auto" />}
-          </button>
-
-          <button
-            onClick={() => setActiveCalc('scattering')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
-              activeCalc === 'scattering' 
-                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-            }`}
-          >
-            <Target className="w-4 h-4" />
-            Scattering Vector (q)
-            {activeCalc === 'scattering' && <ChevronRight className="w-4 h-4 ml-auto" />}
-          </button>
-
-          <button
-            onClick={() => setActiveCalc('microstructure')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
-              activeCalc === 'microstructure' 
-                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-            }`}
-          >
-            <Grid className="w-4 h-4" />
-            Microstructure
-            {activeCalc === 'microstructure' && <ChevronRight className="w-4 h-4 ml-auto" />}
-          </button>
-
-          <button
-            onClick={() => setActiveCalc('strain')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
-              activeCalc === 'strain' 
-                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-            }`}
-          >
-            <MoveHorizontal className="w-4 h-4" />
-            Lattice Strain
-            {activeCalc === 'strain' && <ChevronRight className="w-4 h-4 ml-auto" />}
-          </button>
-
-          <button
-            onClick={() => setActiveCalc('porosity')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
-              activeCalc === 'porosity' 
-                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-            }`}
-          >
-            <PieChart className="w-4 h-4" />
-            Porosity
-            {activeCalc === 'porosity' && <ChevronRight className="w-4 h-4 ml-auto" />}
-          </button>
-
-          <button
-            onClick={() => setActiveCalc('mechanics')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm font-bold transition-all ${
-              activeCalc === 'mechanics' 
-                ? 'bg-indigo-500 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
-                : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-300 dark:hover:border-indigo-700'
-            }`}
-          >
-            <Wrench className="w-4 h-4" />
-            Mechanics
-            {activeCalc === 'mechanics' && <ChevronRight className="w-4 h-4 ml-auto" />}
-          </button>
+        <div className="md:col-span-3 flex flex-col gap-2">
+          {[
+            { id: 'bragg', label: "Bragg's Law", icon: Activity },
+            { id: 'energy', label: "Energy / Wavelength", icon: Zap },
+            { id: 'dspacing', label: "d-Spacing / Cell", icon: Box },
+            { id: 'volume', label: "Volume & Density", icon: Layers },
+            { id: 'scattering', label: "Scattering Vector (q)", icon: Target },
+            { id: 'microstructure', label: "Microstructure", icon: Grid },
+            { id: 'strain', label: "Lattice Strain", icon: MoveHorizontal },
+            { id: 'porosity', label: "Porosity", icon: PieChart },
+            { id: 'mechanics', label: "Mechanics", icon: Wrench },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = activeCalc === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveCalc(item.id as any)}
+                className={`group w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-sm font-bold transition-all duration-300 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-transparent shadow-lg shadow-indigo-500/25'
+                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-indigo-200 dark:hover:border-indigo-800'
+                }`}
+              >
+                <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                {item.label}
+                <ChevronRight className={`w-4 h-4 ml-auto transition-transform duration-300 ${isActive ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-50'}`} />
+              </button>
+            );
+          })}
         </div>
 
         {/* Content Area */}
         <div className="md:col-span-9">
           
           {activeCalc === 'bragg' && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] animate-in fade-in zoom-in-95 duration-500">
               <div className="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -513,7 +467,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       const q = wave > 0 ? (4 * Math.PI * Math.sin(thetaRad)) / wave : 0;
                       onSaveToHistory('Bragg Calc', wave, t2, d, q);
                     }}
-                    className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-2"
+                    className="px-4 py-2 bg-gradient-to-r from-indigo-500/10 to-indigo-600/10 hover:from-indigo-500/20 hover:to-indigo-600/20 dark:from-indigo-500/20 dark:to-indigo-600/20 dark:hover:from-indigo-500/30 dark:hover:to-indigo-600/30 text-indigo-600 dark:text-indigo-300 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 hover:scale-105"
                   >
                     <Save className="w-3.5 h-3.5" />
                     Save
@@ -529,7 +483,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       type="number"
                       value={braggWavelength}
                       onChange={e => setBraggWavelength(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-indigo-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder="e.g. 1.5406"
                     />
                   </div>
@@ -540,7 +494,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       type="number"
                       value={braggN}
                       onChange={e => setBraggN(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-indigo-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder="e.g. 1"
                     />
                   </div>
@@ -594,7 +548,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
           )}
 
           {activeCalc === 'energy' && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] animate-in fade-in zoom-in-95 duration-500">
               <div className="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
                   <Zap className="w-5 h-5 text-amber-500" />
@@ -610,7 +564,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                     type="number"
                     value={energyKev}
                     onChange={e => handleEnergyToWave(e.target.value)}
-                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-lg font-mono font-bold text-amber-600 dark:text-amber-400 focus:border-amber-500 outline-none transition-all shadow-inner"
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-lg font-bold"
                     placeholder="e.g. 8.048"
                   />
                   <div className="absolute right-4 top-4 text-xs font-bold text-slate-400">keV</div>
@@ -622,7 +576,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                     type="number"
                     value={energyWave}
                     onChange={e => handleWaveToEnergy(e.target.value)}
-                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-lg font-mono font-bold text-cyan-600 dark:text-cyan-400 focus:border-cyan-500 outline-none transition-all shadow-inner"
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-lg font-bold"
                     placeholder="e.g. 1.5406"
                   />
                   <div className="absolute right-4 top-4 text-xs font-bold text-slate-400">Å</div>
@@ -632,7 +586,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
           )}
 
           {activeCalc === 'dspacing' && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] animate-in fade-in zoom-in-95 duration-500">
               <div className="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -681,7 +635,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={latticeA}
                         onChange={e => setLatticeA(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-rose-500 outline-none transition-all dark:text-white text-center"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center"
                       />
                     </div>
                     <div className="space-y-1">
@@ -691,7 +645,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         value={latticeB}
                         onChange={e => setLatticeB(e.target.value)}
                         disabled={crystalSystem === 'cubic' || crystalSystem === 'tetragonal' || crystalSystem === 'hexagonal'}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-rose-500 outline-none transition-all dark:text-white text-center disabled:opacity-50"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center disabled:opacity-50"
                       />
                     </div>
                     <div className="space-y-1">
@@ -701,7 +655,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         value={latticeC}
                         onChange={e => setLatticeC(e.target.value)}
                         disabled={crystalSystem === 'cubic'}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-rose-500 outline-none transition-all dark:text-white text-center disabled:opacity-50"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -714,7 +668,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={millerH}
                         onChange={e => setMillerH(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-rose-500 outline-none transition-all dark:text-white text-center font-bold"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center font-bold"
                       />
                     </div>
                     <div className="space-y-1">
@@ -723,7 +677,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={millerK}
                         onChange={e => setMillerK(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-rose-500 outline-none transition-all dark:text-white text-center font-bold"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center font-bold"
                       />
                     </div>
                     <div className="space-y-1">
@@ -732,7 +686,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={millerL}
                         onChange={e => setMillerL(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-rose-500 outline-none transition-all dark:text-white text-center font-bold"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center font-bold"
                       />
                     </div>
                   </div>
@@ -755,7 +709,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
           )}
 
           {activeCalc === 'volume' && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] animate-in fade-in zoom-in-95 duration-500">
               <div className="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -788,7 +742,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={volA}
                         onChange={e => setVolA(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-emerald-500 outline-none transition-all dark:text-white text-center"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center"
                       />
                     </div>
                     <div className="space-y-1">
@@ -798,7 +752,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         value={volB}
                         onChange={e => setVolB(e.target.value)}
                         disabled={['cubic', 'tetragonal', 'hexagonal'].includes(volCrystalSystem)}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-emerald-500 outline-none transition-all dark:text-white text-center disabled:opacity-50"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center disabled:opacity-50"
                       />
                     </div>
                     <div className="space-y-1">
@@ -808,7 +762,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         value={volC}
                         onChange={e => setVolC(e.target.value)}
                         disabled={volCrystalSystem === 'cubic'}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-emerald-500 outline-none transition-all dark:text-white text-center disabled:opacity-50"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -824,7 +778,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                             value={volAlpha}
                             onChange={e => setVolAlpha(e.target.value)}
                             disabled={volCrystalSystem === 'monoclinic'}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-emerald-500 outline-none transition-all dark:text-white text-center disabled:opacity-50"
+                            className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center disabled:opacity-50"
                           />
                         </div>
                         <div className="space-y-1">
@@ -833,7 +787,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                             type="number"
                             value={volBeta}
                             onChange={e => setVolBeta(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-emerald-500 outline-none transition-all dark:text-white text-center"
+                            className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center"
                           />
                         </div>
                         <div className="space-y-1">
@@ -843,7 +797,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                             value={volGamma}
                             onChange={e => setVolGamma(e.target.value)}
                             disabled={volCrystalSystem === 'monoclinic'}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-emerald-500 outline-none transition-all dark:text-white text-center disabled:opacity-50"
+                            className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center disabled:opacity-50"
                           />
                         </div>
                       </div>
@@ -858,7 +812,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={volZ}
                         onChange={e => setVolZ(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-emerald-500 outline-none transition-all dark:text-white text-center"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center"
                       />
                     </div>
                     <div className="space-y-1">
@@ -867,14 +821,14 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={volMolarMass}
                         onChange={e => setVolMolarMass(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-emerald-500 outline-none transition-all dark:text-white text-center"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-center"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex flex-col items-center justify-center p-5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-2xl relative">
+                  <div className="flex flex-col items-center justify-center p-5 bg-emerald-50/80 dark:bg-emerald-500/10 border border-emerald-200/60 dark:border-emerald-500/20 rounded-2xl relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] backdrop-blur-sm transition-transform duration-300 hover:scale-[1.02]">
                     <span className="text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-1">Volume (V)</span>
                     <div className="text-3xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
                       {calcVolume}
@@ -882,7 +836,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center p-5 bg-teal-50 dark:bg-teal-500/10 border border-teal-100 dark:border-teal-500/20 rounded-2xl relative">
+                  <div className="flex flex-col items-center justify-center p-5 bg-teal-50/80 dark:bg-teal-500/10 border border-teal-200/60 dark:border-teal-500/20 rounded-2xl relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] backdrop-blur-sm transition-transform duration-300 hover:scale-[1.02]">
                     <span className="text-[11px] font-black uppercase tracking-widest text-teal-600 dark:text-teal-400 mb-1">Theoretical Density (ρ)</span>
                     <div className="text-3xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
                       {calcDensity}
@@ -895,7 +849,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
           )}
 
           {activeCalc === 'scattering' && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] animate-in fade-in zoom-in-95 duration-500">
               <div className="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -929,7 +883,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       type="number"
                       value={qWavelength}
                       onChange={e => setQWavelength(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-fuchsia-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-fuchsia-500 focus:ring-4 focus:ring-fuchsia-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder="e.g. 1.5406"
                     />
                   </div>
@@ -940,7 +894,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       type="number"
                       value={q2Theta}
                       onChange={e => setQ2Theta(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-fuchsia-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-fuchsia-500 focus:ring-4 focus:ring-fuchsia-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder="e.g. 28.5"
                     />
                   </div>
@@ -958,7 +912,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
           )}
 
           {activeCalc === 'microstructure' && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] animate-in fade-in zoom-in-95 duration-500">
               <div className="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -988,7 +942,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                     <select
                       value={microCrystalSystem}
                       onChange={e => setMicroCrystalSystem(e.target.value as any)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold focus:border-blue-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 font-bold"
                     >
                       <option value="FCC">FCC (Face-Centered Cubic)</option>
                       <option value="BCC">BCC (Body-Centered Cubic)</option>
@@ -1003,7 +957,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       type="number"
                       value={microA}
                       onChange={e => setMicroA(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-blue-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder="e.g. 4.0"
                     />
                   </div>
@@ -1015,7 +969,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={microD}
                         onChange={e => setMicroD(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-blue-500 outline-none transition-all dark:text-white"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                         placeholder="e.g. 50"
                       />
                     </div>
@@ -1025,7 +979,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={microDensity}
                         onChange={e => setMicroDensity(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-blue-500 outline-none transition-all dark:text-white"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                         placeholder="e.g. 5.0"
                       />
                     </div>
@@ -1033,7 +987,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex flex-col items-center justify-center p-5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl relative">
+                  <div className="flex flex-col items-center justify-center p-5 bg-indigo-50/80 dark:bg-indigo-500/10 border border-indigo-200/60 dark:border-indigo-500/20 rounded-2xl relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] backdrop-blur-sm transition-transform duration-300 hover:scale-[1.02]">
                     <span className="text-[11px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-1">Burgers Vector Magnitude (b)</span>
                     <div className="text-3xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
                       {calcBurgers}
@@ -1041,7 +995,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center p-5 bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 rounded-2xl relative">
+                  <div className="flex flex-col items-center justify-center p-5 bg-violet-50/80 dark:bg-violet-500/10 border border-violet-200/60 dark:border-violet-500/20 rounded-2xl relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] backdrop-blur-sm transition-transform duration-300 hover:scale-[1.02]">
                     <span className="text-[11px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400 mb-1">Dislocation Density (δ)</span>
                     <div className="text-3xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
                       {calcDislocation}
@@ -1049,7 +1003,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center p-5 bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20 rounded-2xl relative">
+                  <div className="flex flex-col items-center justify-center p-5 bg-sky-50/80 dark:bg-sky-500/10 border border-sky-200/60 dark:border-sky-500/20 rounded-2xl relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] backdrop-blur-sm transition-transform duration-300 hover:scale-[1.02]">
                     <span className="text-[11px] font-black uppercase tracking-widest text-sky-600 dark:text-sky-400 mb-1">Specific Surface Area (SSA)</span>
                     <div className="text-3xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
                       {calcSSA}
@@ -1062,7 +1016,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
           )}
 
           {activeCalc === 'strain' && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] animate-in fade-in zoom-in-95 duration-500">
               <div className="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -1093,7 +1047,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       type="number"
                       value={strainD0}
                       onChange={e => setStrainD0(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-orange-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder="e.g. 4.000"
                     />
                   </div>
@@ -1104,21 +1058,21 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       type="number"
                       value={strainD}
                       onChange={e => setStrainD(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-orange-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder="e.g. 4.015"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex flex-col items-center justify-center p-5 bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 rounded-2xl relative">
+                  <div className="flex flex-col items-center justify-center p-5 bg-orange-50/80 dark:bg-orange-500/10 border border-orange-200/60 dark:border-orange-500/20 rounded-2xl relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] backdrop-blur-sm transition-transform duration-300 hover:scale-[1.02]">
                     <span className="text-[11px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400 mb-1">Macrostrain (ε)</span>
                     <div className="text-3xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
                       {calcStrain}
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center p-5 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 rounded-2xl relative">
+                  <div className="flex flex-col items-center justify-center p-5 bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200/60 dark:border-amber-500/20 rounded-2xl relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] backdrop-blur-sm transition-transform duration-300 hover:scale-[1.02]">
                     <span className="text-[11px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1">Strain Percentage (%)</span>
                     <div className="text-3xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
                       {calcStrainPercent}
@@ -1131,7 +1085,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
           )}
 
           {activeCalc === 'porosity' && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] animate-in fade-in zoom-in-95 duration-500">
               <div className="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -1162,7 +1116,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       type="number"
                       value={porBulkDensity}
                       onChange={e => setPorBulkDensity(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-pink-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder="e.g. 3.5"
                     />
                   </div>
@@ -1173,14 +1127,14 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       type="number"
                       value={porTrueDensity}
                       onChange={e => setPorTrueDensity(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-mono focus:border-pink-500 outline-none transition-all dark:text-white"
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-pink-500 focus:ring-4 focus:ring-pink-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       placeholder="e.g. 5.0"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex flex-col items-center justify-center p-5 bg-pink-50 dark:bg-pink-500/10 border border-pink-100 dark:border-pink-500/20 rounded-2xl relative">
+                  <div className="flex flex-col items-center justify-center p-5 bg-pink-50/80 dark:bg-pink-500/10 border border-pink-200/60 dark:border-pink-500/20 rounded-2xl relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] backdrop-blur-sm transition-transform duration-300 hover:scale-[1.02]">
                     <span className="text-[11px] font-black uppercase tracking-widest text-pink-600 dark:text-pink-400 mb-1">Porosity (P)</span>
                     <div className="text-3xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
                       {calcPorosity}
@@ -1188,7 +1142,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center justify-center p-5 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-2xl relative">
+                  <div className="flex flex-col items-center justify-center p-5 bg-red-50/80 dark:bg-red-500/10 border border-red-200/60 dark:border-red-500/20 rounded-2xl relative shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] backdrop-blur-sm transition-transform duration-300 hover:scale-[1.02]">
                     <span className="text-[11px] font-black uppercase tracking-widest text-red-600 dark:text-red-400 mb-1">Specific Volume (v)</span>
                     <div className="text-3xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
                       {calcSpecificVol}
@@ -1201,7 +1155,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
           )}
 
           {activeCalc === 'mechanics' && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in-95 duration-300">
+            <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)] animate-in fade-in zoom-in-95 duration-500">
               <div className="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
                 <div>
                   <h3 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -1213,63 +1167,325 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
               </div>
 
               <div className="space-y-8">
-                {/* Stress & Strain Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Stress, Strain & Modulus</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Force (N)</label>
-                        <input 
-                          type="number"
-                          value={mechForce}
-                          onChange={e => setMechForce(e.target.value)}
-                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:border-zinc-500 outline-none dark:text-white"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Area (mm²)</label>
-                        <input 
-                          type="number"
-                          value={mechArea}
-                          onChange={e => setMechArea(e.target.value)}
-                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:border-zinc-500 outline-none dark:text-white"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Initial Length (mm)</label>
-                        <input 
-                          type="number"
-                          value={mechLength}
-                          onChange={e => setMechLength(e.target.value)}
-                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:border-zinc-500 outline-none dark:text-white"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Δ Length (mm)</label>
-                        <input 
-                          type="number"
-                          value={mechDeltaLength}
-                          onChange={e => setMechDeltaLength(e.target.value)}
-                          className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:border-zinc-500 outline-none dark:text-white"
-                        />
-                      </div>
-                    </div>
+                {/* Stress, Strain, Modulus & Poisson's Ratio Section */}
+                <div className="p-6 bg-white/40 dark:bg-slate-800/40 backdrop-blur-md rounded-3xl border border-slate-100 dark:border-slate-800 space-y-6">
+                  <div>
+                    <h4 className="text-base font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-indigo-500 text-white text-xs font-mono">01</span>
+                      Stress, Strain, Elastic Modulus & Poisson's Ratio
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Analyze the elastic specimen behavior, calculate stiffness, and visualize deformation.
+                    </p>
                   </div>
-                  <div className="flex flex-col justify-center space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
-                      <span className="text-xs font-bold text-slate-500">Stress (σ)</span>
-                      <div className="font-mono font-black text-slate-800 dark:text-white">{calcStress} <span className="text-slate-400 text-xs font-sans">MPa</span></div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* Column 1: Material & Load Inputs */}
+                    <div className="lg:col-span-4 space-y-4">
+                      <div className="p-4 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 space-y-3">
+                        <span className="text-xs font-black uppercase text-indigo-500 tracking-wider">Applied Load & Geometry</span>
+                        
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Force (F, N)</label>
+                            <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+                              {mechForce} N
+                            </span>
+                          </div>
+                          <input 
+                            type="range"
+                            min="-5000"
+                            max="5000"
+                            step="10"
+                            value={mechForce}
+                            onChange={e => setMechForce(e.target.value)}
+                            className="w-full accent-indigo-500 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer"
+                          />
+                          <input 
+                            type="number"
+                            value={mechForce}
+                            onChange={e => setMechForce(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-lg text-xs font-mono dark:text-white"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">Area (A, mm²)</label>
+                          <input 
+                            type="number"
+                            min="0.1"
+                            step="0.1"
+                            value={mechArea}
+                            onChange={e => setMechArea(e.target.value)}
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono dark:text-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800/80 space-y-3">
+                        <span className="text-xs font-black uppercase text-violet-500 tracking-wider">Axial & Lateral Strain Parameters</span>
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">Length (L₀, mm)</label>
+                            <input 
+                              type="number"
+                              value={mechLength}
+                              onChange={e => setMechLength(e.target.value)}
+                              className="w-full px-3 py-2 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono dark:text-white focus:ring-2 focus:ring-indigo-500/20"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider block">Width (w₀, mm)</label>
+                            <input 
+                              type="number"
+                              value={mechWidth}
+                              onChange={e => setMechWidth(e.target.value)}
+                              className="w-full px-3 py-2 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono dark:text-white focus:ring-2 focus:ring-indigo-500/20"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Δ Length (dL, mm)</label>
+                            <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+                              {mechDeltaLength} mm
+                            </span>
+                          </div>
+                          <input 
+                            type="range"
+                            min="-2.0"
+                            max="2.0"
+                            step="0.01"
+                            value={mechDeltaLength}
+                            onChange={e => setMechDeltaLength(e.target.value)}
+                            className="w-full accent-violet-500 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer"
+                          />
+                          <input 
+                            type="number"
+                            step="0.001"
+                            value={mechDeltaLength}
+                            onChange={e => setMechDeltaLength(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-lg text-xs font-mono dark:text-white"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Δ Width (dw, mm)</label>
+                            <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+                              {mechDeltaWidth} mm
+                            </span>
+                          </div>
+                          <input 
+                            type="range"
+                            min="-0.5"
+                            max="0.5"
+                            step="0.001"
+                            value={mechDeltaWidth}
+                            onChange={e => setMechDeltaWidth(e.target.value)}
+                            className="w-full accent-violet-500 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg cursor-pointer"
+                          />
+                          <input 
+                            type="number"
+                            step="0.0001"
+                            value={mechDeltaWidth}
+                            onChange={e => setMechDeltaWidth(e.target.value)}
+                            className="w-full px-3 py-1.5 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-lg text-xs font-mono dark:text-white"
+                            placeholder="Contraction (-)"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
-                      <span className="text-xs font-bold text-slate-500">Strain (ε)</span>
-                      <div className="font-mono font-black text-slate-800 dark:text-white">{calcStrainMech}</div>
+
+                    {/* Column 2: Specimen Live Visualizer */}
+                    <div className="lg:col-span-4 flex flex-col justify-between p-4 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-black uppercase text-amber-500 tracking-wider">specimen deformation</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          parseNum(mechForce) > 0 ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
+                          parseNum(mechForce) < 0 ? 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20' :
+                          'bg-slate-500/10 text-slate-500 border-slate-500/20'
+                        }`}>
+                          {parseNum(mechForce) > 0 ? 'Tension' : parseNum(mechForce) < 0 ? 'Compression' : 'Neutral'}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 flex items-center justify-center p-3 relative min-h-[220px]">
+                        {/* Interactive SVG Specimen Animation */}
+                        <svg viewBox="0 0 200 240" className="w-full max-w-[180px] h-auto overflow-visible">
+                          <defs>
+                            <linearGradient id="specimenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.85" />
+                              <stop offset="100%" stopColor="#a855f7" stopOpacity="0.85" />
+                            </linearGradient>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                              <path d="M 0 1 L 10 5 L 0 9 z" fill="#f43f5e" />
+                            </marker>
+                            <marker id="arrowCyan" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                              <path d="M 0 1 L 10 5 L 0 9 z" fill="#06b6d4" />
+                            </marker>
+                          </defs>
+
+                          {/* Reference original dotted specimen shape */}
+                          <rect 
+                            x="70" 
+                            y="40" 
+                            width="60" 
+                            height="140" 
+                            fill="none" 
+                            stroke="#94a3b8" 
+                            strokeWidth="1.5" 
+                            strokeDasharray="4 4" 
+                            rx="4"
+                          />
+                          <text x="100" y="32" textAnchor="middle" className="text-[10px] fill-slate-400 font-mono font-semibold">Original L₀</text>
+
+                          {/* Dynamic specimens calculated */}
+                          {(() => {
+                            const numL = parseNum(mechLength) || 50;
+                            const numW = parseNum(mechWidth) || 10;
+                            const dL = parseNum(mechDeltaLength);
+                            const dw = parseNum(mechDeltaWidth);
+                            
+                            const strainAx = numL > 0 ? dL / numL : 0;
+                            const strainLat = numW > 0 ? dw / numW : 0;
+
+                            // Scale factors amplified for clear visual representation
+                            const sY = 1 + (strainAx * 4);
+                            const sX = 1 + (strainLat * 4);
+                            
+                            // Visual bound
+                            const currentScaleY = Math.min(Math.max(sY, 0.4), 1.6);
+                            const currentScaleX = Math.min(Math.max(sX, 0.4), 1.6);
+
+                            const targetW = 60 * currentScaleX;
+                            const targetH = 140 * currentScaleY;
+                            const rx = 100 - targetW / 2;
+                            const ry = 110 - targetH / 2;
+
+                            const fVal = parseNum(mechForce);
+
+                            return (
+                              <>
+                                {/* Deformed Shape */}
+                                <rect 
+                                  x={rx} 
+                                  y={ry} 
+                                  width={targetW} 
+                                  height={targetH} 
+                                  fill="url(#specimenGrad)" 
+                                  stroke="#4f46e5" 
+                                  strokeWidth="1.5" 
+                                  className="transition-all duration-300"
+                                  rx="4"
+                                />
+
+                                {/* Dimension indicator line width */}
+                                <line x1={rx} y1={ry + targetH / 2} x2={rx + targetW} y2={ry + targetH / 2} stroke="#ffffff" strokeWidth="1" strokeDasharray="2 2" opacity="0.6" />
+
+                                {/* Axial force arrows (Tension or Compression) */}
+                                {fVal > 0 && (
+                                  <>
+                                    {/* Tension Arrows pointing outwards */}
+                                    <line x1="100" y1={ry} x2="100" y2={ry - 20} stroke="#f43f5e" strokeWidth="2.5" markerEnd="url(#arrow)" />
+                                    <line x1="100" y1={ry + targetH} x2="100" y2={ry + targetH + 20} stroke="#f43f5e" strokeWidth="2.5" markerEnd="url(#arrow)" />
+                                  </>
+                                )}
+                                {fVal < 0 && (
+                                  <>
+                                    {/* Compression Arrows pointing inwards */}
+                                    <line x1="100" y1={ry - 20} x2="100" y2={ry} stroke="#06b6d4" strokeWidth="2.5" markerEnd="url(#arrowCyan)" />
+                                    <line x1="100" y1={ry + targetH + 20} x2="100" y2={ry + targetH} stroke="#06b6d4" strokeWidth="2.5" markerEnd="url(#arrowCyan)" />
+                                  </>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </svg>
+                      </div>
+
+                      {/* Formula Helper */}
+                      <div className="text-[10px] font-mono text-slate-400 bg-slate-100 dark:bg-slate-950 p-2 rounded-xl border border-slate-200/50 dark:border-slate-800 text-center">
+                        <div>Poisson's Ratio equation:</div>
+                        <div className="text-slate-600 dark:text-slate-300 font-bold mt-0.5">ν = - ε_transverse / ε_axial</div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl border border-indigo-100 dark:border-indigo-500/20">
-                      <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">Elastic Modulus (E)</span>
-                      <div className="font-mono font-black text-indigo-700 dark:text-indigo-300">{calcModulus} <span className="text-indigo-400 text-xs font-sans">GPa</span></div>
+
+                    {/* Column 3: Beautiful Results & Dashboard */}
+                    <div className="lg:col-span-4 flex flex-col justify-between space-y-3">
+                      <span className="text-xs font-black uppercase text-violet-500 tracking-wider">Calculated Parameters</span>
+                      
+                      <div className="space-y-2">
+                        {/* Stress */}
+                        <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-bold text-slate-500 block">Stress (σ)</span>
+                            <span className="text-[9px] text-slate-400 font-mono">Force / Area</span>
+                          </div>
+                          <div className="font-mono font-black text-slate-800 dark:text-white text-right">
+                            <div className="text-base">{calcStress} <span className="text-slate-400 text-[10px] font-sans">MPa</span></div>
+                          </div>
+                        </div>
+
+                        {/* Axial Strain */}
+                        <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-bold text-slate-500 block">Axial Strain (ε_a)</span>
+                            <span className="text-[9px] text-slate-400 font-mono">ΔL / L₀</span>
+                          </div>
+                          <div className="font-mono font-bold text-slate-800 dark:text-white text-right text-xs">
+                            {calcStrainMech}
+                          </div>
+                        </div>
+
+                        {/* Transverse Strain */}
+                        <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-bold text-slate-500 block">Transverse Strain (ε_t)</span>
+                            <span className="text-[9px] text-slate-400 font-mono">Δw / w₀</span>
+                          </div>
+                          <div className="font-mono font-bold text-slate-800 dark:text-white text-right text-xs">
+                            {calcStrainTransverse}
+                          </div>
+                        </div>
+
+                        {/* Modulus */}
+                        <div className="flex items-center justify-between p-3 bg-indigo-50/80 dark:bg-indigo-500/10 rounded-xl border border-indigo-100 dark:border-indigo-500/20 shadow-sm">
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 block">Elastic Modulus (E)</span>
+                            <span className="text-[9px] text-indigo-400 font-mono">Stress / Axial Strain</span>
+                          </div>
+                          <div className="font-mono font-black text-indigo-700 dark:text-indigo-300 text-right">
+                            <div className="text-base">{calcModulus} <span className="text-indigo-400 text-[10px] font-sans">GPa</span></div>
+                          </div>
+                        </div>
+
+                        {/* Poisson's Ratio */}
+                        <div className="flex items-center justify-between p-3 bg-violet-50/80 dark:bg-violet-500/10 rounded-xl border border-violet-100 dark:border-violet-500/20 shadow-sm">
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-bold text-violet-600 dark:text-violet-400 block">Poisson's Ratio (ν)</span>
+                            <span className="text-[9px] text-violet-400 font-mono">- ε_t / ε_a</span>
+                          </div>
+                          <div className="font-mono font-black text-violet-700 dark:text-violet-300 text-right">
+                            <div className="text-base">{calcPoissonsRatio}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Material category classification badge and text */}
+                      {(() => {
+                        const nuVal = parseNum(calcPoissonsRatio);
+                        const cat = getPoissonRatioCategory(nuVal);
+                        return (
+                          <div className={`p-3 rounded-xl border transition-all duration-300 ${cat.color}`}>
+                            <div className="text-[10px] font-black uppercase tracking-wider block">Behavior Categorization:</div>
+                            <div className="text-xs font-bold mt-1">{cat.label}</div>
+                            <p className="text-[10px] opacity-80 mt-1 font-medium">{cat.desc}</p>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1284,7 +1500,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={mechCrackLength}
                         onChange={e => setMechCrackLength(e.target.value)}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:border-red-500 outline-none dark:text-white"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-red-500 focus:ring-4 focus:ring-red-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1293,7 +1509,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={mechGeoFactor}
                         onChange={e => setMechGeoFactor(e.target.value)}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:border-red-500 outline-none dark:text-white"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-red-500 focus:ring-4 focus:ring-red-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       />
                     </div>
                     <div className="flex flex-col items-center justify-center p-3 mt-4 bg-red-50 dark:bg-red-500/10 rounded-xl border border-red-100 dark:border-red-500/20">
@@ -1313,7 +1529,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={mechFatigueStrengthCoef}
                         onChange={e => setMechFatigueStrengthCoef(e.target.value)}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:border-blue-500 outline-none dark:text-white"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1322,7 +1538,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         type="number"
                         value={mechFatigueExponent}
                         onChange={e => setMechFatigueExponent(e.target.value)}
-                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-mono focus:border-blue-500 outline-none dark:text-white"
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600"
                         placeholder="e.g. -0.1"
                       />
                     </div>
