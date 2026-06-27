@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calculator, Zap, Ruler, Box, Activity, ChevronRight, RefreshCcw, Layers, Scaling, Target, Save, Grid, MoveHorizontal, PieChart, Wrench, HelpCircle, Flame } from 'lucide-react';
+import {
+  EnergyWaveVisualizer,
+  MillerPlaneVisualizer,
+  DislocationVisualizer,
+  LatticeStrainVisualizer,
+  PorosityVisualizer,
+  MechanicalVisualizer,
+  ThermoVisualizer,
+  DiffusionVisualizer
+} from './CalculatorVisualizers';
 
 interface FormulaTooltipProps {
   formula: string;
@@ -1151,35 +1161,41 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                 <p className="text-xs text-slate-500 mt-1 font-mono">E(keV) = 12.398 / λ(Å)</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5 p-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl relative">
-                  <div className="flex items-center gap-1">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Photon Energy (keV)</label>
-                    <FormulaTooltip formula="E = h * c / λ ≈ 12.398 / λ" description="Energy of the X-ray photon, inversely proportional to wavelength." />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+                <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5 p-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl relative">
+                    <div className="flex items-center gap-1">
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Photon Energy (keV)</label>
+                      <FormulaTooltip formula="E = h * c / λ ≈ 12.398 / λ" description="Energy of the X-ray photon, inversely proportional to wavelength." />
+                    </div>
+                    <input 
+                      type="number"
+                      value={energyKev}
+                      onChange={e => handleEnergyToWave(e.target.value)}
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-lg font-bold"
+                      placeholder="e.g. 8.048"
+                    />
+                    <div className="absolute right-4 top-4 text-xs font-bold text-slate-400">keV</div>
                   </div>
-                  <input 
-                    type="number"
-                    value={energyKev}
-                    onChange={e => handleEnergyToWave(e.target.value)}
-                    className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-lg font-bold"
-                    placeholder="e.g. 8.048"
-                  />
-                  <div className="absolute right-4 top-4 text-xs font-bold text-slate-400">keV</div>
+
+                  <div className="space-y-1.5 p-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl relative">
+                    <div className="flex items-center gap-1">
+                      <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Wavelength (Å)</label>
+                      <FormulaTooltip formula="λ = h * c / E ≈ 12.398 / E" description="De Broglie wavelength of the diffracting X-ray photon." />
+                    </div>
+                    <input 
+                      type="number"
+                      value={energyWave}
+                      onChange={e => handleWaveToEnergy(e.target.value)}
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-lg font-bold"
+                      placeholder="e.g. 1.5406"
+                    />
+                    <div className="absolute right-4 top-4 text-xs font-bold text-slate-400">Å</div>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5 p-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl relative">
-                  <div className="flex items-center gap-1">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Wavelength (Å)</label>
-                    <FormulaTooltip formula="λ = h * c / E ≈ 12.398 / E" description="De Broglie wavelength of the diffracting X-ray photon." />
-                  </div>
-                  <input 
-                    type="number"
-                    value={energyWave}
-                    onChange={e => handleWaveToEnergy(e.target.value)}
-                    className="w-full px-4 py-3 bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-sm font-mono shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 focus:outline-none transition-all duration-300 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 text-lg font-bold"
-                    placeholder="e.g. 1.5406"
-                  />
-                  <div className="absolute right-4 top-4 text-xs font-bold text-slate-400">Å</div>
+                <div className="lg:col-span-1">
+                  <EnergyWaveVisualizer energyKev={parseFloat(energyKev)} wavelength={parseFloat(energyWave)} />
                 </div>
               </div>
             </div>
@@ -1310,17 +1326,29 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center p-6 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-2xl">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-rose-500 mb-2">Calculated d-spacing</span>
-                  <div className="text-4xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
-                    {calcDSpacing}
-                    <span className="text-xl text-slate-400">Å</span>
+                <div className="space-y-4">
+                  <div className="flex flex-col items-center justify-center p-6 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-2xl">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-rose-500 mb-2">Calculated d-spacing</span>
+                    <div className="text-4xl font-mono font-black text-slate-800 dark:text-white flex items-baseline gap-2">
+                      {calcDSpacing}
+                      <span className="text-xl text-slate-400">Å</span>
+                    </div>
+                    <div className="mt-4 px-3 py-1.5 bg-rose-100 dark:bg-rose-500/20 rounded-lg border border-rose-200 dark:border-rose-500/30">
+                      <span className="text-xs font-mono font-bold text-rose-700 dark:text-rose-300">
+                        ({millerH}{millerK}{millerL}) Plane
+                      </span>
+                    </div>
                   </div>
-                  <div className="mt-4 px-3 py-1.5 bg-rose-100 dark:bg-rose-500/20 rounded-lg border border-rose-200 dark:border-rose-500/30">
-                    <span className="text-xs font-mono font-bold text-rose-700 dark:text-rose-300">
-                      ({millerH}{millerK}{millerL}) Plane
-                    </span>
-                  </div>
+
+                  <MillerPlaneVisualizer
+                    system={crystalSystem}
+                    a={parseFloat(latticeA) || 4.0}
+                    b={parseFloat(latticeB) || 4.0}
+                    c={parseFloat(latticeC) || 4.0}
+                    h={parseFloat(millerH) || 1}
+                    k={parseFloat(millerK) || 0}
+                    l={parseFloat(millerL) || 0}
+                  />
                 </div>
               </div>
             </div>
@@ -1674,6 +1702,14 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       <span className="text-lg text-slate-400">m²/g</span>
                     </div>
                   </div>
+
+                  <DislocationVisualizer
+                    system={microCrystalSystem}
+                    a={parseFloat(microA) || 4.0}
+                    dSize={parseFloat(microD) || 50}
+                    density={parseFloat(calcDislocation) || 0}
+                    burgers={parseFloat(calcBurgers) || 2.5}
+                  />
                 </div>
               </div>
             </div>
@@ -1749,6 +1785,12 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       <span className="text-lg text-slate-400">%</span>
                     </div>
                   </div>
+
+                  <LatticeStrainVisualizer
+                    d0={parseFloat(strainD0) || 2.0}
+                    d={parseFloat(strainD) || 2.02}
+                    strainPercent={parseFloat(calcStrainPercent) || 0}
+                  />
                 </div>
               </div>
             </div>
@@ -1825,6 +1867,12 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       <span className="text-lg text-slate-400">cm³/g</span>
                     </div>
                   </div>
+
+                  <PorosityVisualizer
+                    bulkDensity={parseFloat(porBulkDensity) || 0}
+                    trueDensity={parseFloat(porTrueDensity) || 0}
+                    porosityPercent={parseFloat(calcPorosity) || 0}
+                  />
                 </div>
               </div>
             </div>
@@ -2256,6 +2304,17 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                     </div>
                   </div>
                 </div>
+
+                <MechanicalVisualizer
+                  mode="tension"
+                  force={parseFloat(mechForce) || 0}
+                  area={parseFloat(mechArea) || 1}
+                  stress={parseFloat(calcStress) || 0}
+                  strain={parseFloat(calcStrainMech) || 0}
+                  poisson={parseFloat(calcPoissonsRatio) || 0.3}
+                  crackLength={parseFloat(mechCrackLength) || 1.0}
+                  fractureToughness={parseFloat(calcFractureToughness) || 0}
+                />
               </div>
             </div>
           )}
@@ -2370,21 +2429,32 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                           {calcLeverError}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 gap-4 pt-2">
-                          <div className="p-4 bg-indigo-50/60 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl text-center">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">W_{leverPhaseALabel || 'A'}</span>
-                            <div className="text-xl font-mono font-black text-slate-800 dark:text-white mt-1">
-                              {calcLeverWa}%
+                        <div className="space-y-4 pt-2">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 bg-indigo-50/60 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl text-center">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">W_{leverPhaseALabel || 'A'}</span>
+                              <div className="text-xl font-mono font-black text-slate-800 dark:text-white mt-1">
+                                {calcLeverWa}%
+                              </div>
+                              <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-1">Weight Fraction of Phase A</p>
                             </div>
-                            <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-1">Weight Fraction of Phase A</p>
-                          </div>
-                          <div className="p-4 bg-violet-50/60 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 rounded-2xl text-center">
-                            <span className="text-[9px] font-black uppercase tracking-wider text-violet-600 dark:text-violet-400">W_{leverPhaseBLabel || 'B'}</span>
-                            <div className="text-xl font-mono font-black text-slate-800 dark:text-white mt-1">
-                              {calcLeverWb}%
+                            <div className="p-4 bg-violet-50/60 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 rounded-2xl text-center">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-violet-600 dark:text-violet-400">W_{leverPhaseBLabel || 'B'}</span>
+                              <div className="text-xl font-mono font-black text-slate-800 dark:text-white mt-1">
+                                {calcLeverWb}%
+                              </div>
+                              <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-1">Weight Fraction of Phase B</p>
                             </div>
-                            <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-1">Weight Fraction of Phase B</p>
                           </div>
+
+                          <ThermoVisualizer
+                            mode="lever"
+                            cAlpha={parseFloat(leverCa) || 0}
+                            cBeta={parseFloat(leverCb) || 0}
+                            c0={parseFloat(leverC0) || 0}
+                            wAlpha={parseFloat(calcLeverWa) || 0}
+                            wBeta={parseFloat(calcLeverWb) || 0}
+                          />
                         </div>
                       )}
                     </div>
@@ -2716,6 +2786,12 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-1">Time to reach {avramiTargetFraction}% transformation</p>
                     </div>
                   </div>
+
+                  <ThermoVisualizer
+                    mode="avrami"
+                    avramiY={parseFloat(calcAvramiFraction) || 0}
+                    avramiTime={parseFloat(avramiTime) || 0}
+                  />
                 </div>
 
               </div>
@@ -2858,7 +2934,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         {calcFick1Error}
                       </div>
                     ) : (
-                      <div className="space-y-3 pt-2">
+                      <div className="space-y-4 pt-2">
                         <div className="p-4 bg-indigo-50/60 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-2xl flex items-center justify-between">
                           <div className="text-left">
                             <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
@@ -2878,6 +2954,17 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                             </div>
                           </div>
                         </div>
+
+                        <DiffusionVisualizer
+                          mode="fick1"
+                          x1={parseFloat(fick1X1) || 0}
+                          x2={parseFloat(fick1X2) || 1}
+                          c1={parseFloat(fick1C1) || 0}
+                          c2={parseFloat(fick1C2) || 0}
+                          flux={parseFloat(calcFick1Flux) || 0}
+                          coef={parseFloat(fick1Mode === 'solve_flux' ? fick1D : calcFick1Coef) || 1e-11}
+                          grad={parseFloat(calcFick1Grad) || 0}
+                        />
                       </div>
                     )}
                   </div>
@@ -3027,7 +3114,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                         {calcFick2Error}
                       </div>
                     ) : (
-                      <div className="pt-2">
+                      <div className="space-y-4 pt-2">
                         {fick2Mode === 'solve_cx' && (
                           <div className="p-4 bg-violet-50/60 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 rounded-2xl text-center">
                             <span className="text-[9px] font-black uppercase tracking-wider text-violet-600 dark:text-violet-400">Concentration at depth {fick2X}mm (Cx)</span>
@@ -3057,6 +3144,23 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                             <p className="text-[9px] text-slate-400 mt-1">Duration to reach concentration of {fick2Cx}% at {fick2X}mm depth</p>
                           </div>
                         )}
+
+                        <DiffusionVisualizer
+                          mode="fick2"
+                          fick2Mode={fick2Mode}
+                          fick2Cs={parseFloat(fick2Cs) || 1}
+                          fick2C0={parseFloat(fick2C0) || 0}
+                          fick2Cx={parseFloat(fick2Mode === 'solve_cx' ? calcFick2Cx : fick2Cx) || 0}
+                          fick2X={parseFloat(fick2Mode === 'solve_x' ? calcFick2X : fick2X) || 0}
+                          fick2D={parseFloat(fick2D) || 1e-11}
+                          fick2T={(() => {
+                            const tVal = parseFloat(fick2Mode === 'solve_t' ? calcFick2T : fick2T) || 0;
+                            if (fick2TUnit === 'min') return tVal * 60;
+                            if (fick2TUnit === 'h') return tVal * 3600;
+                            if (fick2TUnit === 'day') return tVal * 86400;
+                            return tVal;
+                          })()}
+                        />
                       </div>
                     )}
                   </div>
