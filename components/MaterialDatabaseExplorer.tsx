@@ -2619,7 +2619,13 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                     { id: 'icdd', name: 'ICDD PDF Standard', type: 'ICDD / PDF-5', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
                     { id: 'springer_materials', name: 'SpringerMaterials', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
                     { id: 'icsd', name: 'ICSD Inorganic', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
-                    { id: 'ccdc', name: 'CCDC Crystallography', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' }
+                    { id: 'ccdc', name: 'CCDC Crystallography', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
+                    { id: 'pauling', name: 'Pauling File', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
+                    { id: 'cas', name: 'CAS Registry', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
+                    { id: 'ams', name: 'American Mineralogist Database', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
+                    { id: 'cod_premium', name: 'Crystallography Open DB (Enterprise)', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
+                    { id: 'reaxys', name: 'Reaxys (Elsevier)', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
+                    { id: 'matweb', name: 'MatWeb Material Property Data', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' }
                   ];
 
                   return (

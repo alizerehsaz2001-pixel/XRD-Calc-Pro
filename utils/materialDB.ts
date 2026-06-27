@@ -17975,6 +17975,102 @@ const RAW_MATERIAL_DB = [
     applications: ["Semiconductor","Standard Reference Registries","Benchmark Standard"],
     molecularWeight: 100,
     elasticModulus: 100
+  },
+  {
+    name: "NIST SRM 2910b (Synthetic Calcium Hydroxyapatite)",
+    type: "Standard Reference Registries",
+    pattern:
+      "25.87, 40\n31.77, 100\n32.19, 60\n32.90, 55\n34.05, 25\n39.81, 20\n46.71, 35\n49.46, 30\n50.49, 28",
+    description:
+      "NIST Standard Reference Material 2910b is a highly refined synthetic Calcium Hydroxyapatite powder. It is certified for calcium-to-phosphorus stoichiometric ratios, phase purity, and crystal structure. Highly valued as the global benchmark standard for quantitative phase analysis of bones, biocomposites, osseointegrative dental coatings, and synthetic osteoregenerative grafts.",
+    formula: "Ca10(PO4)6(OH)2",
+    elements: ["Ca","P","O","H"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/m (No. 176)",
+    density: 3.16,
+    applications: ["Biomedical Standard","Quantification Calibrator","Synthetic Bone Grafting","Dental Implants"],
+    molecularWeight: 1004.62,
+    elasticModulus: 110
+  },
+  {
+    name: "NIST SRM 1990 (Single-Crystal Silicon Orientation)",
+    type: "Standard Reference Registries",
+    pattern:
+      "28.44, 100\n47.30, 55\n56.12, 30\n69.13, 8\n76.38, 12\n88.03, 15",
+    description:
+      "NIST SRM 1990 is a certified Single-Crystal Silicon orientation and lattice parameter standard. Specially designed for ultra-precise alignment of high-resolution X-ray goniometers, epitaxial thin film rocking-curves, wafer d-spacing calibration, and semiconductor texture profiling. Manufactured to extreme tolerances with negligible lattice defects.",
+    formula: "Si",
+    elements: ["Si"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 2.33,
+    applications: ["Semiconductor Calibration","Goniometer Alignment","Rocking-Curve Profiling","Epitaxial Thin Films"],
+    molecularWeight: 28.085,
+    elasticModulus: 130
+  },
+  {
+    name: "NIST SRM 1878b (Respirable Crystalline Alpha-Quartz)",
+    type: "Standard Reference Registries",
+    pattern:
+      "20.85, 35\n26.64, 100\n36.54, 12\n39.46, 9\n40.29, 8\n42.45, 7\n45.79, 8\n50.14, 14\n59.95, 9\n68.14, 8",
+    description:
+      "NIST Standard Reference Material 1878b is a high-purity crystalline alpha-quartz powder certified specifically for respirable crystalline silica (RCS) analysis. It serves as the primary calibration standard for occupational safety and hygiene laboratories worldwide to monitor, quantify, and mitigate toxic quartz dust levels in mining, construction, and stone-working environments.",
+    formula: "SiO2",
+    elements: ["Si","O"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "P3221 (No. 154)",
+    density: 2.65,
+    applications: ["Occupational Hygiene","Air Quality Monitoring","Silica Dust Quantification","Safety Calibration"],
+    molecularWeight: 60.08,
+    elasticModulus: 76
+  },
+  {
+    name: "Inconel 625 Nickel-Chromium Superalloy",
+    type: "Metallurgical & Aerospace Alloys",
+    pattern:
+      "43.60, 100\n50.80, 45\n74.60, 25\n90.60, 15\n95.90, 8",
+    description:
+      "A premium nickel-chromium-molybdenum solid-solution strengthened superalloy with nominal additions of niobium. Renowned for its exceptional high strength, outstanding fabrication properties, and superb corrosion resistance at elevated temperatures up to 982 °C. Heavily relied upon in aerospace turbine structures, exhaust systems, and critical chemical process equipment.",
+    formula: "Ni-Cr-Mo-Nb (Inconel 625)",
+    elements: ["Ni","Cr","Mo","Nb","Fe"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 8.44,
+    applications: ["Aerospace Turbines","Chemical Processing","Marine Engineering","Additive Manufacturing"],
+    molecularWeight: 60.5,
+    elasticModulus: 207
+  },
+  {
+    name: "Kevlar-49 Aramid Fiber",
+    type: "Polymers & Organics",
+    pattern:
+      "20.20, 100\n22.80, 75\n28.10, 15",
+    description:
+      "High-performance Kevlar-49 aramid organic crystalline polymer fibers. Exhibits semi-crystalline diffraction features with characteristic (110) and (200) equatorial reflections. Prized as an aerospace reinforcement standard, displaying ultra-high tensile strength-to-weight ratio, high modulus, and outstanding ballistic protection properties.",
+    formula: "(C14H10N2O2)n",
+    elements: ["C","H","N","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/n (No. 14)",
+    density: 1.44,
+    applications: ["Body Armor","Aerospace Composites","Cable Reinforcements","Structural Standards"],
+    molecularWeight: 238.24,
+    elasticModulus: 112
+  },
+  {
+    name: "Titanium Carbonitride MXene (Ti3CNTx)",
+    type: "Nanomaterials & 2D Crystals",
+    pattern:
+      "6.50, 100\n13.00, 30\n19.50, 15\n34.10, 25\n39.20, 10\n60.50, 8",
+    description:
+      "An advanced titanium carbonitride MXene 2D material. Formed by selective chemical etching of Al layers from Ti3AlCN MAX phase precursors. Features exceptional metallic conductivity, high electromagnetic interference shielding efficiency (EMI shielding), and exceptional electrochemical performance for ultra-fast supercapacitor electrodes.",
+    formula: "Ti3CNTx",
+    elements: ["Ti","C","N","O","F"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 4.10,
+    applications: ["EMI Shielding","Energy Storage","Pseudocapacitors","2D Electronics"],
+    molecularWeight: 181.64,
+    elasticModulus: 140
   }
 ];
 

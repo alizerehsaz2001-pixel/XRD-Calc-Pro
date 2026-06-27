@@ -575,13 +575,13 @@ export const LatticeStrainVisualizer: React.FC<LatticeStrainVisualizerProps> = (
             </motion.div>
             {/* Dynamic expanding/compressing arrows */}
             {!isZero && (
-              <g className="absolute pointer-events-none">
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                 {isTensile ? (
                   <div className="absolute w-[94%] h-[94%] border border-rose-500/30 rounded animate-ping"></div>
                 ) : (
                   <div className="absolute w-[60%] h-[60%] border border-cyan-500/30 rounded animate-pulse"></div>
                 )}
-              </g>
+              </div>
             )}
             {/* Center Atom */}
             <div className={`absolute w-2.5 h-2.5 rounded-full ${isZero ? 'bg-slate-500' : isTensile ? 'bg-rose-500' : 'bg-cyan-500'}`}></div>
@@ -951,7 +951,7 @@ export const ThermoVisualizer: React.FC<ThermoVisualizerProps> = ({
                 const circleRadius = frac * 32; // maximum radius
                 const opac = frac > 0.95 ? 0.9 : 0.45 + frac * 0.4;
                 return (
-                  <g className="absolute inset-0 w-full h-full flex items-center justify-center">
+                  <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                     <svg className="w-full h-full">
                       {/* Spawning nucleating centers */}
                       {[
@@ -968,7 +968,7 @@ export const ThermoVisualizer: React.FC<ThermoVisualizerProps> = ({
                         />
                       ))}
                     </svg>
-                  </g>
+                  </div>
                 );
               })()}
 
