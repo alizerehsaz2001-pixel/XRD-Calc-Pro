@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import Markdown from 'react-markdown';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
   ComposedChart, Area, Scatter, AreaChart, ReferenceLine
@@ -1558,64 +1559,86 @@ export const RietveldModule: React.FC = () => {
     }
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     setIsGenerating(true);
     setStrategyStatus('running');
     setShowValidation(false);
 
-    setTimeout(() => {
-      const issues = validateSetup();
-      if (issues.length > 0) {
-        setShowValidation(true);
-        setStrategyStatus('failed');
-        setIsGenerating(false);
-        return;
-      }
+    const issues = validateSetup();
+    if (issues.length > 0) {
+      setShowValidation(true);
+      setStrategyStatus('failed');
+      setIsGenerating(false);
+      return;
+    }
 
+    try {
+      const output = generateRietveldSetup({
+        phases,
+        maxObsIntensity,
+        backgroundModel: bgModel,
+        bgTerms,
+        profileShape,
+        wavelength,
+        zeroShift: setupZeroShift,
+        sampleDisplacement,
+        polarization,
+        refineZeroShift,
+        refineBkg,
+        refineSampleDisplacement,
+        geometry,
+        divergenceSlit,
+        refineSurfaceRoughness,
+        twoThetaMin: SIMULATION_RANGE.start,
+        twoThetaMax: SIMULATION_RANGE.end,
+        stepSize: SIMULATION_RANGE.step,
+      });
+
+      // Call AI Advisor
       try {
-        const output = generateRietveldSetup({
-          phases,
-          maxObsIntensity,
-          backgroundModel: bgModel,
-          bgTerms,
-          profileShape,
-          wavelength,
-          zeroShift: setupZeroShift,
-          sampleDisplacement,
-          polarization,
-          refineZeroShift,
-          refineBkg,
-          refineSampleDisplacement,
-          geometry,
-          divergenceSlit,
-          refineSurfaceRoughness,
-          twoThetaMin: SIMULATION_RANGE.start,
-          twoThetaMax: SIMULATION_RANGE.end,
-          stepSize: SIMULATION_RANGE.step,
+        const response = await fetch('/api/gemini/rietveld-advisor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phases,
+            currentSetup: {
+              backgroundModel: bgModel,
+              profileShape,
+              geometry,
+              divergenceSlit
+            }
+          })
         });
-        setResult(output);
-        setStrategyStatus('success');
-        setShowValidation(false);
-        setIsGenerating(false);
-
-        // Smooth scroll to results zone
-        setTimeout(() => {
-          const el = document.getElementById('rietveld-result');
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }, 120);
-
-        // Reset state back to idle after 4 seconds
-        setTimeout(() => {
-          setStrategyStatus(prev => prev === 'success' ? 'idle' : prev);
-        }, 4000);
+        const data = await response.json();
+        if (data.success && data.text) {
+          output.ai_advice = data.text;
+        }
       } catch (err) {
-        console.error(err);
-        setStrategyStatus('failed');
-        setIsGenerating(false);
+        console.error("AI Advisor Error:", err);
       }
-    }, 600);
+
+      setResult(output);
+      setStrategyStatus('success');
+      setShowValidation(false);
+      setIsGenerating(false);
+
+      // Smooth scroll to results zone
+      setTimeout(() => {
+        const el = document.getElementById('rietveld-result');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 120);
+
+      // Reset state back to idle after 4 seconds
+      setTimeout(() => {
+        setStrategyStatus(prev => prev === 'success' ? 'idle' : prev);
+      }, 4000);
+    } catch (err) {
+      console.error(err);
+      setStrategyStatus('failed');
+      setIsGenerating(false);
+    }
   };
 
   const applyRefinementPreset = (phaseIdx: number, type: 'full' | 'lattice' | 'profile' | 'structure' | 'none') => {
@@ -4624,6 +4647,21 @@ export const RietveldModule: React.FC = () => {
                  </div>
                )}
     
+               {/* Quality Metrics Summary */}
+               {result && result.ai_advice && (
+                 <div className="bg-[#0B1221] p-6 rounded-3xl border border-[#1e293b] shadow-2xl relative overflow-hidden group animate-in slide-in-from-top-4 duration-500 mb-4">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full"></div>
+                   <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-fuchsia-500"></div>
+                   <h3 className="text-xs font-black text-indigo-400 mb-4 uppercase tracking-[0.2em] flex items-center gap-2 relative z-10">
+                     <Cpu className="w-4 h-4" />
+                     AI Refinement Expert Advice
+                   </h3>
+                   <div className="relative z-10 text-slate-300 text-sm leading-relaxed font-sans markdown-body prose prose-invert prose-sm max-w-none">
+                     <Markdown>{result.ai_advice}</Markdown>
+                   </div>
+                 </div>
+               )}
+
                {/* Quality Metrics Summary */}
                {result && result.quality_metrics && (
                  <div className="grid grid-cols-5 gap-4 animate-in slide-in-from-top-4 duration-500">

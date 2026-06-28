@@ -312,6 +312,7 @@ export interface RietveldSetupResult {
     observationRatio: number; // dataPoints / totalParameters
   };
   refinement_strategy: string[];
+  ai_advice?: string;
 }
 
 export interface LatticeParameters {

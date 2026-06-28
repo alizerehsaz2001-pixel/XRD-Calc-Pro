@@ -943,6 +943,40 @@ export const MaterialDatabaseExplorer: React.FC = () => {
     }
   };
 
+  const handleDirectSync = async (dbId: string, queryText: string) => {
+    if (!queryText.trim()) return;
+    setIsDbUnlocked(true);
+    setSelectedGlobalDB(dbId);
+    setGlobalSearch(queryText);
+    setIsGlobalSearching(true);
+    setGlobalResults([]);
+    setImportStatus(null);
+    try {
+      const response = await fetch('/api/gemini/global-sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: queryText,
+          databaseId: dbId,
+          apiKey: globalApiKey || undefined
+        })
+      });
+      const data = await response.json();
+      if (data.success && data.materials) {
+        setGlobalResults(data.materials);
+      } else {
+        alert(data.error || 'Failed to fetch global database records.');
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert('Error connecting to Global Database Sync service: ' + e.message);
+    } finally {
+      setIsGlobalSearching(false);
+    }
+  };
+
   const handleImportGlobalMaterial = async (m: any) => {
     // Generate a clean record conforming to our Material DB item schema
     const newMaterial = {
@@ -2658,6 +2692,126 @@ export const MaterialDatabaseExplorer: React.FC = () => {
                           );
                         })}
                       </div>
+
+                      {dbCategoryFilter === 'premium' && (
+                        <div className="p-4 bg-slate-900/60 border border-blue-500/10 rounded-2xl space-y-4 animate-in fade-in duration-200">
+                          {/* Live Sync Gateway Status Indicator */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="p-3 bg-black/40 border border-white/5 rounded-xl flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                                <Activity className="w-4 h-4 text-blue-400 animate-pulse" />
+                              </div>
+                              <div className="text-left">
+                                <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Sync Pipeline</span>
+                                <span className="block text-xs font-bold text-slate-200">ACTIVE SECURE TUNNEL</span>
+                              </div>
+                            </div>
+                            <div className="p-3 bg-black/40 border border-white/5 rounded-xl flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                                <RefreshCcw className="w-4 h-4 text-emerald-400 animate-spin" style={{ animationDuration: '6s' }} />
+                              </div>
+                              <div className="text-left">
+                                <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Transfer Encryption</span>
+                                <span className="block text-xs font-bold text-emerald-400 font-mono">AES-256 SSL LINKED</span>
+                              </div>
+                            </div>
+                            <div className="p-3 bg-black/40 border border-white/5 rounded-xl flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                                <Layers className="w-4 h-4 text-indigo-400" />
+                              </div>
+                              <div className="text-left">
+                                <span className="block text-[8px] uppercase tracking-wider text-slate-500 font-black">Sync Standards</span>
+                                <span className="block text-xs font-bold text-indigo-400 font-mono">ICDD / NIST CERTIFIED</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Quick Launch Portals */}
+                          <div className="space-y-2 text-left">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
+                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Industry-Standard Quick Sync Portals</span>
+                            </div>
+                            <p className="text-[9.5px] text-slate-400">
+                              Directly invoke real-time crystallographic searches grounded via academic networks for core materials in standard industrial clusters. Click a portal card below to query and sync instantly:
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                              {[
+                                {
+                                  title: "Aerospace Alloys (Inconel)",
+                                  db: "reaxys",
+                                  query: "Inconel 625 superalloy cubic FM-3M Phase",
+                                  desc: "Corrosion-resistant nickel-chromium superalloy structures",
+                                  badge: "Inconel 625",
+                                  color: "border-orange-500/30 text-orange-400 bg-orange-500/5 hover:border-orange-500"
+                                },
+                                {
+                                  title: "Solid-State Garnet Battery",
+                                  db: "icsd",
+                                  query: "LLZO Li7La3Zr2O12 solid state electrolyte",
+                                  desc: "High ionic-conductive Garnet structures for batteries",
+                                  badge: "Li7La3Zr2O12",
+                                  color: "border-cyan-500/30 text-cyan-400 bg-cyan-500/5 hover:border-cyan-500"
+                                },
+                                {
+                                  title: "Quantum Superconductors",
+                                  db: "springer_materials",
+                                  query: "YBCO YBa2Cu3O7-x high-temp superconducting phase",
+                                  desc: "Cuprate high-temperature superconducting ceramic lattices",
+                                  badge: "YBCO-123",
+                                  color: "border-purple-500/30 text-purple-400 bg-purple-500/5 hover:border-purple-500"
+                                },
+                                {
+                                  title: "Bioceramic Dental Grafts",
+                                  db: "ams",
+                                  query: "Synthetic Crystalline Calcium Hydroxyapatite",
+                                  desc: "High-crystallinity biological osseoregenerative standards",
+                                  badge: "NIST SRM 2910b",
+                                  color: "border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:border-emerald-500"
+                                },
+                                {
+                                  title: "Ultrawide Bandgap Power",
+                                  db: "matweb",
+                                  query: "Beta-Ga2O3 Gallium Oxide semiconductor monoclinic",
+                                  desc: "High power density beta-gallium oxide crystal lattices",
+                                  badge: "Beta-Ga2O3",
+                                  color: "border-blue-500/30 text-blue-400 bg-blue-500/5 hover:border-blue-500"
+                                },
+                                {
+                                  title: "Advanced Semiconductor Texture",
+                                  db: "icdd",
+                                  query: "Single-crystal silicon orientation calibration standard",
+                                  desc: "NIST-aligned reference crystal standard for d-spacing alignment",
+                                  badge: "NIST SRM 1990",
+                                  color: "border-pink-500/30 text-pink-400 bg-pink-500/5 hover:border-pink-500"
+                                }
+                              ].map((item, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => handleDirectSync(item.db, item.query)}
+                                  className={`p-3 border rounded-xl text-left transition-all active:scale-98 cursor-pointer group flex flex-col justify-between ${item.color}`}
+                                >
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between items-start gap-2">
+                                      <span className="text-[11px] font-extrabold tracking-tight group-hover:text-white leading-tight">{item.title}</span>
+                                      <span className="px-1.5 py-0.5 bg-black/60 rounded text-[7.5px] font-mono border border-white/5 uppercase leading-none font-bold">{item.badge}</span>
+                                    </div>
+                                    <p className="text-[9px] text-slate-400 leading-normal line-clamp-2">{item.desc}</p>
+                                  </div>
+                                  <div className="mt-2.5 flex items-center justify-between text-[8px] font-mono text-slate-500">
+                                    <span>Sync with: <strong className="text-slate-300 uppercase">{item.db}</strong></span>
+                                    <span className="text-blue-400 font-bold group-hover:underline flex items-center gap-0.5">
+                                      Query Portal <ChevronRight className="w-2.5 h-2.5" />
+                                    </span>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Database Registry Choice Cards */}
                       <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2.5">

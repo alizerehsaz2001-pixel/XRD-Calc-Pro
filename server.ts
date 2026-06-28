@@ -367,6 +367,49 @@ Provide the response in structured markdown with the following specific sections
     }
   });
 
+  app.post("/api/gemini/rietveld-advisor", async (req, res) => {
+    const { phases, currentSetup, customKey } = req.body;
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+      
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-rietveld',
+          }
+        }
+      });
+      
+      const prompt = `Please provide an advanced Rietveld refinement strategy for the following multiphase system:
+Phases included: ${JSON.stringify(phases)}
+Current baseline instrument setup: ${JSON.stringify(currentSetup)}
+
+Provide a step-by-step strategy for the refinement of this specific system. Outline which parameters to refine first (e.g. scale and background), and when to release constraints on lattice parameters, peak shape (U, V, W), and atomic positions. Warn about possible correlations or parameter instabilities for these specific structures. Address background modelling choices. Format your response strictly in markdown with clear headings and bulleted steps.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-pro-preview",
+        contents: prompt,
+        config: {
+          systemInstruction: "You are XRD-Calc Pro's Senior Crystallography and Rietveld Refinement Expert. " +
+            "Your mission is to provide high-fidelity, academically precise, and actionable solutions for Rietveld structure refinement strategies. " +
+            "Provide professional, step-by-step advice on the refinement sequence. " +
+            "Structure your response with clean headings, readable bullet points, and a professional, academic tone.",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        }
+      });
+      
+      res.json({ success: true, text: response.text });
+    } catch (error: any) {
+      console.error("Gemini Rietveld Advisor Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.post("/api/gemini/coder", async (req, res) => {
     const { prompt, context, customKey } = req.body;
     try {
@@ -491,7 +534,13 @@ Provide the response in structured markdown with the following specific sections
         lbl_als: "LBNL Advanced Light Source Diffraction Database (United States)",
         anl_aps: "Argonne Advanced Photon Source Crystallographic Archive (United States)",
         ornl_sns: "Oak Ridge Spallation Neutron Source Crystal Database (United States)",
-        cea_cristal: "CEA Cristal French Atomic Energy Commission Database (France)"
+        cea_cristal: "CEA Cristal French Atomic Energy Commission Database (France)",
+        pauling: "Pauling File Binaries Inorganic Materials Database",
+        cas: "Chemical Abstracts Service (CAS) Chemical Registry System",
+        ams: "American Mineralogist Crystal Structure Database (AMCSD / AMS)",
+        cod_premium: "Crystallography Open Database (COD) Enterprise Synchronized Edition",
+        reaxys: "Elsevier Reaxys Chemical & Crystallographic Database",
+        matweb: "MatWeb Material Property Data Engineering Materials Registry"
       };
 
       const resolvedDbName = dbMapping[databaseId] || databaseId;

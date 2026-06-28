@@ -1114,38 +1114,60 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
         {/* Navigation Sidebar */}
-        <div className="md:col-span-3 flex flex-col gap-2">
+        <div className="md:col-span-3 flex flex-col gap-6">
           {[
-            { id: 'energy', label: "Energy / Wavelength", icon: Zap },
-            { id: 'dspacing', label: "d-Spacing / Cell", icon: Box },
-            { id: 'volume', label: "Volume & Density", icon: Layers },
-            { id: 'microstructure', label: "Microstructure", icon: Grid },
-            { id: 'strain', label: "Lattice Strain", icon: MoveHorizontal },
-            { id: 'porosity', label: "Porosity", icon: PieChart },
-            { id: 'mechanics', label: "Mechanics", icon: Wrench },
-            { id: 'thermo', label: "Thermodynamics", icon: Flame },
-            { id: 'diffusion', label: "Diffusion & Transport", icon: Activity },
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = activeCalc === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveCalc(item.id as any)}
-                className={`group w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-sm font-bold transition-all duration-300 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-transparent shadow-lg shadow-indigo-500/25'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-indigo-200 dark:hover:border-indigo-800'
-                }`}
-              >
-                <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                {item.label}
-                <ChevronRight className={`w-4 h-4 ml-auto transition-transform duration-300 ${isActive ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-50'}`} />
-              </button>
-            );
-          })}
+            {
+              group: "Crystallography",
+              items: [
+                { id: 'dspacing', label: "d-Spacing / Cell", icon: Box },
+                { id: 'volume', label: "Volume & Density", icon: Layers },
+                { id: 'microstructure', label: "Microstructure", icon: Grid },
+              ]
+            },
+            {
+              group: "Physics & Thermodynamics",
+              items: [
+                { id: 'energy', label: "Energy / Wavelength", icon: Zap },
+                { id: 'thermo', label: "Thermodynamics", icon: Flame },
+                { id: 'diffusion', label: "Diffusion & Transport", icon: Activity },
+              ]
+            },
+            {
+              group: "Mechanical Properties",
+              items: [
+                { id: 'strain', label: "Lattice Strain", icon: MoveHorizontal },
+                { id: 'porosity', label: "Porosity", icon: PieChart },
+                { id: 'mechanics', label: "Mechanics", icon: Wrench },
+              ]
+            }
+          ].map((cat, idx) => (
+            <div key={idx} className="space-y-2">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 px-2">{cat.group}</h4>
+              <div className="flex flex-col gap-2">
+                {cat.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeCalc === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveCalc(item.id as any)}
+                      className={`group w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl border text-sm font-bold transition-all duration-300 ${
+                        isActive
+                          ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-transparent shadow-lg shadow-indigo-500/25'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-indigo-200 dark:hover:border-indigo-800'
+                      }`}
+                    >
+                      <div className={`p-1.5 rounded-xl transition-colors ${isActive ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      {item.label}
+                      <ChevronRight className={`w-4 h-4 ml-auto transition-transform duration-300 ${isActive ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-50'}`} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Content Area */}
@@ -1785,12 +1807,17 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                       <span className="text-lg text-slate-400">%</span>
                     </div>
                   </div>
+                </div>
 
-                  <LatticeStrainVisualizer
-                    d0={parseFloat(strainD0) || 2.0}
-                    d={parseFloat(strainD) || 2.02}
-                    strainPercent={parseFloat(calcStrainPercent) || 0}
-                  />
+                {/* Centered full-width Lattice Strain visualizer */}
+                <div className="md:col-span-2 flex justify-center mt-4">
+                  <div className="w-full max-w-2xl">
+                    <LatticeStrainVisualizer
+                      d0={parseFloat(strainD0) || 2.0}
+                      d={parseFloat(strainD) || 2.02}
+                      strainPercent={parseFloat(calcStrainPercent) || 0}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
