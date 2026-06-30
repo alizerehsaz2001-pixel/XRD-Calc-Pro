@@ -1215,6 +1215,85 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
           </div>
         </section>
 
+        {/* --- AI Advisor Feature Section --- */}
+        <section className="py-24 px-6 relative z-10 border-t border-slate-900 bg-slate-950/50 overflow-hidden">
+          <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-600/5 blur-[150px] rounded-full pointer-events-none" />
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-6">
+                <Sparkles className="w-4 h-4 text-indigo-400" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">Gemini High-Thinking</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-6 tracking-tight leading-[1.1]">
+                Your Personal <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">AI Science Advisor</span>
+              </h2>
+              <p className="text-lg text-slate-400 font-medium leading-relaxed mb-8">
+                Go beyond simple equations. Our new AI Structural & Synthesis Advisor analyzes your input parameters, cross-references them against crystallographic databases, and generates graduate-level physical insights instantly.
+              </p>
+              <ul className="space-y-4 mb-8">
+                {[
+                  "Deep structural correlation analysis",
+                  "Material phase & synthesis recommendations",
+                  "Instant parameter optimization guidance"
+                ].map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400" />
+                    </div>
+                    <span className="text-slate-300 font-medium text-sm">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => onEnter(isRegistered ? 'login' : 'register')}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all flex items-center gap-2 hover:-translate-y-0.5"
+              >
+                Try AI Advisor <ArrowRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative perspective-1000"
+            >
+              <div className="absolute inset-0 bg-indigo-600/20 blur-[100px] rounded-full" />
+              <div className="relative bg-[#090F1E] border border-indigo-500/30 rounded-3xl p-8 shadow-2xl transform rotate-y-[-5deg] hover:rotate-y-0 transition-all duration-700 hover:border-indigo-500/50">
+                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <Cpu className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-white">AI Analysis Output</h4>
+                    <p className="text-[10px] text-slate-400 font-mono">Thermodynamics & Phase Transition</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4 text-sm text-slate-300 leading-relaxed font-sans">
+                  <p>
+                    <strong className="text-indigo-400">Structural Insight:</strong> The calculated critical free energy (ΔG*) of <span className="font-mono text-white bg-white/10 px-1 rounded">14.2 kJ/mol</span> suggests a moderate nucleation barrier. This indicates that homogenous nucleation will require significant undercooling to proceed spontaneously.
+                  </p>
+                  <p>
+                    <strong className="text-cyan-400">Synthesis Recommendation:</strong> To promote heterogeneous nucleation and refine the grain structure, consider introducing inoculants or increasing the cooling rate by 15-20%.
+                  </p>
+                </div>
+                
+                <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
+                  <span className="text-xs font-mono text-slate-500">Confidence Score</span>
+                  <span className="text-sm font-black text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">98.4%</span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
         {/* --- Code / API Integration Section --- */}
         <section className="py-32 px-6 bg-[#020617] border-y border-slate-900 relative z-10">
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
