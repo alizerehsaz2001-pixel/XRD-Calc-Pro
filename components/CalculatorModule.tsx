@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calculator, Zap, Ruler, Box, Activity, ChevronRight, RefreshCcw, Layers, Scaling, Target, Save, Grid, MoveHorizontal, PieChart, Wrench, HelpCircle, Flame } from 'lucide-react';
+import Markdown from 'react-markdown';
+import { Calculator, Zap, Ruler, Box, Activity, ChevronRight, RefreshCcw, Layers, Scaling, Target, Save, Grid, MoveHorizontal, PieChart, Wrench, HelpCircle, Flame, Cpu, Sparkles, Copy, Check } from 'lucide-react';
 import {
   EnergyWaveVisualizer,
   MillerPlaneVisualizer,
@@ -67,6 +68,167 @@ export interface CalculatorModuleProps {
 export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHistory }) => {
   const { t } = useTranslation();
   const [activeCalc, setActiveCalc] = useState<'energy' | 'dspacing' | 'volume' | 'microstructure' | 'strain' | 'porosity' | 'mechanics' | 'thermo' | 'diffusion'>('energy');
+
+  // --- AI Science Advisor States ---
+  const [aiAdviceMap, setAiAdviceMap] = useState<Record<string, string>>({});
+  const [aiLoadingMap, setAiLoadingMap] = useState<Record<string, boolean>>({});
+  const [aiErrorMap, setAiErrorMap] = useState<Record<string, string>>({});
+  const [copiedMap, setCopiedMap] = useState<Record<string, boolean>>({});
+
+  const getCalculatorParameters = (id: string) => {
+    switch (id) {
+      case 'energy':
+        return { energyKev, energyWave };
+      case 'dspacing':
+        return { crystalSystem, latticeA, latticeB, latticeC, millerH, millerK, millerL, calcDSpacing };
+      case 'volume':
+        return { volCrystalSystem, volA, volB, volC, volAlpha, volBeta, volGamma, volZ, volMolarMass, calcVolume, calcDensity };
+      case 'microstructure':
+        return { microCrystalSystem, microA, microD, microDensity, calcBurgers, calcDislocation, calcSSA };
+      case 'strain':
+        return { strainD0, strainD, calcStrain, calcStrainPercent };
+      case 'porosity':
+        return { porBulkDensity, porTrueDensity, calcPorosity, calcSpecificVol };
+      case 'mechanics':
+        return { mechForce, mechArea, mechLength, mechDeltaLength, mechWidth, mechDeltaWidth, calcStress, calcStrainMech, calcModulus, calcStrainTransverse, calcPoissonsRatio, mechCrackLength, mechGeoFactor, calcFractureToughness, mechFatigueStrengthCoef, mechFatigueExponent, calcFatigueLife };
+      case 'thermo':
+        return { leverMode, leverCa, leverCb, leverC0, calcLeverWa, calcLeverWb, leverTaX, leverTaY, leverTbX, leverTbY, leverTcX, leverTcY, leverT0X, leverT0Y, calcLeverTernaryWa, calcLeverTernaryWb, calcLeverTernaryWc, gibbsH, gibbsS, gibbsT, gibbsTUnit, calcGibbsG, calcGibbsSpontaneous, calcGibbsTeq, avramiCalcMode, avramiK, avramiN, avramiTime, avramiTargetFraction, calcAvramiFraction, calcAvramiTimeRequired };
+      case 'diffusion':
+        return { fick1Mode, fick1D, fick1C1, fick1C2, fick1X1, fick1X2, fick1J, calcFick1Flux, calcFick1Coef, calcFick1Grad, fick2Mode, fick2Cs, fick2C0, fick2Cx, fick2X, fick2D, fick2T, fick2TUnit, calcFick2Cx, calcFick2X, calcFick2T, diffEnergyMode, diffEnergyD0, diffEnergyD, diffEnergyT, diffEnergyTUnit, diffEnergyD1, diffEnergyT1, diffEnergyD2, diffEnergyT2, diffEnergyQ, calcDiffEnergyQ_kJ, calcDiffEnergyQ_eV, calcDiffEnergyD0, calcDiffEnergyD_at_T };
+      default:
+        return {};
+    }
+  };
+
+  const handleRequestAIAdvice = async (calcId: string) => {
+    setAiLoadingMap(prev => ({ ...prev, [calcId]: true }));
+    setAiErrorMap(prev => ({ ...prev, [calcId]: '' }));
+    
+    try {
+      const params = getCalculatorParameters(calcId);
+      const response = await fetch('/api/gemini/calculator-advisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          calculatorId: calcId,
+          parameters: params
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success && data.text) {
+        setAiAdviceMap(prev => ({ ...prev, [calcId]: data.text }));
+      } else {
+        setAiErrorMap(prev => ({ ...prev, [calcId]: data.error || 'Failed to generate advice. Please try again.' }));
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAiErrorMap(prev => ({ ...prev, [calcId]: err.message || 'An error occurred while contacting the AI service.' }));
+    } finally {
+      setAiLoadingMap(prev => ({ ...prev, [calcId]: false }));
+    }
+  };
+
+  const renderAIAdvisor = (calcId: string) => {
+    const advice = aiAdviceMap[calcId];
+    const isLoading = aiLoadingMap[calcId];
+    const error = aiErrorMap[calcId];
+    const isCopied = copiedMap[calcId];
+
+    const handleCopy = () => {
+      if (!advice) return;
+      navigator.clipboard.writeText(advice);
+      setCopiedMap(prev => ({ ...prev, [calcId]: true }));
+      setTimeout(() => {
+        setCopiedMap(prev => ({ ...prev, [calcId]: false }));
+      }, 2000);
+    };
+
+    return (
+      <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+        <div className="bg-gradient-to-br from-indigo-50/40 to-cyan-50/10 dark:from-slate-950/40 dark:to-slate-950/10 p-6 rounded-3xl border border-indigo-100/50 dark:border-indigo-950/40 relative overflow-hidden shadow-sm">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full pointer-events-none"></div>
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/10">
+                <Cpu className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  AI Structural & Synthesis Advisor
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-[9px] font-mono font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-900/30">
+                    Gemini High-Thinking
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Generate professional, graduate-level crystallographic analysis based on your calculated parameters.</p>
+              </div>
+            </div>
+            
+            {!advice && !isLoading && (
+              <button
+                onClick={() => handleRequestAIAdvice(calcId)}
+                className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-500/10 transition-all hover:-translate-y-0.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Analyze Parameters
+              </button>
+            )}
+          </div>
+
+          {isLoading && (
+            <div className="p-8 flex flex-col items-center justify-center gap-4 relative z-10">
+              <div className="relative w-12 h-12">
+                <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-indigo-950"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-t-indigo-600 dark:border-t-indigo-400 animate-spin"></div>
+              </div>
+              <div className="text-center">
+                <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest animate-pulse">AI is Thinking...</span>
+                <p className="text-[10px] text-slate-400 mt-1 max-w-xs mx-auto">Performing deep computational physics and structural correlation analysis. This may take a few seconds.</p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-medium flex items-center justify-between gap-3 relative z-10">
+              <span>{error}</span>
+              <button 
+                onClick={() => handleRequestAIAdvice(calcId)}
+                className="px-3 py-1.5 bg-rose-100 dark:bg-rose-950 hover:bg-rose-200 text-rose-700 dark:text-rose-300 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {advice && !isLoading && (
+            <div className="relative z-10 animate-in fade-in slide-in-from-top-4 duration-500 mt-2">
+              <div className="absolute top-2 right-2 flex items-center gap-2">
+                <button
+                  onClick={handleCopy}
+                  className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-indigo-600 transition-all shadow-sm"
+                  title="Copy analysis to clipboard"
+                >
+                  {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={() => handleRequestAIAdvice(calcId)}
+                  className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-indigo-600 transition-all shadow-sm"
+                  title="Regenerate analysis"
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md p-6 rounded-2xl border border-white/40 dark:border-slate-800/60 text-slate-700 dark:text-slate-300 text-sm leading-relaxed prose prose-invert prose-sm max-w-none custom-scrollbar">
+                <Markdown className="markdown-body font-sans">{advice}</Markdown>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // --- Thermodynamics & Phase Transformations State ---
   // 1. Lever Rule
@@ -1220,6 +1382,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                   <EnergyWaveVisualizer energyKev={parseFloat(energyKev)} wavelength={parseFloat(energyWave)} />
                 </div>
               </div>
+              {renderAIAdvisor('energy')}
             </div>
           )}
 
@@ -1373,6 +1536,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                   />
                 </div>
               </div>
+              {renderAIAdvisor('dspacing')}
             </div>
           )}
 
@@ -1608,6 +1772,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                   {renderUnitCell3D()}
                 </div>
               </div>
+              {renderAIAdvisor('volume')}
             </div>
           )}
 
@@ -1734,6 +1899,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                   />
                 </div>
               </div>
+              {renderAIAdvisor('microstructure')}
             </div>
           )}
 
@@ -1820,6 +1986,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                   </div>
                 </div>
               </div>
+              {renderAIAdvisor('strain')}
             </div>
           )}
 
@@ -1902,6 +2069,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                   />
                 </div>
               </div>
+              {renderAIAdvisor('porosity')}
             </div>
           )}
 
@@ -2343,6 +2511,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                   fractureToughness={parseFloat(calcFractureToughness) || 0}
                 />
               </div>
+              {renderAIAdvisor('mechanics')}
             </div>
           )}
 
@@ -2822,7 +2991,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                 </div>
 
               </div>
-
+              {renderAIAdvisor('thermo')}
             </div>
           )}
 
@@ -3409,7 +3578,7 @@ export const CalculatorModule: React.FC<CalculatorModuleProps> = ({ onSaveToHist
                 </div>
 
               </div>
-
+              {renderAIAdvisor('diffusion')}
             </div>
           )}
 

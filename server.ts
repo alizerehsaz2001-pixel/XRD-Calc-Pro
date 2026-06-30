@@ -410,6 +410,53 @@ Provide a step-by-step strategy for the refinement of this specific system. Outl
     }
   });
 
+  app.post("/api/gemini/calculator-advisor", async (req, res) => {
+    const { calculatorId, parameters, customKey } = req.body;
+    try {
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+      
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build-calc-advisor',
+          }
+        }
+      });
+
+      const prompt = `You are helping a researcher analyze results from the '${calculatorId}' material science calculator.
+Current inputs and calculated states for this calculation are:
+${JSON.stringify(parameters, null, 2)}
+
+Provide a highly professional, graduate-level crystallographic and thermodynamic/mechanical analysis based on these parameters. 
+Your response must include:
+1. **Physical Interpretation**: Explain what the numerical values mean physically in terms of atomic structure, lattice spacing, transport rates, thermodynamic spontaneity, or mechanical stability.
+2. **Real-world Analogs & Materials**: Give examples of actual real-world materials (metals, ceramics, semiconductors, polymers, or minerals) that exhibit values similar to these (e.g., if d-spacing is ~5.43 Å, talk about silicon; if Poisson's ratio is ~0.3, talk about typical steel, copper, or gold; if diffusion rate is high, talk about interstitial diffusion in FCC/BCC alloys at high temperature).
+3. **Synthesis & Engineering Impact**: Offer advice on how to optimize these variables for materials synthesis, thermal processing, or structural applications.
+
+Format your response in a highly polished, clean markdown format with standard headers and bullet points. Keep it clear, concise, academically precise, and actionable. Avoid generic fluff.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-pro-preview",
+        contents: prompt,
+        config: {
+          systemInstruction: "You are XRD-Calc Pro's Chief Materials Physicist, Crystallographer, and Synthesis Advisor. " +
+            "Your role is to analyze crystallographic, thermodynamic, mechanical, and transport results, providing highly detailed, academically rigorous, and practical scientific analysis.",
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+        }
+      });
+      
+      res.json({ success: true, text: response.text });
+    } catch (error: any) {
+      console.error("Gemini Calculator Advisor Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.post("/api/gemini/coder", async (req, res) => {
     const { prompt, context, customKey } = req.body;
     try {
