@@ -1154,7 +1154,7 @@ export const DeepLearningModule: React.FC = () => {
   const searchResults = getFilteredMaterials();
 
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [usePythonRAG, setUsePythonRAG] = useState(true);
+  const [usePythonRAG, setUsePythonRAG] = useState(false);
   const [pythonRAGResults, setPythonRAGResults] = useState<any>(null);
   const [ragRunning, setRagRunning] = useState(false);
   const [isLatticeModalOpen, setIsLatticeModalOpen] = useState(false);
@@ -6479,16 +6479,23 @@ if __name__ == '__main__':
             </div>
 
             {/* Active Python RAG Co-Processor Diagnostics Toggle Panel */}
-            <div className="px-4 py-3.5 mb-6 rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/5 to-amber-500/[0.02] hover:from-amber-500/10 hover:to-amber-500/[0.05] transition-all relative z-10 flex flex-col gap-2.5 shadow-inner backdrop-blur-sm">
+            <div className={`px-4 py-3.5 mb-6 rounded-xl border transition-all relative z-10 flex flex-col gap-2.5 shadow-inner backdrop-blur-sm ${usePythonRAG ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-500/[0.02]' : 'border-slate-800 bg-slate-900/50'}`}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="relative flex items-center justify-center">
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400 absolute animate-ping opacity-75" />
-                    <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)] relative z-10" />
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2.5">
+                    {usePythonRAG ? (
+                      <div className="relative flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-400 absolute animate-ping opacity-75" />
+                        <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)] relative z-10" />
+                      </div>
+                    ) : (
+                      <div className="w-2 h-2 rounded-full bg-slate-700" />
+                    )}
+                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${usePythonRAG ? 'text-amber-500 drop-shadow-sm' : 'text-slate-500'}`}>
+                      Scientific Python RAG Engine
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Optional</span>
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 drop-shadow-sm">
-                    Scientific Python RAG Engine
-                  </span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -6500,8 +6507,8 @@ if __name__ == '__main__':
                   <div className="w-9 h-5 bg-slate-800 border border-slate-700/50 rounded-full peer peer-checked:bg-amber-500 peer-checked:border-amber-400 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-all peer-checked:after:translate-x-4"></div>
                 </label>
               </div>
-              <p className="text-[10px] text-amber-500/60 leading-relaxed font-medium max-w-[90%] tracking-wide">
-                Fits physical lattice contraction, dilation strain, and crystallite size broadening on local SQLite reference patterns using coordinate-descent ML regression.
+              <p className={`text-[10px] leading-relaxed font-medium max-w-[90%] tracking-wide ${usePythonRAG ? 'text-amber-500/70' : 'text-slate-600'}`}>
+                When enabled, fits physical lattice contraction, dilation strain, and crystallite size broadening on local SQLite reference patterns using coordinate-descent ML regression. Requires Gemini High-Thinking capability.
               </p>
             </div>
 

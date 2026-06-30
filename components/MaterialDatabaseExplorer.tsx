@@ -214,6 +214,7 @@ export const MaterialDatabaseExplorer: React.FC = () => {
   const [densityRange, setDensityRange] = useState<string>('All');
   
   // Python RAG DB Semantic Search state
+  const [useRagSearch, setUseRagSearch] = useState(false);
   const [ragQuery, setRagQuery] = useState('');
   const [isRagSearching, setIsRagSearching] = useState(false);
   const [ragResponse, setRagResponse] = useState<any>(null);
@@ -2172,73 +2173,103 @@ export const MaterialDatabaseExplorer: React.FC = () => {
 
             {/* Python RAG Database Search */}
             <div className="flex flex-col gap-2 mt-2 pt-4 border-t border-indigo-500/10">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
-                <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400 font-mono">
-                  Python Semantic RAG Engine
-                </span>
-                <span className="text-[9px] text-slate-500 ml-2 border border-slate-700 px-2 py-0.5 rounded-full">NLP Database Filter</span>
-              </div>
-              <div className="flex gap-3 items-center">
-                <div className="relative flex-1 group">
-                  <Database className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600/50 group-focus-within:text-emerald-400 transition-colors" />
-                  <input
-                    type="text"
-                    value={ragQuery}
-                    onChange={e => setRagQuery(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleRagSearch()}
-                    placeholder="Ask about properties: 'Which materials have compressive strain and tetragonal structure?'"
-                    className="w-full pl-14 pr-12 py-3.5 bg-[#08120B] border border-emerald-500/30 text-white outline-none rounded-2xl focus:border-emerald-400 focus:bg-[#0A1A10] focus:ring-2 focus:ring-emerald-500/50 placeholder:text-slate-600 transition-all text-xs font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] select-none"
-                  />
-                  {ragQuery && (
-                    <button
-                      onClick={() => { setRagQuery(''); setRagResponse(null); }}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors p-1"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  {useRagSearch ? (
+                    <div className="relative flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 absolute animate-ping opacity-75" />
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)] relative z-10" />
+                    </div>
+                  ) : (
+                    <div className="w-2 h-2 rounded-full bg-slate-700" />
                   )}
+                  <span className={`text-[11px] font-black uppercase tracking-widest font-mono ${useRagSearch ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    Python Semantic RAG Engine
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Optional</span>
                 </div>
-                <button
-                  onClick={handleRagSearch}
-                  disabled={isRagSearching}
-                  className="flex items-center justify-center px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 disabled:opacity-50 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-[0_4px_25px_rgba(16,185,129,0.3)] border border-emerald-500 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer h-[46px] select-none"
-                >
-                  {isRagSearching ? <RefreshCcw className="w-4 h-4 animate-spin text-white" /> : "Query DB"}
-                </button>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useRagSearch}
+                    onChange={(e) => setUseRagSearch(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-slate-800 border border-slate-700/50 rounded-full peer peer-checked:bg-emerald-500 peer-checked:border-emerald-400 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-all peer-checked:after:translate-x-4"></div>
+                </label>
               </div>
-
+              
               <AnimatePresence>
-                {ragResponse && (
+                {useRagSearch && (
                   <motion.div
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
-                    className={`mt-2 p-4 rounded-xl border font-mono text-xs leading-relaxed ${ragResponse.error ? 'bg-rose-950/20 border-rose-500/30 text-rose-300' : 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'}`}
+                    className="overflow-hidden"
                   >
-                    {ragResponse.error ? (
-                      <div className="flex gap-2"><ShieldAlert className="w-4 h-4 flex-shrink-0" /> {ragResponse.error}</div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div id="material-rag-markdown-answer" className="text-emerald-100 font-sans text-sm prose prose-emerald max-w-none leading-relaxed">
-                          <Markdown>{ragResponse.answer}</Markdown>
-                        </div>
-                        {ragResponse.retrieved_docs && ragResponse.retrieved_docs.length > 0 && (
-                          <div className="pt-2 border-t border-emerald-500/20">
-                            <span className="text-[10px] text-emerald-500/70 uppercase tracking-widest block mb-2">Grounded Knowledge Context </span>
-                            <div className="flex flex-wrap gap-2">
-                              {ragResponse.retrieved_docs.map((doc: any, i: number) => (
-                                <span key={i} className="px-2 py-1 bg-emerald-900/40 border border-emerald-500/20 rounded-md text-[10px] text-emerald-300 shadow-sm cursor-pointer hover:bg-emerald-800/60 transition-colors" onClick={() => {
-                                  setSearchQuery(doc.name);
-                                }}>
-                                  {doc.name} ({doc.crystal_system})
-                                </span>
-                              ))}
-                            </div>
-                          </div>
+                    <div className="flex gap-3 items-center mt-3">
+                      <div className="relative flex-1 group">
+                        <Database className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-600/50 group-focus-within:text-emerald-400 transition-colors" />
+                        <input
+                          type="text"
+                          value={ragQuery}
+                          onChange={e => setRagQuery(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleRagSearch()}
+                          placeholder="Ask about properties: 'Which materials have compressive strain and tetragonal structure?'"
+                          className="w-full pl-14 pr-12 py-3.5 bg-[#08120B] border border-emerald-500/30 text-white outline-none rounded-2xl focus:border-emerald-400 focus:bg-[#0A1A10] focus:ring-2 focus:ring-emerald-500/50 placeholder:text-slate-600 transition-all text-xs font-mono shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] select-none"
+                        />
+                        {ragQuery && (
+                          <button
+                            onClick={() => { setRagQuery(''); setRagResponse(null); }}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 focus:outline-none transition-colors p-1"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         )}
                       </div>
-                    )}
+                      <button
+                        onClick={handleRagSearch}
+                        disabled={isRagSearching}
+                        className="flex items-center justify-center px-6 py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 disabled:opacity-50 text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-[0_4px_25px_rgba(16,185,129,0.3)] border border-emerald-500 hover:scale-[1.02] active:scale-98 transition-all cursor-pointer h-[46px] select-none"
+                      >
+                        {isRagSearching ? <RefreshCcw className="w-4 h-4 animate-spin text-white" /> : "Query DB"}
+                      </button>
+                    </div>
+
+                    <AnimatePresence>
+                      {ragResponse && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className={`mt-3 p-4 rounded-xl border font-mono text-xs leading-relaxed ${ragResponse.error ? 'bg-rose-950/20 border-rose-500/30 text-rose-300' : 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'}`}
+                        >
+                          {ragResponse.error ? (
+                            <div className="flex gap-2"><ShieldAlert className="w-4 h-4 flex-shrink-0" /> {ragResponse.error}</div>
+                          ) : (
+                            <div className="space-y-3">
+                              <div id="material-rag-markdown-answer" className="text-emerald-100 font-sans text-sm prose prose-emerald max-w-none leading-relaxed">
+                                <Markdown>{ragResponse.answer}</Markdown>
+                              </div>
+                              {ragResponse.retrieved_docs && ragResponse.retrieved_docs.length > 0 && (
+                                <div className="pt-2 border-t border-emerald-500/20">
+                                  <span className="text-[10px] text-emerald-500/70 uppercase tracking-widest block mb-2">Grounded Knowledge Context </span>
+                                  <div className="flex flex-wrap gap-2">
+                                    {ragResponse.retrieved_docs.map((doc: any, i: number) => (
+                                      <span key={i} className="px-2 py-1 bg-emerald-900/40 border border-emerald-500/20 rounded-md text-[10px] text-emerald-300 shadow-sm cursor-pointer hover:bg-emerald-800/60 transition-colors" onClick={() => {
+                                        setSearchQuery(doc.name);
+                                      }}>
+                                        {doc.name} ({doc.crystal_system})
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 )}
               </AnimatePresence>
