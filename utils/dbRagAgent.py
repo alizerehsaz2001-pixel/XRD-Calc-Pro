@@ -7,9 +7,9 @@ from typing import List, Dict
 try:
     from google import genai
     from google.genai import types
+    has_genai = True
 except ImportError:
-    print(json.dumps({"error": "google-genai Python package not installed"}))
-    sys.exit(1)
+    has_genai = False
 
 class MaterialDatabaseRAG:
     def __init__(self):
@@ -150,6 +150,19 @@ class MaterialDatabaseRAG:
             "Expert Comprehensive Response:\n"
         )
         
+        if not has_genai:
+            # Fallback when AI generation is optional / unavailable
+            fallback_text = "*(AI Generation is optional or unavailable. Showing direct database retrieval results)*\n\n"
+            for d in docs:
+                fallback_text += f"**{d['name']}** ({d['formula']})\n- Crystal System: {d['crystal_system']}, Space Group: {d['space_group']}\n- {d['description']}\n\n"
+            if not docs:
+                fallback_text += "No matching documents found in the database."
+            return json.dumps({
+                "success": True,
+                "answer": fallback_text,
+                "retrieved_docs": docs
+            })
+
         try:
             client = genai.Client(api_key=api_key)
             response = client.models.generate_content(

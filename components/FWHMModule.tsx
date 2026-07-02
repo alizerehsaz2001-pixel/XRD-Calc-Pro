@@ -253,9 +253,18 @@ export const FWHMModule: React.FC = () => {
               <div className="group">
                 <div className="flex justify-between items-end mb-3">
                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">Peak Center (2θ)</label>
-                  <div className="bg-white dark:bg-slate-900 px-2.5 py-1 rounded-md shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
-                    <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold relative z-10">{center.toFixed(2)}°</span>
-                    <div className="absolute inset-0 bg-indigo-500/5 dark:bg-indigo-500/10" />
+                  <div className="bg-white dark:bg-slate-900 rounded-md shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden flex items-center px-1">
+                    <input
+                      type="number"
+                      min="10"
+                      max="150"
+                      step="0.01"
+                      value={center}
+                      onChange={(e) => setCenter(parseFloat(e.target.value) || 0)}
+                      className="w-16 bg-transparent text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold relative z-10 text-right focus:outline-none py-1"
+                    />
+                    <span className="text-xs font-mono text-indigo-600 dark:text-indigo-400 font-bold pr-1.5 relative z-10">°</span>
+                    <div className="absolute inset-0 bg-indigo-500/5 dark:bg-indigo-500/10 pointer-events-none" />
                   </div>
                 </div>
                 <input
@@ -537,6 +546,11 @@ export const FWHMModule: React.FC = () => {
                  <ComposedChart 
                    data={chartData} 
                    margin={{ top: 20, right: 60, left: 20, bottom: 45 }}
+                   onClick={(e: any) => {
+                     if (e && e.activeLabel !== undefined) {
+                       setCenter(Number(e.activeLabel));
+                     }
+                   }}
                  >
                    <defs>
                      <linearGradient id="colorY" x1="0" y1="0" x2="0" y2="1">
@@ -558,7 +572,7 @@ export const FWHMModule: React.FC = () => {
                    <XAxis 
                      dataKey="x" 
                      type="number" 
-                     domain={['auto', 'auto']} 
+                     domain={['dataMin', 'dataMax']} 
                      tick={{fontSize: 10, fill: '#64748b', fontWeight: 600}}
                      label={{ value: 'Diffraction Angle 2θ (°)', position: 'bottom', offset: 25, fill: '#475569', fontSize: 11, fontWeight: 800, textAnchor: 'middle', letterSpacing: '0.05em' }}
                      tickFormatter={(val) => val.toFixed(1)}

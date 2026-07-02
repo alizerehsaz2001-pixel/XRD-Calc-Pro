@@ -39,7 +39,8 @@ import {
   Binary,
   Shapes,
   Atom,
-  Search
+  Search,
+  Calculator
 } from 'lucide-react';
 
 import { SideSeekBar } from './SideSeekBar';

@@ -407,7 +407,7 @@ const colorizeLine = (line: string) => {
   );
 };
 
-export const DeepLearningModule: React.FC = () => {
+export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
   const { t } = useTranslation();
   const [inputData, setInputData] = useState<string>("");
   const [result, setResult] = useState<DLPhaseResult | null>(null);
@@ -1156,6 +1156,12 @@ export const DeepLearningModule: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [usePythonRAG, setUsePythonRAG] = useState(false);
   const [pythonRAGResults, setPythonRAGResults] = useState<any>(null);
+
+  useEffect(() => {
+    if (!pythonFeaturesEnabled && usePythonRAG) {
+      setUsePythonRAG(false);
+    }
+  }, [pythonFeaturesEnabled, usePythonRAG]);
   const [ragRunning, setRagRunning] = useState(false);
   const [isLatticeModalOpen, setIsLatticeModalOpen] = useState(false);
   const [latticeResult, setLatticeResult] = useState<{
@@ -6479,38 +6485,40 @@ if __name__ == '__main__':
             </div>
 
             {/* Active Python RAG Co-Processor Diagnostics Toggle Panel */}
-            <div className={`px-4 py-3.5 mb-6 rounded-xl border transition-all relative z-10 flex flex-col gap-2.5 shadow-inner backdrop-blur-sm ${usePythonRAG ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-500/[0.02]' : 'border-slate-800 bg-slate-900/50'}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2.5">
-                    {usePythonRAG ? (
-                      <div className="relative flex items-center justify-center">
-                        <div className="w-2.5 h-2.5 rounded-full bg-amber-400 absolute animate-ping opacity-75" />
-                        <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)] relative z-10" />
-                      </div>
-                    ) : (
-                      <div className="w-2 h-2 rounded-full bg-slate-700" />
-                    )}
-                    <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${usePythonRAG ? 'text-amber-500 drop-shadow-sm' : 'text-slate-500'}`}>
-                      Scientific Python RAG Engine
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Optional</span>
+            {pythonFeaturesEnabled && (
+              <div className={`px-4 py-3.5 mb-6 rounded-xl border transition-all relative z-10 flex flex-col gap-2.5 shadow-inner backdrop-blur-sm ${usePythonRAG ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-500/[0.02]' : 'border-slate-800 bg-slate-900/50'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2.5">
+                      {usePythonRAG ? (
+                        <div className="relative flex items-center justify-center">
+                          <div className="w-2.5 h-2.5 rounded-full bg-amber-400 absolute animate-ping opacity-75" />
+                          <div className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)] relative z-10" />
+                        </div>
+                      ) : (
+                        <div className="w-2 h-2 rounded-full bg-slate-700" />
+                      )}
+                      <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${usePythonRAG ? 'text-amber-500 drop-shadow-sm' : 'text-slate-500'}`}>
+                        Scientific Python RAG Engine
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Optional</span>
+                    </div>
                   </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={usePythonRAG}
+                      onChange={(e) => setUsePythonRAG(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-800 border border-slate-700/50 rounded-full peer peer-checked:bg-amber-500 peer-checked:border-emerald-400 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-all peer-checked:after:translate-x-4"></div>
+                  </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={usePythonRAG}
-                    onChange={(e) => setUsePythonRAG(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-slate-800 border border-slate-700/50 rounded-full peer peer-checked:bg-amber-500 peer-checked:border-amber-400 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:rounded-full after:h-4 after:w-4 after:shadow-sm after:transition-all peer-checked:after:translate-x-4"></div>
-                </label>
+                <p className={`text-[10px] leading-relaxed font-medium max-w-[90%] tracking-wide ${usePythonRAG ? 'text-amber-500/70' : 'text-slate-600'}`}>
+                  When enabled, fits physical lattice contraction, dilation strain, and crystallite size broadening on local SQLite reference patterns using coordinate-descent ML regression. Requires Gemini High-Thinking capability.
+                </p>
               </div>
-              <p className={`text-[10px] leading-relaxed font-medium max-w-[90%] tracking-wide ${usePythonRAG ? 'text-amber-500/70' : 'text-slate-600'}`}>
-                When enabled, fits physical lattice contraction, dilation strain, and crystallite size broadening on local SQLite reference patterns using coordinate-descent ML regression. Requires Gemini High-Thinking capability.
-              </p>
-            </div>
+            )}
 
             <div className="pt-2 relative z-10">
               <button
@@ -7983,19 +7991,21 @@ if __name__ == '__main__':
                         </span>
                       </div>
                     </button>
-                    <button
-                      onClick={handleExportPythonML}
-                      className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-fuchsia-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-fuchsia-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
-                      <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
-                        <Cpu className="w-5 h-5 text-fuchsia-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]" />
-                        <span className="text-[10px] font-black text-slate-300 group-hover:text-fuchsia-50 uppercase tracking-[0.2em] whitespace-nowrap">
-                          {t("Export ML Script", "Export ML Script")}
-                        </span>
-                      </div>
-                    </button>
+                    {pythonFeaturesEnabled && (
+                      <button
+                        onClick={handleExportPythonML}
+                        className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-fuchsia-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-t from-fuchsia-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-fuchsia-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-out" />
+                        <div className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full h-full">
+                          <Cpu className="w-5 h-5 text-fuchsia-400 group-hover:-translate-y-1 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]" />
+                          <span className="text-[10px] font-black text-slate-300 group-hover:text-fuchsia-50 uppercase tracking-[0.2em] whitespace-nowrap">
+                            {t("Export ML Script", "Export ML Script")}
+                          </span>
+                        </div>
+                      </button>
+                    )}
                     <button
                       onClick={handleRunExpertAI}
                       className="flex-1 lg:flex-none group relative px-6 py-4 bg-gradient-to-b from-[#0B1221] to-[#050B14] border border-[#1e293b] hover:border-cyan-500/50 rounded-2xl transition-all active:scale-95 shadow-[inset_0_1px_5px_rgba(255,255,255,0.05),0_5px_15px_rgba(0,0,0,0.5)] overflow-hidden"
@@ -8541,106 +8551,108 @@ if __name__ == '__main__':
                   </div>
 
                   {/* Neural Architecture Python Source */}
-                  <div className="md:col-span-12 group/python mb-8 bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] hover:border-fuchsia-500/40 transition-all duration-500 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-80 h-80 bg-fuchsia-500/5 rounded-full blur-[80px] pointer-events-none group-hover/python:bg-fuchsia-500/10 transition-all duration-700 -translate-y-10 translate-x-10" />
-                    
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-fuchsia-500/20 blur-md rounded-full pointer-events-none" />
-                        <div className="p-3 bg-gradient-to-br from-[#0F172A] to-[#0A101C] rounded-2xl text-fuchsia-400 border border-fuchsia-500/30 shadow-[inset_0_2px_10px_rgba(217,70,239,0.2)] relative z-10 flex items-center justify-center">
-                          <Cpu className="w-6 h-6 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(217,70,239,0.8)]" />
-                        </div>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-black uppercase text-fuchsia-400/90 tracking-[0.3em] block leading-none mb-1.5">
-                          Architectural Transparency
-                        </span>
-                        <h4 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider drop-shadow-md font-serif italic">
-                          PyTorch Neural Engine Source
-                        </h4>
-                      </div>
-                    </div>
-
-                    <div className="relative z-10 bg-black/60 rounded-2xl border border-[#1e293b]/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] overflow-hidden">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-slate-900 border-b border-white/5 gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex gap-2">
-                            <div className="w-3 h-3 rounded-full bg-rose-500/80" />
-                            <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                            <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                          </div>
-                          <span className="text-xs font-mono text-slate-500 ml-2">
-                            {pythonArch === 'cnn' ? 'xrd_phase_cnn.py' :
-                             pythonArch === 'transformer' ? 'xrd_phase_transformer.py' :
-                             pythonArch === 'graph_gnn' ? 'xrd_crystall_gnn.py' :
-                             'xrd_rag_pipeline.py'}
-                          </span>
-                        </div>
-                        <button
-                          onClick={handleExportPythonML}
-                          className="self-start sm:self-center text-[10px] flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1 rounded-full font-bold text-slate-300 transition-colors"
-                        >
-                          <Download className="w-3 h-3" />
-                          Export Python Code
-                        </button>
-                      </div>
+                  {pythonFeaturesEnabled && (
+                    <div className="md:col-span-12 group/python mb-8 bg-[#050B14]/80 p-8 sm:p-10 rounded-[2.5rem] border border-[#1e293b] hover:border-fuchsia-500/40 transition-all duration-500 shadow-[inset_0_2px_20px_rgba(255,255,255,0.02)] relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-80 h-80 bg-fuchsia-500/5 rounded-full blur-[80px] pointer-events-none group-hover/python:bg-fuchsia-500/10 transition-all duration-700 -translate-y-10 translate-x-10" />
                       
-                      {/* Sub-header architecture tabs */}
-                      <div className="flex flex-wrap gap-1 px-4 py-2 bg-slate-950 border-b border-white/5">
-                        <button
-                          onClick={() => setPythonArch('cnn')}
-                          className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
-                            pythonArch === 'cnn'
-                              ? 'bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30'
-                              : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                          }`}
-                        >
-                          Residual 1D-CNN
-                        </button>
-                        <button
-                          onClick={() => setPythonArch('transformer')}
-                          className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
-                            pythonArch === 'transformer'
-                              ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
-                              : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                          }`}
-                        >
-                          1D Spectral ViT
-                        </button>
-                        <button
-                          onClick={() => setPythonArch('graph_gnn')}
-                          className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
-                            pythonArch === 'graph_gnn'
-                              ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                              : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                          }`}
-                        >
-                          Crystal Graph GNN (PyG)
-                        </button>
-                        <button
-                          onClick={() => setPythonArch('rag_pipeline')}
-                          className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
-                            pythonArch === 'rag_pipeline'
-                              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                              : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                          }`}
-                        >
-                          Crystalline RAG Pipeline
-                        </button>
+                      <div className="flex items-center gap-4 mb-8">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-fuchsia-500/20 blur-md rounded-full pointer-events-none" />
+                          <div className="p-3 bg-gradient-to-br from-[#0F172A] to-[#0A101C] rounded-2xl text-fuchsia-400 border border-fuchsia-500/30 shadow-[inset_0_2px_10px_rgba(217,70,239,0.2)] relative z-10 flex items-center justify-center">
+                            <Cpu className="w-6 h-6 text-fuchsia-400 drop-shadow-[0_0_8px_rgba(217,70,239,0.8)]" />
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-black uppercase text-fuchsia-400/90 tracking-[0.3em] block leading-none mb-1.5">
+                            Architectural Transparency
+                          </span>
+                          <h4 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider drop-shadow-md font-serif italic">
+                            PyTorch Neural Engine Source
+                          </h4>
+                        </div>
                       </div>
 
-                      <pre className="p-4 sm:p-6 overflow-x-auto text-[11px] sm:text-xs font-mono leading-relaxed text-slate-300 custom-scrollbar max-h-[450px]">
-                        <code className="block flex flex-col gap-0.5">
-                          {getPythonEngineCode(pythonArch, engineConfig).split('\n').map((line, idx) => (
-                            <div key={idx} className="hover:bg-white/5 px-2 py-0.5 rounded transition-all flex items-start">
-                              <span className="text-[10px] text-slate-600 select-none w-8 text-right pr-3 font-mono pt-0.5">{idx + 1}</span>
-                              <span className="whitespace-pre flex-1 font-mono">{colorizeLine(line)}</span>
+                      <div className="relative z-10 bg-black/60 rounded-2xl border border-[#1e293b]/80 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] overflow-hidden">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-slate-900 border-b border-white/5 gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-2">
+                              <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+                              <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                              <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
                             </div>
-                          ))}
-                        </code>
-                      </pre>
+                            <span className="text-xs font-mono text-slate-500 ml-2">
+                              {pythonArch === 'cnn' ? 'xrd_phase_cnn.py' :
+                               pythonArch === 'transformer' ? 'xrd_phase_transformer.py' :
+                               pythonArch === 'graph_gnn' ? 'xrd_crystall_gnn.py' :
+                               'xrd_rag_pipeline.py'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={handleExportPythonML}
+                            className="self-start sm:self-center text-[10px] flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1 rounded-full font-bold text-slate-300 transition-colors"
+                          >
+                            <Download className="w-3 h-3" />
+                            Export Python Code
+                          </button>
+                        </div>
+                        
+                        {/* Sub-header architecture tabs */}
+                        <div className="flex flex-wrap gap-1 px-4 py-2 bg-slate-950 border-b border-white/5">
+                          <button
+                            onClick={() => setPythonArch('cnn')}
+                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                              pythonArch === 'cnn'
+                                ? 'bg-fuchsia-500/20 text-fuchsia-400 border border-fuchsia-500/30'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                            }`}
+                          >
+                            Residual 1D-CNN
+                          </button>
+                          <button
+                            onClick={() => setPythonArch('transformer')}
+                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                              pythonArch === 'transformer'
+                                ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                            }`}
+                          >
+                            1D Spectral ViT
+                          </button>
+                          <button
+                            onClick={() => setPythonArch('graph_gnn')}
+                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                              pythonArch === 'graph_gnn'
+                                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                            }`}
+                          >
+                            Crystal Graph GNN (PyG)
+                          </button>
+                          <button
+                            onClick={() => setPythonArch('rag_pipeline')}
+                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-md transition-all ${
+                              pythonArch === 'rag_pipeline'
+                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+                            }`}
+                          >
+                            Crystalline RAG Pipeline
+                          </button>
+                        </div>
+
+                        <pre className="p-4 sm:p-6 overflow-x-auto text-[11px] sm:text-xs font-mono leading-relaxed text-slate-300 custom-scrollbar max-h-[450px]">
+                          <code className="block flex flex-col gap-0.5">
+                            {getPythonEngineCode(pythonArch, engineConfig).split('\n').map((line, idx) => (
+                              <div key={idx} className="hover:bg-white/5 px-2 py-0.5 rounded transition-all flex items-start">
+                                <span className="text-[10px] text-slate-600 select-none w-8 text-right pr-3 font-mono pt-0.5">{idx + 1}</span>
+                                <span className="whitespace-pre flex-1 font-mono">{colorizeLine(line)}</span>
+                              </div>
+                            ))}
+                          </code>
+                        </pre>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Crystallography (Cell Metrics) */}
                   <div className="md:col-span-12 group/card">

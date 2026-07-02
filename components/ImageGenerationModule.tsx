@@ -356,7 +356,7 @@ const RenderingConsole: React.FC<{ styleName: string, size: string }> = ({ style
   );
 };
 
-export const ImageGenerationModule: React.FC = () => {
+export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
   const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState(SCIENTIFIC_STYLES[0].id);
@@ -401,6 +401,12 @@ export const ImageGenerationModule: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('xrd_image_history', JSON.stringify(history));
   }, [history]);
+
+  useEffect(() => {
+    if (!pythonFeaturesEnabled && illustratorMode === 'matplotlib') {
+      setIllustratorMode('neural');
+    }
+  }, [pythonFeaturesEnabled, illustratorMode]);
 
   const handleEnhancePrompt = async () => {
     if (!prompt.trim()) return;
@@ -571,30 +577,32 @@ export const ImageGenerationModule: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Mode Switcher Tabs */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 p-1.5 rounded-2xl flex max-w-lg shadow-sm">
-        <button
-          onClick={() => { setIllustratorMode('neural'); setError(null); }}
-          className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-            illustratorMode === 'neural'
-              ? 'bg-fuchsia-500 text-white shadow-md shadow-fuchsia-500/20'
-              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          Neural Stream (Imagen-3)
-        </button>
-        <button
-          onClick={() => { setIllustratorMode('matplotlib'); setError(null); }}
-          className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-            illustratorMode === 'matplotlib'
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-              : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-          }`}
-        >
-          <Cpu className="w-3.5 h-3.5" />
-          Python + Matplotlib Plotter
-        </button>
-      </div>
+      {pythonFeaturesEnabled && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 p-1.5 rounded-2xl flex max-w-lg shadow-sm">
+          <button
+            onClick={() => { setIllustratorMode('neural'); setError(null); }}
+            className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+              illustratorMode === 'neural'
+                ? 'bg-fuchsia-500 text-white shadow-md shadow-fuchsia-500/20'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Neural Stream (Imagen-3)
+          </button>
+          <button
+            onClick={() => { setIllustratorMode('matplotlib'); setError(null); }}
+            className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+              illustratorMode === 'matplotlib'
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5" />
+            Python + Matplotlib Plotter
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Configuration Sidebar */}

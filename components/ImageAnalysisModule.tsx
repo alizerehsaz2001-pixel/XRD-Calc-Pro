@@ -81,7 +81,7 @@ const ANALYSIS_PRESETS = [
   { id: 'quality', label: 'Quality Insight', icon: Zap, prompt: 'Assess the background level, signal-to-noise ratio, and potential sample preparation issues like preferred orientation or microstrain broadening.' },
 ];
 
-export const ImageAnalysisModule: React.FC = () => {
+export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
   const [image, setImage] = useState<string | null>(null);
   const [context, setContext] = useState('');
   const [result, setResult] = useState('');
@@ -122,6 +122,12 @@ export const ImageAnalysisModule: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!pythonFeaturesEnabled && analysisMode === 'python_cv') {
+      setAnalysisMode('neural');
+    }
+  }, [pythonFeaturesEnabled, analysisMode]);
 
   useEffect(() => {
     if (result && scrollRef.current) {
@@ -281,30 +287,32 @@ export const ImageAnalysisModule: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Mode Switcher Tabs */}
-      <div className="bg-slate-900 border border-slate-800 p-1.5 rounded-2xl flex max-w-lg shadow-inner">
-        <button
-          onClick={() => { setAnalysisMode('neural'); setError(null); }}
-          className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-            analysisMode === 'neural'
-              ? 'bg-sky-500 text-white shadow-md'
-              : 'text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-          Neural Stream (Gemini)
-        </button>
-        <button
-          onClick={() => { setAnalysisMode('python_cv'); setError(null); }}
-          className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-            analysisMode === 'python_cv'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          <Cpu className="w-3.5 h-3.5" />
-          Python + OpenCV Vision
-        </button>
-      </div>
+      {pythonFeaturesEnabled && (
+        <div className="bg-slate-900 border border-slate-800 p-1.5 rounded-2xl flex max-w-lg shadow-inner">
+          <button
+            onClick={() => { setAnalysisMode('neural'); setError(null); }}
+            className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+              analysisMode === 'neural'
+                ? 'bg-sky-500 text-white shadow-md'
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+            Neural Stream (Gemini)
+          </button>
+          <button
+            onClick={() => { setAnalysisMode('python_cv'); setError(null); }}
+            className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+              analysisMode === 'python_cv'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5" />
+            Python + OpenCV Vision
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       {/* Input Side - The Laboratory Bench */}

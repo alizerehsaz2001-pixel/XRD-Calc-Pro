@@ -22,7 +22,6 @@ import { ImageAnalysisModule } from './components/ImageAnalysisModule';
 import { ImageGenerationModule } from './components/ImageGenerationModule';
 import { PythonExportModule } from './components/PythonExportModule';
 import { MaterialDatabaseExplorer } from './components/MaterialDatabaseExplorer';
-import { CalculatorModule } from './components/CalculatorModule';
 
 import { SettingsModule } from './components/SettingsModule';
 import { ProfilePage } from './components/ProfilePage';
@@ -49,7 +48,7 @@ import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'fireb
 import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOfflineMaterial, OfflineAnalysisResult, clearOfflineAnalyses } from './utils/offlineDb';
 import { syncOfflineHelper } from './utils/materialsHelper';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'calculator';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -87,6 +86,10 @@ const App: React.FC = () => {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => {
     const val = localStorage.getItem('xrd_sound');
     return val === 'true';
+  });
+  const [pythonFeaturesEnabled, setPythonFeaturesEnabled] = useState<boolean>(() => {
+    const val = localStorage.getItem('xrd_python_features');
+    return val === 'true'; // default to false
   });
   
   // Calibration, Geometry offsets and Defaults
@@ -330,6 +333,10 @@ const App: React.FC = () => {
   }, [soundEnabled]);
 
   useEffect(() => {
+    localStorage.setItem('xrd_python_features', pythonFeaturesEnabled.toString());
+  }, [pythonFeaturesEnabled]);
+
+  useEffect(() => {
     localStorage.setItem('xrd_zero_shift', zeroShift.toString());
   }, [zeroShift]);
 
@@ -517,52 +524,6 @@ const App: React.FC = () => {
     setResults(item.results);
   };
 
-  const handleSaveCalculatorToHistory = (calcName: string, wave: number, t2: number, d: number, q: number) => {
-    const braggResult: BraggResult = {
-      twoTheta: t2,
-      dSpacing: d,
-      qVector: q,
-      sinThetaOverLambda: wave > 0 ? Math.sin((t2 / 2) * (Math.PI / 180)) / wave : 0,
-      hkl: calcName
-    };
-
-    const newItem: BraggHistoryItem = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString(),
-      sampleId: `Calculator: ${calcName}`,
-      wavelength: wave,
-      rawPeaks: t2 > 0 ? t2.toString() : d > 0 ? `d=${d.toFixed(3)}` : `q=${q.toFixed(3)}`,
-      rawHKL: calcName,
-      results: [braggResult]
-    };
-
-    setBraggHistory(prev => {
-      const updated = [newItem, ...prev].slice(0, 10);
-      localStorage.setItem('xrd_bragg_history', JSON.stringify(updated));
-      return updated;
-    });
-
-    if (user) {
-      const path = `braggHistory/${newItem.id}`;
-      const docData: any = {
-        userId: user.uid,
-        timestamp: newItem.timestamp,
-        wavelength: newItem.wavelength,
-        rawPeaks: newItem.rawPeaks,
-        rawHKL: newItem.rawHKL,
-        results: newItem.results
-      };
-      if (newItem.sampleId) {
-        docData.sampleId = newItem.sampleId;
-      }
-      setDoc(doc(db, 'braggHistory', newItem.id), docData).catch((error) => {
-        handleFirestoreError(error, OperationType.CREATE, path);
-      });
-    }
-
-    playSynthTone('success');
-  };
-
   const clearHistory = async () => {
     const listToDelete = [...braggHistory];
     setBraggHistory([]);
@@ -647,31 +608,37 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [autosaveInterval]);
 
-  const modules = useMemo<{ id: Module; label: string; icon?: string; group?: string }[]>(() => [
-    { id: 'bragg', label: t('Bragg Basics'), group: t('Fundamentals') },
-    { id: 'fwhm', label: t('FWHM Analysis'), group: t('Fundamentals') },
-    { id: 'selection', label: t('Selection Rules'), group: t('Fundamentals') },
-    { id: 'compare', label: t('Diffraction Compare'), group: t('Fundamentals') },
-    { id: 'scherrer', label: t('Scherrer Method'), group: t('Size & Strain') },
-    { id: 'wh', label: t('Williamson-Hall'), group: t('Size & Strain') },
-    { id: 'integral', label: t('Integral Breadth'), group: t('Size & Strain') },
-    { id: 'integral_adv', label: t('IB Advanced (W-H)'), group: t('Size & Strain') },
-    { id: 'wa', label: t('Warren-Averbach'), group: t('Size & Strain') },
-    { id: 'preferred_orientation', label: t('Preferred Orientation'), group: t('Fundamentals') },
-    { id: 'rietveld', label: t('Rietveld Setup'), group: t('Advanced Sim') },
-    { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
-    { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
-    { id: 'dl', label: t('PhaseID Neural Net'), group: t('AI Tools') },
-    { id: 'image_analysis', label: t('Image Analysis'), group: t('AI Tools') },
-    { id: 'image_gen', label: t('Scientific Illustrator'), group: t('AI Tools') },
-    { id: 'python_export', label: t('Python Generator'), group: t('Advanced Sim') },
-    { id: 'learn', label: t('Protocol Guide'), group: t('Intelligence') },
-    { id: 'periodic_table', label: t('Periodic Table'), group: t('Intelligence') },
-    { id: 'database', label: t('Material Registry'), group: t('Intelligence') },
-    { id: 'calculator', label: t('Calculator', 'Calculator'), group: t('Fundamentals') },
-    { id: 'profile', label: t('Laboratory Director'), group: t('Intelligence') },
-    { id: 'settings', label: t('Settings'), group: t('Intelligence') },
-  ], [t]);
+  const modules = useMemo<{ id: Module; label: string; icon?: string; group?: string }[]>(() => {
+    const allModules: { id: Module; label: string; icon?: string; group?: string }[] = [
+      { id: 'bragg', label: t('Bragg Basics'), group: t('Fundamentals') },
+      { id: 'fwhm', label: t('FWHM Analysis'), group: t('Fundamentals') },
+      { id: 'selection', label: t('Selection Rules'), group: t('Fundamentals') },
+      { id: 'compare', label: t('Diffraction Compare'), group: t('Fundamentals') },
+      { id: 'scherrer', label: t('Scherrer Method'), group: t('Size & Strain') },
+      { id: 'wh', label: t('Williamson-Hall'), group: t('Size & Strain') },
+      { id: 'integral', label: t('Integral Breadth'), group: t('Size & Strain') },
+      { id: 'integral_adv', label: t('IB Advanced (W-H)'), group: t('Size & Strain') },
+      { id: 'wa', label: t('Warren-Averbach'), group: t('Size & Strain') },
+      { id: 'preferred_orientation', label: t('Preferred Orientation'), group: t('Fundamentals') },
+      { id: 'rietveld', label: t('Rietveld Setup'), group: t('Advanced Sim') },
+      { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
+      { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
+      { id: 'dl', label: t('PhaseID Neural Net'), group: t('AI Tools') },
+      { id: 'image_analysis', label: t('Image Analysis'), group: t('AI Tools') },
+      { id: 'image_gen', label: t('Scientific Illustrator'), group: t('AI Tools') },
+      { id: 'python_export', label: t('Python Generator'), group: t('Advanced Sim') },
+      { id: 'learn', label: t('Protocol Guide'), group: t('Intelligence') },
+      { id: 'periodic_table', label: t('Periodic Table'), group: t('Intelligence') },
+      { id: 'database', label: t('Material Registry'), group: t('Intelligence') },
+      { id: 'profile', label: t('Laboratory Director'), group: t('Intelligence') },
+      { id: 'settings', label: t('Settings'), group: t('Intelligence') },
+    ];
+    
+    if (!pythonFeaturesEnabled) {
+      return allModules.filter(m => m.id !== 'python_export');
+    }
+    return allModules;
+  }, [t, pythonFeaturesEnabled]);
 
   const stateRef = useRef({
     activeModule,
@@ -1188,16 +1155,15 @@ const App: React.FC = () => {
                   {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
                   {activeModule === 'wa' && <WarrenAverbachModule />}
                   {activeModule === 'preferred_orientation' && <PreferredOrientationModule />}
-                  {activeModule === 'rietveld' && <RietveldModule />}
+                  {activeModule === 'rietveld' && <RietveldModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'neutron' && <NeutronModule />}
                   {activeModule === 'magnetic' && <MagneticNeutronModule />}
-                  {activeModule === 'dl' && <DeepLearningModule />}
-                  {activeModule === 'image_analysis' && <ImageAnalysisModule />}
-                  {activeModule === 'image_gen' && <ImageGenerationModule />}
+                  {activeModule === 'dl' && <DeepLearningModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
+                  {activeModule === 'image_analysis' && <ImageAnalysisModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
+                  {activeModule === 'image_gen' && <ImageGenerationModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'python_export' && <PythonExportModule />}
                   {activeModule === 'learn' && <LearnModule />}
-                  {activeModule === 'database' && <MaterialDatabaseExplorer />}
-                  {activeModule === 'calculator' && <CalculatorModule onSaveToHistory={handleSaveCalculatorToHistory} />}
+                  {activeModule === 'database' && <MaterialDatabaseExplorer pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'periodic_table' && (
                     <PeriodicTableModule
                       onLoadPeaks={(peaksStr, hklStr, matName) => {
@@ -1229,6 +1195,8 @@ const App: React.FC = () => {
                       setDefaultWavelength={setDefaultWavelength}
                       autosaveInterval={autosaveInterval}
                       setAutosaveInterval={setAutosaveInterval}
+                      pythonFeaturesEnabled={pythonFeaturesEnabled}
+                      setPythonFeaturesEnabled={setPythonFeaturesEnabled}
                     />
                   )}
                 </ErrorBoundary>

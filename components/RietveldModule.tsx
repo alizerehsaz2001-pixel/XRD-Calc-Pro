@@ -366,7 +366,7 @@ const toSymmetryScreenCoords = (px: number, py: number, width: number, height: n
   }
 };
 
-export const RietveldModule: React.FC = () => {
+export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = true }) => {
   const [activeTab, setActiveTab ] = useState<'simulation' | 'setup' | 'log' | 'rfactor'>('simulation');
   const [showMatrix, setShowMatrix] = useState(false);
 
@@ -1818,6 +1818,7 @@ export const RietveldModule: React.FC = () => {
                      <Grid className="w-4 h-4" />
                      Matrix
                    </button>
+                   {pythonFeaturesEnabled && (
                     <button 
                      onClick={runPythonRietveldRefinement}
                      disabled={isPythonRefining}
@@ -1831,6 +1832,7 @@ export const RietveldModule: React.FC = () => {
                       )}
                       {isPythonRefining ? 'Refining...' : 'Python + Pandas Solver'}
                     </button>
+                   )}
                     <button 
                      onClick={() => setIsAutoRefining(!isAutoRefining)}
                      className={`px-4 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${isAutoRefining ? 'text-rose-400 bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20' : 'text-teal-400 bg-teal-500/10 border-teal-500/30 hover:bg-teal-500/20 shadow-[0_0_15px_rgba(20,184,166,0.1)]'}`}
@@ -3411,7 +3413,7 @@ export const RietveldModule: React.FC = () => {
           </div>
 
           {/* Python and Pandas Refinement Report */}
-          {(isPythonRefining || pythonRefineResult || pythonRefineError) && (
+          {pythonFeaturesEnabled && (isPythonRefining || pythonRefineResult || pythonRefineError) && (
             <div className="mt-8 bg-slate-950/90 rounded-[2rem] border border-amber-500/20 p-8 shadow-[0_0_50px_rgba(245,158,11,0.08)] relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none" />
               

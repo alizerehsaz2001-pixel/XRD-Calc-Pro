@@ -35,6 +35,9 @@ interface SettingsModuleProps {
 
   autosaveInterval?: number;
   setAutosaveInterval?: (val: number) => void;
+
+  pythonFeaturesEnabled: boolean;
+  setPythonFeaturesEnabled: (enabled: boolean) => void;
 }
 
 export const SettingsModule: React.FC<SettingsModuleProps> = ({
@@ -56,6 +59,8 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   setDefaultWavelength,
   autosaveInterval = 5000,
   setAutosaveInterval,
+  pythonFeaturesEnabled,
+  setPythonFeaturesEnabled,
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -818,7 +823,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                      </div>
                    </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border-2 border-slate-200 dark:border-white/5">
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-xl transition-colors ${animationsEnabled ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
@@ -863,6 +868,30 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                         >
                           <div 
                             style={{ transform: soundEnabled ? 'translateX(20px)' : 'translateX(0px)' }}
+                            className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transition-transform" 
+                          />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border-2 border-slate-200 dark:border-white/5">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl transition-colors ${pythonFeaturesEnabled ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+                            <Terminal className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">Python Tools</div>
+                            <div className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Enable ML & Generators</div>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setPythonFeaturesEnabled(!pythonFeaturesEnabled);
+                            playSynthTone('tick');
+                          }}
+                          className={`w-11 h-6 rounded-full transition-all relative ${pythonFeaturesEnabled ? 'bg-amber-500' : 'bg-slate-400 dark:bg-slate-700'}`}
+                        >
+                          <div 
+                            style={{ transform: pythonFeaturesEnabled ? 'translateX(20px)' : 'translateX(0px)' }}
                             className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transition-transform" 
                           />
                         </button>
