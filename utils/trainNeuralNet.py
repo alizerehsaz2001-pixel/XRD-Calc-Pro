@@ -203,6 +203,11 @@ class NumpyMLPClassifier:
             return np.where(x > 0, x, x * 0.1)
         elif self.activation_name == "GELU":
             return 0.5 * x * (1.0 + np.tanh(np.sqrt(2.0 / np.pi) * (x + 0.044715 * (x ** 3))))
+        elif self.activation_name in ("Swish", "SiLU"):
+            sig = 1.0 / (1.0 + np.exp(-np.clip(x, -20, 20)))
+            return x * sig
+        elif self.activation_name == "ELU":
+            return np.where(x > 0, x, 1.0 * (np.exp(np.clip(x, -20, 20)) - 1.0))
         else: # Sigmoid
             return 1.0 / (1.0 + np.exp(-np.clip(x, -20, 20)))
 
@@ -216,6 +221,11 @@ class NumpyMLPClassifier:
             sech2_factor = 1.0 - tanh_factor ** 2
             internal_derivative = np.sqrt(2.0 / np.pi) * (1.0 + 3 * 0.044715 * (x ** 2))
             return 0.5 * (1.0 + tanh_factor) + 0.5 * x * sech2_factor * internal_derivative
+        elif self.activation_name in ("Swish", "SiLU") and x is not None:
+            sig = 1.0 / (1.0 + np.exp(-np.clip(x, -20, 20)))
+            return sig + cached_activated * (1.0 - sig)
+        elif self.activation_name == "ELU":
+            return np.where(cached_activated > 0, 1.0, cached_activated + 1.0)
         else: # Sigmoid
             return cached_activated * (1.0 - cached_activated)
 
@@ -354,6 +364,10 @@ def train_model(epochs: int = 50, lr: float = 0.005, batch_size: int = 32,
                     return nn.LeakyReLU(0.1)
                 elif act_name == "GELU":
                     return nn.GELU()
+                elif act_name in ("Swish", "SiLU"):
+                    return nn.SiLU()
+                elif act_name == "ELU":
+                    return nn.ELU()
                 else:
                     return nn.Sigmoid()
 

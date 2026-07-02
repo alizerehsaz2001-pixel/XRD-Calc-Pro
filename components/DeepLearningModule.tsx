@@ -1723,6 +1723,17 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
   const [pythonArch, setPythonArch] = useState<'cnn' | 'transformer' | 'graph_gnn' | 'rag_pipeline'>('cnn');
 
   const getPythonEngineCode = (arch: 'cnn' | 'transformer' | 'graph_gnn' | 'rag_pipeline', config: any): string => {
+    const mapActivation = (act: string) => {
+      const lower = (act || "relu").toLowerCase();
+      if (lower === "relu") return "relu";
+      if (lower === "leakyrelu") return "leaky_relu";
+      if (lower === "gelu") return "gelu";
+      if (lower === "sigmoid") return "sigmoid";
+      if (lower === "swish" || lower === "silu") return "silu";
+      if (lower === "elu") return "elu";
+      return "relu";
+    };
+
     if (arch === 'transformer') {
       return `import torch
 import torch.nn as nn
@@ -2105,10 +2116,10 @@ class ResidualBlock1D(nn.Module):
 
     def forward(self, x):
         res = x
-        x = F.${config.activation ? (config.activation.toLowerCase() === 'relu' ? 'relu' : (config.activation.toLowerCase() === 'selu' ? 'selu' : (config.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.bn1(self.conv1(x)))
+        x = F.${mapActivation(config.activation)}(self.bn1(self.conv1(x)))
         x = self.dropout(x)
         x = self.bn2(self.conv2(x))
-        return F.${config.activation ? (config.activation.toLowerCase() === 'relu' ? 'relu' : (config.activation.toLowerCase() === 'selu' ? 'selu' : (config.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(x + res)
+        return F.${mapActivation(config.activation)}(x + res)
 
 class XRDPhaseIDModel(nn.Module):
     def __init__(self, num_classes=${MATERIAL_DB.length}, kernel_size=${config.kernelSize}):
@@ -2133,7 +2144,7 @@ class XRDPhaseIDModel(nn.Module):
             attn_out, _ = self.attn(x_permuted, x_permuted, x_permuted)
             x = attn_out.permute(1, 2, 0)
             
-        x = F.${config.activation ? (config.activation.toLowerCase() === 'relu' ? 'relu' : (config.activation.toLowerCase() === 'selu' ? 'selu' : (config.activation.toLowerCase() === 'mish' ? 'mish' : 'gelu'))) : 'relu'}(self.initial_conv(x))
+        x = F.${mapActivation(config.activation)}(self.initial_conv(x))
         for block in self.blocks:
             x = block(x)
             x = self.pool(x)
@@ -4506,8 +4517,8 @@ if __name__ == '__main__':
                 <div className="w-1 h-1 bg-indigo-500 rounded-full" /> Activation Function
                 <Info className="w-3 h-3 text-slate-500 ml-auto" />
               </label>
-              <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner">
-                {["ReLU", "LeakyReLU", "GELU", "Sigmoid"].map((fn) => (
+              <div className="flex bg-slate-800 border border-slate-700 rounded-xl p-1.5 shadow-inner gap-1">
+                {["ReLU", "LeakyReLU", "GELU", "Swish", "ELU"].map((fn) => (
                   <button
                     key={fn}
                     onClick={() => {
@@ -11225,6 +11236,8 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 <option value="ReLU">ReLU Activation</option>
                                 <option value="LeakyReLU">LeakyReLU (α=0.1)</option>
                                 <option value="Sigmoid">Sigmoid Transfer</option>
+                                <option value="Swish">Swish / SiLU</option>
+                                <option value="ELU">ELU (Exponential Linear Unit)</option>
                               </select>
                             </div>
                           </div>

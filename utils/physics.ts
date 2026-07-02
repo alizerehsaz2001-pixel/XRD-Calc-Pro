@@ -1819,7 +1819,7 @@ const getCachedConvolvedReference = (
       const expVals = S_ref.map(v => Math.exp(v / tempScale));
       const sumExp = expVals.reduce((a,b)=>a+b, 0);
       const attentionWeights = expVals.map(e => e / (sumExp || 1));
-      S_ref = S_ref.map((v, i) => v * (1 + attentionWeights[i] * S_ref.length));
+      S_ref = S_ref.map((v, i) => v * (1 + attentionWeights[i] * Math.min(20, S_ref.length * 0.05)));
     }
     
     let Raw_Conv_ref = convolve1D(S_ref, kernelSize, kernelProfile, engineConfig);
@@ -2124,8 +2124,8 @@ export const identifyPhasesDL = (
     const expVals = S_obs.map(v => Math.exp(v / tempScale));
     const sumExp = expVals.reduce((a,b)=>a+b, 0);
     const attentionWeights = expVals.map(e => e / (sumExp || 1));
-    // Apply attention map back to the sequence, amplifying dominant features
-    S_obs = S_obs.map((v, i) => v * (1 + attentionWeights[i] * S_obs.length));
+    // Apply attention map back to the sequence, amplifying dominant features stably
+    S_obs = S_obs.map((v, i) => v * (1 + attentionWeights[i] * Math.min(20, S_obs.length * 0.05)));
   }
 
   // Apply our 1D Convolution with selected kernel size representing receptive fields
@@ -2225,6 +2225,10 @@ export const identifyPhasesDL = (
           activatedSimilarity = (0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * Math.pow(x, 3))))) / 2;
         } else if (activationName === "Sigmoid") {
           activatedSimilarity = 1 / (1 + Math.exp(-8 * (convSimilarity - 0.4)));
+        } else if (activationName === "Swish" || activationName === "SiLU") {
+          activatedSimilarity = convSimilarity * (1 / (1 + Math.exp(-convSimilarity * 2)));
+        } else if (activationName === "ELU") {
+          activatedSimilarity = convSimilarity > 0 ? convSimilarity : (Math.exp(convSimilarity) - 1);
         }
 
         let confidence = maxPossibleScore > 0 ? (matchScore / maxPossibleScore) * 100 : 0;
@@ -2410,6 +2414,10 @@ export const identifyPhasesDL = (
       activatedSimilarity = (0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * Math.pow(x, 3))))) / 2;
     } else if (activationName === "Sigmoid") {
       activatedSimilarity = 1 / (1 + Math.exp(-8 * (convSimilarity - 0.4)));
+    } else if (activationName === "Swish" || activationName === "SiLU") {
+      activatedSimilarity = convSimilarity * (1 / (1 + Math.exp(-convSimilarity * 2)));
+    } else if (activationName === "ELU") {
+      activatedSimilarity = convSimilarity > 0 ? convSimilarity : (Math.exp(convSimilarity) - 1);
     }
 
     let unmatchedInputEnergy = 0;
