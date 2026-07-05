@@ -515,6 +515,141 @@ const App: React.FC = () => {
     }, 3800);
   };
 
+  const handleBatchCalculate = async (batchSets: Array<{ sampleId: string; rawPeaks: string; rawHKL: string }>) => {
+    if (isSimulationRunning) return;
+    setIsSimulationRunning(true);
+    setSimulationStep(1);
+    
+    setTimeout(() => setSimulationStep(2), 600);
+    setTimeout(() => setSimulationStep(3), 1400);
+    setTimeout(() => setSimulationStep(4), 2200);
+    setTimeout(() => setSimulationStep(5), 3000);
+    
+    setTimeout(async () => {
+      setIsSimulationRunning(false);
+      
+      const newHistoryItems: BraggHistoryItem[] = [];
+      const offlineItems: OfflineAnalysisResult[] = [];
+      
+      for (const set of batchSets) {
+        const parsedPeaks = set.rawPeaks
+          .split(/[,;\s]+/)
+          .map(pString => pString.trim())
+          .filter(s => s !== '')
+          .map(pString => {
+            const parts = pString.split(':');
+            const thetaVal = parseFloat(parts[0]);
+            let intensityVal: number | undefined = undefined;
+            if (parts.length > 1) {
+              const parsedInt = parseFloat(parts[1]);
+              if (!isNaN(parsedInt)) {
+                intensityVal = parsedInt;
+              }
+            }
+            return { twoTheta: thetaVal, intensity: intensityVal };
+          })
+          .filter(p => !isNaN(p.twoTheta) && p.twoTheta > 0 && p.twoTheta < 180)
+          .sort((a, b) => a.twoTheta - b.twoTheta);
+
+        const hklList = set.rawHKL
+          .split(',')
+          .map(s => s.trim())
+          .filter(s => s !== '');
+
+        const computed = parsedPeaks
+          .map((peakObj, idx) => {
+            const thetaRad = (peakObj.twoTheta / 2) * (Math.PI / 180);
+            const displacementTerm = goniometerRadius > 0 
+              ? (2 * sampleDisplacement * Math.cos(thetaRad) / goniometerRadius) * (180 / Math.PI)
+              : 0;
+            const calibratedTwoTheta = peakObj.twoTheta - zeroShift - displacementTerm;
+
+            const res = calculateBragg(wavelength, calibratedTwoTheta);
+            if (res) {
+              const assignedIntensity = peakObj.intensity !== undefined 
+                ? peakObj.intensity 
+                : Math.max(10, 100 - (idx * 15));
+              return { 
+                ...res, 
+                hkl: hklList[idx] || '', 
+                intensity: assignedIntensity 
+              } as BraggResult;
+            }
+            return null;
+          })
+          .filter((res): res is BraggResult => res !== null);
+
+        if (computed.length > 0) {
+          const newItem: BraggHistoryItem = {
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: new Date().toISOString(),
+            sampleId: set.sampleId.trim() || undefined,
+            wavelength,
+            rawPeaks: set.rawPeaks,
+            rawHKL: set.rawHKL,
+            results: computed
+          };
+          newHistoryItems.push(newItem);
+          
+          offlineItems.push({
+            id: newItem.id,
+            type: 'bragg',
+            title: newItem.sampleId ? `Bragg: ${newItem.sampleId}` : `Bragg Calculation`,
+            timestamp: newItem.timestamp,
+            wavelength: newItem.wavelength,
+            inputData: { rawPeaks: newItem.rawPeaks, rawHKL: newItem.rawHKL },
+            results: newItem.results
+          });
+        }
+      }
+
+      if (newHistoryItems.length > 0) {
+        setBraggHistory(prev => {
+          const updated = [...newHistoryItems.reverse(), ...prev].slice(0, 50);
+          localStorage.setItem('xrd_bragg_history', JSON.stringify(updated));
+          return updated;
+        });
+        
+        for (const item of offlineItems) {
+          await saveOfflineAnalysis(item).catch(console.error);
+        }
+        refreshOfflineAnalyses();
+        
+        if (user) {
+          for (const newItem of newHistoryItems) {
+            const path = `braggHistory/${newItem.id}`;
+            const resultsJson = JSON.stringify(newItem.results);
+            const docData: any = {
+              id: newItem.id,
+              userId: user.uid,
+              timestamp: newItem.timestamp,
+              wavelength: newItem.wavelength,
+              rawPeaks: newItem.rawPeaks,
+              rawHKL: newItem.rawHKL,
+              resultsJson: resultsJson
+            };
+            if (newItem.sampleId) {
+              docData.sampleId = newItem.sampleId;
+            }
+            setDoc(doc(db, 'braggHistory', newItem.id), docData).catch((error) => {
+              handleFirestoreError(error, OperationType.CREATE, path);
+            });
+          }
+        }
+        
+        const last = newHistoryItems[0];
+        setSampleId(last.sampleId || "");
+        setRawPeaks(last.rawPeaks);
+        setRawHKL(last.rawHKL);
+        setResults(last.results);
+        
+        playSynthTone('success');
+      } else {
+        playSynthTone('error');
+      }
+    }, 3800);
+  };
+
 
   const restoreHistory = (item: BraggHistoryItem) => {
     if (item.sampleId) setSampleId(item.sampleId);
@@ -1093,6 +1228,7 @@ const App: React.FC = () => {
                           rawHKL={rawHKL}
                           setRawHKL={setRawHKL}
                           onCalculate={() => handleCalculate(true)}
+                          onBatchCalculate={handleBatchCalculate}
                           zeroShift={zeroShift}
                           setZeroShift={setZeroShift}
                           sampleDisplacement={sampleDisplacement}

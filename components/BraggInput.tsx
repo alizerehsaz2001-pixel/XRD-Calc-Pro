@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { fetchStandardWavelengths } from '../services/geminiService';
 import { StandardWavelength } from '../types';
@@ -18,7 +19,10 @@ import {
   RefreshCw as SyncIcon,
   Database,
   Atom,
-  Check
+  Check,
+  FileText,
+  ClipboardPaste,
+  X
 } from 'lucide-react';
 
 interface BraggInputProps {
@@ -31,6 +35,7 @@ interface BraggInputProps {
   rawHKL: string;
   setRawHKL: (val: string) => void;
   onCalculate: () => void;
+  onBatchCalculate?: (batchSets: Array<{ sampleId: string; rawPeaks: string; rawHKL: string }>) => void;
   
   // Alignment correction optional props
   zeroShift?: number;
@@ -106,6 +111,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   rawHKL,
   setRawHKL,
   onCalculate,
+  onBatchCalculate,
   zeroShift = 0.0,
   setZeroShift,
   sampleDisplacement = 0.0,
@@ -123,6 +129,8 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   );
   const [isSyncing, setIsSyncing] = useState(false);
   const [showAlignment, setShowAlignment] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchPasteText, setBatchPasteText] = useState('');
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -145,6 +153,87 @@ export const BraggInput: React.FC<BraggInputProps> = ({
     }
     return null;
   }, [wavelength]);
+
+  const processBatchText = (text: string) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+    
+    const header = lines[0].toLowerCase();
+    let startIndex = 0;
+    if (header.includes('sample') || header.includes('theta')) {
+      startIndex = 1;
+    }
+
+    const setsMap = new Map<string, { peaks: string[], hkls: string[] }>();
+    let currentSampleId = "Sample_1";
+
+    for (let i = startIndex; i < lines.length; i++) {
+      const parts = lines[i].split(',').map(p => p.trim());
+      if (parts.length === 0) continue;
+      
+      let sampleId = currentSampleId;
+      let twoTheta = "";
+      let intensity = "";
+      let hkl = "";
+
+      // Simple heuristic: if parts[0] is not a number, it's a sample ID
+      if (isNaN(parseFloat(parts[0]))) {
+        sampleId = parts[0];
+        twoTheta = parts[1] || "";
+        intensity = parts[2] || "";
+        hkl = parts[3] || "";
+        currentSampleId = sampleId;
+      } else {
+        twoTheta = parts[0];
+        intensity = parts[1] || "";
+        hkl = parts[2] || "";
+      }
+
+      if (!twoTheta) continue;
+
+      if (!setsMap.has(sampleId)) {
+        setsMap.set(sampleId, { peaks: [], hkls: [] });
+      }
+
+      const set = setsMap.get(sampleId)!;
+      let peakStr = twoTheta;
+      if (intensity && !isNaN(parseFloat(intensity))) {
+        peakStr += `:${intensity}`;
+      }
+      set.peaks.push(peakStr);
+      if (hkl) {
+        set.hkls.push(hkl);
+      }
+    }
+
+    const batchSets: Array<{ sampleId: string; rawPeaks: string; rawHKL: string }> = [];
+    setsMap.forEach((data, id) => {
+      batchSets.push({
+        sampleId: id,
+        rawPeaks: data.peaks.join(', '),
+        rawHKL: data.hkls.join(', ')
+      });
+    });
+
+    if (batchSets.length > 0 && onBatchCalculate) {
+      onBatchCalculate(batchSets);
+    }
+  };
+
+  const handleBatchImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        processBatchText(text);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   // Real-time parsing of peaks & hkl
   const parsedPeaks = useMemo(() => {
@@ -601,13 +690,31 @@ export const BraggInput: React.FC<BraggInputProps> = ({
         )}
 
         {!isSimulationRunning ? (
-          <button
-            onClick={onCalculate}
-            className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/35 transition-all active:scale-[0.98] border border-indigo-500/50 flex items-center justify-center gap-2 group cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-indigo-200 group-hover:rotate-12 transition-transform" />
-            {t('Calculate')}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={onCalculate}
+              className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/35 transition-all active:scale-[0.98] border border-indigo-500/50 flex items-center justify-center gap-2 group cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-indigo-200 group-hover:rotate-12 transition-transform" />
+              {t('Calculate')}
+            </button>
+            <div className="relative flex-1 sm:flex-none">
+              <input 
+                type="file" 
+                accept=".csv,.txt"
+                onChange={handleBatchImport}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                title={t('Select CSV or TXT file for batch calculation')}
+              />
+              <button
+                type="button"
+                className="w-full sm:w-auto h-full px-5 py-3.5 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-widest rounded-xl transition-all active:scale-[0.98] border border-emerald-500/30 flex items-center justify-center gap-2"
+              >
+                <Database className="w-4 h-4" />
+                {t('Batch Import')}
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="bg-slate-900 p-5 rounded-2xl border border-indigo-500/30 overflow-hidden relative shadow-[inset_0_0_20px_rgba(99,102,241,0.05)]">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-2xl rounded-full" />

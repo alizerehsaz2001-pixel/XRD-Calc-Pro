@@ -14,7 +14,7 @@ import {
   Legend,
   Line
 } from 'recharts';
-import { Activity, Terminal, RotateCcw, Tag, Camera, ArrowLeft, ArrowRight, ZoomIn, ZoomOut, MinusCircle, Maximize, Minimize } from 'lucide-react';
+import { Activity, Terminal, RotateCcw, Tag, Camera, ArrowLeft, ArrowRight, ZoomIn, ZoomOut, MinusCircle, Maximize, Minimize, Layers } from 'lucide-react';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
 import { getActiveMaterials } from '../utils/materialsHelper';
@@ -41,6 +41,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   const [subtractBaseline, setSubtractBaseline] = useState(false);
   const [showObserved, setShowObserved] = useState(true);
   const [showTheoretical, setShowTheoretical] = useState(true);
+  const [showOverlap, setShowOverlap] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   const handleLegendClick = (e: any) => {
@@ -168,21 +169,34 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
     const points = [];
     for (let x = minTheta; x <= maxTheta; x += 0.1) {
       let intensity = 5; // Background noise floor
+      const peakInts: number[] = [];
+
       results.forEach(r => {
         const diff = x - r.twoTheta;
         if (Math.abs(diff) < 1.6) { // 4 * sigma threshold (anything further is mathematically negligible)
           // Gaussian peak simulation using actual intensity if available (defaulting to 100)
           const intensityFactor = r.intensity !== undefined ? r.intensity : 100;
-          const sigma = 0.4;
           const peakInt = (intensityFactor * 0.95) * Math.exp(-Math.pow(diff, 2) / 0.32); // 2 * sigma^2 is 0.32
           intensity += peakInt;
+          if (peakInt > 0.5) {
+            peakInts.push(peakInt);
+          }
         }
       });
       // Add random noise
       intensity += Math.random() * 2;
+      
+      let overlapIntensity = 0;
+      if (peakInts.length > 1) {
+         peakInts.sort((a, b) => b - a);
+         overlapIntensity = peakInts[1] * 2; // visually amplify intersection
+         if (overlapIntensity > intensity) overlapIntensity = intensity;
+      }
+
       points.push({
         twoTheta: x,
         intensity: intensity,
+        overlapIntensity: overlapIntensity,
         isPeak: false
       });
     }
@@ -434,6 +448,17 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             {t('Smooth', 'Smooth')}
           </button>
           <button 
+            onClick={() => setShowOverlap(!showOverlap)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border ${
+              showOverlap 
+                ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border-rose-500/30' 
+                : 'bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 border-slate-700'
+            }`}
+          >
+            <Layers className="w-3 h-3" />
+            {t('Overlap', 'Overlap')}
+          </button>
+          <button 
             onClick={takeSnapshot}
             className="flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30"
           >
@@ -492,6 +517,10 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                   <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
                   <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                </linearGradient>
+               <linearGradient id="overlapGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.6} />
+                  <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.1} />
+               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
             <XAxis 
@@ -523,6 +552,20 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 stroke="#818cf8"
                 strokeWidth={3}
                 fill="url(#profileGradient)"
+                isAnimationActive={!isZoomedIn}
+                animationDuration={2000}
+              />
+            )}
+
+            {showOverlap && (
+              <Area 
+                data={chartData.points}
+                type="monotone"
+                dataKey="overlapIntensity"
+                name={t('Peak Overlap', 'Peak Overlap')}
+                stroke="#f43f5e"
+                strokeWidth={0}
+                fill="url(#overlapGradient)"
                 isAnimationActive={!isZoomedIn}
                 animationDuration={2000}
               />

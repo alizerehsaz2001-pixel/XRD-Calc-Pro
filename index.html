@@ -6,6 +6,58 @@
     <link rel="icon" type="image/svg+xml" href="https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>XRD-Calc Pro | Diffraction Analytics</title>
+    <script>
+      // Safe Storage Polyfills for sandboxed iframes and privacy-focused browsers
+      (function() {
+        function checkStorage(type) {
+          try {
+            const storage = window[type];
+            if (!storage) return false;
+            storage.setItem('__test_storage__', '1');
+            storage.removeItem('__test_storage__');
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        if (!checkStorage('localStorage')) {
+          console.warn("localStorage Access Denied. Polyfilling in-memory fallback.");
+          const memoryStore = {};
+          const mockStorage = {
+            getItem: function(key) { return key in memoryStore ? memoryStore[key] : null; },
+            setItem: function(key, value) { memoryStore[key] = String(value); },
+            removeItem: function(key) { delete memoryStore[key]; },
+            clear: function() { for (const k in memoryStore) delete memoryStore[k]; },
+            key: function(index) { return Object.keys(memoryStore)[index] || null; },
+            get length() { return Object.keys(memoryStore).length; }
+          };
+          Object.defineProperty(window, 'localStorage', {
+            value: mockStorage,
+            writable: true,
+            configurable: true
+          });
+        }
+
+        if (!checkStorage('sessionStorage')) {
+          console.warn("sessionStorage Access Denied. Polyfilling in-memory fallback.");
+          const memoryStore = {};
+          const mockStorage = {
+            getItem: function(key) { return key in memoryStore ? memoryStore[key] : null; },
+            setItem: function(key, value) { memoryStore[key] = String(value); },
+            removeItem: function(key) { delete memoryStore[key]; },
+            clear: function() { for (const k in memoryStore) delete memoryStore[k]; },
+            key: function(index) { return Object.keys(memoryStore)[index] || null; },
+            get length() { return Object.keys(memoryStore).length; }
+          };
+          Object.defineProperty(window, 'sessionStorage', {
+            value: mockStorage,
+            writable: true,
+            configurable: true
+          });
+        }
+      })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {

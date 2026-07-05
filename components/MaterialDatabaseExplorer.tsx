@@ -32,7 +32,8 @@ import {
   RefreshCcw,
   DownloadCloud,
   UploadCloud,
-  Flame
+  Flame,
+  Scale
 } from 'lucide-react';
 import { MATERIAL_DB } from '../utils/materialDB';
 import { calculateThermodynamics, generateTemperatureSweep } from '../utils/thermodynamics';
@@ -218,6 +219,63 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
   const [ragQuery, setRagQuery] = useState('');
   const [isRagSearching, setIsRagSearching] = useState(false);
   const [ragResponse, setRagResponse] = useState<any>(null);
+
+  // Material comparison state
+  const [comparedMaterials, setComparedMaterials] = useState<string[]>([]);
+  const [showComparisonSuite, setShowComparisonSuite] = useState<boolean>(false);
+
+  const handleToggleCompare = (materialName: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation(); // Prevent card selection on compare click
+    }
+    setComparedMaterials(prev => {
+      if (prev.includes(materialName)) {
+        return prev.filter(name => name !== materialName);
+      } else {
+        if (prev.length >= 4) {
+          return prev;
+        }
+        return [...prev, materialName];
+      }
+    });
+  };
+
+  const getShiftedPeaksForMaterial = (m: any, wavelength: number) => {
+    if (!m || !m.pattern) return [];
+    
+    // Parse pattern
+    const lines = m.pattern.split('\n').filter((l: string) => l.trim());
+    const parsed = lines.map((line: string) => {
+      if (line.includes('(broad)')) {
+        const clean = line.replace('(broad)', '').trim();
+        const parts = clean.split(',');
+        return { twoTheta: parseFloat(parts[0]), intensity: parseFloat(parts[1]) || 50 };
+      }
+      const parts = line.split(',');
+      if (parts.length >= 2) {
+        return { twoTheta: parseFloat(parts[0]), intensity: parseFloat(parts[1]) };
+      }
+      return null;
+    }).filter((p: any): p is {twoTheta: number; intensity: number} => p !== null && !isNaN(p.twoTheta) && !isNaN(p.intensity));
+
+    // Shift peaks
+    const defaultLambda = 1.54059;
+    return parsed.map(p => {
+      const thetaRefRad = (p.twoTheta / 2) * (Math.PI / 180);
+      if (thetaRefRad <= 0) return null;
+      const dSpacing = defaultLambda / (2 * Math.sin(thetaRefRad));
+      
+      const sinThetaNew = wavelength / (2 * dSpacing);
+      if (sinThetaNew > 1) return null; // Peak extinguishes
+      const thetaNewRad = Math.asin(sinThetaNew);
+      const twoThetaNew = (thetaNewRad * 180 / Math.PI) * 2;
+      return {
+        twoTheta: twoThetaNew,
+        intensity: p.intensity,
+        dSpacing
+      };
+    }).filter((p: any): p is {twoTheta: number; intensity: number; dSpacing: number} => p !== null);
+  };
 
   const handleRagSearch = async () => {
     if (!ragQuery.trim()) return;
@@ -2101,6 +2159,315 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
         </div>
       </div>
 
+      {/* SIDE-BY-SIDE MATERIAL COMPARISON WORKSPACE */}
+      <AnimatePresence>
+        {comparedMaterials.length > 0 && (
+          <motion.div
+            id="comparison-suite-section"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 15 }}
+            className="p-8 rounded-[3rem] bg-gradient-to-br from-[#0B0F19] to-[#050810] border border-amber-500/20 shadow-2xl relative overflow-hidden"
+          >
+            {/* Ambient lighting effect */}
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-bl from-amber-500/10 to-indigo-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
+
+            <div className="relative z-10 flex flex-col gap-6">
+              <div className="flex justify-between items-center flex-wrap gap-4 border-b border-white/5 pb-5">
+                <div className="flex items-center gap-3.5">
+                  <div className="p-3 bg-amber-500/15 rounded-2xl border border-amber-500/30 shadow-[inset_0_2px_10px_rgba(245,158,11,0.2)]">
+                    <Scale className="w-6 h-6 text-amber-300" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-200 tracking-tight uppercase">
+                      {t('Material Comparison Suite', 'Material Comparison Suite')}
+                    </h2>
+                    <p className="text-[10px] text-amber-400/80 font-mono font-black tracking-widest uppercase mt-1 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+                      {comparedMaterials.length} / 4 {t('Materials Added', 'Materials Added')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowComparisonSuite(!showComparisonSuite)}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer border ${
+                      showComparisonSuite
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.4)] hover:bg-amber-400'
+                        : 'bg-amber-500/10 text-amber-300 border-amber-500/20 hover:bg-amber-500/20 hover:border-amber-500/40'
+                    }`}
+                  >
+                    {showComparisonSuite ? t('Hide Workspace', 'Hide Workspace') : t('Expand Workspace', 'Expand Workspace')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setComparedMaterials([]);
+                      setShowComparisonSuite(false);
+                    }}
+                    className="px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 text-rose-400 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    {t('Clear All', 'Clear All')}
+                  </button>
+                </div>
+              </div>
+
+              {showComparisonSuite ? (
+                <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
+                  {/* Grid of properties */}
+                  <div className="overflow-x-auto rounded-3xl border border-white/5 bg-black/40">
+                    <table className="w-full text-left border-collapse text-xs font-mono min-w-[800px]">
+                      <thead>
+                        <tr className="border-b border-white/10 bg-amber-500/5 text-amber-300 select-none">
+                          <th className="py-4 px-6 font-black uppercase tracking-wider text-[10px] w-1/5">{t('Property', 'Property')}</th>
+                          {comparedMaterials.map((name, idx) => {
+                            const mat = materials.find(m => m.name === name);
+                            const textColors = ['text-cyan-400', 'text-amber-400', 'text-emerald-400', 'text-rose-400'];
+                            return (
+                              <th key={name} className="py-4 px-6 font-black uppercase tracking-wider text-[10px] text-center">
+                                <div className="flex flex-col items-center gap-1.5">
+                                  <span className={`text-[8px] uppercase tracking-widest px-2 py-0.5 rounded ${idx === 0 ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : idx === 1 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : idx === 2 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
+                                    {t('Material', 'Material')} #{idx + 1}
+                                  </span>
+                                  <span className={`text-xs font-bold font-sans max-w-[150px] truncate ${textColors[idx]}`} title={mat?.name || name}>
+                                    {mat?.name || name}
+                                  </span>
+                                </div>
+                              </th>
+                            );
+                          })}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 text-slate-300">
+                        {/* Chemical Formula */}
+                        <tr className="hover:bg-white/5 transition-colors">
+                          <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Chemical Formula', 'Chemical Formula')}</td>
+                          {comparedMaterials.map((name) => {
+                            const mat = materials.find(m => m.name === name);
+                            return (
+                              <td key={name} className="py-4 px-6 text-center font-bold text-white text-sm">
+                                {mat?.formula || '-'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* Crystal System */}
+                        <tr className="hover:bg-white/5 transition-colors">
+                          <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Crystal System', 'Crystal System')}</td>
+                          {comparedMaterials.map((name) => {
+                            const mat = materials.find(m => m.name === name);
+                            return (
+                              <td key={name} className="py-4 px-6 text-center font-bold text-slate-200">
+                                {mat?.crystalSystem || '-'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* Space Group */}
+                        <tr className="hover:bg-white/5 transition-colors">
+                          <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Space Group', 'Space Group')}</td>
+                          {comparedMaterials.map((name) => {
+                            const mat = materials.find(m => m.name === name);
+                            return (
+                              <td key={name} className="py-4 px-6 text-center font-bold text-indigo-400">
+                                {mat?.spaceGroup || '-'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* Density */}
+                        <tr className="hover:bg-white/5 transition-colors">
+                          <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Density', 'Density')}</td>
+                          {comparedMaterials.map((name) => {
+                            const mat = materials.find(m => m.name === name);
+                            return (
+                              <td key={name} className="py-4 px-6 text-center font-bold text-emerald-400">
+                                {mat?.density ? `${mat.density.toFixed(2)} g/cm³` : '-'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* Elastic Modulus */}
+                        <tr className="hover:bg-white/5 transition-colors">
+                          <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Elastic Modulus', 'Elastic Modulus')}</td>
+                          {comparedMaterials.map((name) => {
+                            const mat = materials.find(m => m.name === name);
+                            return (
+                              <td key={name} className="py-4 px-6 text-center font-bold text-amber-400">
+                                {mat?.elasticModulus ? `${mat.elasticModulus} GPa` : '-'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* Molecular Weight */}
+                        <tr className="hover:bg-white/5 transition-colors">
+                          <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Molecular Weight', 'Molecular Weight')}</td>
+                          {comparedMaterials.map((name) => {
+                            const mat = materials.find(m => m.name === name);
+                            return (
+                              <td key={name} className="py-4 px-6 text-center font-bold text-slate-300">
+                                {mat?.molecularWeight ? `${mat.molecularWeight.toFixed(2)} g/mol` : '-'}
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* Lattice Parameters */}
+                        <tr className="hover:bg-white/5 transition-colors">
+                          <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Lattice Dimensions', 'Lattice Dimensions')}</td>
+                          {comparedMaterials.map((name) => {
+                            const mat = materials.find(m => m.name === name);
+                            const lp = mat?.latticeParams;
+                            return (
+                              <td key={name} className="py-4 px-6 text-center text-[11px] leading-relaxed">
+                                {lp ? (
+                                  <div>
+                                    <div className="font-extrabold text-slate-200">
+                                      a={lp.a} b={lp.b} c={lp.c} Å
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 font-bold">
+                                      α={lp.alpha}° β={lp.beta}° γ={lp.gamma}°
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-600">Simulated / Standard</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* Applications */}
+                        <tr className="hover:bg-white/5 transition-colors">
+                          <td className="py-4 px-6 font-bold text-slate-400 uppercase tracking-widest text-[9px]">{t('Applications', 'Applications')}</td>
+                          {comparedMaterials.map((name) => {
+                            const mat = materials.find(m => m.name === name);
+                            return (
+                              <td key={name} className="py-4 px-6 text-center">
+                                <div className="flex flex-wrap justify-center gap-1 max-w-[200px] mx-auto">
+                                  {mat?.applications?.slice(0, 3).map((app: string) => (
+                                    <span key={app} className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-800 text-slate-400 border border-slate-700/50">
+                                      {app}
+                                    </span>
+                                  ))}
+                                  {(!mat?.applications || mat.applications.length === 0) && <span className="text-slate-600">-</span>}
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Combined Overlapping Diffractogram Plot */}
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="text-xs font-black uppercase text-slate-200 tracking-wider">
+                          {t('Comparative Diffractogram Overlay', 'Comparative Diffractogram Overlay')}
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-mono font-bold mt-1">
+                          {t('Overlapping continuous intensity patterns plotted at diffractometer wavelength (Cu-Kα = 1.5406 Å) with', 'Overlapping continuous intensity patterns plotted at diffractometer wavelength (Cu-Kα = 1.5406 Å) with')} FWHM = {xrdWavelength ? `${xrdWavelength.toFixed(4)} Å` : "1.5406 Å"} | FWHM: {xrdFwhm.toFixed(2)}° 2θ
+                        </p>
+                      </div>
+                      <div className="flex gap-4 items-center font-mono text-[9px] font-bold">
+                        {comparedMaterials.map((name, idx) => {
+                          const colors = ['bg-cyan-400', 'bg-amber-400', 'bg-emerald-400', 'bg-rose-400'];
+                          const textColors = ['text-cyan-300', 'text-amber-300', 'text-emerald-300', 'text-rose-300'];
+                          const mat = materials.find(m => m.name === name);
+                          return (
+                            <div key={name} className="flex items-center gap-2">
+                              <span className={`w-2.5 h-2.5 rounded-full ${colors[idx]}`} />
+                              <span className={textColors[idx]}>{mat?.formula || mat?.name || name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="relative h-60 w-full bg-[#030712] rounded-[2rem] border border-slate-900 overflow-hidden shadow-inner">
+                      {/* Grid markers */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none text-slate-900">
+                        <line x1="0%" y1="20%" x2="100%" y2="20%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                        <line x1="0%" y1="50%" x2="100%" y2="50%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                        <line x1="0%" y1="80%" x2="100%" y2="80%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                        <line x1="25%" y1="0" x2="25%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                        <line x1="50%" y1="0" x2="50%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                        <line x1="75%" y1="0" x2="75%" y2="100%" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 3" />
+                      </svg>
+
+                      {/* Overlapping diffraction patterns */}
+                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 180" preserveAspectRatio="none">
+                        {comparedMaterials.map((name, idx) => {
+                          const mat = materials.find(m => m.name === name);
+                          if (!mat) return null;
+                          const matShiftedPeaks = getShiftedPeaksForMaterial(mat, xrdWavelength);
+                          const strokeColors = ['#22d3ee', '#fbbf24', '#34d399', '#f43f5e'];
+                          const stroke = strokeColors[idx] || '#cbd5e1';
+
+                          // Compute path
+                          const steps = 240;
+                          const min2Theta = 10;
+                          const max2Theta = 90;
+                          const sigma = xrdFwhm / 2.35482;
+                          let path = "";
+                          for (let i = 0; i <= steps; i++) {
+                            const twoTheta = min2Theta + (i / steps) * (max2Theta - min2Theta);
+                            let intensity = 0;
+                            matShiftedPeaks.forEach(p => {
+                              const diff = twoTheta - p.twoTheta;
+                              intensity += p.intensity * Math.exp(-(diff * diff) / (2 * sigma * sigma));
+                            });
+                            const baseline = 2 * Math.exp(-twoTheta / 35);
+                            const pseudoNoise = (Math.sin(twoTheta * 5) * 0.1 + Math.sin(twoTheta * 17) * 0.05);
+                            const finalVal = Math.min(100, Math.max(0, intensity + baseline + pseudoNoise + 1));
+                            const x = (i / steps) * 100;
+                            const y = 180 - (finalVal / 100) * 145;
+                            path += (i === 0 ? "M " : "L ") + `${x.toFixed(1)},${y.toFixed(1)} `;
+                          }
+                          return (
+                            <path
+                              key={name}
+                              d={path}
+                              fill="none"
+                              stroke={stroke}
+                              strokeWidth="2.5"
+                              strokeOpacity="0.85"
+                            />
+                          );
+                        })}
+                      </svg>
+
+                      {/* X-axis labels inside SVG */}
+                      <div className="absolute bottom-2 left-6 right-6 flex justify-between font-mono text-[8px] text-slate-500 font-extrabold select-none">
+                        <span>10° 2θ</span>
+                        <span>30°</span>
+                        <span>50°</span>
+                        <span>70°</span>
+                        <span>90° 2θ</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-4 bg-amber-500/5 rounded-2xl border border-amber-500/15">
+                  <div className="flex items-center gap-3 font-mono text-xs text-amber-300 font-bold">
+                    <Info className="w-4 h-4 text-amber-400" />
+                    <span>{t('Click "Expand Workspace" to view fully configured side-by-side materials parameters and overlapped spectra.', 'Click "Expand Workspace" to view fully configured side-by-side materials parameters and overlapped spectra.')}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 3. SEARCH, FILTERS & MATERIAL LIST SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -3097,10 +3464,22 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                             {material.name}
                           </span>
                         </div>
-                        <div className="text-right flex flex-col items-end shrink-0">
+                        <div className="text-right flex flex-col items-end gap-2 shrink-0">
                           <span className="text-[11px] text-cyan-300 font-bold bg-black/60 px-2.5 py-1.5 rounded-xl border border-white/10 shadow-inner group-hover:border-cyan-500/30 transition-colors">
                             {material.formula}
                           </span>
+                          <button
+                            onClick={(e) => handleToggleCompare(material.name, e)}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer ${
+                              comparedMaterials.includes(material.name)
+                                ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                                : 'bg-black/60 text-slate-400 hover:text-white border border-white/5 hover:border-slate-600/40'
+                            }`}
+                            title={comparedMaterials.includes(material.name) ? t("Remove from comparison", "Remove from comparison") : t("Add to side-by-side comparison", "Add to side-by-side comparison")}
+                          >
+                            <Scale className="w-3 h-3" />
+                            <span>{comparedMaterials.includes(material.name) ? t('Compared', 'Compared') : t('Compare', 'Compare')}</span>
+                          </button>
                         </div>
                       </div>
 
@@ -3147,7 +3526,8 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                     <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px]">Lattice System</th>
                     <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-right">Density (g/cm³)</th>
                     <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-right">Modulus (GPa)</th>
-                    <th className="py-4 px-6 font-black uppercase tracking-[0.2em] text-[9px] text-center">XRD Peaks</th>
+                    <th className="py-4 px-4 font-black uppercase tracking-[0.2em] text-[9px] text-center">XRD Peaks</th>
+                    <th className="py-4 px-6 font-black uppercase tracking-[0.2em] text-[9px] text-center">Compare</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -3182,8 +3562,21 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                         <td className="py-4 px-4 text-right font-mono text-amber-400 font-bold text-xs">
                           {material.elasticModulus || '-'}
                         </td>
-                        <td className="py-4 px-6 text-center font-mono font-black text-indigo-400 text-xs">
+                        <td className="py-4 px-4 text-center font-mono font-black text-indigo-400 text-xs">
                           {countOfPeaks}
+                        </td>
+                        <td className="py-4 px-6 text-center" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => handleToggleCompare(material.name, e)}
+                            className={`p-2 rounded-xl transition-all duration-300 cursor-pointer inline-flex items-center justify-center ${
+                              comparedMaterials.includes(material.name)
+                                ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                                : 'bg-black/60 text-slate-400 hover:text-white border border-white/5 hover:border-slate-600/40'
+                            }`}
+                            title={comparedMaterials.includes(material.name) ? t("Remove from comparison", "Remove from comparison") : t("Add to side-by-side comparison", "Add to side-by-side comparison")}
+                          >
+                            <Scale className="w-4 h-4" />
+                          </button>
                         </td>
                       </tr>
                     );
@@ -4282,6 +4675,56 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
         </div>
 
       </div>
+
+      {/* FLOATING COMPARISON ACTION TRAY */}
+      <AnimatePresence>
+        {comparedMaterials.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 50, x: "-50%" }}
+            className="fixed bottom-6 left-1/2 z-50 bg-[#060B13]/95 backdrop-blur-xl border border-amber-500/30 px-6 py-4 rounded-full shadow-[0_10px_35px_rgba(245,158,11,0.25),inset_0_2px_15px_rgba(255,255,255,0.05)] flex items-center justify-between gap-6 max-w-md md:max-w-xl w-[92%] transition-all duration-300"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-amber-500/15 rounded-xl border border-amber-500/30 shadow-inner">
+                <Scale className="w-5 h-5 text-amber-300" />
+              </div>
+              <div className="font-mono">
+                <div className="text-slate-200 text-[11px] font-extrabold uppercase tracking-wider">{t('Comparison Tray', 'Comparison Tray')}</div>
+                <div className="text-amber-400 font-bold text-[10px] mt-0.5">{comparedMaterials.length} / 4 {t('Materials Chosen', 'Materials Chosen')}</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setShowComparisonSuite(true);
+                  // Smoothly scroll to the comparison section
+                  const compElement = document.getElementById('comparison-suite-section');
+                  if (compElement) {
+                    compElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else {
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                  }
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-full font-bold uppercase tracking-wider text-[10px] shadow-[0_2px_10px_rgba(245,158,11,0.3)] hover:shadow-[0_2px_15px_rgba(245,158,11,0.5)] transition-all cursor-pointer"
+              >
+                {t('Compare Side-by-Side', 'Compare Side-by-Side')}
+              </button>
+              <button
+                onClick={() => {
+                  setComparedMaterials([]);
+                  setShowComparisonSuite(false);
+                }}
+                className="p-2 bg-white/5 hover:bg-rose-500/15 border border-white/5 hover:border-rose-500/20 text-slate-400 hover:text-rose-400 rounded-full transition-all cursor-pointer"
+                title={t('Clear List', 'Clear List')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
