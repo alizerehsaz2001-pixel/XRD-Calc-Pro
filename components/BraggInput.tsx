@@ -132,6 +132,110 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [batchPasteText, setBatchPasteText] = useState('');
 
+  // Real-time parsing of peaks & hkl
+  const parsedPeaks = useMemo(() => {
+    if (!rawPeaks.trim()) return [];
+    return rawPeaks
+      .split(/[\s,;]+/)
+      .map(s => s.trim())
+      .filter(s => s !== '')
+      .map(s => parseFloat(s))
+      .filter(n => !isNaN(n));
+  }, [rawPeaks]);
+
+  const parsedHKLs = useMemo(() => {
+    if (!rawHKL.trim()) return [];
+    return rawHKL
+      .split(/[\s,;]+/)
+      .map(s => s.trim())
+      .filter(s => s !== '');
+  }, [rawHKL]);
+
+  const hasMismatch = parsedPeaks.length > 0 && parsedHKLs.length > 0 && parsedPeaks.length !== parsedHKLs.length;
+
+  // Automated Peak Alignment States
+  const [showAutoAlignModal, setShowAutoAlignModal] = useState(false);
+  const [alignmentStandardId, setAlignmentStandardId] = useState('silicon');
+  const [alignmentTolerance, setAlignmentTolerance] = useState(1.0);
+  const [excludedMatchIndices, setExcludedMatchIndices] = useState<number[]>([]);
+
+  const getPresetPeaks = (id: string) => {
+    const preset = CALIBRATION_PRESETS.find(p => p.id === id);
+    if (!preset || !preset.peaks) return [];
+    return preset.peaks.split(',').map(p => parseFloat(p.trim())).filter(n => !isNaN(n));
+  };
+
+  const getPresetHKLs = (id: string) => {
+    const preset = CALIBRATION_PRESETS.find(p => p.id === id);
+    if (!preset || !preset.hkls) return [];
+    return preset.hkls.split(',').map(h => h.trim());
+  };
+
+  // Reset excluded matches when standard or experimental peaks change
+  useEffect(() => {
+    setExcludedMatchIndices([]);
+  }, [alignmentStandardId, rawPeaks]);
+
+  const alignmentData = useMemo(() => {
+    const theoreticalPeaks = getPresetPeaks(alignmentStandardId);
+    const theoreticalHKLs = getPresetHKLs(alignmentStandardId);
+    
+    const matches = parsedPeaks.map((expVal, expIdx) => {
+      if (theoreticalPeaks.length === 0) {
+        return { expVal, expIdx, matched: false as const, bestTheoretical: null, diff: 0, hkl: null };
+      }
+      
+      let bestTheoretical = theoreticalPeaks[0];
+      let bestIdx = 0;
+      let minDiff = Math.abs(expVal - bestTheoretical);
+      
+      for (let i = 1; i < theoreticalPeaks.length; i++) {
+        const d = Math.abs(expVal - theoreticalPeaks[i]);
+        if (d < minDiff) {
+          minDiff = d;
+          bestTheoretical = theoreticalPeaks[i];
+          bestIdx = i;
+        }
+      }
+      
+      const diff = expVal - bestTheoretical;
+      const matched = minDiff <= alignmentTolerance;
+      const hkl = theoreticalHKLs[bestIdx] || null;
+      
+      return {
+        expVal,
+        expIdx,
+        matched,
+        bestTheoretical,
+        diff,
+        hkl
+      };
+    });
+    
+    // Matched peaks that are NOT excluded
+    const activeMatches = matches.filter(m => m.matched && !excludedMatchIndices.includes(m.expIdx));
+    
+    let calculatedShift = 0;
+    let standardDeviation = 0;
+    
+    if (activeMatches.length > 0) {
+      const sum = activeMatches.reduce((acc, m) => acc + m.diff, 0);
+      calculatedShift = sum / activeMatches.length;
+      
+      // Calculate standard deviation of differences to see consistency
+      const variance = activeMatches.reduce((acc, m) => acc + Math.pow(m.diff - calculatedShift, 2), 0) / activeMatches.length;
+      standardDeviation = Math.sqrt(variance);
+    }
+    
+    return {
+      matches,
+      calculatedShift,
+      standardDeviation,
+      activeMatchesCount: activeMatches.length,
+      totalMatchesCount: matches.filter(m => m.matched).length
+    };
+  }, [parsedPeaks, alignmentStandardId, alignmentTolerance, excludedMatchIndices]);
+
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -234,27 +338,6 @@ export const BraggInput: React.FC<BraggInputProps> = ({
     reader.readAsText(file);
     e.target.value = '';
   };
-
-  // Real-time parsing of peaks & hkl
-  const parsedPeaks = useMemo(() => {
-    if (!rawPeaks.trim()) return [];
-    return rawPeaks
-      .split(/[\s,;]+/)
-      .map(s => s.trim())
-      .filter(s => s !== '')
-      .map(s => parseFloat(s))
-      .filter(n => !isNaN(n));
-  }, [rawPeaks]);
-
-  const parsedHKLs = useMemo(() => {
-    if (!rawHKL.trim()) return [];
-    return rawHKL
-      .split(/[\s,;]+/)
-      .map(s => s.trim())
-      .filter(s => s !== '');
-  }, [rawHKL]);
-
-  const hasMismatch = parsedPeaks.length > 0 && parsedHKLs.length > 0 && parsedPeaks.length !== parsedHKLs.length;
 
   return (
     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 transition-colors">
@@ -590,8 +673,24 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                       <span className="text-xs font-mono font-black text-indigo-500">{zeroShift > 0 ? `+${zeroShift.toFixed(3)}` : zeroShift.toFixed(3)}°</span>
                       <button 
                         type="button" 
+                        onClick={() => {
+                          // Try to pre-select current reference standard if it's not custom
+                          const presetSelect = document.querySelector('select');
+                          if (presetSelect && presetSelect.value !== 'custom') {
+                            setAlignmentStandardId(presetSelect.value);
+                          }
+                          setShowAutoAlignModal(true);
+                        }}
+                        className="text-[9px] uppercase tracking-wider text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 px-1.5 py-0.5 bg-indigo-500/10 dark:bg-indigo-500/20 rounded font-bold flex items-center gap-1 cursor-pointer border border-indigo-500/10 hover:border-indigo-500/30 transition-all"
+                        title="Calculate optimal zero-shift from reference standard"
+                      >
+                        <Sparkles className="w-2.5 h-2.5" />
+                        Auto Align
+                      </button>
+                      <button 
+                        type="button" 
                         onClick={() => setZeroShift(0.0)}
-                        className="text-[9px] uppercase tracking-wider text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1 bg-slate-100 dark:bg-slate-800 rounded"
+                        className="text-[9px] uppercase tracking-wider text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 px-1 bg-slate-100 dark:bg-slate-800 rounded cursor-pointer"
                       >
                         Reset
                       </button>
@@ -750,6 +849,284 @@ export const BraggInput: React.FC<BraggInputProps> = ({
           </div>
         )}
       </div>
+
+      {/* AUTOMATED PEAK ALIGNMENT OPTIMIZER MODAL */}
+      <AnimatePresence>
+        {showAutoAlignModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/10 text-indigo-500 rounded-xl">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">
+                      Peak Alignment Optimizer
+                    </h3>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Calibrate the goniometer zero-shift systematic offset using standard reference materials
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setShowAutoAlignModal(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-150 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto custom-scrollbar flex-1 grid grid-cols-1 md:grid-cols-12 gap-6">
+                {/* Left Column: Calibration Parameters */}
+                <div className="md:col-span-5 space-y-5">
+                  <div className="space-y-4">
+                    {/* Select Standard */}
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                        <Database className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                        Reference Standard Material
+                      </label>
+                      <select
+                        value={alignmentStandardId}
+                        onChange={(e) => setAlignmentStandardId(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold text-xs cursor-pointer"
+                      >
+                        {CALIBRATION_PRESETS.filter(p => p.id !== 'custom').map((p) => (
+                          <option key={p.id} value={p.id} className="font-bold text-xs">
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Tolerance Threshold */}
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400">
+                          Matching Tolerance (±°2θ)
+                        </label>
+                        <span className="text-xs font-mono font-black text-indigo-500">{alignmentTolerance.toFixed(1)}°</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.2"
+                        max="3.0"
+                        step="0.1"
+                        value={alignmentTolerance}
+                        onChange={(e) => setAlignmentTolerance(parseFloat(e.target.value))}
+                        className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                      />
+                      <p className="text-[9px] text-slate-400 dark:text-slate-500 leading-normal mt-1">
+                        Only experimental peaks within this window will map to standard theoretical positions.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Summary & Best-Fit Calculation Card */}
+                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800/60 space-y-4">
+                    <span className="block text-[10px] uppercase tracking-widest font-black text-slate-400 dark:text-slate-500">
+                      Optimization Result
+                    </span>
+                    
+                    <div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">Optimal Zero-Shift Correction (Δ2θ)</div>
+                      <div className="text-3xl font-mono font-black text-indigo-600 dark:text-indigo-400 tracking-tight mt-1">
+                        {alignmentData.calculatedShift > 0 ? `+${alignmentData.calculatedShift.toFixed(4)}` : alignmentData.calculatedShift.toFixed(4)}°
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-200 dark:border-slate-800/80">
+                      <div>
+                        <div className="text-[9px] uppercase tracking-wider text-slate-400">Peaks Matched</div>
+                        <div className="text-sm font-black font-mono text-slate-700 dark:text-slate-300">
+                          {alignmentData.activeMatchesCount} / {parsedPeaks.length}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] uppercase tracking-wider text-slate-400">Std Deviation (Scatter)</div>
+                        <div className="text-sm font-black font-mono text-slate-700 dark:text-slate-300">
+                          {alignmentData.activeMatchesCount > 0 ? `±${alignmentData.standardDeviation.toFixed(4)}°` : 'N/A'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <div className="text-[9px] uppercase tracking-wider text-slate-400 mb-1">Consistency Rating</div>
+                      {alignmentData.activeMatchesCount === 0 ? (
+                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/10">
+                          No Matches
+                        </span>
+                      ) : alignmentData.standardDeviation < 0.02 ? (
+                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/20">
+                          Excellent Calibration (±{alignmentData.standardDeviation.toFixed(3)}°)
+                        </span>
+                      ) : alignmentData.standardDeviation < 0.10 ? (
+                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/15 text-indigo-500 border border-indigo-500/20">
+                          Good Calibration
+                        </span>
+                      ) : alignmentData.standardDeviation < 0.25 ? (
+                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 border border-amber-500/20">
+                          Moderate Calibration Scatter
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/15 text-rose-500 border border-rose-500/20">
+                          High Peak Scatter (Verify Phases)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Matched Peaks list with toggle switches */}
+                <div className="md:col-span-7 flex flex-col h-full min-h-[300px]">
+                  <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-2.5 flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                    Diffraction Peak Correspondence Matrix
+                  </label>
+
+                  {parsedPeaks.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-8 text-center bg-slate-50/50 dark:bg-slate-950/20">
+                      <AlertTriangle className="w-8 h-8 text-amber-500 opacity-60 mb-2" />
+                      <div className="text-xs font-bold text-slate-600 dark:text-slate-400">No Experimental Peaks Parsed</div>
+                      <p className="text-[10px] text-slate-400 max-w-xs mt-1 leading-normal">
+                        Please close this optimizer, enter experimental peak angles in the 2-Theta textarea above, and reopen the alignment tool.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex-1 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-slate-50/50 dark:bg-slate-950/20 flex flex-col">
+                      <div className="grid grid-cols-12 px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900/60 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                        <div className="col-span-1">Use</div>
+                        <div className="col-span-3 text-left">Observed (2θ)</div>
+                        <div className="col-span-4 text-left">Reference (2θ)</div>
+                        <div className="col-span-4 text-right">Error (Δ2θ)</div>
+                      </div>
+
+                      <div className="divide-y divide-slate-100 dark:divide-slate-850 overflow-y-auto max-h-[340px] custom-scrollbar flex-1">
+                        {alignmentData.matches.map((match) => (
+                          <div 
+                            key={match.expIdx} 
+                            className={`grid grid-cols-12 items-center px-4 py-3 text-xs transition-colors ${
+                              !match.matched 
+                                ? 'bg-rose-500/[0.02] text-slate-400' 
+                                : excludedMatchIndices.includes(match.expIdx)
+                                  ? 'bg-slate-100/40 dark:bg-slate-900/10 text-slate-400 line-through'
+                                  : 'bg-white dark:bg-slate-900/20 text-slate-800 dark:text-slate-200'
+                            }`}
+                          >
+                            {/* Checkbox / Include */}
+                            <div className="col-span-1 flex items-center">
+                              <input 
+                                type="checkbox"
+                                disabled={!match.matched}
+                                checked={match.matched && !excludedMatchIndices.includes(match.expIdx)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setExcludedMatchIndices(excludedMatchIndices.filter(i => i !== match.expIdx));
+                                  } else {
+                                    setExcludedMatchIndices([...excludedMatchIndices, match.expIdx]);
+                                  }
+                                }}
+                                className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-800 text-indigo-600 focus:ring-indigo-500 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                              />
+                            </div>
+
+                            {/* Observed/Experimental */}
+                            <div className="col-span-3 font-mono font-bold">
+                              {match.expVal.toFixed(3)}°
+                            </div>
+
+                            {/* Reference Theoretical */}
+                            <div className="col-span-4 flex flex-col">
+                              {match.matched && match.bestTheoretical !== null ? (
+                                <>
+                                  <span className="font-mono font-black text-indigo-600 dark:text-indigo-400">
+                                    {match.bestTheoretical.toFixed(3)}°
+                                  </span>
+                                  {match.hkl && (
+                                    <span className="text-[9px] text-slate-400 dark:text-slate-500 font-sans">
+                                      Plane: ({match.hkl})
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-[10px] text-rose-500/80 italic font-semibold flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3 text-rose-500" /> No Match
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Offset/Difference */}
+                            <div className="col-span-4 text-right">
+                              {match.matched ? (
+                                <span className={`inline-block font-mono font-black text-[11px] px-2 py-0.5 rounded ${
+                                  excludedMatchIndices.includes(match.expIdx)
+                                    ? 'bg-slate-100 text-slate-400 dark:bg-slate-850'
+                                    : match.diff > 0
+                                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                  {match.diff > 0 ? `+${match.diff.toFixed(3)}°` : `${match.diff.toFixed(3)}°`}
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-semibold text-rose-500/60 uppercase tracking-wider">
+                                  Out of Tol
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 max-w-md">
+                  <span className="font-bold uppercase text-[9px] tracking-widest text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded shrink-0">Physics Tip</span>
+                  <span>
+                    Zero-shift correction modifies observed 2θ sequentially. Corrected positions propagate directly to lattice constant calculations.
+                  </span>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAutoAlignModal(false)}
+                    className="px-4 py-2 text-xs font-bold uppercase tracking-wider border border-slate-200 hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={alignmentData.activeMatchesCount === 0}
+                    onClick={() => {
+                      if (setZeroShift) {
+                        setZeroShift(Number(alignmentData.calculatedShift.toFixed(4)));
+                      }
+                      setShowAutoAlignModal(false);
+                    }}
+                    className="px-5 py-2 text-xs font-black uppercase tracking-widest bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl shadow-md hover:shadow-indigo-500/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    Apply Correction ({alignmentData.calculatedShift > 0 ? `+${alignmentData.calculatedShift.toFixed(3)}` : alignmentData.calculatedShift.toFixed(3)}°)
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -18,7 +18,7 @@ root.render(
 
 // Register Service Worker only in production to avoid stale developer caching
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-  if (import.meta.env.PROD) {
+  if ((import.meta as any).env?.PROD) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')
         .then((reg) => console.log('Service Worker active!', reg.scope))
