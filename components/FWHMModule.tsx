@@ -69,6 +69,7 @@ export const FWHMModule: React.FC = () => {
   const crossCenterRef = useRef<HTMLDivElement>(null);
   const crosshairContainerRef = useRef<HTMLDivElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const rectRef = useRef<DOMRect | null>(null);
 
   useEffect(() => {
     const range: [number, number] = [center - fwhm * 4, center + fwhm * 4];
@@ -79,12 +80,19 @@ export const FWHMModule: React.FC = () => {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!chartContainerRef.current) return;
-    const rect = chartContainerRef.current.getBoundingClientRect();
+    if (!rectRef.current) {
+      rectRef.current = chartContainerRef.current.getBoundingClientRect();
+    }
+    const rect = rectRef.current;
     if (crosshairContainerRef.current) crosshairContainerRef.current.style.opacity = '0.9';
-    if (crossXRef.current) crossXRef.current.style.transform = `translate3d(${e.clientX - rect.left}px, 0, 0)`;
-    if (crossYRef.current) crossYRef.current.style.transform = `translate3d(0, ${e.clientY - rect.top}px, 0)`;
-    if (crossTargetRef.current) crossTargetRef.current.style.transform = `translate3d(${e.clientX - rect.left - 10}px, ${e.clientY - rect.top - 10}px, 0)`;
-    if (crossCenterRef.current) crossCenterRef.current.style.transform = `translate3d(${e.clientX - rect.left - 2.5}px, ${e.clientY - rect.top - 2.5}px, 0)`;
+    
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (crossXRef.current) crossXRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
+    if (crossYRef.current) crossYRef.current.style.transform = `translate3d(0, ${y}px, 0)`;
+    if (crossTargetRef.current) crossTargetRef.current.style.transform = `translate3d(${x - 10}px, ${y - 10}px, 0)`;
+    if (crossCenterRef.current) crossCenterRef.current.style.transform = `translate3d(${x - 2.5}px, ${y - 2.5}px, 0)`;
   };
 
   const analyzeProfile = () => {
@@ -499,7 +507,7 @@ export const FWHMModule: React.FC = () => {
           className="bg-[#050B14] p-1 lg:p-1.5 rounded-[2rem] border border-white/5 min-h-[600px] lg:min-h-[800px] h-[70vh] lg:h-[85vh] flex flex-col relative overflow-hidden cursor-none group/visualizer shadow-[0_0_40px_rgba(99,102,241,0.1)]"
           ref={chartContainerRef}
           onMouseMove={handleMouseMove}
-          onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => { setIsHovered(false); if (crosshairContainerRef.current) crosshairContainerRef.current.style.opacity = '0'; }}
+          onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => { setIsHovered(false); rectRef.current = null; if (crosshairContainerRef.current) crosshairContainerRef.current.style.opacity = '0'; }}
         >
            {/* Inner container with glossy background */}
            <div className="bg-[#0B0F19]/90 backdrop-blur-3xl w-full h-full rounded-[1.75rem] border border-white/5 relative overflow-hidden flex flex-col p-5 lg:p-6 group/inner shadow-[inset_0_0_80px_rgba(0,0,0,0.8)]">
@@ -717,7 +725,7 @@ export const FWHMModule: React.FC = () => {
                       fillOpacity={1} 
                       fill={isHovered ? "url(#colorYHover)" : "url(#colorY)"} 
                       isAnimationActive={false}
-                      activeDot={{r: 6, fill: '#2dd4bf', stroke: '#0f766e', strokeWidth: 2}}
+                      activeDot={false}
                       className="transition-all duration-300"
                    />
                  </ComposedChart>
