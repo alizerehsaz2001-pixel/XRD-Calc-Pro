@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ScherrerInput, ScherrerResult } from '../types';
 import { parseScherrerInput, calculateScherrer, XRAY_WAVELENGTHS } from '../utils/physics';
-import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download, BarChart2 } from 'lucide-react';
+import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download, BarChart2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from './SettingsContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { MorphologyVisualizer } from './MorphologyVisualizer';
 import { ScientificMathControl } from './ScientificMathControl';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -84,6 +86,18 @@ export const ScherrerModule: React.FC = () => {
     } catch (e) {}
     return [];
   });
+  const [averageType, setAverageType] = useState<'weighted' | 'arithmetic'>(() => {
+    try {
+      const saved = localStorage.getItem('xrd_scherrer_current');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.averageType === 'weighted' || parsed.averageType === 'arithmetic')) {
+          return parsed.averageType;
+        }
+      }
+    } catch (e) {}
+    return 'weighted';
+  });
   const [avgSize, setAvgSize] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('xrd_scherrer_current');
@@ -98,6 +112,58 @@ export const ScherrerModule: React.FC = () => {
   
   const [isSimulationRunning, setIsSimulationRunning] = useState(false);
   const [simulationStep, setSimulationStep] = useState(0);
+  const [isDerivationModalOpen, setIsDerivationModalOpen] = useState(false);
+
+  // Pre-render mathematical formulas to avoid recalculating on each render
+  const formulas = useMemo(() => {
+    const render = (tex: string, display: boolean = false) => {
+      try {
+        return katex.renderToString(tex, { throwOnError: false, displayMode: display });
+      } catch (e) {
+        return tex;
+      }
+    };
+    return {
+      braggLaw: render("2d \\sin\\theta_0 = m\\lambda", true),
+      braggLawOrder1: render("2d \\sin\\theta_0 = \\lambda", true),
+      finiteSize1: render("2Nd \\sin\\theta_1 = (N + 1)\\lambda", true),
+      finiteSize2: render("2Nd \\sin\\theta_2 = (N - 1)\\lambda", true),
+      subtraction: render("2Nd(\\sin\\theta_1 - \\sin\\theta_2) = 2\\lambda", true),
+      reducedSub: render("Nd(\\sin\\theta_1 - \\sin\\theta_2) = \\lambda", true),
+      trigIdentity: render("\\sin\\theta_1 - \\sin\\theta_2 = 2 \\cos\\left(\\frac{\\theta_1 + \\theta_2}{2}\\right) \\sin\\left(\\frac{\\theta_1 - \\theta_2}{2}\\right)", true),
+      trigSub: render("\\theta_1 + \\theta_2 = 2\\theta_0 \\quad \\text{and} \\quad \\theta_1 - \\theta_2 = 2\\Delta\\theta", true),
+      trigResult: render("\\sin\\theta_1 - \\sin\\theta_2 = 2 \\cos\\theta_0 \\sin(\\Delta\\theta)", true),
+      approx: render("\\sin(\\Delta\\theta) \\approx \\Delta\\theta", true),
+      combinedtrig: render("\\sin\\theta_1 - \\sin\\theta_2 \\approx 2 \\Delta\\theta \\cos\\theta_0", true),
+      finalSubstitution: render("Nd(2 \\Delta\\theta \\cos\\theta_0) = \\lambda", true),
+      rearranged: render("(Nd)(2 \\Delta\\theta) \\cos\\theta_0 = \\lambda", true),
+      fwhmDefinition: render("\\beta \\approx 2 \\Delta\\theta", true),
+      crystalliteThickness: render("D = N d", true),
+      noShapeFactor: render("D \\cdot \\beta \\cdot \\cos\\theta_0 = \\lambda \\implies D = \\frac{\\lambda}{\\beta \\cos\\theta_0}", true),
+      shapeFactorK: render("D = \\frac{K \\cdot \\lambda}{\\beta \\cos\\theta}", true)
+    };
+  }, []);
+
+  const { exactArithmetic, exactWeighted } = useMemo(() => {
+    const valid = results.filter(r => !r.error && r.sizeNm > 0);
+    if (valid.length === 0) return { exactArithmetic: 0, exactWeighted: 0 };
+    
+    // Arithmetic
+    const sum = valid.reduce((acc, curr) => acc + curr.sizeNm, 0);
+    const arithmetic = sum / valid.length;
+    
+    // Weighted
+    let totalWeight = 0;
+    let weightedSum = 0;
+    valid.forEach(r => {
+      const weight = r.intensity || 0;
+      weightedSum += r.sizeNm * weight;
+      totalWeight += weight;
+    });
+    const weighted = totalWeight > 0 ? (weightedSum / totalWeight) : arithmetic;
+    
+    return { exactArithmetic: arithmetic, exactWeighted: weighted };
+  }, [results]);
   
   // Ref for clicking outside
   const kMenuRef = React.useRef<HTMLDivElement>(null);
@@ -156,20 +222,25 @@ export const ScherrerModule: React.FC = () => {
       
       setResults(computed);
       
-      // Improved Averaging: Weighted average if intensities are present
+      // Averaging calculations based on user-selected preference (intensity-weighted vs simple arithmetic)
       const validResults = computed.filter(r => !r.error && r.sizeNm > 0);
       let calculatedAvg = 0;
       if (validResults.length > 0) {
-        const hasIntensities = validResults.some(r => r.intensity !== undefined && r.intensity > 0);
-        if (hasIntensities) {
-          let totalWeight = 0;
-          let weightedSum = 0;
-          validResults.forEach(r => {
-            const weight = r.intensity || 0;
-            weightedSum += r.sizeNm * weight;
-            totalWeight += weight;
-          });
-          calculatedAvg = totalWeight > 0 ? weightedSum / totalWeight : 0;
+        if (averageType === 'weighted') {
+          const hasIntensities = validResults.some(r => r.intensity !== undefined && r.intensity > 0);
+          if (hasIntensities) {
+            let totalWeight = 0;
+            let weightedSum = 0;
+            validResults.forEach(r => {
+              const weight = r.intensity || 0;
+              weightedSum += r.sizeNm * weight;
+              totalWeight += weight;
+            });
+            calculatedAvg = totalWeight > 0 ? weightedSum / totalWeight : 0;
+          } else {
+            const sum = validResults.reduce((acc, curr) => acc + curr.sizeNm, 0);
+            calculatedAvg = sum / validResults.length;
+          }
         } else {
           const sum = validResults.reduce((acc, curr) => acc + curr.sizeNm, 0);
           calculatedAvg = sum / validResults.length;
@@ -185,10 +256,53 @@ export const ScherrerModule: React.FC = () => {
         caglioti,
         broadeningModel,
         results: computed,
-        avgSize: calculatedAvg
+        avgSize: calculatedAvg,
+        averageType
       }));
     }, 3800);
   };
+
+  useEffect(() => {
+    const validResults = results.filter(r => !r.error && r.sizeNm > 0);
+    let calculatedAvg = 0;
+    if (validResults.length > 0) {
+      if (averageType === 'weighted') {
+        const hasIntensities = validResults.some(r => r.intensity !== undefined && r.intensity > 0);
+        if (hasIntensities) {
+          let totalWeight = 0;
+          let weightedSum = 0;
+          validResults.forEach(r => {
+            const weight = r.intensity || 0;
+            weightedSum += r.sizeNm * weight;
+            totalWeight += weight;
+          });
+          calculatedAvg = totalWeight > 0 ? weightedSum / totalWeight : 0;
+        } else {
+          const sum = validResults.reduce((acc, curr) => acc + curr.sizeNm, 0);
+          calculatedAvg = sum / validResults.length;
+        }
+      } else {
+        const sum = validResults.reduce((acc, curr) => acc + curr.sizeNm, 0);
+        calculatedAvg = sum / validResults.length;
+      }
+    }
+    setAvgSize(calculatedAvg);
+
+    // Save configuration updates
+    if (results.length > 0) {
+      localStorage.setItem('xrd_scherrer_current', JSON.stringify({
+        wavelength,
+        constantK,
+        instFwhm,
+        useCaglioti,
+        caglioti,
+        broadeningModel,
+        results,
+        avgSize: calculatedAvg,
+        averageType
+      }));
+    }
+  }, [results, averageType, wavelength, constantK, instFwhm, useCaglioti, caglioti, broadeningModel]);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -721,11 +835,18 @@ export const ScherrerModule: React.FC = () => {
                 <Network className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Master Formula</span>
               </div>
-              <div className="bg-[#0a0f16] p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-emerald-900/50 shadow-inner relative z-10">
+              <div className="bg-[#0a0f16] p-4 rounded-xl font-mono text-sm text-emerald-400 overflow-x-auto border border-emerald-900/50 shadow-inner relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse" />
                   <span className="truncate font-black tracking-widest text-emerald-300">D = (K · λ) / (β · cosθ)</span>
                 </div>
+                <button
+                  onClick={() => setIsDerivationModalOpen(true)}
+                  className="text-[10px] font-black text-emerald-400 hover:text-emerald-300 uppercase tracking-widest flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-500/20 transition-all cursor-pointer shadow-sm shrink-0 self-start sm:self-auto"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                  Derivation & Proof
+                </button>
               </div>
             </div>
 
@@ -790,7 +911,9 @@ export const ScherrerModule: React.FC = () => {
                     <h3 className="text-lg font-black text-white uppercase tracking-tight leading-none mb-1">Mean Crystallite Size</h3>
                     <div className="flex items-center gap-2">
                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                         {results.some(r => r.intensity !== undefined && r.intensity > 0) ? 'Intensity-Weighted Avg' : 'Arithmetic Mean'}
+                         {results.some(r => r.intensity !== undefined && r.intensity > 0) 
+                           ? (averageType === 'weighted' ? 'Intensity-Weighted Avg' : 'Arithmetic Mean') 
+                           : 'Arithmetic Mean'}
                        </span>
                        <span className="w-1 h-1 bg-slate-700 rounded-full" />
                        <span className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest">{results.filter(r => !r.error).length} Peaks Resolved</span>
@@ -817,6 +940,50 @@ export const ScherrerModule: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {results.length > 0 && results.some(r => r.intensity !== undefined && r.intensity > 0) && (
+                  <div className="pt-2">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Average Calculation Method</span>
+                    <div className="flex bg-slate-950 p-0.5 rounded-xl border border-slate-800 w-fit gap-1">
+                      <button
+                        onClick={() => setAverageType('weighted')}
+                        className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                          averageType === 'weighted'
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold shadow-[0_2px_10px_rgba(245,158,11,0.05)]'
+                            : 'text-slate-500 hover:text-slate-400 border border-transparent'
+                        }`}
+                        title="Weights peaks by their intensity. Stronger peaks have higher SNR and represent bulk crystalline volume more accurately."
+                      >
+                        Weighted ({(() => {
+                          const valid = results.filter(r => !r.error && r.sizeNm > 0);
+                          let totalWeight = 0;
+                          let weightedSum = 0;
+                          valid.forEach(r => {
+                            const weight = r.intensity || 0;
+                            weightedSum += r.sizeNm * weight;
+                            totalWeight += weight;
+                          });
+                          return totalWeight > 0 ? (weightedSum / totalWeight).toFixed(1) : '0.0';
+                        })()} nm)
+                      </button>
+                      <button
+                        onClick={() => setAverageType('arithmetic')}
+                        className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                          averageType === 'arithmetic'
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold shadow-[0_2px_10px_rgba(245,158,11,0.05)]'
+                            : 'text-slate-500 hover:text-slate-400 border border-transparent'
+                        }`}
+                        title="Simple arithmetic mean of individual calculated peak sizes."
+                      >
+                        Arithmetic ({(() => {
+                          const valid = results.filter(r => !r.error && r.sizeNm > 0);
+                          const sum = valid.reduce((acc, curr) => acc + curr.sizeNm, 0);
+                          return valid.length > 0 ? (sum / valid.length).toFixed(1) : '0.0';
+                        })()} nm)
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="lg:col-span-4 bg-black/40 p-4 rounded-2xl border border-slate-800/50">
@@ -843,7 +1010,7 @@ export const ScherrerModule: React.FC = () => {
                 </div>
               </div>
 
-              <div className="lg:col-span-3 flex justify-end">
+              <div className="lg:col-span-3 flex flex-col items-end justify-center">
                 <div className="flex items-baseline gap-2 bg-black/40 px-8 py-5 rounded-2xl border border-slate-800 shadow-inner group-hover:border-amber-500/30 transition-all duration-500 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <span className="text-6xl font-black text-white font-mono tracking-tighter relative z-10" style={{ textShadow: '0 0 30px rgba(245,158,11,0.2)' }}>
@@ -851,6 +1018,22 @@ export const ScherrerModule: React.FC = () => {
                   </span>
                   <span className="text-xl text-amber-500 font-black uppercase tracking-widest opacity-80 relative z-10">nm</span>
                 </div>
+                {results.length > 0 && (
+                  <div className="flex flex-col items-end text-right font-mono text-[9px] text-slate-500 font-bold uppercase tracking-wider relative z-10 gap-0.5 mt-2 pr-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1 h-1 rounded-full bg-amber-500/60" />
+                      <span>Arithmetic (Real Value):</span>
+                      <span className="text-amber-400 font-black">{exactArithmetic.toFixed(4)} nm</span>
+                    </div>
+                    {results.some(r => r.intensity !== undefined && r.intensity > 0) && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1 h-1 rounded-full bg-slate-600" />
+                        <span>Weighted Mean:</span>
+                        <span className="text-slate-300 font-black">{exactWeighted.toFixed(4)} nm</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1043,6 +1226,182 @@ export const ScherrerModule: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Detailed Mathematical Derivation Modal */}
+      <AnimatePresence>
+        {isDerivationModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+              className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-white uppercase tracking-wider">Mathematical Derivation</h2>
+                    <p className="text-[10px] font-mono text-emerald-400/80 uppercase tracking-widest">Theoretical Proof of Scherrer Formula</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsDerivationModalOpen(false)}
+                  className="w-10 h-10 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Content - Scrollable */}
+              <div className="p-6 overflow-y-auto space-y-8 text-slate-300 text-sm leading-relaxed custom-scrollbar">
+                
+                {/* Intro Card */}
+                <div className="bg-gradient-to-r from-emerald-500/5 to-teal-500/5 p-5 rounded-2xl border border-emerald-500/20">
+                  <p className="text-slate-200 leading-relaxed">
+                    The Scherrer formula is an analytical approximation that relates the average size of sub-micrometer crystallites in a solid sample to the broadening of the diffraction peak. It was first derived by Paul Scherrer in 1918. Below is the complete mathematical and physical proof of this relation.
+                  </p>
+                </div>
+
+                {/* Section 1: Physical Setup */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    1. Physical Setup & Bragg Scattering
+                  </h3>
+                  <p>
+                    Consider a crystalline domain of finite thickness <span className="font-mono text-slate-100">$D$</span> composed of <span className="font-mono text-slate-100">$N$</span> parallel lattice planes separated by an interplanar spacing <span className="font-mono text-slate-100">$d$</span>. The total crystallite size perpendicular to these planes is:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.crystalliteThickness }} />
+                  <p>
+                    When monochromatic X-rays of wavelength <span className="font-mono text-slate-100">$\lambda$</span> impinge on these planes, constructive interference occurs according to <strong>Bragg's Law</strong>. For the first-order diffraction peak (<span className="font-mono text-slate-100">$m=1$</span>), the peak maximum is observed at the precise Bragg angle <span className="font-mono text-emerald-400 font-bold">$\theta_0$</span>:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.braggLawOrder1 }} />
+                </div>
+
+                {/* Section 2: Phase Difference and Finite-Size Broadening */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    2. Peak Broadening and Zero-Intensity Boundaries
+                  </h3>
+                  <p>
+                    For an infinite crystal, diffraction occurs strictly at the exact angle <span className="font-mono text-slate-100">$\theta_0$</span>. However, for a <strong>finite crystal</strong> with $N$ planes, total destructive interference does not happen instantaneously. 
+                  </p>
+                  <p>
+                    As we deviate from the exact Bragg angle to an angle $\theta$, waves from adjacent planes acquire a slight phase difference. The intensity of the scattered beam drops to zero when the wave scattered from the very top plane is exactly 180° out of phase with the wave scattered from the middle plane (i.e. plane <span className="font-mono text-slate-100">$N/2$</span>), canceling each other out.
+                  </p>
+                  <p>
+                    Let the boundaries of the peak be defined by angles <span className="font-mono text-slate-100">$\theta_1$</span> (lower boundary) and <span className="font-mono text-slate-100">$\theta_2$</span> (upper boundary), where the accumulated path difference over the entire thickness of the crystal satisfies the conditions:
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
+                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.finiteSize1 }} />
+                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.finiteSize2 }} />
+                  </div>
+                </div>
+
+                {/* Section 3: Trigonometric Derivation */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    3. Mathematical and Trigonometric Operations
+                  </h3>
+                  <p>
+                    Subtracting the upper boundary condition from the lower boundary condition removes the $N$ offset and isolates the angular range of scattering:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.subtraction }} />
+                  <p>
+                    Dividing by 2 yields:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.reducedSub }} />
+                  <p>
+                    We apply the trigonometric difference-to-product identity:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.trigIdentity }} />
+                  <p>
+                    Since the peak is centered symmetrically around the Bragg angle $\theta_0$ with a small angular half-width $\Delta\theta$, we define:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.trigSub }} />
+                  <p>
+                    Substituting these into the identity yields:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.trigResult }} />
+                  <p>
+                    Because $\Delta\theta$ is an extremely small angle in radians, we apply the <strong>small-angle approximation</strong>:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.approx }} />
+                  <p>
+                    This simplifies our trigonometric difference term to:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.combinedtrig }} />
+                </div>
+
+                {/* Section 4: Formulating Size */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    4. Establishing the Size Equation
+                  </h3>
+                  <p>
+                    Now we substitute this simplified expression back into the difference equation:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.finalSubstitution }} />
+                  <p>
+                    Grouping the variables to associate with crystal thickness ($N \cdot d$) and peak width ($2\Delta\theta$):
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.rearranged }} />
+                  <p>
+                    The full angular width at the base of the diffraction peak is $2\Delta\theta$. The Full Width at Half Maximum (FWHM), denoted by $\beta$, is mathematically proportional to the total base width depending on the peak shape function:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.fwhmDefinition }} />
+                  <p>
+                    Using the identities $D = N \cdot d$ and $\beta \approx 2\Delta\theta$, we obtain:
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 my-2 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.noShapeFactor }} />
+                </div>
+
+                {/* Section 5: The Shape Factor K */}
+                <div className="space-y-3">
+                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    5. Introduction of the Scherrer Constant (Shape Factor K)
+                  </h3>
+                  <p>
+                    The assumption that $\beta = 2\Delta\theta$ is only exact for an idealized flat rectangular crystal profile. Real crystallites vary in shape (spheres, cubes, rods), have size distributions, and exhibit non-uniform scattering.
+                  </p>
+                  <p>
+                    To correct for these real-world physical nuances, Paul Scherrer introduced a dimensionless scaling constant, <span className="text-amber-400 font-bold">$K$</span>, known as the <strong>Scherrer Constant</strong> (or shape factor). This completes the famous generalized equation:
+                  </p>
+                  <div className="bg-slate-950 p-5 rounded-2xl border border-amber-500/20 shadow-md text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.shapeFactorK }} />
+                  <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2 text-xs">
+                    <p className="font-bold text-slate-200">Common values of K:</p>
+                    <ul className="list-disc pl-5 space-y-1 text-slate-400">
+                      <li><span className="text-amber-400 font-mono font-bold">K = 0.94</span> for spherical particles.</li>
+                      <li><span className="text-amber-400 font-mono font-bold">K = 0.90</span> for typical polydisperse powder samples (standard average).</li>
+                      <li><span className="text-amber-400 font-mono font-bold">K = 1.00</span> when calculations are conducted using Peak Integral Breadth rather than FWHM.</li>
+                    </ul>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end">
+                <button
+                  onClick={() => setIsDerivationModalOpen(false)}
+                  className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 hover:text-white uppercase tracking-wider rounded-xl border border-slate-750 transition-all cursor-pointer"
+                >
+                  Close Document
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
