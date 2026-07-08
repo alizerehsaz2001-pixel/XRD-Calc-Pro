@@ -188,6 +188,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   const [refineProgress, setRefineProgress] = useState(0);
   const [refineLogs, setRefineLogs] = useState<string[]>([]);
   const [refinedPeaksResult, setRefinedPeaksResult] = useState<Array<{ original: number, refined: number, reference: number | null, shift: number, matched: boolean }>>([]);
+  const [optimalAutoShift, setOptimalAutoShift] = useState<number>(0);
 
   // Converts pattern string (intensity and peaks) into an array of twoTheta peak angles, 
   // shifted properly for the active wavelength.
@@ -242,52 +243,64 @@ export const BraggInput: React.FC<BraggInputProps> = ({
       return;
     }
     
+    setRefineLogs(prev => [...prev, "Scanning 61 angular shift variations (±0.30° 2θ) across database to maximize match score..."]);
+    
     let bestMaterial = null;
     let bestScore = -9999;
+    let bestShift = 0;
     
     for (const mat of MATERIAL_DB) {
       const refPeaks = getMaterialPeaks(mat);
       if (refPeaks.length === 0) continue;
       
-      let matchedCount = 0;
-      let totalDeviation = 0;
-      
-      parsedPeaks.forEach(p => {
-        let minDiff = Math.abs(p - refPeaks[0]);
-        for (let i = 1; i < refPeaks.length; i++) {
-          const diff = Math.abs(p - refPeaks[i]);
-          if (diff < minDiff) {
-            minDiff = diff;
-          }
-        }
+      // Iterate through slight variations/shifts of user-inputted peak positions
+      for (let shift = -0.30; shift <= 0.30; shift += 0.01) {
+        let matchedCount = 0;
+        let totalDeviation = 0;
         
-        if (minDiff <= refineTolerance) {
-          matchedCount++;
-          totalDeviation += minDiff;
-        }
-      });
-      
-      if (matchedCount > 0) {
-        const avgDeviation = totalDeviation / matchedCount;
-        // Score favors higher peak match counts and smaller differences
-        const score = (matchedCount * 20) - (avgDeviation * 15);
-        if (score > bestScore) {
-          bestScore = score;
-          bestMaterial = mat;
+        parsedPeaks.forEach(p => {
+          const shiftedP = p + shift;
+          let minDiff = Math.abs(shiftedP - refPeaks[0]);
+          for (let i = 1; i < refPeaks.length; i++) {
+            const diff = Math.abs(shiftedP - refPeaks[i]);
+            if (diff < minDiff) {
+              minDiff = diff;
+            }
+          }
+          
+          if (minDiff <= refineTolerance) {
+            matchedCount++;
+            totalDeviation += minDiff;
+          }
+        });
+        
+        if (matchedCount > 0) {
+          const avgDeviation = totalDeviation / matchedCount;
+          // Score formula rewards more matched peaks and penalizes deviation and large offsets
+          const score = (matchedCount * 30) - (avgDeviation * 20) - (Math.abs(shift) * 10);
+          if (score > bestScore) {
+            bestScore = score;
+            bestMaterial = mat;
+            bestShift = Number(shift.toFixed(3));
+          }
         }
       }
     }
     
     if (bestMaterial) {
       setSelectedRefineMaterial(bestMaterial);
+      setOptimalAutoShift(bestShift);
       setRefineLogs(prev => [
         ...prev, 
-        `Auto-detected best reference material: ${bestMaterial.name} (${bestMaterial.formula}) [Match Score: ${bestScore.toFixed(1)}]`
+        `✔ Best Standard: ${bestMaterial.name} (${bestMaterial.formula || 'N/A'})`,
+        `  - Max Match Score: ${bestScore.toFixed(1)}`,
+        `  - Optimal Offset Shift: ${bestShift > 0 ? `+${bestShift}` : bestShift}° 2θ`,
+        `  - Click "Execute Refinement" to optimize peak centers with this compensation!`
       ]);
     } else {
       setRefineLogs(prev => [
         ...prev, 
-        `No database material found with matching peaks within ±${refineTolerance}° threshold.`
+        `❌ No database material found with matching peaks within ±${refineTolerance}° threshold.`
       ]);
     }
   };

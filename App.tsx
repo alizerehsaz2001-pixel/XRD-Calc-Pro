@@ -59,6 +59,65 @@ const App: React.FC = () => {
 
   useEffect(() => {
      if (user) {
+        const savedReg = localStorage.getItem('xrd_user_registration');
+        if (!savedReg) {
+          const defaultReg = {
+            name: user.displayName || user.email?.split('@')[0] || 'Researcher',
+            email: user.email || '',
+            organization: 'Quantum Crystallography Labs',
+            nationality: 'American',
+            researchRole: 'Lead Investigator',
+            researchField: 'Condensed Matter Physics',
+            registeredAt: new Date().toISOString()
+          };
+          localStorage.setItem('xrd_user_registration', JSON.stringify(defaultReg));
+
+          const nameParts = defaultReg.name.trim().split(/\s+/);
+          const first = nameParts[0] || 'Crystallographer';
+          const last = nameParts.slice(1).join(' ') || 'Node';
+          const initialReference = `${first[0]?.toUpperCase() || 'X'}${last[0]?.toUpperCase() || 'R'}-${new Date().getFullYear()}-CLOUD`;
+
+          const defaultProfile = {
+            firstName: first,
+            lastName: last,
+            title: 'Lead Investigator in Condensed Matter Physics',
+            subDescription: `Leading specialized material characterization in Condensed Matter Physics within Quantum Crystallography Labs.`,
+            classification: 'L-5 Senior Director',
+            idReference: initialReference,
+            status: 'Active',
+            mission: 'To systematically resolve structural Overlapping peaks and lattice microstrains, empowering Quantum Crystallography Labs with high-fidelity scientific discoveries in Condensed Matter Physics.',
+            skills: [
+              { name: 'Diffraction Physics', level: 90 },
+              { name: 'Symmetry Logic', level: 88 },
+              { name: 'Phase Identification', level: 85 },
+              { name: 'Spectrum Deconvolution', level: 82 },
+              { name: 'Lattice Topology', level: 78 },
+              { name: 'Atomic Peak Refining', level: 92 }
+            ],
+            research: [
+              { title: 'Project CONDENSED', status: 'In Optimization', progress: 50, color: 'indigo' },
+              { title: 'Structural Characterization at Quantum Crystallography Labs', status: 'In Progress', progress: 30, color: 'emerald' }
+            ],
+            links: [
+              { label: 'Authorized Node', val: defaultReg.email, icon: 'Mail', url: `mailto:${defaultReg.email}` },
+              { label: 'Academic Network', val: defaultReg.name.toLowerCase().replace(/\s+/g, '-'), icon: 'Linkedin', url: 'https://linkedin.com' },
+              { label: 'Research Repositories', val: first.toLowerCase() + '-lab', icon: 'Github', url: 'https://github.com' }
+            ],
+            publications: [
+              { title: 'High-resolution powder diffraction profile of Condensed Matter Physics lattices', journal: 'Journal of Applied Crystallography', date: '2026' }
+            ],
+            archive: [
+              { year: '2026', title: 'Authorized Node Provisioning', desc: 'Successfully completed onboarding of cloud researcher node for Quantum Crystallography Labs with classification L-5 Senior Director.' }
+            ],
+            stats: {
+              hIndex: 12,
+              citations: 340,
+              peerReviews: 18,
+              scansAnalyzed: 1450
+            }
+          };
+          localStorage.setItem('lab_director_profile_payload', JSON.stringify(defaultProfile));
+        }
         setIsRegistered(true);
      }
   }, [user]);
