@@ -1197,6 +1197,13 @@ export const WilliamsonHallModule: React.FC = () => {
                      </span>
                    )}
                  </div>
+                 {result && (
+                   <p className="text-[9px] font-mono text-slate-400 font-bold mt-1.5 uppercase tracking-wider flex items-center gap-1.5">
+                     <span className="w-1 h-1 rounded-full bg-cyan-500 animate-pulse" />
+                     <span>Real Value:</span>
+                     <span className="text-cyan-300">{(result.strainPercent / 100).toExponential(8)}</span>
+                   </p>
+                 )}
                  
                  {result && (
                    <div className="flex items-center gap-2 mt-3">
@@ -1239,6 +1246,11 @@ export const WilliamsonHallModule: React.FC = () => {
                          </p>
                          <span className="text-sm font-black text-emerald-500/80 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">nm</span>
                        </div>
+                       <p className="text-[9px] font-mono text-slate-400 font-bold mt-1.5 uppercase tracking-wider flex items-center gap-1.5">
+                         <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                         <span>Real Value:</span>
+                         <span className="text-emerald-300">{result.sizeInterceptNm.toFixed(6)} nm</span>
+                       </p>
                        <div className="flex items-center gap-2 mt-3">
                          <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/50 to-transparent" />
                          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">

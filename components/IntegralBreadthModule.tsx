@@ -685,6 +685,13 @@ export const IntegralBreadthModule: React.FC = () => {
            <div className="relative z-10 mb-4 sm:mb-0">
              <h3 className="text-xl font-black text-white uppercase tracking-widest">Average Size</h3>
              <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Calculated from {results.length} peaks using Integral Breadth</p>
+             {results.length > 0 && (
+               <p className="text-[10px] font-mono text-slate-400 font-bold mt-2 uppercase tracking-wider flex items-center gap-1.5">
+                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                 <span>Real Value:</span>
+                 <span className="text-cyan-300">{avgSize} nm</span>
+               </p>
+             )}
            </div>
            <div className="text-right flex items-end justify-start sm:justify-end gap-2 relative z-10 bg-[#070D18] px-6 py-4 rounded-2xl border border-cyan-500/20 shadow-inner">
              <span className="text-5xl font-black text-cyan-400 font-mono tracking-tighter drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">{avgSize.toFixed(precision)}</span>
@@ -757,7 +764,8 @@ export const IntegralBreadthModule: React.FC = () => {
                           {res.betaSampleDeg !== undefined ? res.betaSampleDeg.toFixed(precision) : (res.integralBreadthDeg).toFixed(precision)}
                         </td>
                         <td className="px-5 py-4 font-mono text-right font-black text-emerald-400 text-lg drop-shadow-[0_0_10px_rgba(52,211,153,0.2)]">
-                          {res.calcSizeNm.toFixed(precision)}
+                          <div>{res.calcSizeNm.toFixed(precision)}</div>
+                          <div className="text-[9px] font-mono text-slate-500 font-normal tracking-tight mt-0.5">Real: {res.calcSizeNm}</div>
                         </td>
                       </tr>
                     );

@@ -1322,10 +1322,14 @@ export const WarrenAverbachModule: React.FC = () => {
                             {row.L_nm.toFixed(1)}
                          </td>
                          <td className="px-8 py-4 font-bold text-rose-400">
-                            {row.A_size.toFixed(5)}
+                            <div>{row.A_size.toFixed(5)}</div>
+                            <div className="text-[9px] font-mono text-rose-500/60 font-normal tracking-tight mt-0.5">Real: {row.A_size}</div>
                          </td>
                          <td className="px-8 py-4 font-bold text-cyan-400">
-                            <span className="text-white">{(result.strainDistribution[i]?.rms_strain * 10000).toFixed(2)}</span> <span className="text-[10px] text-cyan-500/50 uppercase tracking-widest font-sans">× 10⁻⁴</span>
+                            <div>
+                               <span className="text-white">{(result.strainDistribution[i]?.rms_strain * 10000).toFixed(2)}</span> <span className="text-[10px] text-cyan-500/50 uppercase tracking-widest font-sans">× 10⁻⁴</span>
+                            </div>
+                            <div className="text-[9px] font-mono text-cyan-500/60 font-normal tracking-tight mt-0.5">Real: {result.strainDistribution[i]?.rms_strain.toExponential(10)}</div>
                          </td>
                       </tr>
                    ))}

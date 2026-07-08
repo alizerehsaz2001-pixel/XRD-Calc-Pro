@@ -755,10 +755,10 @@ export const FWHMModule: React.FC = () => {
              className="absolute inset-0 pointer-events-none z-50 mix-blend-difference transition-opacity duration-150" 
              style={{ opacity: 0 }}
            >
-             <div ref={crossXRef} className="absolute top-0 bottom-0 border-l border-dashed border-cyan-400 w-px will-change-transform" />
-             <div ref={crossYRef} className="absolute left-0 right-0 border-t border-dashed border-cyan-400 h-px will-change-transform" />
-             <div ref={crossTargetRef} className="absolute w-5 h-5 rounded-full border-[1.5px] border-cyan-400 opacity-80 will-change-transform" />
-             <div ref={crossCenterRef} className="absolute w-[5px] h-[5px] rounded-full bg-cyan-400 will-change-transform" />
+             <div ref={crossXRef} className="absolute top-0 bottom-0 left-0 border-l border-dashed border-cyan-400 w-px will-change-transform" />
+             <div ref={crossYRef} className="absolute top-0 left-0 right-0 border-t border-dashed border-cyan-400 h-px will-change-transform" />
+             <div ref={crossTargetRef} className="absolute top-0 left-0 w-5 h-5 rounded-full border-[1.5px] border-cyan-400 opacity-80 will-change-transform" />
+             <div ref={crossCenterRef} className="absolute top-0 left-0 w-[5px] h-[5px] rounded-full bg-cyan-400 will-change-transform" />
              
            </div>
         </div>
