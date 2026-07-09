@@ -19,6 +19,7 @@ import {
   Scatter,
   Legend,
   ReferenceLine,
+  ReferenceArea,
 } from "recharts";
 import {
   Box,
@@ -5230,79 +5231,160 @@ if __name__ == '__main__':
                 )}
 
                 {activeInputTool === "preview" && (
-                  <div className="bg-slate-900/40 border border-slate-700/50 rounded-xl p-4 space-y-4 shadow-inner">
-                    <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
-                      <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
-                        <Activity className="w-4 h-4 text-blue-500" /> Real-time Diffraction Plot
-                      </span>
-                      <span className="text-[9px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold font-mono border border-blue-500/30">
-                        Simulated {parsedPoints.length} Peaks
+                  <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6 space-y-6 shadow-inner relative overflow-hidden group/live">
+                    {/* Glowing structural accents */}
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl pointer-events-none rounded-full" />
+                    
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                          <Activity className="w-4 h-4 text-cyan-500 animate-pulse" /> Simulated Input Pattern
+                        </span>
+                        <span className="text-[9px] text-slate-500 font-mono uppercase tracking-wider">Crystalline Phase Diffraction Signature</span>
+                      </div>
+                      <span className="text-[10px] px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 font-black font-mono border border-cyan-500/30 shadow-sm flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                        {parsedPoints.length} Resolved Peaks
                       </span>
                     </div>
 
                     {parsedPoints.length > 0 ? (
-                      <div className="space-y-4">
-                        <div className="h-40 bg-slate-900 border border-slate-700 rounded-xl p-3 relative w-full shadow-inner">
+                      <div className="space-y-6">
+                        {/* Enlarged Chart: increased height to h-96 md:h-[400px] to allow complete visualization without clutter */}
+                        <div className="h-96 md:h-[400px] bg-[#060B15]/90 border border-slate-800 rounded-2xl p-4 relative w-full shadow-[inset_0_0_20px_rgba(0,0,0,0.6)] group-hover/live:border-slate-700/60 transition-all overflow-hidden">
+                          {/* Inner scientific grid overlay */}
+                          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
+                          
                           <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart
                               data={liveChartData}
-                              margin={{ top: 5, right: 5, bottom: 5, left: 1 }}
+                              margin={{ top: 15, right: 10, bottom: 5, left: 1 }}
                             >
+                              <defs>
+                                <linearGradient id="colorLivePattern" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4} />
+                                  <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
                               <XAxis
                                 dataKey="twoTheta"
                                 type="number"
                                 domain={['auto', 'auto']}
-                                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }}
-                                tickLine={false}
-                                axisLine={{ stroke: '#334155' }}
+                                tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }}
+                                tickLine={{ stroke: '#334155' }}
+                                axisLine={{ stroke: '#1e293b' }}
                               />
                               <YAxis hide domain={[0, 'auto']} />
-                              <CartesianGrid strokeDasharray="3 3" opacity={0.1} stroke="#94a3b8" />
+                              <CartesianGrid strokeDasharray="3 3" opacity={0.15} stroke="#334155" />
+                              
+                              {/* Background reference areas for typical diffraction angles */}
+                              <ReferenceArea x1={20} x2={40} fill="#22d3ee" fillOpacity={0.02} />
+                              <ReferenceArea x1={40} x2={75} fill="#a855f7" fillOpacity={0.02} />
+                              
                               <Area
                                 type="monotone"
                                 dataKey="intensity"
-                                stroke="#8b5cf6"
-                                fill="url(#colorUv)" 
-                                fillOpacity={0.2}
-                                strokeWidth={2}
+                                stroke="#06b6d4"
+                                fill="url(#colorLivePattern)" 
+                                fillOpacity={1}
+                                strokeWidth={3}
+                                name="Continuous Intensity"
+                              />
+
+                              {/* High-Resolution Bragg peak stick overlays */}
+                              {parsedPoints.map((p, idx) => (
+                                <ReferenceLine
+                                  key={`peak-stick-${idx}`}
+                                  x={p.twoTheta}
+                                  stroke="#3b82f6"
+                                  strokeWidth={1.5}
+                                  strokeOpacity={0.6}
+                                  strokeDasharray="2 2"
+                                />
+                              ))}
+                              
+                              <Tooltip
+                                content={({ active, payload }) => {
+                                  if (active && payload && payload.length) {
+                                    const val = payload[0].value as number;
+                                    const theta = payload[0].payload.twoTheta as number;
+                                    const rad = (theta / 2) * (Math.PI / 180);
+                                    const d = 1.5406 / (2 * Math.sin(rad));
+                                    return (
+                                      <div className="bg-[#0B0F19]/95 backdrop-blur-md border border-slate-700 p-3 rounded-xl shadow-xl text-[10px] font-mono text-slate-300">
+                                        <div className="font-bold text-cyan-400 mb-1">Position: {theta.toFixed(2)}° 2θ</div>
+                                        <div>d-spacing: {isNaN(d) ? 'N/A' : d.toFixed(4)} Å</div>
+                                        <div className="text-emerald-400 mt-1">Intensity: {val.toFixed(1)} a.u.</div>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                }}
                               />
                             </ComposedChart>
                           </ResponsiveContainer>
                         </div>
 
                         {/* Analytic Peak spacing registry */}
-                        <div className="max-h-32 overflow-y-auto custom-scrollbar border border-slate-700 rounded-xl bg-slate-900 p-3 text-[10px] font-mono shadow-inner">
-                          <table className="w-full text-left">
-                            <thead>
-                              <tr className="border-b border-slate-700 text-slate-400">
-                                <th className="p-1.5 pb-2 font-bold tracking-wider text-xs">2θ Angle</th>
-                                <th className="p-1.5 pb-2 font-bold tracking-wider text-xs">d-spacing (Å)</th>
-                                <th className="p-1.5 pb-2 font-bold tracking-wider text-xs text-right">Rel. Int. (%)</th>
-                              </tr>
-                            </thead>
-                            <tbody className="text-slate-300">
-                              {[...parsedPoints]
-                                .sort((a, b) => a.twoTheta - b.twoTheta)
-                                .map((pk, idx) => {
-                                  const rad = (pk.twoTheta / 2) * (Math.PI / 180);
-                                  const d = 1.5406 / (2 * Math.sin(rad));
-                                  return (
-                                    <tr key={idx} className="border-b border-slate-800/50 last:border-0 hover:bg-slate-800/80 transition-colors">
-                                      <td className="p-1.5 font-bold text-violet-400">{pk.twoTheta.toFixed(3)}°</td>
-                                      <td className="p-1.5 text-slate-400">{isNaN(d) ? 'N/A' : d.toFixed(4)}</td>
-                                      <td className="p-1.5 text-right text-emerald-400 font-bold">{(pk.intensity).toFixed(0)}</td>
-                                    </tr>
-                                  );
-                                })}
-                            </tbody>
-                          </table>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 uppercase tracking-widest font-black">
+                            <span>Peak Indexing Registry</span>
+                            <span>Scroll for all resolved reflections</span>
+                          </div>
+                          
+                          <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-800/80 rounded-2xl bg-slate-950/80 p-4 text-[11px] font-mono shadow-inner">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className="border-b border-slate-800 text-slate-500 text-[9px] uppercase tracking-wider">
+                                  <th className="p-2 font-black">Ref#</th>
+                                  <th className="p-2 font-black">2θ Angle</th>
+                                  <th className="p-2 font-black">d-spacing (Å)</th>
+                                  <th className="p-2 font-black text-right">Rel. Intensity</th>
+                                </tr>
+                              </thead>
+                              <tbody className="text-slate-300 divide-y divide-slate-900">
+                                {[...parsedPoints]
+                                  .sort((a, b) => a.twoTheta - b.twoTheta)
+                                  .map((pk, idx) => {
+                                    const rad = (pk.twoTheta / 2) * (Math.PI / 180);
+                                    const d = 1.5406 / (2 * Math.sin(rad));
+                                    return (
+                                      <tr key={idx} className="hover:bg-slate-900/60 transition-colors group/row">
+                                        <td className="p-2 font-bold text-slate-600 group-hover/row:text-slate-400">
+                                          #{idx + 1}
+                                        </td>
+                                        <td className="p-2 font-black text-cyan-400">
+                                          {pk.twoTheta.toFixed(3)}°
+                                        </td>
+                                        <td className="p-2 text-slate-400">
+                                          {isNaN(d) ? 'N/A' : d.toFixed(4)} Å
+                                        </td>
+                                        <td className="p-2 text-right">
+                                          <div className="flex items-center justify-end gap-3">
+                                            <div className="w-16 h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                                              <div 
+                                                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_5px_rgba(34,211,238,0.5)]"
+                                                style={{ width: `${Math.min(100, (pk.intensity / Math.max(...parsedPoints.map(p => p.intensity))) * 100)}%` }}
+                                              />
+                                            </div>
+                                            <span className="text-emerald-400 font-bold tabular-nums min-w-[32px]">
+                                              {(pk.intensity).toFixed(0)}
+                                            </span>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </div>
                     ) : (
-                      <div className="h-40 border-2 border-dashed border-slate-700 rounded-xl flex flex-col items-center justify-center text-center p-6 bg-slate-800/30">
-                        <Activity className="w-10 h-10 text-slate-600 animate-pulse mb-3" />
-                        <p className="text-xs font-bold text-slate-400 mb-1 tracking-wide">Diffractogram is Empty</p>
-                        <p className="text-[10px] text-slate-500 max-w-[220px] leading-relaxed">Paste 2θ intensity patterns or click standard presets to plot real-time spectra</p>
+                      <div className="h-64 border-2 border-dashed border-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-8 bg-slate-950/30">
+                        <Activity className="w-12 h-12 text-slate-700 animate-pulse mb-3" />
+                        <p className="text-sm font-bold text-slate-400 mb-1 tracking-wide">Diffractogram is Empty</p>
+                        <p className="text-xs text-slate-500 max-w-[250px] leading-relaxed">Paste 2θ intensity patterns, upload a scan, or click standard presets to plot real-time spectra</p>
                       </div>
                     )}
                   </div>
@@ -7109,7 +7191,7 @@ if __name__ == '__main__':
       {/* Results Section */}
       <div className="lg:col-span-12 space-y-6">
         {/* Visualizer */}
-        <div className="bg-gradient-to-br from-[#0B1121] to-[#070B14] p-8 rounded-[2.5rem] shadow-2xl border border-slate-800 h-[1200px] lg:h-[1400px] flex flex-col relative overflow-hidden group/vis">
+        <div className="bg-gradient-to-br from-[#0B1121] to-[#070B14] p-8 rounded-[2.5rem] shadow-2xl border border-slate-800 h-auto min-h-[700px] flex flex-col relative overflow-hidden group/vis pb-12">
           {/* Subtle grid background to look like a terminal/software UI */}
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDQwIEwgNDAgNDAgNDAgMCBMIDQwIDQwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-[0.4] pointer-events-none mix-blend-screen"></div>
           <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-cyan-500/80 to-transparent opacity-80 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
@@ -7431,7 +7513,7 @@ if __name__ == '__main__':
             )}
           </div>
 
-          <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 bg-slate-950 rounded-[2rem] border border-slate-800/80 p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all">
+          <div className="w-full h-[500px] sm:h-[600px] md:h-[650px] lg:h-[700px] min-h-[450px] relative z-10 bg-slate-950 rounded-[2rem] border border-slate-800/80 p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all">
             {/* Animated Scanline Overlay */}
             <motion.div
               className="absolute top-0 bottom-0 w-[400px] bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent pointer-events-none mix-blend-screen z-0"

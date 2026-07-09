@@ -69,7 +69,6 @@ export const FWHMModule: React.FC = () => {
   const crossCenterRef = useRef<HTMLDivElement>(null);
   const crosshairContainerRef = useRef<HTMLDivElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
-  const rectRef = useRef<DOMRect | null>(null);
 
   useEffect(() => {
     const range: [number, number] = [center - fwhm * 4, center + fwhm * 4];
@@ -80,10 +79,7 @@ export const FWHMModule: React.FC = () => {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!chartContainerRef.current) return;
-    if (!rectRef.current) {
-      rectRef.current = chartContainerRef.current.getBoundingClientRect();
-    }
-    const rect = rectRef.current;
+    const rect = chartContainerRef.current.getBoundingClientRect();
     if (crosshairContainerRef.current) crosshairContainerRef.current.style.opacity = '0.9';
     
     const x = e.clientX - rect.left;
@@ -187,9 +183,9 @@ export const FWHMModule: React.FC = () => {
   }, [type, center, fwhm, eta, amplitude, stats, analysis]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Configuration Sidebar */}
-      <div className="lg:col-span-4 space-y-6">
+      <div className="xl:col-span-3 space-y-6">
         <div className="bg-white dark:bg-slate-900/80 p-6 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800/80 backdrop-blur-xl relative overflow-hidden">
           {/* Subtle Grid Background */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(99,102,241,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(99,102,241,0.03)_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none" />
@@ -502,15 +498,15 @@ export const FWHMModule: React.FC = () => {
       </div>
 
       {/* Visualizer and Stats */}
-      <div className="lg:col-span-8 space-y-6">
+      <div className="xl:col-span-9 space-y-6">
         <div 
-          className="bg-[#050B14] p-1 lg:p-1.5 rounded-[2rem] border border-white/5 min-h-[600px] lg:min-h-[800px] h-[70vh] lg:h-[85vh] flex flex-col relative overflow-hidden cursor-none group/visualizer shadow-[0_0_40px_rgba(99,102,241,0.1)]"
+          className="bg-[#050B14] p-1.5 lg:p-2 rounded-[2rem] border border-white/5 min-h-[700px] lg:min-h-[900px] h-[75vh] lg:h-[90vh] flex flex-col relative overflow-hidden cursor-none group/visualizer shadow-[0_0_40px_rgba(99,102,241,0.1)]"
           ref={chartContainerRef}
           onMouseMove={handleMouseMove}
-          onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => { setIsHovered(false); rectRef.current = null; if (crosshairContainerRef.current) crosshairContainerRef.current.style.opacity = '0'; }}
+          onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => { setIsHovered(false); if (crosshairContainerRef.current) crosshairContainerRef.current.style.opacity = '0'; }}
         >
            {/* Inner container with glossy background */}
-           <div className="bg-[#0B0F19]/90 backdrop-blur-3xl w-full h-full rounded-[1.75rem] border border-white/5 relative overflow-hidden flex flex-col p-5 lg:p-6 group/inner shadow-[inset_0_0_80px_rgba(0,0,0,0.8)]">
+           <div className="bg-[#0B0F19]/90 backdrop-blur-3xl w-full h-full rounded-[1.75rem] border border-white/5 relative overflow-hidden flex flex-col p-6 lg:p-8 group/inner shadow-[inset_0_0_80px_rgba(0,0,0,0.8)]">
              
              {/* Background Grid Pattern */}
              <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none mix-blend-screen" />
@@ -527,24 +523,24 @@ export const FWHMModule: React.FC = () => {
              </div>
 
              {/* Header Layer */}
-             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-               <h3 className="text-xl font-black text-white tracking-widest uppercase flex items-center gap-3 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-                 <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
-                   <Activity className="w-5 h-5 text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 gap-6">
+               <h3 className="text-2xl font-black text-white tracking-widest uppercase flex items-center gap-4 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                 <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                   <Activity className="w-6 h-6 text-indigo-400 drop-shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
                  </div>
                  High-Resolution Peak Visualizer
                </h3>
 
                {/* Floating Stats Pill */}
-               <div className="flex items-center gap-4 px-5 py-2.5 bg-black/40 backdrop-blur-xl rounded-full shadow-[inset_0_0_15px_rgba(0,0,0,0.5),0_0_20px_rgba(99,102,241,0.15)] border border-white/10 text-slate-300">
-                 <div className="flex items-center gap-2">
-                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]"></span>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]">Live Scan</span>
+               <div className="flex items-center gap-6 px-6 py-3 bg-black/40 backdrop-blur-xl rounded-full shadow-[inset_0_0_15px_rgba(0,0,0,0.5),0_0_20px_rgba(99,102,241,0.15)] border border-white/10 text-slate-300">
+                 <div className="flex items-center gap-3">
+                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]"></span>
+                   <span className="text-xs font-black uppercase tracking-widest text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)]">Live Scan</span>
                  </div>
-                 <div className="w-px h-4 bg-white/10" />
+                 <div className="w-px h-5 bg-white/10" />
                  <div className="flex items-center gap-2">
-                   <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Res:</span>
-                   <span className="text-xs font-mono font-bold text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">{chartData.length}</span>
+                   <span className="text-xs font-black uppercase text-slate-500 tracking-widest">Res:</span>
+                   <span className="text-sm font-mono font-bold text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">{chartData.length}</span>
                  </div>
                </div>
              </div>
