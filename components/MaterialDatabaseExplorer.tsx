@@ -33,7 +33,8 @@ import {
   DownloadCloud,
   UploadCloud,
   Flame,
-  Scale
+  Scale,
+  Star
 } from 'lucide-react';
 import { MATERIAL_DB } from '../utils/materialDB';
 import { calculateThermodynamics, generateTemperatureSweep } from '../utils/thermodynamics';
@@ -874,6 +875,29 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [isDbUnlocked, setIsDbUnlocked] = useState(false);
   const [dbCategoryFilter, setDbCategoryFilter] = useState<string>('all');
+
+  // Favorite databases registry ids for pinning
+  const [favoriteDbs, setFavoriteDbs] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('xrd_favorite_dbs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to load favorite DBs', e);
+    }
+    return [];
+  });
+
+  const handleToggleFavoriteDb = (dbId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent database selection
+    setFavoriteDbs(prev => {
+      const next = prev.includes(dbId) ? prev.filter(id => id !== dbId) : [...prev, dbId];
+      localStorage.setItem('xrd_favorite_dbs', JSON.stringify(next));
+      return next;
+    });
+  };
 
   // Edit Mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -3812,7 +3836,9 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                                   query: "Inconel 625 superalloy cubic FM-3M Phase",
                                   desc: "Corrosion-resistant nickel-chromium superalloy structures",
                                   badge: "Inconel 625",
-                                  color: "border-orange-500/30 text-orange-400 bg-orange-500/5 hover:border-orange-500"
+                                  color: "border-orange-500/30 text-orange-400 bg-orange-500/5 hover:border-orange-500",
+                                  flag: "🇳🇱",
+                                  countryCode: "NLD"
                                 },
                                 {
                                   title: "Solid-State Garnet Battery",
@@ -3820,7 +3846,9 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                                   query: "LLZO Li7La3Zr2O12 solid state electrolyte",
                                   desc: "High ionic-conductive Garnet structures for batteries",
                                   badge: "Li7La3Zr2O12",
-                                  color: "border-cyan-500/30 text-cyan-400 bg-cyan-500/5 hover:border-cyan-500"
+                                  color: "border-cyan-500/30 text-cyan-400 bg-cyan-500/5 hover:border-cyan-500",
+                                  flag: "🇩🇪",
+                                  countryCode: "DEU"
                                 },
                                 {
                                   title: "Quantum Superconductors",
@@ -3828,7 +3856,9 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                                   query: "YBCO YBa2Cu3O7-x high-temp superconducting phase",
                                   desc: "Cuprate high-temperature superconducting ceramic lattices",
                                   badge: "YBCO-123",
-                                  color: "border-purple-500/30 text-purple-400 bg-purple-500/5 hover:border-purple-500"
+                                  color: "border-purple-500/30 text-purple-400 bg-purple-500/5 hover:border-purple-500",
+                                  flag: "🇩🇪",
+                                  countryCode: "DEU"
                                 },
                                 {
                                   title: "Bioceramic Dental Grafts",
@@ -3836,7 +3866,9 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                                   query: "Synthetic Crystalline Calcium Hydroxyapatite",
                                   desc: "High-crystallinity biological osseoregenerative standards",
                                   badge: "NIST SRM 2910b",
-                                  color: "border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:border-emerald-500"
+                                  color: "border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:border-emerald-500",
+                                  flag: "🇺🇸",
+                                  countryCode: "USA"
                                 },
                                 {
                                   title: "Ultrawide Bandgap Power",
@@ -3844,7 +3876,9 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                                   query: "Beta-Ga2O3 Gallium Oxide semiconductor monoclinic",
                                   desc: "High power density beta-gallium oxide crystal lattices",
                                   badge: "Beta-Ga2O3",
-                                  color: "border-blue-500/30 text-blue-400 bg-blue-500/5 hover:border-blue-500"
+                                  color: "border-blue-500/30 text-blue-400 bg-blue-500/5 hover:border-blue-500",
+                                  flag: "🇺🇸",
+                                  countryCode: "USA"
                                 },
                                 {
                                   title: "Advanced Semiconductor Texture",
@@ -3852,7 +3886,9 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                                   query: "Single-crystal silicon orientation calibration standard",
                                   desc: "NIST-aligned reference crystal standard for d-spacing alignment",
                                   badge: "NIST SRM 1990",
-                                  color: "border-pink-500/30 text-pink-400 bg-pink-500/5 hover:border-pink-500"
+                                  color: "border-pink-500/30 text-pink-400 bg-pink-500/5 hover:border-pink-500",
+                                  flag: "🇺🇸",
+                                  countryCode: "USA"
                                 }
                               ].map((item, idx) => (
                                 <button
@@ -3864,14 +3900,22 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                                   <div className="space-y-1">
                                     <div className="flex justify-between items-start gap-2">
                                       <span className="text-[11px] font-extrabold tracking-tight group-hover:text-white leading-tight">{item.title}</span>
-                                      <span className="px-1.5 py-0.5 bg-black/60 rounded text-[7.5px] font-mono border border-white/5 uppercase leading-none font-bold">{item.badge}</span>
+                                      <span className="px-1.5 py-0.5 bg-black/60 rounded text-[7.5px] font-mono border border-white/5 uppercase leading-none font-bold shrink-0">{item.badge}</span>
                                     </div>
                                     <p className="text-[9px] text-slate-400 leading-normal line-clamp-2">{item.desc}</p>
                                   </div>
                                   <div className="mt-2.5 flex items-center justify-between text-[8px] font-mono text-slate-500">
-                                    <span>Sync with: <strong className="text-slate-300 uppercase">{item.db}</strong></span>
-                                    <span className="text-blue-400 font-bold group-hover:underline flex items-center gap-0.5">
-                                      Query Portal <ChevronRight className="w-2.5 h-2.5" />
+                                    <div className="flex items-center gap-1.5">
+                                      <span>Sync: <strong className="text-slate-300 uppercase">{item.db}</strong></span>
+                                      {item.flag && (
+                                        <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-slate-950/40 border border-white/5 text-[7px] font-black tracking-wider text-slate-400 hover:text-slate-200 transition-colors shrink-0" title={`Region: ${item.countryCode}`}>
+                                          <span>{item.flag}</span>
+                                          <span>{item.countryCode}</span>
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-blue-400 font-bold group-hover:underline flex items-center gap-0.5 shrink-0">
+                                      Query <ChevronRight className="w-2.5 h-2.5" />
                                     </span>
                                   </div>
                                 </button>
@@ -3883,44 +3927,64 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
 
                       {/* Database Registry Choice Cards */}
                       <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2.5">
-                        {allDatabases.filter(dbItem => dbCategoryFilter === 'all' || dbItem.group === dbCategoryFilter).map(dbItem => {
-                          const active = selectedGlobalDB === dbItem.id;
-                          return (
-                            <div
-                              key={dbItem.id}
-                              onClick={() => {
-                                if (dbItem.premium && !isDbUnlocked) {
-                                  alert(t('This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.', 'This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.'));
-                                  return;
-                                }
-                                setSelectedGlobalDB(dbItem.id);
-                              }}
-                              className={`p-3.5 rounded-2xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between min-h-[115px] relative overflow-hidden group ${active ? 'bg-gradient-to-br from-blue-950/80 via-blue-900/40 to-indigo-950/80 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]' : 'bg-black/30 border-white/5 hover:bg-white/5 hover:border-white/20'}`}
-                            >
-                              {active && <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/20 blur-xl rounded-full" />}
-                              <div className="relative z-10 space-y-2">
-                                {/* University Logo & Type info */}
-                                <div className="flex items-center justify-between gap-1">
-                                  <div className="flex items-center gap-1.5 min-w-0">
-                                    {getUniversityLogo(dbItem.id, active, dbItem.type)}
-                                    <span className={`block text-[7.5px] font-black uppercase tracking-wider leading-none truncate max-w-[65px] ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
+                        {allDatabases
+                          .filter(dbItem => dbCategoryFilter === 'all' || dbItem.group === dbCategoryFilter)
+                          .sort((a, b) => {
+                            const aFav = favoriteDbs.includes(a.id) ? 1 : 0;
+                            const bFav = favoriteDbs.includes(b.id) ? 1 : 0;
+                            return bFav - aFav;
+                          })
+                          .map(dbItem => {
+                            const active = selectedGlobalDB === dbItem.id;
+                            const isFav = favoriteDbs.includes(dbItem.id);
+                            return (
+                              <div
+                                key={dbItem.id}
+                                onClick={() => {
+                                  if (dbItem.premium && !isDbUnlocked) {
+                                    alert(t('This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.', 'This Premium Database requires an active enterprise license API key. Click the "Unlock Premium" key trigger in the header to mock link an account.'));
+                                    return;
+                                  }
+                                  setSelectedGlobalDB(dbItem.id);
+                                }}
+                                className={`p-3.5 rounded-2xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between min-h-[115px] relative overflow-hidden group ${active ? 'bg-gradient-to-br from-blue-950/80 via-blue-900/40 to-indigo-950/80 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]' : 'bg-black/30 border-white/5 hover:bg-white/5 hover:border-white/20'} ${isFav ? 'border-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.05)]' : ''}`}
+                              >
+                                {active && <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/20 blur-xl rounded-full" />}
+                                {isFav && !active && <div className="absolute top-0 right-0 w-8 h-8 bg-amber-500/5 blur-md rounded-full" />}
+                                <div className="relative z-10 space-y-2">
+                                  {/* University Logo & Type info */}
+                                  <div className="flex items-center justify-between gap-1">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      {getUniversityLogo(dbItem.id, active, dbItem.type)}
+                                      <span className={`block text-[7.5px] font-black uppercase tracking-wider leading-none truncate max-w-[65px] ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        onClick={(e) => handleToggleFavoriteDb(dbItem.id, e)}
+                                        className={`p-1 rounded hover:bg-white/10 transition-colors cursor-pointer ${
+                                          isFav ? 'text-amber-400' : 'text-slate-600 hover:text-slate-300'
+                                        }`}
+                                        title={isFav ? t('Remove from favorites', 'Remove from favorites') : t('Add to favorites & pin to top', 'Add to favorites & pin to top')}
+                                      >
+                                        <Star className={`w-3 h-3 ${isFav ? 'fill-current' : ''}`} />
+                                      </button>
+                                      {dbItem.flag && (
+                                        <span 
+                                          className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-slate-950/40 border border-white/5 text-[7px] font-black tracking-wider text-slate-400 font-mono scale-90 origin-right hover:border-slate-500/30 hover:text-slate-200 transition-colors shrink-0"
+                                          title={`Institution Region: ${dbItem.countryCode}`}
+                                        >
+                                          <span>{dbItem.flag}</span>
+                                          <span>{dbItem.countryCode}</span>
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
-                                  {dbItem.flag && (
-                                    <span 
-                                      className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-slate-950/40 border border-white/5 text-[7px] font-black tracking-wider text-slate-400 font-mono scale-90 origin-right hover:border-slate-500/30 hover:text-slate-200 transition-colors shrink-0"
-                                      title={`Institution Region: ${dbItem.countryCode}`}
-                                    >
-                                      <span>{dbItem.flag}</span>
-                                      <span>{dbItem.countryCode}</span>
-                                    </span>
-                                  )}
+                                  <span className={`block text-[10.5px] font-bold tracking-tight leading-snug ${active ? 'text-white font-extrabold' : 'text-slate-300 group-hover:text-white'}`}>{dbItem.name}</span>
                                 </div>
-                                <span className={`block text-[10.5px] font-bold tracking-tight leading-snug ${active ? 'text-white font-extrabold' : 'text-slate-300 group-hover:text-white'}`}>{dbItem.name}</span>
+                                <span className={`block text-[8px] font-mono leading-none relative z-10 mt-2.5 ${dbItem.status === 'LOCKED' ? 'text-red-400/80 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : active ? 'text-blue-200 font-bold' : 'text-blue-400/70 font-bold'}`}>{dbItem.status}</span>
                               </div>
-                              <span className={`block text-[8px] font-mono leading-none relative z-10 mt-2.5 ${dbItem.status === 'LOCKED' ? 'text-red-400/80 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : active ? 'text-blue-200 font-bold' : 'text-blue-400/70 font-bold'}`}>{dbItem.status}</span>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
                       </div>
                     </>
                   );

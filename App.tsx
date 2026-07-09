@@ -1178,19 +1178,20 @@ const App: React.FC = () => {
           </div>
 
           {/* Desktop Top Header Bar containing context-aware tools, help and theme guides */}
-          <header className={`hidden md:flex items-center px-8 lg:px-10 py-3.5 border-b z-20 font-sans transition-all duration-300 shrink-0 ${
+          <header className={`hidden md:flex items-center px-6 lg:px-8 py-2 border-b z-20 font-sans transition-all duration-300 shrink-0 ${
             theme === 'cyberpunk'
-              ? 'bg-black border-cyber-accent/30 text-cyber-accent shadow-md shadow-cyber-accent/5'
-              : 'bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-slate-200/80 dark:border-slate-800/60 shadow-sm'
+              ? 'bg-black border-cyber-accent/30 text-cyber-accent shadow-md'
+              : 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-slate-200/50 dark:border-white/5 shadow-sm'
           }`}>
             
             {/* Left: Title & Badge */}
-            <div className="flex-1 flex items-center gap-4 justify-start overflow-hidden">
-              <div className="flex items-center gap-3">
-                <span className={`h-4.5 w-1 rounded-full ${
-                  theme === 'cyberpunk' ? 'bg-cyber-accent' : 'bg-gradient-to-b from-indigo-500 to-violet-600'
+            <div className="flex-1 flex items-center gap-3 justify-start overflow-hidden">
+              <div className="flex items-center gap-2">
+                <span className={`h-4 w-1 rounded-full ${
+                  theme === 'cyberpunk' ? 'bg-cyber-accent animate-pulse' : 'bg-indigo-500'
                 }`} />
-                <span className={`text-base font-semibold tracking-tight shrink-0 ${
+                {getModuleIcon(activeModule, true)}
+                <span className={`text-sm font-bold tracking-tight shrink-0 ${
                   theme === 'cyberpunk' ? 'text-cyber-accent font-black uppercase tracking-wider' : 'text-slate-900 dark:text-white'
                 }`}>
                   {modules.find(m => m.id === activeModule)?.label || activeModule}
@@ -1200,22 +1201,21 @@ const App: React.FC = () => {
               {/* Python Status Indicator */}
               <button
                 onClick={() => setShowPythonStatus(true)}
-                className={`flex items-center gap-2 px-2.5 py-1 rounded-lg border transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all text-[9px] font-bold uppercase tracking-wider cursor-pointer ${
                   pythonReady
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 animate-pulse'
+                    ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10'
+                    : 'bg-amber-500/5 border-amber-500/10 text-amber-500 hover:bg-amber-500/10 animate-pulse'
                 }`}
+                title="Python Engine Integration Status"
               >
-                <div className={`w-1.5 h-1.5 rounded-full ${pythonReady ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'}`} />
-                <span className="text-[10px] font-medium uppercase tracking-wider">
-                  {pythonReady ? 'Python Engine Ready' : 'Initializing Engine...'}
-                </span>
+                <div className={`w-1 h-1 rounded-full ${pythonReady ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span>{pythonReady ? 'Python' : 'Init'}</span>
               </button>
 
-              <span className={`hidden lg:inline-block text-[10px] uppercase tracking-wider font-mono px-2.5 py-1 rounded bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 shrink-0 ${
-                theme === 'cyberpunk' ? 'text-cyber-pink bg-black border-cyber-pink/30 font-bold' : 'text-slate-400 dark:text-slate-500'
+              <span className={`hidden lg:inline-block text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-white/5 shrink-0 ${
+                theme === 'cyberpunk' ? 'text-cyber-pink bg-black border-cyber-pink/20 font-bold' : 'text-slate-400 dark:text-slate-500'
               }`}>
-                {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' ? t('Computational Module', 'Computational Suite') : t('System Console', 'System Console')}
+                {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' ? t('COMPUTATIONAL', 'COMPUTATIONAL') : t('SYSTEM', 'SYSTEM')}
               </span>
             </div>
             
@@ -1227,21 +1227,21 @@ const App: React.FC = () => {
                     setIsExplained(false);
                     playSynthTone('switch');
                   }}
-                  className={`px-4 py-1.5 rounded-full border text-xs font-semibold tracking-wide cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-1.5 shadow-sm ${
+                  className={`px-3 py-1 rounded-full border text-[10px] font-bold tracking-wide cursor-pointer transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-1.5 shadow-sm ${
                     theme === 'cyberpunk'
                       ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10 bg-black'
-                      : 'border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-300'
+                      : 'border-slate-200 dark:border-white/5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                   }`}
                   title="Open the mathematical and theoretical introduction for this module"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
-                  {t('Theoretical Guide', 'Theoretical Guide')}
+                  <Sparkles className="w-3 h-3 text-indigo-500" />
+                  <span>{t('Guide', 'Guide')}</span>
                 </button>
               )}
             </div>
             
             {/* Right: Actions */}
-            <div className="flex-1 flex items-center justify-end gap-2.5 shrink-0">
+            <div className="flex-1 flex items-center justify-end gap-2 shrink-0">
               {/* Skip Intros Quick Toggle */}
               {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
                 <button
@@ -1251,15 +1251,14 @@ const App: React.FC = () => {
                     localStorage.setItem('xrd_skip_intros', nextVal.toString());
                     playSynthTone('switch');
                   }}
-                  className={`px-3 py-1.5 rounded-lg border text-[11px] font-medium tracking-wide cursor-pointer transition-all flex items-center gap-1.5 ${
+                  className={`p-1.5 rounded-lg border cursor-pointer transition-all ${
                     skipIntros 
-                      ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/80 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/60 shadow-sm'
-                      : 'bg-slate-100/60 dark:bg-slate-800/60 border-slate-200/60 dark:border-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                      ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-500 hover:bg-indigo-500/20'
+                      : 'bg-slate-100/60 dark:bg-slate-900/60 border-slate-200/50 dark:border-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                   }`}
-                  title="Toggle whether module explanations are shown automatically when switching tabs"
+                  title={skipIntros ? t('Auto-Skip Intros: On', 'Auto-Skip Intros: On') : t('Auto-Skip Intros: Off', 'Auto-Skip Intros: Off')}
                 >
-                  <FastForward className={`w-3.5 h-3.5 ${skipIntros ? 'text-indigo-500' : 'text-slate-400'}`} />
-                  <span className="hidden sm:inline">{skipIntros ? t('Auto-Skip: On', 'Auto-Skip: On') : t('Auto-Skip: Off', 'Auto-Skip: Off')}</span>
+                  <FastForward className="w-3.5 h-3.5" />
                 </button>
               )}
 
@@ -1268,15 +1267,14 @@ const App: React.FC = () => {
                   setShowShortcutsModal(true);
                   playSynthTone('switch');
                 }}
-                className={`px-3 py-1.5 rounded-lg border text-[11px] font-medium tracking-wide cursor-pointer transition-all flex items-center gap-1.5 ${
+                className={`p-1.5 rounded-lg border cursor-pointer transition-all ${
                   theme === 'cyberpunk'
                     ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10 bg-black'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm'
+                    : 'bg-slate-100/60 dark:bg-slate-900/60 border-slate-200/50 dark:border-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                 }`}
                 title="View keyboard hotkeys (Cmd+/)"
               >
-                <Terminal className="w-3.5 h-3.5 text-indigo-500" />
-                <span className="hidden lg:inline">{t('Shortcuts', 'Shortcuts')}</span>
+                <Terminal className="w-3.5 h-3.5" />
               </button>
 
               {/* Offline / Storage Status Badge & Toggle Button */}
@@ -1286,15 +1284,15 @@ const App: React.FC = () => {
                   refreshOfflineAnalyses();
                   playSynthTone('switch');
                 }}
-                className={`px-3 py-1.5 rounded-lg border text-[11px] font-medium tracking-wide cursor-pointer transition-all flex items-center gap-1.5 ${
+                className={`px-2 py-1 rounded-lg border text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1 ${
                   isOnline 
-                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 shadow-sm'
-                    : 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 shadow-sm animate-pulse'
+                    ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10'
+                    : 'bg-amber-500/5 border-amber-500/10 text-amber-500 hover:bg-amber-500/10 animate-pulse'
                 }`}
                 title="Click to open Offline Sync & IndexedDB Caching Hub"
               >
-                <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                <span>{isOnline ? t('Online Cache', 'Online Cache') : t('Offline', 'Offline')}</span>
+                <div className={`w-1 h-1 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span>{isOnline ? t('Sync', 'Sync') : t('Offline', 'Offline')}</span>
               </button>
 
               <LanguageSelector compact={true} />
@@ -1306,7 +1304,7 @@ const App: React.FC = () => {
                     setTheme(e.target.value as any);
                     playSynthTone('switch');
                   }}
-                  className={`block rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-705 text-white' : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'} py-1.5 px-2.5 text-[11px] outline-none font-medium uppercase tracking-wider cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:border-slate-400 transition-colors`}
+                  className={`block rounded-lg border ${theme !== 'light' && theme !== 'dark' ? 'bg-black border-slate-700 text-white' : 'bg-white dark:bg-slate-900 border-slate-200/50 dark:border-white/5 text-slate-700 dark:text-slate-300'} py-1 px-2 text-[10px] outline-none font-bold uppercase tracking-wider cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all`}
                 >
                   <option value="light">☀️ Light</option>
                   <option value="dark">🌙 Dark</option>
