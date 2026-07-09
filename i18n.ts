@@ -8269,8 +8269,82 @@ i18n
     }
   });
 
+// Helper to preload cached translations from localStorage
+function preloadCachedTranslations(lang: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const storageKey = localStorage.key(i);
+      if (storageKey && storageKey.startsWith(`trans_${lang}_`)) {
+        const key = storageKey.slice(`trans_${lang}_`.length);
+        const val = localStorage.getItem(storageKey);
+        if (val) {
+          i18n.addResource(lang, 'translation', key, val);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error preloading cached translations:', err);
+  }
+}
+
+// Client-side dynamic translation engine
+const translationQueue: { [lang: string]: Set<string> } = {};
+let translationTimeout: any = null;
+
+function processTranslationQueue(lang: string) {
+  if (!translationQueue[lang] || translationQueue[lang].size === 0) return;
+  
+  const keysToTranslate = Array.from(translationQueue[lang]);
+  translationQueue[lang].clear();
+  
+  fetch('/api/translate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ keys: keysToTranslate, to: lang }),
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.success && data.translations) {
+        const translations = data.translations;
+        Object.keys(translations).forEach(key => {
+          const val = translations[key];
+          if (val) {
+            localStorage.setItem(`trans_${lang}_${key}`, val);
+            i18n.addResource(lang, 'translation', key, val);
+          }
+        });
+        
+        // Refresh active language components to apply newly added resources
+        i18n.changeLanguage(lang);
+      }
+    })
+    .catch(err => {
+      console.error('Dynamic translation fetch failed:', err);
+    });
+}
+
+function queueTranslation(key: string, lang: string) {
+  if (!translationQueue[lang]) {
+    translationQueue[lang] = new Set();
+  }
+  translationQueue[lang].add(key);
+  
+  if (translationTimeout) {
+    clearTimeout(translationTimeout);
+  }
+  
+  translationTimeout = setTimeout(() => {
+    processTranslationQueue(lang);
+  }, 250);
+}
+
 // Programmatic Sync with Google Translate fallback engine
 i18n.on('languageChanged', (lng) => {
+  preloadCachedTranslations(lng);
+
   if (typeof window === 'undefined') return;
   const customLanguages = ['pirate', 'tlh', 'sjn', 'sco', 'alc', 'min'];
   let googleLang = lng;
@@ -8292,5 +8366,45 @@ i18n.on('languageChanged', (lng) => {
     console.error('Failed to trigger Google Translate sync:', err);
   }
 });
+
+// Preload translations for currently loaded language
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    if (i18n.language) {
+      preloadCachedTranslations(i18n.language);
+    }
+  }, 100);
+}
+
+const originalT = i18n.t.bind(i18n);
+
+// Monkey patch i18n.t to support fallback real-time AI translations
+i18n.t = ((key: any, ...args: any[]) => {
+  const currentLang = i18n.language;
+  
+  if (!currentLang || currentLang === 'en') {
+    return originalT(key, ...args);
+  }
+  
+  const result = originalT(key, ...args);
+  
+  if (result === key) {
+    const cached = typeof window !== 'undefined' ? localStorage.getItem(`trans_${currentLang}_${key}`) : null;
+    if (cached) {
+      i18n.addResource(currentLang, 'translation', key, cached);
+      return cached;
+    }
+    
+    const options = args[0];
+    const defaultValue = (options && typeof options === 'object' && 'defaultValue' in options) 
+      ? (options as any).defaultValue 
+      : (typeof options === 'string' ? options : key);
+      
+    queueTranslation(key, currentLang);
+    return defaultValue || key;
+  }
+  
+  return result;
+}) as any;
 
 export default i18n;

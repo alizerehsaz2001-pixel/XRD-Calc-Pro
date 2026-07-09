@@ -278,6 +278,49 @@ async function startServer() {
     res.json({ success: true, message: "User registered successfully" });
   });
 
+  app.post("/api/translate", async (req, res) => {
+    const { keys, to } = req.body;
+    try {
+      if (!keys || !Array.isArray(keys) || keys.length === 0) {
+        res.json({ success: true, translations: {} });
+        return;
+      }
+      if (!to || typeof to !== "string") {
+        res.status(400).json({ success: false, error: "A valid language code ('to') is required." });
+        return;
+      }
+
+      const ai = getGeminiClient();
+      const prompt = `Translate the following English strings into language '${to}'. Ensure translations are highly natural, accurate, and culturally appropriate for that language. Maintain all technical terms (like XRD, Rietveld, d-spacing, Miller Indices, etc.) and symbols (like 2θ, Å, etc.) unchanged if they are commonly used as-is in that language. 
+      
+      Input strings to translate:
+      ${JSON.stringify(keys, null, 2)}
+      
+      Return a single JSON object where each key is the EXACT original English input string and the value is its corresponding translated string in '${to}'. Do not wrap the response in any markdown code block, just output raw JSON.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          systemInstruction: "You are a professional material science and physics software translator. You provide high-fidelity, academically precise translations from English to other languages. You must return a JSON object with the exact keys provided mapped to their translations."
+        }
+      });
+
+      let translations = {};
+      try {
+        translations = JSON.parse(response.text || "{}");
+      } catch (parseErr) {
+        console.error("Failed to parse Gemini translation response:", response.text, parseErr);
+      }
+
+      res.json({ success: true, translations });
+    } catch (err: any) {
+      console.error("Translation error:", err);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   app.get("/api/users", (req, res) => {
     if (fs.existsSync(USERS_FILE)) {
       const data = fs.readFileSync(USERS_FILE, "utf-8");
