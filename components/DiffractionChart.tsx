@@ -391,119 +391,115 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   return (
     <div 
       ref={containerRef} 
-      className={`bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 flex flex-col relative overflow-hidden group/chart transition-all duration-500 ${
+      className={`bg-[#060B15] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/5 flex flex-col relative overflow-hidden group/chart transition-all duration-700 ${
         isFullScreen 
           ? 'fixed inset-4 z-[9999] h-[calc(100vh-32px)] text-lg' 
-          : 'h-[600px] w-full'
+          : 'h-[620px] w-full'
       }`}
     >
-      <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl group-hover/chart:bg-indigo-500/10 transition-all duration-1000" />
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 right-0 -mt-24 -mr-24 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px] group-hover/chart:bg-indigo-600/15 transition-all duration-1000 animate-pulse" />
+      <div className="absolute bottom-0 left-0 -mb-24 -ml-24 w-80 h-80 bg-cyan-600/5 rounded-full blur-[80px] transition-all duration-1000" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.02),transparent_50%)] pointer-events-none" />
       
-      <div className="flex items-center justify-between mb-8 relative z-10">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-indigo-500/20 rounded-2xl border border-indigo-500/30">
-            <Activity className="w-5 h-5 text-indigo-400" />
+      <div className="flex items-center justify-between mb-10 relative z-10">
+        <div className="flex items-center gap-5">
+          <div className="relative group/icon">
+            <div className="absolute inset-0 bg-indigo-500/40 blur-xl opacity-0 group-hover/icon:opacity-100 transition-opacity duration-500" />
+            <div className="relative p-3.5 bg-gradient-to-br from-indigo-500/20 to-indigo-600/10 rounded-2xl border border-indigo-500/30 shadow-inner">
+              <Activity className="w-6 h-6 text-indigo-400 group-hover/icon:scale-110 transition-transform duration-500" />
+            </div>
           </div>
           <div>
-            <h3 className="text-xl font-black text-white tracking-tight uppercase">{t('Spectral Visualizer', 'Spectral Visualizer')}</h3>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 flex gap-2 items-center">
-              <span>{t('Calculated Diffraction Profile', 'Calculated Diffraction Profile')}</span>
-              <span className="px-1.5 py-0.5 bg-slate-800 rounded font-mono text-[8px] text-slate-400 border border-slate-700">{t('Drag to Zoom', 'Drag to Zoom')}</span>
-            </p>
+            <h3 className="text-2xl font-black text-white tracking-tighter uppercase leading-none">{t('Spectral Visualizer', 'Spectral Visualizer')}</h3>
+            <div className="flex gap-3 items-center mt-2">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Calculated Diffraction Profile</p>
+              <div className="flex gap-1">
+                <span className="w-1 h-1 rounded-full bg-indigo-500 animate-ping" />
+                <span className="px-2 py-0.5 bg-indigo-500/10 rounded font-mono text-[8px] font-black text-indigo-400 border border-indigo-500/20 uppercase tracking-widest">{t('Drag to Zoom', 'Drag to Zoom')}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setShowHKL(!showHKL)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border ${
-              showHKL 
-                ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/30' 
-                : 'bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 border-slate-700'
-            }`}
-          >
-            <Tag className="w-3 h-3" />
-            {t('HKL Labels', 'HKL Labels')}
-          </button>
-          <button 
-            onClick={() => setSubtractBaseline(!subtractBaseline)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border ${
-              subtractBaseline 
-                ? 'bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border-purple-500/30' 
-                : 'bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 border-slate-700'
-            }`}
-          >
-            <MinusCircle className="w-3 h-3" />
-            {t('Baseline', 'Baseline')}
-          </button>
-          <button 
-            onClick={() => setSmoothChart(!smoothChart)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border ${
-              smoothChart 
-                ? 'bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border-blue-500/30' 
-                : 'bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 border-slate-700'
-            }`}
-          >
-            <Activity className="w-3 h-3" />
-            {t('Smooth', 'Smooth')}
-          </button>
-          <button 
-            onClick={() => setShowOverlap(!showOverlap)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border ${
-              showOverlap 
-                ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border-rose-500/30' 
-                : 'bg-slate-800/50 hover:bg-slate-700/50 text-slate-400 border-slate-700'
-            }`}
-          >
-            <Layers className="w-3 h-3" />
-            {t('Overlap', 'Overlap')}
-          </button>
-          <button 
-            onClick={takeSnapshot}
-            className="flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30"
-          >
-            <Camera className="w-3 h-3" />
-            {t('Take Snapshot', 'Take Snapshot')}
-          </button>
-          <button 
-            onClick={() => setIsFullScreen(!isFullScreen)}
-            className="flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30"
-          >
-            {isFullScreen ? <Minimize className="w-3 h-3" /> : <Maximize className="w-3 h-3" />}
-            {isFullScreen ? t('Minimize', 'Minimize') : t('Full Screen', 'Full Screen')}
-          </button>
+        <div className="flex items-center gap-2.5">
+          <div className="flex bg-slate-950/50 p-1.5 rounded-2xl border border-white/5 shadow-inner mr-2">
+            <button 
+              onClick={() => setShowHKL(!showHKL)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+                showHKL 
+                  ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]' 
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Tag className="w-3 h-3" />
+              {t('HKL', 'HKL')}
+            </button>
+            <button 
+              onClick={() => setSubtractBaseline(!subtractBaseline)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+                subtractBaseline 
+                  ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]' 
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <MinusCircle className="w-3 h-3" />
+              {t('Baseline', 'Baseline')}
+            </button>
+            <button 
+              onClick={() => setSmoothChart(!smoothChart)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
+                smoothChart 
+                  ? 'bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]' 
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Activity className="w-3 h-3" />
+              {t('Smooth', 'Smooth')}
+            </button>
+          </div>
+
+          <div className="flex gap-2">
+            <button 
+              onClick={takeSnapshot}
+              className="group/btn p-2.5 bg-slate-800/50 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 rounded-xl transition-all duration-300 border border-white/5 hover:border-indigo-500/30"
+              title={t('Take Snapshot', 'Take Snapshot')}
+            >
+              <Camera className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+            </button>
+            <button 
+              onClick={() => setIsFullScreen(!isFullScreen)}
+              className="group/btn p-2.5 bg-slate-800/50 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 rounded-xl transition-all duration-300 border border-white/5 hover:border-indigo-500/30"
+              title={isFullScreen ? t('Minimize', 'Minimize') : t('Full Screen', 'Full Screen')}
+            >
+              {isFullScreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            </button>
+          </div>
+
           {isZoomedIn && (
-            <div className="flex items-center gap-2 mr-2">
-              <button onClick={panLeft} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Pan Left">
-                <ArrowLeft className="w-4 h-4" />
+            <div className="flex items-center gap-1.5 ml-2 bg-slate-950/40 p-1 rounded-xl border border-white/5">
+              <button onClick={panLeft} className="p-2 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 rounded-lg transition-colors" title="Pan Left">
+                <ArrowLeft className="w-3.5 h-3.5" />
               </button>
-              <button onClick={panRight} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Pan Right">
-                <ArrowRight className="w-4 h-4" />
+              <button onClick={panRight} className="p-2 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 rounded-lg transition-colors" title="Pan Right">
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
-              <div className="w-px h-4 bg-slate-700 mx-1"></div>
-              <button onClick={zoomInStep} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Zoom In">
-                <ZoomIn className="w-4 h-4" />
-              </button>
-              <button onClick={zoomOutStep} className="p-1.5 bg-slate-800 hover:bg-indigo-500/30 text-indigo-300 rounded-lg transition-colors border border-slate-700 hover:border-indigo-500/50" title="Zoom Out">
-                 <ZoomOut className="w-4 h-4" />
-              </button>
-              <button onClick={zoomOut} className="flex items-center gap-1.5 ml-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-indigo-500/30" title="Reset">
-                 <RotateCcw className="w-3 h-3" />
-                 {t('Reset Zoom', 'Reset Zoom')}
+              <div className="w-px h-4 bg-white/10 mx-0.5"></div>
+              <button onClick={zoomOut} className="p-2 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 rounded-lg transition-colors" title="Reset">
+                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
-          <div className="flex items-center gap-3 bg-black/40 px-4 py-1.5 rounded-2xl border border-slate-800/50">
-             <Terminal className="w-3 h-3 text-slate-600" />
-             <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{t('Pattern Synthesis Active', 'Pattern Synthesis Active')}</span>
-          </div>
         </div>
       </div>
 
-      <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 select-none">
+      <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 select-none bg-[#020617]/40 rounded-3xl border border-white/5 p-4 shadow-inner">
+        {/* Graph Scientific Grid Background */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+        
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart 
-            margin={{ top: 25, right: 20, bottom: 20, left: -20 }}
+            margin={{ top: 30, right: 30, bottom: 20, left: -25 }}
             onMouseDown={(e: any) => e && setRefAreaLeft(e.activeLabel)}
             onMouseMove={(e: any) => refAreaLeft && e && setRefAreaRight(e.activeLabel)}
             onMouseUp={zoom}
@@ -514,60 +510,63 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
           >
             <defs>
                <linearGradient id="profileGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
+                  <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
+                  <stop offset="50%" stopColor="#6366f1" stopOpacity={0.1} />
                   <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                </linearGradient>
-               <linearGradient id="overlapGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.6} />
-                  <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.1} />
-               </linearGradient>
+               <filter id="glowShadow" x="-20%" y="-20%" width="140%" height="140%">
+                 <feGaussianBlur stdDeviation="3" result="blur" />
+                 <feComposite in="SourceGraphic" in2="blur" operator="over" />
+               </filter>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
+            
+            <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(255,255,255,0.03)" />
+            
             <XAxis 
               dataKey="twoTheta" 
               type="number"
               domain={[left, right]} 
               allowDataOverflow={true}
-              tick={{ fontSize: 12, fontWeight: 'black', fill: '#94a3b8', fontFamily: 'monospace' }}
-              axisLine={{ stroke: '#475569', strokeWidth: 2 }}
-              tickLine={{ stroke: '#475569', strokeWidth: 2 }}
-              label={{ value: '2θ (Degrees)', position: 'bottom', offset: 0, fill: '#cbd5e1', fontSize: 14, fontWeight: 'bold' }}
+              tick={{ fontSize: 10, fontWeight: 'black', fill: '#475569', fontFamily: 'monospace' }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.05)', strokeWidth: 1 }}
+              tickLine={{ stroke: 'rgba(255,255,255,0.05)' }}
+              label={{ value: 'Diffraction Angle 2θ', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontWeight: 'black', tracking: '0.2em', uppercase: true }}
             />
-            <YAxis hide domain={[0, 120]} />
-            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#4f46e5', strokeWidth: 1, strokeDasharray: '5 5' }} />
+            
+            <YAxis hide domain={[0, 125]} />
+            
+            <Tooltip 
+              content={<CustomTooltip />} 
+              cursor={{ stroke: 'rgba(99, 102, 241, 0.2)', strokeWidth: 1 }} 
+            />
+            
             <Legend 
               verticalAlign="top" 
-              height={36} 
-              wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#94a3b8', cursor: 'pointer', userSelect: 'none' }}
+              align="right"
+              height={40} 
+              iconType="circle"
+              wrapperStyle={{ 
+                fontSize: '9px', 
+                fontWeight: 'black', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.1em',
+                paddingRight: '10px'
+              }}
               onClick={handleLegendClick}
             />
             
-            {/* Background Pattern Area */}
             {showObserved && (
               <Area 
                 data={chartData.points}
                 type="monotone"
                 dataKey="intensity"
                 name={t('Observed Pattern', 'Observed Pattern')}
-                stroke="#818cf8"
+                stroke="#6366f1"
                 strokeWidth={3}
                 fill="url(#profileGradient)"
                 isAnimationActive={!isZoomedIn}
-                animationDuration={2000}
-              />
-            )}
-
-            {showOverlap && (
-              <Area 
-                data={chartData.points}
-                type="monotone"
-                dataKey="overlapIntensity"
-                name={t('Peak Overlap', 'Peak Overlap')}
-                stroke="#f43f5e"
-                strokeWidth={0}
-                fill="url(#overlapGradient)"
-                isAnimationActive={!isZoomedIn}
-                animationDuration={2000}
+                animationDuration={1500}
+                strokeLinecap="round"
               />
             )}
 
@@ -576,40 +575,46 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 data={chartData.points}
                 type="monotone"
                 dataKey="theoreticalIntensity"
-                name={`${materialName} (Theoretical)`}
-                stroke="#fbbf24"
-                strokeWidth={2.5}
+                name={`${materialName}`}
+                stroke="#f59e0b"
+                strokeWidth={2}
                 dot={false}
-                strokeDasharray="4 4"
+                strokeDasharray="6 4"
                 isAnimationActive={false}
+                opacity={0.7}
               />
             )}
 
-            {/* Peak Markers Scatter */}
             <Scatter 
               data={chartData.peakData} 
-              fill="#10b981"
               shape={(props: any) => {
                 const { cx, cy, payload } = props;
                 if (cx === undefined || cy === undefined || isNaN(cx) || isNaN(cy)) return null;
-                // Only render if within zoom bounds. Left and right might be string or number.
+                
                 let l = typeof left === 'string' ? payload.twoTheta - 100 : Number(left);
                 let r = typeof right === 'string' ? payload.twoTheta + 100 : Number(right);
                 if (payload.twoTheta < l || payload.twoTheta > r) return null;
                 
-                const yOffset = cy - 12 - (payload.labelLevel * 14);
+                const yOffset = cy - 20 - (payload.labelLevel * 16);
                 const isMatch = payload.isMatch;
                 const markerColor = isMatch ? "#f59e0b" : "#10b981";
                 
                 return (
-                  <g>
-                    <line x1={cx} y1={cy} x2={cx} y2={cy + 300} stroke={markerColor} strokeWidth={2} strokeDasharray="3 3" opacity={0.4} />
-                    <circle cx={cx} cy={cy} r={4} fill={markerColor} stroke="#fff" strokeWidth={1} />
+                  <g className="transition-all duration-300">
+                    <line x1={cx} y1={cy} x2={cx} y2={cy + 400} stroke={markerColor} strokeWidth={1} strokeDasharray="4 4" opacity={0.2} />
+                    <circle cx={cx} cy={cy} r={5} fill={markerColor} filter="url(#glowShadow)" stroke="white" strokeWidth={1.5} />
                     {showHKL && payload.hkl && (
                       <g>
-                        {payload.labelLevel > 0 && <line x1={cx} y1={cy - 5} x2={cx} y2={yOffset + 5} stroke="#94a3b8" strokeWidth={0.5} opacity={0.5} strokeDasharray="1 1" />}
-                        <text x={cx} y={yOffset} textAnchor="middle" fill="#94a3b8" fontSize="10" className="font-bold font-mono tracking-widest drop-shadow-md bg-slate-900">
-                          ({payload.hkl})
+                        <text 
+                          x={cx} 
+                          y={yOffset} 
+                          textAnchor="middle" 
+                          fill={markerColor} 
+                          fontSize="10" 
+                          fontWeight="black"
+                          className="font-mono tracking-tighter drop-shadow-2xl"
+                        >
+                          {payload.hkl}
                         </text>
                       </g>
                     )}
@@ -624,18 +629,21 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 x2={refAreaRight}
                 strokeOpacity={0.3}
                 fill="#6366f1"
-                fillOpacity={0.2}
+                fillOpacity={0.1}
               />
             ) : null}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      {materialName && (
-        <div className="absolute top-8 right-64 px-4 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full z-20 transition-opacity">
-           <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{materialName} Simulation</span>
+      <div className="absolute bottom-6 right-10 flex items-center gap-3 opacity-50">
+        <div className="flex flex-col items-end">
+           <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Calibration Standard</span>
+           <span className="text-[10px] font-black text-white font-mono uppercase tracking-widest">NIST-XRD-992</span>
         </div>
-      )}
+        <div className="w-px h-6 bg-white/10" />
+        <Terminal className="w-4 h-4 text-indigo-500" />
+      </div>
     </div>
   );
 };

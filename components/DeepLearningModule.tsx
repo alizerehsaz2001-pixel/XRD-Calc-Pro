@@ -3865,7 +3865,7 @@ if __name__ == '__main__':
 
   const parsedPoints = parseXYData(inputData);
 
-  // Continuous simulated spectrum for the live preview plot
+  // Continuous simulated spectrum for the live preview plot with interactive parameters
   const liveChartData = React.useMemo(() => {
     const pts = parseXYData(inputData);
     if (pts.length === 0) return [];
@@ -3880,24 +3880,34 @@ if __name__ == '__main__':
     maxT = Math.min(150, maxT + 5);
     
     const chartPoints = [];
-    const pointsCount = 125; // balance resolution vs. speed
+    // Increase points count for smoother and more complete rendering
+    const pointsCount = 200; 
     const step = (maxT - minT) / pointsCount;
     
     for (let x = minT; x <= maxT; x += step) {
       let calcInt = 0;
       for (const p of sorted) {
-        // Gaussian peak shape model
-        const s = 0.45 / 2.355; // simulated FWHM of 0.45
+        // Gaussian peak shape model utilizing interactive inputBroadening
+        const s = inputBroadening / 2.355; 
         const val = p.intensity * Math.exp(-Math.pow(x - p.twoTheta, 2) / (2 * Math.pow(s, 2)));
         calcInt += val;
       }
+      
+      // Amorphous background halo centered at 28.0 deg utilizing interactive inputBgAmorphous
+      const bg = inputBgAmorphous * 3 * Math.exp(-Math.pow(x - 28.0, 2) / (2 * Math.pow(15.0, 2)));
+      
+      // Poisson-like noise modeling utilizing interactive inputNoiseLevel
+      const baseSignal = calcInt + bg;
+      const noise = (Math.random() - 0.5) * inputNoiseLevel * 0.4;
+      const finalVal = Math.max(0, baseSignal + noise);
+      
       chartPoints.push({
         twoTheta: Number(x.toFixed(2)),
-        intensity: Number(calcInt.toFixed(2)),
+        intensity: Number(finalVal.toFixed(2)),
       });
     }
     return chartPoints;
-  }, [inputData]);
+  }, [inputData, inputBroadening, inputNoiseLevel, inputBgAmorphous]);
 
   // Savitzky-Golay compared preview data
   const sgPreviewData = React.useMemo(() => {
@@ -5235,30 +5245,44 @@ if __name__ == '__main__':
                     {/* Glowing structural accents */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl pointer-events-none rounded-full" />
                     
-                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/80 pb-3 gap-2">
                       <div className="flex flex-col gap-1">
                         <span className="text-xs font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
                           <Activity className="w-4 h-4 text-cyan-500 animate-pulse" /> Simulated Input Pattern
                         </span>
                         <span className="text-[9px] text-slate-500 font-mono uppercase tracking-wider">Crystalline Phase Diffraction Signature</span>
                       </div>
-                      <span className="text-[10px] px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 font-black font-mono border border-cyan-500/30 shadow-sm flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
-                        {parsedPoints.length} Resolved Peaks
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setInputBroadening(0.25);
+                            setInputNoiseLevel(15);
+                            setInputBgAmorphous(10);
+                            playSynthTone("tick");
+                          }}
+                          className="text-[9px] font-mono font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2 py-1 rounded transition-all"
+                          title="Reset simulation parameters to default calibration"
+                        >
+                          Reset Params
+                        </button>
+                        <span className="text-[10px] px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-300 font-black font-mono border border-cyan-500/30 shadow-sm flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                          {parsedPoints.length} Resolved Peaks
+                        </span>
+                      </div>
                     </div>
 
                     {parsedPoints.length > 0 ? (
                       <div className="space-y-6">
-                        {/* Enlarged Chart: increased height to h-96 md:h-[400px] to allow complete visualization without clutter */}
-                        <div className="h-96 md:h-[400px] bg-[#060B15]/90 border border-slate-800 rounded-2xl p-4 relative w-full shadow-[inset_0_0_20px_rgba(0,0,0,0.6)] group-hover/live:border-slate-700/60 transition-all overflow-hidden">
+                        {/* Enlarged Chart: increased height to h-[480px] sm:h-[520px] md:h-[580px] lg:h-[620px] to allow complete visualization without clutter */}
+                        <div className="h-[480px] sm:h-[520px] md:h-[580px] lg:h-[620px] bg-[#060B15]/90 border border-slate-800 rounded-2xl p-4 relative w-full shadow-[inset_0_0_20px_rgba(0,0,0,0.6)] group-hover/live:border-slate-700/60 transition-all overflow-hidden">
                           {/* Inner scientific grid overlay */}
                           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
                           
                           <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart
                               data={liveChartData}
-                              margin={{ top: 15, right: 10, bottom: 5, left: 1 }}
+                              margin={{ top: 20, right: 15, bottom: 25, left: 15 }}
                             >
                               <defs>
                                 <linearGradient id="colorLivePattern" x1="0" y1="0" x2="0" y2="1">
@@ -5273,6 +5297,7 @@ if __name__ == '__main__':
                                 tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }}
                                 tickLine={{ stroke: '#334155' }}
                                 axisLine={{ stroke: '#1e293b' }}
+                                label={{ value: '2θ Diffraction Angle (degrees)', position: 'bottom', offset: 5, fill: '#475569', fontSize: 10, fontWeight: 'bold', fontFamily: 'monospace' }}
                               />
                               <YAxis hide domain={[0, 'auto']} />
                               <CartesianGrid strokeDasharray="3 3" opacity={0.15} stroke="#334155" />
@@ -5325,58 +5350,124 @@ if __name__ == '__main__':
                           </ResponsiveContainer>
                         </div>
 
-                        {/* Analytic Peak spacing registry */}
-                        <div className="flex flex-col gap-2">
-                          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 uppercase tracking-widest font-black">
-                            <span>Peak Indexing Registry</span>
-                            <span>Scroll for all resolved reflections</span>
+                        {/* Two-Column Responsive Layout: Dynamic Interactive Sliders + Resolved Table */}
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2 border-t border-slate-800/60">
+                          {/* Left Column: Direct Interactive Simulation Sliders */}
+                          <div className="lg:col-span-5 space-y-4 bg-slate-950/65 border border-slate-800/80 p-5 rounded-2xl shadow-inner">
+                            <div className="flex items-center gap-1.5 border-b border-slate-800 pb-2 mb-1">
+                              <SlidersHorizontal className="w-3.5 h-3.5 text-cyan-400" />
+                              <span className="text-[10px] font-mono font-black text-slate-300 uppercase tracking-widest">
+                                Live Simulation Engine
+                              </span>
+                            </div>
+
+                            <div className="space-y-4">
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                  <span>Peak Broadening (FWHM)</span>
+                                  <span className="text-cyan-400 font-black">{inputBroadening.toFixed(2)}°</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0.08"
+                                  max="1.20"
+                                  step="0.02"
+                                  value={inputBroadening}
+                                  onChange={(e) => setInputBroadening(parseFloat(e.target.value))}
+                                  className="w-full accent-cyan-500 mt-1"
+                                />
+                                <p className="text-[8px] text-slate-500 font-mono leading-tight">Simulates crystallite size (Scherrer effect) & instrumental strain.</p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                  <span>Statistical Noise</span>
+                                  <span className="text-cyan-400 font-black">{inputNoiseLevel}</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="50"
+                                  step="1"
+                                  value={inputNoiseLevel}
+                                  onChange={(e) => setInputNoiseLevel(parseInt(e.target.value))}
+                                  className="w-full accent-cyan-500 mt-1"
+                                />
+                                <p className="text-[8px] text-slate-500 font-mono leading-tight">Poisson noise mimicking detector efficiency and source intensity.</p>
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                  <span>Amorphous Halo BG</span>
+                                  <span className="text-cyan-400 font-black">{inputBgAmorphous}%</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="40"
+                                  step="1"
+                                  value={inputBgAmorphous}
+                                  onChange={(e) => setInputBgAmorphous(parseInt(e.target.value))}
+                                  className="w-full accent-cyan-500 mt-1"
+                                />
+                                <p className="text-[8px] text-slate-500 font-mono leading-tight">Generates non-crystalline glass state background signal around 28° 2θ.</p>
+                              </div>
+                            </div>
                           </div>
-                          
-                          <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-800/80 rounded-2xl bg-slate-950/80 p-4 text-[11px] font-mono shadow-inner">
-                            <table className="w-full text-left border-collapse">
-                              <thead>
-                                <tr className="border-b border-slate-800 text-slate-500 text-[9px] uppercase tracking-wider">
-                                  <th className="p-2 font-black">Ref#</th>
-                                  <th className="p-2 font-black">2θ Angle</th>
-                                  <th className="p-2 font-black">d-spacing (Å)</th>
-                                  <th className="p-2 font-black text-right">Rel. Intensity</th>
-                                </tr>
-                              </thead>
-                              <tbody className="text-slate-300 divide-y divide-slate-900">
-                                {[...parsedPoints]
-                                  .sort((a, b) => a.twoTheta - b.twoTheta)
-                                  .map((pk, idx) => {
-                                    const rad = (pk.twoTheta / 2) * (Math.PI / 180);
-                                    const d = 1.5406 / (2 * Math.sin(rad));
-                                    return (
-                                      <tr key={idx} className="hover:bg-slate-900/60 transition-colors group/row">
-                                        <td className="p-2 font-bold text-slate-600 group-hover/row:text-slate-400">
-                                          #{idx + 1}
-                                        </td>
-                                        <td className="p-2 font-black text-cyan-400">
-                                          {pk.twoTheta.toFixed(3)}°
-                                        </td>
-                                        <td className="p-2 text-slate-400">
-                                          {isNaN(d) ? 'N/A' : d.toFixed(4)} Å
-                                        </td>
-                                        <td className="p-2 text-right">
-                                          <div className="flex items-center justify-end gap-3">
-                                            <div className="w-16 h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden flex shadow-inner">
-                                              <div 
-                                                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_5px_rgba(34,211,238,0.5)]"
-                                                style={{ width: `${Math.min(100, (pk.intensity / Math.max(...parsedPoints.map(p => p.intensity))) * 100)}%` }}
-                                              />
+
+                          {/* Right Column: Resolved reflections table */}
+                          <div className="lg:col-span-7 flex flex-col gap-2">
+                            <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 uppercase tracking-widest font-black">
+                              <span>Peak Indexing Registry</span>
+                              <span>Scroll for all resolved reflections</span>
+                            </div>
+                            
+                            <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-800/80 rounded-2xl bg-slate-950/80 p-4 text-[11px] font-mono shadow-inner">
+                              <table className="w-full text-left border-collapse">
+                                <thead>
+                                  <tr className="border-b border-slate-800 text-slate-500 text-[9px] uppercase tracking-wider">
+                                    <th className="p-2 font-black">Ref#</th>
+                                    <th className="p-2 font-black">2θ Angle</th>
+                                    <th className="p-2 font-black">d-spacing (Å)</th>
+                                    <th className="p-2 font-black text-right">Rel. Intensity</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="text-slate-300 divide-y divide-slate-900">
+                                  {[...parsedPoints]
+                                    .sort((a, b) => a.twoTheta - b.twoTheta)
+                                    .map((pk, idx) => {
+                                      const rad = (pk.twoTheta / 2) * (Math.PI / 180);
+                                      const d = 1.5406 / (2 * Math.sin(rad));
+                                      return (
+                                        <tr key={idx} className="hover:bg-slate-900/60 transition-colors group/row">
+                                          <td className="p-2 font-bold text-slate-600 group-hover/row:text-slate-400">
+                                            #{idx + 1}
+                                          </td>
+                                          <td className="p-2 font-black text-cyan-400">
+                                            {pk.twoTheta.toFixed(3)}°
+                                          </td>
+                                          <td className="p-2 text-slate-400">
+                                            {isNaN(d) ? 'N/A' : d.toFixed(4)} Å
+                                          </td>
+                                          <td className="p-2 text-right">
+                                            <div className="flex items-center justify-end gap-3">
+                                              <div className="w-16 h-1.5 bg-slate-900 border border-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                                                <div 
+                                                  className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_5px_rgba(34,211,238,0.5)]"
+                                                  style={{ width: `${Math.min(100, (pk.intensity / Math.max(...parsedPoints.map(p => p.intensity))) * 100)}%` }}
+                                                />
+                                              </div>
+                                              <span className="text-emerald-400 font-bold tabular-nums min-w-[32px]">
+                                                {(pk.intensity).toFixed(0)}
+                                              </span>
                                             </div>
-                                            <span className="text-emerald-400 font-bold tabular-nums min-w-[32px]">
-                                              {(pk.intensity).toFixed(0)}
-                                            </span>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                              </tbody>
-                            </table>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         </div>
                       </div>

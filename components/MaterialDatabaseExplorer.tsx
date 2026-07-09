@@ -115,6 +115,674 @@ const NORMALIZED_SYSTEMS = [
   { id: 'Amorphous & Misc', test: (sys: string) => sys.toLowerCase().includes('amorphous') || sys.toLowerCase().includes('glass') || sys.toLowerCase().includes('layered') || sys.toLowerCase().includes('mixture') || sys.toLowerCase().includes('complex') || sys.toLowerCase().includes('multiphase') }
 ];
 
+const getUniversityLogo = (id: string, active: boolean, type: string) => {
+  // Return pristine, high-fidelity SVGs based on authentic official logos & colors
+  switch (id) {
+    case 'materials_project':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#0a1120] border border-cyan-500/25 transition-all group">
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="gradSphere" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#00E5FF" />
+                <stop offset="100%" stopColor="#005082" />
+              </linearGradient>
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
+            {/* Materials Project molecular lattice logo */}
+            <line x1="50" y1="18" x2="82" y2="34" stroke="#00E5FF" strokeWidth="4" />
+            <line x1="82" y1="34" x2="82" y2="66" stroke="#00E5FF" strokeWidth="4" />
+            <line x1="82" y1="66" x2="50" y2="82" stroke="#00E5FF" strokeWidth="4" />
+            <line x1="50" y1="82" x2="18" y2="66" stroke="#00E5FF" strokeWidth="4" />
+            <line x1="18" y1="66" x2="18" y2="34" stroke="#00E5FF" strokeWidth="4" />
+            <line x1="18" y1="34" x2="50" y2="18" stroke="#00E5FF" strokeWidth="4" />
+            <line x1="50" y1="50" x2="50" y2="18" stroke="#00E5FF" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.6" />
+            <line x1="50" y1="50" x2="82" y2="34" stroke="#00E5FF" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.6" />
+            <line x1="50" y1="50" x2="82" y2="66" stroke="#00E5FF" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.6" />
+            <line x1="50" y1="50" x2="50" y2="82" stroke="#00E5FF" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.6" />
+            <line x1="50" y1="50" x2="18" y2="66" stroke="#00E5FF" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.6" />
+            <line x1="50" y1="50" x2="18" y2="34" stroke="#00E5FF" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.6" />
+            <circle cx="50" cy="18" r="8" fill="url(#gradSphere)" />
+            <circle cx="82" cy="34" r="8" fill="url(#gradSphere)" />
+            <circle cx="82" cy="66" r="8" fill="#005082" stroke="#00E5FF" strokeWidth="2" />
+            <circle cx="50" cy="82" r="8" fill="url(#gradSphere)" />
+            <circle cx="18" cy="66" r="8" fill="url(#gradSphere)" />
+            <circle cx="18" cy="34" r="8" fill="#005082" stroke="#00E5FF" strokeWidth="2" />
+            <circle cx="50" cy="50" r="10" fill="#FFFFFF" stroke="#005082" strokeWidth="2" filter="url(#glow)" />
+          </svg>
+        </div>
+      );
+
+    case 'stanford_ssrl':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#8C1515] border border-red-700/30 transition-all group">
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <svg className="w-6 h-6 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M75 30 C75 15, 25 15, 25 35 C25 55, 75 50, 75 70 C75 90, 25 90, 25 75" stroke="#FFFFFF" strokeWidth="12" strokeLinecap="round" fill="none" />
+            <path d="M50 25 L35 55 L42 55 L30 75 L42 75 L25 88 L75 88 L58 75 L70 75 L58 55 L65 55 Z" fill="#14532D" stroke="#FFFFFF" strokeWidth="2" />
+            <rect x="48" y="75" width="4" height="13" fill="#3F2A14" />
+          </svg>
+        </div>
+      );
+
+    case 'caltech_mat':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#FF6E14] border border-orange-600/30 transition-all group">
+          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="torchGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#FFFFFF" />
+                <stop offset="100%" stopColor="#FBBF24" />
+              </linearGradient>
+            </defs>
+            <path d="M15 15 C35 12, 65 12, 85 15 C85 45, 80 80, 50 95 C20 80, 15 45, 15 15 Z" fill="#FF6E14" stroke="#FFFFFF" strokeWidth="5" />
+            <path d="M50 45 L50 20 M50 45 L32 26 M50 45 L68 26 M50 45 L26 40 M50 45 L74 40" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" />
+            <path d="M42 75 C42 65, 58 65, 58 75 L55 88 L45 88 Z" fill="#FFFFFF" />
+            <path d="M48 55 L52 55 L54 75 L46 75 Z" fill="#FFFFFF" />
+            <path d="M50 30 C40 40, 42 55, 50 55 C58 55, 60 40, 50 30 Z" fill="url(#torchGrad)" />
+          </svg>
+        </div>
+      );
+
+    case 'cornell_chess':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#B31B1B] border border-red-800/30 transition-all group">
+          <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 16 L84 16 L84 55 C84 80, 50 95, 50 95 C50 95, 16 80, 16 55 Z" fill="#B31B1B" />
+            <circle cx="50" cy="52" r="28" stroke="#FBBF24" strokeWidth="5" strokeDasharray="12 6" />
+            <path d="M72 38 C60 32, 40 32, 28 38" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" />
+            <path d="M28 66 C40 72, 60 72, 72 66" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" />
+            <rect x="42" y="35" width="16" height="34" rx="2" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="1" />
+          </svg>
+        </div>
+      );
+
+    case 'gatech_mgi':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#003057] border border-indigo-950/40 transition-all group">
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M55 25 L25 25 L25 75 L55 75 L55 62 L38 62 L38 38 L55 38 Z" fill="#B3A369" />
+            <path d="M40 38 L40 25 L75 25 L75 38 L62 38 L62 75 L50 75 L50 38 Z" fill="#B3A369" stroke="#003057" strokeWidth="2" />
+          </svg>
+        </div>
+      );
+
+    case 'princeton_tmd':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-black border border-amber-600/30 transition-all group">
+          <div className="absolute inset-0 bg-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 15 L85 15 L85 55 C85 80, 50 95, 50 95 C50 95, 15 80, 15 55 Z" fill="#E7750A" />
+            <path d="M50 15 L85 15 L85 55 C85 80, 50 95, 50 95 Z" fill="#000000" />
+            <path d="M28 36 C35 31, 50 36, 50 36 C50 36, 65 31, 72 36 L72 64 C65 59, 50 64, 50 64 C50 64, 35 59, 28 64 Z" fill="#FFFFFF" />
+            <line x1="50" y1="36" x2="50" y2="64" stroke="#E7750A" strokeWidth="2" />
+            <path d="M35 44 H45 M55 44 H65 M35 52 H45 M55 52 H65" stroke="#000000" strokeWidth="1.5" />
+          </svg>
+        </div>
+      );
+
+    case 'oxford_ocgd':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#002147] border border-blue-900/40 transition-all group">
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 15 L85 15 L85 55 C85 80, 50 95, 50 95 C50 95, 15 80, 15 55 Z" fill="#002147" stroke="#FFFFFF" strokeWidth="2" />
+            <path d="M26 40 C34 37, 50 40, 50 40 C50 40, 66 37, 74 40 L74 68 C66 65, 50 68, 50 68 C50 68, 34 65, 26 68 Z" fill="#FFFFFF" />
+            <line x1="50" y1="40" x2="50" y2="68" stroke="#D4AF37" strokeWidth="2" />
+            {/* Detailed crowns */}
+            <g fill="#D4AF37">
+              <path d="M22 28 L20 22 L24 25 L28 20 L32 25 L36 22 L34 28 Z" />
+              <path d="M64 28 L62 22 L66 25 L70 20 L74 25 L78 22 L76 28 Z" />
+              <path d="M43 82 L41 76 L45 79 L49 74 L53 79 L57 76 L55 82 Z" />
+            </g>
+          </svg>
+        </div>
+      );
+
+    case 'mit_mat':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#A31F34] border border-red-800/30 transition-all group">
+          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="20" width="15" height="60" fill="#8A8B8C" />
+            <rect x="42" y="20" width="15" height="40" fill="#8A8B8C" />
+            <rect x="65" y="20" width="15" height="60" fill="#8A8B8C" />
+          </svg>
+        </div>
+      );
+
+    case 'eth_zurich':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-black border border-white/20 transition-all group">
+          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <text x="10" y="45" fill="white" fontWeight="black" fontSize="32">ETH</text>
+            <line x1="10" y1="60" x2="90" y2="60" stroke="#FFFFFF" strokeWidth="8" />
+          </svg>
+        </div>
+      );
+
+    case 'esrf_beam':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#0055A4] border border-blue-600/30 transition-all group">
+          <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <svg className="w-6 h-6 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="40" stroke="#FFFFFF" strokeWidth="8" />
+            <circle cx="50" cy="50" r="25" stroke="#FFFFFF" strokeWidth="4" opacity="0.5" />
+            <line x1="50" y1="10" x2="50" y2="90" stroke="#FFFFFF" strokeWidth="2" />
+            <line x1="10" y1="50" x2="90" y2="50" stroke="#FFFFFF" strokeWidth="2" />
+          </svg>
+        </div>
+      );
+
+    case 'imperial_imph':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#003E74] border border-blue-800/30 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Imperial College Shield, Crown & Book */}
+            <path d="M15 15 L85 15 L85 55 C85 80, 50 95, 50 95 C50 95, 15 80, 15 55 Z" fill="#003E74" stroke="#FFFFFF" strokeWidth="2" />
+            <path d="M28 33 L22 23 L36 29 L50 19 L64 29 L78 23 L72 33 Z" fill="#D4AF37" />
+            <rect x="25" y="48" width="50" height="30" rx="4" fill="#FFFFFF" />
+            <path d="M45 48 L55 48 L55 78 L45 78 Z M25 58 L75 58 L75 68 L25 68 Z" fill="#BE123C" />
+          </svg>
+        </div>
+      );
+
+    case 'grenoble_gcd':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#0D9488] border border-teal-600/30 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Grenoble / Louis Neel Flower Lattice */}
+            <circle cx="50" cy="50" r="42" fill="#0D9488" stroke="#FFFFFF" strokeWidth="4" />
+            <circle cx="50" cy="50" r="28" stroke="#CCFBF1" strokeWidth="2" strokeDasharray="5 5" />
+            <path d="M50 20 C55 35, 65 35, 80 50 C65 55, 55 65, 50 80 C45 65, 35 55, 20 50 C35 35, 45 35, 50 20 Z" fill="#CCFBF1" opacity="0.4" />
+            <circle cx="50" cy="50" r="6" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
+    case 'saclay_psqm':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#BE123C] border border-rose-700/30 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Paris-Saclay overlapping orbital curves */}
+            <rect x="5" y="5" width="90" height="90" rx="18" fill="#BE123C" />
+            <circle cx="35" cy="50" r="24" stroke="#FFFFFF" strokeWidth="5.5" strokeOpacity="0.8" />
+            <circle cx="65" cy="50" r="24" stroke="#FBBF24" strokeWidth="5.5" strokeOpacity="0.8" />
+            <path d="M50 26 C50 36, 64 50, 50 74" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
+        </div>
+      );
+
+    case 'mpi_cpfs':
+    case 'nomad_discovery':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#004F4F] border border-[#006060] transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Max Planck Minerva Bust */}
+            <circle cx="50" cy="50" r="45" fill="#004F4F" stroke="#FFFFFF" strokeWidth="4.5" />
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#FFFFFF" strokeWidth="0.8" strokeDasharray="3 2" strokeOpacity="0.6" />
+            <g fill="#FFFFFF">
+              <path d="M18 42 C15 30, 25 18, 48 15 C60 14, 75 22, 78 35 C79 38, 77 40, 72 38 C68 36, 52 34, 42 38 C32 42, 22 45, 18 42 Z" />
+              <path d="M78 35 C82 45, 80 58, 72 65 C68 62, 72 50, 72 42 Z" />
+              <path d="M48 38 L43 45 L41 53 L45 56 L40 58 L42 63 L48 65 L46 72 L32 75 L32 78 L58 78 L52 70 L55 58 Z" />
+              <path d="M30 35 L42 38 L48 48 L35 52 Z" opacity="0.95" fill="#004F4F" stroke="#FFFFFF" strokeWidth="1.8" />
+              <path d="M52 65 C58 68, 62 72, 60 78 L48 78 Z" />
+            </g>
+          </svg>
+        </div>
+      );
+
+    case 'kit_mat':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-slate-950 border border-slate-800 transition-all">
+          <svg className="w-6 h-6 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Karlsruhe Institute of Technology abstract triangles */}
+            <path d="M15 15 L50 45 L50 85 L15 55 Z" fill="#009682" />
+            <path d="M85 15 L50 45 L50 85 L85 55 Z" fill="#465A64" />
+            <line x1="50" y1="15" x2="50" y2="85" stroke="#FFFFFF" strokeWidth="4" />
+          </svg>
+        </div>
+      );
+
+    case 'tum_cryst':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#3070B3] border border-blue-500/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* TUM interlocking white block logo */}
+            <rect x="5" y="5" width="90" height="90" fill="#3070B3" />
+            <path d="M15 30 L45 30 M30 30 L30 70" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="square" />
+            <path d="M48 30 L48 64 C48 72, 64 72, 64 64 L64 30" fill="none" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="square" />
+            <path d="M68 70 L68 30 L78 52 L88 30 L88 70" fill="none" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="square" />
+          </svg>
+        </div>
+      );
+
+    case 'pku_cryst':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#990000] border border-red-800/35 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Peking University Calligraphy Seal "北大" */}
+            <circle cx="50" cy="50" r="44" fill="#990000" stroke="#FFFFFF" strokeWidth="4" />
+            <circle cx="50" cy="50" r="38" fill="none" stroke="#FFFFFF" strokeWidth="0.8" strokeDasharray="3 2" />
+            <path d="M35 32 C35 24, 45 20, 50 25 C55 20, 65 24, 65 32 M50 20 L50 48" stroke="#FFFFFF" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+            <path d="M30 38 L70 38" stroke="#FFFFFF" strokeWidth="5.5" strokeLinecap="round" />
+            <path d="M50 42 L50 82 M50 48 C38 55, 26 68, 22 80 M50 48 C62 55, 74 68, 78 80" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" fill="none" />
+          </svg>
+        </div>
+      );
+
+    case 'tsinghua_mgi':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#660066] border border-purple-700/35 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Tsinghua University purple circular seal */}
+            <circle cx="50" cy="50" r="44" fill="#660066" stroke="#FFFFFF" strokeWidth="4.5" />
+            <circle cx="50" cy="50" r="36" fill="none" stroke="#FFFFFF" strokeWidth="1.2" />
+            <polygon points="50,22 53,30 62,30 55,35 57,43 50,38 43,43 45,35 38,30 47,30" fill="#FFFFFF" />
+            <rect x="30" y="48" width="40" height="26" rx="2.5" fill="none" stroke="#FFFFFF" strokeWidth="3" />
+            <line x1="38" y1="56" x2="62" y2="56" stroke="#FFFFFF" strokeWidth="3" />
+            <line x1="50" y1="48" x2="50" y2="74" stroke="#FFFFFF" strokeWidth="3" />
+          </svg>
+        </div>
+      );
+
+    case 'cas_solid':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#1E40AF] border border-blue-700/30 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* CAS Chinese Academy of Sciences (Blue gear + green nucleus) */}
+            <circle cx="50" cy="50" r="44" fill="#1E40AF" stroke="#FFFFFF" strokeWidth="4" />
+            <circle cx="50" cy="50" r="33" fill="none" stroke="#FFFFFF" strokeWidth="3.5" strokeDasharray="10 5" />
+            <ellipse cx="50" cy="50" rx="26" ry="7" stroke="#10B981" strokeWidth="2.5" transform="rotate(45, 50, 50)" />
+            <ellipse cx="50" cy="50" rx="26" ry="7" stroke="#10B981" strokeWidth="2.5" transform="rotate(-45, 50, 50)" />
+            <circle cx="50" cy="50" r="5" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
+    case 'sjtu_mat':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#B91C1C] border border-red-700/35 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* SJTU red anchor & gear seal */}
+            <circle cx="50" cy="50" r="44" fill="#B91C1C" stroke="#FCD34D" strokeWidth="4" />
+            <circle cx="50" cy="50" r="36" fill="none" stroke="#FCD34D" strokeWidth="1.2" strokeDasharray="4 2" />
+            <rect x="36" y="44" width="28" height="12" fill="#FCD34D" rx="2" />
+            <rect x="44" y="56" width="12" height="18" fill="#FCD34D" />
+            <rect x="30" y="70" width="40" height="4" fill="#FCD34D" />
+            <circle cx="50" cy="28" r="6" stroke="#FCD34D" strokeWidth="3.2" fill="none" />
+            <line x1="50" y1="34" x2="50" y2="44" stroke="#FCD34D" strokeWidth="3.2" />
+          </svg>
+        </div>
+      );
+
+    case 'riken_mat':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-slate-950 border border-slate-800 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* RIKEN multi-ring network */}
+            <circle cx="36" cy="42" r="22" stroke="#E11D48" strokeWidth="4.5" fill="none" />
+            <circle cx="64" cy="42" r="22" stroke="#2563EB" strokeWidth="4.5" fill="none" />
+            <circle cx="50" cy="68" r="22" stroke="#059669" strokeWidth="4.5" fill="none" />
+            <circle cx="50" cy="50" r="5" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
+    case 'psi_sls':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#0a0f1d] border border-slate-800 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* PSI signature orange/red accelerator waves */}
+            <path d="M15 35 C 30 20, 45 50, 60 35 C 75 20, 85 35, 85 35" stroke="#EA580C" strokeWidth="6" strokeLinecap="round" fill="none" />
+            <path d="M15 50 C 30 35, 45 65, 60 50 C 75 35, 85 50, 85 50" stroke="#DC2626" strokeWidth="6" strokeLinecap="round" fill="none" />
+            <path d="M15 65 C 30 50, 45 80, 60 65 C 75 50, 85 65, 85 65" stroke="#F59E0B" strokeWidth="6" strokeLinecap="round" fill="none" />
+          </svg>
+        </div>
+      );
+
+    case 'lbl_als':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#0369A1] border border-sky-500/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* LBNL Advanced Light Source tangent beamlines */}
+            <circle cx="50" cy="50" r="25" stroke="#FFFFFF" strokeWidth="5" />
+            <circle cx="50" cy="50" r="38" stroke="#0284c7" strokeWidth="2.2" strokeDasharray="4 4" />
+            <line x1="72" y1="36" x2="94" y2="25" stroke="#BAE6FD" strokeWidth="3" />
+            <line x1="28" y1="64" x2="6" y2="75" stroke="#BAE6FD" strokeWidth="3" />
+            <line x1="72" y1="64" x2="94" y2="75" stroke="#BAE6FD" strokeWidth="3" />
+            <line x1="28" y1="36" x2="6" y2="25" stroke="#BAE6FD" strokeWidth="3" />
+            <circle cx="50" cy="50" r="7" fill="#FDE047" />
+          </svg>
+        </div>
+      );
+
+    case 'anl_aps':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#0891B2] border border-cyan-500/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Argonne Photon Source orbits & sphere */}
+            <circle cx="50" cy="50" r="32" fill="#0E7490" stroke="#FFFFFF" strokeWidth="2.2" />
+            <path d="M18 50 C18 68, 82 68, 82 50 C82 32, 18 32, 18 50 Z" stroke="#FFFFFF" strokeWidth="3.5" fill="none" transform="rotate(30, 50, 50)" />
+            <path d="M18 50 C18 68, 82 68, 82 50 C82 32, 18 32, 18 50 Z" stroke="#E0F2FE" strokeWidth="3" fill="none" transform="rotate(-30, 50, 50)" />
+            <circle cx="50" cy="50" r="6" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
+    case 'ornl_sns':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#059669] border border-emerald-500/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Oak Ridge Spallation Neutron leaf + rays */}
+            <rect x="10" y="10" width="80" height="80" rx="14" fill="#059669" />
+            <path d="M50 18 C54 28, 68 30, 64 45 C60 52, 74 54, 68 70 C60 72, 54 82, 50 82 C46 82, 40 72, 32 70 C26 54, 40 52, 36 45 C32 30, 46 28, 50 18 Z" fill="#D1FAE5" />
+            <circle cx="50" cy="50" r="8" fill="#059669" />
+            <line x1="50" y1="26" x2="50" y2="74" stroke="#059669" strokeWidth="2" />
+            <line x1="26" y1="50" x2="74" y2="50" stroke="#059669" strokeWidth="2" />
+          </svg>
+        </div>
+      );
+
+    case 'cea_cristal':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-slate-950 border border-slate-800 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* CEA Double tangent orange rings */}
+            <circle cx="42" cy="50" r="26" stroke="#EA580C" strokeWidth="8" fill="none" />
+            <circle cx="68" cy="50" r="14" fill="#EA580C" />
+            <line x1="42" y1="50" x2="68" y2="50" stroke="#EA580C" strokeWidth="4.5" />
+          </svg>
+        </div>
+      );
+
+    case 'mit_mgi':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#A31D1D] border border-red-800/30 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* MIT architectural columns */}
+            <rect x="15" y="20" width="16" height="60" fill="#8A8B8C" />
+            <rect x="42" y="20" width="16" height="60" fill="#FFFFFF" />
+            <rect x="69" y="40" width="16" height="40" fill="#8A8B8C" />
+            <rect x="69" y="20" width="16" height="14" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
+    case 'harvard_cep':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#A51C30] border border-red-900/30 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Harvard Crimson Shield + VERITAS books */}
+            <path d="M15 15 L85 15 L85 55 C85 80, 50 95, 50 95 C50 95, 15 80, 15 55 Z" fill="#A51C30" stroke="#FFFFFF" strokeWidth="2" />
+            <rect x="22" y="24" width="22" height="18" fill="#FFFFFF" rx="1.5" stroke="#000000" strokeWidth="0.8" />
+            <text x="33" y="36" fill="#000000" fontSize="10.5" fontWeight="900" textAnchor="middle" fontFamily="serif">VE</text>
+            <rect x="56" y="24" width="22" height="18" fill="#FFFFFF" rx="1.5" stroke="#000000" strokeWidth="0.8" />
+            <text x="67" y="36" fill="#000000" fontSize="10.5" fontWeight="900" textAnchor="middle" fontFamily="serif">RI</text>
+            <rect x="39" y="55" width="22" height="18" fill="#FFFFFF" rx="1.5" stroke="#000000" strokeWidth="0.8" />
+            <text x="50" y="67" fill="#000000" fontSize="10.5" fontWeight="900" textAnchor="middle" fontFamily="serif">TAS</text>
+          </svg>
+        </div>
+      );
+
+    case 'epfl_materials_cloud':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#E11D48] border border-rose-600/35 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* EPFL modern architectural block */}
+            <rect x="5" y="5" width="90" height="90" fill="#E11D48" />
+            <path d="M15 25 L40 25 L40 37 L27 37 L27 49 L38 49 L38 61 L27 61 L27 75 L15 75 Z" fill="#FFFFFF" />
+            <path d="M48 25 L73 25 L73 52 L60 52 L60 75 L48 75 Z" fill="#FFFFFF" />
+            <circle cx="66" cy="38" r="6.5" fill="#E11D48" />
+          </svg>
+        </div>
+      );
+
+    case 'springer_materials':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#0F766E] border border-teal-500/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Springer Knight Horse Piece */}
+            <circle cx="50" cy="50" r="44" fill="#0F766E" stroke="#CCFBF1" strokeWidth="3" />
+            <path 
+              d="M68 76 C68 62, 70 48, 62 38 C56 30, 48 28, 42 22 C36 16, 26 24, 28 32 C30 36, 34 38, 26 44 C20 48, 22 56, 32 54 C38 52, 42 46, 44 50 C46 54, 38 62, 34 76 Z" 
+              fill="#FFFFFF" 
+              stroke="#CCFBF1" 
+              strokeWidth="2" 
+              strokeLinejoin="round"
+            />
+            <circle cx="38" cy="32" r="2.5" fill="#0F766E" />
+          </svg>
+        </div>
+      );
+
+    case 'icsd':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#4F46E5] border border-indigo-500/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* ICSD FCC crystal unit cell 3D projection */}
+            <path d="M25 45 L55 35 L75 55 L45 65 Z" fill="#4F46E5" stroke="#A5B4FC" strokeWidth="2.5" />
+            <path d="M25 75 L55 65 L75 85 L45 95 Z" fill="none" stroke="#A5B4FC" strokeWidth="2.5" />
+            <line x1="25" y1="45" x2="25" y2="75" stroke="#A5B4FC" strokeWidth="2.5" />
+            <line x1="55" y1="35" x2="55" y2="65" stroke="#A5B4FC" strokeWidth="2.5" />
+            <line x1="75" y1="55" x2="75" y2="85" stroke="#A5B4FC" strokeWidth="2.5" />
+            <line x1="45" y1="65" x2="45" y2="95" stroke="#A5B4FC" strokeWidth="2.5" />
+            <circle cx="25" cy="45" r="4.5" fill="#FFFFFF" />
+            <circle cx="55" cy="35" r="4.5" fill="#FFFFFF" />
+            <circle cx="75" cy="55" r="4.5" fill="#FFFFFF" />
+            <circle cx="45" cy="65" r="4.5" fill="#FFFFFF" />
+            <circle cx="25" cy="75" r="4.5" fill="#FFFFFF" />
+            <circle cx="55" cy="65" r="4.5" fill="#FFFFFF" />
+            <circle cx="75" cy="85" r="4.5" fill="#FFFFFF" />
+            <circle cx="45" cy="95" r="4.5" fill="#FFFFFF" />
+            <circle cx="50" cy="60" r="6" fill="#F43F5E" />
+          </svg>
+        </div>
+      );
+
+    case 'ccdc':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#0891B2] border border-cyan-500/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* CCDC linked cubic lattice octagons */}
+            <path d="M50 15 L80 32 L80 68 L50 85 L20 68 L20 32 Z" fill="none" stroke="#FFFFFF" strokeWidth="3.5" />
+            <path d="M50 15 L50 42 L80 32 M50 42 L20 32" fill="none" stroke="#FFFFFF" strokeWidth="3" />
+            <path d="M50 85 L50 58 L80 68 M50 58 L20 68" fill="none" stroke="#FFFFFF" strokeWidth="3" />
+            <circle cx="50" cy="15" r="5" fill="#06B6D4" stroke="#FFFFFF" strokeWidth="1.5" />
+            <circle cx="80" cy="32" r="5" fill="#06B6D4" stroke="#FFFFFF" strokeWidth="1.5" />
+            <circle cx="80" cy="68" r="5" fill="#06B6D4" stroke="#FFFFFF" strokeWidth="1.5" />
+            <circle cx="50" cy="85" r="5" fill="#06B6D4" stroke="#FFFFFF" strokeWidth="1.5" />
+            <circle cx="20" cy="68" r="5" fill="#06B6D4" stroke="#FFFFFF" strokeWidth="1.5" />
+            <circle cx="20" cy="32" r="5" fill="#06B6D4" stroke="#FFFFFF" strokeWidth="1.5" />
+            <circle cx="50" cy="42" r="6" fill="#FFFFFF" />
+            <circle cx="50" cy="58" r="6" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
+    case 'pubchem':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#005e5d] border border-teal-600/20 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* PubChem molecular benzene ring structure */}
+            <polygon points="50,15 80,32 80,68 50,85 20,68 20,32" fill="none" stroke="#2DD4BF" strokeWidth="6" />
+            <polygon points="50,23 74,37 74,63 50,77 26,63 26,37" fill="none" stroke="#FBBF24" strokeWidth="3" strokeOpacity="0.8" />
+            <circle cx="50" cy="50" r="14" fill="#FFFFFF" stroke="#005e5d" strokeWidth="3" />
+          </svg>
+        </div>
+      );
+
+    case 'nist':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-slate-950 border border-slate-800 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* NIST red and blue exact calibration weight / grid logo */}
+            <rect x="15" y="15" width="30" height="70" fill="#DC2626" rx="3" />
+            <rect x="55" y="15" width="30" height="70" fill="#2563EB" rx="3" />
+            <line x1="15" y1="50" x2="85" y2="50" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" />
+          </svg>
+        </div>
+      );
+
+    case 'icdd':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#1E3A8A] border border-blue-700/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* ICDD gold diffracting crystal in a grid */}
+            <circle cx="50" cy="50" r="42" fill="#1E3A8A" stroke="#FFFFFF" strokeWidth="3" />
+            <line x1="50" y1="8" x2="50" y2="92" stroke="#3B82F6" strokeWidth="1.5" />
+            <line x1="8" y1="50" x2="92" y2="50" stroke="#3B82F6" strokeWidth="1.5" />
+            <polygon points="50,25 75,50 50,75 25,50" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="2.5" />
+            <circle cx="50" cy="50" r="7" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
+    case 'cod':
+    case 'cod_premium':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#065F46] border border-emerald-600/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* COD open crystallographic structure */}
+            <line x1="20" y1="20" x2="80" y2="20" stroke="#FFFFFF" strokeWidth="4" />
+            <line x1="80" y1="20" x2="80" y2="80" stroke="#FFFFFF" strokeWidth="4" />
+            <line x1="80" y1="80" x2="20" y2="80" stroke="#FFFFFF" strokeWidth="4" />
+            <line x1="20" y1="80" x2="20" y2="20" stroke="#FFFFFF" strokeWidth="4" />
+            <line x1="20" y1="20" x2="80" y2="80" stroke="#34D399" strokeWidth="3" />
+            <line x1="80" y1="20" x2="20" y2="80" stroke="#34D399" strokeWidth="3" />
+            <circle cx="20" cy="20" r="7.5" fill="#34D399" stroke="#FFFFFF" strokeWidth="2" />
+            <circle cx="80" cy="20" r="7.5" fill="#34D399" stroke="#FFFFFF" strokeWidth="2" />
+            <circle cx="80" cy="80" r="7.5" fill="#34D399" stroke="#FFFFFF" strokeWidth="2" />
+            <circle cx="20" cy="80" r="7.5" fill="#34D399" stroke="#FFFFFF" strokeWidth="2" />
+            <circle cx="50" cy="50" r="9.5" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
+    case 'pauling':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#C2410C] border border-orange-700/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Pauling hybrid chemical orbital tetrahedron */}
+            <line x1="50" y1="15" x2="80" y2="75" stroke="#FFFFFF" strokeWidth="4.5" />
+            <line x1="80" y1="75" x2="20" y2="75" stroke="#FFFFFF" strokeWidth="4.5" />
+            <line x1="20" y1="75" x2="50" y2="15" stroke="#FFFFFF" strokeWidth="4.5" />
+            <line x1="50" y1="15" x2="50" y2="52" stroke="#FFEDD5" strokeWidth="3" strokeDasharray="3 3" />
+            <line x1="80" y1="75" x2="50" y2="52" stroke="#FFEDD5" strokeWidth="3" strokeDasharray="3 3" />
+            <line x1="20" y1="75" x2="50" y2="52" stroke="#FFEDD5" strokeWidth="3" strokeDasharray="3 3" />
+            <circle cx="50" cy="15" r="7" fill="#FFFFFF" />
+            <circle cx="80" cy="75" r="7" fill="#FFFFFF" />
+            <circle cx="20" cy="75" r="7" fill="#FFFFFF" />
+            <circle cx="50" cy="52" r="9" fill="#FF873F" stroke="#FFFFFF" strokeWidth="1.5" />
+          </svg>
+        </div>
+      );
+
+    case 'cas':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#1E3A8A] border border-blue-800/30 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* CAS deep blue planetary orbital globe */}
+            <circle cx="50" cy="50" r="44" fill="#1D4ED8" stroke="#DBEAFE" strokeWidth="2.5" />
+            <path d="M10 50 C 10 20, 90 20, 90 50 C 90 80, 10 80, 10 50 Z" stroke="#FFFFFF" strokeWidth="4.5" fill="none" transform="rotate(25, 50, 50)" />
+            <path d="M10 50 C 10 20, 90 20, 90 50 C 90 80, 10 80, 10 50 Z" stroke="#38BDF8" strokeWidth="3" fill="none" transform="rotate(-35, 50, 50)" />
+            <circle cx="50" cy="50" r="8" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
+    case 'reaxys':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#C2410C] border border-orange-700/25 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Reaxys orange circle connected nodes */}
+            <circle cx="50" cy="50" r="42" fill="#EA580C" stroke="#FFFFFF" strokeWidth="4" />
+            <circle cx="35" cy="35" r="8" fill="#FFFFFF" />
+            <circle cx="65" cy="35" r="8" fill="#FFFFFF" />
+            <circle cx="50" cy="68" r="8" fill="#FFFFFF" />
+            <line x1="35" y1="35" x2="65" y2="35" stroke="#FFFFFF" strokeWidth="3.5" />
+            <line x1="65" y1="35" x2="50" y2="68" stroke="#FFFFFF" strokeWidth="3.5" />
+            <line x1="50" y1="68" x2="35" y2="35" stroke="#FFFFFF" strokeWidth="3.5" />
+          </svg>
+        </div>
+      );
+
+    case 'ams':
+    case 'amcsd':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-[#065F46] border border-emerald-600/30 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Crystalline Quartz Prisms for Mineral Databases */}
+            <polygon points="50,10 75,35 62,85 38,85 25,35" fill="#34D399" stroke="#FFFFFF" strokeWidth="3" />
+            <line x1="50" y1="10" x2="50" y2="85" stroke="#FFFFFF" strokeWidth="2.5" />
+            <line x1="25" y1="35" x2="50" y2="45" stroke="#FFFFFF" strokeWidth="2" />
+            <line x1="75" y1="35" x2="50" y2="45" stroke="#FFFFFF" strokeWidth="2" />
+            <polygon points="50,10 60,35 50,45 40,35" fill="#D1FAE5" opacity="0.6" />
+          </svg>
+        </div>
+      );
+
+    case 'matweb':
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-slate-950 border border-slate-800 transition-all">
+          <svg className="w-5.5 h-5.5 z-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* MatWeb Property mesh web */}
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#64748B" strokeWidth="2" />
+            <polygon points="50,15 80,45 68,80 32,80 20,45" fill="none" stroke="#38BDF8" strokeWidth="3" />
+            <line x1="50" y1="15" x2="68" y2="80" stroke="#38BDF8" strokeWidth="1.5" />
+            <line x1="20" y1="45" x2="80" y2="45" stroke="#38BDF8" strokeWidth="1.5" />
+            <line x1="32" y1="80" x2="50" y2="15" stroke="#38BDF8" strokeWidth="1.5" />
+            <circle cx="50" cy="15" r="5" fill="#FFFFFF" />
+            <circle cx="80" cy="45" r="5" fill="#FFFFFF" />
+            <circle cx="68" cy="80" r="5" fill="#FFFFFF" />
+            <circle cx="32" cy="80" r="5" fill="#FFFFFF" />
+            <circle cx="20" cy="45" r="5" fill="#FFFFFF" />
+          </svg>
+        </div>
+      );
+
+    default:
+      // High contrast fallback shield monogram
+      const letter = type ? type.slice(0, 2).toUpperCase() : "DB";
+      return (
+        <div className="relative flex items-center justify-center shrink-0 w-8 h-8 rounded-lg shadow-md overflow-hidden bg-slate-900/60 border border-slate-800 transition-all">
+          <div className="absolute inset-0 opacity-15 bg-slate-500" />
+          <svg className="w-5.5 h-5.5 z-10 drop-shadow-md" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path 
+              d="M15 15 C 15 15, 50 10, 50 15 C 50 10, 85 15, 85 15 C 85 45, 80 80, 50 95 C 20 80, 15 45, 15 15 Z" 
+              fill="#334155" 
+              stroke="#94A3B8" 
+              strokeWidth="5.5"
+            />
+            <text 
+              x="50%" 
+              y="50%" 
+              dominantBaseline="central" 
+              textAnchor="middle" 
+              fill="#FFFFFF" 
+              style={{ 
+                fontSize: letter.length > 2 ? '22px' : letter.length > 1 ? '32px' : '42px',
+                fontWeight: 900,
+                fontFamily: 'serif',
+                letterSpacing: '-0.05em'
+              }}
+            >
+              {letter}
+            </text>
+          </svg>
+        </div>
+      );
+  }
+};
+
 export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
   const { t } = useTranslation();
   const inspectorRef = useRef<HTMLDivElement>(null);
@@ -3227,14 +3895,18 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                                 }
                                 setSelectedGlobalDB(dbItem.id);
                               }}
-                              className={`p-3 rounded-xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between min-h-[84px] relative overflow-hidden group ${active ? 'bg-gradient-to-br from-blue-900/40 to-indigo-900/40 border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]' : 'bg-black/30 border-white/5 hover:bg-white/5 hover:border-white/20'}`}
+                              className={`p-3.5 rounded-2xl border transition-all text-left cursor-pointer select-none flex flex-col justify-between min-h-[115px] relative overflow-hidden group ${active ? 'bg-gradient-to-br from-blue-950/80 via-blue-900/40 to-indigo-950/80 border-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]' : 'bg-black/30 border-white/5 hover:bg-white/5 hover:border-white/20'}`}
                             >
-                              {active && <div className="absolute top-0 right-0 w-12 h-12 bg-blue-500/20 blur-xl rounded-full" />}
-                              <div className="relative z-10 space-y-1">
-                                <span className={`block text-[7.5px] font-black uppercase tracking-wider leading-none ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
-                                <span className={`block text-[10px] font-bold tracking-tight leading-snug ${active ? 'text-white font-extrabold' : 'text-slate-300 group-hover:text-white'}`}>{dbItem.name}</span>
+                              {active && <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/20 blur-xl rounded-full" />}
+                              <div className="relative z-10 space-y-2">
+                                {/* University Logo & Type info */}
+                                <div className="flex items-center gap-1.5">
+                                  {getUniversityLogo(dbItem.id, active, dbItem.type)}
+                                  <span className={`block text-[7.5px] font-black uppercase tracking-wider leading-none truncate max-w-[80px] ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
+                                </div>
+                                <span className={`block text-[10.5px] font-bold tracking-tight leading-snug ${active ? 'text-white font-extrabold' : 'text-slate-300 group-hover:text-white'}`}>{dbItem.name}</span>
                               </div>
-                              <span className={`block text-[8px] font-mono leading-none relative z-10 mt-2 ${dbItem.status === 'LOCKED' ? 'text-red-400/80 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : active ? 'text-blue-200 font-bold' : 'text-blue-400/70 font-bold'}`}>{dbItem.status}</span>
+                              <span className={`block text-[8px] font-mono leading-none relative z-10 mt-2.5 ${dbItem.status === 'LOCKED' ? 'text-red-400/80 font-extrabold' : dbItem.status === 'CONNECTED' ? 'text-green-400 font-extrabold animate-pulse' : active ? 'text-blue-200 font-bold' : 'text-blue-400/70 font-bold'}`}>{dbItem.status}</span>
                             </div>
                           );
                         })}

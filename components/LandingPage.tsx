@@ -849,8 +849,10 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 ${isScrolled ? 'bg-[#050B14]/80 backdrop-blur-2xl border-b border-white/10 py-3 shadow-2xl' : 'bg-transparent py-6'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
           <div className="flex items-center gap-3 group cursor-pointer" onClick={() => onEnter(isRegistered ? 'login' : 'register')}>
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-800 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.3)] group-hover:scale-105 transition-transform duration-300">
-              <Hexagon className="w-6 h-6 text-white" />
+             <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-700 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 relative overflow-hidden">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent_70%)]" />
+              <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-white/10 blur-xl rounded-full" />
+              <Hexagon className="w-6 h-6 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] relative z-10" fill="white" fillOpacity="0.1" />
             </div>
             <div className="flex flex-col">
               <div className="flex items-baseline gap-1">
@@ -1167,13 +1169,72 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
         </section>
 
         {/* --- Trust Logos --- */}
-        <section className="py-20 border-y border-slate-900 bg-slate-950 relative z-10">
-          <div className="max-w-7xl mx-auto px-6">
-            <p className="text-center text-xs font-bold text-slate-500 uppercase tracking-widest mb-12">Institutional Research & Enterprise Partners</p>
-            <div className="flex flex-wrap justify-center items-center gap-16 md:gap-32 opacity-30 grayscale hover:grayscale-0 transition-all duration-700">
-               {['Stanford', 'Oxford', 'CERN', 'Lawrence Berkeley', 'NASA'].map(logo => (
-                 <span key={logo} className="text-2xl font-bold tracking-tight text-white uppercase select-none">{logo}</span>
-               ))}
+        <section className="py-24 border-y border-white/5 bg-[#020617] relative z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.05),transparent_70%)]" />
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
+            <p className="text-center text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-16">Verified Structural Indexing Partners & Institutional Peers</p>
+            <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-1000">
+               {/* Stanford */}
+               <div className="flex items-center gap-3 group cursor-default">
+                 <div className="w-10 h-10 bg-[#8C1515] rounded-lg flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
+                   <svg className="w-6 h-6" viewBox="0 0 100 100" fill="none">
+                     <path d="M75 30 C75 15, 25 15, 25 35 C25 55, 75 50, 75 70 C75 90, 25 90, 25 75" stroke="#FFFFFF" strokeWidth="12" strokeLinecap="round" fill="none" />
+                     <path d="M50 25 L35 55 L42 55 L30 75 L42 75 L25 88 L75 88 L58 75 L70 75 L58 55 L65 55 Z" fill="#14532D" stroke="#FFFFFF" strokeWidth="2" />
+                   </svg>
+                 </div>
+                 <span className="text-lg font-bold tracking-tighter text-white">Stanford</span>
+               </div>
+
+               {/* Oxford */}
+               <div className="flex items-center gap-3 group cursor-default">
+                 <div className="w-10 h-10 bg-[#002147] rounded-lg flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
+                   <svg className="w-6 h-6" viewBox="0 0 100 100" fill="none">
+                     <path d="M15 15 L85 15 L85 55 C85 80, 50 95, 50 95 C50 95, 15 80, 15 55 Z" fill="#002147" stroke="#FFFFFF" strokeWidth="2" />
+                     <path d="M26 40 C34 37, 50 40, 50 40 C50 40, 66 37, 74 40 L74 68 C66 65, 50 68, 50 68 C50 68, 34 65, 26 68 Z" fill="#FFFFFF" />
+                     <line x1="50" y1="40" x2="50" y2="68" stroke="#D4AF37" strokeWidth="2" />
+                   </svg>
+                 </div>
+                 <span className="text-lg font-bold tracking-tighter text-white">Oxford</span>
+               </div>
+
+               {/* CERN */}
+               <div className="flex items-center gap-3 group cursor-default">
+                 <div className="w-10 h-10 bg-[#0033A0] rounded-lg flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
+                   <svg className="w-7 h-7" viewBox="0 0 100 100" fill="none">
+                     <circle cx="50" cy="50" r="40" stroke="#FFFFFF" strokeWidth="3" />
+                     <circle cx="50" cy="50" r="15" stroke="#FFFFFF" strokeWidth="2" />
+                     <line x1="50" y1="10" x2="50" y2="90" stroke="#FFFFFF" strokeWidth="2" />
+                     <line x1="10" y1="50" x2="90" y2="50" stroke="#FFFFFF" strokeWidth="2" />
+                     <path d="M20 20 L80 80 M80 20 L20 80" stroke="#FFFFFF" strokeWidth="1.5" opacity="0.4" />
+                   </svg>
+                 </div>
+                 <span className="text-lg font-bold tracking-tighter text-white">CERN</span>
+               </div>
+
+               {/* Lawrence Berkeley */}
+               <div className="flex items-center gap-3 group cursor-default">
+                 <div className="w-10 h-10 bg-[#003B5C] rounded-lg flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
+                   <svg className="w-6 h-6" viewBox="0 0 100 100" fill="none">
+                     <circle cx="50" cy="50" r="30" stroke="#FFFFFF" strokeWidth="5" />
+                     <circle cx="50" cy="50" r="12" fill="#FFFFFF" />
+                     <path d="M50 10 L50 90 M10 50 L90 50" stroke="#FFFFFF" strokeWidth="2" opacity="0.3" />
+                   </svg>
+                 </div>
+                 <span className="text-lg font-bold tracking-tighter text-white leading-none">Berkeley <br/><span className="text-[10px] text-slate-400">National Lab</span></span>
+               </div>
+
+               {/* NASA */}
+               <div className="flex items-center gap-3 group cursor-default">
+                 <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-slate-200 shadow-xl group-hover:scale-110 transition-transform">
+                   <svg className="w-7 h-7" viewBox="0 0 100 100" fill="none">
+                     <path d="M10 50 C10 20, 90 20, 90 50 C90 80, 10 80, 10 50" fill="#0B3D91" />
+                     <path d="M15 45 L45 25 L75 45 M15 55 L45 75 L75 55" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" />
+                     <circle cx="65" cy="40" r="4" fill="white" />
+                     <path d="M30 65 Q 50 40 70 65" stroke="#FC3D21" strokeWidth="3" fill="none" />
+                   </svg>
+                 </div>
+                 <span className="text-lg font-bold tracking-tighter text-white">NASA</span>
+               </div>
             </div>
           </div>
         </section>
