@@ -40,7 +40,7 @@ import { SettingsContext } from './components/SettingsContext';
 import { PeriodicTableModule } from './components/PeriodicTableModule';
 import { calculateBragg, parsePeakString } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers } from 'lucide-react';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
 import { useAuth, db, handleFirestoreError, OperationType } from './services/firebase';
@@ -49,6 +49,63 @@ import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOffli
 import { syncOfflineHelper } from './utils/materialsHelper';
 
 type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table';
+
+const getModuleIcon = (id: Module, active: boolean) => {
+  const iconProps = {
+    className: `w-4 h-4 transition-transform duration-300 group-hover:scale-110 ${
+      active ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
+    }`
+  };
+
+  switch (id) {
+    case 'bragg':
+      return <Activity {...iconProps} />;
+    case 'fwhm':
+      return <Sliders {...iconProps} />;
+    case 'selection':
+      return <Hash {...iconProps} />;
+    case 'compare':
+      return <Layers {...iconProps} />;
+    case 'scherrer':
+      return <Microscope {...iconProps} />;
+    case 'wh':
+      return <TrendingUp {...iconProps} />;
+    case 'integral':
+      return <Infinity {...iconProps} />;
+    case 'integral_adv':
+      return <Sliders {...iconProps} />;
+    case 'wa':
+      return <Network {...iconProps} />;
+    case 'preferred_orientation':
+      return <Compass {...iconProps} />;
+    case 'rietveld':
+      return <Sliders {...iconProps} />;
+    case 'neutron':
+      return <Orbit {...iconProps} />;
+    case 'magnetic':
+      return <Magnet {...iconProps} />;
+    case 'dl':
+      return <Brain {...iconProps} />;
+    case 'image_analysis':
+      return <ImageIcon {...iconProps} />;
+    case 'image_gen':
+      return <Sparkles {...iconProps} />;
+    case 'python_export':
+      return <Terminal {...iconProps} />;
+    case 'learn':
+      return <BookOpen {...iconProps} />;
+    case 'periodic_table':
+      return <Grid {...iconProps} />;
+    case 'database':
+      return <Database {...iconProps} />;
+    case 'profile':
+      return <User {...iconProps} />;
+    case 'settings':
+      return <Settings2 {...iconProps} />;
+    default:
+      return <Activity {...iconProps} />;
+  }
+};
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -1030,7 +1087,7 @@ const App: React.FC = () => {
                       {activeModule === m.id && (
                         <span className="absolute left-0 w-1 h-5 bg-white rounded-r-full" />
                       )}
-                      <span className={`w-1.5 h-1.5 rounded-full ${activeModule === m.id ? 'bg-white' : 'bg-slate-300 dark:bg-slate-700 group-hover:bg-indigo-400 dark:group-hover:bg-slate-500'}`} />
+                      {getModuleIcon(m.id, activeModule === m.id)}
                       {m.label}
                     </button>
                   ))}

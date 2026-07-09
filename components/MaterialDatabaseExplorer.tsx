@@ -3680,54 +3680,54 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 {/* Database Category Filter Tabs */}
                 {(() => {
                   const allDatabases = [
-                    { id: 'materials_project', name: 'Materials Project (UCB)', type: 'UC Berkeley / LBNL', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'stanford_ssrl', name: 'Stanford SSRL Sync', type: 'Stanford University', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'caltech_mat', name: 'Caltech Predictions', type: 'Caltech Research', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'cornell_chess', name: 'Cornell CHESS Lib', type: 'Cornell University', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'gatech_mgi', name: 'GT Materials Genome', type: 'Georgia Tech', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'princeton_tmd', name: 'Princeton Topological', type: 'Princeton Univ.', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'oxford_ocgd', name: 'Oxford OCGD', type: 'Oxford University', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'imperial_imph', name: 'Imperial IMPH Hub', type: 'Imperial College', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'grenoble_gcd', name: 'Grenoble Louis Néel', type: 'CNRS (France)', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'saclay_psqm', name: 'Paris-Saclay PSQM', type: 'Saclay (France)', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'mpi_cpfs', name: 'MPI-CPfS SolidState', type: 'Max Planck (Germany)', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'kit_mat', name: 'KIT Informatics', type: 'Karlsruhe (Germany)', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'tum_cryst', name: 'TUM Crystallography', type: 'TUM (Germany)', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'pku_cryst', name: 'PKU-Cryst Registry', type: 'Peking University', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'tsinghua_mgi', name: 'Tsinghua MatGenome', type: 'Tsinghua University', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'cas_solid', name: 'CAS Inorganic DB', type: 'CAS (China)', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'sjtu_mat', name: 'SJTU MatInformatics', type: 'SJTU (Shanghai)', status: 'FREE ACCESS', group: 'academic' },
+                    { id: 'materials_project', name: 'Materials Project (UCB)', type: 'UC Berkeley / LBNL', status: 'FREE ACCESS', group: 'academic', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'stanford_ssrl', name: 'Stanford SSRL Sync', type: 'Stanford University', status: 'FREE ACCESS', group: 'academic', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'caltech_mat', name: 'Caltech Predictions', type: 'Caltech Research', status: 'FREE ACCESS', group: 'academic', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'cornell_chess', name: 'Cornell CHESS Lib', type: 'Cornell University', status: 'FREE ACCESS', group: 'academic', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'gatech_mgi', name: 'GT Materials Genome', type: 'Georgia Tech', status: 'FREE ACCESS', group: 'academic', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'princeton_tmd', name: 'Princeton Topological', type: 'Princeton Univ.', status: 'FREE ACCESS', group: 'academic', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'oxford_ocgd', name: 'Oxford OCGD', type: 'Oxford University', status: 'FREE ACCESS', group: 'academic', flag: '🇬🇧', countryCode: 'GBR' },
+                    { id: 'imperial_imph', name: 'Imperial IMPH Hub', type: 'Imperial College', status: 'FREE ACCESS', group: 'academic', flag: '🇬🇧', countryCode: 'GBR' },
+                    { id: 'grenoble_gcd', name: 'Grenoble Louis Néel', type: 'CNRS (France)', status: 'FREE ACCESS', group: 'institute', flag: '🇫🇷', countryCode: 'FRA' },
+                    { id: 'saclay_psqm', name: 'Paris-Saclay PSQM', type: 'Saclay (France)', status: 'FREE ACCESS', group: 'institute', flag: '🇫🇷', countryCode: 'FRA' },
+                    { id: 'mpi_cpfs', name: 'MPI-CPfS SolidState', type: 'Max Planck (Germany)', status: 'FREE ACCESS', group: 'institute', flag: '🇩🇪', countryCode: 'DEU' },
+                    { id: 'kit_mat', name: 'KIT Informatics', type: 'Karlsruhe (Germany)', status: 'FREE ACCESS', group: 'academic', flag: '🇩🇪', countryCode: 'DEU' },
+                    { id: 'tum_cryst', name: 'TUM Crystallography', type: 'TUM (Germany)', status: 'FREE ACCESS', group: 'academic', flag: '🇩🇪', countryCode: 'DEU' },
+                    { id: 'pku_cryst', name: 'PKU-Cryst Registry', type: 'Peking University', status: 'FREE ACCESS', group: 'academic', flag: '🇨🇳', countryCode: 'CHN' },
+                    { id: 'tsinghua_mgi', name: 'Tsinghua MatGenome', type: 'Tsinghua University', status: 'FREE ACCESS', group: 'academic', flag: '🇨🇳', countryCode: 'CHN' },
+                    { id: 'cas_solid', name: 'CAS Inorganic DB', type: 'CAS (China)', status: 'FREE ACCESS', group: 'institute', flag: '🇨🇳', countryCode: 'CHN' },
+                    { id: 'sjtu_mat', name: 'SJTU MatInformatics', type: 'SJTU (Shanghai)', status: 'FREE ACCESS', group: 'academic', flag: '🇨🇳', countryCode: 'CHN' },
 
                     // Top Research Institutes & National Labs
-                    { id: 'riken_mat', name: 'RIKEN MatInformatics', type: 'RIKEN Institute (Japan)', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'psi_sls', name: 'PSI Swiss Light Source', type: 'Paul Scherrer Inst.', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'lbl_als', name: 'LBNL Advanced Light', type: 'LBNL / Berkeley Lab', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'anl_aps', name: 'Argonne Photon Source', type: 'Argonne NatLab', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'ornl_sns', name: 'Oak Ridge Spallation', type: 'Oak Ridge NatLab', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'cea_cristal', name: 'CEA French Atomic DB', type: 'CEA (France)', status: 'FREE ACCESS', group: 'institute' },
+                    { id: 'riken_mat', name: 'RIKEN MatInformatics', type: 'RIKEN Institute (Japan)', status: 'FREE ACCESS', group: 'institute', flag: '🇯🇵', countryCode: 'JPN' },
+                    { id: 'psi_sls', name: 'PSI Swiss Light Source', type: 'Paul Scherrer Inst.', status: 'FREE ACCESS', group: 'institute', flag: '🇨🇭', countryCode: 'CHE' },
+                    { id: 'lbl_als', name: 'LBNL Advanced Light', type: 'LBNL / Berkeley Lab', status: 'FREE ACCESS', group: 'institute', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'anl_aps', name: 'Argonne Photon Source', type: 'Argonne NatLab', status: 'FREE ACCESS', group: 'institute', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'ornl_sns', name: 'Oak Ridge Spallation', type: 'Oak Ridge NatLab', status: 'FREE ACCESS', group: 'institute', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'cea_cristal', name: 'CEA French Atomic DB', type: 'CEA (France)', status: 'FREE ACCESS', group: 'institute', flag: '🇫🇷', countryCode: 'FRA' },
 
-                    { id: 'amcsd', name: 'AMCSD Mineralogist', type: 'AMCSD / Mineral', status: 'FREE ACCESS', group: 'public' },
-                    { id: 'cod', name: 'COD Crystallography', type: 'Open-Source', status: 'FREE ACCESS', group: 'public' },
-                    { id: 'pubchem', name: 'PubChem Substance', type: 'Public', status: 'FREE ACCESS', group: 'public' },
-                    { id: 'nist', name: 'NIST WebBook', type: 'Public', status: 'FREE ACCESS', group: 'public' },
-                    { id: 'aflow', name: 'AFLOW', type: 'Academic', status: 'FREE ACCESS', group: 'public' },
-                    { id: 'oqmd', name: 'OQMD', type: 'Academic', status: 'FREE ACCESS', group: 'public' },
-                    { id: 'epfl_materials_cloud', name: 'EPFL Materials Cloud', type: 'EPFL (Switzerland)', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'mit_mgi', name: 'MIT Materials Genome', type: 'MIT / MGI', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'harvard_cep', name: 'Harvard Clean Energy', type: 'Harvard / CEP', status: 'FREE ACCESS', group: 'academic' },
-                    { id: 'nomad_discovery', name: 'NOMAD Lab', type: 'Max Planck (Germany)', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'nims_atomwork', name: 'NIMS AtomWork', type: 'Japan / NIMS', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'cern_opendata', name: 'CERN Nuclear & Space', type: 'CERN OpenData', status: 'FREE ACCESS', group: 'institute' },
-                    { id: 'icdd', name: 'ICDD PDF Standard', type: 'ICDD / PDF-5', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
-                    { id: 'springer_materials', name: 'SpringerMaterials', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
-                    { id: 'icsd', name: 'ICSD Inorganic', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
-                    { id: 'ccdc', name: 'CCDC Crystallography', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
-                    { id: 'pauling', name: 'Pauling File', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
-                    { id: 'cas', name: 'CAS Registry', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
-                    { id: 'ams', name: 'American Mineralogist Database', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
-                    { id: 'cod_premium', name: 'Crystallography Open DB (Enterprise)', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
-                    { id: 'reaxys', name: 'Reaxys (Elsevier)', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' },
-                    { id: 'matweb', name: 'MatWeb Material Property Data', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium' }
+                    { id: 'amcsd', name: 'AMCSD Mineralogist', type: 'AMCSD / Mineral', status: 'FREE ACCESS', group: 'public', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'cod', name: 'COD Crystallography', type: 'Open-Source', status: 'FREE ACCESS', group: 'public', flag: '🇪🇺', countryCode: 'EU' },
+                    { id: 'pubchem', name: 'PubChem Substance', type: 'Public', status: 'FREE ACCESS', group: 'public', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'nist', name: 'NIST WebBook', type: 'Public', status: 'FREE ACCESS', group: 'public', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'aflow', name: 'AFLOW', type: 'Academic', status: 'FREE ACCESS', group: 'public', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'oqmd', name: 'OQMD', type: 'Academic', status: 'FREE ACCESS', group: 'public', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'epfl_materials_cloud', name: 'EPFL Materials Cloud', type: 'EPFL (Switzerland)', status: 'FREE ACCESS', group: 'academic', flag: '🇨🇭', countryCode: 'CHE' },
+                    { id: 'mit_mgi', name: 'MIT Materials Genome', type: 'MIT / MGI', status: 'FREE ACCESS', group: 'academic', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'harvard_cep', name: 'Harvard Clean Energy', type: 'Harvard / CEP', status: 'FREE ACCESS', group: 'academic', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'nomad_discovery', name: 'NOMAD Lab', type: 'Max Planck (Germany)', status: 'FREE ACCESS', group: 'institute', flag: '🇩🇪', countryCode: 'DEU' },
+                    { id: 'nims_atomwork', name: 'NIMS AtomWork', type: 'Japan / NIMS', status: 'FREE ACCESS', group: 'institute', flag: '🇯🇵', countryCode: 'JPN' },
+                    { id: 'cern_opendata', name: 'CERN Nuclear & Space', type: 'CERN OpenData', status: 'FREE ACCESS', group: 'institute', flag: '🇨🇭', countryCode: 'CHE' },
+                    { id: 'icdd', name: 'ICDD PDF Standard', type: 'ICDD / PDF-5', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'springer_materials', name: 'SpringerMaterials', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium', flag: '🇩🇪', countryCode: 'DEU' },
+                    { id: 'icsd', name: 'ICSD Inorganic', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium', flag: '🇩🇪', countryCode: 'DEU' },
+                    { id: 'ccdc', name: 'CCDC Crystallography', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium', flag: '🇬🇧', countryCode: 'GBR' },
+                    { id: 'pauling', name: 'Pauling File', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium', flag: '🇨🇭', countryCode: 'CHE' },
+                    { id: 'cas', name: 'CAS Registry', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'ams', name: 'American Mineralogist Database', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium', flag: '🇺🇸', countryCode: 'USA' },
+                    { id: 'cod_premium', name: 'Crystallography Open DB (Enterprise)', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium', flag: '🇪🇺', countryCode: 'EU' },
+                    { id: 'reaxys', name: 'Reaxys (Elsevier)', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium', flag: '🇳🇱', countryCode: 'NLD' },
+                    { id: 'matweb', name: 'MatWeb Material Property Data', type: 'Premium', status: isDbUnlocked ? 'CONNECTED' : 'LOCKED', premium: true, group: 'premium', flag: '🇺🇸', countryCode: 'USA' }
                   ];
 
                   return (
@@ -3900,9 +3900,20 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                               {active && <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/20 blur-xl rounded-full" />}
                               <div className="relative z-10 space-y-2">
                                 {/* University Logo & Type info */}
-                                <div className="flex items-center gap-1.5">
-                                  {getUniversityLogo(dbItem.id, active, dbItem.type)}
-                                  <span className={`block text-[7.5px] font-black uppercase tracking-wider leading-none truncate max-w-[80px] ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
+                                <div className="flex items-center justify-between gap-1">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    {getUniversityLogo(dbItem.id, active, dbItem.type)}
+                                    <span className={`block text-[7.5px] font-black uppercase tracking-wider leading-none truncate max-w-[65px] ${active ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-400'}`}>{dbItem.type}</span>
+                                  </div>
+                                  {dbItem.flag && (
+                                    <span 
+                                      className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-slate-950/40 border border-white/5 text-[7px] font-black tracking-wider text-slate-400 font-mono scale-90 origin-right hover:border-slate-500/30 hover:text-slate-200 transition-colors shrink-0"
+                                      title={`Institution Region: ${dbItem.countryCode}`}
+                                    >
+                                      <span>{dbItem.flag}</span>
+                                      <span>{dbItem.countryCode}</span>
+                                    </span>
+                                  )}
                                 </div>
                                 <span className={`block text-[10.5px] font-bold tracking-tight leading-snug ${active ? 'text-white font-extrabold' : 'text-slate-300 group-hover:text-white'}`}>{dbItem.name}</span>
                               </div>
