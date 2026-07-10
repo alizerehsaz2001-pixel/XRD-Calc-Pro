@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NeutronAtom, NeutronResult, StandardWavelength, LatticeParameters, CrystalSystem } from '../types';
 import { calculateNeutronDiffraction, calculateXRayDiffraction, NEUTRON_SCATTERING_LENGTHS, ATOMIC_NUMBERS, NEUTRON_WAVELENGTHS, calculateCellVolume } from '../utils/physics';
 import { fetchStandardWavelengths } from '../services/geminiService';
@@ -13,10 +13,100 @@ import {
   ResponsiveContainer,
   Cell,
   Legend,
-  ComposedChart
+  ComposedChart,
+  Line
 } from 'recharts';
 import { Layers, Zap, Atom, Upload, Download, Info, ChevronDown, CheckCircle, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+const INCOHERENT_CROSS_SECTIONS: Record<string, number> = {
+  'H': 80.26,
+  'D': 2.05,
+  'He': 0.0,
+  'Li': 0.9,
+  'Be': 0.003,
+  'B': 1.7,
+  'C': 0.001,
+  'N': 0.5,
+  'O': 0.0,
+  'F': 0.0008,
+  'Ne': 0.008,
+  'Na': 1.62,
+  'Mg': 0.08,
+  'Al': 0.01,
+  'Si': 0.004,
+  'P': 0.005,
+  'S': 0.007,
+  'Cl': 3.86,
+  'Ar': 0.22,
+  'K': 0.25,
+  'Ca': 0.05,
+  'Sc': 4.5,
+  'Ti': 2.87,
+  'V': 5.08,
+  'Cr': 1.66,
+  'Mn': 0.4,
+  'Fe': 0.4,
+  'Co': 4.8,
+  'Ni': 4.8,
+  'Cu': 0.5,
+  'Zn': 0.077,
+  'Ga': 0.14,
+  'Ge': 0.09,
+  'As': 0.06,
+  'Se': 0.06,
+  'Br': 0.1,
+  'Kr': 0.0,
+  'Rb': 0.5,
+  'Sr': 0.1,
+  'Y': 0.15,
+  'Zr': 0.02,
+  'Nb': 0.002,
+  'Mo': 0.04,
+  'Tc': 0.0,
+  'Ru': 0.05,
+  'Rh': 0.0,
+  'Pd': 0.09,
+  'Ag': 0.58,
+  'Cd': 0.0,
+  'In': 0.52,
+  'Sn': 0.02,
+  'Sb': 0.12,
+  'Te': 0.09,
+  'I': 0.31,
+  'Xe': 0.0,
+  'Cs': 0.08,
+  'Ba': 0.15,
+  'La': 1.13,
+  'Ce': 0.01,
+  'Pr': 1.6,
+  'Nd': 2.4,
+  'Pm': 0.0,
+  'Sm': 0.0,
+  'Eu': 0.0,
+  'Gd': 0.0,
+  'Tb': 0.0,
+  'Dy': 3.4,
+  'Ho': 0.0,
+  'Er': 0.0,
+  'Tm': 0.0,
+  'Yb': 0.0,
+  'Lu': 0.0,
+  'Hf': 0.1,
+  'Ta': 0.01,
+  'W': 0.004,
+  'Re': 0.003,
+  'Os': 0.02,
+  'Ir': 0.3,
+  'Pt': 0.06,
+  'Au': 0.43,
+  'Hg': 0.3,
+  'Tl': 0.0,
+  'Pb': 0.003,
+  'Bi': 0.003,
+  'Th': 0.0,
+  'U': 0.01
+};
 
 export const NeutronModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.54); 
@@ -34,8 +124,12 @@ export const NeutronModule: React.FC = () => {
   const [importError, setImportError] = useState<string | null>(null);
   
   const [crystalSystem, setCrystalSystem] = useState<CrystalSystem>('Cubic');
-  const [activeRightTab, setActiveRightTab] = useState<'pattern' | 'projection' | 'contrast'>('pattern');
+  const [activeRightTab, setActiveRightTab] = useState<'pattern' | 'projection' | 'contrast' | 'rings' | 'solvent'>('pattern');
   const [projectionPlane, setProjectionPlane] = useState<'ab' | 'bc' | 'ca'>('ab');
+  const [ringRenderMode, setRingRenderMode] = useState<'total' | 'neutron' | 'xray'>('total');
+  const [showIncoherentNoise, setShowIncoherentNoise] = useState(true);
+  const [d2oFraction, setD2oFraction] = useState(50);
+  const ringsCanvasRef = useRef<HTMLCanvasElement>(null);
   const [atoms, setAtoms] = useState<NeutronAtom[]>([
     { id: '1', element: 'O', label: 'Oxygen', b: 5.80, x: 0, y: 0, z: 0, B_iso: 0.5 },
     { id: '2', element: 'Mg', label: 'Magnesium', b: 5.38, x: 0.5, y: 0.5, z: 0.5, B_iso: 0.4 },
@@ -208,6 +302,119 @@ export const NeutronModule: React.FC = () => {
     }
   };
 
+  // Debye-Scherrer powder rings canvas effect
+  useEffect(() => {
+    const canvas = ringsCanvasRef.current;
+    if (!canvas || activeRightTab !== 'rings') return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const width = rect.width;
+    const height = rect.height;
+
+    // Background: dark space look
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, 0, width, height);
+
+    const cx = width / 2;
+    const cy = height / 2;
+
+    // Center beam stop (classical detector design)
+    ctx.beginPath();
+    ctx.arc(cx, cy, 7, 0, 2 * Math.PI);
+    ctx.fillStyle = '#1e293b';
+    ctx.fill();
+
+    // Beam stop outline/lead cup shadow
+    ctx.beginPath();
+    ctx.arc(cx, cy, 14, 0, 2 * Math.PI);
+    ctx.strokeStyle = 'rgba(51, 65, 85, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Scale parameter for rings
+    const scaleFactor = width / 2.3;
+
+    // Calculate background noise level based on incoherent scattering
+    const totalInc = atoms.reduce((acc, atom) => {
+      const cs = INCOHERENT_CROSS_SECTIONS[atom.element] ?? 0.1;
+      return acc + cs;
+    }, 0);
+    const noiseFactor = showIncoherentNoise ? Math.min(0.8, (totalInc / (atoms.length || 1)) * 0.12) : 0;
+
+    // Draw diffuse incoherent haze if noise is present
+    if (noiseFactor > 0) {
+      const gradient = ctx.createRadialGradient(cx, cy, 10, cx, cy, width * 0.7);
+      gradient.addColorStop(0, `rgba(148, 163, 184, ${noiseFactor * 0.35})`);
+      gradient.addColorStop(0.5, `rgba(148, 163, 184, ${noiseFactor * 0.18})`);
+      gradient.addColorStop(1, 'rgba(148, 163, 184, 0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw background noise speckles (haze)
+      ctx.fillStyle = `rgba(148, 163, 184, ${noiseFactor * 0.45})`;
+      const speckleCount = Math.floor(noiseFactor * 250);
+      for (let s = 0; s < speckleCount; s++) {
+        const sx = Math.random() * width;
+        const sy = Math.random() * height;
+        ctx.fillRect(sx, sy, 1, 1);
+      }
+    }
+
+    const currentResults = ringRenderMode === 'xray' ? xrayResults : neutronResults;
+
+    currentResults.forEach((r) => {
+      const intensity = r.intensity;
+      let color = ringRenderMode === 'xray' ? 'rgba(168, 85, 247, 0.45)' : 'rgba(59, 130, 246, 0.45)';
+
+      if (intensity < 0.1) return;
+
+      const twoThetaRad = (r.twoTheta / 2) * (Math.PI / 180);
+      if (r.twoTheta >= 90) return; // falls out of front plate detector
+
+      const R = scaleFactor * Math.tan(twoThetaRad * 2);
+      if (R <= 0 || R > width) return;
+
+      // Draw the main blurred ring
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, 2 * Math.PI);
+      const alpha = Math.max(0.05, 0.15 + (intensity / 100) * 0.65 - noiseFactor * 0.12);
+      ctx.strokeStyle = color.replace('0.45', alpha.toString());
+      ctx.lineWidth = 1.0 + (intensity / 100) * 3;
+      ctx.stroke();
+
+      // Add spotty graininess (powder speckles)
+      const spotCount = Math.floor(intensity * 1.8);
+      ctx.fillStyle = color.replace('0.45', '0.85');
+      for (let s = 0; s < spotCount; s++) {
+        const angle = Math.random() * 2 * Math.PI;
+        const rDev = (Math.random() - 0.5) * (1.2 + (intensity / 100) * 1.5);
+        const sx = cx + (R + rDev) * Math.cos(angle);
+        const sy = cy + (R + rDev) * Math.sin(angle);
+        ctx.fillRect(sx, sy, 1.2, 1.2);
+      }
+    });
+
+    // Label for the center beam stop
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.35)';
+    ctx.font = 'bold 8px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(ringRenderMode === 'xray' ? 'X-RAY BEAM STOP' : 'NEUTRON BEAM STOP', cx, cy - 10);
+  }, [neutronResults, xrayResults, activeRightTab, ringRenderMode, showIncoherentNoise, atoms]);
+
+  // Incoherent scattering calculation
+  const totalIncoherentCrossSection = atoms.reduce((acc, atom) => {
+    const cs = INCOHERENT_CROSS_SECTIONS[atom.element] ?? 0.1;
+    return acc + cs;
+  }, 0);
+  const averageIncoherentCrossSection = totalIncoherentCrossSection / (atoms.length || 1);
+
   // Merge results for chart
   const chartData = neutronResults.map(n => {
     const x = xrayResults.find(x => x.hkl.join('') === n.hkl.join(''));
@@ -224,6 +431,21 @@ export const NeutronModule: React.FC = () => {
   const sumBSq = atoms.reduce((acc, atom) => acc + atom.b * atom.b, 0);
   const cellSLD = cellVolume > 0 ? (10 * totalB) / cellVolume : 0;
   const coherentCrossSection = sumBSq * 4 * Math.PI * 0.01; // barns
+
+  // Solvent Contrast Matching calculations
+  const solventSLD = (d2oFraction / 100) * 6.38 + (1 - d2oFraction / 100) * (-0.56);
+  const contrastFactor = Math.pow(cellSLD - solventSLD, 2);
+
+  const contrastPoints = Array.from({ length: 11 }, (_, i) => {
+    const pct = i * 10;
+    const solvSLD = (pct / 100) * 6.38 + (1 - pct / 100) * (-0.56);
+    return {
+      d2o: pct,
+      solventSLD: parseFloat(solvSLD.toFixed(3)),
+      sampleSLD: parseFloat(cellSLD.toFixed(3)),
+      contrastSq: parseFloat(Math.pow(cellSLD - solvSLD, 2).toFixed(3))
+    };
+  });
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
@@ -591,6 +813,8 @@ export const NeutronModule: React.FC = () => {
               <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-2xl border border-slate-800/80">
                  {[
                    { id: 'pattern', label: 'Diffraction Map', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30' },
+                    { id: 'rings', label: '2D Detector Rings', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' },
+                    { id: 'solvent', label: 'Solvent Contrast', color: 'text-pink-500 bg-pink-500/10 border-pink-500/30' },
                    { id: 'projection', label: 'Unit Cell Projector', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
                    { id: 'contrast', label: 'Contrast analysis', color: 'text-amber-500 bg-amber-500/10 border-amber-500/30' }
                  ].map((t) => (
@@ -639,9 +863,53 @@ export const NeutronModule: React.FC = () => {
                   ))}
                 </div>
               )}
-           </div>
 
-           {/* Panels Content */}
+
+           {activeRightTab === 'rings' && (
+                 <div className="flex flex-wrap items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-slate-800 shrink-0">
+                   <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-2">Radiation:</span>
+                   {[
+                     { id: 'total', label: 'Neutron' },
+                     { id: 'xray', label: 'X-Ray' }
+                   ].map((mode) => (
+                     <button
+                       key={mode.id}
+                       onClick={() => setRingRenderMode(mode.id as any)}
+                       className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                         ringRenderMode === mode.id
+                           ? mode.id === 'xray' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'
+                           : 'text-slate-600 hover:text-slate-400'
+                       }`}
+                     >
+                       {mode.label}
+                     </button>
+                   ))}
+                   <div className="w-px h-4 bg-slate-850 mx-1" />
+                   <button
+                     onClick={() => setShowIncoherentNoise(!showIncoherentNoise)}
+                     className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                       showIncoherentNoise
+                         ? 'bg-amber-500/20 text-amber-400'
+                         : 'text-slate-600 hover:text-slate-400'
+                     }`}
+                     title="Toggle isotropic incoherent background noise haze"
+                   >
+                     Haze: {showIncoherentNoise ? 'ON' : 'OFF'}
+                   </button>
+                 </div>
+               )}
+
+               {activeRightTab === 'solvent' && (
+                 <div className="flex items-center gap-2 shrink-0 bg-black/40 px-3 py-1.5 rounded-xl border border-slate-800">
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Solvent Mix</span>
+                   <span className="text-[10px] font-mono text-pink-400 font-extrabold bg-pink-500/10 px-1.5 py-0.5 rounded border border-pink-500/25">
+                     {100 - d2oFraction}% H₂O / {d2oFraction}% D₂O
+                   </span>
+                 </div>
+               )}
+            </div>
+
+            {/* Panels Content */}
            <div className="flex-1 flex flex-col justify-between relative z-10">
               {activeRightTab === 'pattern' && (
                  <div className="h-[360px] w-full relative z-10 flex flex-col justify-between">
@@ -913,6 +1181,146 @@ export const NeutronModule: React.FC = () => {
                     </div>
                  </div>
               )}
+
+               {activeRightTab === 'rings' && (
+                  <div className="flex flex-col lg:flex-row gap-6 items-center flex-1 py-1 animate-fadeIn">
+                     <div className="relative w-[280px] h-[280px] bg-slate-950 rounded-3xl border border-slate-800 flex items-center justify-center p-2 shadow-inner scale-100 shrink-0 overflow-hidden group/rings transition-all hover:shadow-[0_0_30px_rgba(34,211,238,0.15)]">
+                        <canvas 
+                          ref={ringsCanvasRef} 
+                          className="w-full h-full rounded-2xl cursor-crosshair"
+                          style={{ imageRendering: 'pixelated' }}
+                        />
+                        <div className="absolute bottom-3 right-3 bg-black/60 px-2 py-0.5 rounded text-[8px] font-mono text-slate-400 border border-slate-800 pointer-events-none">
+                           2D Powder Plate
+                        </div>
+                     </div>
+
+                     <div className="flex-1 flex flex-col justify-center gap-4 text-left">
+                        <div className="space-y-1">
+                           <h4 className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.25em]">2D Debye-Scherrer Rings</h4>
+                           <h3 className="text-base font-black text-white capitalize leading-tight">Diffraction Cone Projection</h3>
+                           <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                              This detector simulates a flat-plate pixel tracker intercepting the 3D Debye-Scherrer diffraction cones backscattered from a powder sample.
+                           </p>
+                        </div>
+                        
+                        <div className="space-y-2.5 bg-black/40 p-4 border border-slate-800 rounded-2xl">
+                           <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                              <span className="font-bold flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cyan-500 inline-block shadow-sm"/> Coherent Signal</span>
+                              <span className="text-white font-black">Concentric Debye Rings</span>
+                           </div>
+                           <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                              <span className="font-bold flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-500 inline-block shadow-sm"/> Background Noise</span>
+                              <span className="text-amber-500 font-black">
+                                 {showIncoherentNoise && averageIncoherentCrossSection > 4 ? 'High Haze (H-Incoherent)' : 'Low Haze'}
+                              </span>
+                           </div>
+                           <div className="w-full h-px bg-slate-800/80 my-1" />
+                           <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                              <span className="font-bold">Total Inc. Cross Section</span>
+                              <span className="text-amber-400 font-black">{totalIncoherentCrossSection.toFixed(2)} barns</span>
+                           </div>
+                        </div>
+
+                        {showIncoherentNoise && averageIncoherentCrossSection > 4 && (
+                          <div className="p-3 bg-amber-500/5 rounded-xl border border-amber-500/10 text-[10px] text-amber-400 leading-snug">
+                             <span className="font-extrabold block uppercase tracking-wider mb-0.5">⚠️ High Incoherent Haze:</span>
+                             Hydrogen has a massive incoherent cross-section (80.26 barns) that creates a diffuse isotropic background "haze", obscuring coherent rings. Click the <strong className="text-white">"D₂O Swap" preset</strong> or deuterate your atoms to clean up the signal!
+                          </div>
+                        )}
+                     </div>
+                  </div>
+               )}
+
+               {activeRightTab === 'solvent' && (
+                  <div className="flex flex-col gap-5 flex-1 py-1 animate-fadeIn">
+                     <div className="space-y-1 text-left">
+                        <h4 className="text-[10px] font-black text-pink-400 uppercase tracking-[0.25em]">Solvent Contrast Matching</h4>
+                        <h3 className="text-base font-black text-white">Scattering Length Density (SLD) Matching Curve</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                           In SANS/neutron diffraction, mixing H₂O ($b_H = -3.74$ fm) and D₂O ($b_D = 6.67$ fm) lets you vary the solvent's SLD to match specific parts of the sample, rendering them invisible and isolating other structures.
+                        </p>
+                     </div>
+
+                     <div className="h-[200px] w-full relative z-10">
+                        <ResponsiveContainer width="100%" height="100%">
+                           <ComposedChart data={contrastPoints} margin={{ top: 10, right: 10, bottom: 20, left: -20 }}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                              <XAxis 
+                                 dataKey="d2o" 
+                                 label={{ value: '% D₂O in H₂O / D₂O solvent mix', position: 'bottom', offset: 5, fill: '#64748b', fontSize: 9, fontWeight: 700 }} 
+                                 tick={{ fill: '#64748b', fontSize: 9, fontWeight: 700 }}
+                              />
+                              <YAxis 
+                                 label={{ value: 'SLD (10⁻⁶ Å⁻²)', angle: -90, position: 'insideLeft', offset: 10, fill: '#64748b', fontSize: 9, fontWeight: 700 }}
+                                 tick={{ fill: '#64748b', fontSize: 9, fontWeight: 700 }}
+                              />
+                              <Tooltip 
+                                 contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
+                                 content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                       const d = payload[0].payload;
+                                       return (
+                                          <div className="bg-slate-950 text-white p-3 rounded-xl border border-slate-800 text-[10px] space-y-1 text-left">
+                                             <p className="font-bold text-pink-400">{d.d2o}% D₂O Solvent Mix</p>
+                                             <p className="text-slate-300">Solvent SLD: <strong>{d.solventSLD} 10⁻⁶ Å⁻²</strong></p>
+                                             <p className="text-slate-300">Sample SLD: <strong>{d.sampleSLD} 10⁻⁶ Å⁻²</strong></p>
+                                             <p className="text-slate-400">Relative Contrast: <strong>{d.contrastSq} 10⁻¹² Å⁻⁴</strong></p>
+                                          </div>
+                                       );
+                                    }
+                                    return null;
+                                 }}
+                              />
+                              <Legend verticalAlign="top" height={24} wrapperStyle={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase' }} />
+                              <Line name="Solvent SLD" type="monotone" dataKey="solventSLD" stroke="#ec4899" strokeWidth={2.5} dot={{ r: 3 }} />
+                              <Line name="Sample SLD" type="monotone" dataKey="sampleSLD" stroke="#3b82f6" strokeWidth={2.5} strokeDasharray="5 5" dot={false} />
+                           </ComposedChart>
+                        </ResponsiveContainer>
+                     </div>
+
+                     <div className="bg-black/35 p-4 rounded-2xl border border-slate-800 flex flex-col gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                           <div className="flex-1">
+                              <div className="flex justify-between text-[10px] font-black uppercase tracking-wider mb-1.5">
+                                 <span className="text-slate-400">Solvent D₂O Fraction</span>
+                                 <span className="text-pink-400">{d2oFraction}%</span>
+                              </div>
+                              <input 
+                                 type="range" 
+                                 min="0" 
+                                 max="100" 
+                                 value={d2oFraction} 
+                                 onChange={(e) => setD2oFraction(parseInt(e.target.value))}
+                                 className="w-full accent-pink-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer border border-slate-800"
+                              />
+                           </div>
+                           
+                           <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 min-w-[140px] text-center flex flex-col justify-center">
+                              <span className="text-[8px] font-extrabold text-slate-500 uppercase tracking-widest">Relative Contrast</span>
+                              <span className={`text-base font-black font-mono mt-0.5 ${contrastFactor < 0.15 ? 'text-emerald-400' : 'text-pink-400 shadow-pulse'}`}>
+                                 {Math.max(0, contrastFactor * 10).toFixed(2)}
+                              </span>
+                              <span className="text-[7px] text-slate-400 uppercase mt-0.5">arbitrary scale</span>
+                           </div>
+                        </div>
+
+                        <div className="w-full h-px bg-slate-800/80" />
+
+                        <div className="text-[10px] font-mono leading-relaxed text-slate-400 text-left">
+                           {contrastFactor < 0.15 ? (
+                              <p className="text-emerald-400 font-bold animate-pulse flex items-center gap-2">
+                                 ✨ MATCH POINT ACHIEVED ({d2oFraction}% D₂O): The average nuclear scattering of the solvent perfectly matches your crystal cell! The coherent scattering signal of the cell vanishes.
+                              </p>
+                           ) : (
+                              <p>
+                                 Solvent SLD is <strong className="text-pink-400 font-bold">{solventSLD.toFixed(2)} 10⁻⁶ Å⁻²</strong>. Crystal SLD is <strong className="text-blue-400 font-bold">{cellSLD.toFixed(2)} 10⁻⁶ Å⁻²</strong>. Adjust the slider to find the crossing point where contrast drops to 0!
+                              </p>
+                           )}
+                        </div>
+                     </div>
+                  </div>
+               )}
            </div>
         </div>
 
