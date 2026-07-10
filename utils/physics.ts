@@ -1329,7 +1329,10 @@ export const calculateMagneticDiffraction = (
   lattice: LatticeParameters,
   atoms: MagneticAtom[],
   maxTwoTheta: number = 100,
-  kVector: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 }
+  kVector: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 },
+  temperature?: number,
+  criticalTemp?: number,
+  polarization?: { x: number; y: number; z: number }
 ): MagneticResult[] => {
   const results: MagneticResult[] = [];
   const { a, b, c } = lattice;
@@ -1340,6 +1343,16 @@ export const calculateMagneticDiffraction = (
   const maxIndex = Math.ceil((2 * maxDim * maxSinTheta) / wavelength) + 1;
 
   const isKZero = Math.abs(kVector.x) < 1e-4 && Math.abs(kVector.y) < 1e-4 && Math.abs(kVector.z) < 1e-4;
+
+  let tempFactor = 1.0;
+  if (temperature !== undefined && criticalTemp !== undefined && criticalTemp > 0) {
+    if (temperature >= criticalTemp) {
+      tempFactor = 0.0;
+    } else {
+      // Classic mean-field exponent beta = 0.36
+      tempFactor = Math.pow(1 - temperature / criticalTemp, 0.36);
+    }
+  }
 
   const addReflection = (
     h: number, k: number, l: number,
@@ -1362,9 +1375,9 @@ export const calculateMagneticDiffraction = (
 
     // 1. Calculate Nuclear contribution
     let In = 0;
+    let Fn_r = 0;
+    let Fn_i = 0;
     if (!isSatellite) {
-      let Fn_r = 0;
-      let Fn_i = 0;
       for (const atom of atoms) {
         const phase = 2 * Math.PI * (h * atom.x + k * atom.y + l * atom.z);
         const T = Math.exp(-atom.B_iso * s * s);
@@ -1396,9 +1409,9 @@ export const calculateMagneticDiffraction = (
         f_mag = Math.exp(-4 * s * s);
       }
 
-      const mx = atom.mx || 0;
-      const my = atom.my || 0;
-      const mz = atom.mz || 0;
+      const mx = (atom.mx || 0) * tempFactor;
+      const my = (atom.my || 0) * tempFactor;
+      const mz = (atom.mz || 0) * tempFactor;
 
       const MdotQ = mx * Qhat.x + my * Qhat.y + mz * Qhat.z;
       const weight = 2.696 * f_mag * T;
@@ -1421,12 +1434,22 @@ export const calculateMagneticDiffraction = (
          (Fm_r.y * Fm_r.y + Fm_i.y * Fm_i.y) + 
          (Fm_r.z * Fm_r.z + Fm_i.z * Fm_i.z);
 
+    let I_polarized_term = 0;
+    if (polarization && !isSatellite) {
+      // Interaction of Polarization P with real and imaginary parts of projected magnetic structure factor Fm
+      // P dot (Fn_conj * Fm_perp) + c.c.
+      const dot_r = Fn_r * Fm_r.x + Fn_i * Fm_i.x;
+      const dot_g = Fn_r * Fm_r.y + Fn_i * Fm_i.y;
+      const dot_b = Fn_r * Fm_r.z + Fn_i * Fm_i.z;
+      I_polarized_term = 2 * (dot_r * polarization.x + dot_g * polarization.y + dot_b * polarization.z);
+    }
+
     // Apply the 0.5 splitting factor for incommensurate magnetic satellites
     if (isSatellite) {
       Im = Im * 0.5;
     }
 
-    const total = (In + Im) * L;
+    const total = (In + Im + I_polarized_term) * L;
     if (total > 1e-4) {
       const twoTheta = 2 * theta * (180 / Math.PI);
       const label = isSatellite 

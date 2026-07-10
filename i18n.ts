@@ -8291,13 +8291,36 @@ function preloadCachedTranslations(lang: string) {
 // Client-side dynamic translation engine
 const translationQueue: { [lang: string]: Set<string> } = {};
 let translationTimeout: any = null;
+let lastRequestTime = 0;
+let isProcessing = false;
 
 function processTranslationQueue(lang: string) {
   if (!translationQueue[lang] || translationQueue[lang].size === 0) return;
-  
-  const keysToTranslate = Array.from(translationQueue[lang]);
-  translationQueue[lang].clear();
-  
+  if (isProcessing) {
+    if (translationTimeout) clearTimeout(translationTimeout);
+    translationTimeout = setTimeout(() => processTranslationQueue(lang), 1000);
+    return;
+  }
+
+  const now = Date.now();
+  const timeSinceLast = now - lastRequestTime;
+  if (timeSinceLast < 5000) {
+    // Cooldown: enforce at least 5 seconds between API requests
+    if (translationTimeout) clearTimeout(translationTimeout);
+    translationTimeout = setTimeout(() => processTranslationQueue(lang), 5000 - timeSinceLast);
+    return;
+  }
+
+  // Slice to a reasonable batch size (max 80 keys per request)
+  const keysToTranslate = Array.from(translationQueue[lang]).slice(0, 80);
+  if (keysToTranslate.length === 0) return;
+
+  // Remove the keys we are about to translate from the queue
+  keysToTranslate.forEach(k => translationQueue[lang].delete(k));
+
+  isProcessing = true;
+  lastRequestTime = Date.now();
+
   fetch('/api/translate', {
     method: 'POST',
     headers: {
@@ -8307,6 +8330,7 @@ function processTranslationQueue(lang: string) {
   })
     .then(res => res.json())
     .then(data => {
+      isProcessing = false;
       if (data && data.success && data.translations) {
         const translations = data.translations;
         Object.keys(translations).forEach(key => {
@@ -8318,11 +8342,29 @@ function processTranslationQueue(lang: string) {
         });
         
         // Refresh active language components to apply newly added resources
-        i18n.changeLanguage(lang);
+        if (i18n.language === lang) {
+          // Force react-i18next to re-render by emitting the event manually
+          i18n.emit('languageChanged', lang);
+        } else {
+          i18n.changeLanguage(lang);
+        }
+      }
+      
+      // If there are still keys left in the queue, schedule the next batch
+      if (translationQueue[lang].size > 0) {
+        if (translationTimeout) clearTimeout(translationTimeout);
+        translationTimeout = setTimeout(() => processTranslationQueue(lang), 5000);
       }
     })
     .catch(err => {
+      isProcessing = false;
       console.error('Dynamic translation fetch failed:', err);
+      // Put keys back in the queue so they aren't lost
+      keysToTranslate.forEach(k => translationQueue[lang].add(k));
+      
+      // Retry after 10 seconds on failure
+      if (translationTimeout) clearTimeout(translationTimeout);
+      translationTimeout = setTimeout(() => processTranslationQueue(lang), 10000);
     });
 }
 
@@ -8338,7 +8380,7 @@ function queueTranslation(key: string, lang: string) {
   
   translationTimeout = setTimeout(() => {
     processTranslationQueue(lang);
-  }, 250);
+  }, 2500); // Debounce for 2.5 seconds to collect almost all mount keys on load
 }
 
 // Programmatic Sync with Google Translate fallback engine
@@ -8360,7 +8402,16 @@ i18n.on('languageChanged', (lng) => {
     const selectEl = document.querySelector('select.goog-te-combo') as HTMLSelectElement;
     if (selectEl) {
       selectEl.value = googleLang;
-      selectEl.dispatchEvent(new Event('change'));
+      selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      // If select isn't ready, try again shortly
+      setTimeout(() => {
+        const retryEl = document.querySelector('select.goog-te-combo') as HTMLSelectElement;
+        if (retryEl) {
+          retryEl.value = googleLang;
+          retryEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }, 500);
     }
   } catch (err) {
     console.error('Failed to trigger Google Translate sync:', err);

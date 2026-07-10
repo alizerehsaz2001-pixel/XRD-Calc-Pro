@@ -278,6 +278,8 @@ async function startServer() {
     res.json({ success: true, message: "User registered successfully" });
   });
 
+  const translationCache: Record<string, Record<string, string>> = {};
+
   app.post("/api/translate", async (req, res) => {
     const { keys, to } = req.body;
     try {
@@ -290,34 +292,115 @@ async function startServer() {
         return;
       }
 
+      // Initialize cache for this language if not exists
+      if (!translationCache[to]) {
+        translationCache[to] = {};
+      }
+
+      const langCache = translationCache[to];
+      const result: Record<string, string> = {};
+      const uncachedKeys: string[] = [];
+
+      // Separate cached and uncached keys
+      for (const key of keys) {
+        if (typeof key !== "string" || !key.trim()) continue;
+        if (langCache[key]) {
+          result[key] = langCache[key];
+        } else {
+          uncachedKeys.push(key);
+        }
+      }
+
+      // If all keys were already cached, return immediately!
+      if (uncachedKeys.length === 0) {
+        res.json({ success: true, translations: result });
+        return;
+      }
+
       const ai = getGeminiClient();
       const prompt = `Translate the following English strings into language '${to}'. Ensure translations are highly natural, accurate, and culturally appropriate for that language. Maintain all technical terms (like XRD, Rietveld, d-spacing, Miller Indices, etc.) and symbols (like 2θ, Å, etc.) unchanged if they are commonly used as-is in that language. 
       
       Input strings to translate:
-      ${JSON.stringify(keys, null, 2)}
+      ${JSON.stringify(uncachedKeys, null, 2)}
       
-      Return a single JSON object where each key is the EXACT original English input string and the value is its corresponding translated string in '${to}'. Do not wrap the response in any markdown code block, just output raw JSON.`;
+      Return a single JSON object where each key is the EXACT original English input string from the array and the value is its corresponding translated string in '${to}'. Do not wrap the response in any markdown code block, just output raw JSON.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+      const translateConfig = {
         contents: prompt,
         config: {
           responseMimeType: "application/json",
           systemInstruction: "You are a professional material science and physics software translator. You provide high-fidelity, academically precise translations from English to other languages. You must return a JSON object with the exact keys provided mapped to their translations."
         }
-      });
+      };
 
-      let translations = {};
-      try {
-        translations = JSON.parse(response.text || "{}");
-      } catch (parseErr) {
-        console.error("Failed to parse Gemini translation response:", response.text, parseErr);
+      let responseText = "";
+      const modelsToTry = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
+      
+      for (const model of modelsToTry) {
+        let retries = 2;
+        let delay = 1000;
+        while (retries >= 0) {
+          try {
+            console.log(`[i18n] Attempting translation of ${uncachedKeys.length} keys to ${to} using model ${model} (retries remaining: ${retries})`);
+            const response = await ai.models.generateContent({
+              model,
+              ...translateConfig
+            });
+            if (response && response.text) {
+              responseText = response.text;
+              break;
+            }
+          } catch (apiErr: any) {
+            console.warn(`[i18n] Translation failed with model ${model} (retryable):`, apiErr.message || apiErr);
+            if (retries === 0) {
+              break;
+            }
+            retries--;
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            delay *= 2;
+          }
+        }
+        if (responseText) {
+          break;
+        }
       }
 
-      res.json({ success: true, translations });
+      if (responseText) {
+        try {
+          const parsed = JSON.parse(responseText);
+          // Store new translations in cache and in result
+          Object.keys(parsed).forEach((key) => {
+            const val = parsed[key];
+            if (typeof val === "string" && val) {
+              langCache[key] = val;
+              result[key] = val;
+            }
+          });
+        } catch (parseErr) {
+          console.error("Failed to parse Gemini translation response:", responseText, parseErr);
+        }
+      } else {
+        console.warn("[i18n] All translation models were exhausted. Falling back to empty translations dictionary.");
+      }
+
+      // Ensure every requested key has a response, fallback to the key itself if translation failed
+      for (const key of keys) {
+        if (typeof key === "string" && !result[key]) {
+          result[key] = key;
+        }
+      }
+
+      res.json({ success: true, translations: result });
     } catch (err: any) {
       console.error("Translation error:", err);
-      res.status(500).json({ success: false, error: err.message });
+      // Gracefully recover to prevent UI/API failure, returning original keys
+      const fallbackResult: Record<string, string> = {};
+      for (const key of keys) {
+        if (typeof key === "string") {
+          fallbackResult[key] = key;
+        }
+      }
+      res.json({ success: true, translations: fallbackResult });
     }
   });
 

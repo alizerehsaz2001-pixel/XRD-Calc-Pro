@@ -4,6 +4,7 @@ import { calculateMagneticDiffraction, NEUTRON_SCATTERING_LENGTHS, MAGNETIC_FORM
 import {
   ComposedChart,
   Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -31,6 +32,15 @@ export const MagneticNeutronModule: React.FC = () => {
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState("");
   const [importError, setImportError] = useState<string | null>(null);
+
+  // Simulation Environment States
+  const [temperature, setTemperature] = useState<number>(10);
+  const [criticalTemp, setCriticalTemp] = useState<number>(310);
+  const [polarizationMode, setPolarizationMode] = useState<'none' | 'up' | 'down'>('none');
+  const [visTab, setVisTab] = useState<'chart' | 'rings' | 'susceptibility'>('chart');
+  const [ringRenderMode, setRingRenderMode] = useState<'total' | 'nuclear' | 'magnetic'>('total');
+
+  const ringsCanvasRef = useRef<HTMLCanvasElement>(null);
   
   const [atoms, setAtoms] = useState<MagneticAtom[]>([
     { id: '1', element: 'Mn', label: 'Mn (Up)', b: -3.73, x: 0, y: 0, z: 0, B_iso: 0.5, mx: 0, my: 0, mz: 4, ion: 'Mn2+' },
@@ -39,8 +49,21 @@ export const MagneticNeutronModule: React.FC = () => {
 
   const [results, setResults] = useState<MagneticResult[]>([]);
 
+  const polVector = polarizationMode === 'none' 
+    ? { x: 0, y: 0, z: 0 } 
+    : (polarizationMode === 'up' ? { x: 0, y: 0, z: 1 } : { x: 0, y: 0, z: -1 });
+
   const handleCalculate = () => {
-    const computed = calculateMagneticDiffraction(wavelength, lattice, atoms, 100, kVector);
+    const computed = calculateMagneticDiffraction(
+      wavelength, 
+      lattice, 
+      atoms, 
+      100, 
+      kVector,
+      temperature,
+      criticalTemp,
+      polVector
+    );
     setResults(computed);
   };
 
@@ -50,6 +73,9 @@ export const MagneticNeutronModule: React.FC = () => {
       atoms,
       wavelength,
       kVector,
+      temperature,
+      criticalTemp,
+      polarizationMode,
       type: 'Magnetic Neutron',
       timestamp: new Date().toISOString()
     };
@@ -64,7 +90,7 @@ export const MagneticNeutronModule: React.FC = () => {
 
   useEffect(() => {
     handleCalculate();
-  }, [atoms, wavelength, lattice, kVector]);
+  }, [atoms, wavelength, lattice, kVector, temperature, criticalTemp, polarizationMode]);
 
   const updateAtom = (id: string, field: keyof MagneticAtom, value: any) => {
     setAtoms(atoms.map(a => {
@@ -237,6 +263,15 @@ export const MagneticNeutronModule: React.FC = () => {
     elements.push({ type: 'axis', p1: origin, p2: ax_b, label: 'b', color: '#10b981', z: origin.z });
     elements.push({ type: 'axis', p1: origin, p2: ax_c, label: 'c', color: '#3b82f6', z: origin.z });
 
+    let tFactor = 1.0;
+    if (temperature !== undefined && criticalTemp !== undefined && criticalTemp > 0) {
+      if (temperature >= criticalTemp) {
+        tFactor = 0.0;
+      } else {
+        tFactor = Math.pow(1 - temperature / criticalTemp, 0.36);
+      }
+    }
+
     // Atoms
     atoms.forEach((atom) => {
       const proj = project(atom.x, atom.y, atom.z);
@@ -255,9 +290,9 @@ export const MagneticNeutronModule: React.FC = () => {
         radius: 12 + Math.abs(atom.b || 3) * 0.4,
         color: color,
         label: atom.label,
-        mx: atom.mx || 0,
-        my: atom.my || 0,
-        mz: atom.mz || 0,
+        mx: (atom.mx || 0) * tFactor,
+        my: (atom.my || 0) * tFactor,
+        mz: (atom.mz || 0) * tFactor,
         z: proj.z
       });
     });
@@ -332,7 +367,7 @@ export const MagneticNeutronModule: React.FC = () => {
     ctx.textAlign = 'left';
     ctx.fillText(`ROTATION X: ${Math.round(rotation.x)}° Y: ${Math.round(rotation.y)}°`, 10, 15);
     ctx.fillText('DRAG TO ORBIT CELLS', 10, 26);
-  }, [atoms, rotation]);
+  }, [atoms, rotation, temperature, criticalTemp]);
 
   const handleImport = () => {
     try {
@@ -409,27 +444,46 @@ export const MagneticNeutronModule: React.FC = () => {
     }
   };
 
+  // Temperature influence factor
+  let tempFactor = 1.0;
+  if (temperature !== undefined && criticalTemp !== undefined && criticalTemp > 0) {
+    if (temperature >= criticalTemp) {
+      tempFactor = 0.0;
+    } else {
+      tempFactor = Math.pow(1 - temperature / criticalTemp, 0.36);
+    }
+  }
+
   // Magnetic computed values
   const cellVolume = calculateCellVolume ? calculateCellVolume(lattice) : (lattice.a * lattice.b * lattice.c);
   const totalB = atoms.reduce((acc, atom) => acc + (atom.b || 0), 0);
   const cellSLD = cellVolume > 0 ? (10 * totalB) / cellVolume : 0;
 
-  // Net magnetic moment vector and its magnitude
-  const netMx = atoms.reduce((acc, a) => acc + (a.mx || 0), 0);
-  const netMy = atoms.reduce((acc, a) => acc + (a.my || 0), 0);
-  const netMz = atoms.reduce((acc, a) => acc + (a.mz || 0), 0);
+  // Net magnetic moment vector and its magnitude (temperature corrected)
+  const netMx = atoms.reduce((acc, a) => acc + (a.mx || 0) * tempFactor, 0);
+  const netMy = atoms.reduce((acc, a) => acc + (a.my || 0) * tempFactor, 0);
+  const netMz = atoms.reduce((acc, a) => acc + (a.mz || 0) * tempFactor, 0);
   const netMomentMagnitude = Math.sqrt(netMx*netMx + netMy*netMy + netMz*netMz);
 
-  // Total absolute moment in cell
+  // Total absolute moment in cell (temperature corrected)
   const sumAbsMoment = atoms.reduce((acc, a) => {
-    const magnitude = Math.sqrt((a.mx||0)**2 + (a.my||0)**2 + (a.mz||0)**2);
+    const magnitude = Math.sqrt(((a.mx||0) * tempFactor)**2 + ((a.my||0) * tempFactor)**2 + ((a.mz||0) * tempFactor)**2);
     return acc + magnitude;
   }, 0);
 
-  // Determine magnetic order classification
+  // Determine magnetic order classification (at 0K or simulated state)
+  const sumAbsMoment0K = atoms.reduce((acc, a) => {
+    const magnitude = Math.sqrt((a.mx||0)**2 + (a.my||0)**2 + (a.mz||0)**2);
+    return acc + magnitude;
+  }, 0);
+  const netMx0K = atoms.reduce((acc, a) => acc + (a.mx || 0), 0);
+  const netMy0K = atoms.reduce((acc, a) => acc + (a.my || 0), 0);
+  const netMz0K = atoms.reduce((acc, a) => acc + (a.mz || 0), 0);
+  const netMomentMagnitude0K = Math.sqrt(netMx0K*netMx0K + netMy0K*netMy0K + netMz0K*netMz0K);
+
   let orderType = 'Paramagnetic (PM)';
   let isNonCollinear = false;
-  if (sumAbsMoment > 0.05) {
+  if (sumAbsMoment0K > 0.05) {
     const nonZeroMoments = atoms
       .map(a => [a.mx || 0, a.my || 0, a.mz || 0])
       .filter(v => Math.sqrt(v[0]**2 + v[1]**2 + v[2]**2) > 0.05);
@@ -451,14 +505,134 @@ export const MagneticNeutronModule: React.FC = () => {
       }
     }
 
-    if (netMomentMagnitude < 0.05) {
+    if (temperature >= criticalTemp) {
+      orderType = `Paramagnetic (Fluctuations above T_c=${criticalTemp}K)`;
+    } else if (netMomentMagnitude0K < 0.05) {
       orderType = isNonCollinear ? 'Spiral Helimagnetic' : 'Antiferromagnetic (AFM)';
-    } else if (Math.abs(netMomentMagnitude - sumAbsMoment) < 0.05) {
+    } else if (Math.abs(netMomentMagnitude0K - sumAbsMoment0K) < 0.05) {
       orderType = 'Ferromagnetic (FM)';
     } else {
       orderType = 'Ferrimagnetic (FiM) / Canted';
     }
   }
+
+  // Curie-Weiss paramagnetism simulation points
+  const getCurieWeissPoints = () => {
+    const thetaCW = orderType.includes('Ferro') || orderType.includes('FM')
+      ? 0.9 * criticalTemp 
+      : (orderType.includes('Anti') || orderType.includes('AFM') || orderType.includes('Spiral') ? -0.5 * criticalTemp : 0.2 * criticalTemp);
+    
+    const sumSqMoments = atoms.reduce((acc, a) => {
+      const mag = (a.mx||0)**2 + (a.my||0)**2 + (a.mz||0)**2;
+      return acc + mag;
+    }, 0);
+    const C = Math.max(0.1, 0.125 * sumSqMoments);
+
+    const points = [];
+    const tMin = Math.max(1, criticalTemp + 10);
+    const tMax = tMin + 400;
+    const steps = 40;
+    const stepSize = (tMax - tMin) / steps;
+
+    for (let i = 0; i <= steps; i++) {
+      const T = tMin + i * stepSize;
+      const chi = C / (T - thetaCW);
+      points.push({
+        T: parseFloat(T.toFixed(0)),
+        chi: parseFloat(chi.toFixed(5)),
+        invChi: parseFloat((1 / chi).toFixed(2)),
+        linearFit: parseFloat(((T - thetaCW) / C).toFixed(2))
+      });
+    }
+    return { points, thetaCW, C };
+  };
+
+  const curieWeiss = getCurieWeissPoints();
+
+  // Debye-Scherrer powder rings canvas effect
+  useEffect(() => {
+    const canvas = ringsCanvasRef.current;
+    if (!canvas || visTab !== 'rings') return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const width = rect.width;
+    const height = rect.height;
+
+    // Background: dark space look
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, 0, width, height);
+
+    const cx = width / 2;
+    const cy = height / 2;
+
+    // Center beam stop (classical detector design)
+    ctx.beginPath();
+    ctx.arc(cx, cy, 7, 0, 2 * Math.PI);
+    ctx.fillStyle = '#1e293b';
+    ctx.fill();
+
+    // Beam stop outline/lead cup shadow
+    ctx.beginPath();
+    ctx.arc(cx, cy, 14, 0, 2 * Math.PI);
+    ctx.strokeStyle = 'rgba(51, 65, 85, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Scale parameter for rings
+    const scaleFactor = width / 2.3;
+
+    results.forEach((r) => {
+      let intensity = r.totalIntensity;
+      let color = 'rgba(129, 140, 248, 0.45)'; // Indigo for total
+      if (ringRenderMode === 'nuclear') {
+        intensity = r.nuclearIntensity;
+        color = 'rgba(148, 163, 184, 0.45)'; // Slate for nuclear
+      } else if (ringRenderMode === 'magnetic') {
+        intensity = r.magneticIntensity;
+        color = 'rgba(236, 72, 153, 0.45)'; // Pink for magnetic
+      }
+
+      if (intensity < 0.1) return;
+
+      const twoThetaRad = (r.twoTheta / 2) * (Math.PI / 180);
+      if (r.twoTheta >= 90) return; // falls out of front plate detector
+
+      const R = scaleFactor * Math.tan(twoThetaRad * 2);
+      if (R <= 0 || R > width) return;
+
+      // Draw the main blurred ring
+      ctx.beginPath();
+      ctx.arc(cx, cy, R, 0, 2 * Math.PI);
+      const alpha = 0.1 + (intensity / 100) * 0.7;
+      ctx.strokeStyle = color.replace('0.45', alpha.toString());
+      ctx.lineWidth = 1.0 + (intensity / 100) * 3;
+      ctx.stroke();
+
+      // Add spotty graininess (powder speckles)
+      const spotCount = Math.floor(intensity * 1.8);
+      ctx.fillStyle = color.replace('0.45', '0.9');
+      for (let s = 0; s < spotCount; s++) {
+        const angle = Math.random() * 2 * Math.PI;
+        const rDev = (Math.random() - 0.5) * (1.2 + (intensity / 100) * 1.5);
+        const sx = cx + (R + rDev) * Math.cos(angle);
+        const sy = cy + (R + rDev) * Math.sin(angle);
+        ctx.fillRect(sx, sy, 1.2, 1.2);
+      }
+    });
+
+    // Label for the center beam stop
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.3)';
+    ctx.font = 'bold 8px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('NEUTRON BEAM STOP', cx, cy - 10);
+  }, [results, visTab, ringRenderMode]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
@@ -672,6 +846,74 @@ export const MagneticNeutronModule: React.FC = () => {
                       {preset.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Physical Environment (T & Polarization) */}
+              <div className="space-y-4 p-4 bg-slate-950/40 rounded-2xl border border-slate-800 text-left">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Simulation Environment</label>
+                  <span className="text-[8px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">Active Physics</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Temperature Control */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Temperature T: <span className="text-indigo-400 font-mono font-black">{temperature} K</span></span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="600"
+                      value={temperature}
+                      onChange={(e) => setTemperature(parseInt(e.target.value))}
+                      className="w-full accent-indigo-550 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Critical Temperature */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Néel/Curie Temp T_c:</span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="1"
+                        max="2000"
+                        value={criticalTemp}
+                        onChange={(e) => setCriticalTemp(parseInt(e.target.value) || 0)}
+                        className="w-full px-2 py-1.5 bg-slate-900 border border-slate-800 text-indigo-400 font-mono text-[11px] font-black rounded-lg outline-none focus:ring-1 focus:ring-indigo-500/50"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-mono text-slate-500 font-black">K</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Neutron Polarization State */}
+                <div className="space-y-1.5 pt-2 border-t border-slate-800/40">
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Neutron Polarization Vector (P)</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'none', label: 'Unpolarized', desc: 'I_tot = I_n + I_m' },
+                      { id: 'up', label: 'Polarized Up (+z)', desc: 'Interference constructive' },
+                      { id: 'down', label: 'Polarized Down (-z)', desc: 'Interference destructive' }
+                    ].map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => setPolarizationMode(p.id as any)}
+                        className={`px-2 py-1.5 rounded-xl border text-left transition-all flex flex-col justify-between h-[42px]
+                          ${polarizationMode === p.id
+                            ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-400 font-bold'
+                            : 'bg-black/20 border-slate-850 text-slate-500 hover:text-slate-400 hover:border-slate-700'
+                          }
+                        `}
+                      >
+                        <span className="text-[9px] font-black uppercase tracking-tight leading-none">{p.label}</span>
+                        <span className="text-[7px] text-slate-600 font-bold truncate mt-0.5">{p.desc}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -903,76 +1145,195 @@ export const MagneticNeutronModule: React.FC = () => {
       </div>
 
       <div className="lg:col-span-7 space-y-6">
-        <div className="bg-slate-900 p-8 rounded-3xl shadow-xl border border-slate-800 h-[400px] flex flex-col relative overflow-hidden group">
+        <div className="bg-slate-900 p-6 rounded-3xl shadow-xl border border-slate-800 h-[420px] flex flex-col relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
           
-          <div className="flex justify-between items-center mb-6 relative z-10">
-            <h3 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-3">
-              <Layers className="w-5 h-5 text-indigo-400" />
-              Mixed Diffraction Spectrum
-            </h3>
-            <div className="flex items-center gap-4">
-               <div className="flex items-center gap-1.5">
-                 <div className="w-2 h-2 rounded-full bg-slate-500" />
-                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Nuclear</span>
-               </div>
-               <div className="flex items-center gap-1.5">
-                 <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                 <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Magnetic</span>
-               </div>
+          {/* Tab Selection */}
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4 relative z-10 border-b border-slate-800/80 pb-3">
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-850">
+              {[
+                { id: 'chart', label: 'Diffraction Spectrum' },
+                { id: 'rings', label: '2D Powder Rings' },
+                { id: 'susceptibility', label: 'Curie-Weiss Susceptibility' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setVisTab(tab.id as any)}
+                  className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all
+                    ${visTab === tab.id
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                    }
+                  `}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
+
+            {visTab === 'chart' && (
+              <div className="flex items-center gap-3">
+                 <div className="flex items-center gap-1.5">
+                   <div className="w-2 h-2 rounded-full bg-slate-500" />
+                   <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-widest">Nuclear</span>
+                 </div>
+                 <div className="flex items-center gap-1.5">
+                   <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                   <span className="text-[8.5px] font-black text-indigo-400 uppercase tracking-widest">Magnetic</span>
+                 </div>
+              </div>
+            )}
+
+            {visTab === 'rings' && (
+              <div className="flex items-center gap-1.5 bg-slate-950/60 px-2 py-1 rounded-lg border border-slate-850">
+                <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-widest mr-1">View:</span>
+                {[
+                  { id: 'total', label: 'Total' },
+                  { id: 'nuclear', label: 'Nuclear' },
+                  { id: 'magnetic', label: 'Magnetic' }
+                ].map((mode) => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setRingRenderMode(mode.id as any)}
+                    className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tight transition-all
+                      ${ringRenderMode === mode.id
+                        ? 'bg-slate-800 text-white'
+                        : 'text-slate-500 hover:text-slate-300'
+                      }
+                    `}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           
           <div className="flex-1 w-full min-h-0 min-w-0 relative z-10">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={results} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
-                <XAxis 
-                  dataKey="twoTheta" 
-                  label={{ value: '2θ (deg)', position: 'bottom', fill: '#64748b', fontSize: 10, fontWeight: 900, letterSpacing: '0.1em' }}
-                  type="number"
-                  domain={[0, 'auto']}
-                  tick={{ fill: '#475569', fontSize: 10, fontWeight: 700 }}
-                />
-                <YAxis hide/>
-                <Tooltip 
-                  cursor={{fill: 'rgba(99, 102, 241, 0.05)'}}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const d = payload[0].payload as MagneticResult;
-                      return (
-                        <div className="bg-slate-900 border border-slate-700 p-4 rounded-2xl shadow-2xl backdrop-blur-md">
-                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 border-b border-slate-800 pb-2">
-                             Reflection Profile: {d.label || `(${d.hkl.join(' ')})`}
-                          </p>
-                          <div className="space-y-2 mt-1">
-                             <div className="flex justify-between items-center gap-8">
-                                <span className="text-[11px] font-bold text-slate-400">Nuclear Intensity</span>
-                                <span className="text-xs font-mono font-black text-slate-200">{d.nuclearIntensity.toFixed(1)}</span>
-                             </div>
-                             <div className="flex justify-between items-center gap-8">
-                                <span className="text-[11px] font-bold text-indigo-400">Magnetic Intensity</span>
-                                <span className="text-xs font-mono font-black text-indigo-400">{d.magneticIntensity.toFixed(1)}</span>
-                             </div>
-                             <div className="pt-2 border-t border-slate-800 flex justify-between items-center gap-8">
-                                <span className="text-[11px] font-black text-white font-sans">Total Intensity</span>
-                                <span className="text-sm font-mono font-black text-white">{d.totalIntensity.toFixed(1)}</span>
-                             </div>
-                             <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono mt-1 pt-1 border-t border-slate-800/40">
-                                <span>2θ = {d.twoTheta.toFixed(2)}°</span>
-                                <span>d = {d.dSpacing.toFixed(3)} Å</span>
-                             </div>
+            {visTab === 'chart' && (
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={results} margin={{ top: 10, right: 20, bottom: 20, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                  <XAxis 
+                    dataKey="twoTheta" 
+                    label={{ value: '2\u03b8 (deg)', position: 'bottom', fill: '#64748b', fontSize: 10, fontWeight: 900, letterSpacing: '0.1em' }}
+                    type="number"
+                    domain={[0, 'auto']}
+                    tick={{ fill: '#475569', fontSize: 10, fontWeight: 700 }}
+                  />
+                  <YAxis hide/>
+                  <Tooltip 
+                    cursor={{fill: 'rgba(99, 102, 241, 0.05)'}}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const d = payload[0].payload as MagneticResult;
+                        return (
+                          <div className="bg-slate-900 border border-slate-700 p-4 rounded-2xl shadow-2xl backdrop-blur-md">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 border-b border-slate-800 pb-2">
+                               Reflection Profile: {d.label || `(${d.hkl.join(' ')})`}
+                            </p>
+                            <div className="space-y-2 mt-1">
+                               <div className="flex justify-between items-center gap-8">
+                                  <span className="text-[11px] font-bold text-slate-400">Nuclear Intensity</span>
+                                  <span className="text-xs font-mono font-black text-slate-200">{d.nuclearIntensity.toFixed(1)}</span>
+                               </div>
+                               <div className="flex justify-between items-center gap-8">
+                                  <span className="text-[11px] font-bold text-indigo-400">Magnetic Intensity</span>
+                                  <span className="text-xs font-mono font-black text-indigo-405">{d.magneticIntensity.toFixed(1)}</span>
+                               </div>
+                               <div className="pt-2 border-t border-slate-800 flex justify-between items-center gap-8">
+                                  <span className="text-[11px] font-black text-white font-sans">Total Intensity</span>
+                                  <span className="text-sm font-mono font-black text-white">{d.totalIntensity.toFixed(1)}</span>
+                                </div>
+                               {polarizationMode !== 'none' && (
+                                 <div className="text-[9px] text-emerald-400 font-bold bg-emerald-500/5 px-2 py-1 rounded border border-emerald-500/15 mt-1 text-center">
+                                   Polarization interference active
+                                 </div>
+                               )}
+                               <div className="flex justify-between items-center text-[10px] text-slate-500 font-mono mt-1 pt-1 border-t border-slate-800/40">
+                                  <span>2\u03b8 = {d.twoTheta.toFixed(2)}\u00b0</span>
+                                  <span>d = {d.dSpacing.toFixed(3)} \u00c5</span>
+                               </div>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="nuclearIntensity" stackId="a" fill="#475569" name="Nuclear" barSize={8} radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="magneticIntensity" stackId="a" fill="#6366f1" name="Magnetic" barSize={8} radius={[4, 4, 0, 0]} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
+
+            {visTab === 'rings' && (
+              <div className="w-full h-full flex flex-col items-center justify-center relative">
+                <canvas 
+                  ref={ringsCanvasRef} 
+                  className="w-full h-full max-w-[280px] max-h-[280px] rounded-2xl shadow-inner border border-slate-800/50 bg-[#090d16] cursor-crosshair"
                 />
-                <Bar dataKey="nuclearIntensity" stackId="a" fill="#475569" name="Nuclear" barSize={8} radius={[2, 2, 0, 0]} />
-                <Bar dataKey="magneticIntensity" stackId="a" fill="#6366f1" name="Magnetic" barSize={8} radius={[4, 4, 0, 0]} />
-              </ComposedChart>
-            </ResponsiveContainer>
+                <div className="absolute bottom-2 left-2 text-[8px] font-black text-slate-500 uppercase tracking-widest bg-slate-950/60 p-1.5 rounded border border-slate-850/50">
+                  2D Detector Plate Projector
+                </div>
+              </div>
+            )}
+
+            {visTab === 'susceptibility' && (
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={curieWeiss.points} margin={{ top: 10, right: 20, bottom: 25, left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.3} />
+                  <XAxis 
+                    dataKey="T" 
+                    label={{ value: 'Temperature T (K)', position: 'bottom', fill: '#64748b', fontSize: 10, fontWeight: 900, offset: 10 }}
+                    tick={{ fill: '#475569', fontSize: 9, fontWeight: 700 }}
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    tick={{ fill: '#818cf8', fontSize: 9, fontWeight: 750 }}
+                    label={{ value: 'Susceptibility \u03c7 (emu/mol\u00b7Oe)', angle: -90, position: 'left', fill: '#818cf8', fontSize: 9, fontWeight: 800, offset: -5 }}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fill: '#f43f5e', fontSize: 9, fontWeight: 750 }}
+                    label={{ value: 'Inverse Susceptibility 1/\u03c7', angle: 90, position: 'right', fill: '#f43f5e', fontSize: 9, fontWeight: 800, offset: 5 }}
+                  />
+                  <Tooltip 
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-slate-900 border border-slate-700 p-4 rounded-2xl shadow-2xl backdrop-blur-md">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 border-b border-slate-800 pb-2">
+                               Paramagnetic State Info
+                            </p>
+                            <div className="space-y-1 mt-1.5 text-xs">
+                              <div className="flex justify-between items-center gap-6">
+                                <span className="text-slate-500">T =</span>
+                                <span className="font-mono font-black text-white">{payload[0].payload.T} K</span>
+                              </div>
+                              <div className="flex justify-between items-center gap-6">
+                                <span className="text-indigo-400">\u03c7 =</span>
+                                <span className="font-mono font-black text-indigo-400">{payload[0].payload.chi.toFixed(5)}</span>
+                              </div>
+                              <div className="flex justify-between items-center gap-6">
+                                <span className="text-rose-400">1/\u03c7 =</span>
+                                <span className="font-mono font-black text-rose-400">{payload[0].payload.invChi}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                  <Line yAxisId="left" type="monotone" dataKey="chi" stroke="#818cf8" name="Susceptibility \u03c7" dot={false} strokeWidth={2.5} />
+                  <Line yAxisId="right" type="monotone" dataKey="invChi" stroke="#f43f5e" name="Inverse 1/\u03c7" dot={false} strokeWidth={2.5} />
+                  <Line yAxisId="right" type="monotone" dataKey="linearFit" stroke="#fda4af" name="Curie-Weiss Linear Fit" strokeDasharray="4 4" dot={false} strokeWidth={1.5} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
