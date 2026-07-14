@@ -80,7 +80,24 @@ const resources = {
       "Animations": "Animations",
       "Sound Effects": "Sound Effects",
       "Precision": "Precision",
-      "Theme": "Theme"
+      "Theme": "Theme",
+      "Real-time Machine Diagnostics": "Real-time Machine Diagnostics",
+      "Live physical hardware, resource overhead, and container performance profiles.": "Live physical hardware, resource overhead, and container performance profiles.",
+      "CPU Usage": "CPU Usage",
+      "Cores": "Cores",
+      "RAM Allocation": "RAM Allocation",
+      "Total RAM": "Total RAM",
+      "Used Memory": "Used Memory",
+      "Free Memory": "Free Memory",
+      "Process Resident Set Size (RSS)": "Process Resident Set Size (RSS)",
+      "Host Platform": "Host Platform",
+      "Node.js Runtime": "Node.js Runtime",
+      "Server Uptime": "Server Uptime",
+      "Load Average (1m, 5m, 15m)": "Load Average (1m, 5m, 15m)",
+      "Live Feed": "Live Feed",
+      "Telemetry Syncing": "Telemetry Syncing",
+      "Unknown CPU": "Unknown CPU",
+      "Fetching system metrics...": "Fetching system metrics..."
     }
   },
   it: {
@@ -796,7 +813,24 @@ const resources = {
       "Animations": "انیمیشن‌ها",
       "Sound Effects": "جلوه‌های صوتی",
       "Precision": "دقت",
-      "Theme": "تم"
+      "Theme": "تم",
+      "Real-time Machine Diagnostics": "عیب‌یابی سخت‌افزار و تله‌متری سرور به صورت زنده",
+      "Live physical hardware, resource overhead, and container performance profiles.": "وضعیت لحظه‌ای سخت‌افزار فیزیکی، سربار منابع و پروفایل‌های عملکرد کانتینر.",
+      "CPU Usage": "مصرف پردازنده (CPU)",
+      "Cores": "هسته‌ها",
+      "RAM Allocation": "تخصیص حافظه (RAM)",
+      "Total RAM": "کل رم سیستم",
+      "Used Memory": "حافظه مصرف‌شده",
+      "Free Memory": "حافظه آزاد",
+      "Process Resident Set Size (RSS)": "حافظه مقیم فرآیند (RSS)",
+      "Host Platform": "سیستم‌عامل میزبان",
+      "Node.js Runtime": "محیط اجرای Node.js",
+      "Server Uptime": "زمان فعالیت سرور",
+      "Load Average (1m, 5m, 15m)": "میانگین بارگذاری (۱، ۵ و ۱۵ دقیقه)",
+      "Live Feed": "پخش زنده",
+      "Telemetry Syncing": "همگام‌سازی تله‌متری",
+      "Unknown CPU": "پردازنده ناشناخته",
+      "Fetching system metrics...": "در حال دریافت معیارهای سیستم..."
     }
   },
   ar: {

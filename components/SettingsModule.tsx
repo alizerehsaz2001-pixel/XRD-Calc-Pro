@@ -281,6 +281,73 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
     updateStorageStats();
   }, [operator, dbConfigs, customApiKey, apiLogs]);
 
+  const [systemStats, setSystemStats] = useState<any>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState<boolean>(false);
+
+  const formatBytes = (bytes: number, decimals = 2) => {
+    if (!bytes || bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  };
+
+  const formatUptime = (seconds: number) => {
+    if (!seconds) return '0s';
+    const d = Math.floor(seconds / (3600 * 24));
+    const h = Math.floor((seconds % (3600 * 24)) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    
+    const dDisplay = d > 0 ? `${d}d ` : '';
+    const hDisplay = h > 0 ? `${h}h ` : '';
+    const mDisplay = m > 0 ? `${m}m ` : '';
+    const sDisplay = `${s}s`;
+    
+    return dDisplay + hDisplay + mDisplay + sDisplay;
+  };
+
+  const fetchSystemStats = async () => {
+    try {
+      setIsLoadingStats(true);
+      const res = await fetch('/api/system/stats');
+      const data = await res.json();
+      if (data && data.success) {
+        setSystemStats(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch system stats:', err);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== 'system') return;
+
+    let isMounted = true;
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/system/stats');
+        const data = await res.json();
+        if (isMounted && data && data.success) {
+          setSystemStats(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch system stats:', err);
+      }
+    };
+
+    fetchStats();
+    const interval = setInterval(fetchStats, 3000); // refresh every 3 seconds
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [activeTab]);
+
   useEffect(() => {
     const checkSystemKeyAndVerify = async () => {
       let retries = 3;
@@ -1361,7 +1428,6 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 </div>
               </motion.div>
             )}
-
             {/* SYSTEM TAB */}
             {activeTab === 'system' && (
               <motion.div 
@@ -1372,6 +1438,181 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
+                {/* Real-time Hardware Telemetry Card */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <Cpu className="w-6 h-6 text-indigo-500 animate-pulse" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                          {t('Real-time Machine Diagnostics')}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {t('Live physical hardware, resource overhead, and container performance profiles.')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5 self-start sm:self-center">
+                      <span className="flex h-2.5 w-2.5 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                      </span>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                        {t('Live Feed')}
+                      </span>
+                      <button
+                        onClick={fetchSystemStats}
+                        disabled={isLoadingStats}
+                        className="ml-2 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-500 dark:text-slate-400 disabled:opacity-50"
+                        title={t('Telemetry Syncing')}
+                      >
+                        <RefreshCw className={`w-4 h-4 ${isLoadingStats ? 'animate-spin text-indigo-500' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {!systemStats ? (
+                    <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
+                      <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+                      <p className="text-sm text-slate-500 dark:text-slate-400">{t('Fetching system metrics...')}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        
+                        {/* CPU telemetry */}
+                        <div className="p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('CPU Usage')}</span>
+                              <Activity className="w-4 h-4 text-rose-500" />
+                            </div>
+                            
+                            <div className="flex items-baseline gap-2 mb-2">
+                              <span className="text-4xl font-extrabold font-mono text-slate-900 dark:text-white">
+                                {systemStats.cpuUsage}%
+                              </span>
+                            </div>
+                            
+                            {/* Linear Gauge */}
+                            <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mb-4">
+                              <div 
+                                className={`h-full transition-all duration-500 ${
+                                  systemStats.cpuUsage > 80 
+                                    ? 'bg-rose-500' 
+                                    : systemStats.cpuUsage > 50 
+                                    ? 'bg-amber-500' 
+                                    : 'bg-indigo-500'
+                                }`}
+                                style={{ width: `${systemStats.cpuUsage}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                            <div className="flex justify-between gap-1">
+                              <span className="shrink-0">{t('CPU Model')}:</span>
+                              <span className="font-medium text-slate-700 dark:text-slate-300 truncate text-right w-full" title={systemStats.cpuModel}>
+                                {systemStats.cpuModel}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>{t('Cores')}:</span>
+                              <span className="font-semibold text-slate-800 dark:text-slate-200">{systemStats.cpuCores} {t('Cores')}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Memory Allocation */}
+                        <div className="p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('RAM Allocation')}</span>
+                              <Server className="w-4 h-4 text-indigo-500" />
+                            </div>
+
+                            <div className="flex items-baseline gap-2 mb-2">
+                              <span className="text-4xl font-extrabold font-mono text-slate-900 dark:text-white">
+                                {systemStats.memoryPercentage}%
+                              </span>
+                              <span className="text-xs text-slate-500 dark:text-slate-400">
+                                {formatBytes(systemStats.usedMemory, 1)} / {formatBytes(systemStats.totalMemory, 1)}
+                              </span>
+                            </div>
+
+                            {/* Segmented memory bar */}
+                            <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mb-4 flex">
+                              <div 
+                                className="h-full bg-indigo-500 transition-all duration-500" 
+                                style={{ width: `${systemStats.memoryPercentage}%` }} 
+                              />
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                            <div className="flex justify-between">
+                              <span>{t('Used Memory')}:</span>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">{formatBytes(systemStats.usedMemory)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>{t('Free Memory')}:</span>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">{formatBytes(systemStats.freeMemory)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Node Process Overhead */}
+                        <div className="p-5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center justify-between mb-4">
+                              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('Process Resident Set Size (RSS)')}</span>
+                              <Terminal className="w-4 h-4 text-emerald-500" />
+                            </div>
+
+                            <div className="flex items-baseline gap-1 mb-2">
+                              <span className="text-4xl font-extrabold font-mono text-emerald-600 dark:text-emerald-400">
+                                {formatBytes(systemStats.processMemory, 1).split(' ')[0]}
+                              </span>
+                              <span className="text-lg font-bold text-slate-600 dark:text-slate-400">
+                                {formatBytes(systemStats.processMemory, 1).split(' ')[1] || 'MB'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 leading-normal">
+                              {t('Strict RAM limit isolated within this server sandbox instance.')}
+                            </p>
+                          </div>
+
+                          <div className="pt-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                            <div className="flex justify-between">
+                              <span>{t('Host Platform')}:</span>
+                              <span className="font-mono text-slate-700 dark:text-slate-300 capitalize">{systemStats.platform}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>{t('Node.js Runtime')}:</span>
+                              <span className="font-mono text-slate-700 dark:text-slate-300">{systemStats.nodeVersion}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* General Server Health info bar */}
+                      <div className="p-4 bg-indigo-50/50 dark:bg-slate-800/20 rounded-2xl border border-indigo-100/50 dark:border-slate-800/60 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-600 dark:text-slate-400">
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{t('Server Uptime')}:</span>
+                          <span className="font-mono text-slate-800 dark:text-slate-200">{formatUptime(systemStats.uptime)}</span>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{t('Load Average (1m, 5m, 15m)')}:</span>
+                          <span className="font-mono text-slate-800 dark:text-slate-200">
+                            {systemStats.loadAverage?.map((val: number) => val.toFixed(2)).join(', ') || '0.00, 0.00, 0.00'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
                    <div className="flex items-center gap-3 mb-6">
                      <Server className="w-6 h-6 text-slate-700 dark:text-slate-400" />

@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { exec, execSync } from "child_process";
 import https from "https";
+import os from "os";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -450,6 +451,71 @@ async function startServer() {
       ready: pythonDepsReady,
       logs: pythonInstallLog
     });
+  });
+
+  app.get("/api/system/stats", async (req, res) => {
+    try {
+      const getCpuTicks = () => {
+        const cpus = os.cpus();
+        let user = 0, nice = 0, sys = 0, idle = 0, irq = 0;
+        for (const cpu of cpus) {
+          user += cpu.times.user;
+          nice += cpu.times.nice;
+          sys += cpu.times.sys;
+          idle += cpu.times.idle;
+          irq += cpu.times.irq;
+        }
+        return { idle, total: user + nice + sys + idle + irq };
+      };
+
+      const start = getCpuTicks();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const end = getCpuTicks();
+
+      const idleDiff = end.idle - start.idle;
+      const totalDiff = end.total - start.total;
+      const cpuUsage = totalDiff === 0 ? 0 : 100 - Math.round((100 * idleDiff) / totalDiff);
+
+      const totalMemory = os.totalmem();
+      const freeMemory = os.freemem();
+      const usedMemory = totalMemory - freeMemory;
+      const memoryPercentage = totalMemory === 0 ? 0 : Math.round((usedMemory / totalMemory) * 100);
+
+      const processMemory = process.memoryUsage().rss;
+
+      res.json({
+        success: true,
+        cpuUsage: Math.min(100, Math.max(0, cpuUsage)),
+        totalMemory,
+        freeMemory,
+        usedMemory,
+        memoryPercentage,
+        processMemory,
+        cpuCores: os.cpus().length,
+        cpuModel: os.cpus()[0]?.model || "Unknown CPU",
+        platform: os.platform(),
+        nodeVersion: process.version,
+        uptime: process.uptime(),
+        loadAverage: os.loadavg()
+      });
+    } catch (err: any) {
+      res.json({
+        success: false,
+        error: err.message || "Unknown system stats query error",
+        cpuUsage: 0,
+        totalMemory: 1,
+        freeMemory: 1,
+        usedMemory: 0,
+        memoryPercentage: 0,
+        processMemory: 0,
+        cpuCores: 1,
+        cpuModel: "Unavailable",
+        platform: "unknown",
+        nodeVersion: "unknown",
+        uptime: 0,
+        loadAverage: [0, 0, 0]
+      });
+    }
   });
 
   app.post("/api/gemini/advisor", async (req, res) => {
