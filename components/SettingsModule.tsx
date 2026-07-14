@@ -7,7 +7,7 @@ import {
   Save, Check, AlertCircle, Wrench, Microscope, Compass,
   Key, ExternalLink, RefreshCw, CheckCircle2,
   Upload, Download, Trash2, FileCode, Send, Terminal,
-  ChevronRight
+  ChevronRight, Building2, Mail, ShieldAlert, ShieldCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
@@ -1081,152 +1081,218 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                 transition={{ duration: 0.2 }}
                 className="space-y-6"
               >
-                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row gap-10">
-                  <div className="flex-1 space-y-8">
-                    <div className="flex items-center gap-3">
-                      <User className="w-6 h-6 text-indigo-500" />
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('Operator Profile')}</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('Manage your laboratory identity and credentials')}</p>
+                <div className="bg-transparent rounded-none p-0 border-none shadow-none flex flex-col xl:flex-row gap-6">
+                  {/* Left Column: Form */}
+                  <div className="flex-1 flex flex-col gap-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <div className="flex items-center gap-3 mb-8">
+                        <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
+                          <User className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('Operator Profile')}</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('Manage your laboratory identity and credentials')}</p>
+                        </div>
                       </div>
-                    </div>
 
-                    <form onSubmit={handleSaveProfile} className="space-y-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('Full Name')}</label>
-                          <input 
-                            type="text" required value={idName || ''} onChange={(e) => setIdName(e.target.value)}
-                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all"
-                            placeholder="e.g. Marie Curie"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('Email Address')}</label>
-                          <input 
-                            type="email" required value={idEmail || ''} onChange={(e) => setIdEmail(e.target.value)}
-                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all"
-                            placeholder="marie@lab.edu"
-                          />
-                        </div>
-                        <div className="space-y-1.5 sm:col-span-2">
-                          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('Organization / Institution')}</label>
-                          <input 
-                            type="text" required value={idOrg || ''} onChange={(e) => setIdOrg(e.target.value)}
-                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('Clearance Level')}</label>
-                          <select
-                            value={clearanceLevel} onChange={(e) => { setClearanceLevel(e.target.value); playSynthTone('tick'); }}
-                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all"
-                          >
-                            <option value="Level 4: Laboratory Director">{t('L4: Director')}</option>
-                            <option value="Level 3: Lead Crystallographer">{t('L3: Lead')}</option>
-                            <option value="Level 2: Research Associate">{t('L2: Associate')}</option>
-                            <option value="Level 1: Undergrad Assistant">{t('L1: Assistant')}</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('Node ID')}</label>
-                          <div className="flex gap-2">
-                            <input 
-                              type="text" required value={terminalId} onChange={(e) => setTerminalId(e.target.value)}
-                              className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const num = Math.floor(100 + Math.random() * 900);
-                                const suffix = ['ALPHA', 'BETA', 'GAMMA', 'OMEGA', 'SIGMA'][Math.floor(Math.random() * 5)];
-                                setTerminalId(`TRD-${num}-${suffix}`); playSynthTone('success');
-                              }}
-                              className="px-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-200 dark:border-indigo-500/30 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
-                            >
-                              Gen
-                            </button>
+                      <form onSubmit={handleSaveProfile} className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                          <div className="space-y-2">
+                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Full Name')}</label>
+                            <div className="relative">
+                              <input 
+                                type="text" required value={idName || ''} onChange={(e) => setIdName(e.target.value)}
+                                className="w-full pl-10 p-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-400"
+                                placeholder="e.g. Marie Curie"
+                              />
+                              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Email Address')}</label>
+                            <div className="relative">
+                              <input 
+                                type="email" required value={idEmail || ''} onChange={(e) => setIdEmail(e.target.value)}
+                                className="w-full pl-10 p-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all placeholder:text-slate-400"
+                                placeholder="marie@lab.edu"
+                              />
+                              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 sm:col-span-2">
+                            <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Organization / Institution')}</label>
+                            <div className="relative">
+                              <input 
+                                type="text" required value={idOrg || ''} onChange={(e) => setIdOrg(e.target.value)}
+                                className="w-full pl-10 p-3 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl text-sm font-medium text-slate-900 dark:text-white outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                placeholder="e.g. Neuro-Analytical Laboratory"
+                              />
+                              <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                        <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-3">{t('Active Certifications')}</label>
-                        <div className="flex flex-wrap gap-2">
-                          {['Radiation Safety (RSC-4)', 'High-Volt Diffraction System', 'Diffraction Grid Calibration', 'Class 4 Laser Operation', 'Chemical Hazard Handling', 'Neutron Beam Auth'].map((cert) => {
-                            const active = certifications.includes(cert);
-                            return (
-                              <button
-                                key={cert} type="button"
-                                onClick={() => {
-                                  if (active) setCertifications(certifications.filter(c => c !== cert));
-                                  else setCertifications([...certifications, cert]);
-                                  playSynthTone('tick');
-                                }}
-                                className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all flex items-center gap-1.5 ${
-                                  active 
-                                    ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-300 dark:border-indigo-500/50 text-indigo-700 dark:text-indigo-300' 
-                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
-                                }`}
-                              >
-                                {active && <Check className="w-3 h-3" />}
-                                {t(cert)}
-                              </button>
-                            );
-                          })}
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">{t('Clearance Level')}</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                              { val: 'Level 4: Laboratory Director', label: 'L4: Director', desc: 'Full System Access', icon: ShieldAlert },
+                              { val: 'Level 3: Lead Crystallographer', label: 'L3: Lead', desc: 'Advanced Configuration', icon: ShieldCheck },
+                              { val: 'Level 2: Research Associate', label: 'L2: Associate', desc: 'Standard Operations', icon: Shield },
+                              { val: 'Level 1: Undergrad Assistant', label: 'L1: Assistant', desc: 'Read-Only & Basic', icon: Shield }
+                            ].map((level) => {
+                              const isSelected = clearanceLevel === level.val;
+                              const LevelIcon = level.icon;
+                              return (
+                                <button
+                                  key={level.val}
+                                  type="button"
+                                  onClick={() => { setClearanceLevel(level.val); playSynthTone('tick'); }}
+                                  className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all ${
+                                    isSelected 
+                                      ? 'bg-indigo-50/80 dark:bg-indigo-500/10 border-indigo-500/50 shadow-sm shadow-indigo-500/10' 
+                                      : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600'
+                                  }`}
+                                >
+                                  <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'border-indigo-600 dark:border-indigo-400' : 'border-slate-300 dark:border-slate-600'}`}>
+                                    {isSelected && <div className="w-2 h-2 rounded-full bg-indigo-600 dark:bg-indigo-400" />}
+                                  </div>
+                                  <div>
+                                    <div className={`text-sm font-bold ${isSelected ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-700 dark:text-slate-300'}`}>
+                                      {t(level.label)}
+                                    </div>
+                                    <div className={`text-xs mt-0.5 ${isSelected ? 'text-indigo-600/80 dark:text-indigo-400/80' : 'text-slate-500 dark:text-slate-500'}`}>
+                                      {t(level.desc)}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
-                        <AnimatePresence>
-                          {saveSuccess && (
-                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-sm font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                              <CheckCircle2 className="w-4 h-4" /> {t('Saved')}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                        <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-sm transition-colors flex items-center gap-2">
-                          <Save className="w-4 h-4" /> {t('Save Profile')}
-                        </button>
-                      </div>
-                    </form>
+                        <div className="pt-6 border-t border-slate-100 dark:border-slate-800/50">
+                          <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 block">{t('Active Certifications')}</label>
+                          <div className="flex flex-wrap gap-2">
+                            {['Radiation Safety (RSC-4)', 'High-Volt Diffraction System', 'Diffraction Grid Calibration', 'Class 4 Laser Operation', 'Chemical Hazard Handling', 'Neutron Beam Auth'].map((cert) => {
+                              const active = certifications.includes(cert);
+                              return (
+                                <button
+                                  key={cert} type="button"
+                                  onClick={() => {
+                                    if (active) setCertifications(certifications.filter(c => c !== cert));
+                                    else setCertifications([...certifications, cert]);
+                                    playSynthTone('tick');
+                                  }}
+                                  className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all flex items-center gap-1.5 select-none ${
+                                    active 
+                                      ? 'bg-slate-900 border-slate-900 text-white dark:bg-white dark:border-white dark:text-slate-900 shadow-sm' 
+                                      : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                                  }`}
+                                >
+                                  {active && <Check className="w-3 h-3" />}
+                                  {t(cert)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-4 pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/50">
+                          <AnimatePresence>
+                            {saveSuccess && (
+                              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                                <CheckCircle2 className="w-4 h-4" /> {t('Saved')}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                          <button type="submit" className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl shadow-md shadow-indigo-500/20 transition-all flex items-center gap-2 active:scale-[0.98]">
+                            <Save className="w-4 h-4" /> {t('Save Profile')}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                   </div>
 
-                  <div className="xl:w-[320px] shrink-0">
-                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-3">{t('ID Badge Preview')}</label>
-                     <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-xl relative overflow-hidden font-mono mx-auto w-full text-slate-100">
-                       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-3 bg-slate-800 rounded-b-lg flex items-center justify-center">
-                         <div className="w-6 h-1 bg-black rounded-full opacity-50" />
-                       </div>
-                       
-                       <div className="flex justify-between items-start mt-3 mb-6 border-b border-white/10 pb-4">
-                         <div className="flex flex-col">
-                           <span className="text-[10px] font-bold text-slate-300 tracking-wider">NEURO-ANALYTICAL</span>
-                           <span className="text-[8px] text-indigo-400 font-medium uppercase mt-1">Core Diffraction Unit</span>
+                  {/* Right Column: ID Badge & Terminal */}
+                  <div className="xl:w-[340px] shrink-0 flex flex-col gap-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                       <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4 block">{t('ID Badge Preview')}</label>
+                       <div className="bg-slate-900 border border-slate-700 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden font-mono mx-auto w-full text-slate-100 group">
+                         {/* Badge Lanyard Hole */}
+                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-slate-800/80 rounded-b-xl flex items-center justify-center border-b border-x border-slate-700">
+                           <div className="w-8 h-1.5 bg-slate-950 rounded-full shadow-inner" />
                          </div>
-                         <Shield className="w-6 h-6 text-indigo-400 opacity-80" />
-                       </div>
+                         
+                         {/* Holographic overlay effect */}
+                         <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
 
-                       <div className="flex gap-4 items-center mb-6">
-                         <div className="w-14 h-14 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
-                           <User className="w-6 h-6 text-slate-500" />
+                         <div className="flex justify-between items-start mt-4 mb-6 border-b border-white/10 pb-4 relative z-10">
+                           <div className="flex flex-col">
+                             <span className="text-[10px] font-bold text-slate-300 tracking-wider">NEURO-ANALYTICAL</span>
+                             <span className="text-[8px] text-indigo-400 font-bold uppercase mt-1">Core Diffraction Unit</span>
+                           </div>
+                           <ShieldAlert className="w-6 h-6 text-indigo-400 opacity-80" />
                          </div>
-                         <div className="min-w-0 flex-1">
-                           <div className="text-sm font-bold text-white truncate">{idName || t("Unregistered")}</div>
-                           <div className="text-[10px] text-slate-400 truncate mt-0.5">{idEmail || "no-contact@xrd.id"}</div>
-                           <div className="mt-2 flex items-center gap-1.5">
-                             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-                             <span className="text-[9px] text-emerald-400 font-medium tracking-wide">ACTIVE</span>
+
+                         <div className="flex gap-4 items-center mb-6 relative z-10">
+                           <div className="w-14 h-14 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                             <User className="w-6 h-6 text-slate-500" />
+                           </div>
+                           <div className="min-w-0 flex-1">
+                             <div className="text-sm font-bold text-white truncate tracking-tight">{idName || t("Unregistered")}</div>
+                             <div className="text-[10px] text-slate-400 truncate mt-0.5">{idEmail || "no-contact@xrd.id"}</div>
+                             <div className="mt-2.5 flex items-center gap-1.5">
+                               <div className="relative flex h-2 w-2">
+                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                               </div>
+                               <span className="text-[9px] text-emerald-400 font-bold tracking-wider">ACTIVE</span>
+                             </div>
                            </div>
                          </div>
-                       </div>
 
-                       <div className="space-y-2 text-[10px] text-slate-300">
-                         <div className="flex justify-between"><span className="text-slate-500">ID</span><span className="font-semibold">{terminalId}</span></div>
-                         <div className="flex justify-between"><span className="text-slate-500">ORG</span><span className="truncate max-w-[140px] text-right" title={idOrg}>{idOrg || "N/A"}</span></div>
-                         <div className="flex justify-between"><span className="text-slate-500">LVL</span><span className="text-indigo-300 truncate max-w-[140px] text-right">{clearanceLevel.split(':')[0]}</span></div>
+                         <div className="space-y-2.5 text-[10px] text-slate-300 relative z-10">
+                           <div className="flex justify-between items-center"><span className="text-slate-500 font-semibold tracking-wider">ID</span><span className="font-bold bg-slate-800 px-2 py-0.5 rounded text-indigo-300">{terminalId}</span></div>
+                           <div className="flex justify-between items-center"><span className="text-slate-500 font-semibold tracking-wider">ORG</span><span className="truncate max-w-[140px] text-right font-medium">{idOrg || "N/A"}</span></div>
+                           <div className="flex justify-between items-center"><span className="text-slate-500 font-semibold tracking-wider">LVL</span><span className="text-white font-bold truncate max-w-[140px] text-right uppercase">{clearanceLevel.split(':')[0]}</span></div>
+                         </div>
+
+                         {/* Barcode mock */}
+                         <div className="mt-6 pt-4 border-t border-white/5 opacity-40 hover:opacity-80 transition-opacity">
+                           <div className="w-full h-8 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#fff_2px,#fff_4px,transparent_4px,transparent_5px,#fff_5px,#fff_8px)] mix-blend-overlay"></div>
+                         </div>
                        </div>
-                     </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('Terminal Node ID')}</label>
+                        <Server className="w-4 h-4 text-slate-400" />
+                      </div>
+                      <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                          <code className="text-sm font-mono font-bold text-slate-900 dark:text-white px-2">{terminalId}</code>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const num = Math.floor(100 + Math.random() * 900);
+                              const suffix = ['ALPHA', 'BETA', 'GAMMA', 'OMEGA', 'SIGMA', 'EPSILON', 'DELTA'][Math.floor(Math.random() * 7)];
+                              setTerminalId(`TRD-${num}-${suffix}`); playSynthTone('success');
+                            }}
+                            className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-200 dark:border-indigo-500/30 text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors flex items-center gap-1.5"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            Regen
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-relaxed px-1">
+                          {t('This Node ID identifies this specific terminal session within the laboratory intranet.')}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
