@@ -399,8 +399,8 @@ export const IntegralBreadthModule: React.FC = () => {
                     className="w-full px-4 py-2.5 bg-[#0A101C] text-purple-300 border border-white/10 focus:border-purple-500/50 rounded-lg focus:ring-1 focus:ring-purple-500/20 outline-none font-mono text-sm transition-all"
                   />
                   <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider leading-relaxed mt-1">
-                    Uniform background contribution subtracted at all theta positions.
-                  </p>
+                    Uniform background contribution subtracted at all theta positions.</p>
+                  
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -651,9 +651,9 @@ export const IntegralBreadthModule: React.FC = () => {
                 <ShieldQuestion className="w-3.5 h-3.5 text-rose-400" />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Why use β?</span>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed italic border-l-2 border-rose-500/30 pl-3">
+              <p className="text-xs text-slate-400 leading-relaxed italic border-l-2 border-rose-500/30 pl-3"></p>
                 Integral breadth considers the entire peak profile rather than just its width at half intensity, making it more robust for highly distorted profiles.
-              </p>
+              
             </div>
           </div>
         </div>
@@ -686,11 +686,11 @@ export const IntegralBreadthModule: React.FC = () => {
              <h3 className="text-xl font-black text-white uppercase tracking-widest">Average Size</h3>
              <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Calculated from {results.length} peaks using Integral Breadth</p>
              {results.length > 0 && (
-               <p className="text-[10px] font-mono text-slate-400 font-bold mt-2 uppercase tracking-wider flex items-center gap-1.5">
-                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                 <span>Real Value:</span>
-                 <span className="text-cyan-300">{avgSize} nm</span>
-               </p>
+               <div className="inline-flex items-center gap-2 mt-4 bg-[#0A1526]/60 border border-cyan-500/30 px-3.5 py-1.5 rounded-xl shadow-inner backdrop-blur-md">
+                 <div className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span></div>
+                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-500/80">Real Value:</span>
+                 <span className="text-xs font-mono font-bold text-cyan-300">{avgSize} nm</span></div>
+               
              )}
            </div>
            <div className="text-right flex items-end justify-start sm:justify-end gap-2 relative z-10 bg-[#070D18] px-6 py-4 rounded-2xl border border-cyan-500/20 shadow-inner">
@@ -703,7 +703,7 @@ export const IntegralBreadthModule: React.FC = () => {
           <div className="p-5 border-b border-white/5 bg-[#070D18] flex justify-between items-center relative">
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
             <h3 className="font-black text-white uppercase tracking-[0.2em] text-xs flex items-center gap-3">
-               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+               <div className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span></div>
                Detailed Analysis
             </h3>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 rounded-lg border border-white/5 shadow-inner">

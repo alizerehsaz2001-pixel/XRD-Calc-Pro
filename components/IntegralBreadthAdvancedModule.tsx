@@ -762,11 +762,11 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                    )}
                  </div>
                  {result && (
-                   <p className="text-[9px] font-mono text-slate-400 font-bold mt-1.5 uppercase tracking-wider flex items-center gap-1.5">
-                     <span className="w-1 h-1 rounded-full bg-cyan-500 animate-pulse" />
-                     <span>Real Value:</span>
-                     <span className="text-cyan-300">{(result.strainPercent / 100).toExponential(8)}</span>
-                   </p>
+                   <div className="inline-flex items-center gap-2 mt-3 bg-[#0A1526]/60 border border-cyan-500/30 px-3 py-1.5 rounded-xl shadow-inner backdrop-blur-md">
+                     <div className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-500"></span></div>
+                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-cyan-500/80">Real Value:</span>
+                     <span className="text-[10px] font-mono font-bold text-cyan-300">{(result.strainPercent / 100).toExponential(8)}</span>
+                   </div>
                  )}
                  
                  {result && (
@@ -821,11 +821,11 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                          </p>
                          <span className="text-sm font-black text-emerald-500/80 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">nm</span>
                        </div>
-                       <p className="text-[9px] font-mono text-slate-400 font-bold mt-1.5 uppercase tracking-wider flex items-center gap-1.5">
-                         <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                         <span>Real Value:</span>
-                         <span className="text-emerald-300">{result.sizeInterceptNm.toFixed(6)} nm</span>
-                       </p>
+                       <div className="inline-flex items-center gap-2 mt-3 bg-[#0A1526]/60 border border-emerald-500/30 px-3 py-1.5 rounded-xl shadow-inner backdrop-blur-md">
+                         <div className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span></div>
+                         <span className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500/80">Real Value:</span>
+                         <span className="text-[10px] font-mono font-bold text-emerald-300">{result.sizeInterceptNm.toFixed(6)} nm</span>
+                       </div>
                        <div className="flex items-center gap-2 mt-3">
                          <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/50 to-transparent" />
                          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">

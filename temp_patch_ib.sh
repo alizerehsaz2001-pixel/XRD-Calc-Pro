@@ -1,0 +1,1 @@
+sed -i 's/<span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" \/>/ <div className="p-1 rounded-full bg-cyan-500\/20 shrink-0"><div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" \/><\/div>/g' components/IntegralBreadthModule.tsx

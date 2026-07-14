@@ -1019,17 +1019,17 @@ export const ScherrerModule: React.FC = () => {
                   <span className="text-xl text-amber-500 font-black uppercase tracking-widest opacity-80 relative z-10">nm</span>
                 </div>
                 {results.length > 0 && (
-                  <div className="flex flex-col items-end text-right font-mono text-[9px] text-slate-500 font-bold uppercase tracking-wider relative z-10 gap-0.5 mt-2 pr-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-1 h-1 rounded-full bg-amber-500/60" />
-                      <span>Arithmetic (Real Value):</span>
-                      <span className="text-amber-400 font-black">{exactArithmetic.toFixed(4)} nm</span>
+                  <div className="flex flex-col items-end text-right font-mono text-[9px] text-slate-500 font-bold uppercase tracking-wider relative z-10 gap-2 mt-4 pr-2">
+                    <div className="inline-flex items-center gap-2 bg-[#0A1526]/60 border border-amber-500/30 px-3 py-1.5 rounded-xl shadow-inner backdrop-blur-md">
+                      <div className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span></div>
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-500/80">Arithmetic (Real Value):</span>
+                      <span className="text-[10px] font-mono font-bold text-amber-300">{exactArithmetic.toFixed(4)} nm</span>
                     </div>
                     {results.some(r => r.intensity !== undefined && r.intensity > 0) && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-1 h-1 rounded-full bg-slate-600" />
-                        <span>Weighted Mean:</span>
-                        <span className="text-slate-300 font-black">{exactWeighted.toFixed(4)} nm</span>
+                      <div className="inline-flex items-center gap-2 bg-[#0A1526]/60 border border-slate-700/50 px-3 py-1.5 rounded-xl shadow-inner backdrop-blur-md">
+                        <div className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75"></span><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-slate-500"></span></div>
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400/80">Weighted Mean:</span>
+                        <span className="text-[10px] font-mono font-bold text-slate-300">{exactWeighted.toFixed(4)} nm</span>
                       </div>
                     )}
                   </div>

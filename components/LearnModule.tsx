@@ -879,43 +879,61 @@ export const LearnModule: React.FC = () => {
     <div id="protocol-guide-module" className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 min-h-[750px]">
       
       {/* Navigation Sidebar Card */}
-      <div className="lg:col-span-4 xl:col-span-3 space-y-6">
-        <div id="kb-navigation-card" className="bg-white dark:bg-slate-900 overflow-hidden rounded-[2rem] shadow-xl border border-slate-200 dark:border-white/10 relative p-6 space-y-6">
-          <div>
-            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 font-sans">Lab Intelligence Hub</h2>
-            <p className="text-xl font-extrabold text-slate-800 dark:text-slate-100 tracking-tight leading-none mt-2 font-sans">Protocol Guides</p>
+      <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-6">
+        <div id="kb-navigation-card" className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl overflow-hidden rounded-[2.5rem] shadow-xl border border-slate-200/60 dark:border-slate-700/50 relative p-6 flex flex-col gap-6">
+          <div className="relative z-10 px-2">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-500 dark:text-indigo-400 font-sans mb-1 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+              Lab Intelligence
+            </h2>
+            <p className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none font-sans mt-2">Protocol Guides</p>
           </div>
           
-          <div className="space-y-1.5">
-            {topics.map((topic) => (
-              <button
-                id={`btn-${topic.id}`}
-                key={topic.id}
-                onClick={() => setActiveTopic(topic.id)}
-                className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center gap-3 group/btn relative overflow-hidden ${
-                  activeTopic === topic.id
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg'
-                    : 'text-slate-550 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
-                }`}
-              >
-                <topic.icon className={`w-4 h-4 shrink-0 transition-transform group-hover/btn:scale-110 relative z-10 ${activeTopic === topic.id ? (activeTopic === 'start' ? 'text-indigo-400 dark:text-indigo-600' : 'text-fuchsia-400 dark:text-fuchsia-600') : topic.color}`} />
-                <div className="text-left relative z-10">
-                  <p className="text-[10px] font-black uppercase tracking-wider leading-tight">{topic.label}</p>
-                  <p className="text-[9px] opacity-70 font-semibold line-clamp-1">{topic.description}</p>
-                </div>
-              </button>
-            ))}
+          <div className="space-y-2 relative z-10">
+            {topics.map((topic) => {
+              const isActive = activeTopic === topic.id;
+              return (
+                <button
+                  id={`btn-${topic.id}`}
+                  key={topic.id}
+                  onClick={() => setActiveTopic(topic.id)}
+                  className={`w-full text-left px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-4 group relative overflow-hidden ${
+                    isActive
+                      ? 'bg-indigo-600 dark:bg-indigo-500 shadow-lg shadow-indigo-500/25 border-transparent'
+                      : 'bg-transparent border border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:border-slate-200 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className={`p-2 rounded-xl transition-colors ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-500/20 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'
+                  }`}>
+                    <topic.icon className="w-5 h-5 shrink-0 transition-transform group-hover:scale-110" />
+                  </div>
+                  <div className="text-left relative z-10 flex-1 min-w-0">
+                    <p className={`text-sm font-bold truncate ${isActive ? 'text-white' : 'text-slate-700 dark:text-slate-200'}`}>
+                      {topic.label}
+                    </p>
+                    <p className={`text-[11px] font-medium truncate mt-0.5 ${isActive ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                      {topic.description}
+                    </p>
+                  </div>
+                  
+                  {isActive && (
+                    <motion.div layoutId="active-indicator" className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full" />
+                  )}
+                </button>
+              );
+            })}
           </div>
           
-          <div className="p-1 pt-3 border-t border-slate-100 dark:border-slate-800">
-             <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 relative group/card overflow-hidden">
-                <div className="absolute top-0 right-0 p-2 opacity-5 group-hover/card:opacity-10 transition-opacity">
-                   <Target className="w-12 h-12 text-indigo-500" />
+          <div className="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800">
+             <div className="p-5 bg-indigo-50/50 dark:bg-indigo-500/5 rounded-2xl border border-indigo-100/50 dark:border-indigo-500/10 relative group/card overflow-hidden">
+                <div className="absolute -right-4 -top-4 p-4 opacity-5 group-hover/card:opacity-10 transition-opacity transform group-hover/card:scale-110 group-hover/card:rotate-12">
+                   <Target className="w-24 h-24 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <h3 className="text-[9.5px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest mb-1.5 flex items-center gap-1 font-sans">
-                  <Info size={10} /> Operational Grade
+                <h3 className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1.5 font-sans relative z-10">
+                  <Info size={12} /> Operational Grade
                 </h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-normal font-bold font-sans">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-semibold font-sans relative z-10">
                   Academic compliance guidelines comply with peak analysis index codes for peer-reviewed journal submission.
                 </p>
              </div>
@@ -924,8 +942,8 @@ export const LearnModule: React.FC = () => {
       </div>
 
       {/* Experimental Sandbox & Display Container */}
-      <div className="lg:col-span-8 xl:col-span-9">
-        <div className="bg-white dark:bg-slate-905 rounded-[2.5rem] border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden h-full flex flex-col min-h-[600px]">
+      <div className="lg:col-span-8 xl:col-span-9 flex flex-col">
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden h-full flex flex-col min-h-[600px] flex-1">
           
           <AnimatePresence mode="wait">
             <motion.div
@@ -955,46 +973,62 @@ export const LearnModule: React.FC = () => {
                   
                   {/* Score Indicator Badge */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
-                    <div className="md:col-span-4 bg-slate-50 dark:bg-slate-950 rounded-[2rem] border border-slate-150 dark:border-slate-850 p-6 flex flex-col justify-between relative overflow-hidden">
-                       <div className="absolute top-0 right-0 p-4 opacity-5">
-                         <Award className="w-24 h-24 text-indigo-500" />
+                    <div className="md:col-span-5 lg:col-span-4 bg-gradient-to-br from-indigo-50 to-white dark:from-slate-800 dark:to-slate-900 rounded-3xl border border-indigo-100/50 dark:border-slate-700/50 p-6 flex flex-col justify-between relative overflow-hidden shadow-sm">
+                       <div className="absolute -top-6 -right-6 p-4 opacity-5 pointer-events-none">
+                         <Award className="w-40 h-40 text-indigo-600 dark:text-indigo-400" />
                        </div>
-                       <div>
-                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Crystallography Compliance Score</span>
-                         <p className="text-4xl font-black text-slate-900 dark:text-white font-mono tracking-tight">{checklistScore}%</p>
+                       <div className="relative z-10">
+                         <span className="text-[10px] font-black text-indigo-600/80 dark:text-indigo-400/80 uppercase tracking-[0.2em] block mb-2">Compliance Score</span>
+                         <div className="flex items-baseline gap-1.5">
+                           <p className="text-5xl font-black text-slate-900 dark:text-white font-mono tracking-tighter">{checklistScore}</p>
+                           <span className="text-xl font-bold text-slate-400">%</span>
+                         </div>
                        </div>
                        
-                       <div className="mt-4 space-y-2">
-                         <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                           <div className="bg-indigo-500 h-full transition-all duration-500" style={{ width: `${checklistScore}%` }} />
+                       <div className="mt-6 space-y-3 relative z-10">
+                         <div className="w-full bg-slate-200/60 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden shadow-inner">
+                           <div className={`h-full transition-all duration-700 rounded-full ${
+                             checklistScore === 100 ? 'bg-emerald-500' : checklistScore >= 60 ? 'bg-indigo-500' : 'bg-slate-400 dark:bg-slate-500'
+                           }`} style={{ width: `${checklistScore}%` }} />
                          </div>
-                         <p className="text-[10px] text-slate-505 dark:text-slate-400 font-black uppercase tracking-wider">
-                           {checklistScore === 100 
-                             ? 'Journal Ready (Grade A+)' 
-                             : checklistScore >= 60 
-                               ? 'Advanced Framework Complete (Grade B)' 
-                               : 'Preliminary Alignment Phase (Grade C)'}
-                         </p>
+                         <div className="flex items-center gap-2">
+                           <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                             checklistScore === 100 ? 'bg-emerald-500' : checklistScore >= 60 ? 'bg-indigo-500' : 'bg-slate-400'
+                           }`} />
+                           <p className={`text-[10px] font-bold uppercase tracking-wider ${
+                             checklistScore === 100 ? 'text-emerald-600 dark:text-emerald-400' : checklistScore >= 60 ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'
+                           }`}>
+                             {checklistScore === 100 
+                               ? 'Journal Ready (Grade A+)' 
+                               : checklistScore >= 60 
+                                 ? 'Advanced Framework Complete (Grade B)' 
+                                 : 'Preliminary Alignment Phase (Grade C)'}
+                           </p>
+                         </div>
                        </div>
                     </div>
 
-                    <div className="md:col-span-8 bg-slate-900 rounded-[2rem] p-6 border border-slate-800 flex items-center gap-6">
-                      <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shrink-0">
-                         <Target className="w-8 h-8 text-indigo-400 animate-pulse" />
+                    <div className="md:col-span-7 lg:col-span-8 bg-slate-900 dark:bg-black rounded-3xl p-6 md:p-8 border border-slate-800 flex items-center gap-6 shadow-xl relative overflow-hidden group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                      <div className="p-4 bg-slate-800/80 rounded-2xl border border-slate-700 shrink-0 relative z-10 shadow-inner">
+                         <Target className="w-8 h-8 text-indigo-400 group-hover:scale-110 transition-transform duration-500" />
                       </div>
-                      <div>
-                        <h4 className="text-xs font-black text-indigo-400 uppercase tracking-wider mb-1 font-sans">System Standard Core</h4>
-                        <p className="text-xs text-slate-350 leading-relaxed font-bold font-sans">
-                          Our mathematical routines leverage localized peak-fitting optimization algorithms. Maintaining zero specimen offset improves alignment convergence models by up to 45%.
+                      <div className="relative z-10">
+                        <h4 className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-2 font-sans flex items-center gap-2">
+                          System Standard Core
+                          <span className="px-1.5 py-0.5 rounded text-[8px] bg-indigo-500/20 text-indigo-300">ACTIVE</span>
+                        </h4>
+                        <p className="text-sm text-slate-300 leading-relaxed font-medium font-sans">
+                          Our mathematical routines leverage localized peak-fitting optimization algorithms. Maintaining zero specimen offset improves alignment convergence models by up to <span className="text-white font-bold">45%</span>.
                         </p>
                       </div>
                     </div>
                   </div>
 
                   {/* Checklist Section */}
-                  <div className="space-y-3 pt-2">
-                     <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                       <CheckCircle size={14} className="text-indigo-500" /> Interactive RefRef Compliance Audit
+                  <div className="space-y-4 pt-4">
+                     <h3 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                       <CheckCircle size={14} className="text-indigo-500" /> Interactive Refinement Audit
                      </h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        {checklistSteps.map((step, idx) => (
@@ -1002,24 +1036,26 @@ export const LearnModule: React.FC = () => {
                            id={`checklist-item-${idx}`}
                            key={idx}
                            onClick={() => toggleChecklist(idx)}
-                           className={`p-4 rounded-2xl text-left border transition-all flex gap-4 ${
+                           className={`p-5 rounded-3xl text-left border transition-all duration-300 flex items-start gap-4 group ${
                              checklist[idx]
-                               ? 'bg-indigo-500/5 border-indigo-500/20 dark:border-indigo-500/30 text-slate-800 dark:text-slate-100'
-                               : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-white/5 border-slate-200 dark:border-slate-800 text-slate-500'
+                               ? 'bg-indigo-50/50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 text-slate-900 dark:text-white shadow-sm'
+                               : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 border-slate-200 dark:border-slate-800 text-slate-500'
                            }`}
                          >
-                           <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${
+                           <div className={`w-6 h-6 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                              checklist[idx] 
-                               ? 'bg-indigo-600 text-white border-indigo-600' 
-                               : 'border-slate-300 dark:border-slate-700 bg-transparent'
+                               ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20' 
+                               : 'border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 group-hover:border-indigo-400'
                            }`}>
-                             {checklist[idx] && <Check size={12} strokeWidth={3} />}
+                             {checklist[idx] && <Check size={14} strokeWidth={3} />}
                            </div>
-                           <div>
-                             <h4 className={`text-xs font-black uppercase tracking-tight leading-normal ${checklist[idx] ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                           <div className="flex-1">
+                             <h4 className={`text-sm font-bold tracking-tight mb-1 transition-colors ${checklist[idx] ? 'text-indigo-900 dark:text-indigo-100' : 'text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'}`}>
                                {step.text}
                              </h4>
-                             <p className="text-[10px] text-slate-455 dark:text-slate-400 font-bold leading-normal mt-1">{step.desc}</p>
+                             <p className={`text-[11px] font-medium leading-relaxed ${checklist[idx] ? 'text-indigo-700/70 dark:text-indigo-300/70' : 'text-slate-500 dark:text-slate-400'}`}>
+                               {step.desc}
+                             </p>
                            </div>
                          </button>
                        ))}
@@ -1310,62 +1346,65 @@ export const LearnModule: React.FC = () => {
                        <span className="px-3 py-1 bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-sky-500/20 font-mono">Platform Documentation</span>
                        <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
                     </div>
-                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-sans">
+                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none font-sans">
                       Suite Manual & Functional Updates
                     </h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-bold leading-relaxed font-sans font-medium">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-bold max-w-3xl leading-relaxed font-sans">
                       Comprehensive theoretical reference of all crystal structure modeling, profile fitting, neural network classifiers, and magnetic calculators within the XRD-Calc Pro ecosystem.
                     </p>
                   </div>
 
                   {/* Custom Directory Filter Toolbar */}
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                  <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                       
                       {/* Search bar */}
-                      <div className="md:col-span-5 flex items-center gap-2 bg-slate-50 dark:bg-slate-950 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-855">
+                      <div className="lg:w-1/3 flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-400">
                         <Search className="w-4 h-4 text-slate-400 shrink-0" />
                         <input
                           type="text"
-                          placeholder="Search modules & updates..."
+                          placeholder="Search modules..."
                           value={sectionSearch}
                           onChange={(e) => setSectionSearch(e.target.value)}
-                          className="bg-transparent w-full border-none focus:outline-none text-slate-805 dark:text-slate-200 placeholder-slate-400 text-xs font-mono font-medium"
+                          className="bg-transparent w-full border-none focus:outline-none text-slate-900 dark:text-slate-100 placeholder-slate-400 text-sm font-semibold"
                         />
                         {sectionSearch && (
                           <button 
                             onClick={() => setSectionSearch('')}
-                            className="text-[9px] font-black uppercase text-slate-400 hover:text-slate-605 tracking-wider"
+                            className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors"
                           >
-                            Clear
+                            <Target size={14} />
                           </button>
                         )}
                       </div>
 
                       {/* Group filters */}
-                      <div className="md:col-span-12 lg:col-span-7 flex flex-wrap gap-1.5 items-center justify-start lg:justify-end">
-                        {['All', 'Fundamentals', 'Size & Strain', 'Advanced Sim', 'AI Tools', 'Intelligence'].map((g) => (
-                          <button
-                            key={g}
-                            onClick={() => setSelectedGroup(g)}
-                            className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${
-                              selectedGroup === g
-                                ? 'bg-slate-905 dark:bg-white text-white dark:text-slate-900 shadow-sm'
-                                : 'bg-slate-50 dark:bg-slate-950 text-slate-550 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-850'
-                            }`}
-                          >
-                            {g}
-                          </button>
-                        ))}
+                      <div className="flex-1 flex gap-2 overflow-x-auto pb-2 lg:pb-0 hide-scrollbar items-center">
+                        {['All', 'Fundamentals', 'Size & Strain', 'Advanced Sim', 'AI Tools', 'Intelligence'].map((g) => {
+                          const isSelected = selectedGroup === g;
+                          return (
+                            <button
+                              key={g}
+                              onClick={() => setSelectedGroup(g)}
+                              className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-300 ${
+                                isSelected
+                                  ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md shadow-slate-900/10 dark:shadow-white/10'
+                                  : 'bg-white dark:bg-slate-900 text-slate-500 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                              }`}
+                            >
+                              {g}
+                            </button>
+                          );
+                        })}
                       </div>
 
                     </div>
 
                     {/* Counter indicator */}
-                    <div className="flex justify-between items-center px-1 text-[9px] text-slate-400 font-bold uppercase tracking-wider font-mono">
-                      <span>Total Available: {PLATFORM_SECTIONS.length} Modules</span>
-                      <span className="text-indigo-500 dark:text-indigo-455 font-black">
-                        Filtered View: {
+                    <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold uppercase tracking-wider font-mono px-2">
+                      <span>{PLATFORM_SECTIONS.length} Total Modules</span>
+                      <span className="text-indigo-600 dark:text-indigo-400">
+                        Showing: {
                           PLATFORM_SECTIONS.filter(sec => {
                             const matchesGroup = selectedGroup === 'All' || sec.group === selectedGroup;
                             const matchesSearch = sectionSearch.trim() === '' || 
@@ -1375,13 +1414,13 @@ export const LearnModule: React.FC = () => {
                               sec.id.toLowerCase().includes(sectionSearch.toLowerCase());
                             return matchesGroup && matchesSearch;
                           }).length
-                        } Sections found
+                        }
                       </span>
                     </div>
                   </div>
 
                   {/* Bento Grid layout of sections */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
                     {PLATFORM_SECTIONS.filter(sec => {
                       const matchesGroup = selectedGroup === 'All' || sec.group === selectedGroup;
                       const matchesSearch = sectionSearch.trim() === '' || 
@@ -1390,80 +1429,79 @@ export const LearnModule: React.FC = () => {
                         sec.updates.toLowerCase().includes(sectionSearch.toLowerCase()) ||
                         sec.id.toLowerCase().includes(sectionSearch.toLowerCase());
                       return matchesGroup && matchesSearch;
-                    }).map((sec) => (
-                      <div 
+                    }).map((sec, idx) => (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.05 }}
                         key={sec.id} 
-                        className="bg-slate-50 dark:bg-slate-950 p-6 rounded-[2rem] border border-slate-150 dark:border-slate-855 flex flex-col justify-between space-y-4 hover:border-sky-505/20 hover:shadow-lg transition-all duration-300"
+                        className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-6 hover:shadow-xl hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all duration-300 group"
                       >
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                           
                           {/* Card Top Label Row */}
-                          <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {/* Color coded Badge for groups */}
-                              <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg ${
                                 sec.group === 'Fundamentals' 
-                                  ? 'bg-indigo-505/10 text-indigo-550' 
+                                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' 
                                   : sec.group === 'Size & Strain'
-                                  ? 'bg-emerald-500/10 text-emerald-500'
+                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
                                   : sec.group === 'Advanced Sim'
-                                  ? 'bg-rose-500/10 text-rose-505'
+                                  ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400'
                                   : sec.group === 'AI Tools'
-                                  ? 'bg-cyan-500/10 text-cyan-505'
-                                  : 'bg-violet-500/10 text-violet-505'
+                                  ? 'bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400'
+                                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
                               }`}>
                                 {sec.group}
-                              </span>
-                              
-                              {/* System ID Tag */}
-                              <span className="text-[7.5px] font-mono bg-white dark:bg-slate-900 text-slate-450 px-1.5 py-0.5 rounded border border-slate-105 dark:border-slate-800">
-                                id: {sec.id}
                               </span>
                             </div>
 
                             {/* Status Label */}
-                            <span className={`text-[7.5px] font-black uppercase tracking-widest flex items-center gap-1 ${
+                            <span className={`text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 px-2 py-1 rounded-full border ${
                               sec.status === 'validated'
-                                ? 'text-emerald-505'
+                                ? 'border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10'
                                 : sec.status === 'enhanced'
-                                ? 'text-indigo-505'
-                                : 'text-amber-505'
+                                ? 'border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10'
+                                : 'border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10'
                             }`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${
                                 sec.status === 'validated'
-                                  ? 'bg-emerald-505 animate-pulse'
+                                  ? 'bg-emerald-500 animate-pulse'
                                   : sec.status === 'enhanced'
-                                  ? 'bg-indigo-550'
-                                  : 'bg-amber-550'
+                                  ? 'bg-indigo-500'
+                                  : 'bg-amber-500'
                               }`} />
                               {sec.status === 'validated' ? 'Validated' : sec.status === 'enhanced' ? 'Enhanced' : 'Operational'}
                             </span>
                           </div>
 
-                          {/* Section name */}
-                          <h3 className="text-sm font-black text-slate-850 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                            {sec.label}
-                          </h3>
+                          <div>
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                              {sec.label}
+                            </h3>
+                            <div className="text-[10px] font-mono text-slate-400 mt-1 uppercase">ID: {sec.id}</div>
+                          </div>
 
                           {/* Description */}
-                          <p className="text-[10.5px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed font-medium">
+                          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
                             {sec.description}
                           </p>
-
                         </div>
 
                         {/* Dedicated Updates Panel in Card */}
-                        <div className="p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-150 dark:border-slate-805 space-y-1.5">
-                          <div className="flex items-center gap-1.5 text-sky-550 dark:text-sky-400 font-semibold">
-                            <Sparkles size={11} className="shrink-0 text-sky-555 animate-pulse" />
-                            <span className="text-[8.5px] font-black uppercase tracking-wider text-sky-600 dark:text-sky-400">Latest Update (v2.5.0)</span>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Latest Update / v2.5.0</span>
                           </div>
-                          <p className="text-[9.5px] text-slate-550 dark:text-slate-300 font-bold leading-normal font-sans font-medium">
+                          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
                             {sec.updates}
                           </p>
                         </div>
 
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
@@ -1471,12 +1509,12 @@ export const LearnModule: React.FC = () => {
 
               {/* Topic 2: Standard Formats with Interactive Sandbox */}
               {activeTopic === 'input' && (
-                <div className="space-y-8">
+                <div className="space-y-8 animate-in fade-in duration-300">
                   <div className="space-y-3">
-                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-sans">
+                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none font-sans">
                       Data Parser & Sandbox Validation
                     </h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-bold leading-relaxed font-sans">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-bold max-w-3xl leading-relaxed font-sans">
                       Diffraction processing engines require clean formatted structures to calculate FWHM and crystallite dimensions. Select a format preset or paste custom data.
                     </p>
                   </div>
@@ -1484,76 +1522,92 @@ export const LearnModule: React.FC = () => {
                   <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
                     
                     {/* Presets and Copy board */}
-                    <div className="xl:col-span-5 space-y-4">
-                       <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Aesthetic Presets</h3>
-                       <div className="space-y-2">
+                    <div className="xl:col-span-5 space-y-6">
+                       <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <Target size={14} className="text-indigo-500" /> Aesthetic Presets
+                       </h3>
+                       <div className="space-y-3">
                          {presets.map((p, idx) => (
-                           <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-150 dark:border-slate-850 flex justify-between items-center group">
+                           <div key={idx} className="p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 flex justify-between items-center group shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all duration-300">
                              <div>
-                               <p className="text-[10px] font-black uppercase text-slate-855 dark:text-slate-300">{p.label}</p>
-                               <p className="text-[9.5px] font-mono text-slate-400 mt-1 line-clamp-1">{p.content.replace(/\n/g, ' | ')}</p>
+                               <p className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{p.label}</p>
+                               <p className="text-[10px] font-mono text-slate-400 mt-1.5 line-clamp-1">{p.content.replace(/\n/g, ' | ')}</p>
                              </div>
                              <button
                                onClick={() => {
                                  handleValidation(p.content);
                                  copyToClipboard(p.content, idx);
                                }}
-                               className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-500 rounded-lg transition-colors flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider"
+                               className={`px-3 py-2 rounded-xl transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-wider ${
+                                 copiedIndex === idx 
+                                   ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' 
+                                   : 'bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 border border-transparent hover:border-indigo-200 dark:hover:border-indigo-500/20'
+                               }`}
                              >
-                               {copiedIndex === idx ? <Check size={12} className="text-indigo-500" /> : <Copy size={12} />}
+                               {copiedIndex === idx ? <Check size={14} /> : <Copy size={14} />}
                                {copiedIndex === idx ? 'Copied' : 'Load'}
                              </button>
                            </div>
                          ))}
                        </div>
 
-                       <div className="p-5 bg-indigo-50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-150/35 flex gap-3.5 items-start">
-                          <Info className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
-                          <div className="text-[10.5px] text-slate-600 dark:text-slate-300 font-bold leading-relaxed font-sans">
-                            <span className="font-extrabold uppercase text-indigo-600 dark:text-indigo-400">Strict Standard:</span> FWHM values should always reside in 2θ degrees. Converting values to radians is processed internally inside deep computation stages.
+                       <div className="p-5 bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl border border-indigo-100 dark:border-indigo-500/20 flex gap-4 items-start shadow-inner">
+                          <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-xl shrink-0">
+                            <Info className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                          </div>
+                          <div className="text-[11px] text-indigo-900/80 dark:text-indigo-200/80 font-medium leading-relaxed font-sans">
+                            <span className="font-bold uppercase text-indigo-700 dark:text-indigo-300 block mb-1">Strict Standard</span> 
+                            FWHM values should always reside in 2θ degrees. Converting values to radians is processed internally inside deep computation stages.
                           </div>
                        </div>
                     </div>
 
                     {/* Parser Playground */}
-                    <div className="xl:col-span-7 space-y-4">
+                    <div className="xl:col-span-7 space-y-5 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-inner">
                       <div className="flex justify-between items-center">
-                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                          <Database size={12} /> Live Formatting Validation
+                        <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <Database size={14} className="text-indigo-500" /> Live Formatting Validation
                         </label>
-                        <span className={`text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-full ${
+                        <span className={`text-[10px] uppercase font-black tracking-wider px-3 py-1.5 rounded-full border ${
                           validationMsg.type === 'success' 
-                            ? 'bg-emerald-500/10 text-emerald-600' 
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' 
                             : validationMsg.type === 'error' 
-                              ? 'bg-rose-500/10 text-rose-600' 
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-405'
+                              ? 'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20' 
+                              : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700'
                         }`}>
                           {validationMsg.text}
                         </span>
                       </div>
 
-                      <div className="relative">
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                         <textarea
                           id="validator-sandbox-text"
                           value={customText}
                           onChange={(e) => handleValidation(e.target.value)}
                           placeholder="28.44, 0.25&#10;47.30, 0.28"
-                          className="w-full h-44 px-4 py-3 bg-slate-950 text-slate-300 border border-slate-800 focus:ring-1 focus:ring-indigo-500/50 rounded-2rem font-mono text-xs leading-relaxed outline-none transition-all"
+                          className="w-full h-56 px-5 py-4 bg-white dark:bg-black text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 rounded-2xl font-mono text-sm leading-relaxed outline-none transition-all shadow-sm"
                         />
                       </div>
 
-                      <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-150 dark:border-slate-850 font-mono text-[10px] text-slate-455">
-                        <p className="font-bold text-slate-355 uppercase tracking-wider mb-2">Live Output Diagnostic:</p>
+                      <div className="p-5 bg-slate-900 dark:bg-black rounded-2xl border border-slate-800 font-mono text-xs text-slate-400 shadow-xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                           <Database className="w-16 h-16 text-indigo-400" />
+                        </div>
+                        <p className="font-black text-indigo-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                           <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse" />
+                           Live Output Diagnostic
+                        </p>
                         {validationMsg.type === 'success' && validationMsg.count ? (
-                          <div className="space-y-1 text-emerald-455">
-                            <p>&gt; Valid rows scanned: {validationMsg.count}</p>
-                            <p>&gt; Structured coordinate alignment: SECURE</p>
-                            <p>&gt; Array initialization: COMPLIANT</p>
+                          <div className="space-y-2 text-emerald-400 relative z-10">
+                            <p className="flex items-center gap-2"><Check size={14} /> Valid rows scanned: <span className="font-bold text-white">{validationMsg.count}</span></p>
+                            <p className="flex items-center gap-2"><Check size={14} /> Structured coordinate alignment: <span className="font-bold text-white">SECURE</span></p>
+                            <p className="flex items-center gap-2"><Check size={14} /> Array initialization: <span className="font-bold text-white">COMPLIANT</span></p>
                           </div>
                         ) : (
-                          <div className="text-slate-500">
+                          <div className="space-y-2 text-slate-500 relative z-10">
                             <p>&gt; Awaiting standard dataset alignment rows...</p>
-                            <p>&gt; Validation protocol: STANDBY</p>
+                            <p className="animate-pulse">&gt; Validation protocol: STANDBY</p>
                           </div>
                         )}
                       </div>
@@ -3305,16 +3359,16 @@ print(f"Created crystallographic phase. Target wavelength={WAVELENGTH} Å")
               {activeTopic === 'troubleshoot' && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <div className="space-y-3">
-                    <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-sans">
+                    <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none font-sans">
                       Environmental Diagnostic Helpdesk
                     </h2>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 font-bold leading-relaxed font-sans">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-bold max-w-3xl leading-relaxed font-sans">
                       Address systematic calibration errors, lattice deformities, indexing exceptions, or divergent fitting results. Use the quick filter bar.
                     </p>
                   </div>
 
                   {/* Filter Search Bar */}
-                  <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-850 relative">
+                  <div className="flex items-center gap-3 bg-white dark:bg-slate-900 px-5 py-4 rounded-3xl border border-slate-200 dark:border-slate-800 relative shadow-sm focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-400 transition-all">
                      <Search className="w-5 h-5 text-slate-400 shrink-0" />
                      <input
                        id="search-diagnostics"
@@ -3322,53 +3376,62 @@ print(f"Created crystallographic phase. Target wavelength={WAVELENGTH} Å")
                        placeholder="Filter diagnostic FAQs (e.g., strain, instrument, slope, standard)..."
                        value={searchTerm}
                        onChange={(e) => setSearchTerm(e.target.value)}
-                       className="bg-transparent w-full border-none focus:outline-none text-slate-800 dark:text-slate-200 placeholder-slate-400 text-xs"
+                       className="bg-transparent w-full border-none focus:outline-none text-slate-800 dark:text-slate-200 placeholder-slate-400 text-sm font-semibold"
                      />
                      {searchTerm && (
                        <button 
                          onClick={() => setSearchTerm('')}
-                         className="text-[10px] font-black uppercase text-slate-450 hover:text-slate-650 tracking-wider"
+                         className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors"
                        >
-                         Clear
+                         <Target size={16} />
                        </button>
                      )}
                   </div>
 
                   {/* FAQ List */}
-                  <div className="space-y-4">
+                  <div className="space-y-5 pt-2">
                     {filteredFAQs.length > 0 ? (
                       filteredFAQs.map((faq, i) => (
-                        <div key={i} className="p-6 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-white/5 hover:border-indigo-500/20 shadow-sm transition-all group font-sans">
-                           <div className="flex gap-4 items-start mb-3">
-                             <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 mt-0.5">
-                               <LifeBuoy size={16} />
+                        <motion.div 
+                           initial={{ opacity: 0, y: 10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           transition={{ delay: i * 0.05 }}
+                           key={i} 
+                           className="p-6 md:p-8 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 hover:shadow-xl hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all duration-300 group font-sans relative overflow-hidden"
+                        >
+                           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                           <div className="flex gap-4 md:gap-6 items-start mb-4 relative z-10">
+                             <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5 border border-indigo-100 dark:border-indigo-500/20 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                               <LifeBuoy size={18} />
                              </div>
-                             <div>
-                               <h4 className="text-xs font-black uppercase text-slate-900 dark:text-white tracking-normal mt-1 leading-normal">
+                             <div className="flex-1">
+                               <h4 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-relaxed group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                  {faq.q}
                                </h4>
-                               <div className="flex flex-wrap gap-1 mt-1.5">
+                               <div className="flex flex-wrap gap-2 mt-2">
                                  {faq.tags.map((tag, idx) => (
-                                   <span key={idx} className="text-[8px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-950 text-slate-400 px-1.5 py-0.5 rounded">
+                                   <span key={idx} className="text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
                                      #{tag}
                                    </span>
                                  ))}
                                </div>
                              </div>
                            </div>
-                           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed pl-12">
+                           <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed md:pl-16 relative z-10">
                              {faq.a}
                            </p>
-                        </div>
+                        </motion.div>
                       ))
                     ) : (
-                      <div className="text-center py-12 bg-slate-50 dark:bg-slate-950 rounded-[2rem] border border-dashed border-slate-200 dark:border-slate-800">
-                         <LifeBuoy className="w-10 h-10 text-slate-400 mx-auto mb-3 animate-bounce" />
-                         <p className="text-xs text-slate-400 font-black uppercase tracking-wider">No diagnostic profiles match "{searchTerm}"</p>
-                         <p className="text-[10px] text-slate-500 font-bold mt-1">Try testing other general words like "strain", "size", or "fwhm".</p>
+                      <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-dashed border-slate-300 dark:border-slate-700">
+                         <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 dark:border-slate-700">
+                           <LifeBuoy className="w-8 h-8 text-slate-400 animate-bounce" />
+                         </div>
+                         <p className="text-sm text-slate-900 dark:text-white font-bold tracking-tight mb-2">No diagnostic profiles match "{searchTerm}"</p>
+                         <p className="text-xs text-slate-500 font-medium max-w-sm mx-auto">Try testing other general words like "strain", "size", or "fwhm".</p>
                          <button 
                            onClick={() => setSearchTerm('')}
-                           className="text-xs text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest mt-4 border border-indigo-500/20 px-4 py-2 rounded-xl bg-indigo-500/5"
+                           className="text-[10px] text-white dark:text-indigo-100 font-black uppercase tracking-widest mt-6 border border-indigo-500/50 px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 transition-colors shadow-sm"
                          >
                            Reset Filter Search
                          </button>
