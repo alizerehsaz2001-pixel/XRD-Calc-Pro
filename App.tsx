@@ -989,12 +989,15 @@ const App: React.FC = () => {
     if (!hasEntered || !isRegistered) {
       document.body.classList.remove('overflow-hidden', 'h-screen');
       document.body.classList.add('overflow-y-auto', 'min-h-screen');
+      document.documentElement.classList.remove('overflow-hidden', 'h-screen');
     } else {
       document.body.classList.add('overflow-hidden', 'h-screen');
       document.body.classList.remove('overflow-y-auto', 'min-h-screen');
+      document.documentElement.classList.add('overflow-hidden', 'h-screen');
     }
     return () => {
       document.body.classList.remove('overflow-hidden', 'h-screen', 'overflow-y-auto', 'min-h-screen');
+      document.documentElement.classList.remove('overflow-hidden', 'h-screen');
     };
   }, [hasEntered, isRegistered]);
 

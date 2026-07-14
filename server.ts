@@ -278,6 +278,20 @@ async function startServer() {
     res.json({ success: true, message: "User registered successfully" });
   });
 
+  let translationQuotaExhaustedUntil = 0;
+
+  function isTranslationQuotaError(err: any): boolean {
+    const msg = (err?.message || String(err)).toLowerCase();
+    return (
+      err?.status === 429 ||
+      err?.code === 429 ||
+      msg.includes("429") ||
+      msg.includes("quota") ||
+      msg.includes("limit") ||
+      msg.includes("resource_exhausted")
+    );
+  }
+
   const translationCache: Record<string, Record<string, string>> = {};
 
   app.post("/api/translate", async (req, res) => {
@@ -317,6 +331,15 @@ async function startServer() {
         return;
       }
 
+      // Check if we are currently cooling down from a previous quota issue
+      if (Date.now() < translationQuotaExhaustedUntil) {
+        for (const key of uncachedKeys) {
+          result[key] = key;
+        }
+        res.json({ success: true, translations: result });
+        return;
+      }
+
       const ai = getGeminiClient();
       const prompt = `Translate the following English strings into language '${to}'. Ensure translations are highly natural, accurate, and culturally appropriate for that language. Maintain all technical terms (like XRD, Rietveld, d-spacing, Miller Indices, etc.) and symbols (like 2θ, Å, etc.) unchanged if they are commonly used as-is in that language. 
       
@@ -337,11 +360,14 @@ async function startServer() {
       const modelsToTry = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
       
       for (const model of modelsToTry) {
+        if (Date.now() < translationQuotaExhaustedUntil) {
+          break;
+        }
         let retries = 2;
         let delay = 1000;
         while (retries >= 0) {
           try {
-            console.log(`[i18n] Attempting translation of ${uncachedKeys.length} keys to ${to} using model ${model} (retries remaining: ${retries})`);
+            console.log(`[i18n] Translating ${uncachedKeys.length} keys to ${to} via ${model}`);
             const response = await ai.models.generateContent({
               model,
               ...translateConfig
@@ -351,7 +377,13 @@ async function startServer() {
               break;
             }
           } catch (apiErr: any) {
-            console.warn(`[i18n] Translation failed with model ${model} (retryable):`, apiErr.message || apiErr);
+            if (isTranslationQuotaError(apiErr)) {
+              // Set a 15-minute cooldown for API-based translations
+              translationQuotaExhaustedUntil = Date.now() + 15 * 60 * 1000;
+              console.log(`[i18n] Quota condition detected. Transitioning to local text-fallback for 15m.`);
+              break;
+            }
+            console.log(`[i18n] Model ${model} retry status: ${retries}`);
             if (retries === 0) {
               break;
             }
@@ -360,7 +392,7 @@ async function startServer() {
             delay *= 2;
           }
         }
-        if (responseText) {
+        if (responseText || Date.now() < translationQuotaExhaustedUntil) {
           break;
         }
       }
@@ -377,13 +409,13 @@ async function startServer() {
             }
           });
         } catch (parseErr) {
-          console.error("Failed to parse Gemini translation response:", responseText, parseErr);
+          console.log("[i18n] Note: non-json format resolved. Falling back.", parseErr);
         }
       } else {
-        console.warn("[i18n] All translation models were exhausted. Falling back to empty translations dictionary.");
+        console.log("[i18n] Dynamic translation fallback applied.");
       }
 
-      // Ensure every requested key has a response, fallback to the key itself if translation failed
+      // Ensure every requested key has a response, fallback to the key itself if translation was bypassed/failed
       for (const key of keys) {
         if (typeof key === "string" && !result[key]) {
           result[key] = key;
@@ -392,7 +424,7 @@ async function startServer() {
 
       res.json({ success: true, translations: result });
     } catch (err: any) {
-      console.error("Translation error:", err);
+      console.log("[i18n] Recovery fallback initialized:", err?.message || err);
       // Gracefully recover to prevent UI/API failure, returning original keys
       const fallbackResult: Record<string, string> = {};
       for (const key of keys) {

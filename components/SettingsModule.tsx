@@ -610,95 +610,88 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-7xl mx-auto space-y-8 p-4 md:p-0 pb-12"
+      className="max-w-6xl mx-auto space-y-6 p-4 md:p-8 pb-16 font-sans text-slate-900 dark:text-slate-100"
     >
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-[0_0_50px_rgba(79,70,229,0.3)] relative group">
-            <Settings className="w-8 h-8 group-hover:rotate-90 transition-transform duration-500" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-4 border-white dark:border-slate-950 rounded-full animate-pulse" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20 relative group">
+            <Settings className="w-7 h-7 group-hover:rotate-90 transition-transform duration-500" />
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
           </div>
           <div>
-            <h1 className="text-4xl font-black uppercase italic tracking-tighter leading-none mb-2 text-slate-900 dark:text-white">
-              System<span className="text-indigo-600 font-extrabold">Config</span>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+              {t('Settings')}
             </h1>
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-indigo-500/10 text-indigo-500 rounded text-[9px] font-black uppercase tracking-widest border border-indigo-500/20">
-                <Shield className="w-2.5 h-2.5" /> Secure Protocol v2.5
-              </span>
-              <p className="text-slate-500 dark:text-slate-400 font-bold text-xs">{t('Laboratory Environment')} • Master Control</p>
-            </div>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-indigo-500" /> {t('Secure Protocol v2.5 • Master Control')}
+            </p>
           </div>
         </div>
 
-        <div className="flex gap-4 flex-wrap">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-3 flex items-center gap-4 min-w-[180px] shadow-sm">
-             <div className="p-2 bg-emerald-500/10 rounded-xl">
-               <Zap className="w-4 h-4 text-emerald-500 animate-pulse" />
+        <div className="flex gap-3">
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex items-center gap-3 shadow-sm min-w-[140px]">
+             <div className="p-1.5 bg-emerald-500/10 rounded-lg">
+               <Zap className="w-4 h-4 text-emerald-500" />
              </div>
-             <div>
-               <div className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Diffraction Core</div>
-               <div className="text-[10px] font-black uppercase italic text-emerald-500">Connected</div>
+             <div className="flex flex-col">
+               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{t('Diffraction')}</span>
+               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{t('Connected')}</span>
              </div>
           </div>
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-3 flex items-center gap-4 min-w-[180px] shadow-sm">
-             <div className="p-2 bg-indigo-500/10 rounded-xl">
+          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex items-center gap-3 shadow-sm min-w-[140px]">
+             <div className="p-1.5 bg-indigo-500/10 rounded-lg">
                <Activity className="w-4 h-4 text-indigo-500" />
              </div>
-             <div>
-               <div className="text-[9px] font-black uppercase text-slate-500 tracking-tighter">Numerical Calib</div>
-               <div className="text-[10px] font-black uppercase italic text-slate-700 dark:text-slate-200">
-                 {sampleOffsetThetaMock ? 'Active offsets' : 'Perfect Zero'}
-               </div>
+             <div className="flex flex-col">
+               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{t('Calibration')}</span>
+               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                 {sampleOffsetThetaMock ? t('Active offsets') : t('Perfect Zero')}
+               </span>
              </div>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
         
-        {/* Vertical Tabs Sidebar */}
-        <div className="lg:w-72 shrink-0">
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden p-3 sticky top-24">
-            <div className="space-y-1">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      setActiveTab(tab.id as any);
-                      playSynthTone('tick');
-                    }}
-                    className={`w-full flex items-center justify-between p-4 rounded-xl transition-all duration-300 ${
-                      isActive 
-                        ? 'bg-indigo-600 text-white shadow-md'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                      <span className="text-[11px] font-black uppercase tracking-widest">{tab.label}</span>
-                    </div>
-                    {isActive && <ChevronRight className="w-4 h-4" />}
-                  </button>
-                )
-              })}
-            </div>
+        {/* Sidebar / Topbar Tabs */}
+        <div className="lg:w-64 shrink-0 w-full lg:sticky lg:top-24 space-y-4 lg:space-y-6">
+          {/* Tabs Container */}
+          <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-3 lg:pb-0 scrollbar-none snap-x -mx-4 px-4 lg:mx-0 lg:px-0">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id as any);
+                    playSynthTone('tick');
+                  }}
+                  className={`flex items-center gap-2.5 px-4 py-2.5 lg:py-3 rounded-2xl transition-all duration-300 text-xs lg:text-sm font-bold whitespace-nowrap snap-center lg:w-full shrink-0 border select-none ${
+                    isActive 
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+                      : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm lg:bg-transparent lg:dark:bg-transparent lg:border-none lg:shadow-none'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 lg:w-5 lg:h-5 shrink-0 transition-transform ${isActive ? 'text-white scale-110' : 'text-slate-400 dark:text-slate-500 group-hover:text-slate-600'}`} />
+                  {t(tab.label)}
+                </button>
+              )
+            })}
+          </div>
 
-            <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-white/5 space-y-3">
-               <div className="flex items-center gap-2">
-                 <Lock className="w-3.5 h-3.5 text-indigo-500" />
-                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-500">Local Sandbox</span>
-               </div>
-               <p className="text-[9.5px] font-bold text-slate-500 uppercase tracking-wide leading-relaxed">
-                 All processing completes securely inside the local browser container. No data leaves the terminal.
-               </p>
-            </div>
+          <div className="hidden lg:block p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+             <div className="flex items-center gap-2 mb-2">
+               <Lock className="w-4 h-4 text-indigo-500" />
+               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{t('Local Sandbox')}</span>
+             </div>
+             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+               {t('Processing completes securely inside the local browser container. No data leaves the terminal.')}
+             </p>
           </div>
         </div>
 
@@ -710,72 +703,68 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             {activeTab === 'general' && (
               <motion.div 
                 key="general"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-8"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
               >
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] rounded-full -mr-32 -mt-32 pointer-events-none" />
-                  <div className="flex items-center gap-4 mb-8 relative z-10">
-                    <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 border border-indigo-500/20">
-                      <Monitor className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-200">Environment Aesthetics</h3>
-                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Customize workspace colors and numerical displays</p>
-                    </div>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Monitor className="w-6 h-6 text-indigo-500" />
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('Appearance & Display')}</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-                    <div className="space-y-8">
-                      {/* Language Select */}
-                      <div className="space-y-3">
-                        <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                          <Globe className="w-3.5 h-3.5" /> Language Locale
-                        </label>
+                  <div className="space-y-8">
+                    {/* Language Select */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
+                      <div>
+                        <label className="text-sm font-medium text-slate-900 dark:text-slate-200 block mb-1">{t('Language Locale')}</label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('Select your preferred interface language')}</p>
+                      </div>
+                      <div className="w-full md:w-64 shrink-0">
                         <LanguageSelector onLanguageChange={() => playSynthTone('switch')} />
                       </div>
+                    </div>
 
-                      {/* Precision Settings */}
-                      <div className="space-y-3">
-                        <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                          <Sliders className="w-3.5 h-3.5" /> Decimal Precision Level
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          {[
-                            { val: 2, label: 'Standard', sub: '2.00' },
-                            { val: 4, label: 'High', sub: '4.0000' },
-                            { val: 6, label: 'Analytical', sub: '6.000000' },
-                            { val: 8, label: 'Scientific', sub: '8.000...' }
-                          ].map((pOption) => (
-                            <button
-                              key={pOption.val}
-                              onClick={() => {
-                                setPrecision(pOption.val);
-                                playSynthTone('tick');
-                              }}
-                              className={`group p-4 rounded-xl border-2 transition-all relative overflow-hidden text-left ${
-                                precision === pOption.val
-                                  ? 'bg-indigo-600 border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.4)]'
-                                  : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/5 hover:border-indigo-500/50'
-                              }`}
-                            >
-                              <div className={`text-[10px] font-black uppercase tracking-widest ${precision === pOption.val ? 'text-white' : 'text-slate-500 group-hover:text-indigo-500'}`}>{pOption.label}</div>
-                              <div className={`text-[11px] font-black font-mono italic mt-1 ${precision === pOption.val ? 'text-indigo-200' : 'text-slate-400'}`}>{pOption.sub}</div>
-                            </button>
-                          ))}
-                        </div>
+                    {/* Precision Settings */}
+                    <div className="pb-6 border-b border-slate-100 dark:border-slate-800">
+                      <div className="mb-4">
+                        <label className="text-sm font-medium text-slate-900 dark:text-slate-200 block mb-1">{t('Decimal Precision')}</label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('Controls the number of decimal places shown in calculations')}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        {[
+                          { val: 2, label: 'Standard (2.00)' },
+                          { val: 4, label: 'High (4.0000)' },
+                          { val: 6, label: 'Analytical (6.000000)' },
+                          { val: 8, label: 'Scientific (8.00...)' }
+                        ].map((pOption) => (
+                          <button
+                            key={pOption.val}
+                            onClick={() => {
+                              setPrecision(pOption.val);
+                              playSynthTone('tick');
+                            }}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                              precision === pOption.val
+                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                                : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500'
+                            }`}
+                          >
+                            {t(pOption.label)}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
                     {/* Theme Configuration */}
-                    <div className="space-y-3">
-                      <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                        <Palette className="w-3.5 h-3.5" /> Workspace Display Theme
-                      </label>
-                      <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <div className="mb-4">
+                        <label className="text-sm font-medium text-slate-900 dark:text-slate-200 block mb-1">{t('Workspace Theme')}</label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('Choose a color palette for your environment')}</p>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                         {themeOptions.map((tOption) => (
                           <button
                             key={tOption.id}
@@ -783,27 +772,18 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                               setTheme(tOption.id as any);
                               playSynthTone('switch');
                             }}
-                            className={`group flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                            className={`flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all ${
                               theme === tOption.id
-                                ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 shadow-[0_4px_15px_rgba(79,70,229,0.15)]'
-                                : 'border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-950 hover:border-indigo-500/50'
+                                ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 shadow-sm'
+                                : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 hover:border-indigo-300'
                             }`}
                           >
-                            <div className="flex items-center gap-4">
-                              <div className={`w-10 h-10 rounded-lg ${tOption.color} ${tOption.border} border flex items-center justify-center overflow-hidden shadow-sm`}>
-                                <span className={`text-[10px] font-black italic ${tOption.text}`}>A</span>
-                              </div>
-                              <div className="text-left">
-                                <div className={`text-[11px] font-black uppercase tracking-widest ${theme === tOption.id ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                                  {tOption.label}
-                                </div>
-                              </div>
+                            <div className={`w-12 h-12 rounded-full ${tOption.color} ${tOption.border} border-2 flex items-center justify-center shadow-inner`}>
+                               {theme === tOption.id && <Check className={`w-5 h-5 ${tOption.text}`} />}
                             </div>
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                              theme === tOption.id ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300 dark:border-slate-600'
-                            }`}>
-                              {theme === tOption.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                            </div>
+                            <span className={`text-xs font-semibold ${theme === tOption.id ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                              {t(tOption.label)}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -811,27 +791,21 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl space-y-6 relative overflow-hidden">
-                   <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] rounded-full -mr-32 -mt-32 pointer-events-none" />
-                   <div className="flex items-center gap-4 mb-6 relative z-10">
-                     <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 border border-indigo-500/20">
-                       <Cpu className="w-6 h-6" />
-                     </div>
-                     <div>
-                       <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-200">System Engagement</h3>
-                       <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Toggle animations and auditory feedback</p>
-                     </div>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                   <div className="flex items-center gap-3 mb-6">
+                     <Cpu className="w-6 h-6 text-indigo-500" />
+                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('System Engagement')}</h3>
                    </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                     <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border-2 border-slate-200 dark:border-white/5">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl transition-colors ${animationsEnabled ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
-                            <Sparkles className="w-4 h-4" />
+                   <div className="space-y-4">
+                     <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+                        <div className="flex items-center gap-4">
+                          <div className={`p-2.5 rounded-xl transition-colors ${animationsEnabled ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+                            <Sparkles className="w-5 h-5" />
                           </div>
                           <div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">{t('Animations')}</div>
-                            <div className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Motion Engine Transitions</div>
+                            <div className="text-sm font-medium text-slate-900 dark:text-slate-200">{t('Animations')}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('Enable smooth UI transitions and motion effects')}</div>
                           </div>
                         </div>
                         <button 
@@ -839,23 +813,23 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                             setAnimationsEnabled(!animationsEnabled);
                             playSynthTone('tick');
                           }}
-                          className={`w-11 h-6 rounded-full transition-all relative ${animationsEnabled ? 'bg-indigo-600' : 'bg-slate-400 dark:bg-slate-700'}`}
+                          className={`w-12 h-6 rounded-full transition-all relative shrink-0 ${animationsEnabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                         >
                           <div 
-                            style={{ transform: animationsEnabled ? 'translateX(20px)' : 'translateX(0px)' }}
-                            className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transition-transform" 
+                            style={{ transform: animationsEnabled ? 'translateX(24px)' : 'translateX(2px)' }}
+                            className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow transition-transform" 
                           />
                         </button>
                       </div>
 
-                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border-2 border-slate-200 dark:border-white/5">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl transition-colors ${soundEnabled ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
-                            <Volume2 className="w-4 h-4" />
+                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+                        <div className="flex items-center gap-4">
+                          <div className={`p-2.5 rounded-xl transition-colors ${soundEnabled ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+                            <Volume2 className="w-5 h-5" />
                           </div>
                           <div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">{t('Sound Effects')}</div>
-                            <div className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Audio Feedback Synth</div>
+                            <div className="text-sm font-medium text-slate-900 dark:text-slate-200">{t('Sound Effects')}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('Play auditory feedback for actions and success states')}</div>
                           </div>
                         </div>
                         <button 
@@ -864,23 +838,23 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                             localStorage.setItem('xrd_sound', (!soundEnabled).toString());
                             setTimeout(() => { playSynthTone('success'); }, 50);
                           }}
-                          className={`w-11 h-6 rounded-full transition-all relative ${soundEnabled ? 'bg-indigo-600' : 'bg-slate-400 dark:bg-slate-700'}`}
+                          className={`w-12 h-6 rounded-full transition-all relative shrink-0 ${soundEnabled ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
                         >
                           <div 
-                            style={{ transform: soundEnabled ? 'translateX(20px)' : 'translateX(0px)' }}
-                            className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transition-transform" 
+                            style={{ transform: soundEnabled ? 'translateX(24px)' : 'translateX(2px)' }}
+                            className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow transition-transform" 
                           />
                         </button>
                       </div>
 
-                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border-2 border-slate-200 dark:border-white/5">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl transition-colors ${pythonFeaturesEnabled ? 'bg-amber-500 text-white shadow-md' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
-                            <Terminal className="w-4 h-4" />
+                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+                        <div className="flex items-center gap-4">
+                          <div className={`p-2.5 rounded-xl transition-colors ${pythonFeaturesEnabled ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+                            <Terminal className="w-5 h-5" />
                           </div>
                           <div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">Python Tools</div>
-                            <div className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Enable ML & Generators</div>
+                            <div className="text-sm font-medium text-slate-900 dark:text-slate-200">{t('Python Tools')}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('Enable machine learning models and advanced generators')}</div>
                           </div>
                         </div>
                         <button 
@@ -888,11 +862,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                             setPythonFeaturesEnabled(!pythonFeaturesEnabled);
                             playSynthTone('tick');
                           }}
-                          className={`w-11 h-6 rounded-full transition-all relative ${pythonFeaturesEnabled ? 'bg-amber-500' : 'bg-slate-400 dark:bg-slate-700'}`}
+                          className={`w-12 h-6 rounded-full transition-all relative shrink-0 ${pythonFeaturesEnabled ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`}
                         >
                           <div 
-                            style={{ transform: pythonFeaturesEnabled ? 'translateX(20px)' : 'translateX(0px)' }}
-                            className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transition-transform" 
+                            style={{ transform: pythonFeaturesEnabled ? 'translateX(24px)' : 'translateX(2px)' }}
+                            className="absolute top-1 left-0 w-4 h-4 bg-white rounded-full shadow transition-transform" 
                           />
                         </button>
                       </div>
@@ -905,111 +879,91 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             {activeTab === 'calibration' && (
               <motion.div 
                 key="calibration"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-8"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
               >
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full -mr-32 -mt-32 pointer-events-none" />
-                  <div className="flex items-center gap-4 mb-8">
-                    <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500 border border-emerald-500/20">
-                      <Wrench className="w-6 h-6" />
-                    </div>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Wrench className="w-6 h-6 text-emerald-500" />
                     <div>
-                      <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-200">Mechanical Alignment</h3>
-                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Specify precise goniometer geometries and offsets</p>
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('Mechanical Alignment')}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('Specify precise goniometer geometries and physical offsets')}</p>
                     </div>
                   </div>
 
                   <div className="space-y-8">
-                    <div className="space-y-4">
-                      <div className="flex items-end justify-between">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 block">
-                          Zero-Shift Correction (Δ2θ)
-                        </label>
-                        <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 px-3 py-1 bg-emerald-500/10 rounded border border-emerald-500/20">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('Zero-Shift Correction (Δ2θ)')}</label>
+                        <span className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">
                           {zeroShift > 0 ? `+${zeroShift.toFixed(3)}` : zeroShift.toFixed(3)}°
                         </span>
                       </div>
                       <input
-                        type="range"
-                        min="-0.5"
-                        max="0.5"
-                        step="0.005"
+                        type="range" min="-0.5" max="0.5" step="0.005"
                         value={zeroShift}
                         onChange={(e) => {
                           setZeroShift(parseFloat(e.target.value));
                           if (Math.abs(parseFloat(e.target.value) * 1000 % 10) < 1) playSynthTone('tick');
                         }}
-                        className="w-full accent-emerald-500 bg-slate-100 dark:bg-slate-950 h-2 rounded-lg cursor-pointer appearance-none"
+                        className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                       />
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Corrects for absolute mechanical zero index offset.</p>
+                      <p className="text-xs text-slate-500 mt-2">{t('Corrects for absolute mechanical zero index offset of the detector.')}</p>
                     </div>
 
-                    <div className="space-y-4">
-                      <div className="flex items-end justify-between">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 block">
-                          Sample Displacement (s)
-                        </label>
-                        <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 px-3 py-1 bg-emerald-500/10 rounded border border-emerald-500/20">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('Sample Displacement (s)')}</label>
+                        <span className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">
                           {sampleDisplacement.toFixed(4)} mm
                         </span>
                       </div>
                       <input
-                        type="range"
-                        min="-0.2"
-                        max="0.2"
-                        step="0.002"
+                        type="range" min="-0.2" max="0.2" step="0.002"
                         value={sampleDisplacement}
                         onChange={(e) => {
                           setSampleDisplacement(parseFloat(e.target.value));
                           if (Math.abs(parseFloat(e.target.value) * 1000 % 5) < 1) playSynthTone('tick');
                         }}
-                        className="w-full accent-emerald-500 bg-slate-100 dark:bg-slate-950 h-2 rounded-lg cursor-pointer appearance-none"
+                        className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                       />
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Misalignment perpendicular to the sample stage (+/- shifts).</p>
+                      <p className="text-xs text-slate-500 mt-2">{t('Accounts for sample surface displacement relative to the rotation axis.')}</p>
                     </div>
 
-                    <div className="space-y-4">
-                      <div className="flex items-end justify-between">
-                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 block">
-                          Goniometer Radius (R)
-                        </label>
-                        <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 px-3 py-1 bg-emerald-500/10 rounded border border-emerald-500/20">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('Goniometer Radius (R)')}</label>
+                        <span className="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">
                           {goniometerRadius.toFixed(1)} mm
                         </span>
                       </div>
                       <input
-                        type="range"
-                        min="100"
-                        max="300"
-                        step="1.0"
+                        type="range" min="100" max="300" step="1.0"
                         value={goniometerRadius}
                         onChange={(e) => {
                           setGoniometerRadius(parseFloat(e.target.value));
                           if (parseFloat(e.target.value) % 10 === 0) playSynthTone('tick');
                         }}
-                        className="w-full accent-emerald-500 bg-slate-100 dark:bg-slate-950 h-2 rounded-lg cursor-pointer appearance-none"
+                        className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                       />
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Focusing circle radius for scaling displacement offset calculation.</p>
+                      <p className="text-xs text-slate-500 mt-2">{t('Focusing circle radius used for calculating displacement offsets.')}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl relative overflow-hidden">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500 border border-amber-500/20">
-                      <Microscope className="w-6 h-6" />
-                    </div>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Microscope className="w-6 h-6 text-amber-500" />
                     <div>
-                      <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-200">Radiation Source</h3>
-                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">X-ray source material and emission wavelengths</p>
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('Radiation Source')}</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('X-ray source material and incident wavelengths')}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
                     {wavelengthPresets.map((preset) => (
                       <button
                         key={preset.val}
@@ -1017,108 +971,35 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           setDefaultWavelength(preset.val);
                           playSynthTone('success');
                         }}
-                        className={`p-4 rounded-xl border-2 font-bold transition-all text-left flex flex-col justify-between h-full min-h-[90px] ${
+                        className={`p-3 rounded-2xl border text-left flex flex-col justify-between transition-all ${
                           Math.abs(defaultWavelength - preset.val) < 0.0001
-                            ? 'bg-amber-500 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.4)] text-white'
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:border-amber-500/50 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                            ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-500 text-amber-900 dark:text-amber-100 shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-amber-400'
                         }`}
                       >
-                        <span className="text-[11px] font-black uppercase tracking-widest">{preset.label.split(' ')[0]}</span>
-                        <div className="flex flex-col mt-2">
-                          <span className={`text-[9px] font-bold uppercase tracking-wider ${Math.abs(defaultWavelength - preset.val) < 0.0001 ? 'text-amber-100' : 'text-slate-400'}`}>{preset.label.split(' ')[1]}</span>
-                          <span className={`font-mono text-xs mt-1 ${Math.abs(defaultWavelength - preset.val) < 0.0001 ? 'text-white' : 'text-amber-500 dark:text-amber-400'}`}>{preset.val.toFixed(5)} Å</span>
+                        <span className="text-xs font-bold">{preset.label.split(' ')[0]}</span>
+                        <div className="flex flex-col mt-1">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">{preset.label.split(' ').slice(1).join(' ')}</span>
+                          <span className={`font-mono text-xs font-semibold mt-0.5 ${Math.abs(defaultWavelength - preset.val) < 0.0001 ? 'text-amber-600 dark:text-amber-400' : ''}`}>{preset.val.toFixed(5)} Å</span>
                         </div>
                       </button>
                     ))}
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 dark:border-white/5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-2">Custom Numerical Wavelength Override:</label>
+                  <div className="pt-5 border-t border-slate-100 dark:border-slate-800">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200 block mb-2">{t('Custom Wavelength Override')}</label>
                     <div className="flex gap-2 max-w-sm">
                       <input 
-                        type="number"
-                        step="0.00001"
+                        type="number" step="0.00001"
                         value={defaultWavelength}
                         onChange={(e) => setDefaultWavelength(parseFloat(e.target.value) || 0)}
-                        className="flex-1 p-3 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/5 rounded-xl text-sm font-mono font-black outline-none focus:border-amber-500 transition-all text-slate-800 dark:text-white"
+                        className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-medium outline-none focus:border-amber-500 transition-all text-slate-900 dark:text-white"
                       />
-                      <span className="bg-slate-100 dark:bg-slate-800 px-5 flex items-center justify-center rounded-xl border border-slate-200 dark:border-white/5 font-mono text-xs font-black text-slate-500 dark:text-slate-400">Å</span>
+                      <span className="bg-slate-100 dark:bg-slate-800 px-4 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-500">
+                        Å
+                      </span>
                     </div>
                   </div>
-                </div>
-
-                {/* Calibration Offset Auditor Card */}
-                <div className="bg-slate-50 dark:bg-slate-950 rounded-[2rem] border border-slate-200 dark:border-white/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-slate-200 dark:bg-slate-800 rounded-full">
-                      <Compass className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 tracking-widest">Correction Auditor Status</div>
-                      <div className="text-[10px] font-bold text-slate-500 font-mono mt-1">
-                        2θ_cal = 2θ_obs - ({zeroShift >= 0 ? '+' : ''}{zeroShift.toFixed(3)}°) - Δ_displacement(2θ_obs)
-                      </div>
-                    </div>
-                  </div>
-                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shrink-0 ${sampleOffsetThetaMock ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'}`}>
-                    {sampleOffsetThetaMock ? 'Applied Compensations' : 'Ideal Alignments'}
-                  </span>
-                </div>
-
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden mt-8">
-                  <div className="flex items-center gap-4 mb-6">
-                    <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 border border-indigo-500/20">
-                      <Sliders className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-200">Real-Time Offset Auditor Matrix</h3>
-                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Simulate calibrated output shift across various angular positions</p>
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-[11px] font-mono border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 text-left">
-                          <th className="pb-3 uppercase tracking-widest font-black pr-4">Observed 2θ</th>
-                          <th className="pb-3 uppercase tracking-widest font-black pr-4">Zero Shift (Δ)</th>
-                          <th className="pb-3 uppercase tracking-widest font-black pr-4">Displacement Shift (s)</th>
-                          <th className="pb-3 uppercase tracking-widest font-black text-rose-500 pr-4">Net Offset</th>
-                          <th className="pb-3 uppercase tracking-widest font-black text-emerald-500">Calibrated 2θ</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                        {[15, 30, 45, 60, 90, 120].map((twoThetaObs) => {
-                          const thetaRad = (twoThetaObs / 2) * (Math.PI / 180);
-                          const dispCorrection = goniometerRadius > 0 
-                            ? (2 * sampleDisplacement * Math.cos(thetaRad) / goniometerRadius) * (180 / Math.PI)
-                            : 0;
-                          const netOffset = zeroShift + dispCorrection;
-                          const calibrated = twoThetaObs - netOffset;
-                          return (
-                            <tr key={twoThetaObs} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                              <td className="py-3 font-bold text-slate-900 dark:text-white pr-4">{twoThetaObs.toFixed(1)}°</td>
-                              <td className="py-3 text-slate-600 dark:text-slate-400 pr-4">
-                                {zeroShift >= 0 ? '+' : ''}{zeroShift.toFixed(4)}°
-                              </td>
-                              <td className="py-3 text-slate-600 dark:text-slate-400 pr-4">
-                                {dispCorrection >= 0 ? '+' : ''}{dispCorrection.toFixed(4)}°
-                              </td>
-                              <td className="py-3 font-bold text-rose-500 pr-4">
-                                {netOffset >= 0 ? '+' : ''}{netOffset.toFixed(4)}°
-                              </td>
-                              <td className="py-3 font-bold text-emerald-500">
-                                {calibrated.toFixed(4)}°
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  <p className="text-[9.5px] text-slate-400 dark:text-slate-500 italic mt-4 font-sans font-medium">
-                    *Note: The displacement shift term uses goniometer radius limit R = {goniometerRadius.toFixed(1)}mm and follows &theta;-dependent cosine decay. Real broadening and peak indexes adapt on-the-fly dynamically.
-                  </p>
                 </div>
               </motion.div>
             )}
@@ -1127,182 +1008,158 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             {activeTab === 'identity' && (
               <motion.div 
                 key="identity"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
               >
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl relative overflow-hidden">
-                  <div className="flex flex-col xl:flex-row gap-12">
-                    
-                    {/* Identity Form */}
-                    <div className="flex-1 space-y-8">
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="p-3 bg-indigo-500/10 rounded-2xl text-indigo-500 border border-indigo-500/20">
-                          <User className="w-6 h-6" />
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row gap-10">
+                  <div className="flex-1 space-y-8">
+                    <div className="flex items-center gap-3">
+                      <User className="w-6 h-6 text-indigo-500" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('Operator Profile')}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('Manage your laboratory identity and credentials')}</p>
+                      </div>
+                    </div>
+
+                    <form onSubmit={handleSaveProfile} className="space-y-5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('Full Name')}</label>
+                          <input 
+                            type="text" required value={idName || ''} onChange={(e) => setIdName(e.target.value)}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all"
+                            placeholder="e.g. Marie Curie"
+                          />
                         </div>
-                        <div>
-                          <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-200">Operator Registration</h3>
-                          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Manage terminal identity profile</p>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('Email Address')}</label>
+                          <input 
+                            type="email" required value={idEmail || ''} onChange={(e) => setIdEmail(e.target.value)}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all"
+                            placeholder="marie@lab.edu"
+                          />
+                        </div>
+                        <div className="space-y-1.5 sm:col-span-2">
+                          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('Organization / Institution')}</label>
+                          <input 
+                            type="text" required value={idOrg || ''} onChange={(e) => setIdOrg(e.target.value)}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('Clearance Level')}</label>
+                          <select
+                            value={clearanceLevel} onChange={(e) => { setClearanceLevel(e.target.value); playSynthTone('tick'); }}
+                            className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all"
+                          >
+                            <option value="Level 4: Laboratory Director">{t('L4: Director')}</option>
+                            <option value="Level 3: Lead Crystallographer">{t('L3: Lead')}</option>
+                            <option value="Level 2: Research Associate">{t('L2: Associate')}</option>
+                            <option value="Level 1: Undergrad Assistant">{t('L1: Assistant')}</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">{t('Node ID')}</label>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" required value={terminalId} onChange={(e) => setTerminalId(e.target.value)}
+                              className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-all"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const num = Math.floor(100 + Math.random() * 900);
+                                const suffix = ['ALPHA', 'BETA', 'GAMMA', 'OMEGA', 'SIGMA'][Math.floor(Math.random() * 5)];
+                                setTerminalId(`TRD-${num}-${suffix}`); playSynthTone('success');
+                              }}
+                              className="px-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-200 dark:border-indigo-500/30 text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
+                            >
+                              Gen
+                            </button>
+                          </div>
                         </div>
                       </div>
 
-                      <form onSubmit={handleSaveProfile} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Operator Name</label>
-                            <input 
-                              type="text" required value={idName || ''} onChange={(e) => setIdName(e.target.value)}
-                              className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all font-mono"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Registered Email</label>
-                            <input 
-                              type="email" required value={idEmail || ''} onChange={(e) => setIdEmail(e.target.value)}
-                              className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all font-mono"
-                            />
-                          </div>
-                          <div className="space-y-2 md:col-span-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Affiliation / Lab Center</label>
-                            <input 
-                              type="text" required value={idOrg || ''} onChange={(e) => setIdOrg(e.target.value)}
-                              className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all font-mono"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Terminal Clearance Level</label>
-                            <select
-                              value={clearanceLevel} onChange={(e) => { setClearanceLevel(e.target.value); playSynthTone('tick'); }}
-                              className="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all"
-                            >
-                              <option value="Level 4: Laboratory Director">L4: Laboratory Director</option>
-                              <option value="Level 3: Lead Crystallographer">L3: Lead Crystallographer</option>
-                              <option value="Level 2: Research Associate">L2: Research Associate</option>
-                              <option value="Level 1: Undergrad Assistant">L1: Undergrad Assistant</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Station Node ID</label>
-                            <div className="flex gap-2">
-                              <input 
-                                type="text" required value={terminalId} onChange={(e) => setTerminalId(e.target.value)}
-                                className="flex-1 p-3.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/5 rounded-xl text-xs font-mono font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-600 transition-all"
-                              />
+                      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-3">{t('Active Certifications')}</label>
+                        <div className="flex flex-wrap gap-2">
+                          {['Radiation Safety (RSC-4)', 'High-Volt Diffraction System', 'Diffraction Grid Calibration', 'Class 4 Laser Operation', 'Chemical Hazard Handling', 'Neutron Beam Auth'].map((cert) => {
+                            const active = certifications.includes(cert);
+                            return (
                               <button
-                                type="button"
+                                key={cert} type="button"
                                 onClick={() => {
-                                  const num = Math.floor(100 + Math.random() * 900);
-                                  const suffix = ['ALPHA', 'BETA', 'GAMMA', 'OMEGA', 'SIGMA'][Math.floor(Math.random() * 5)];
-                                  setTerminalId(`TRD-${num}-${suffix}`); playSynthTone('success');
+                                  if (active) setCertifications(certifications.filter(c => c !== cert));
+                                  else setCertifications([...certifications, cert]);
+                                  playSynthTone('tick');
                                 }}
-                                className="px-4 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl border-2 border-indigo-200 dark:border-indigo-500/30 text-[10px] font-black uppercase"
+                                className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-all flex items-center gap-1.5 ${
+                                  active 
+                                    ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-300 dark:border-indigo-500/50 text-indigo-700 dark:text-indigo-300' 
+                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300'
+                                }`}
                               >
-                                Gen
+                                {active && <Check className="w-3 h-3" />}
+                                {t(cert)}
                               </button>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-3 md:col-span-2 pt-2 border-t border-slate-100 dark:border-white/5 mt-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Authorized Safety Certifications</label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              {['Radiation Safety (RSC-4)', 'High-Volt Diffraction System', 'Diffraction Grid Calibration', 'Class 4 Laser Operation', 'Chemical Hazard Handling', 'Neutron Beam Auth'].map((cert) => {
-                                const active = certifications.includes(cert);
-                                return (
-                                  <button
-                                    key={cert} type="button"
-                                    onClick={() => {
-                                      if (active) setCertifications(certifications.filter(c => c !== cert));
-                                      else setCertifications([...certifications, cert]);
-                                      playSynthTone('tick');
-                                    }}
-                                    className={`p-3 text-left rounded-xl border-2 text-xs font-bold transition-all flex items-center justify-between ${
-                                      active ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-500 text-indigo-700 dark:text-indigo-300' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/5 text-slate-500'
-                                    }`}
-                                  >
-                                    <span>{cert}</span>
-                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${active ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-slate-300 dark:border-white/20'}`}>
-                                      {active && <Check className="w-3 h-3 stroke-[3]" />}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
+                            );
+                          })}
                         </div>
+                      </div>
 
-                        <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-white/5">
-                          <AnimatePresence>
-                            {saveSuccess && (
-                              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-full">
-                                <Check className="w-4 h-4" /> Save Confirmed
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                          <button type="submit" className="ml-auto flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-black uppercase text-[11px] tracking-widest rounded-xl shadow-lg transition-transform cursor-pointer">
-                            <Save className="w-4 h-4" /> Commit Identity
-                          </button>
-                        </div>
-                      </form>
-                    </div>
+                      <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100 dark:border-slate-800 mt-6">
+                        <AnimatePresence>
+                          {saveSuccess && (
+                            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-sm font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4" /> {t('Saved')}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-sm transition-colors flex items-center gap-2">
+                          <Save className="w-4 h-4" /> {t('Save Profile')}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
 
-                    {/* Cyber Badge Preview */}
-                    <div className="xl:w-[340px] shrink-0">
-                       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 block text-center xl:text-left">Live Clearance ID Preview</span>
-                       <div className="bg-slate-950 text-white border-2 border-indigo-500/30 rounded-[2.5rem] p-6 w-full shadow-[0_0_50px_rgba(79,70,229,0.15)] relative overflow-hidden font-mono mx-auto">
-                         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-slate-900 border-b border-x border-indigo-500/30 rounded-b-xl flex items-center justify-center shadow-[inset_0_-2px_10px_rgba(99,102,241,0.5)]">
-                           <div className="w-8 h-1.5 bg-black rounded-full" />
+                  <div className="xl:w-[320px] shrink-0">
+                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300 block mb-3">{t('ID Badge Preview')}</label>
+                     <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-xl relative overflow-hidden font-mono mx-auto w-full text-slate-100">
+                       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-3 bg-slate-800 rounded-b-lg flex items-center justify-center">
+                         <div className="w-6 h-1 bg-black rounded-full opacity-50" />
+                       </div>
+                       
+                       <div className="flex justify-between items-start mt-3 mb-6 border-b border-white/10 pb-4">
+                         <div className="flex flex-col">
+                           <span className="text-[10px] font-bold text-slate-300 tracking-wider">NEURO-ANALYTICAL</span>
+                           <span className="text-[8px] text-indigo-400 font-medium uppercase mt-1">Core Diffraction Unit</span>
                          </div>
-                         <div className="absolute inset-x-0 h-[1.5px] bg-indigo-500/50 shadow-[0_0_10px_#4f46e5] animate-pulse pointer-events-none top-1/3" />
-                         <div className="absolute -bottom-16 -left-16 w-36 h-36 bg-blue-500/5 blur-[50px] rounded-full pointer-events-none" />
-                         <div className="absolute -top-16 -right-16 w-36 h-36 bg-indigo-500/5 blur-[50px] rounded-full pointer-events-none" />
+                         <Shield className="w-6 h-6 text-indigo-400 opacity-80" />
+                       </div>
 
-                         <div className="flex justify-between items-start mt-2 mb-6">
-                           <div className="flex flex-col">
-                             <span className="text-[9px] font-black text-slate-100 tracking-widest">NEURO-ANALYTICAL</span>
-                             <span className="text-[7.5px] text-indigo-400 font-bold uppercase mt-0.5">Core Diffraction Unit</span>
-                           </div>
-                           <div className="w-10 h-8 bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-600 rounded-sm border border-amber-600/30 relative p-1 overflow-hidden shrink-0">
-                             <div className="grid grid-cols-3 gap-0.5 w-full h-full opacity-60">
-                               {[...Array(6)].map((_, i) => <div key={i} className="border border-amber-700/40 rounded-[1px]" />)}
-                             </div>
-                           </div>
+                       <div className="flex gap-4 items-center mb-6">
+                         <div className="w-14 h-14 rounded-xl bg-slate-800 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                           <User className="w-6 h-6 text-slate-500" />
                          </div>
-
-                         <div className="flex gap-4 items-center mb-6">
-                           <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-indigo-500/20 relative flex items-center justify-center shrink-0 overflow-hidden group">
-                             <User className="w-8 h-8 text-indigo-400 opacity-60 group-hover:scale-110 transition-transform" />
-                             <div className="absolute inset-x-0 h-0.5 bg-cyan-400/70 shadow-[0_0_8px_#22d3ee] animate-bounce pointer-events-none top-0" />
-                           </div>
-                           <div className="min-w-0 flex-1">
-                             <div className="text-[12px] font-black text-white truncate tracking-tighter uppercase">{idName || "Unregistered"}</div>
-                             <div className="text-[9px] text-slate-400 truncate mt-1">{idEmail || "no-contact@xrd.id"}</div>
-                             <div className="mt-2 flex items-center gap-1.5">
-                               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                               <span className="text-[8px] text-emerald-400 font-bold tracking-widest uppercase">Clearance Active</span>
-                             </div>
-                           </div>
-                         </div>
-
-                         <div className="space-y-3 text-[9px] text-slate-300 border-t border-b border-indigo-500/10 py-4 uppercase tracking-wider">
-                           <div className="flex justify-between"><span className="text-slate-500">Node ID</span><span className="text-yellow-400 font-bold">{terminalId}</span></div>
-                           <div className="flex justify-between"><span className="text-slate-500">Facility</span><span className="text-slate-300 truncate max-w-[130px]" title={idOrg}>{idOrg || "N/A"}</span></div>
-                           <div className="flex justify-between"><span className="text-slate-500">Level</span><span className="text-indigo-400 font-bold truncate max-w-[120px]">{clearanceLevel}</span></div>
-                         </div>
-
-                         <div className="mt-4">
-                           <span className="text-[8px] text-slate-500 block uppercase tracking-widest font-black mb-2">Verified Tags:</span>
-                           <div className="flex flex-wrap gap-1.5">
-                             {certifications.length > 0 ? certifications.map((c) => (
-                               <span key={c} className="text-[7.5px] px-2 py-1 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 uppercase shrink-0 font-bold">
-                                 {c.split(' ')[0]}
-                               </span>
-                             )) : <span className="text-[8px] italic text-slate-500">No tags active</span>}
+                         <div className="min-w-0 flex-1">
+                           <div className="text-sm font-bold text-white truncate">{idName || t("Unregistered")}</div>
+                           <div className="text-[10px] text-slate-400 truncate mt-0.5">{idEmail || "no-contact@xrd.id"}</div>
+                           <div className="mt-2 flex items-center gap-1.5">
+                             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+                             <span className="text-[9px] text-emerald-400 font-medium tracking-wide">ACTIVE</span>
                            </div>
                          </div>
                        </div>
-                    </div>
 
+                       <div className="space-y-2 text-[10px] text-slate-300">
+                         <div className="flex justify-between"><span className="text-slate-500">ID</span><span className="font-semibold">{terminalId}</span></div>
+                         <div className="flex justify-between"><span className="text-slate-500">ORG</span><span className="truncate max-w-[140px] text-right" title={idOrg}>{idOrg || "N/A"}</span></div>
+                         <div className="flex justify-between"><span className="text-slate-500">LVL</span><span className="text-indigo-300 truncate max-w-[140px] text-right">{clearanceLevel.split(':')[0]}</span></div>
+                       </div>
+                     </div>
                   </div>
                 </div>
               </motion.div>
@@ -1312,103 +1169,93 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             {activeTab === 'databases' && (
               <motion.div 
                 key="databases"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-8"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
               >
-                {/* Registries */}
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden relative">
-                   <div className="absolute top-0 right-0 w-80 h-80 bg-violet-500/5 blur-[120px] rounded-full -mr-40 -mt-40 pointer-events-none" />
-                   
-                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-slate-100 dark:border-white/5 pb-6 relative z-10">
-                     <div className="flex items-center gap-4">
-                       <div className="p-3 bg-violet-500/10 text-violet-500 rounded-2xl border border-violet-500/20">
-                         <Database className="w-6 h-6 animate-pulse" />
-                       </div>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+                     <div className="flex items-center gap-3">
+                       <Database className="w-6 h-6 text-violet-500" />
                        <div>
-                          <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-200">Reference Registries</h3>
-                          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Prioritize active standard XRD databases</p>
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('Reference Databases')}</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('Manage standard crystallographic registries')}</p>
                        </div>
                      </div>
                      <button
-                       type="button"
-                       disabled={isAuditingDbs}
-                       onClick={triggerDbAudit}
-                       className="px-6 py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shrink-0"
+                       type="button" disabled={isAuditingDbs} onClick={triggerDbAudit}
+                       className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-semibold text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-sm shrink-0"
                      >
-                       {isAuditingDbs ? <><RefreshCw className="w-4 h-4 animate-spin" /> Verifying</> : <><RefreshCw className="w-4 h-4" /> Audit Maps</>}
+                       {isAuditingDbs ? <><RefreshCw className="w-4 h-4 animate-spin" /> {t('Verifying')}</> : <><RefreshCw className="w-4 h-4" /> {t('Audit Databases')}</>}
                      </button>
                    </div>
 
-                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 relative z-10">
-                     <div className="space-y-4">
+                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                     <div className="space-y-3">
                        {(['ICDD', 'COD', 'RRUFF', 'ICSD', 'CSD'] as const).map((dbKey) => {
                          const item = dbConfigs[dbKey];
-                         const badgeStyle = dbKey === 'ICDD' ? 'text-amber-500' :
-                                          dbKey === 'COD' ? 'text-emerald-500' :
-                                          dbKey === 'RRUFF' ? 'text-cyan-500' :
-                                          dbKey === 'ICSD' ? 'text-indigo-500' : 'text-rose-500';
+                         const colors: Record<string, string> = {
+                           ICDD: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10',
+                           COD: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10',
+                           RRUFF: 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10',
+                           ICSD: 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10',
+                           CSD: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10'
+                         };
 
                          return (
-                           <div key={dbKey} className="p-4 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/5 rounded-2xl transition-all group">
-                             <div className="flex items-center justify-between mb-3">
-                               <div className="flex items-center gap-3">
-                                 <input 
-                                   type="checkbox" checked={item.enabled}
-                                   onChange={(e) => {
-                                     const updated = { ...dbConfigs, [dbKey]: { ...item, enabled: e.target.checked } };
-                                     handleSaveDbConfig(updated); playSynthTone('tick');
-                                   }}
-                                   className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
-                                 />
-                                 <span className={`text-[13px] font-black tracking-widest uppercase ${badgeStyle}`}>{dbKey}</span>
-                               </div>
+                           <div key={dbKey} className="p-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl flex flex-wrap gap-4 items-center justify-between transition-all">
+                             <div className="flex items-center gap-3">
+                               <input 
+                                 type="checkbox" checked={item.enabled}
+                                 onChange={(e) => {
+                                   handleSaveDbConfig({ ...dbConfigs, [dbKey]: { ...item, enabled: e.target.checked } }); 
+                                   playSynthTone('tick');
+                                 }}
+                                 className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500 cursor-pointer"
+                               />
+                               <span className={`text-xs font-bold px-2 py-1 rounded ${colors[dbKey]}`}>{dbKey}</span>
+                             </div>
+                             <div className="flex gap-2 flex-1 items-center justify-end">
+                               <input 
+                                 type="text" value={item.path}
+                                 onChange={(e) => {
+                                   handleSaveDbConfig({ ...dbConfigs, [dbKey]: { ...item, path: e.target.value } });
+                                 }}
+                                 className="flex-1 max-w-[160px] p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs font-mono text-slate-700 dark:text-slate-300 outline-none"
+                                 title="Root Path"
+                               />
                                <select
                                  value={item.priority}
                                  onChange={(e) => {
-                                   const updated = { ...dbConfigs, [dbKey]: { ...item, priority: (e.target.value as any) } };
-                                   handleSaveDbConfig(updated); playSynthTone('tick');
+                                   handleSaveDbConfig({ ...dbConfigs, [dbKey]: { ...item, priority: (e.target.value as any) } }); 
+                                   playSynthTone('tick');
                                  }}
-                                 className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-black uppercase text-slate-700 dark:text-slate-300 focus:outline-none"
+                                 className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1.5 text-xs text-slate-700 dark:text-slate-300 outline-none"
                                >
-                                 <option value="High">Priority: High</option>
-                                 <option value="Medium">Priority: Med</option>
-                                 <option value="Low">Priority: Low</option>
+                                 <option value="High">{t('High')}</option>
+                                 <option value="Medium">{t('Medium')}</option>
+                                 <option value="Low">{t('Low')}</option>
                                </select>
-                             </div>
-                             <div className="flex gap-4 flex-wrap">
-                               <div className="flex-1 min-w-[120px]">
-                                 <span className="block text-[8.5px] font-black uppercase text-slate-400 tracking-wider mb-1">Database Scope / Root Path</span>
-                                 <input 
-                                   type="text" value={item.path}
-                                   onChange={(e) => {
-                                     const updated = { ...dbConfigs, [dbKey]: { ...item, path: e.target.value } };
-                                     handleSaveDbConfig(updated);
-                                   }}
-                                   className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold font-mono text-slate-700 dark:text-slate-300 outline-none"
-                                 />
-                               </div>
                              </div>
                            </div>
                          );
                        })}
                      </div>
 
-                     {/* Audit Logs Console */}
-                     <div className="bg-slate-900 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden h-full min-h-[300px]">
-                       <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3 bg-white/5">
-                         <Terminal className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Integrity Verification Console</span>
+                     <div className="bg-slate-900 rounded-xl border border-slate-700 flex flex-col overflow-hidden h-full min-h-[280px]">
+                       <div className="p-3 border-b border-slate-800 flex items-center gap-2 bg-slate-900/50">
+                         <Terminal className="w-4 h-4 text-slate-400" />
+                         <span className="text-xs font-medium text-slate-300">{t('Audit Console')}</span>
                        </div>
-                       <div className="flex-1 p-5 font-mono text-[10px] text-slate-600 dark:text-slate-400 space-y-2 overflow-y-auto">
+                       <div className="flex-1 p-4 font-mono text-xs text-slate-400 space-y-1.5 overflow-y-auto">
                          {dbAuditLogs.length === 0 ? (
-                           <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest">Awaiting execution run</div>
+                           <div className="text-slate-500 italic">{t('No logs generated. Click "Audit Databases" to start.')}</div>
                          ) : (
                            dbAuditLogs.map((logStr, i) => (
-                             <div key={i} className={`${logStr.startsWith('✓') ? 'text-emerald-500 font-bold' : logStr.startsWith('Opening') || logStr.startsWith('Scanning') ? 'text-violet-500' : 'text-slate-600 dark:text-slate-400'}`}>
-                               <span className="text-slate-400 dark:text-slate-600 mr-2 opacity-50">&gt;</span>{logStr}
+                             <div key={i} className={`${logStr.startsWith('✓') ? 'text-emerald-400 font-bold' : logStr.startsWith('Opening') || logStr.startsWith('Scanning') ? 'text-violet-400' : 'text-slate-400'}`}>
+                               <span className="text-slate-600 mr-2">&gt;</span>{t(logStr)}
                              </div>
                            ))
                          )}
@@ -1417,131 +1264,98 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                    </div>
                 </div>
 
-                {/* Local Offline Database Cache Stats */}
-                <div className="bg-slate-50 dark:bg-slate-950 rounded-[2rem] border border-slate-200 dark:border-white/10 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-sm mb-8">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-full border border-emerald-500/20">
-                      <CheckCircle2 className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 tracking-widest">Local Offline Crystal Store Cache</div>
-                      <div className="text-[10px] font-bold text-slate-500 font-mono mt-1">
-                        IndexedDB synchronizations for lightning-fast offline structure lookup
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] shrink-0">
-                    <span className="px-3 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest rounded-lg border border-emerald-500/20 font-mono">
-                      {offlineCounts.materials} Materials Compiled
-                    </span>
-                    <span className="px-3 py-1.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest rounded-lg border border-indigo-500/20 font-mono">
-                      {offlineCounts.analysisResults} Runs Saved
-                    </span>
-                  </div>
-                </div>
-
-                {/* Cognitive Engine (Gemini API) */}
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden relative">
-                   <div className="absolute top-0 left-0 w-80 h-80 bg-fuchsia-500/5 blur-[120px] rounded-full -ml-40 -mt-40 pointer-events-none" />
-                   
-                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-slate-100 dark:border-white/5 pb-6 relative z-10">
-                     <div className="flex items-center gap-4">
-                       <div className="p-3 bg-fuchsia-500/10 text-fuchsia-500 rounded-2xl border border-fuchsia-500/20">
-                         <Key className="w-6 h-6 animate-pulse" />
-                       </div>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-6 border-b border-slate-100 dark:border-slate-800">
+                     <div className="flex items-center gap-3">
+                       <Key className="w-6 h-6 text-fuchsia-500" />
                        <div>
-                          <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-200">Cognitive API Hub</h3>
-                          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">LLM advisory capabilities via Google Gemini</p>
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('API Integrations')}</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('Configure external services and AI models')}</p>
                        </div>
                      </div>
-                     <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl flex items-center gap-2 shadow-lg">
-                       Get Override Token <ExternalLink className="w-3.5 h-3.5" />
+                     <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-semibold text-sm rounded-xl flex items-center gap-2 transition-colors">
+                       {t('Get API Key')} <ExternalLink className="w-4 h-4" />
                      </a>
                    </div>
 
-                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 relative z-10">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      <div className="space-y-6">
-                        <div className={`p-6 rounded-2xl border-2 transition-all flex flex-col gap-4 ${
-                          authStatus === 'active' ? 'bg-emerald-500/5 border-emerald-500/30' : 
-                          authStatus === 'invalid' ? 'bg-rose-500/5 border-rose-500/30' :
-                          authStatus === 'checking' ? 'bg-indigo-500/5 border-indigo-500/30 animate-pulse' :
-                          authStatus === 'missing' ? 'bg-amber-500/5 border-amber-500/30' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-white/5'
+                        <div className={`p-5 rounded-2xl border flex items-start gap-4 transition-all ${
+                          authStatus === 'active' ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30' : 
+                          authStatus === 'invalid' ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30' :
+                          authStatus === 'checking' ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30' :
+                          'bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30'
                         }`}>
-                          <div className="flex items-start gap-4">
-                            {authStatus === 'active' && <CheckCircle2 className="w-8 h-8 text-emerald-500 mt-1" />}
-                            {authStatus === 'invalid' && <AlertCircle className="w-8 h-8 text-rose-500 mt-1" />}
-                            {authStatus === 'checking' && <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin mt-1" />}
-                            {(authStatus === 'missing' || authStatus === 'unchecked') && <Info className="w-8 h-8 text-amber-500 mt-1" />}
-                            
-                            <div>
-                               <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Handshake Status</div>
-                               <div className="text-[14px] font-black uppercase tracking-tight text-slate-800 dark:text-white leading-none">
-                                 {authStatus === 'active' && 'Verified AI Engine Active'}
-                                 {authStatus === 'invalid' && 'Credentials Rejected'}
-                                 {authStatus === 'checking' && 'Exchanging Handshake...'}
-                                 {authStatus === 'missing' && 'Token Missing (Offline)'}
-                                 {authStatus === 'unchecked' && 'System Initializing'}
-                               </div>
-                               <div className="text-[10px] font-bold text-slate-500 mt-2 font-mono leading-relaxed">
-                                 {authStatus === 'active' && (authFeedback || "Verification completed. Advise features unlocked.")}
-                                 {authStatus === 'invalid' && (authFeedback || "Invalid or empty token payload.")}
-                                 {authStatus === 'missing' && "Connect an API token to unlock smart phase analysis."}
-                               </div>
-                            </div>
+                          {authStatus === 'active' && <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />}
+                          {authStatus === 'invalid' && <AlertCircle className="w-6 h-6 text-rose-600 dark:text-rose-400 mt-0.5 shrink-0" />}
+                          {authStatus === 'checking' && <RefreshCw className="w-6 h-6 text-indigo-600 dark:text-indigo-400 animate-spin mt-0.5 shrink-0" />}
+                          {(authStatus === 'missing' || authStatus === 'unchecked') && <Info className="w-6 h-6 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />}
+                          
+                          <div>
+                             <div className="text-sm font-bold text-slate-800 dark:text-white">
+                               {authStatus === 'active' && t('API Connection Active')}
+                               {authStatus === 'invalid' && t('Connection Rejected')}
+                               {authStatus === 'checking' && t('Verifying credentials...')}
+                               {authStatus === 'missing' && t('No API Key Provided')}
+                               {authStatus === 'unchecked' && t('Checking status...')}
+                             </div>
+                             <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                               {authStatus === 'active' && t(authFeedback || "Successfully authenticated with external services.")}
+                               {authStatus === 'invalid' && t(authFeedback || "Invalid or empty token payload.")}
+                               {authStatus === 'missing' && t("Connect an API token to unlock smart phase analysis and translation features.")}
+                             </div>
                           </div>
                         </div>
 
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-end">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Custom Key Override Map</label>
-                            {customApiKey && <button onClick={handleClearCustomKey} className="text-[9px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-600 transition-colors">PURGE KEY</button>}
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-200">{t('Gemini API Key')}</label>
+                            {customApiKey && <button onClick={handleClearCustomKey} className="text-xs font-medium text-rose-500 hover:text-rose-600">{t('Clear Key')}</button>}
                           </div>
                           <div className="flex gap-2">
                             <input 
                               type="password"
                               value={customApiKey}
                               onChange={(e) => setCustomApiKey(e.target.value)}
-                              placeholder={hasSystemKey ? "●●●●●●●●●●●●●●●●●●" : "AIzaSy..."}
-                              className="flex-1 p-3.5 bg-slate-50 dark:bg-slate-950 border-2 border-slate-200 dark:border-white/5 rounded-xl text-xs font-bold font-mono tracking-[0.2em] text-slate-800 dark:text-white outline-none focus:border-fuchsia-500"
+                              placeholder={hasSystemKey ? t("Using system environment key") : t("Paste your API key here...")}
+                              className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white outline-none focus:border-fuchsia-500"
                             />
                             <button
                               onClick={() => handleVerifyAndSaveKey(customApiKey)} disabled={authStatus === 'checking'}
-                              className="px-6 bg-slate-800 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+                              className="px-5 bg-slate-900 dark:bg-slate-700 text-white rounded-xl text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50 transition-colors"
                             >
-                              Mount
+                              {t('Save')}
                             </button>
                           </div>
                         </div>
                      </div>
 
-                     <div className="p-6 bg-slate-50 dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-white/5 flex flex-col justify-between shadow-sm">
-                        <div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <Cpu className="w-5 h-5 text-fuchsia-500" />
-                            <span className="text-[11px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">Sandbox Pilot Loop</span>
-                          </div>
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Transmit a test proof sequence directly to the model endpoint to verify connection matrix.</p>
-                          <input 
-                            type="text" value={dryRunPrompt} onChange={(e) => setDryRunPrompt(e.target.value)}
-                            className="w-full p-3.5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold mb-4 font-sans text-slate-800 dark:text-white outline-none focus:border-fuchsia-500"
-                          />
+                     <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50 flex flex-col">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Terminal className="w-5 h-5 text-fuchsia-500" />
+                          <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{t('Connection Test')}</span>
                         </div>
-                        <div>
-                          <button
-                            onClick={handleRunDryRun} disabled={dryRunLoading || (authStatus !== 'active' && authStatus !== 'unchecked')}
-                            className="w-full py-4 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-white hover:border-fuchsia-500 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2"
-                          >
-                            {dryRunLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Transmit Packet
-                          </button>
-                          
-                          <AnimatePresence>
-                            {dryRunResponse && (
-                              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 max-h-40 overflow-y-auto mt-4 px-5">
-                                <span className="text-[11px] font-serif italic text-slate-700 dark:text-slate-300 leading-relaxed font-semibold">"{dryRunResponse}"</span>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{t('Send a simple prompt to verify the connection works correctly.')}</p>
+                        <input 
+                          type="text" value={dryRunPrompt} onChange={(e) => setDryRunPrompt(e.target.value)}
+                          className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm mb-3 text-slate-900 dark:text-white outline-none focus:border-fuchsia-500"
+                        />
+                        <button
+                          onClick={handleRunDryRun} disabled={dryRunLoading || (authStatus !== 'active' && authStatus !== 'unchecked')}
+                          className="w-full py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                        >
+                          {dryRunLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} {t('Send Test Prompt')}
+                        </button>
+                        
+                        <AnimatePresence>
+                          {dryRunResponse && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-3">
+                              <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 text-xs italic text-slate-600 dark:text-slate-400">
+                                "{dryRunResponse}"
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                      </div>
                    </div>
                 </div>
@@ -1552,29 +1366,25 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             {activeTab === 'system' && (
               <motion.div 
                 key="system"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-8"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
               >
-                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-10 border border-slate-200 dark:border-white/10 shadow-xl overflow-hidden relative">
-                   <div className="absolute top-0 right-0 w-80 h-80 bg-red-500/5 blur-[120px] rounded-full -mr-40 -mt-40 pointer-events-none" />
-                   
-                   <div className="flex items-center gap-4 mb-8">
-                     <div className="p-3 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl border border-slate-300 dark:border-slate-700">
-                       <Server className="w-6 h-6" />
-                     </div>
+                <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                   <div className="flex items-center gap-3 mb-6">
+                     <Server className="w-6 h-6 text-slate-700 dark:text-slate-400" />
                      <div>
-                        <h3 className="text-sm font-black uppercase tracking-[0.3em] text-slate-800 dark:text-slate-200">System Persistence & IO</h3>
-                        <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-0.5">Manage configuration payloads</p>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('Data & Storage')}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('Manage local storage and system state')}</p>
                      </div>
                    </div>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-6">
-                        <div className="p-6 bg-slate-50 dark:bg-slate-950 rounded-3xl border-2 border-slate-200 dark:border-white/5 space-y-4 shadow-sm">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Autosave Event Cycle</label>
+                        <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+                          <label className="text-sm font-medium text-slate-900 dark:text-slate-200 block mb-3">{t('Autosave Interval')}</label>
                           <select
                             value={autosaveInterval}
                             onChange={(e) => {
@@ -1585,110 +1395,75 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                                 playSynthTone('success');
                               }
                             }}
-                            className="w-full p-4 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black tracking-widest uppercase text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
+                            className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
                           >
-                            <option value={5000}>Freq: 5 Seconds (Default)</option>
-                            <option value={10000}>Freq: 10 Seconds</option>
-                            <option value={30000}>Freq: 30 Seconds</option>
-                            <option value={0}>Disabled / Freeze</option>
+                            <option value={5000}>{t('Every 5 Seconds (Default)')}</option>
+                            <option value={10000}>{t('Every 10 Seconds')}</option>
+                            <option value={30000}>{t('Every 30 Seconds')}</option>
+                            <option value={0}>{t('Disabled')}</option>
                           </select>
-                          {autosaveInterval > 0 && <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 font-mono mt-2 pl-1">Active Loop: {(autosaveInterval/1000).toFixed(0)}s interval</p>}
                         </div>
 
-                        <div className="p-6 bg-slate-50 dark:bg-slate-950 rounded-[2rem] border-2 border-slate-200 dark:border-white/5 space-y-4 shadow-sm">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">Local Data Volume Footprint</label>
-                          <div className="space-y-3 pt-2">
-                            <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex border border-slate-200 dark:border-slate-700">
-                              <div 
-                                className="h-full bg-indigo-500 transition-all duration-500" 
-                                style={{ width: `${storageStats.totalSize > 0 ? (storageStats.registrationSize / storageStats.totalSize) * 100 : 0}%` }} 
-                                title={`Identity: ${storageStats.registrationSize} B`}
-                              />
-                              <div 
-                                className="h-full bg-violet-500 transition-all duration-500" 
-                                style={{ width: `${storageStats.totalSize > 0 ? (storageStats.databaseSize / storageStats.totalSize) * 100 : 0}%` }} 
-                                title={`Databases: ${storageStats.databaseSize} B`}
-                              />
-                              <div 
-                                className="h-full bg-pink-500 transition-all duration-500" 
-                                style={{ width: `${storageStats.totalSize > 0 ? (storageStats.logsSize / storageStats.totalSize) * 100 : 0}%` }} 
-                                title={`Diagnostic Logs: ${storageStats.logsSize} B`}
-                              />
-                              <div 
-                                className="h-full bg-teal-500 transition-all duration-500" 
-                                style={{ width: `${storageStats.totalSize > 0 ? (storageStats.historySize / storageStats.totalSize) * 100 : 0}%` }} 
-                                title={`Bragg History: ${storageStats.historySize} B`}
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-[9px] font-mono text-slate-500 leading-relaxed pt-2">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="w-2 h-2 bg-indigo-500 rounded-full shrink-0" />
-                                <span className="truncate">Identity: <strong>{storageStats.registrationSize} B</strong></span>
-                              </div>
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="w-2 h-2 bg-violet-500 rounded-full shrink-0" />
-                                <span className="truncate">Priorities: <strong>{storageStats.databaseSize} B</strong></span>
-                              </div>
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="w-2 h-2 bg-pink-500 rounded-full shrink-0" />
-                                <span className="truncate">Logs: <strong>{storageStats.logsSize} B</strong></span>
-                              </div>
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="w-2 h-2 bg-teal-500 rounded-full shrink-0" />
-                                <span className="truncate">History: <strong>{storageStats.historySize} B</strong></span>
-                              </div>
-                            </div>
-                            <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 mt-2 border-t border-slate-100 dark:border-white/5 pt-2 flex justify-between">
-                              <span>Total Workspace footprint:</span>
-                              <span className="text-indigo-500 font-bold font-mono">{storageStats.totalSize} Bytes</span>
-                            </div>
+                        <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+                          <label className="text-sm font-medium text-slate-900 dark:text-slate-200 block mb-4">{t('Local Storage Usage')}</label>
+                          <div className="w-full h-4 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden flex mb-4">
+                            <div className="h-full bg-indigo-500" style={{ width: `${storageStats.totalSize > 0 ? (storageStats.registrationSize / storageStats.totalSize) * 100 : 0}%` }} title="Identity" />
+                            <div className="h-full bg-violet-500" style={{ width: `${storageStats.totalSize > 0 ? (storageStats.databaseSize / storageStats.totalSize) * 100 : 0}%` }} title="Databases" />
+                            <div className="h-full bg-pink-500" style={{ width: `${storageStats.totalSize > 0 ? (storageStats.logsSize / storageStats.totalSize) * 100 : 0}%` }} title="Logs" />
+                            <div className="h-full bg-teal-500" style={{ width: `${storageStats.totalSize > 0 ? (storageStats.historySize / storageStats.totalSize) * 100 : 0}%` }} title="History" />
                           </div>
-                        </div>
-
-                        <div className="p-6 bg-rose-500/5 rounded-[2rem] border-2 border-rose-500/20 space-y-4 shadow-sm">
-                          <label className="text-[11px] font-black uppercase tracking-widest text-rose-500 block hover:text-rose-600">Danger Zone: Terminal Reset</label>
-                          <p className="text-[10px] font-bold font-mono text-slate-500 mb-4 block leading-relaxed pr-6">
-                            Purge all local cache entries, operator IDs, configuration profiles, and unsaved datasets. Resets to factory standard definitions.
-                          </p>
-                          <button
-                            onClick={handleHardReset}
-                            className="w-full p-4 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-rose-500/20 cursor-pointer mt-4"
-                          >
-                            <Trash2 className="w-4 h-4" /> Trigger Memory Wipe
-                          </button>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-400">
+                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-500" /> Identity: {storageStats.registrationSize}B</div>
+                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-violet-500" /> DB Configs: {storageStats.databaseSize}B</div>
+                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-pink-500" /> Logs: {storageStats.logsSize}B</div>
+                            <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-teal-500" /> History: {storageStats.historySize}B</div>
+                          </div>
+                          <div className="text-xs font-semibold mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-between text-slate-800 dark:text-slate-200">
+                            <span>{t('Total Footprint')}</span>
+                            <span>{storageStats.totalSize} Bytes</span>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="p-8 bg-slate-50 dark:bg-slate-950 rounded-[2.5rem] border-2 border-slate-200 dark:border-white/5 h-full flex flex-col justify-between space-y-6 shadow-sm">
-                        <div>
-                          <div className="flex items-center gap-3 mb-4">
-                            <FileCode className="w-6 h-6 text-indigo-500" />
-                            <h4 className="text-[12px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">File IO Configuration</h4>
+                      <div className="flex flex-col gap-6">
+                        <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileCode className="w-5 h-5 text-indigo-500" />
+                            <h4 className="text-sm font-medium text-slate-900 dark:text-white">{t('Configuration File')}</h4>
                           </div>
-                          <p className="text-[10.5px] font-bold font-sans text-slate-500 uppercase tracking-widest leading-relaxed pt-2">
-                            Serialize active settings state into a pure JSON payload, or mount previously saved configuration templates directly to the state machine.
-                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">{t('Export or import your system configuration as a JSON file.')}</p>
+                          <div className="flex flex-col gap-3">
+                            <button
+                              onClick={handleExportConfig}
+                              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                            >
+                              <Download className="w-4 h-4" /> {t('Export Configuration')}
+                            </button>
+                            <label className="w-full py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer">
+                              <Upload className="w-4 h-4" /> {t('Import Configuration')}
+                              <input type="file" accept=".json" onChange={handleImportConfig} className="hidden" />
+                            </label>
+                            {importStatus !== 'idle' && (
+                              <div className={`p-3 rounded-lg text-xs font-medium text-center ${
+                                importStatus === 'success' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'
+                              }`}>
+                                {t(importMessage)}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="space-y-4">
-                          <button
-                            onClick={handleExportConfig}
-                            className="w-full p-4.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer py-4"
-                          >
-                            <Download className="w-4 h-4" /> Clone To Payload Config
-                          </button>
-                          
-                          <label className="w-full p-4.5 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-indigo-500 active:bg-slate-100 dark:active:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer py-4">
-                            <Upload className="w-4 h-4" /> Mount Payload File
-                            <input type="file" accept=".json" onChange={handleImportConfig} className="hidden" />
-                          </label>
 
-                          {importStatus !== 'idle' && (
-                            <div className={`p-4 rounded-xl text-[9px] font-black uppercase tracking-widest border-2 border-dashed text-center mt-4 ${
-                              importStatus === 'success' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : 'bg-rose-500/10 text-rose-500 border-rose-500/30'
-                            }`}>
-                              {importMessage}
-                            </div>
-                          )}
+                        <div className="p-5 bg-rose-50 dark:bg-rose-500/5 rounded-2xl border border-rose-200 dark:border-rose-500/20">
+                          <h4 className="text-sm font-semibold text-rose-600 dark:text-rose-400 mb-2">{t('Danger Zone')}</h4>
+                          <p className="text-xs text-rose-500/80 dark:text-rose-400/80 mb-4">
+                            {t('Wipe all local cache entries, operator IDs, configuration profiles, and unsaved datasets. This action cannot be undone.')}
+                          </p>
+                          <button
+                            onClick={handleHardReset}
+                            className="w-full py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm shadow-rose-500/20"
+                          >
+                            <Trash2 className="w-4 h-4" /> {t('Reset to Factory Defaults')}
+                          </button>
                         </div>
                       </div>
                    </div>

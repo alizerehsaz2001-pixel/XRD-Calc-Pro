@@ -178,6 +178,12 @@
   accent-color: var(--color-cyber-blue) !important;
 }
 
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 90px;
