@@ -96,7 +96,7 @@ export const WilliamsonHallModule: React.FC = () => {
   const [isModulusEnabled, setIsModulusEnabled] = useState<boolean>(false);
   const [inputData, setInputData] = useState<string>("28.44, 0.25, 4, 0, 0\n47.30, 0.28, 2, 2, 0\n56.12, 0.32, 2, 2, 2\n69.13, 0.38, 4, 4, 0\n76.38, 0.42, 6, 2, 0");
   const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian'>('Gaussian');
-  const [strainModel, setStrainModel] = useState<'UDM' | 'Stephens'>('UDM');
+  const [strainModel, setStrainModel] = useState<'UDM' | 'USDM' | 'UDEDM' | 'Stephens'>('UDM');
   const [result, setResult] = useState<WHResult | null>(() => {
     try {
       const saved = localStorage.getItem('xrd_wh_current');
@@ -231,6 +231,7 @@ export const WilliamsonHallModule: React.FC = () => {
     setTimeout(() => {
       setIsSimulationRunning(false);
       const peaks = parseScherrerInput(inputData);
+      const currentPreset = MODULUS_PRESETS.find(p => p.value === youngsModulusGPa);
       const computed = calculateWilliamsonHall(
         wavelength, 
         constantK, 
@@ -240,7 +241,8 @@ export const WilliamsonHallModule: React.FC = () => {
         instrumentalMode,
         { U: cagliotiU, V: cagliotiV, W: cagliotiW },
         isModulusEnabled ? youngsModulusGPa : undefined,
-        strainModel
+        strainModel,
+        currentPreset?.name
       );
       setResult(computed);
       localStorage.setItem('xrd_wh_current', JSON.stringify(computed));
@@ -297,7 +299,17 @@ export const WilliamsonHallModule: React.FC = () => {
         <div className="bg-[#0A101C] text-white p-4 rounded-xl shadow-[0_0_30px_rgba(34,211,238,0.15)] border border-cyan-500/30 text-xs font-mono">
           <p className="font-black mb-3 text-cyan-400 border-b border-white/5 pb-2 uppercase tracking-widest">Peak at {d.twoTheta?.toFixed(2)}°</p>
           <div className="space-y-2 text-[10px]">
-            <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">X (4sinθ)</span> <span className="text-cyan-300 font-bold">{d.x.toFixed(5)}</span></p>
+            <p className="flex justify-between gap-6">
+              <span className="text-slate-500 uppercase">
+                {strainModel === 'USDM' 
+                  ? 'X (4sinθ / E_hkl)' 
+                  : strainModel === 'UDEDM' 
+                  ? 'X (4sinθ / √E_hkl)' 
+                  : 'X (4sinθ)'
+                }
+              </span> 
+              <span className="text-cyan-300 font-bold">{d.x.toFixed(5)}</span>
+            </p>
             <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">Y (βcosθ)</span> <span className="text-cyan-300 font-bold">{d.y.toFixed(5)}</span></p>
             <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">Linear Fit</span> <span className="text-rose-400">{d.fit.toFixed(5)}</span></p>
           </div>
@@ -902,7 +914,7 @@ export const WilliamsonHallModule: React.FC = () => {
                   Strain Regression Model
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                   {(['UDM', 'Stephens'] as const).map(model => (
+                   {(['UDM', 'USDM', 'UDEDM', 'Stephens'] as const).map(model => (
                      <button
                        key={model}
                        onClick={() => setStrainModel(model)}
@@ -910,12 +922,18 @@ export const WilliamsonHallModule: React.FC = () => {
                          ${strainModel === model ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 font-black' : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'}
                        `}
                      >
-                       {model === 'UDM' ? 'Uniform (UDM)' : 'Stephens (Anis)'}
+                       {model === 'UDM' && 'Uniform UDM'}
+                       {model === 'USDM' && 'Stress USDM'}
+                       {model === 'UDEDM' && 'Energy UDEDM'}
+                       {model === 'Stephens' && 'Stephens'}
                      </button>
                    ))}
                 </div>
                 <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-2 leading-relaxed">
-                   {strainModel === 'UDM' ? 'Isotropic strain across all hkl planes.' : 'Anisotropic phenomenological S_hkl strain model (requires hkl inputs).'}
+                   {strainModel === 'UDM' && 'Isotropic Uniform Deformation Model. Assumes equal microstrain in all directions.'}
+                   {strainModel === 'USDM' && 'Anisotropic Uniform Stress Deformation Model. Assumes uniform stress (σ = ε_hkl * E_hkl).'}
+                   {strainModel === 'UDEDM' && 'Anisotropic Uniform Deformation Energy Density Model (u = 0.5 * ε_hkl² * E_hkl).'}
+                   {strainModel === 'Stephens' && 'Anisotropic phenomenological S_hkl strain model (requires hkl inputs).'}
                 </p>
               </div>
             </div>
@@ -1454,7 +1472,19 @@ export const WilliamsonHallModule: React.FC = () => {
                     dataKey="x" 
                     type="number" 
                     domain={['auto', 'auto']}
-                    label={{ value: '4 sin(θ)', position: 'bottom', offset: 35, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                    label={{ 
+                      value: strainModel === 'USDM' 
+                        ? '4 sin(θ) / E_hkl (GPa⁻¹)' 
+                        : strainModel === 'UDEDM' 
+                        ? '4 sin(θ) / √E_hkl (GPa⁻⁰·⁵)' 
+                        : '4 sin(θ)', 
+                      position: 'bottom', 
+                      offset: 35, 
+                      fill: '#94a3b8', 
+                      fontSize: 10, 
+                      fontWeight: 900, 
+                      fontFamily: 'monospace' 
+                    }}
                     tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
                     tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                     axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
@@ -1482,7 +1512,15 @@ export const WilliamsonHallModule: React.FC = () => {
                     stroke="#f43f5e" 
                     strokeWidth={2} 
                     dot={false} 
-                    name="UDM Linear Fit"
+                    name={
+                      strainModel === 'USDM' 
+                        ? 'USDM Stress Fit' 
+                        : strainModel === 'UDEDM' 
+                        ? 'UDEDM Energy Fit' 
+                        : strainModel === 'Stephens' 
+                        ? 'Stephens Fit' 
+                        : 'UDM Linear Fit'
+                    }
                     activeDot={false}
                     strokeDasharray="5 5"
                   />

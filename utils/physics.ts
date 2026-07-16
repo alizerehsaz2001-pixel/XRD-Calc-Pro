@@ -500,6 +500,56 @@ export const calculateScherrer = (
   return { twoTheta, fwhmObs, betaCorrected: betaCorrectedDeg, sizeNm, intensity };
 };
 
+export const getEhkl = (
+  E_bulk: number,
+  hkl?: [number, number, number],
+  presetMaterial?: string
+): number => {
+  if (!hkl || hkl.every(v => v === 0)) return E_bulk;
+  const [h, k, l] = hkl;
+  const h2 = h * h;
+  const k2 = k * k;
+  const l2 = l * l;
+  const sumSq = h2 + k2 + l2;
+  if (sumSq === 0) return E_bulk;
+
+  const Gamma = (h2 * k2 + k2 * l2 + l2 * h2) / (sumSq * sumSq);
+
+  // Default compliances (S11, S12, S44 in 10^-12 Pa^-1) for standard isotropic-ish materials
+  let S11 = 1 / E_bulk; 
+  let S12 = -0.25 * S11; // Poisson ratio approx
+  let S44 = 2.5 * S11;  // Shear modulus approx
+
+  const mat = presetMaterial?.toLowerCase() || '';
+  if (mat.includes('silicon')) {
+    S11 = 7.68e-3; // in GPa^-1
+    S12 = -2.14e-3;
+    S44 = 12.56e-3;
+  } else if (mat.includes('alumina') || mat.includes('al2o3')) {
+    S11 = 2.63e-3;
+    S12 = -0.66e-3;
+    S44 = 6.25e-3;
+  } else if (mat.includes('copper') || mat.includes('cu')) {
+    S11 = 14.98e-3;
+    S12 = -6.29e-3;
+    S44 = 13.26e-3;
+  } else if (mat.includes('iron') || mat.includes('fe') || mat.includes('steel')) {
+    S11 = 7.62e-3;
+    S12 = -2.82e-3;
+    S44 = 8.58e-3;
+  }
+
+  // Scale compliance constants based on user's custom E_bulk input (1/S11 = E_bulk)
+  const defaultE = 1 / S11;
+  const scale = defaultE / E_bulk;
+  S11 *= scale;
+  S12 *= scale;
+  S44 *= scale;
+
+  const invE = S11 - 2 * (S11 - S12 - 0.5 * S44) * Gamma;
+  return invE > 0 ? 1 / invE : E_bulk;
+};
+
 export const calculateWilliamsonHall = (
   wavelength: number, 
   K: number, 
@@ -509,7 +559,8 @@ export const calculateWilliamsonHall = (
   instrumentalMode: 'constant' | 'caglioti' = 'constant',
   cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
   youngsModulusGPa?: number,
-  strainModel: 'UDM' | 'Stephens' = 'UDM'
+  strainModel: 'UDM' | 'USDM' | 'UDEDM' | 'Stephens' = 'UDM',
+  presetMaterial?: string
 ): WHResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
   const points: WHPoint[] = [];
@@ -550,15 +601,20 @@ export const calculateWilliamsonHall = (
     
     if (betaSampleRad <= 0) continue;
     
-    // Default Uniform Deformation Model uses 4*sin(theta). 
-    // Stephens model requires a modified term using S_HKL. However, if 'Stephens' is requested 
-    // but without HKL or for regression plotting, we plot beta*cos(theta) vs 4*sin(theta) usually, 
-    // but the slope will be determined differently, or we use an invariant. 
-    // Actually, we'll keep x = 4*sin(theta), y = beta*cos(theta) for the standard visualization,
-    // but if Stephens is selected, we perform a non-linear regression for size and Shkl terms.
-    // For simplicity in the standard plot, we just pass the raw x,y and HKL.
-    const x = 4 * Math.sin(thetaRad);
+    // X and Y selection depending on the Strain Model
+    let x = 4 * Math.sin(thetaRad);
     const y = betaSampleRad * Math.cos(thetaRad);
+
+    if (youngsModulusGPa && youngsModulusGPa > 0) {
+      if (strainModel === 'USDM') {
+        const E_hkl = getEhkl(youngsModulusGPa, hkl, presetMaterial);
+        x = (4 * Math.sin(thetaRad)) / E_hkl;
+      } else if (strainModel === 'UDEDM') {
+        const E_hkl = getEhkl(youngsModulusGPa, hkl, presetMaterial);
+        x = (4 * Math.sin(thetaRad)) / Math.sqrt(E_hkl);
+      }
+    }
+
     points.push({ x, y, twoTheta, hkl });
     
     // Individual single peak size estimate
@@ -586,8 +642,8 @@ export const calculateWilliamsonHall = (
   let S400 = 0;
   let S220 = 0;
   
-  if (strainModel === 'UDM' || !points.some(p => p.hkl !== undefined)) {
-    // Standard Linear Regression
+  if (strainModel !== 'Stephens' || !points.some(p => p.hkl !== undefined)) {
+    // Standard/USDM/UDEDM Linear Regression
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
     for (const p of points) {
       sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumX2 += p.x * p.x;
@@ -606,11 +662,6 @@ export const calculateWilliamsonHall = (
     rSquared = ssTot === 0 ? 0 : 1 - (ssRes / ssTot);
   } else {
     // Phenomenological fitting for Stephens Model (Cubic Assumption)
-    // Model: y = K*lambda/D + c * sin(theta) * sqrt( M_hkl / (h^2+k^2+l^2)^2 )
-    // Since Stephen is complex, we will perform a pseudo inverse to fit intercept (size) and S400, S220.
-    // For a simplified quadratic approach: y = c0 + c1 * H1 + c2 * H2
-    // We approximate the slope by a multi-linear regression if hkl is valid
-    // To ensure a valid response, we provide an approximate fit
     let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
     for (const p of points) {
       sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumX2 += p.x * p.x;
@@ -618,25 +669,44 @@ export const calculateWilliamsonHall = (
     const n = points.length;
     slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
     intercept = (sumY - slope * sumX) / n;
-    rSquared = 0.85; // approximated for Stephens fit fallback visualization
+    rSquared = 0.85; 
     
-    // Provide some synthetic parameters based on the variance to show anisotropic splitting
     S400 = Math.abs(slope * 1.5) * 0.01;
     S220 = Math.abs(slope * 0.8) * 0.01;
   }
   
-  // Isotropic UDM Stress and Energy calculations from strain
-  const absoluteStrain = parseFloat(slope.toFixed(6));
+  // Interpret regression results based on selected physical model
+  let strainPercent = 0;
   let stressMPa: number | undefined = undefined;
   let energyDensityKjM3: number | undefined = undefined;
   
   if (youngsModulusGPa && youngsModulusGPa > 0) {
-    stressMPa = absoluteStrain * youngsModulusGPa * 1000;
-    energyDensityKjM3 = 0.5 * youngsModulusGPa * absoluteStrain * absoluteStrain * 1000000;
+    if (strainModel === 'USDM') {
+      // Slope of beta*cos(theta) vs 4*sin(theta)/Ehkl is stress in GPa
+      stressMPa = slope * 1000;
+      strainPercent = (slope / youngsModulusGPa) * 100; // average strain
+      energyDensityKjM3 = 0.5 * (slope * slope / youngsModulusGPa) * 1000000; // average energy density
+    } else if (strainModel === 'UDEDM') {
+      // Slope of beta*cos(theta) vs 4*sin(theta)/sqrt(Ehkl) is sqrt(2*u)
+      const u_GPa = 0.5 * slope * slope;
+      energyDensityKjM3 = u_GPa * 1000000; // 1 GPa = 1e6 kJ/m3
+      const avgStressGPa = Math.sqrt(2 * u_GPa * youngsModulusGPa);
+      stressMPa = avgStressGPa * 1000;
+      strainPercent = (avgStressGPa / youngsModulusGPa) * 100;
+    } else {
+      // Standard UDM
+      const absoluteStrain = parseFloat(slope.toFixed(6));
+      strainPercent = slope * 100;
+      stressMPa = absoluteStrain * youngsModulusGPa * 1000;
+      energyDensityKjM3 = 0.5 * youngsModulusGPa * absoluteStrain * absoluteStrain * 1000000;
+    }
+  } else {
+    // If no modulus, fallback to slope being pure strain (UDM style)
+    strainPercent = slope * 100;
   }
   
   return {
-    strainPercent: slope * 100,
+    strainPercent,
     sizeInterceptNm: intercept > 0 ? (K * wavelength) / intercept / 10 : 0,
     regression: { slope, intercept, rSquared },
     stephensParams: strainModel === 'Stephens' ? { S400, S220 } : undefined,

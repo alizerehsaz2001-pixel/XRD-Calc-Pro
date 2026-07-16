@@ -505,21 +505,22 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                       <label className="block text-[9px] font-black text-slate-500 mb-1.5 uppercase tracking-[0.2em] flex justify-between items-center">
                         <span>Uniform Stress Deformation (USDM)</span>
                       </label>
-                      <div className="bg-[#0A101C] rounded-lg border border-white/5 p-3 space-y-2">
+                      <div className="bg-[#0A101C] rounded-lg border border-white/5 p-4 space-y-3 shadow-inner">
                         <div className="flex justify-between items-center">
                           <span className="text-[9px] font-bold text-slate-400 uppercase">Young's Modulus (E)</span>
-                          <span className="text-[8px] text-pink-600/50 font-mono uppercase font-black tracking-widest">GPa</span>
+                          <span className="text-xs font-mono font-black text-pink-400">{youngsModulusGPa} GPa</span>
                         </div>
                         <input
-                          type="number"
+                          type="range"
+                          min="1"
+                          max="600"
                           step="1"
-                          value={youngsModulusGPa ?? 0}
-                          onChange={(e) => setYoungsModulusGPa(parseFloat(e.target.value) || 0)}
-                          className="w-full px-3 py-2 bg-[#070D18] text-pink-300 border border-white/10 focus:border-pink-500/50 rounded-lg outline-none font-mono text-xs transition-all focus:ring-1 focus:ring-pink-500/20"
-                          placeholder="e.g. 130 for Silicon"
+                          value={youngsModulusGPa}
+                          onChange={(e) => setYoungsModulusGPa(parseInt(e.target.value) || 130)}
+                          className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-pink-500"
                         />
-                        <p className="text-[8px] font-black text-slate-600 uppercase tracking-wider pt-1 border-t border-white/5">
-                          * Determines Uniform Stress and Strain Energy Density limits.
+                        <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider leading-normal pt-2 border-t border-white/5">
+                          Translates mechanical microstrain into physical internal lattice stresses (MPa) & volumetric strain energy density (kJ/m³).
                         </p>
                       </div>
                     </div>
