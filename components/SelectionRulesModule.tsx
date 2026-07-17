@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { CrystalSystem, SelectionRuleResult } from "../types";
 import { parseHKLString, validateSelectionRule } from "../utils/physics";
+import { ScientificMathControl } from "./ScientificMathControl";
 import { motion, AnimatePresence } from "motion/react";
 import {
   CheckCircle2,
@@ -3247,6 +3248,32 @@ export const SelectionRulesModule: React.FC = () => {
 
       {/* Results Section */}
       <div className="lg:col-span-8 space-y-6">
+        
+        <ScientificMathControl
+          title="FCC Structure Factor & Systematic Absences"
+          formula="F_{hkl} = f \cdot [1 + e^{i\pi(h+k)} + e^{i\pi(k+l)} + e^{i\pi(h+l)}]"
+          description="Verify selection rules and systematic absences. FCC reflections are allowed only if all indices (h, k, l) are unmixed (all even or all odd), yielding F = 4f."
+          variables={[
+            { symbol: 'h', name: 'Miller index h', value: (results[0]?.hkl[0] !== undefined ? results[0].hkl[0] : 1), unit: '' },
+            { symbol: 'k', name: 'Miller index k', value: (results[0]?.hkl[1] !== undefined ? results[0].hkl[1] : 1), unit: '' },
+            { symbol: 'l', name: 'Miller index l', value: (results[0]?.hkl[2] !== undefined ? results[0].hkl[2] : 1), unit: '' },
+            { symbol: 'f', name: 'Scattering Factor f', value: 1.0, unit: '' }
+          ]}
+          result={
+            (() => {
+              const h = results[0]?.hkl[0] !== undefined ? results[0].hkl[0] : 1;
+              const k = results[0]?.hkl[1] !== undefined ? results[0].hkl[1] : 1;
+              const l = results[0]?.hkl[2] !== undefined ? results[0].hkl[2] : 1;
+              const hEven = h % 2 === 0;
+              const kEven = k % 2 === 0;
+              const lEven = l % 2 === 0;
+              return (hEven === kEven && kEven === lEven) ? 4.0 : 0.0;
+            })()
+          }
+          resultUnit=""
+          resultName="Structure Factor F"
+        />
+
         <div className="bg-[#050B14]/80 backdrop-blur-md rounded-[2rem] shadow-[0_0_50px_rgba(16,185,129,0.05)] border border-[#1e293b] overflow-hidden flex flex-col min-h-[600px] relative">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.05] pointer-events-none mix-blend-screen" />
           <div className="p-6 border-b border-[#1e293b] bg-[#070D18]/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">

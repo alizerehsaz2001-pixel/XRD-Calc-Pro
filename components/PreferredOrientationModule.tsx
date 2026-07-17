@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import { Rotate3d } from 'lucide-react';
 import { useSettings } from './SettingsContext';
 import { calculateMarchDollase, calculateCubicAngle, calculateInterplanarAngle } from '../utils/physics';
+import { ScientificMathControl } from './ScientificMathControl';
 import { 
   Activity, 
   Beaker, 
@@ -778,6 +779,28 @@ export const PreferredOrientationModule: React.FC = () => {
 
         {/* Visual & Plot Column */}
         <div className="xl:col-span-8 space-y-6">
+          
+          <ScientificMathControl
+            title="March-Dollase Texture Verification"
+            formula="W(r, \alpha) = (r^2 \cos^2\alpha + r^{-1} \sin^2\alpha)^{-3/2}"
+            description="Verify the preferred orientation probability density distribution function using the March-Dollase model at a reference angle α = 45°."
+            variables={[
+              { symbol: 'r', name: 'Refinement factor r', value: (solverResult ? solverResult.refinedR : rValue), unit: '' },
+              { symbol: 'α', name: 'Reference Angle', value: 0.785398, unit: 'rad' }
+            ]}
+            result={
+              (() => {
+                const r = solverResult ? solverResult.refinedR : rValue;
+                const alpha = 0.785398;
+                const cosA = Math.cos(alpha);
+                const sinA = Math.sin(alpha);
+                const term = r * r * cosA * cosA + (sinA * sinA) / r;
+                return term !== 0 ? Math.pow(term, -1.5) : 0;
+              })()
+            }
+            resultUnit=""
+            resultName="ODF Density W(r, 45°)"
+          />
           
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Visual ODF Polar Contour */}

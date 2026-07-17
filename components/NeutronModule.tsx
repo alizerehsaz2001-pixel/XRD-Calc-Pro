@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NeutronAtom, NeutronResult, StandardWavelength, LatticeParameters, CrystalSystem } from '../types';
 import { calculateNeutronDiffraction, calculateXRayDiffraction, NEUTRON_SCATTERING_LENGTHS, ATOMIC_NUMBERS, NEUTRON_WAVELENGTHS, calculateCellVolume } from '../utils/physics';
+import { ScientificMathControl } from './ScientificMathControl';
 import { fetchStandardWavelengths } from '../services/geminiService';
 import {
   BarChart,
@@ -804,6 +805,19 @@ export const NeutronModule: React.FC = () => {
       </div>
 
       <div className="lg:col-span-7 space-y-6">
+        
+        <ScientificMathControl
+          title="Neutron de Broglie Wavelength"
+          formula="E = \frac{81.8048}{\lambda^2}"
+          description="Calculate and verify the kinetic energy of a neutron in meV corresponding to its thermal de Broglie wavelength."
+          variables={[
+            { symbol: 'λ', name: 'Neutron Wavelength', value: wavelength, unit: 'Å' }
+          ]}
+          result={wavelength !== 0 ? 81.8048 / (wavelength * wavelength) : 0}
+          resultUnit="meV"
+          resultName="Neutron Energy"
+        />
+
         {/* Dynamic Display Panel */}
         <div className="bg-slate-900 rounded-[2rem] border border-slate-800 p-6 sm:p-8 flex flex-col relative overflow-hidden min-h-[500px] transition-all duration-500 hover:border-slate-700/80 shadow-2xl">
            <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/5 rounded-full blur-[80px] pointer-events-none" />

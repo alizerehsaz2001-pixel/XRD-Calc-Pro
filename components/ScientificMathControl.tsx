@@ -57,8 +57,6 @@ const evaluateFormula = (formulaTitle: string, vars: { [symbol: string]: number 
     const beta = vars['β'] !== undefined ? vars['β'] : (vars['beta'] || 0.01);
     const theta = vars['θ'] !== undefined ? vars['θ'] : (vars['theta'] || 0.25);
     const cosTheta = Math.cos(theta);
-    // Usually crystallite size in nm is calculated as (K * lambda) / (beta * cos(theta)) 
-    // where lambda is converted to nm (divided by 10) or kept as Å (multiplying by 0.1)
     const factor = lambda > 10 ? 1 : 0.1;
     const Dv = (beta * cosTheta) !== 0 ? (K * lambda * factor) / (beta * cosTheta) : 0;
     return {
@@ -123,7 +121,92 @@ const evaluateFormula = (formulaTitle: string, vars: { [symbol: string]: number 
     };
   }
 
-  // Fallback to static props
+  if (titleLower.includes("deconvolution") || titleLower.includes("instrumental") || titleLower.includes("fwhm verifier") || titleLower.includes("caglioti")) {
+    const beta_obs = vars['β_obs'] !== undefined ? vars['β_obs'] : (vars['beta_obs'] || 0.01);
+    const beta_inst = vars['β_inst'] !== undefined ? vars['β_inst'] : (vars['beta_inst'] || 0.002);
+    const diff = beta_obs * beta_obs - beta_inst * beta_inst;
+    const beta_sample = diff > 0 ? Math.sqrt(diff) : 0;
+    return {
+      value: beta_sample,
+      unit: "rad",
+      steps: `\\beta_{\\text{sample}} = \\sqrt{\\beta_{\\text{obs}}^2 - \\beta_{\\text{inst}}^2} = \\sqrt{${beta_obs.toFixed(5)}^2 - ${beta_inst.toFixed(5)}^2} = ${beta_sample.toFixed(5)}\\text{ rad}`
+    };
+  }
+
+  if (titleLower.includes("warren") || titleLower.includes("fourier")) {
+    const A1 = vars['A_1'] !== undefined ? vars['A_1'] : (vars['A1'] || 0.85);
+    const A2 = vars['A_2'] !== undefined ? vars['A_2'] : (vars['A2'] || 0.70);
+    const L = vars['L'] !== undefined ? vars['L'] : (vars['L_nm'] || 10.0);
+    const d1 = vars['d_1'] !== undefined ? vars['d_1'] : (vars['d1'] || 2.35);
+    const d2 = vars['d_2'] !== undefined ? vars['d_2'] : (vars['d2'] || 1.17);
+    const s1 = 1 / d1;
+    const s2 = 1 / d2;
+    const num = Math.log(A1 / A2);
+    const den = 2 * Math.PI * Math.PI * L * L * (s2*s2 - s1*s1);
+    const val = den !== 0 && num / den > 0 ? Math.sqrt(num / den) : 0;
+    return {
+      value: val,
+      unit: "",
+      steps: `\\langle \\varepsilon_L^2 \\rangle^{1/2} = \\sqrt{\\frac{\\ln(A_1 / A_2)}{2 \\pi^2 L^2 (1/d_2^2 - 1/d_1^2)}} = \\sqrt{\\frac{\\ln(${A1.toFixed(3)} / ${A2.toFixed(3)})}{2 \\pi^2 \\cdot ${L.toFixed(1)}^2 \\cdot (${s2.toFixed(4)}^2 - ${s1.toFixed(4)}^2)}} = ${val.toFixed(6)}`
+    };
+  }
+
+  if (titleLower.includes("march-dollase") || titleLower.includes("preferred") || titleLower.includes("orientation") || titleLower.includes("texture")) {
+    const r = vars['r'] !== undefined ? vars['r'] : (vars['rValue'] || 0.8);
+    const alpha = vars['α'] !== undefined ? vars['α'] : (vars['alpha'] || 0.785);
+    const cosA = Math.cos(alpha);
+    const sinA = Math.sin(alpha);
+    const term = r * r * cosA * cosA + (sinA * sinA) / r;
+    const W = term !== 0 ? Math.pow(term, -1.5) : 0;
+    return {
+      value: W,
+      unit: "",
+      steps: `W(r, \\alpha) = (r^2 \\cos^2\\alpha + r^{-1} \\sin^2\\alpha)^{-3/2} = (${r.toFixed(3)}^2 \\cdot \\cos^2(${alpha.toFixed(3)}) + \\frac{\\sin^2(${alpha.toFixed(3)})}{${r.toFixed(3)}})^{-3/2} = ${W.toFixed(4)}`
+    };
+  }
+
+  if (titleLower.includes("neutron de broglie") || titleLower.includes("neutron wavelength") || titleLower.includes("de broglie")) {
+    const lambda = vars['λ'] !== undefined ? vars['λ'] : (vars['lambda'] || 1.54);
+    const E = lambda !== 0 ? 81.8048 / (lambda * lambda) : 0;
+    return {
+      value: E,
+      unit: "meV",
+      steps: `E = \\frac{81.8048}{\\lambda^2} = \\frac{81.8048}{${lambda.toFixed(4)}^2} = ${E.toFixed(2)}\\text{ meV}`
+    };
+  }
+
+  if (titleLower.includes("curie") || titleLower.includes("weiss") || titleLower.includes("susceptibility")) {
+    const C = vars['C'] !== undefined ? vars['C'] : 1.5;
+    const T = vars['T'] !== undefined ? vars['T'] : 10.0;
+    const theta_p = vars['θ_p'] !== undefined ? vars['θ_p'] : (vars['theta_p'] || 5.0);
+    const diff = T - theta_p;
+    const chi = diff !== 0 ? C / diff : 0;
+    return {
+      value: chi,
+      unit: "emu/mol",
+      steps: `\\chi = \\frac{C}{T - \\theta_p} = \\frac{${C.toFixed(2)}}{${T.toFixed(1)} - ${theta_p.toFixed(1)}} = ${chi.toFixed(4)}\\text{ emu/mol}`
+    };
+  }
+
+  if (titleLower.includes("structure factor") || titleLower.includes("selection") || titleLower.includes("absence")) {
+    const h = vars['h'] !== undefined ? Math.round(vars['h']) : 1;
+    const k = vars['k'] !== undefined ? Math.round(vars['k']) : 1;
+    const l = vars['l'] !== undefined ? Math.round(vars['l']) : 1;
+    const f = vars['f'] !== undefined ? vars['f'] : 1.0;
+    
+    const hEven = h % 2 === 0;
+    const kEven = k % 2 === 0;
+    const lEven = l % 2 === 0;
+    const allowed = (hEven === kEven) && (kEven === lEven);
+    const F = allowed ? 4 * f : 0;
+    
+    return {
+      value: F,
+      unit: "",
+      steps: `F_{hkl} = f \\cdot [1 + e^{i\\pi(h+k)} + e^{i\\pi(k+l)} + e^{i\\pi(h+l)}] = ${f.toFixed(2)} \\cdot [1 + e^{i\\pi(${h}+${k})} + e^{i\\pi(${k}+${l})} + e^{i\\pi(${h}+${l})}] = ${F.toFixed(2)}`
+    };
+  }
+
   return {
     value: originalResult,
     unit: "",
@@ -326,7 +409,7 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
   // Helper to render KaTeX symbols beautifully
   const renderSymbol = (symbol: string) => {
     const hasMath = /[\\_{}^[\]()|+=?*./ -]/.test(symbol) || 
-                    ['η', 'β', 'λ', 'θ', 'ε', 'K', 'n', 'R_wp', 'R_{wp}', 'β_obs'].some(kw => symbol.includes(kw));
+                    ['η', 'β', 'λ', 'θ', 'ε', 'α', 'K', 'n', 'R_wp', 'R_{wp}', 'β_obs', 'β_inst', 'θ_p'].some(kw => symbol.includes(kw));
     
     if (hasMath) {
       let tex = symbol;
@@ -335,7 +418,10 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
       else if (symbol === 'λ') tex = '\\lambda';
       else if (symbol === 'θ') tex = '\\theta';
       else if (symbol === 'ε') tex = '\\varepsilon';
+      else if (symbol === 'α') tex = '\\alpha';
       else if (symbol === 'β_obs') tex = '\\beta_{\\text{obs}}';
+      else if (symbol === 'β_inst') tex = '\\beta_{\\text{inst}}';
+      else if (symbol === 'θ_p') tex = '\\theta_{p}';
       else if (symbol === 'Slope (4ε)') tex = '4\\varepsilon';
       else if (symbol === 'R_wp' || symbol === 'R_{wp}') tex = 'R_{\\text{wp}}';
       else if (symbol === 'd(avg)') tex = 'd_{\\text{avg}}';

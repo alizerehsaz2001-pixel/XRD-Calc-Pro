@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { RotateCcw, Activity, Zap, Box, Layers, Scan, CheckCircle, Download, BookOpen, HelpCircle } from 'lucide-react';
 import { simulatePeak } from '../utils/physics';
 import { FWHMResult } from '../types';
+import { ScientificMathControl } from './ScientificMathControl';
 import {
   ComposedChart,
   Area,
@@ -911,6 +912,21 @@ export const FWHMModule: React.FC = () => {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {stats && (
+          <ScientificMathControl
+            title="Instrumental Peak Deconvolution"
+            formula="\beta_{\text{sample}} = \sqrt{\beta_{\text{obs}}^2 - \beta_{\text{inst}}^2}"
+            description="Isolate the specimen's pure physical broadening by subtracting the instrument's footprint under Gaussian approximation (quadratic subtraction)."
+            variables={[
+              { symbol: 'β_obs', name: 'Observed FWHM', value: (stats.fwhm * Math.PI / 180), unit: 'rad' },
+              { symbol: 'β_inst', name: 'Instrumental Broadening', value: (0.015 * Math.PI / 180), unit: 'rad' }
+            ]}
+            result={Math.sqrt(Math.max(0, Math.pow(stats.fwhm * Math.PI / 180, 2) - Math.pow(0.015 * Math.PI / 180, 2)))}
+            resultUnit="rad"
+            resultName="Specimen Pure Broadening"
+          />
+        )}
 
         {/* Physical Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MagneticAtom, MagneticResult, LatticeParameters } from '../types';
 import { calculateMagneticDiffraction, NEUTRON_SCATTERING_LENGTHS, MAGNETIC_FORM_FACTORS, NEUTRON_WAVELENGTHS, calculateCellVolume } from '../utils/physics';
+import { ScientificMathControl } from './ScientificMathControl';
 import {
   ComposedChart,
   Bar,
@@ -1145,6 +1146,21 @@ export const MagneticNeutronModule: React.FC = () => {
       </div>
 
       <div className="lg:col-span-7 space-y-6">
+        
+        <ScientificMathControl
+          title="Curie-Weiss Magnetic Susceptibility"
+          formula="\chi = \frac{C}{T - \theta_p}"
+          description="Verify the paramagnetic susceptibility as a function of temperature above the magnetic ordering critical point."
+          variables={[
+            { symbol: 'C', name: 'Curie Constant', value: curieWeiss.C, unit: 'emu·K/mol' },
+            { symbol: 'T', name: 'Temperature T', value: 300, unit: 'K' },
+            { symbol: 'θ_p', name: 'Paramagnetic Curie Temp (θ_p)', value: curieWeiss.thetaCW, unit: 'K' }
+          ]}
+          result={300 - curieWeiss.thetaCW !== 0 ? curieWeiss.C / (300 - curieWeiss.thetaCW) : 0}
+          resultUnit="emu/mol"
+          resultName="Susceptibility (χ)"
+        />
+
         <div className="bg-slate-900 p-6 rounded-3xl shadow-xl border border-slate-800 h-[420px] flex flex-col relative overflow-hidden group">
           <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
           

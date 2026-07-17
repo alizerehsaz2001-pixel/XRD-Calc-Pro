@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { parseWAInput, calculateWarrenAverbach } from '../utils/physics';
 import { WAResult } from '../types';
+import { ScientificMathControl } from './ScientificMathControl';
 import { DislocationMetricsVisualizer } from './DislocationMetricsVisualizer';
 import { LineChart,
   Line,
@@ -247,6 +248,16 @@ export const WarrenAverbachModule: React.FC = () => {
       }, 100);
     }, 600);
   };
+
+  const parsedPointsForMath = React.useMemo(() => {
+    try {
+      const pts = parseWAInput(inputData);
+      const targetPt = pts.find(p => p.L_nm >= 5) || pts[0] || { L_nm: 5, A1: 0.85, A2: 0.70 };
+      return targetPt;
+    } catch {
+      return { L_nm: 5, A1: 0.85, A2: 0.70 };
+    }
+  }, [inputData]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
@@ -835,6 +846,32 @@ export const WarrenAverbachModule: React.FC = () => {
       {/* Results Section */}
       <div id="wa-results-section" className="lg:col-span-8 space-y-6">
         
+        {result && (
+          <ScientificMathControl
+            title="Warren-Averbach Strain Verification"
+            formula="\langle \varepsilon_L^2 \rangle^{1/2} = \sqrt{\frac{\ln(A_1 / A_2)}{2 \pi^2 L^2 (1/d_2^2 - 1/d_1^2)}}"
+            description="Separate coherent size coefficients from lattice microstrains by comparing Fourier harmonic coefficients across multiple orders of diffraction (d1 vs d2 spacing)."
+            variables={[
+              { symbol: 'A_1', name: 'Order 1 Coefficient', value: parsedPointsForMath.A1, unit: '' },
+              { symbol: 'A_2', name: 'Order 2 Coefficient', value: parsedPointsForMath.A2, unit: '' },
+              { symbol: 'L', name: 'Fourier Length', value: parsedPointsForMath.L_nm, unit: 'nm' },
+              { symbol: 'd_1', name: 'd-spacing (1st order)', value: d1, unit: 'Å' },
+              { symbol: 'd_2', name: 'd-spacing (2nd order)', value: d2, unit: 'Å' }
+            ]}
+            result={
+              (() => {
+                const s1 = 1 / d1;
+                const s2 = 1 / d2;
+                const num = Math.log(parsedPointsForMath.A1 / parsedPointsForMath.A2);
+                const den = 2 * Math.PI * Math.PI * parsedPointsForMath.L_nm * parsedPointsForMath.L_nm * (s2*s2 - s1*s1);
+                return den !== 0 && num / den > 0 ? Math.sqrt(num / den) : 0;
+              })()
+            }
+            resultUnit=""
+            resultName="Microstrain RMS (ε_L)"
+          />
+        )}
+
         {/* Chart 1: Size Coefficients */}
         <div className="bg-slate-950/80 p-8 rounded-[2rem] shadow-2xl border border-white/5 h-[450px] flex flex-col relative overflow-hidden group/size ring-1 ring-white/10 ring-inset backdrop-blur-2xl">
           <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-rose-500/5 rounded-full blur-[100px] pointer-events-none group-hover/size:bg-rose-500/10 transition-all duration-1000"></div>
