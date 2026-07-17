@@ -5,12 +5,10 @@ import { FWHMResult } from '../types';
 import {
   ComposedChart,
   Area,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   ReferenceLine,
   ReferenceArea,
@@ -37,8 +35,36 @@ export const FWHMModule: React.FC = () => {
   const [refMaterial, setRefMaterial] = useState<string>('Silicon');
   const [customRefPeaks, setCustomRefPeaks] = useState<string>('28.44, 47.30, 56.12');
 
+  const WAVELENGTH_PRESETS: Record<string, number> = {
+    'Cu Kα (1.5406 Å)': 0.154059,
+    'Co Kα (1.7890 Å)': 0.178901,
+    'Fe Kα (1.9360 Å)': 0.193604,
+    'Cr Kα (2.2897 Å)': 0.228970,
+    'Mo Kα (0.7093 Å)': 0.070930,
+  };
+
+  const activeWavelength = wavelengthPreset === 'Custom' ? customWavelength : (WAVELENGTH_PRESETS[wavelengthPreset] || 0.154059);
+
   const parsedRefPeaks = React.useMemo(() => {
     if (!showReferencePeaks) return [];
+    const lambdaCu = 0.154059; // Cu Kα in nm
+    const targetWavelength = activeWavelength; // active wavelength in nm (e.g., 0.154059)
+
+    const shiftPeak = (thetaCu: number): { theta: number; dSpacing: number; isSuppressed: boolean } => {
+      // Calculate d-spacing from Cu Kα angle
+      const thetaRad = (thetaCu / 2) * (Math.PI / 180);
+      const d = lambdaCu / (2 * Math.sin(thetaRad)); // in nm
+
+      // Calculate new 2-theta for target wavelength
+      const sinThetaNew = targetWavelength / (2 * d);
+      if (sinThetaNew > 0.999) {
+        return { theta: 0, dSpacing: d * 10, isSuppressed: true }; // dSpacing in Å
+      }
+      const thetaNewRad = Math.asin(sinThetaNew);
+      const twoThetaNew = 2 * thetaNewRad * (180 / Math.PI);
+      return { theta: twoThetaNew, dSpacing: d * 10, isSuppressed: false };
+    };
+
     if (refMaterial !== 'Custom') {
       const PRESETS: Record<string, { theta: number; label: string }[]> = {
         'Silicon': [
@@ -75,22 +101,65 @@ export const FWHMModule: React.FC = () => {
           { theta: 36.542, label: 'SiO2 (110)' },
           { theta: 50.138, label: 'SiO2 (112)' },
           { theta: 59.954, label: 'SiO2 (211)' }
+        ],
+        'Aluminum': [
+          { theta: 38.472, label: 'Al (111)' },
+          { theta: 44.724, label: 'Al (200)' },
+          { theta: 65.096, label: 'Al (220)' },
+          { theta: 78.228, label: 'Al (311)' },
+          { theta: 82.435, label: 'Al (222)' }
+        ],
+        'Copper': [
+          { theta: 43.297, label: 'Cu (111)' },
+          { theta: 50.433, label: 'Cu (200)' },
+          { theta: 74.130, label: 'Cu (220)' },
+          { theta: 89.931, label: 'Cu (311)' },
+          { theta: 95.142, label: 'Cu (222)' }
+        ],
+        'Platinum': [
+          { theta: 39.761, label: 'Pt (111)' },
+          { theta: 46.244, label: 'Pt (200)' },
+          { theta: 67.452, label: 'Pt (220)' },
+          { theta: 81.285, label: 'Pt (311)' },
+          { theta: 85.710, label: 'Pt (222)' }
+        ],
+        'Diamond': [
+          { theta: 43.915, label: 'C (111)' },
+          { theta: 75.302, label: 'C (220)' },
+          { theta: 91.495, label: 'C (311)' }
         ]
       };
-      return PRESETS[refMaterial] || [];
+      const originalPeaks = PRESETS[refMaterial] || [];
+      return originalPeaks.map(p => {
+        const shifted = shiftPeak(p.theta);
+        return {
+          theta: shifted.theta,
+          label: p.label,
+          dSpacing: shifted.dSpacing,
+          isSuppressed: shifted.isSuppressed,
+          originalTheta: p.theta
+        };
+      }).filter(p => !p.isSuppressed);
     } else {
       return customRefPeaks
         .split(',')
         .map((val, idx) => {
           const num = parseFloat(val.trim());
           if (!isNaN(num) && num >= 10 && num <= 150) {
-            return { theta: num, label: `Custom #${idx + 1}` };
+            const shifted = shiftPeak(num);
+            return {
+              theta: shifted.isSuppressed ? num : shifted.theta,
+              label: `Custom #${idx + 1}`,
+              dSpacing: shifted.dSpacing,
+              isSuppressed: shifted.isSuppressed,
+              originalTheta: num
+            };
           }
           return null;
         })
-        .filter((p): p is { theta: number; label: string } => p !== null);
+        .filter((p): p is { theta: number; label: string; dSpacing: number; isSuppressed: boolean; originalTheta: number } => p !== null && !p.isSuppressed);
     }
-  }, [showReferencePeaks, refMaterial, customRefPeaks]);
+  }, [showReferencePeaks, refMaterial, customRefPeaks, activeWavelength]);
 
   const [useCaglioti, setUseCaglioti] = useState<boolean>(false);
   const [cagliotiPreset, setCagliotiPreset] = useState<string>('Lab (Cu Kα)');
@@ -101,16 +170,6 @@ export const FWHMModule: React.FC = () => {
     'Synchrotron': { u: 0.002, v: -0.001, w: 0.002 },
     'Neutron': { u: 0.1, v: -0.05, w: 0.1 }
   };
-
-  const WAVELENGTH_PRESETS: Record<string, number> = {
-    'Cu Kα (1.5406 Å)': 0.154059,
-    'Co Kα (1.7890 Å)': 0.178901,
-    'Fe Kα (1.9360 Å)': 0.193604,
-    'Cr Kα (2.2897 Å)': 0.228970,
-    'Mo Kα (0.7093 Å)': 0.070930,
-  };
-
-  const activeWavelength = wavelengthPreset === 'Custom' ? customWavelength : (WAVELENGTH_PRESETS[wavelengthPreset] || 0.154059);
 
   const fwhm = React.useMemo(() => {
     if (useCaglioti) {
@@ -528,13 +587,17 @@ export const FWHMModule: React.FC = () => {
                     <select
                       value={refMaterial}
                       onChange={(e) => setRefMaterial(e.target.value)}
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-bold"
                     >
                       <option value="Silicon">Silicon (Si) Reference</option>
                       <option value="Gold">Gold (Au) Reference</option>
                       <option value="NaCl">Halite (NaCl) Reference</option>
                       <option value="Pyrite">Pyrite (FeS2) Reference</option>
                       <option value="Quartz">Quartz (SiO2) Reference</option>
+                      <option value="Aluminum">Aluminum (Al) Reference</option>
+                      <option value="Copper">Copper (Cu) Reference</option>
+                      <option value="Platinum">Platinum (Pt) Reference</option>
+                      <option value="Diamond">Diamond (C) Reference</option>
                       <option value="Custom">Custom Peaks Set</option>
                     </select>
                   </div>
@@ -555,27 +618,37 @@ export const FWHMModule: React.FC = () => {
                   )}
 
                   {parsedRefPeaks.length > 0 && (
-                    <div className="space-y-1.5">
-                      <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        Click peak to snap center:
-                      </span>
-                      <div className="flex flex-wrap gap-1">
+                    <div className="space-y-2">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          Click peak to snap center:
+                        </span>
+                        <span className="block text-[8px] text-indigo-500 dark:text-indigo-400 font-medium">
+                          💡 Corrected via Bragg's Law for λ = {(activeWavelength * 10).toFixed(4)} Å
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
                         {parsedRefPeaks.map((peak, idx) => {
                           const isCurrentCenter = Math.abs(center - peak.theta) < 0.01;
                           return (
                             <button
                               key={idx}
                               onClick={() => setCenter(peak.theta)}
-                              className={`px-1.5 py-0.5 text-[9px] font-mono rounded border transition-all text-left flex items-center gap-1 cursor-pointer ${
+                              className={`p-1.5 text-[10px] font-mono rounded-lg border transition-all text-left flex flex-col justify-between cursor-pointer ${
                                 isCurrentCenter
-                                  ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-400 text-indigo-700 dark:text-indigo-300 font-bold'
-                                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 text-slate-600 dark:text-slate-400'
+                                  ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold shadow-md shadow-indigo-500/10'
+                                  : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                               }`}
-                              title={`Snap simulated peak center to ${peak.theta.toFixed(3)}°`}
+                              title={`Snap simulated peak center to ${peak.theta.toFixed(3)}° (d = ${peak.dSpacing.toFixed(4)} Å)`}
                             >
-                              <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
-                              <span className="font-bold">{peak.label}</span>
-                              <span className="opacity-70">({peak.theta.toFixed(1)}°)</span>
+                              <div className="flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                <span className="font-extrabold">{peak.label}</span>
+                              </div>
+                              <div className="mt-1 flex justify-between items-center text-[9px] w-full text-slate-400 font-medium leading-none">
+                                <span>{peak.theta.toFixed(2)}°</span>
+                                <span className="text-[8px] text-emerald-600 dark:text-emerald-400 font-bold">{peak.dSpacing.toFixed(3)} Å</span>
+                              </div>
                             </button>
                           );
                         })}
@@ -586,23 +659,8 @@ export const FWHMModule: React.FC = () => {
               )}
             </div>
 
-            {/* Intensity & Noise */}
+            {/* Background & Noise */}
             <div className="space-y-4 bg-slate-50 dark:bg-slate-950/30 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
-              
-              {/* Peak Amplitude */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  <span>Peak Amplitude (I<sub className="text-[7px]">max</sub>)</span>
-                  <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{amplitude.toFixed(0)} cps</span>
-                </div>
-                <input
-                  type="range" min="10" max="1000" step="10"
-                  value={amplitude} 
-                  onChange={(e) => setAmplitude(parseFloat(e.target.value))}
-                  className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-                />
-              </div>
-
               {/* Background Level */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
@@ -656,19 +714,15 @@ export const FWHMModule: React.FC = () => {
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 z-10 relative">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/40 text-indigo-500 shadow-sm">
-                <Activity className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-2">
-                  Line Profile Peak Visualizer
-                </h3>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                  Interactive Bragg peak profile modeling. Hover to inspect theoretical localized physical states.
-                </p>
-              </div>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 z-10">
+            <div>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-indigo-500" />
+                Line Profile Peak Visualizer
+              </h3>
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                Interactive Bragg peak profile fitting. Hover to inspect precise localized physical data.
+              </p>
             </div>
 
             {/* Live Indicator Pill */}
@@ -711,7 +765,7 @@ export const FWHMModule: React.FC = () => {
                   axisLine={{ stroke: '#cbd5e1' }}
                   tickLine={{ stroke: '#cbd5e1' }}
                 />
-                <YAxis domain={[0, amplitude * 1.25]} width={40} tick={{fontSize: 10, fill: '#64748b'}} />
+                <YAxis domain={[0, amplitude * 1.25]} width={35} tick={{fontSize: 10, fill: '#64748b'}} />
                 
                 <Tooltip 
                   content={({ active, payload }) => {
@@ -726,32 +780,21 @@ export const FWHMModule: React.FC = () => {
                             Angle 2θ: {dataPoint.x.toFixed(4)}°
                           </div>
                           <div className="space-y-2 font-mono text-[11px]">
-                            <div className="flex justify-between items-center gap-4">
-                              <span className="text-slate-400 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-rose-500"></div> Measured (Noisy):</span>
-                              <span className="font-bold text-rose-600 dark:text-rose-400">{dataPoint.y.toFixed(1)} cps</span>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Y_measured:</span>
+                              <span className="font-bold">{dataPoint.y.toFixed(1)} cps</span>
                             </div>
-                            <div className="flex justify-between items-center gap-4">
-                              <span className="text-slate-400 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-indigo-500"></div> Total Model Fit:</span>
-                              <span className="font-bold text-indigo-600 dark:text-indigo-400">{dataPoint._cleanY?.toFixed(1) || '-'} cps</span>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Y_clean:</span>
+                              <span className="font-bold">{dataPoint._cleanY?.toFixed(1) || '-'} cps</span>
                             </div>
-                            {type === 'Pseudo-Voigt' && dataPoint.yG !== undefined && (
-                              <div className="flex justify-between items-center gap-4 pt-1 border-t border-slate-100 dark:border-slate-800/60">
-                                <span className="text-slate-400 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div> Gaussian Component:</span>
-                                <span className="font-bold text-blue-600 dark:text-blue-400">{dataPoint.yG.toFixed(1)} cps</span>
-                              </div>
-                            )}
-                            {type === 'Pseudo-Voigt' && dataPoint.yL !== undefined && (
-                              <div className="flex justify-between items-center gap-4">
-                                <span className="text-slate-400 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Lorentzian Component:</span>
-                                <span className="font-bold text-emerald-600 dark:text-emerald-400">{dataPoint.yL.toFixed(1)} cps</span>
-                              </div>
-                            )}
-                            
-                            <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800/60">
-                              <div className="flex justify-between">
-                                <span className="text-slate-400">Local Size Estimate:</span>
-                                <span className="font-bold text-slate-700 dark:text-slate-300">{localSize.toFixed(1)} nm</span>
-                              </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Local Size:</span>
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">{localSize.toFixed(1)} nm</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Peak Model:</span>
+                              <span className="font-bold">{type}</span>
                             </div>
                           </div>
                         </div>
@@ -760,14 +803,6 @@ export const FWHMModule: React.FC = () => {
                     return null;
                   }}
                   cursor={{ stroke: '#818cf8', strokeWidth: 1, strokeDasharray: '4 4' }}
-                />
-                
-                <Legend 
-                  verticalAlign="top" 
-                  height={36} 
-                  iconType="circle" 
-                  iconSize={6} 
-                  wrapperStyle={{ fontSize: '10px', fontWeight: 600, color: '#64748b' }}
                 />
                 
                 {/* Background Noise Reference Area */}
@@ -804,17 +839,6 @@ export const FWHMModule: React.FC = () => {
                    <Label value="Centroid" position="top" fill="#4f46e5" fontSize={10} fontWeight="700" offset={8} />
                 </ReferenceLine>
                 <ReferenceDot x={center} y={amplitude + background} r={4} fill="#4f46e5" stroke="#ffffff" strokeWidth={1.5} />
-
-                {/* FWHM Reference Marker */}
-                <ReferenceLine 
-                  segment={[{ x: center - fwhm/2, y: (amplitude/2) + background }, { x: center + fwhm/2, y: (amplitude/2) + background }]} 
-                  stroke="#ef4444" 
-                  strokeWidth={2}
-                >
-                  <Label value="FWHM" position="top" fill="#ef4444" fontSize={9} fontWeight="700" offset={4} />
-                </ReferenceLine>
-                <ReferenceDot x={center - fwhm/2} y={(amplitude/2) + background} r={3} fill="#ef4444" stroke="none" />
-                <ReferenceDot x={center + fwhm/2} y={(amplitude/2) + background} r={3} fill="#ef4444" stroke="none" />
 
                 {/* Reference Material Peaks Overlay Lines */}
                 {showReferencePeaks && parsedRefPeaks.map((peak, idx) => {
@@ -861,7 +885,6 @@ export const FWHMModule: React.FC = () => {
 
                 {/* Clean Peak Curve */}
                 <Area 
-                   name="Theoretical Profile Fit"
                    type="monotone" 
                    dataKey="_cleanY" 
                    stroke="#4f46e5" 
@@ -872,37 +895,8 @@ export const FWHMModule: React.FC = () => {
                    activeDot={false}
                 />
 
-                {/* Gaussian Component for PV */}
-                {type === 'Pseudo-Voigt' && (
-                  <Line 
-                    name="Gaussian Form (G)"
-                    type="monotone" 
-                    dataKey="yG" 
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
-                    strokeDasharray="4 4"
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                )}
-
-                {/* Lorentzian Component for PV */}
-                {type === 'Pseudo-Voigt' && (
-                  <Line 
-                    name="Lorentzian Form (L)"
-                    type="monotone" 
-                    dataKey="yL" 
-                    stroke="#10b981" 
-                    strokeWidth={2}
-                    strokeDasharray="4 4"
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                )}
-
                 {/* Statistical Noisy Curve */}
                 <Area 
-                   name="Simulated Diffractogram (Noisy)"
                    type="monotone" 
                    dataKey="y" 
                    stroke="#f43f5e" 
@@ -921,94 +915,54 @@ export const FWHMModule: React.FC = () => {
         {/* Physical Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-50 dark:bg-purple-900/10 rounded-bl-full group-hover:scale-125 transition-transform duration-300"></div>
-            <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest block mb-2 relative z-10">Crystallite Size</span>
-            <div className="relative z-10 flex flex-col h-full">
-              <span className="text-2xl font-black font-mono text-slate-800 dark:text-slate-100 tracking-tight">
-                {stats && stats.integralBreadth > 0 ? (
-                  (() => {
-                    const thetaRad = (center / 2) * (Math.PI / 180);
-                    const betaRad = stats.integralBreadth * (Math.PI / 180);
-                    const sizeBroadening = type === 'Pseudo-Voigt' ? betaRad * eta : type === 'Gaussian' ? 0.00001 : betaRad;
-                    const L = (scherrerK * activeWavelength) / (sizeBroadening * Math.cos(thetaRad));
-                    return L > 250 ? ">250 nm" : `${L.toFixed(1)} nm`;
-                  })()
-                ) : '-'}
-              </span>
-              <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Scherrer length of coherent crystalline domains.
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[9px] text-slate-400 dark:text-slate-500">
-                <span className="font-bold">L</span> = Kλ / β<sub className="text-[7px]">size</sub>cos(θ)
-              </div>
-            </div>
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Crystallite Size</span>
+            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">
+              {stats && stats.integralBreadth > 0 ? (
+                (() => {
+                  const thetaRad = (center / 2) * (Math.PI / 180);
+                  const betaRad = stats.integralBreadth * (Math.PI / 180);
+                  const sizeBroadening = type === 'Pseudo-Voigt' ? betaRad * eta : type === 'Gaussian' ? 0.00001 : betaRad;
+                  const L = (scherrerK * activeWavelength) / (sizeBroadening * Math.cos(thetaRad));
+                  return L > 250 ? ">250 nm" : `${L.toFixed(1)} nm`;
+                })()
+              ) : '-'}
+            </span>
+            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Scherrer length of coherent crystalline domains.</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 dark:bg-blue-900/10 rounded-bl-full group-hover:scale-125 transition-transform duration-300"></div>
-            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest block mb-2 relative z-10">Lattice Strain (ε)</span>
-            <div className="relative z-10 flex flex-col h-full">
-              <span className="text-2xl font-black font-mono text-slate-800 dark:text-slate-100 tracking-tight">
-                {stats && stats.integralBreadth > 0 ? (
-                  (() => {
-                    const thetaRad = (center / 2) * (Math.PI / 180);
-                    const betaRad = stats.integralBreadth * (Math.PI / 180);
-                    const strainBroadening = type === 'Pseudo-Voigt' ? betaRad * (1 - eta) : type === 'Gaussian' ? betaRad : 0.00001;
-                    const e = strainBroadening / (4 * Math.tan(thetaRad));
-                    return `${(e * 1000).toFixed(2)} × 10⁻³`;
-                  })()
-                ) : '-'}
-              </span>
-              <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Lattice microstrain (Stokes-Wilson).
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[9px] text-slate-400 dark:text-slate-500">
-                <span className="font-bold">ε</span> = β<sub className="text-[7px]">strain</sub> / 4tan(θ)
-              </div>
-            </div>
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Lattice Strain (ε)</span>
+            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">
+              {stats && stats.integralBreadth > 0 ? (
+                (() => {
+                  const thetaRad = (center / 2) * (Math.PI / 180);
+                  const betaRad = stats.integralBreadth * (Math.PI / 180);
+                  const strainBroadening = type === 'Pseudo-Voigt' ? betaRad * (1 - eta) : type === 'Gaussian' ? betaRad : 0.00001;
+                  const e = strainBroadening / (4 * Math.tan(thetaRad));
+                  return `${(e * 1000).toFixed(2)} × 10⁻³`;
+                })()
+              ) : '-'}
+            </span>
+            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Instrument / deformation lattice microstrain.</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-amber-50 dark:bg-amber-900/10 rounded-bl-full group-hover:scale-125 transition-transform duration-300"></div>
-            <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest block mb-2 relative z-10">Integrated Area</span>
-            <div className="relative z-10 flex flex-col h-full">
-              <span className="text-2xl font-black font-mono text-slate-800 dark:text-slate-100 tracking-tight">{stats?.area.toFixed(1)}</span>
-              <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Integrated intensity (cps·deg).
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[9px] text-slate-400 dark:text-slate-500">
-                <span className="font-bold">A</span> = ∫ I(2θ) d(2θ)
-              </div>
-            </div>
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Integrated Area</span>
+            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.area.toFixed(1)}</span>
+            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Integrated intensity under peak profile (cps·deg).</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-50 dark:bg-emerald-900/10 rounded-bl-full group-hover:scale-125 transition-transform duration-300"></div>
-            <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-2 relative z-10">Integral Breadth (β)</span>
-            <div className="relative z-10 flex flex-col h-full">
-              <span className="text-2xl font-black font-mono text-slate-800 dark:text-slate-100 tracking-tight">{stats?.integralBreadth.toFixed(4)}°</span>
-              <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Equivalent rectangle width.
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[9px] text-slate-400 dark:text-slate-500">
-                <span className="font-bold">β</span> = A / I<sub className="text-[7px]">max</sub>
-              </div>
-            </div>
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Integral Breadth (β)</span>
+            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.integralBreadth.toFixed(4)}°</span>
+            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Equivalent height rectangle width (Integrated Area / I_max).</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-rose-50 dark:bg-rose-900/10 rounded-bl-full group-hover:scale-125 transition-transform duration-300"></div>
-            <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest block mb-2 relative z-10">Shape Factor (φ)</span>
-            <div className="relative z-10 flex flex-col h-full">
-              <span className="text-2xl font-black font-mono text-slate-800 dark:text-slate-100 tracking-tight">{stats?.shapeFactor.toFixed(3)}</span>
-              <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                Gaussian ≈ 0.94, Lorentz ≈ 0.64
-              </div>
-              <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[9px] text-slate-400 dark:text-slate-500">
-                <span className="font-bold">φ</span> = FWHM / β
-              </div>
-            </div>
+          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Shape Factor (φ)</span>
+            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.shapeFactor.toFixed(3)}</span>
+            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">FWHM / β ratio. Gaussian ≈ 0.94, Lorentzian ≈ 0.64.</p>
           </div>
 
         </div>

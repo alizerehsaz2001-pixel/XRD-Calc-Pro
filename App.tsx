@@ -1447,7 +1447,7 @@ const App: React.FC = () => {
                           wavelength={wavelength} 
                           twoTheta={results.length > 0 ? results[0].twoTheta : 20} 
                         />
-                        <DiffractionChart results={results} materialName={materialName} />
+                        <DiffractionChart results={results} materialName={materialName} wavelength={wavelength} />
                         <ResultsTable results={results} />
                         <LatticeEstimator results={results} />
                       </div>
