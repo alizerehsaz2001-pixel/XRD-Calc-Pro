@@ -267,6 +267,20 @@ const App: React.FC = () => {
   const [pythonReady, setPythonReady] = useState<boolean>(false);
   const [pythonLogs, setPythonLogs] = useState<string[]>([]);
   const [showPythonStatus, setShowPythonStatus] = useState<boolean>(false);
+  const [showSystemDropdown, setShowSystemDropdown] = useState<boolean>(false);
+  const systemDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (systemDropdownRef.current && !systemDropdownRef.current.contains(event.target as Node)) {
+        setShowSystemDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const refreshOfflineAnalyses = async () => {
     try {
@@ -1200,26 +1214,6 @@ const App: React.FC = () => {
                   {modules.find(m => m.id === activeModule)?.label || activeModule}
                 </span>
               </div>
-
-              {/* Python Status Indicator */}
-              <button
-                onClick={() => setShowPythonStatus(true)}
-                className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all text-[9px] font-bold uppercase tracking-wider cursor-pointer ${
-                  pythonReady
-                    ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10'
-                    : 'bg-amber-500/5 border-amber-500/10 text-amber-500 hover:bg-amber-500/10 animate-pulse'
-                }`}
-                title="Python Engine Integration Status"
-              >
-                <div className={`w-1 h-1 rounded-full ${pythonReady ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                <span>{pythonReady ? 'Python' : 'Init'}</span>
-              </button>
-
-              <span className={`hidden lg:inline-block text-[9px] uppercase tracking-wider font-mono px-2 py-0.5 rounded bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-white/5 shrink-0 ${
-                theme === 'cyberpunk' ? 'text-cyber-pink bg-black border-cyber-pink/20 font-bold' : 'text-slate-400 dark:text-slate-500'
-              }`}>
-                {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' ? t('COMPUTATIONAL', 'COMPUTATIONAL') : t('SYSTEM', 'SYSTEM')}
-              </span>
             </div>
             
             {/* Center: Theoretical Guide */}
@@ -1244,59 +1238,124 @@ const App: React.FC = () => {
             </div>
             
             {/* Right: Actions */}
-            <div className="flex-1 flex items-center justify-end gap-2 shrink-0">
-              {/* Skip Intros Quick Toggle */}
-              {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
+            <div className="flex-1 flex items-center justify-end gap-3 shrink-0">
+              
+              {/* Grouped System Tools & Status Dropdown */}
+              <div className="relative" ref={systemDropdownRef}>
                 <button
                   onClick={() => {
-                    const nextVal = !skipIntros;
-                    setSkipIntros(nextVal);
-                    localStorage.setItem('xrd_skip_intros', nextVal.toString());
+                    setShowSystemDropdown(!showSystemDropdown);
                     playSynthTone('switch');
                   }}
-                  className={`p-1.5 rounded-lg border cursor-pointer transition-all ${
-                    skipIntros 
-                      ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-500 hover:bg-indigo-500/20'
-                      : 'bg-slate-100/60 dark:bg-slate-900/60 border-slate-200/50 dark:border-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                  className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                    theme === 'cyberpunk'
+                      ? 'border-cyber-accent text-cyber-accent bg-black hover:bg-cyber-accent/10'
+                      : 'border-slate-200/60 dark:border-white/5 bg-slate-100/60 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 shadow-sm'
                   }`}
-                  title={skipIntros ? t('Auto-Skip Intros: On', 'Auto-Skip Intros: On') : t('Auto-Skip Intros: Off', 'Auto-Skip Intros: Off')}
+                  title="Click to manage system settings, logs and offline databases"
                 >
-                  <FastForward className="w-3.5 h-3.5" />
+                  <Sliders className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>{t('System', 'System')}</span>
+                  {(!isOnline || !pythonReady) && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  )}
                 </button>
-              )}
 
-              <button
-                onClick={() => {
-                  setShowShortcutsModal(true);
-                  playSynthTone('switch');
-                }}
-                className={`p-1.5 rounded-lg border cursor-pointer transition-all ${
-                  theme === 'cyberpunk'
-                    ? 'border-cyber-accent text-cyber-accent hover:bg-cyber-accent/10 bg-black'
-                    : 'bg-slate-100/60 dark:bg-slate-900/60 border-slate-200/50 dark:border-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
-                }`}
-                title="View keyboard hotkeys (Cmd+/)"
-              >
-                <Terminal className="w-3.5 h-3.5" />
-              </button>
+                <AnimatePresence>
+                  {showSystemDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className={`absolute right-0 mt-2 w-64 rounded-xl border p-3 space-y-2.5 shadow-2xl z-30 ${
+                        theme === 'cyberpunk'
+                          ? 'bg-black border-cyber-accent text-cyber-accent shadow-[0_0_25px_rgba(0,255,255,0.2)]'
+                          : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-100'
+                      }`}
+                    >
+                      <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-white/5 pb-1.5">
+                        {t('System & Integration', 'System & Integration')}
+                      </div>
 
-              {/* Offline / Storage Status Badge & Toggle Button */}
-              <button
-                onClick={() => {
-                  setShowOfflineHub(!showOfflineHub);
-                  refreshOfflineAnalyses();
-                  playSynthTone('switch');
-                }}
-                className={`px-2 py-1 rounded-lg border text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-all flex items-center gap-1 ${
-                  isOnline 
-                    ? 'bg-emerald-500/5 border-emerald-500/10 text-emerald-500 hover:bg-emerald-500/10'
-                    : 'bg-amber-500/5 border-amber-500/10 text-amber-500 hover:bg-amber-500/10 animate-pulse'
-                }`}
-                title="Click to open Offline Sync & IndexedDB Caching Hub"
-              >
-                <div className={`w-1 h-1 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                <span>{isOnline ? t('Sync', 'Sync') : t('Offline', 'Offline')}</span>
-              </button>
+                      {/* Python Integration Row */}
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${pythonReady ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                          <span className="font-semibold">{t('Python Engine', 'Python Engine')}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setShowPythonStatus(true);
+                            setShowSystemDropdown(false);
+                            playSynthTone('switch');
+                          }}
+                          className="px-2 py-1 rounded bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 font-bold hover:bg-indigo-500/20 text-[10px] transition-all"
+                        >
+                          {pythonReady ? t('Inspect', 'Inspect') : t('Init', 'Init')}
+                        </button>
+                      </div>
+
+                      {/* Offline / Caching Sync Row */}
+                      <div className="flex items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                          <span className="font-semibold">{t('IndexedDB Sync', 'IndexedDB Sync')}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setShowOfflineHub(true);
+                            refreshOfflineAnalyses();
+                            setShowSystemDropdown(false);
+                            playSynthTone('switch');
+                          }}
+                          className="px-2 py-1 rounded bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 font-bold hover:bg-indigo-500/20 text-[10px] transition-all"
+                        >
+                          {isOnline ? t('Sync Hub', 'Sync Hub') : t('Offline Hub', 'Offline Hub')}
+                        </button>
+                      </div>
+
+                      {/* Auto-Skip Intros Row */}
+                      {activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings' && (
+                        <div className="flex items-center justify-between gap-3 text-xs pt-1.5 border-t border-slate-100 dark:border-white/5">
+                          <span className="font-semibold">{t('Skip Module Intros', 'Skip Intros')}</span>
+                          <button
+                            onClick={() => {
+                              const nextVal = !skipIntros;
+                              setSkipIntros(nextVal);
+                              localStorage.setItem('xrd_skip_intros', nextVal.toString());
+                              playSynthTone('switch');
+                            }}
+                            className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${
+                              skipIntros 
+                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold'
+                                : 'bg-slate-100 dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
+                            }`}
+                          >
+                            {skipIntros ? t('Enabled', 'Enabled') : t('Disabled', 'Disabled')}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Shortcuts Row */}
+                      <div className="flex items-center justify-between gap-3 text-xs pt-1.5 border-t border-slate-100 dark:border-white/5">
+                        <span className="font-semibold">{t('Keyboard Hotkeys', 'Hotkeys')}</span>
+                        <button
+                          onClick={() => {
+                            setShowShortcutsModal(true);
+                            setShowSystemDropdown(false);
+                            playSynthTone('switch');
+                          }}
+                          className="px-2 py-1 rounded bg-slate-100 dark:bg-white/5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold text-[10px] transition-all flex items-center gap-1"
+                        >
+                          <Terminal className="w-3 h-3" />
+                          <span>Cmd+/</span>
+                        </button>
+                      </div>
+
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               <LanguageSelector compact={true} />
 
