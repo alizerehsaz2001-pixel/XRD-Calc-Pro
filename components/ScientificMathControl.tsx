@@ -207,6 +207,36 @@ const evaluateFormula = (formulaTitle: string, vars: { [symbol: string]: number 
     };
   }
 
+  if (titleLower.includes("theoretical density") || titleLower.includes("density verification") || titleLower.includes("crystallographic density")) {
+    const Z = vars['Z'] !== undefined ? vars['Z'] : 4;
+    const M = vars['M'] !== undefined ? vars['M'] : 28.0855;
+    const V = vars['V_cell'] !== undefined ? vars['V_cell'] : 160.0;
+    const Na = vars['N_A'] !== undefined ? vars['N_A'] : 6.02214e23;
+    
+    // rho = (Z * M) / (Na * V * 1e-24)
+    // where V is in Angstrom^3, so V * 10^-24 cm^3
+    const rho = V !== 0 ? (Z * M) / (Na * V * 1e-24) : 0;
+    return {
+      value: rho,
+      unit: "g/cm³",
+      steps: `\\rho_{\\text{calc}} = \\frac{Z \\cdot M}{N_A \\cdot V_{\\text{cell}} \\cdot 10^{-24}} = \\frac{${Math.round(Z)} \\cdot ${M.toFixed(4)}}{6.022 \\times 10^{23} \\cdot ${V.toFixed(2)} \\cdot 10^{-24}} = ${rho.toFixed(4)}\\text{ g/cm}^3`
+    };
+  }
+
+  if (titleLower.includes("cubic d-spacing") || titleLower.includes("interplanar d-spacing") || titleLower.includes("spacing verification")) {
+    const a = vars['a'] !== undefined ? vars['a'] : 5.43;
+    const h = vars['h'] !== undefined ? vars['h'] : 1;
+    const k = vars['k'] !== undefined ? vars['k'] : 1;
+    const l = vars['l'] !== undefined ? vars['l'] : 1;
+    const s = h*h + k*k + l*l;
+    const d = s !== 0 ? a / Math.sqrt(s) : 0;
+    return {
+      value: d,
+      unit: "Å",
+      steps: `d_{hkl} = \\frac{a}{\\sqrt{h^2 + k^2 + l^2}} = \\frac{${a.toFixed(4)}}{\\sqrt{${h}^2 + ${k}^2 + ${l}^2}} = ${d.toFixed(5)}\\text{ Å}`
+    };
+  }
+
   return {
     value: originalResult,
     unit: "",
@@ -409,7 +439,7 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
   // Helper to render KaTeX symbols beautifully
   const renderSymbol = (symbol: string) => {
     const hasMath = /[\\_{}^[\]()|+=?*./ -]/.test(symbol) || 
-                    ['η', 'β', 'λ', 'θ', 'ε', 'α', 'K', 'n', 'R_wp', 'R_{wp}', 'β_obs', 'β_inst', 'θ_p'].some(kw => symbol.includes(kw));
+                    ['η', 'β', 'λ', 'θ', 'ε', 'α', 'K', 'n', 'R_wp', 'R_{wp}', 'β_obs', 'β_inst', 'θ_p', 'ρ_calc', 'V_cell', 'N_A', 'd_hkl', 'ρ'].some(kw => symbol.includes(kw));
     
     if (hasMath) {
       let tex = symbol;
@@ -425,6 +455,10 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
       else if (symbol === 'Slope (4ε)') tex = '4\\varepsilon';
       else if (symbol === 'R_wp' || symbol === 'R_{wp}') tex = 'R_{\\text{wp}}';
       else if (symbol === 'd(avg)') tex = 'd_{\\text{avg}}';
+      else if (symbol === 'ρ_calc' || symbol === 'ρ') tex = '\\rho_{\\text{calc}}';
+      else if (symbol === 'V_cell') tex = 'V_{\\text{cell}}';
+      else if (symbol === 'N_A') tex = 'N_A';
+      else if (symbol === 'd_hkl') tex = 'd_{hkl}';
       
       try {
         return <span dangerouslySetInnerHTML={{ __html: katex.renderToString(tex, { throwOnError: false, displayMode: false }) }} />;

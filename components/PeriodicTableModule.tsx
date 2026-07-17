@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { playSynthTone } from '../utils/sound';
 import { getFactualProperties, getElectronConfig, ScientificProperties } from './ChemicalPhysicalPropertiesDb';
+import { ScientificMathControl } from './ScientificMathControl';
 
 export interface FamousCompound {
   formula: string;
@@ -1314,6 +1315,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [formC, setFormC] = useState<number | undefined>(undefined);
   const [formElectronConfig, setFormElectronConfig] = useState<string>('');
 
+  // Miller index states for selected element d-spacing calculation
+  const [elemH, setElemH] = useState<number>(1);
+  const [elemK, setElemK] = useState<number>(1);
+  const [elemL, setElemL] = useState<number>(1);
+
   useEffect(() => {
     setIsEditingElement(false);
   }, [selectedElement]);
@@ -2467,6 +2473,89 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                 <span className="text-slate-300 font-medium">{getElectronConfig(activeElementInfo.number)}</span>
                               </div>
                             </div>
+                          </div>
+                        </div>
+
+                        {/* Interactive Verification Equations */}
+                        <div className="space-y-4 pt-2 border-t border-white/5">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-teal-400 flex items-center gap-1.5">
+                            <Activity className="w-3 text-teal-400" /> Crystallography Verification
+                          </span>
+
+                          <ScientificMathControl
+                            title={`${activeElementInfo.symbol} Theoretical Density Verification`}
+                            formula="\rho_{\text{calc}} = \frac{Z \cdot M}{N_A \cdot V_{\text{cell}} \cdot 10^{-24}}"
+                            description={`Verify the crystallographic density of ${activeElementInfo.name} based on its atomic weight, number of atoms per unit cell (Z), and unit cell volume.`}
+                            variables={[
+                              { symbol: 'Z', name: `Atoms/Cell (${activeElementInfo.crystalStructure})`, value: activeElementInfo.crystalStructure === 'FCC' ? 4 : activeElementInfo.crystalStructure === 'BCC' ? 2 : activeElementInfo.crystalStructure === 'HCP' ? 6 : activeElementInfo.crystalStructure === 'Diamond' ? 8 : 2, unit: '' },
+                              { symbol: 'M', name: 'Atomic Weight (M)', value: activeElementInfo.weight, unit: 'g/mol' },
+                              { symbol: 'V_cell', name: 'Unit Cell Volume (V)', value: (activeElementInfo.a * (activeElementInfo.b || activeElementInfo.a) * (activeElementInfo.c || activeElementInfo.a)) * (activeElementInfo.crystalStructure === 'HCP' ? 0.866025 : 1), unit: 'Å³' },
+                              { symbol: 'N_A', name: 'Avogadro Number (N_A)', value: 6.02214e23, unit: 'mol⁻¹' }
+                            ]}
+                            result={activeElementInfo.density}
+                            resultUnit="g/cm³"
+                            resultName="Theoretical X-Ray Density"
+                          />
+
+                          <div className="bg-slate-900/60 p-4 rounded-2xl border border-white/5 space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-[10px] font-mono text-slate-400">Set Miller Indices (h k l)</span>
+                              <div className="flex items-center gap-2">
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[8px] text-slate-500 uppercase font-mono">h</span>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    max="9" 
+                                    value={elemH} 
+                                    onChange={(e) => setElemH(Math.max(0, parseInt(e.target.value) || 0))}
+                                    className="w-8 text-center text-xs bg-slate-950 border border-slate-800 text-slate-200 rounded p-0.5"
+                                  />
+                                </div>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[8px] text-slate-500 uppercase font-mono">k</span>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    max="9" 
+                                    value={elemK} 
+                                    onChange={(e) => setElemK(Math.max(0, parseInt(e.target.value) || 0))}
+                                    className="w-8 text-center text-xs bg-slate-950 border border-slate-800 text-slate-200 rounded p-0.5"
+                                  />
+                                </div>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-[8px] text-slate-500 uppercase font-mono">l</span>
+                                  <input 
+                                    type="number" 
+                                    min="0" 
+                                    max="9" 
+                                    value={elemL} 
+                                    onChange={(e) => setElemL(Math.max(0, parseInt(e.target.value) || 0))}
+                                    className="w-8 text-center text-xs bg-slate-950 border border-slate-800 text-slate-200 rounded p-0.5"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <ScientificMathControl
+                              title={`${activeElementInfo.symbol} interplanar d-spacing`}
+                              formula="d_{hkl} = \frac{a}{\sqrt{h^2 + k^2 + l^2}}"
+                              description={`Determine the exact interplanar spacing for reflection planes (${elemH} ${elemK} ${elemL}) inside the crystal lattice.`}
+                              variables={[
+                                { symbol: 'a', name: 'Lattice Constant a', value: activeElementInfo.a, unit: 'Å' },
+                                { symbol: 'h', name: 'Miller index h', value: elemH, unit: '' },
+                                { symbol: 'k', name: 'Miller index k', value: elemK, unit: '' },
+                                { symbol: 'l', name: 'Miller index l', value: elemL, unit: '' }
+                              ]}
+                              result={
+                                (() => {
+                                  const s = elemH * elemH + elemK * elemK + elemL * elemL;
+                                  return s !== 0 ? activeElementInfo.a / Math.sqrt(s) : 0;
+                                })()
+                              }
+                              resultUnit="Å"
+                              resultName="Interplanar d-Spacing"
+                            />
                           </div>
                         </div>
                       </div>
