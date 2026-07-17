@@ -636,6 +636,25 @@ export const SelectionRulesModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.5406); // Cu-Ka wavelength in Angstroms
   const [latticeParameter, setLatticeParameter] = useState<number>(4.07); // Custom lattice constant 'a' in Angstroms
 
+  // Helper to get true reciprocal space coordinates based on crystal system
+  const getReciprocalBasisCoord = (h: number, k: number, l: number, currentSystem: string) => {
+    let rx_basis = h;
+    let ry_basis = k;
+    let rz_basis = l;
+
+    if (currentSystem === "Hexagonal") {
+      rx_basis = h + k * 0.5;
+      ry_basis = k * (Math.sqrt(3) / 2);
+      rz_basis = l / 1.633;
+    } else if (currentSystem.startsWith("Tetragonal")) {
+      rz_basis = l / 1.35;
+    } else if (currentSystem.startsWith("Orthorhombic")) {
+      ry_basis = k / 1.15;
+      rz_basis = l / 1.45;
+    }
+    return { x: rx_basis, y: ry_basis, z: rz_basis };
+  };
+
   // Quick addition indices state
   const [quickH, setQuickH] = useState(1);
   const [quickK, setQuickK] = useState(1);
@@ -735,10 +754,11 @@ export const SelectionRulesModule: React.FC = () => {
         for (let l = -maxBound; l <= maxBound; l++) {
           if (h === 0 && k === 0 && l === 0) continue; // skip center
 
-          const x1 = h * Math.cos(ry) - l * Math.sin(ry);
-          const z1 = h * Math.sin(ry) + l * Math.cos(ry);
-          const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
-          const z2 = k * Math.sin(rx) + z1 * Math.cos(rx);
+          const basis = getReciprocalBasisCoord(h, k, l, system);
+          const x1 = basis.x * Math.cos(ry) - basis.z * Math.sin(ry);
+          const z1 = basis.x * Math.sin(ry) + basis.z * Math.cos(ry);
+          const y2 = basis.y * Math.cos(rx) - z1 * Math.sin(rx);
+          const z2 = basis.y * Math.sin(rx) + z1 * Math.cos(rx);
 
           let projX = cx + x1 * scale;
           let projY = cy + y2 * scale;
@@ -792,10 +812,11 @@ export const SelectionRulesModule: React.FC = () => {
           for (let l = -maxBound; l <= maxBound; l++) {
             if (h === 0 && k === 0 && l === 0) continue;
 
-            const x1 = h * Math.cos(ry) - l * Math.sin(ry);
-            const z1 = h * Math.sin(ry) + l * Math.cos(ry);
-            const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
-            const z2 = k * Math.sin(rx) + z1 * Math.cos(rx);
+            const basis = getReciprocalBasisCoord(h, k, l, system);
+            const x1 = basis.x * Math.cos(ry) - basis.z * Math.sin(ry);
+            const z1 = basis.x * Math.sin(ry) + basis.z * Math.cos(ry);
+            const y2 = basis.y * Math.cos(rx) - z1 * Math.sin(rx);
+            const z2 = basis.y * Math.sin(rx) + z1 * Math.cos(rx);
 
             let projX = cx + x1 * scale;
             let projY = cy + y2 * scale;
@@ -853,14 +874,15 @@ export const SelectionRulesModule: React.FC = () => {
     const maxBound = Math.min(Math.max(1, maxIndex), 3);
     const activeNode = hoveredNode || manualProbe;
 
-    const project = (h: number, k: number, l: number) => {
+    const projectPhysical = (x: number, y: number, z: number) => {
       // Dynamic scale based on extent
       const scaleBase = Math.min(width, height) * 0.42;
       const scale = scaleBase / (maxBound + 0.5);
-      const x1 = h * Math.cos(ry) - l * Math.sin(ry);
-      const z1 = h * Math.sin(ry) + l * Math.cos(ry);
-      const y2 = k * Math.cos(rx) - z1 * Math.sin(rx);
-      const z2 = k * Math.sin(rx) + z1 * Math.cos(rx);
+      
+      const x1 = x * Math.cos(ry) - z * Math.sin(ry);
+      const z1 = x * Math.sin(ry) + z * Math.cos(ry);
+      const y2 = y * Math.cos(rx) - z1 * Math.sin(rx);
+      const z2 = y * Math.sin(rx) + z1 * Math.cos(rx);
 
       if (projectionMode === "perspective") {
         const cameraDistance = (maxBound + 1.2) * 1.5;
@@ -873,6 +895,11 @@ export const SelectionRulesModule: React.FC = () => {
       } else {
         return { x: cx + x1 * scale, y: cy + y2 * scale, z: z2 };
       }
+    };
+
+    const project = (h: number, k: number, l: number) => {
+      const basis = getReciprocalBasisCoord(h, k, l, system);
+      return projectPhysical(basis.x, basis.y, basis.z);
     };
 
     const parsedHKLs = parseHKLString(hklInput);
@@ -943,18 +970,15 @@ export const SelectionRulesModule: React.FC = () => {
             (p) => p[0] === h && p[1] === k && p[2] === l,
           );
 
-          let status: "Allowed" | "Forbidden" | "None" = "None";
-          let reason = "";
-          if (isSelected) {
-            const val = validateSelectionRule(system, [h, k, l]);
-            status = val.status;
-            reason = val.reason;
-          }
+          const val = validateSelectionRule(system, [h, k, l]);
+          const status = val.status;
+          const reason = val.reason;
 
           // Ewald Sphere intersection check inside dimensionless space
           const xc_val = -latticeParameter / wavelength;
           const r_val = latticeParameter / wavelength;
-          const distToCenter = Math.sqrt((h - xc_val) ** 2 + k * k + l * l);
+          const basis = getReciprocalBasisCoord(h, k, l, system);
+          const distToCenter = Math.sqrt((basis.x - xc_val) ** 2 + basis.y ** 2 + basis.z ** 2);
           const isEwaldIntersecting =
             showEwaldSphere && Math.abs(distToCenter - r_val) < 0.25;
 
@@ -1006,7 +1030,7 @@ export const SelectionRulesModule: React.FC = () => {
             y = yc_val + r_val * Math.cos(phi);
             z = zc_val + r_val * Math.sin(phi);
           }
-          ringPoints.push(project(x, y, z));
+          ringPoints.push(projectPhysical(x, y, z));
         }
 
         for (let i = 0; i < divisions; i++) {
@@ -1054,7 +1078,7 @@ export const SelectionRulesModule: React.FC = () => {
       const xc_val = -latticeParameter / wavelength;
       const yc_val = 0;
       const zc_val = 0;
-      const c = project(xc_val, yc_val, zc_val);
+      const c = projectPhysical(xc_val, yc_val, zc_val);
 
       elements.push({ type: "ewald-center", p: c, z: c.z });
 
@@ -1275,56 +1299,52 @@ export const SelectionRulesModule: React.FC = () => {
         ctx.beginPath();
         ctx.arc(el.p.x, el.p.y, radius, 0, 2 * Math.PI);
 
-        if (el.isSelected) {
-          if (el.status === "Allowed") {
-            const grad = ctx.createRadialGradient(
-              el.p.x - radius * 0.3,
-              el.p.y - radius * 0.3,
-              radius * 0.1,
-              el.p.x,
-              el.p.y,
-              radius,
-            );
-            grad.addColorStop(0, "#ffffff");
-            grad.addColorStop(0.3, "#10b981");
-            grad.addColorStop(1, "#064e3b");
-            ctx.fillStyle = grad;
-            ctx.strokeStyle = "#34d399";
-            ctx.lineWidth = 1;
-            ctx.shadowColor = "rgba(16, 185, 129, 0.45)";
+        if (el.status === "Allowed") {
+          const grad = ctx.createRadialGradient(
+            el.p.x - radius * 0.3,
+            el.p.y - radius * 0.3,
+            radius * 0.1,
+            el.p.x,
+            el.p.y,
+            radius,
+          );
+          grad.addColorStop(0, "#ffffff");
+          grad.addColorStop(0.3, el.isSelected ? "#10b981" : el.isEwaldIntersecting ? "#fbbf24" : "#059669");
+          grad.addColorStop(1, el.isSelected ? "#064e3b" : el.isEwaldIntersecting ? "#b45309" : "#022c22");
+          ctx.fillStyle = grad;
+          ctx.strokeStyle = el.isSelected ? "#34d399" : el.isEwaldIntersecting ? "#fcd34d" : "#047857";
+          ctx.lineWidth = el.isSelected || isProbeActive ? 1 : 0.5;
+          if (el.isSelected || isProbeActive || el.isEwaldIntersecting) {
+            ctx.shadowColor = el.isEwaldIntersecting ? "rgba(251, 191, 36, 0.45)" : "rgba(16, 185, 129, 0.45)";
             ctx.shadowBlur = isProbeActive ? 12 : 6;
-          } else {
-            const grad = ctx.createRadialGradient(
-              el.p.x - radius * 0.3,
-              el.p.y - radius * 0.3,
-              radius * 0.1,
-              el.p.x,
-              el.p.y,
-              radius,
-            );
-            grad.addColorStop(0, "#ffffff");
-            grad.addColorStop(0.3, "#ef4444");
-            grad.addColorStop(1, "#7f1d1d");
-            ctx.fillStyle = grad;
-            ctx.strokeStyle = "#f87171";
-            ctx.lineWidth = 1;
+          }
+        } else {
+          // Forbidden node
+          const grad = ctx.createRadialGradient(
+            el.p.x - radius * 0.3,
+            el.p.y - radius * 0.3,
+            radius * 0.1,
+            el.p.x,
+            el.p.y,
+            radius,
+          );
+          grad.addColorStop(0, "#ffffff");
+          grad.addColorStop(0.3, el.isSelected ? "#ef4444" : "#b91c1c");
+          grad.addColorStop(1, el.isSelected ? "#7f1d1d" : "#450a0a");
+          ctx.fillStyle = grad;
+          ctx.strokeStyle = el.isSelected ? "#f87171" : "rgba(153, 27, 27, 0.5)";
+          ctx.lineWidth = el.isSelected || isProbeActive ? 1 : 0.5;
+          if (el.isSelected || isProbeActive) {
             ctx.shadowColor = "rgba(239, 68, 68, 0.45)";
             ctx.shadowBlur = isProbeActive ? 12 : 6;
           }
-          ctx.fill();
-          ctx.stroke();
-          ctx.shadowBlur = 0;
-        } else {
-          // Unselected node styling
-          if (el.isEwaldIntersecting) {
-            ctx.fillStyle = "rgba(245, 158, 11, 0.85)"; // diffracting inactive point is bright orange/amber
-          } else {
-            ctx.fillStyle = isProbeActive
-              ? "rgba(255, 255, 255, 0.85)"
-              : "rgba(148, 163, 184, 0.22)";
-          }
-          ctx.fill();
         }
+        
+        ctx.globalAlpha = el.isSelected || isProbeActive || el.isEwaldIntersecting ? 1.0 : 0.6;
+        ctx.fill();
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+        ctx.shadowBlur = 0;
 
         if (el.isSelected || isProbeActive) {
           ctx.fillStyle = el.isSelected ? "#ffffff" : isHovered ? "#34d399" : "#a855f7";
@@ -2156,20 +2176,41 @@ export const SelectionRulesModule: React.FC = () => {
                     setIsRecipDragging(false);
                     setHoveredNode(null);
                   }}
-                  className="w-full h-[240px] block"
+                  className="w-full h-[320px] block"
                 />
-                <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-md border border-white/10 shadow-lg">
-                    DRAG TO ROTATE
-                  </span>
-                  <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-md border border-white/10 shadow-lg">
-                    CLICK TO TOGGLE HKL
-                  </span>
+                <div className="absolute top-3 right-3 flex flex-col items-end gap-2 pointer-events-none">
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-md border border-white/10 shadow-lg">
+                      DRAG TO ROTATE
+                    </span>
+                    <span className="px-2 py-1 bg-black/80 backdrop-blur-md text-[8px] tracking-widest text-slate-400 font-mono font-bold rounded-md border border-white/10 shadow-lg">
+                      CLICK TO TOGGLE HKL
+                    </span>
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="flex flex-col gap-1.5 p-2 bg-black/80 backdrop-blur-md rounded-lg border border-white/10 shadow-lg text-[9px] font-mono font-bold uppercase tracking-widest pointer-events-auto">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] border border-emerald-400" />
+                      <span className="text-emerald-400">Allowed</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.5)] border border-rose-500" />
+                      <span className="text-rose-400">Forbidden</span>
+                    </div>
+                    {showEwaldSphere && (
+                      <div className="flex items-center gap-2 mt-1 pt-1 border-t border-white/10">
+                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)] border border-amber-400" />
+                        <span className="text-amber-400">Diffracting</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
                 {(hoveredNode || manualProbe) && (
-                  <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/80 backdrop-blur-md border border-purple-500/30 rounded-lg text-[10px] font-mono text-purple-300 flex items-center shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-all">
+                  <div className="absolute bottom-3 right-3 px-3 py-1.5 bg-black/80 backdrop-blur-md border border-purple-500/30 rounded-lg text-[10px] font-mono text-purple-300 flex items-center shadow-[0_0_15px_rgba(168,85,247,0.2)] transition-all pointer-events-none">
                     <span className="w-2 h-2 rounded-full bg-purple-400 mr-2 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]" />
-                    Probe: ({(hoveredNode || manualProbe).join(" ")}) • Click to Toggle
+                    Probe: ({(hoveredNode || manualProbe).join(" ")})
                   </div>
                 )}
               </div>
@@ -2476,8 +2517,9 @@ export const SelectionRulesModule: React.FC = () => {
                   // 4. Ewald Sphere distance check
                   const xc_val = -latticeParameter / wavelength;
                   const r_val = latticeParameter / wavelength;
+                  const basis = getReciprocalBasisCoord(h, k, l, system);
                   const distToCenter = Math.sqrt(
-                    (h - xc_val) ** 2 + k * k + l * l,
+                    (basis.x - xc_val) ** 2 + basis.y ** 2 + basis.z ** 2,
                   );
                   const isEwaldIntersecting =
                     Math.abs(distToCenter - r_val) < 0.25;
