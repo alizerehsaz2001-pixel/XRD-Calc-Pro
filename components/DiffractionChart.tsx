@@ -20,14 +20,16 @@ import { Activity, Terminal, RotateCcw, Tag, Camera, ArrowLeft, ArrowRight, Zoom
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
 import { getActiveMaterials } from '../utils/materialsHelper';
+import { calculateBragg } from '../utils/physics';
 
 interface DiffractionChartProps {
   results: BraggResult[];
   materialName?: string | null;
   wavelength?: number;
+  onResultsChange?: (newResults: BraggResult[]) => void;
 }
 
-export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, materialName, wavelength }) => {
+export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, materialName, wavelength, onResultsChange }) => {
   const { t } = useTranslation();
   const { precision } = useSettings();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -150,6 +152,30 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   // Hovered peak highlight states
   const [hoveredPeakTheta, setHoveredPeakTheta] = useState<number | null>(null);
   const [hoveredPeakData, setHoveredPeakData] = useState<any | null>(null);
+
+  const [hoveredTwoThetaVal, setHoveredTwoThetaVal] = useState<number | null>(null);
+  const [draggedPeakIndex, setDraggedPeakIndex] = useState<number | null>(null);
+
+  const activeWavelengthVal = wavelength || 1.54059;
+
+  const updatePeakTwoTheta = (index: number, newTwoTheta: number) => {
+    if (!onResultsChange) return;
+    const clampedTwoTheta = Math.max(1, Math.min(179, newTwoTheta));
+    const updated = results.map((r, i) => {
+      if (i === index) {
+        const recalculated = calculateBragg(activeWavelengthVal, clampedTwoTheta);
+        if (recalculated) {
+          return {
+            ...r,
+            ...recalculated,
+            intensity: r.intensity // preserve intensity
+          };
+        }
+      }
+      return r;
+    });
+    onResultsChange(updated);
+  };
 
   const handleLegendClick = (e: any) => {
     if (e.dataKey === 'intensity') setShowObserved(!showObserved);
@@ -356,7 +382,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
     }
 
     // Add peak markers for tooltips
-    let peakData = results.map(r => ({
+    let peakData = results.map((r, originalIdx) => ({
       twoTheta: r.twoTheta,
       intensity: r.intensity !== undefined ? r.intensity : 100,
       isPeak: true,
@@ -367,6 +393,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       labelLevel: 0,
       isMatch: false,
       theoreticalHkl: '',
+      originalIdx,
     })).sort((a, b) => a.twoTheta - b.twoTheta);
 
     if (materialName) {
@@ -490,6 +517,26 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
     return { points: processedPoints, peakData };
   }, [results, smoothChart, subtractBaseline]);
 
+  const currentHoverPoint = useMemo(() => {
+    if (hoveredTwoThetaVal === null || chartData.points.length === 0) return null;
+    const closest = chartData.points.reduce((prev, curr) => {
+      return Math.abs(curr.twoTheta - hoveredTwoThetaVal) < Math.abs(prev.twoTheta - hoveredTwoThetaVal) ? curr : prev;
+    }, chartData.points[0]);
+    return closest;
+  }, [hoveredTwoThetaVal, chartData.points]);
+
+  const hoverCrystallographyMetrics = useMemo(() => {
+    if (hoveredTwoThetaVal === null) return null;
+    const thetaRad = (hoveredTwoThetaVal / 2) * (Math.PI / 180);
+    const d = activeWavelengthVal / (2 * Math.sin(thetaRad));
+    const q = (4 * Math.PI * Math.sin(thetaRad)) / activeWavelengthVal;
+    return {
+      d: isFinite(d) && d > 0 ? d : null,
+      q: isFinite(q) ? q : null,
+      energyKeV: 12.3984 / activeWavelengthVal,
+    };
+  }, [hoveredTwoThetaVal, activeWavelengthVal]);
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const d = payload.find((p: any) => p.payload.isPeak)?.payload || payload[0].payload;
@@ -545,10 +592,10 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   return (
     <div 
       ref={containerRef} 
-      className={`bg-[#060B15] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/5 flex flex-col relative overflow-hidden group/chart transition-all duration-700 ${
+      className={`bg-[#060B15] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/5 flex flex-col relative overflow-y-auto group/chart transition-all duration-700 ${
         isFullScreen 
           ? 'fixed inset-4 z-[9999] h-[calc(100vh-32px)] text-lg' 
-          : 'h-[620px] w-full'
+          : 'min-h-[920px] h-auto w-full'
       }`}
     >
       {/* Decorative Background Elements */}
@@ -556,7 +603,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       <div className="absolute bottom-0 left-0 -mb-24 -ml-24 w-80 h-80 bg-cyan-600/5 rounded-full blur-[80px] transition-all duration-1000" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.02),transparent_50%)] pointer-events-none" />
       
-      <div className="flex items-center justify-between mb-10 relative z-10">
+      <div className="flex items-center justify-between mb-8 relative z-10">
         <div className="flex items-center gap-5">
           <div className="relative group/icon">
             <div className="absolute inset-0 bg-indigo-500/40 blur-xl opacity-0 group-hover/icon:opacity-100 transition-opacity duration-500" />
@@ -564,9 +611,15 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               <Activity className="w-6 h-6 text-indigo-400 group-hover/icon:scale-110 transition-transform duration-500" />
             </div>
           </div>
-          <div>
-            <h3 className="text-2xl font-black text-white tracking-tighter uppercase leading-none">{t('Spectral Visualizer', 'Spectral Visualizer')}</h3>
-            <div className="flex gap-3 items-center mt-2">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-3">
+              <h3 className="text-2xl font-black text-white tracking-tighter uppercase leading-none">{t('Spectral Visualizer', 'Spectral Visualizer')}</h3>
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/30 rounded-xl font-mono text-[9px] font-bold text-indigo-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                <span>{activeWavelengthVal.toFixed(5)} Å ({activeWavelengthVal === 0.154059 ? 'Cu Kα' : activeWavelengthVal === 0.178901 ? 'Co Kα' : activeWavelengthVal === 0.193604 ? 'Fe Kα' : activeWavelengthVal === 0.228970 ? 'Cr Kα' : activeWavelengthVal === 0.070930 ? 'Mo Kα' : 'Custom'})</span>
+              </div>
+            </div>
+            <div className="flex gap-3 items-center">
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Calculated Diffraction Profile</p>
               <div className="flex gap-1">
                 <span className="w-1 h-1 rounded-full bg-indigo-500 animate-ping" />
@@ -661,7 +714,56 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
         </div>
       </div>
 
-      <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 select-none bg-[#020617]/40 rounded-3xl border border-white/5 p-4 shadow-inner">
+      {/* Real-time Laboratory Digital Monitor */}
+      <div className="relative z-10 mb-6 bg-slate-950/80 border border-white/5 rounded-2xl p-4 shadow-lg grid grid-cols-2 sm:grid-cols-5 gap-4">
+        {/* Angle 2-Theta Monitor */}
+        <div className="bg-[#020617]/60 p-3 rounded-xl border border-white/5 flex flex-col justify-between min-h-[64px]">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Angle (2θ)</span>
+          <span className="text-lg font-black text-indigo-400 font-mono tracking-tighter">
+            {hoveredTwoThetaVal !== null ? `${hoveredTwoThetaVal.toFixed(3)}°` : '---'}
+          </span>
+        </div>
+        {/* d-Spacing Monitor */}
+        <div className="bg-[#020617]/60 p-3 rounded-xl border border-white/5 flex flex-col justify-between min-h-[64px]">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Interplanar (d)</span>
+          <span className="text-lg font-black text-emerald-400 font-mono tracking-tighter">
+            {hoverCrystallographyMetrics?.d ? `${hoverCrystallographyMetrics.d.toFixed(4)} Å` : '---'}
+          </span>
+        </div>
+        {/* Scattering Vector Q Monitor */}
+        <div className="bg-[#020617]/60 p-3 rounded-xl border border-white/5 flex flex-col justify-between min-h-[64px]">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Wavevector (Q)</span>
+          <span className="text-lg font-black text-sky-400 font-mono tracking-tighter">
+            {hoverCrystallographyMetrics?.q ? `${hoverCrystallographyMetrics.q.toFixed(4)} Å⁻¹` : '---'}
+          </span>
+        </div>
+        {/* Simulated Intensity Monitor */}
+        <div className="bg-[#020617]/60 p-3 rounded-xl border border-white/5 flex flex-col justify-between min-h-[64px]">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Intensity (I)</span>
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <span className="text-lg font-black text-amber-400 font-mono tracking-tighter leading-none">
+              {currentHoverPoint ? `${currentHoverPoint.intensity.toFixed(1)}%` : '---'}
+            </span>
+            {currentHoverPoint && (
+              <div className="hidden xs:block w-12 bg-slate-900 h-1.5 rounded-full overflow-hidden border border-white/5">
+                <div className="bg-amber-400 h-full rounded-full transition-all duration-150" style={{ width: `${Math.min(100, currentHoverPoint.intensity)}%` }} />
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Target Anode Physics Energy */}
+        <div className="bg-[#020617]/60 p-3 rounded-xl border border-white/5 flex flex-col justify-between min-h-[64px] col-span-2 sm:col-span-1">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Anode Energy</span>
+          <span className="text-sm font-bold text-slate-300 font-mono tracking-tighter block mt-1">
+            {(12.3984 / activeWavelengthVal).toFixed(2)} keV
+          </span>
+          <span className="text-[8px] font-black text-indigo-500 font-mono uppercase tracking-widest leading-none">
+            {activeWavelengthVal === 0.154059 ? 'Copper (Cu)' : activeWavelengthVal === 0.070930 ? 'Moly (Mo)' : 'Synchrotron'}
+          </span>
+        </div>
+      </div>
+
+      <div className={`w-full min-w-0 relative z-10 select-none bg-[#020617]/40 rounded-3xl border border-white/5 p-4 shadow-inner ${isFullScreen ? 'h-[500px]' : 'h-[400px]'}`}>
         {/* Floating Zoom & Pan Control Center */}
         <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-1.5 bg-[#0b1329]/90 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-lg shadow-black/50">
           <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-2 py-1 border-r border-white/10 select-none">
@@ -862,12 +964,31 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart 
             margin={{ top: 30, right: 30, bottom: 20, left: -25 }}
-            onMouseDown={(e: any) => e && setRefAreaLeft(e.activeLabel)}
-            onMouseMove={(e: any) => refAreaLeft && e && setRefAreaRight(e.activeLabel)}
-            onMouseUp={zoom}
+            onMouseDown={(e: any) => e && !draggedPeakIndex && setRefAreaLeft(e.activeLabel)}
+            onMouseMove={(e: any) => {
+              if (draggedPeakIndex !== null && e && e.activeLabel) {
+                updatePeakTwoTheta(draggedPeakIndex, Number(e.activeLabel));
+              } else {
+                if (refAreaLeft && e) setRefAreaRight(e.activeLabel);
+                if (e && e.activeLabel) {
+                  setHoveredTwoThetaVal(Number(e.activeLabel));
+                } else {
+                  setHoveredTwoThetaVal(null);
+                }
+              }
+            }}
+            onMouseUp={() => {
+              if (draggedPeakIndex !== null) {
+                setDraggedPeakIndex(null);
+              } else {
+                zoom();
+              }
+            }}
             onMouseLeave={() => {
               setRefAreaLeft(null);
               setRefAreaRight(null);
+              setHoveredTwoThetaVal(null);
+              setDraggedPeakIndex(null);
             }}
           >
             <defs>
@@ -960,21 +1081,55 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 const yOffset = cy - 20 - (payload.labelLevel * 16);
                 const isMatch = payload.isMatch;
                 const markerColor = isMatch ? "#f59e0b" : "#10b981";
+                const isThisDragged = draggedPeakIndex === payload.originalIdx;
                 
                 return (
                   <g className="transition-all duration-300">
-                    <line x1={cx} y1={cy} x2={cx} y2={cy + 400} stroke={markerColor} strokeWidth={1} strokeDasharray="4 4" opacity={0.2} />
-                    <circle cx={cx} cy={cy} r={5} fill={markerColor} filter="url(#glowShadow)" stroke="white" strokeWidth={1.5} />
+                    {/* Active Drag Helper Line */}
+                    <line 
+                      x1={cx} 
+                      y1={cy} 
+                      x2={cx} 
+                      y2={cy + 400} 
+                      stroke={isThisDragged ? "#3b82f6" : markerColor} 
+                      strokeWidth={isThisDragged ? 3 : 1.5} 
+                      strokeDasharray={isThisDragged ? "0" : "4 4"} 
+                      opacity={isThisDragged ? 0.9 : 0.3} 
+                      className="cursor-ew-resize hover:stroke-indigo-400 transition-all duration-150"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setDraggedPeakIndex(payload.originalIdx);
+                      }}
+                    />
+                    
+                    {/* Circle handle */}
+                    <circle 
+                      cx={cx} 
+                      cy={cy} 
+                      r={isThisDragged ? 8 : 6} 
+                      fill={isThisDragged ? "#3b82f6" : markerColor} 
+                      filter="url(#glowShadow)" 
+                      stroke="white" 
+                      strokeWidth={2} 
+                      className="cursor-ew-resize hover:scale-125 transition-all duration-150"
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setDraggedPeakIndex(payload.originalIdx);
+                      }}
+                    />
+                    
                     {showHKL && payload.hkl && (
                       <g>
                         <text 
                           x={cx} 
                           y={yOffset} 
                           textAnchor="middle" 
-                          fill={markerColor} 
+                          fill={isThisDragged ? "#3b82f6" : markerColor} 
                           fontSize="10" 
                           fontWeight="black"
-                          className="font-mono tracking-tighter drop-shadow-2xl"
+                          className="font-mono tracking-tighter drop-shadow-2xl select-none pointer-events-none"
                         >
                           {payload.hkl}
                         </text>
@@ -984,6 +1139,25 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 )
               }}
             />
+
+            {/* Live Dragging Guide Line */}
+            {draggedPeakIndex !== null && results[draggedPeakIndex] && (
+              <ReferenceLine 
+                x={results[draggedPeakIndex].twoTheta} 
+                stroke="#3b82f6" 
+                strokeWidth={2}
+                strokeDasharray="3 3"
+                className="animate-pulse"
+                label={{ 
+                  value: `Fine Tuning: ${results[draggedPeakIndex].twoTheta.toFixed(3)}°`, 
+                  position: 'top', 
+                  fill: '#3b82f6', 
+                  fontSize: 10, 
+                  fontWeight: 'black',
+                  fontFamily: 'monospace'
+                }}
+              />
+            )}
 
             {/* Hovered Peak Legend Highlight Marker */}
             {hoveredPeakTheta !== null && hoveredPeakData && (
@@ -1045,13 +1219,155 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
         </ResponsiveContainer>
       </div>
 
-      <div className="absolute bottom-6 right-10 flex items-center gap-3 opacity-50">
-        <div className="flex flex-col items-end">
-           <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Calibration Standard</span>
-           <span className="text-[10px] font-black text-white font-mono uppercase tracking-widest">NIST-XRD-992</span>
+      {/* Crystallographic Phase Metrology Table */}
+      {results.length > 0 && (
+        <div className="relative z-10 mt-6 bg-slate-950/40 border border-white/5 rounded-3xl p-6 shadow-inner">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-white/5">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <h4 className="text-xs font-black text-slate-200 uppercase tracking-widest">
+                {t('Reflections Metrology Workbench', 'Reflections Metrology Workbench')}
+              </h4>
+              <span className="text-[8px] px-2 py-0.5 bg-indigo-500/10 rounded border border-indigo-500/20 font-mono font-bold text-indigo-400">
+                {results.length} Reflections Identified
+              </span>
+            </div>
+            <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
+              {t('Click Row to Snap Center • Hover Row to Highlight', 'Click Row to Snap Center • Hover Row to Highlight')}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse text-[11px]">
+              <thead>
+                <tr className="border-b border-white/5 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                  <th className="py-2.5 px-3">{t('Index', 'Index')}</th>
+                  <th className="py-2.5 px-3">{t('Angle (2θ)', 'Angle (2θ)')}</th>
+                  <th className="py-2.5 px-3">{t('Miller (hkl)', 'Miller (hkl)')}</th>
+                  <th className="py-2.5 px-3">{t('d-spacing (Å)', 'd-spacing (Å)')}</th>
+                  <th className="py-2.5 px-3">{t('Wavevector Q (Å⁻¹)', 'Wavevector Q (Å⁻¹)')}</th>
+                  <th className="py-2.5 px-3 text-right">{t('Rel. Intensity', 'Rel. Intensity')}</th>
+                  <th className="py-2.5 px-3 text-center">{t('Fine Tuning', 'Fine Tuning')}</th>
+                  <th className="py-2.5 px-3 text-right">{t('Phase Alignment', 'Phase Alignment')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((peak, idx) => {
+                  const isHovered = hoveredPeakTheta === peak.twoTheta;
+                  const isMatch = chartData.peakData.find(pd => Math.abs(pd.twoTheta - peak.twoTheta) < 0.05)?.isMatch;
+                  
+                  return (
+                    <tr 
+                      key={`table-peak-row-${idx}`}
+                      onClick={() => {
+                        setLeft(Number(Math.max(0, peak.twoTheta - 4).toFixed(2)));
+                        setRight(Number(Math.min(180, peak.twoTheta + 4).toFixed(2)));
+                      }}
+                      onMouseEnter={() => {
+                        setHoveredPeakTheta(peak.twoTheta);
+                        setHoveredPeakData({
+                          ...peak,
+                          isMatch,
+                          labelLevel: 0
+                        });
+                      }}
+                      onMouseLeave={() => {
+                        setHoveredPeakTheta(null);
+                        setHoveredPeakData(null);
+                      }}
+                      className={`border-b border-white/5 cursor-pointer transition-all duration-150 ${
+                        isHovered 
+                          ? 'bg-indigo-500/15 text-white border-indigo-500/30' 
+                          : 'hover:bg-slate-900/40 text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <td className="py-3 px-3 font-mono font-bold text-slate-500">#{idx + 1}</td>
+                      <td className="py-3 px-3 font-mono font-extrabold text-indigo-400">{peak.twoTheta.toFixed(3)}°</td>
+                      <td className="py-3 px-3">
+                        <span className={`px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${
+                          peak.hkl 
+                            ? 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20' 
+                            : 'bg-slate-800/50 text-slate-500'
+                        }`}>
+                          {peak.hkl ? `(${peak.hkl})` : 'N/A'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 font-mono font-bold text-emerald-400">{peak.dSpacing.toFixed(4)} Å</td>
+                      <td className="py-3 px-3 font-mono text-sky-400">{(4 * Math.PI * Math.sin((peak.twoTheta / 2) * (Math.PI / 180)) / activeWavelengthVal).toFixed(4)}</td>
+                      <td className="py-3 px-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="font-mono font-bold text-amber-400">{(peak.intensity ?? 100).toFixed(1)}%</span>
+                          <div className="w-12 bg-slate-900/80 h-1.5 rounded-full overflow-hidden border border-white/5">
+                            <div className="bg-amber-400 h-full rounded-full" style={{ width: `${peak.intensity ?? 100}%` }} />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            title={t('Decrease Angle by 0.05°', 'Decrease Angle by 0.05°')}
+                            onClick={() => updatePeakTwoTheta(idx, peak.twoTheta - 0.05)}
+                            className="p-1 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded transition-colors"
+                          >
+                            <ArrowLeft className="w-3.5 h-3.5" />
+                          </button>
+                          
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="180"
+                            value={Number(peak.twoTheta.toFixed(3))}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val)) {
+                                updatePeakTwoTheta(idx, val);
+                              }
+                            }}
+                            className="w-16 text-center bg-slate-900 border border-white/10 rounded px-1.5 py-0.5 font-mono text-[10px] text-white focus:outline-none focus:border-indigo-500"
+                          />
+
+                          <button
+                            type="button"
+                            title={t('Increase Angle by 0.05°', 'Increase Angle by 0.05°')}
+                            onClick={() => updatePeakTwoTheta(idx, peak.twoTheta + 0.05)}
+                            className="p-1 text-slate-400 hover:text-indigo-400 hover:bg-white/5 rounded transition-colors"
+                          >
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-right">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                          isMatch 
+                            ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
+                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        }`}>
+                          <span className="w-1 h-1 rounded-full bg-current animate-ping" />
+                          {isMatch ? t('Match Verified', 'Match Verified') : t('Phase Peak', 'Phase Peak')}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="w-px h-6 bg-white/10" />
-        <Terminal className="w-4 h-4 text-indigo-500" />
+      )}
+
+      {/* Footer calibration details */}
+      <div className="relative z-10 mt-6 pt-4 border-t border-white/5 flex items-center justify-between opacity-50 text-xs">
+        <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Metrology Engine v4.2 • Precision {precision} Å</span>
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col items-end">
+             <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest font-sans">Calibration Standard</span>
+             <span className="text-[10px] font-black text-white font-mono uppercase tracking-widest">NIST-XRD-992</span>
+          </div>
+          <div className="w-px h-6 bg-white/10" />
+          <Terminal className="w-4 h-4 text-indigo-500" />
+        </div>
       </div>
     </div>
   );
