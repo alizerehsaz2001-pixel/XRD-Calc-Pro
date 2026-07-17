@@ -5,10 +5,12 @@ import { FWHMResult } from '../types';
 import {
   ComposedChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   ReferenceLine,
   ReferenceArea,
@@ -584,8 +586,23 @@ export const FWHMModule: React.FC = () => {
               )}
             </div>
 
-            {/* Background & Noise */}
+            {/* Intensity & Noise */}
             <div className="space-y-4 bg-slate-50 dark:bg-slate-950/30 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800/60">
+              
+              {/* Peak Amplitude */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                  <span>Peak Amplitude (I<sub className="text-[7px]">max</sub>)</span>
+                  <span className="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{amplitude.toFixed(0)} cps</span>
+                </div>
+                <input
+                  type="range" min="10" max="1000" step="10"
+                  value={amplitude} 
+                  onChange={(e) => setAmplitude(parseFloat(e.target.value))}
+                  className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                />
+              </div>
+
               {/* Background Level */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
@@ -639,15 +656,19 @@ export const FWHMModule: React.FC = () => {
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 z-10">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-indigo-500" />
-                Line Profile Peak Visualizer
-              </h3>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                Interactive Bragg peak profile fitting. Hover to inspect precise localized physical data.
-              </p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-4 z-10 relative">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/40 text-indigo-500 shadow-sm">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-2">
+                  Line Profile Peak Visualizer
+                </h3>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                  Interactive Bragg peak profile modeling. Hover to inspect theoretical localized physical states.
+                </p>
+              </div>
             </div>
 
             {/* Live Indicator Pill */}
@@ -690,7 +711,7 @@ export const FWHMModule: React.FC = () => {
                   axisLine={{ stroke: '#cbd5e1' }}
                   tickLine={{ stroke: '#cbd5e1' }}
                 />
-                <YAxis domain={[0, amplitude * 1.25]} width={35} tick={{fontSize: 10, fill: '#64748b'}} />
+                <YAxis domain={[0, amplitude * 1.25]} width={40} tick={{fontSize: 10, fill: '#64748b'}} />
                 
                 <Tooltip 
                   content={({ active, payload }) => {
@@ -705,21 +726,32 @@ export const FWHMModule: React.FC = () => {
                             Angle 2θ: {dataPoint.x.toFixed(4)}°
                           </div>
                           <div className="space-y-2 font-mono text-[11px]">
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Y_measured:</span>
-                              <span className="font-bold">{dataPoint.y.toFixed(1)} cps</span>
+                            <div className="flex justify-between items-center gap-4">
+                              <span className="text-slate-400 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-rose-500"></div> Measured (Noisy):</span>
+                              <span className="font-bold text-rose-600 dark:text-rose-400">{dataPoint.y.toFixed(1)} cps</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Y_clean:</span>
-                              <span className="font-bold">{dataPoint._cleanY?.toFixed(1) || '-'} cps</span>
+                            <div className="flex justify-between items-center gap-4">
+                              <span className="text-slate-400 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-indigo-500"></div> Total Model Fit:</span>
+                              <span className="font-bold text-indigo-600 dark:text-indigo-400">{dataPoint._cleanY?.toFixed(1) || '-'} cps</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Local Size:</span>
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400">{localSize.toFixed(1)} nm</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-slate-400">Peak Model:</span>
-                              <span className="font-bold">{type}</span>
+                            {type === 'Pseudo-Voigt' && dataPoint.yG !== undefined && (
+                              <div className="flex justify-between items-center gap-4 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                                <span className="text-slate-400 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-blue-500"></div> Gaussian Component:</span>
+                                <span className="font-bold text-blue-600 dark:text-blue-400">{dataPoint.yG.toFixed(1)} cps</span>
+                              </div>
+                            )}
+                            {type === 'Pseudo-Voigt' && dataPoint.yL !== undefined && (
+                              <div className="flex justify-between items-center gap-4">
+                                <span className="text-slate-400 flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Lorentzian Component:</span>
+                                <span className="font-bold text-emerald-600 dark:text-emerald-400">{dataPoint.yL.toFixed(1)} cps</span>
+                              </div>
+                            )}
+                            
+                            <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800/60">
+                              <div className="flex justify-between">
+                                <span className="text-slate-400">Local Size Estimate:</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-300">{localSize.toFixed(1)} nm</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -728,6 +760,14 @@ export const FWHMModule: React.FC = () => {
                     return null;
                   }}
                   cursor={{ stroke: '#818cf8', strokeWidth: 1, strokeDasharray: '4 4' }}
+                />
+                
+                <Legend 
+                  verticalAlign="top" 
+                  height={36} 
+                  iconType="circle" 
+                  iconSize={6} 
+                  wrapperStyle={{ fontSize: '10px', fontWeight: 600, color: '#64748b' }}
                 />
                 
                 {/* Background Noise Reference Area */}
@@ -764,6 +804,17 @@ export const FWHMModule: React.FC = () => {
                    <Label value="Centroid" position="top" fill="#4f46e5" fontSize={10} fontWeight="700" offset={8} />
                 </ReferenceLine>
                 <ReferenceDot x={center} y={amplitude + background} r={4} fill="#4f46e5" stroke="#ffffff" strokeWidth={1.5} />
+
+                {/* FWHM Reference Marker */}
+                <ReferenceLine 
+                  segment={[{ x: center - fwhm/2, y: (amplitude/2) + background }, { x: center + fwhm/2, y: (amplitude/2) + background }]} 
+                  stroke="#ef4444" 
+                  strokeWidth={2}
+                >
+                  <Label value="FWHM" position="top" fill="#ef4444" fontSize={9} fontWeight="700" offset={4} />
+                </ReferenceLine>
+                <ReferenceDot x={center - fwhm/2} y={(amplitude/2) + background} r={3} fill="#ef4444" stroke="none" />
+                <ReferenceDot x={center + fwhm/2} y={(amplitude/2) + background} r={3} fill="#ef4444" stroke="none" />
 
                 {/* Reference Material Peaks Overlay Lines */}
                 {showReferencePeaks && parsedRefPeaks.map((peak, idx) => {
@@ -810,6 +861,7 @@ export const FWHMModule: React.FC = () => {
 
                 {/* Clean Peak Curve */}
                 <Area 
+                   name="Theoretical Profile Fit"
                    type="monotone" 
                    dataKey="_cleanY" 
                    stroke="#4f46e5" 
@@ -820,8 +872,37 @@ export const FWHMModule: React.FC = () => {
                    activeDot={false}
                 />
 
+                {/* Gaussian Component for PV */}
+                {type === 'Pseudo-Voigt' && (
+                  <Line 
+                    name="Gaussian Form (G)"
+                    type="monotone" 
+                    dataKey="yG" 
+                    stroke="#3b82f6" 
+                    strokeWidth={2}
+                    strokeDasharray="4 4"
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                )}
+
+                {/* Lorentzian Component for PV */}
+                {type === 'Pseudo-Voigt' && (
+                  <Line 
+                    name="Lorentzian Form (L)"
+                    type="monotone" 
+                    dataKey="yL" 
+                    stroke="#10b981" 
+                    strokeWidth={2}
+                    strokeDasharray="4 4"
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                )}
+
                 {/* Statistical Noisy Curve */}
                 <Area 
+                   name="Simulated Diffractogram (Noisy)"
                    type="monotone" 
                    dataKey="y" 
                    stroke="#f43f5e" 
@@ -840,54 +921,94 @@ export const FWHMModule: React.FC = () => {
         {/* Physical Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Crystallite Size</span>
-            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">
-              {stats && stats.integralBreadth > 0 ? (
-                (() => {
-                  const thetaRad = (center / 2) * (Math.PI / 180);
-                  const betaRad = stats.integralBreadth * (Math.PI / 180);
-                  const sizeBroadening = type === 'Pseudo-Voigt' ? betaRad * eta : type === 'Gaussian' ? 0.00001 : betaRad;
-                  const L = (scherrerK * activeWavelength) / (sizeBroadening * Math.cos(thetaRad));
-                  return L > 250 ? ">250 nm" : `${L.toFixed(1)} nm`;
-                })()
-              ) : '-'}
-            </span>
-            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Scherrer length of coherent crystalline domains.</p>
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-purple-50 dark:bg-purple-900/10 rounded-bl-full group-hover:scale-125 transition-transform duration-300"></div>
+            <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-widest block mb-2 relative z-10">Crystallite Size</span>
+            <div className="relative z-10 flex flex-col h-full">
+              <span className="text-2xl font-black font-mono text-slate-800 dark:text-slate-100 tracking-tight">
+                {stats && stats.integralBreadth > 0 ? (
+                  (() => {
+                    const thetaRad = (center / 2) * (Math.PI / 180);
+                    const betaRad = stats.integralBreadth * (Math.PI / 180);
+                    const sizeBroadening = type === 'Pseudo-Voigt' ? betaRad * eta : type === 'Gaussian' ? 0.00001 : betaRad;
+                    const L = (scherrerK * activeWavelength) / (sizeBroadening * Math.cos(thetaRad));
+                    return L > 250 ? ">250 nm" : `${L.toFixed(1)} nm`;
+                  })()
+                ) : '-'}
+              </span>
+              <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Scherrer length of coherent crystalline domains.
+              </div>
+              <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[9px] text-slate-400 dark:text-slate-500">
+                <span className="font-bold">L</span> = Kλ / β<sub className="text-[7px]">size</sub>cos(θ)
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Lattice Strain (ε)</span>
-            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">
-              {stats && stats.integralBreadth > 0 ? (
-                (() => {
-                  const thetaRad = (center / 2) * (Math.PI / 180);
-                  const betaRad = stats.integralBreadth * (Math.PI / 180);
-                  const strainBroadening = type === 'Pseudo-Voigt' ? betaRad * (1 - eta) : type === 'Gaussian' ? betaRad : 0.00001;
-                  const e = strainBroadening / (4 * Math.tan(thetaRad));
-                  return `${(e * 1000).toFixed(2)} × 10⁻³`;
-                })()
-              ) : '-'}
-            </span>
-            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Instrument / deformation lattice microstrain.</p>
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-blue-50 dark:bg-blue-900/10 rounded-bl-full group-hover:scale-125 transition-transform duration-300"></div>
+            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest block mb-2 relative z-10">Lattice Strain (ε)</span>
+            <div className="relative z-10 flex flex-col h-full">
+              <span className="text-2xl font-black font-mono text-slate-800 dark:text-slate-100 tracking-tight">
+                {stats && stats.integralBreadth > 0 ? (
+                  (() => {
+                    const thetaRad = (center / 2) * (Math.PI / 180);
+                    const betaRad = stats.integralBreadth * (Math.PI / 180);
+                    const strainBroadening = type === 'Pseudo-Voigt' ? betaRad * (1 - eta) : type === 'Gaussian' ? betaRad : 0.00001;
+                    const e = strainBroadening / (4 * Math.tan(thetaRad));
+                    return `${(e * 1000).toFixed(2)} × 10⁻³`;
+                  })()
+                ) : '-'}
+              </span>
+              <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Lattice microstrain (Stokes-Wilson).
+              </div>
+              <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[9px] text-slate-400 dark:text-slate-500">
+                <span className="font-bold">ε</span> = β<sub className="text-[7px]">strain</sub> / 4tan(θ)
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Integrated Area</span>
-            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.area.toFixed(1)}</span>
-            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Integrated intensity under peak profile (cps·deg).</p>
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-amber-50 dark:bg-amber-900/10 rounded-bl-full group-hover:scale-125 transition-transform duration-300"></div>
+            <span className="text-[9px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest block mb-2 relative z-10">Integrated Area</span>
+            <div className="relative z-10 flex flex-col h-full">
+              <span className="text-2xl font-black font-mono text-slate-800 dark:text-slate-100 tracking-tight">{stats?.area.toFixed(1)}</span>
+              <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Integrated intensity (cps·deg).
+              </div>
+              <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[9px] text-slate-400 dark:text-slate-500">
+                <span className="font-bold">A</span> = ∫ I(2θ) d(2θ)
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Integral Breadth (β)</span>
-            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.integralBreadth.toFixed(4)}°</span>
-            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">Equivalent height rectangle width (Integrated Area / I_max).</p>
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-50 dark:bg-emerald-900/10 rounded-bl-full group-hover:scale-125 transition-transform duration-300"></div>
+            <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest block mb-2 relative z-10">Integral Breadth (β)</span>
+            <div className="relative z-10 flex flex-col h-full">
+              <span className="text-2xl font-black font-mono text-slate-800 dark:text-slate-100 tracking-tight">{stats?.integralBreadth.toFixed(4)}°</span>
+              <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Equivalent rectangle width.
+              </div>
+              <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[9px] text-slate-400 dark:text-slate-500">
+                <span className="font-bold">β</span> = A / I<sub className="text-[7px]">max</sub>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Shape Factor (φ)</span>
-            <span className="text-xl font-bold font-mono text-slate-800 dark:text-slate-100">{stats?.shapeFactor.toFixed(3)}</span>
-            <p className="text-[10px] text-slate-400 mt-1 leading-normal font-sans">FWHM / β ratio. Gaussian ≈ 0.94, Lorentzian ≈ 0.64.</p>
+          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-16 h-16 bg-rose-50 dark:bg-rose-900/10 rounded-bl-full group-hover:scale-125 transition-transform duration-300"></div>
+            <span className="text-[9px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest block mb-2 relative z-10">Shape Factor (φ)</span>
+            <div className="relative z-10 flex flex-col h-full">
+              <span className="text-2xl font-black font-mono text-slate-800 dark:text-slate-100 tracking-tight">{stats?.shapeFactor.toFixed(3)}</span>
+              <div className="mt-2 text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Gaussian ≈ 0.94, Lorentz ≈ 0.64
+              </div>
+              <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 font-mono text-[9px] text-slate-400 dark:text-slate-500">
+                <span className="font-bold">φ</span> = FWHM / β
+              </div>
+            </div>
           </div>
 
         </div>
@@ -913,62 +1034,182 @@ export const FWHMModule: React.FC = () => {
           </div>
         )}
 
-        {/* LaTeX Math Reference & Equations (Incredibly high value for PhDs) */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-indigo-500" />
-            Diffraction Theory & Line Profile Models
-          </h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            <div className="space-y-3">
-              <h4 className="font-bold text-slate-800 dark:text-slate-300">Scherrer Crystallite Coherence Size (D)</h4>
-              <p>
-                Calculates the average dimension of crystallites inside of coherent lattice scattering domains:
-              </p>
-              <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg font-mono text-[11px] border border-slate-100 dark:border-slate-800 text-indigo-600 dark:text-indigo-400">
-                D = (K · λ) / (β_size · cos(θ))
+        {/* Diffraction Theory & Line Profile Models (High-value PhD Reference Hub) */}
+        <div className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 p-6 lg:p-8 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/60 dark:border-slate-800/60 pb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 rounded-lg text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/30">
+                <BookOpen className="w-5 h-5" />
               </div>
-              <ul className="list-disc pl-4 space-y-1 text-[11px]">
-                <li><strong className="text-slate-700 dark:text-slate-300">K</strong>: Scherrer shape factor (typically 0.89 to 0.94)</li>
-                <li><strong className="text-slate-700 dark:text-slate-300">λ</strong>: X-ray anode emission wavelength (e.g., Cu-Kα = 1.5406 Å)</li>
-                <li><strong className="text-slate-700 dark:text-slate-300">β_size</strong>: Pure sample Lorentzian broadening in radians</li>
-              </ul>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                  Diffraction Physics & Analytical Models
+                </h3>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                  Theoretical formulation governing crystallite size broadening and lattice microstrain calculations.
+                </p>
+              </div>
+            </div>
+            <span className="self-start sm:self-center px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono font-bold rounded-full border border-indigo-100 dark:border-indigo-900/30">
+              PHYSICS CORE v2.4
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            {/* Scherrer Formulation Card */}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 hover:shadow-md transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/30 dark:bg-indigo-950/10 rounded-full blur-2xl group-hover:scale-150 transition-all duration-500" />
+              
+              <div className="space-y-3 relative z-10">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs tracking-tight flex items-center gap-2">
+                    <span className="w-1.5 h-3 bg-purple-500 rounded-sm" />
+                    Scherrer Crystallite Coherence Size (D)
+                  </h4>
+                  <span className="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border border-purple-100 dark:border-purple-900/20">
+                    Size Domain
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Derived from the Bragg peak's pure Lorentzian broadening. Represents the average volume-weighted dimension of coherent crystalline diffraction domains.
+                </p>
+                
+                <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-lg border border-slate-200/50 dark:border-slate-800/80 text-center relative">
+                  <span className="absolute top-1 left-2 text-[8px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest">analytical model</span>
+                  <div className="font-mono text-[13px] font-extrabold text-indigo-600 dark:text-indigo-400 py-1.5 tracking-wide">
+                    D = <span className="text-purple-600 dark:text-purple-400">(K · λ)</span> / <span className="text-emerald-600 dark:text-emerald-400">(β_size · cos(θ))</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5 relative z-10">
+                <div className="grid grid-cols-3 text-[10px] text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+                    <span><strong>K</strong>: Shape factor</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                    <span><strong>λ</strong>: Wavelength</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span><strong>β_size</strong>: Lorentzian FWHM</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <h4 className="font-bold text-slate-800 dark:text-slate-300">Stokes-Wilson Lattice Microstrain (ε)</h4>
-              <p>
-                Describes inhomogeneous lattice strains, dislocations, or defects causing d-spacing fluctuations:
-              </p>
-              <div className="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg font-mono text-[11px] border border-slate-100 dark:border-slate-800 text-indigo-600 dark:text-indigo-400">
-                ε = β_strain / (4 · tan(θ))
+            {/* Stokes-Wilson Microstrain Card */}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 hover:shadow-md transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50/30 dark:bg-indigo-950/10 rounded-full blur-2xl group-hover:scale-150 transition-all duration-500" />
+              
+              <div className="space-y-3 relative z-10">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-slate-800 dark:text-slate-200 text-xs tracking-tight flex items-center gap-2">
+                    <span className="w-1.5 h-3 bg-blue-500 rounded-sm" />
+                    Stokes-Wilson Lattice Microstrain (ε)
+                  </h4>
+                  <span className="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-900/20">
+                    Strain Domain
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Extracted from Gaussian peak broadening. Models localized lattice microstrains, dislocations, crystal defects, and systematic interplanar d-spacing fluctuations.
+                </p>
+                
+                <div className="bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-lg border border-slate-200/50 dark:border-slate-800/80 text-center relative">
+                  <span className="absolute top-1 left-2 text-[8px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest">analytical model</span>
+                  <div className="font-mono text-[13px] font-extrabold text-indigo-600 dark:text-indigo-400 py-1.5 tracking-wide">
+                    ε = <span className="text-blue-600 dark:text-blue-400">β_strain</span> / <span className="text-rose-600 dark:text-rose-400">(4 · tan(θ))</span>
+                  </div>
+                </div>
               </div>
-              <ul className="list-disc pl-4 space-y-1 text-[11px]">
-                <li><strong className="text-slate-700 dark:text-slate-300">β_strain</strong>: Pure sample Gaussian broadening in radians</li>
-                <li><strong className="text-slate-700 dark:text-slate-300">θ</strong>: Half the diffraction angle 2θ (Bragg angle)</li>
-              </ul>
+
+              <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-slate-800/80 space-y-1.5 relative z-10">
+                <div className="grid grid-cols-3 text-[10px] text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                    <span><strong>β_strain</strong>: Gaussian FWHM</span>
+                  </div>
+                  <div className="flex items-center gap-1 col-span-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                    <span><strong>θ</strong>: Half the diffraction angle 2θ (Bragg angle)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Mathematical Profiles Section */}
+          <div className="space-y-3 pt-3">
+            <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+              Diffraction Peak Profile Functions
+            </h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              
+              {/* Gaussian Box */}
+              <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl relative hover:border-blue-400 dark:hover:border-blue-800 transition-all">
+                <span className="absolute top-2 right-2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400">
+                  G(θ)
+                </span>
+                <span className="block text-[10px] font-bold text-slate-800 dark:text-slate-300 mb-1">Gaussian Model</span>
+                <div className="font-mono text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-100 dark:border-slate-850 mt-2 overflow-x-auto">
+                  I(θ) = I₀·e<sup>-ln(2)·((θ-θ₀)/w)²</sup>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                  Represents rapid exponential decay. Excellent for modeling instrumental broadening.
+                </p>
+              </div>
+
+              {/* Lorentzian Box */}
+              <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl relative hover:border-purple-400 dark:hover:border-purple-800 transition-all">
+                <span className="absolute top-2 right-2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400">
+                  L(θ)
+                </span>
+                <span className="block text-[10px] font-bold text-slate-800 dark:text-slate-300 mb-1">Lorentzian Model</span>
+                <div className="font-mono text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-100 dark:border-slate-850 mt-2 overflow-x-auto">
+                  I(θ) = I₀ / [1 + ((θ-θ₀)/w)²]
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                  Features heavy polynomial tails. Ideal for modeling finite crystallite sizes.
+                </p>
+              </div>
+
+              {/* Pseudo-Voigt Box */}
+              <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl relative hover:border-amber-400 dark:hover:border-amber-800 transition-all">
+                <span className="absolute top-2 right-2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400">
+                  pV(θ)
+                </span>
+                <span className="block text-[10px] font-bold text-slate-800 dark:text-slate-300 mb-1">Pseudo-Voigt</span>
+                <div className="font-mono text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-100 dark:border-slate-850 mt-2 overflow-x-auto">
+                  I(θ) = η·L(θ) + (1-η)·G(θ)
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                  A linear convolution. Standard hybrid model for Rietveld refinement calculations.
+                </p>
+              </div>
+
+              {/* Pearson VII Box */}
+              <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl relative hover:border-pink-400 dark:hover:border-pink-800 transition-all">
+                <span className="absolute top-2 right-2 text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-pink-50 dark:bg-pink-950/40 text-pink-600 dark:text-pink-400">
+                  P7(θ)
+                </span>
+                <span className="block text-[10px] font-bold text-slate-800 dark:text-slate-300 mb-1">Pearson VII</span>
+                <div className="font-mono text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-100 dark:border-slate-850 mt-2 overflow-x-auto">
+                  I(θ) = I₀ / [1 + (2<sup>1/m</sup>-1)·((θ-θ₀)/w)²]<sup>m</sup>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                  Highly adaptable profile. Mixer exponent <strong className="text-slate-700 dark:text-slate-300">m</strong> transitions seamlessly between L(1) and G(∞).
+                </p>
+              </div>
+
             </div>
           </div>
-          
-          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-4 text-[11px]">
-            <div className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded border border-slate-150 dark:border-slate-805">
-              <strong className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Gaussian (G):</strong>
-              I(θ) = I₀ · exp(-ln(2) · ((θ - θ₀) / w)²)
-            </div>
-            <div className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded border border-slate-150 dark:border-slate-805">
-              <strong className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Lorentzian (L):</strong>
-              I(θ) = I₀ / [1 + ((θ - θ₀) / w)²]
-            </div>
-            <div className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded border border-slate-150 dark:border-slate-805">
-              <strong className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Pseudo-Voigt (pV):</strong>
-              I_pV(θ) = η · L(θ) + (1 - η) · G(θ)
-            </div>
-            <div className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded border border-slate-150 dark:border-slate-805">
-              <strong className="block text-slate-700 dark:text-slate-300 font-bold mb-1">Pearson VII:</strong>
-              I(θ) = I₀ / [1 + (2^(1/m) - 1)·((θ - θ₀)/w)²]^m
-            </div>
-          </div>
+
         </div>
 
       </div>

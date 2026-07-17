@@ -249,17 +249,21 @@ export const simulatePeak = (
   for (let i = 0; i <= steps; i++) {
     const x = start + i * stepSize;
     let y = 0;
+    let yG: number | undefined = undefined;
+    let yL: number | undefined = undefined;
 
     if (type === 'Gaussian' || type === 'Pseudo-Voigt') {
       const g = amplitude * Math.exp(-0.5 * Math.pow((x - center) / sigma, 2));
-      if (type === 'Gaussian') y = g;
-      else y += (1 - eta) * g;
+      const valG = (type === 'Gaussian') ? g : (1 - eta) * g;
+      yG = valG;
+      y += valG;
     }
 
     if (type === 'Lorentzian' || type === 'Pseudo-Voigt') {
       const l = amplitude * (Math.pow(gamma, 2) / (Math.pow(x - center, 2) + Math.pow(gamma, 2)));
-      if (type === 'Lorentzian') y = l;
-      else y += eta * l;
+      const valL = (type === 'Lorentzian') ? l : eta * l;
+      yL = valL;
+      y += valL;
     }
 
     if (type === 'Pearson VII') {
@@ -270,7 +274,13 @@ export const simulatePeak = (
     const bg = background;
     const noisyY = y + bg + (Math.random() - 0.5) * noiseLevel * Math.sqrt(y + bg + 1) * 2;
 
-    points.push({ x, y: noisyY, _cleanY: y + bg });
+    points.push({ 
+      x, 
+      y: noisyY, 
+      _cleanY: y + bg,
+      yG: (type === 'Pseudo-Voigt' && yG !== undefined) ? yG + bg : undefined,
+      yL: (type === 'Pseudo-Voigt' && yL !== undefined) ? yL + bg : undefined
+    });
   }
 
   // Calculate Integral Breadth Area

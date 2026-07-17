@@ -30,8 +30,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Zooming states
-  const [left, setLeft] = useState<number | string>('dataMin - 5');
-  const [right, setRight] = useState<number | string>('dataMax + 5');
+  const [left, setLeft] = useState<number | null>(null);
+  const [right, setRight] = useState<number | null>(null);
   const [refAreaLeft, setRefAreaLeft] = useState<number | string | null>(null);
   const [refAreaRight, setRefAreaRight] = useState<number | string | null>(null);
 
@@ -92,6 +92,27 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
     }
   };
 
+  // Get default / full-range boundaries based on peaks in data
+  const dataMinTheta = useMemo(() => {
+    if (results.length === 0) return 10;
+    return Math.max(0, Math.min(...results.map(r => r.twoTheta)) - 10);
+  }, [results]);
+
+  const dataMaxTheta = useMemo(() => {
+    if (results.length === 0) return 90;
+    return Math.max(...results.map(r => r.twoTheta)) + 10;
+  }, [results]);
+
+  const currentLeft = useMemo(() => {
+    return left !== null ? left : dataMinTheta;
+  }, [left, dataMinTheta]);
+
+  const currentRight = useMemo(() => {
+    return right !== null ? right : dataMaxTheta;
+  }, [right, dataMaxTheta]);
+
+  const isZoomedIn = left !== null && right !== null;
+
   const zoom = () => {
     let zoomLeft = refAreaLeft;
     let zoomRight = refAreaRight;
@@ -102,63 +123,89 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
       return;
     }
 
-    if (zoomLeft > zoomRight) {
+    if (Number(zoomLeft) > Number(zoomRight)) {
       [zoomLeft, zoomRight] = [zoomRight, zoomLeft];
     }
 
     setRefAreaLeft(null);
     setRefAreaRight(null);
-    setLeft(Number(zoomLeft).toFixed(1));
-    setRight(Number(zoomRight).toFixed(1));
+    setLeft(Number(Number(zoomLeft).toFixed(2)));
+    setRight(Number(Number(zoomRight).toFixed(2)));
   };
 
   const zoomOut = () => {
-    setLeft('dataMin - 5');
-    setRight('dataMax + 5');
+    setLeft(null);
+    setRight(null);
     setRefAreaLeft(null);
     setRefAreaRight(null);
   };
 
   const panLeft = () => {
-    if (typeof left === 'number' && typeof right === 'number') {
-      const range = right - left;
-      const shift = Math.max(5, range * 0.1);
-      setLeft(left - shift);
-      setRight(right - shift);
-    }
+    const range = currentRight - currentLeft;
+    const shift = range * 0.15; // Shift by 15% of current range
+    const newLeft = Math.max(0, currentLeft - shift);
+    const newRight = newLeft + range;
+    setLeft(Number(newLeft.toFixed(2)));
+    setRight(Number(newRight.toFixed(2)));
   };
 
   const panRight = () => {
-    if (typeof left === 'number' && typeof right === 'number') {
-      const range = right - left;
-      const shift = Math.max(5, range * 0.1);
-      setLeft(left + shift);
-      setRight(right + shift);
-    }
+    const range = currentRight - currentLeft;
+    const shift = range * 0.15; // Shift by 15% of current range
+    const newRight = Math.min(180, currentRight + shift); // Max 2-theta is 180°
+    const newLeft = newRight - range;
+    setLeft(Number(newLeft.toFixed(2)));
+    setRight(Number(newRight.toFixed(2)));
   };
 
   const zoomInStep = () => {
-    if (typeof left === 'number' && typeof right === 'number') {
-      const range = right - left;
-      const shift = range * 0.1;
-      setLeft(left + shift);
-      setRight(right - shift);
-    } else {
-      setLeft(10);
-      setRight(90);
-    }
+    const range = currentRight - currentLeft;
+    if (range <= 1.0) return; // limit minimum range to 1 degree
+    const shift = range * 0.15; // Zoom in 15% from each side
+    setLeft(Number((currentLeft + shift).toFixed(2)));
+    setRight(Number((currentRight - shift).toFixed(2)));
   };
 
   const zoomOutStep = () => {
-    if (typeof left === 'number' && typeof right === 'number') {
-      const range = right - left;
-      const shift = range * 0.1;
-      setLeft(left - shift);
-      setRight(right + shift);
+    const range = currentRight - currentLeft;
+    const shift = range * 0.15;
+    const newLeft = Math.max(0, currentLeft - shift);
+    const newRight = Math.min(180, currentRight + shift);
+    
+    // If we've reached or expanded beyond default, reset to null
+    if (newLeft <= dataMinTheta && newRight >= dataMaxTheta) {
+      zoomOut();
+    } else {
+      setLeft(Number(newLeft.toFixed(2)));
+      setRight(Number(newRight.toFixed(2)));
     }
   };
 
-  const isZoomedIn = left !== 'dataMin - 5' || right !== 'dataMax + 5';
+  // Zoom to a specific peak or peak cluster
+  const zoomToPrimaryPeak = () => {
+    if (results.length === 0) return;
+    const sorted = [...results].sort((a, b) => (b.intensity ?? 100) - (a.intensity ?? 100));
+    const primary = sorted[0];
+    setLeft(Number(Math.max(0, primary.twoTheta - 4).toFixed(2)));
+    setRight(Number(Math.min(180, primary.twoTheta + 4).toFixed(2)));
+  };
+
+  const zoomToWeakPeaks = () => {
+    if (results.length === 0) return;
+    // Weaker peaks typically have lower intensity (e.g. < 45%)
+    const weakPeaks = results.filter(r => (r.intensity ?? 100) < 45);
+    if (weakPeaks.length === 0) {
+      // Fallback to highest 2θ angle peaks which are usually weaker
+      const highestTheta = Math.max(...results.map(r => r.twoTheta));
+      setLeft(Number(Math.max(0, highestTheta - 6).toFixed(2)));
+      setRight(Number(Math.min(180, highestTheta + 6).toFixed(2)));
+    } else {
+      // Find the weak peak closest to other weak peaks, or just take the first weak peak
+      const target = weakPeaks[0];
+      setLeft(Number(Math.max(0, target.twoTheta - 5).toFixed(2)));
+      setRight(Number(Math.min(180, target.twoTheta + 5).toFixed(2)));
+    }
+  };
 
   const chartData = useMemo(() => {
     if (results.length === 0) return { points: [], peakData: [] };
@@ -475,25 +522,99 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
               {isFullScreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
             </button>
           </div>
-
-          {isZoomedIn && (
-            <div className="flex items-center gap-1.5 ml-2 bg-slate-950/40 p-1 rounded-xl border border-white/5">
-              <button onClick={panLeft} className="p-2 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 rounded-lg transition-colors" title="Pan Left">
-                <ArrowLeft className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={panRight} className="p-2 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 rounded-lg transition-colors" title="Pan Right">
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-              <div className="w-px h-4 bg-white/10 mx-0.5"></div>
-              <button onClick={zoomOut} className="p-2 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 rounded-lg transition-colors" title="Reset">
-                 <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
       <div className="flex-1 w-full min-h-0 min-w-0 relative z-10 select-none bg-[#020617]/40 rounded-3xl border border-white/5 p-4 shadow-inner">
+        {/* Floating Zoom & Pan Control Center */}
+        <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-1.5 bg-[#0b1329]/90 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-lg shadow-black/50">
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-2 py-1 border-r border-white/10 select-none">
+            Zoom & Pan
+          </span>
+
+          <button 
+            onClick={zoomInStep} 
+            className="p-1.5 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 rounded-lg transition-all" 
+            title={t('Zoom In', 'Zoom In')}
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+          
+          <button 
+            onClick={zoomOutStep} 
+            className="p-1.5 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 rounded-lg transition-all" 
+            title={t('Zoom Out', 'Zoom Out')}
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="w-px h-4 bg-white/10" />
+
+          <button 
+            onClick={panLeft} 
+            className={`p-1.5 rounded-lg transition-all ${
+              isZoomedIn 
+                ? 'hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300' 
+                : 'text-slate-600 cursor-not-allowed opacity-40'
+            }`} 
+            disabled={!isZoomedIn}
+            title={t('Pan Left', 'Pan Left')}
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+          </button>
+
+          <button 
+            onClick={panRight} 
+            className={`p-1.5 rounded-lg transition-all ${
+              isZoomedIn 
+                ? 'hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300' 
+                : 'text-slate-600 cursor-not-allowed opacity-40'
+            }`} 
+            disabled={!isZoomedIn}
+            title={t('Pan Right', 'Pan Right')}
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="w-px h-4 bg-white/10" />
+
+          {/* Preset Buttons */}
+          <button 
+            onClick={zoomToPrimaryPeak} 
+            className="px-2.5 py-1 hover:bg-amber-500/15 text-amber-500/80 hover:text-amber-400 rounded-md text-[8px] font-black uppercase tracking-wider transition-all border border-amber-500/20 shadow-sm"
+            title={t('Focus on highest intensity peak', 'Focus on highest intensity peak')}
+          >
+            {t('Primary Peak', 'Primary Peak')}
+          </button>
+
+          <button 
+            onClick={zoomToWeakPeaks} 
+            className="px-2.5 py-1 hover:bg-emerald-500/15 text-emerald-500/80 hover:text-emerald-400 rounded-md text-[8px] font-black uppercase tracking-wider transition-all border border-emerald-500/20 shadow-sm"
+            title={t('Inspect weak peaks at lower intensity', 'Inspect weak peaks at lower intensity')}
+          >
+            {t('Weak Peaks', 'Weak Peaks')}
+          </button>
+
+          {isZoomedIn && (
+            <>
+              <div className="w-px h-4 bg-white/10" />
+              <button 
+                onClick={zoomOut} 
+                className="p-1.5 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-lg transition-all" 
+                title={t('Reset Zoom', 'Reset Zoom')}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+
+          {/* Current Domain Indicator */}
+          {isZoomedIn && (
+            <span className="text-[8px] font-mono font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded ml-1 select-none">
+              {currentLeft.toFixed(1)}° - {currentRight.toFixed(1)}°
+            </span>
+          )}
+        </div>
         {/* Graph Scientific Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
         
@@ -525,7 +646,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
             <XAxis 
               dataKey="twoTheta" 
               type="number"
-              domain={[left, right]} 
+              domain={[left !== null ? left : 'dataMin - 10', right !== null ? right : 'dataMax + 10']} 
               allowDataOverflow={true}
               tick={{ fontSize: 10, fontWeight: 'black', fill: '#475569', fontFamily: 'monospace' }}
               axisLine={{ stroke: 'rgba(255,255,255,0.05)', strokeWidth: 1 }}
@@ -591,8 +712,8 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 const { cx, cy, payload } = props;
                 if (cx === undefined || cy === undefined || isNaN(cx) || isNaN(cy)) return null;
                 
-                let l = typeof left === 'string' ? payload.twoTheta - 100 : Number(left);
-                let r = typeof right === 'string' ? payload.twoTheta + 100 : Number(right);
+                let l = left !== null ? left : dataMinTheta;
+                let r = right !== null ? right : dataMaxTheta;
                 if (payload.twoTheta < l || payload.twoTheta > r) return null;
                 
                 const yOffset = cy - 20 - (payload.labelLevel * 16);
