@@ -2075,7 +2075,18 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
         
         <div className="max-w-7xl mx-auto mt-32 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
            <div className="flex flex-col md:flex-row items-center gap-10">
-              <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">© 2026 XRD-CALC PRO SYSTEMS INC. • Designed by Ali Zerehsaz</p>
+              <div className={`flex flex-col ${isRTL ? "items-end text-right" : "items-start text-left"} gap-1.5`}>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">© 2026 XRD-CALC PRO • Designed by Ali Zerehsaz</p>
+                <p className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.15em] max-w-sm leading-relaxed">
+                  {isRTL 
+                    ? "طراحی و توسعه توسط علی زره‌ساز. این یک پروژه مستقل علمی است و توسط یک تیم بزرگ ساخته نشده است."
+                    : "Designed and Engineered by Ali Zerehsaz. This is an independent scientific project, not built by a large corporate team."}
+                </p>
+                <div className="flex items-center gap-2 mt-2 opacity-50 hover:opacity-100 transition-opacity">
+                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Powered by</span>
+                  <span className="text-[9px] font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400 uppercase tracking-wider">Gemini & Google</span>
+                </div>
+              </div>
               <div className="flex gap-8 text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">
                  <span 
                    onClick={() => setShowPrivacyModal(true)}
