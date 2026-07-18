@@ -52,18 +52,30 @@ const Symmetry3DVisualizer = ({
   millerK = 1,
   millerL = 1,
 }: any) => {
-  const [time, setTime] = useState(0);
+  const [rotation, setRotation] = useState({ x: -Math.PI / 6, y: Math.PI / 4 });
+  const [isDragging, setIsDragging] = useState(false);
+  const lastMouseRef = useRef({ x: 0, y: 0 });
 
-  useEffect(() => {
-    let frame: number;
-    let start = performance.now();
-    const loop = (now: number) => {
-      setTime((now - start) / 1000);
-      frame = requestAnimationFrame(loop);
-    };
-    frame = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(frame);
-  }, []);
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    lastMouseRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - lastMouseRef.current.x;
+    const dy = e.clientY - lastMouseRef.current.y;
+    lastMouseRef.current = { x: e.clientX, y: e.clientY };
+
+    setRotation((prev) => ({
+      x: prev.x - dy * 0.01,
+      y: prev.y - dx * 0.01,
+    }));
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
 
   const isHex = system === "Hexagonal";
   const isMono = system === "Monoclinic";
@@ -74,9 +86,9 @@ const Symmetry3DVisualizer = ({
   const isTet = ["Tetragonal", "Tetragonal_I"].includes(system);
   const isCubic = ["SC", "BCC", "FCC", "Cubic", "Diamond"].includes(system);
 
-  // Z-rotated view over time
-  const angleY = time * 0.4;
-  const angleX = -Math.PI / 6 + Math.sin(time * 0.5) * 0.1;
+  // Manual rotated view
+  const angleY = rotation.y;
+  const angleX = rotation.x;
 
   const project3D = (x: number, y: number, z: number) => {
     // Rotation around Y
@@ -881,7 +893,13 @@ const Symmetry3DVisualizer = ({
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-300 w-full">
-      <div className="h-64 bg-[#030712] rounded-2xl border border-[#1e293b] relative overflow-hidden flex items-center justify-center shadow-inner group">
+      <div 
+        className="h-64 bg-[#030712] rounded-2xl border border-[#1e293b] relative overflow-hidden flex items-center justify-center shadow-inner group cursor-grab active:cursor-grabbing"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
         <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] opacity-100 pointer-events-none"></div>
         <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none"></div>
 
