@@ -412,6 +412,122 @@ const colorizeLine = (line: string) => {
   );
 };
 
+// --- XRD-Calc Pro Synthesis Stoichiometry Engine Helpers ---
+export interface PrecursorInfo {
+  name: string;
+  formula: string;
+  mw: number;
+  atomsPerMolecule: number;
+}
+
+export const PRECURSOR_DATABASE: Record<string, PrecursorInfo[]> = {
+  Li: [
+    { name: "Lithium Nitrate", formula: "LiNO3", mw: 68.94, atomsPerMolecule: 1 },
+    { name: "Lithium Carbonate", formula: "Li2CO3", mw: 73.89, atomsPerMolecule: 2 },
+    { name: "Lithium Acetate", formula: "LiC2H3O2", mw: 65.99, atomsPerMolecule: 1 },
+    { name: "Lithium Chloride", formula: "LiCl", mw: 42.39, atomsPerMolecule: 1 }
+  ],
+  Co: [
+    { name: "Cobalt(II) Nitrate Hexahydrate", formula: "Co(NO3)2·6H2O", mw: 291.03, atomsPerMolecule: 1 },
+    { name: "Cobalt(II) Acetate Tetrahydrate", formula: "Co(C2H3O2)2·4H2O", mw: 249.08, atomsPerMolecule: 1 },
+    { name: "Cobalt(II) Chloride Hexahydrate", formula: "CoCl2·6H2O", mw: 237.93, atomsPerMolecule: 1 }
+  ],
+  Ti: [
+    { name: "Titanium Isopropoxide (TTIP)", formula: "C12H28O4Ti", mw: 284.22, atomsPerMolecule: 1 },
+    { name: "Titanium Tetrachloride", formula: "TiCl4", mw: 189.68, atomsPerMolecule: 1 },
+    { name: "Titanium(IV) Butoxide", formula: "Ti(OBu)4", mw: 340.32, atomsPerMolecule: 1 }
+  ],
+  Zr: [
+    { name: "Zirconyl Nitrate Hydrate", formula: "ZrO(NO3)2·xH2O", mw: 231.23, atomsPerMolecule: 1 },
+    { name: "Zirconium(IV) Chloride", formula: "ZrCl4", mw: 233.03, atomsPerMolecule: 1 },
+    { name: "Zirconium(IV) Oxychloride Octahydrate", formula: "ZrOCl2·8H2O", mw: 322.25, atomsPerMolecule: 1 }
+  ],
+  Zn: [
+    { name: "Zinc Nitrate Hexahydrate", formula: "Zn(NO3)2·6H2O", mw: 297.49, atomsPerMolecule: 1 },
+    { name: "Zinc Acetate Dihydrate", formula: "Zn(CH3COO)2·2H2O", mw: 219.51, atomsPerMolecule: 1 },
+    { name: "Zinc Chloride", formula: "ZnCl2", mw: 136.31, atomsPerMolecule: 1 }
+  ],
+  Al: [
+    { name: "Aluminum Nitrate Nonahydrate", formula: "Al(NO3)3·9H2O", mw: 375.13, atomsPerMolecule: 1 },
+    { name: "Aluminum Chloride Hexahydrate", formula: "AlCl3·6H2O", mw: 241.43, atomsPerMolecule: 1 },
+    { name: "Aluminum Isopropoxide", formula: "Al(C3H7O)3", mw: 204.25, atomsPerMolecule: 1 }
+  ],
+  Fe: [
+    { name: "Iron(III) Nitrate Nonahydrate", formula: "Fe(NO3)3·9H2O", mw: 404.00, atomsPerMolecule: 1 },
+    { name: "Iron(II) Sulfate Heptahydrate", formula: "FeSO4·7H2O", mw: 278.01, atomsPerMolecule: 1 },
+    { name: "Iron(III) Chloride Hexahydrate", formula: "FeCl3·6H2O", mw: 270.30, atomsPerMolecule: 1 }
+  ],
+  Si: [
+    { name: "Tetraethyl Orthosilicate (TEOS)", formula: "Si(OC2H5)4", mw: 208.33, atomsPerMolecule: 1 },
+    { name: "Tetramethyl Orthosilicate (TMOS)", formula: "Si(OCH3)4", mw: 152.22, atomsPerMolecule: 1 }
+  ],
+  Ce: [
+    { name: "Cerium(III) Nitrate Hexahydrate", formula: "Ce(NO3)3·6H2O", mw: 434.22, atomsPerMolecule: 1 },
+    { name: "Cerium(III) Chloride Heptahydrate", formula: "CeCl3·7H2O", mw: 372.58, atomsPerMolecule: 1 }
+  ],
+  La: [
+    { name: "Lanthanum(III) Nitrate Hexahydrate", formula: "La(NO3)3·6H2O", mw: 433.01, atomsPerMolecule: 1 },
+    { name: "Lanthanum(III) Chloride Heptahydrate", formula: "LaCl3·7H2O", mw: 371.37, atomsPerMolecule: 1 }
+  ],
+  Sr: [
+    { name: "Strontium Nitrate", formula: "Sr(NO3)2", mw: 211.63, atomsPerMolecule: 1 },
+    { name: "Strontium Chloride Hexahydrate", formula: "SrCl2·6H2O", mw: 266.62, atomsPerMolecule: 1 },
+    { name: "Strontium Carbonate", formula: "SrCO3", mw: 147.63, atomsPerMolecule: 1 }
+  ],
+  Ba: [
+    { name: "Barium Nitrate", formula: "Ba(NO3)2", mw: 261.34, atomsPerMolecule: 1 },
+    { name: "Barium Chloride Dihydrate", formula: "BaCl2·2H2O", mw: 244.26, atomsPerMolecule: 1 },
+    { name: "Barium Carbonate", formula: "BaCO3", mw: 197.34, atomsPerMolecule: 1 }
+  ],
+  Mn: [
+    { name: "Manganese(II) Nitrate Tetrahydrate", formula: "Mn(NO3)2·4H2O", mw: 251.01, atomsPerMolecule: 1 },
+    { name: "Manganese(II) Acetate Tetrahydrate", formula: "Mn(C2H3O2)2·4H2O", mw: 245.09, atomsPerMolecule: 1 }
+  ],
+  Ni: [
+    { name: "Nickel(II) Nitrate Hexahydrate", formula: "Ni(NO3)2·6H2O", mw: 290.79, atomsPerMolecule: 1 },
+    { name: "Nickel(II) Sulfate Hexahydrate", formula: "NiSO4·6H2O", mw: 262.85, atomsPerMolecule: 1 }
+  ],
+  Cu: [
+    { name: "Copper(II) Nitrate Hemipentahydrate", formula: "Cu(NO3)2·2.5H2O", mw: 232.59, atomsPerMolecule: 1 },
+    { name: "Copper(II) Acetate Monohydrate", formula: "Cu(C2H3O2)2·H2O", mw: 199.65, atomsPerMolecule: 1 }
+  ],
+  Y: [
+    { name: "Yttrium(III) Nitrate Hexahydrate", formula: "Y(NO3)3·6H2O", mw: 383.01, atomsPerMolecule: 1 },
+    { name: "Yttrium(III) Chloride Hexahydrate", formula: "YCl3·6H2O", mw: 303.48, atomsPerMolecule: 1 }
+  ],
+  Mg: [
+    { name: "Magnesium Nitrate Hexahydrate", formula: "Mg(NO3)2·6H2O", mw: 256.41, atomsPerMolecule: 1 },
+    { name: "Magnesium Acetate Tetrahydrate", formula: "Mg(C2H3O2)2·4H2O", mw: 214.45, atomsPerMolecule: 1 }
+  ],
+  Ca: [
+    { name: "Calcium Nitrate Tetrahydrate", formula: "Ca(NO3)2·4H2O", mw: 236.15, atomsPerMolecule: 1 },
+    { name: "Calcium Carbonate", formula: "CaCO3", mw: 100.09, atomsPerMolecule: 1 }
+  ],
+  Na: [
+    { name: "Sodium Chloride", formula: "NaCl", mw: 58.44, atomsPerMolecule: 1 },
+    { name: "Sodium Nitrate", formula: "NaNO3", mw: 84.99, atomsPerMolecule: 1 },
+    { name: "Sodium Carbonate", formula: "Na2CO3", mw: 105.99, atomsPerMolecule: 2 }
+  ],
+  Cl: [
+    { name: "Ammonium Chloride", formula: "NH4Cl", mw: 53.49, atomsPerMolecule: 1 }
+  ]
+};
+
+export function parseChemicalFormula(formula: string): Record<string, number> {
+  const result: Record<string, number> = {};
+  if (!formula) return result;
+  // Clean formula of extra names like (Nano) or polymorph indicators
+  const clean = formula.split("(")[0].replace(/\s+/g, "");
+  const regex = /([A-Z][a-z]?)\s*(\d*\.?\d*)/g;
+  let match;
+  while ((match = regex.exec(clean)) !== null) {
+    const element = match[1];
+    const count = match[2] ? parseFloat(match[2]) : 1;
+    result[element] = (result[element] || 0) + count;
+  }
+  return result;
+}
+
 export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
   const { t } = useTranslation();
   const [inputData, setInputData] = useState<string>("");
@@ -708,6 +824,152 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [synthAiStep, setSynthAiStep] = useState<string>("");
   const [recipeCopied, setRecipeCopied] = useState<boolean>(false);
 
+  // Precursor Weight Calculator States
+  const [synthTargetMass, setSynthTargetMass] = useState<number>(1.0); // in grams
+  const [selectedPrecursors, setSelectedPrecursors] = useState<Record<string, string>>({});
+  const [dopantElement, setDopantElement] = useState<string>("Mg");
+  const [dopedSubstitutedElement, setDopedSubstitutedElement] = useState<string>("");
+  const [customPrecursorMws, setCustomPrecursorMws] = useState<Record<string, number>>({});
+
+  // --- Stoichiometric Precursor Weight Calculator Engine ---
+  const calculatePrecursorWeights = () => {
+    if (!selectedCandidate) return { success: false, errors: [], mwProduct: 0, precursors: [], actualSubstitutedSite: "" };
+
+    const formula = selectedCandidate.formula;
+    const parsedElements = parseChemicalFormula(formula);
+    const elementKeys = Object.keys(parsedElements);
+
+    // Filter out Oxygen and Hydrogen from precursor calculation as they are usually solvent/atmosphere-supplied
+    const activeElements = elementKeys.filter(el => el !== "O" && el !== "H");
+    
+    // Choose which element is substituted by the dopant
+    // Usually, the first non-O, non-H metallic element is selected as the default site
+    const defaultSite = activeElements[0] || "";
+    const actualSubstitutedSite = dopedSubstitutedElement || defaultSite;
+    
+    // Compute molecular weight of the target doped product
+    let mwProduct = 0;
+    const dopingFraction = synthDoping / 100.0;
+    
+    // Map element name to its atomic weight
+    const getAtomicWeight = (el: string): number => {
+      if (el === dopantElement) {
+        return MATERIAL_ELEMENTS[dopantElement]?.mass || 24.305; // Fallback to Mg
+      }
+      return MATERIAL_ELEMENTS[el]?.mass || 50.0; // Fallback
+    };
+
+    // Calculate Stoichiometric Coefficients
+    const stoichCoeffs: Record<string, number> = {};
+    
+    elementKeys.forEach(el => {
+      let coeff = parsedElements[el];
+      if (synthDoping > 0 && el === actualSubstitutedSite) {
+        stoichCoeffs[el] = coeff * (1 - dopingFraction);
+      } else {
+        stoichCoeffs[el] = coeff;
+      }
+    });
+
+    if (synthDoping > 0 && dopantElement && actualSubstitutedSite) {
+      const parentCoeff = parsedElements[actualSubstitutedSite] || 1.0;
+      stoichCoeffs[dopantElement] = parentCoeff * dopingFraction;
+    }
+
+    // Now sum up the total molecular weight
+    Object.entries(stoichCoeffs).forEach(([el, coeff]) => {
+      mwProduct += coeff * getAtomicWeight(el);
+    });
+
+    if (mwProduct === 0) mwProduct = selectedCandidate.molecularWeight || 100;
+
+    // Total moles of target product needed
+    const molesProduct = synthTargetMass / mwProduct;
+
+    // Now calculate precursor weights
+    const precursorsList = Object.entries(stoichCoeffs)
+      .filter(([el]) => el !== "O" && el !== "H") // Exclude solvent elements
+      .map(([el, coeff]) => {
+        const molesElement = molesProduct * coeff;
+        
+        // Find selected precursor
+        const dbPrecursors = PRECURSOR_DATABASE[el] || [];
+        const chosenPrecursorName = selectedPrecursors[el] || (dbPrecursors[0] ? dbPrecursors[0].name : "Custom Precursor");
+        
+        let precursorFormula = "";
+        let precursorMw = 0;
+        let atomsPerMolecule = 1;
+        
+        if (chosenPrecursorName === "Custom Precursor") {
+          precursorFormula = "Custom";
+          precursorMw = customPrecursorMws[el] || getAtomicWeight(el);
+          atomsPerMolecule = 1;
+        } else {
+          const found = dbPrecursors.find(p => p.name === chosenPrecursorName);
+          if (found) {
+            precursorFormula = found.formula;
+            precursorMw = found.mw;
+            atomsPerMolecule = found.atomsPerMolecule;
+          } else {
+            precursorFormula = el;
+            precursorMw = getAtomicWeight(el);
+            atomsPerMolecule = 1;
+          }
+        }
+
+        const molesPrecursor = molesElement / atomsPerMolecule;
+        const massGrams = molesPrecursor * precursorMw;
+        const massMilligrams = massGrams * 1000;
+
+        return {
+          element: el,
+          stoichCoeff: coeff,
+          molesElement,
+          precursorName: chosenPrecursorName,
+          precursorFormula,
+          precursorMw,
+          atomsPerMolecule,
+          molesPrecursor,
+          massGrams,
+          massMilligrams
+        };
+      });
+
+    return {
+      success: true,
+      errors: [],
+      mwProduct,
+      stoichCoeffs,
+      precursors: precursorsList,
+      actualSubstitutedSite
+    };
+  };
+
+  useEffect(() => {
+    if (selectedCandidate) {
+      const formula = selectedCandidate.formula;
+      const parsed = parseChemicalFormula(formula);
+      const activeElements = Object.keys(parsed).filter(el => el !== "O" && el !== "H");
+      
+      // Select default precursors
+      const initialPrecursors: Record<string, string> = {};
+      activeElements.forEach(el => {
+        const db = PRECURSOR_DATABASE[el] || [];
+        if (db[0]) {
+          initialPrecursors[el] = db[0].name;
+        } else {
+          initialPrecursors[el] = "Custom Precursor";
+        }
+      });
+      setSelectedPrecursors(initialPrecursors);
+      
+      // Default substitution site
+      if (activeElements[0]) {
+        setDopedSubstitutedElement(activeElements[0]);
+      }
+    }
+  }, [selectedCandidate]);
+
   const handleRunSynthesisAI = async () => {
     if (!selectedCandidate) return;
     setSynthAiResult(null);
@@ -744,7 +1006,10 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
           doping: synthDoping,
           pH: synthPH,
           atmosphere: synthAtmosphere,
-          focus: synthAiFocus
+          focus: synthAiFocus,
+          targetMass: synthTargetMass,
+          selectedPrecursors: selectedPrecursors,
+          dopantElement: dopantElement
         })
       });
       
@@ -8142,7 +8407,7 @@ if __name__ == '__main__':
                     stroke="#22d3ee"
                     fill="#0f172a"
                     tickFormatter={(value) => value.toFixed(0)}
-                    wrapperStyle={{ opacity: 0.8 }}
+                    style={{ opacity: 0.8 }}
                     travellerWidth={10}
                   >
                     <AreaChart>
@@ -10549,7 +10814,7 @@ ${
                 </div>}
 
                 {/* AI Synthesis Route Intelligence & Recipe Optimizer */}
-                <div className="mt-8 p-8 bg-gradient-to-b from-[#080F1D]/90 to-[#040913]/90 border border-slate-800/80 rounded-3xl relative overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.015),0_10px_40px_rgba(0,0,0,0.6)]">
+                <div id="synthesis-suite" className="mt-8 p-6 sm:p-8 bg-gradient-to-b from-[#080F1D]/90 to-[#040913]/90 border border-slate-800/80 rounded-3xl relative overflow-hidden shadow-[inset_0_2px_20px_rgba(255,255,255,0.015),0_10px_40px_rgba(0,0,0,0.6)]">
                   <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
                   <div className="absolute bottom-0 left-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none" />
                   
@@ -10560,132 +10825,357 @@ ${
                       </div>
                       <div>
                         <h4 className="text-xl font-black text-slate-200 uppercase tracking-wider">
-                          Synthesis Route Intelligence Advisor
+                          Crystalline Synthesis Suite & Stoichiometry Engine
                         </h4>
                         <p className="text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em] mt-0.5">
-                          Stoichiometric Precursor Synthesis & Morphological Capping Assistant
+                          Dual-Core Interactive Lab Stoichiometry & GenAI advisor
                         </p>
                       </div>
-                    </div>
-
-                    {/* Focus parameters */}
-                    <div className="flex flex-wrap gap-2">
-                      {(["purity", "defects", "confinement"] as const).map((focus) => (
-                        <button
-                          key={focus}
-                          onClick={() => setSynthAiFocus(focus)}
-                          disabled={synthAiLoading}
-                          className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
-                            synthAiFocus === focus
-                              ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)]"
-                              : "bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
-                          }`}
-                        >
-                          {focus === "purity" && "Phase Purity"}
-                          {focus === "defects" && "Defect Mechanics"}
-                          {focus === "confinement" && "Quantum Confinement"}
-                        </button>
-                      ))}
                     </div>
                   </div>
 
-                  <div className="relative z-10">
-                    {synthAiLoading ? (
-                      <div className="py-14 flex flex-col items-center justify-center text-center">
-                        <div className="relative w-24 h-24 mb-6">
-                            <div className="absolute inset-x-0 inset-y-0 rounded-full border-2 border-cyan-500/20" />
-                            <div className="absolute inset-x-0 inset-y-0 rounded-full border-t-2 border-cyan-400 animate-spin" />
-                            <div className="absolute inset-3 rounded-full border border-indigo-500/20" />
-                            <div className="absolute inset-3 rounded-full border-b border-indigo-400 animate-spin" />
-                            <div className="absolute inset-x-0 inset-y-0 flex items-center justify-center text-cyan-400 font-mono text-[9px] font-bold uppercase tracking-widest animate-pulse">
-                              AI Core
-                            </div>
+                  {/* Dual Grid Layout */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+                    {/* Left Column: Stoichiometry Calculator */}
+                    <div className="lg:col-span-5 space-y-6">
+                      <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-850/80 shadow-inner space-y-5">
+                        <div className="flex items-center gap-2.5 border-b border-slate-900 pb-3">
+                          <Calculator size={16} className="text-cyan-400" />
+                          <h5 className="text-xs font-bold text-slate-200 uppercase tracking-widest">
+                            Stoichiometric Precursor Weight Calculator
+                          </h5>
                         </div>
-                        <h5 className="text-sm font-bold text-slate-200 uppercase tracking-widest mb-1.5 font-mono">
-                          {synthAiStep}
-                        </h5>
-                        <p className="text-[10px] text-slate-500 max-w-sm leading-relaxed uppercase tracking-wider font-mono">
-                          Modeling nucleostatic phase matrices for {selectedCandidate.phase_name}
-                        </p>
-                        
-                        <div className="w-48 h-1 bg-slate-950 rounded-full overflow-hidden mt-6 border border-slate-800/80">
-                          <motion.div 
-                            className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500"
-                            animate={{ x: ["-100%", "100%"] }}
-                            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                          />
-                        </div>
-                      </div>
-                    ) : synthAiResult ? (
-                      <div className="space-y-6">
-                        {/* Actions rail */}
-                        <div className="flex flex-wrap gap-2.5 items-center justify-end bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60">
-                          <span className="text-[9px] font-mono font-bold text-slate-555 uppercase mr-auto pl-2 tracking-widest hidden sm:inline">
-                            Tuned for: {synthAiFocus === "purity" ? "High Stoichiometry Purity" : synthAiFocus === "defects" ? "Induced Lattice Dislocation Controls" : "Quantum Dot Confinement Boundary"}
+
+                        {/* Product formula details */}
+                        <div className="flex items-center justify-between bg-slate-900/40 p-3 rounded-xl border border-slate-800/40">
+                          <span className="text-[10px] text-slate-400 font-mono uppercase">Target Phase Formula</span>
+                          <span className="text-sm font-bold text-cyan-300 font-mono tracking-wider">
+                            {selectedCandidate.formula}
                           </span>
-                          
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(synthAiResult || "");
-                              setRecipeCopied(true);
-                              setTimeout(() => setRecipeCopied(false), 2000);
-                            }}
-                            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 hover:text-white border border-slate-800 text-[10px] font-black text-slate-300 uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
-                          >
-                            {recipeCopied ? (
-                              <>
-                                <CheckCircle size={12} className="text-emerald-400" />
-                                Copied!
-                              </>
-                            ) : (
-                              <>
-                                <FileText size={12} className="text-cyan-400" />
-                                Copy Full Recipe Markdown
-                              </>
-                            )}
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              const blob = new Blob([synthAiResult || ""], { type: "text/markdown" });
-                              const url = URL.createObjectURL(blob);
-                              const link = document.createElement("a");
-                              link.href = url;
-                              link.download = `AI_Synthesis_Recipe_${selectedCandidate.phase_name.replace(/\s+/g, "_")}.md`;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                            }}
-                            className="px-4 py-2 bg-cyan-950 hover:bg-cyan-900 hover:text-white border border-cyan-800/60 text-[10px] font-black text-cyan-300 uppercase tracking-widest rounded-xl transition-all flex items-center gap-2"
-                          >
-                            <Sparkles size={12} className="text-cyan-400 animate-pulse" />
-                            Download Markdown File
-                          </button>
                         </div>
 
-                        {/* Interactive result presentation */}
-                        <div className="bg-slate-950/80 p-6 sm:p-8 rounded-2xl border border-slate-800/80 overflow-y-auto max-h-[500px] custom-scrollbar text-slate-300 font-sans shadow-inner selection:bg-cyan-500/20 leading-relaxed font-sans prose prose-invert prose-headings:text-slate-100 prose-strong:text-cyan-200">
-                          <ReactMarkdown>{synthAiResult}</ReactMarkdown>
+                        {/* Slider for Target mass */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-400 font-mono uppercase">Target Yield mass</span>
+                            <span className="text-cyan-400 font-mono font-bold">{synthTargetMass.toFixed(1)} g</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="range"
+                              min={0.1}
+                              max={50.0}
+                              step={0.1}
+                              value={synthTargetMass}
+                              onChange={(e) => setSynthTargetMass(parseFloat(e.target.value))}
+                              className="flex-grow accent-cyan-500 h-1 bg-slate-900 rounded-lg cursor-pointer"
+                            />
+                            <input
+                              type="number"
+                              min={0.1}
+                              max={500}
+                              step={0.1}
+                              value={synthTargetMass}
+                              onChange={(e) => setSynthTargetMass(Math.max(0.1, parseFloat(e.target.value) || 0.1))}
+                              className="w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-center font-mono font-bold text-cyan-300"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Dopant substitution controls if doping > 0 */}
+                        {synthDoping > 0 && (
+                          <div className="bg-slate-900/20 p-4 rounded-xl border border-slate-850 space-y-4">
+                            <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                              <ShieldAlert size={12} className="text-amber-500 animate-pulse" />
+                              Lattice Doping Site Configuration
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              {/* Dopant selection */}
+                              <div className="space-y-1.5">
+                                <label className="text-[9px] text-slate-400 font-mono uppercase">Dopant Cation</label>
+                                <select
+                                  value={dopantElement}
+                                  onChange={(e) => setDopantElement(e.target.value)}
+                                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:border-cyan-500/50 focus:outline-none"
+                                >
+                                  {["Mg", "Al", "Fe", "Co", "Ni", "Cu", "Zn", "Y", "Zr", "La", "Ce", "Sr", "Ba", "Mn"].map(el => (
+                                    <option key={el} value={el}>{el}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Substitution Site */}
+                              <div className="space-y-1.5">
+                                <label className="text-[9px] text-slate-400 font-mono uppercase">Substituted Site</label>
+                                <select
+                                  value={dopedSubstitutedElement}
+                                  onChange={(e) => setDopedSubstitutedElement(e.target.value)}
+                                  className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 font-mono focus:border-cyan-500/50 focus:outline-none"
+                                >
+                                  {Object.keys(parseChemicalFormula(selectedCandidate.formula))
+                                    .filter(el => el !== "O" && el !== "H")
+                                    .map(el => (
+                                      <option key={el} value={el}>{el}</option>
+                                    ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="text-[9px] text-slate-500 leading-normal font-mono uppercase">
+                              Substitution equation: {dopedSubstitutedElement || "M"}(1 - {(synthDoping/100).toFixed(3)}) + {dopantElement}({(synthDoping/100).toFixed(3)})
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Precursor Selectors list */}
+                        <div className="space-y-3 pt-2">
+                          <div className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest">
+                            Select Raw Precursor Salts
+                          </div>
+
+                          {(() => {
+                            const { precursors } = calculatePrecursorWeights();
+                            if (!precursors) return null;
+
+                            return precursors.map((p) => {
+                              const db = PRECURSOR_DATABASE[p.element] || [];
+                              return (
+                                <div key={p.element} className="bg-slate-900/50 p-3 rounded-xl border border-slate-850 flex flex-col gap-2">
+                                  <div className="flex items-center justify-between text-[11px]">
+                                    <span className="font-bold text-slate-300 font-mono">
+                                      Element {p.element} <span className="text-[9px] text-slate-500 font-normal">(stoich: {p.stoichCoeff.toFixed(4)})</span>
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                                    <select
+                                      value={p.precursorName}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setSelectedPrecursors(prev => ({ ...prev, [p.element]: val }));
+                                      }}
+                                      className="sm:col-span-8 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-200 font-mono focus:border-cyan-500/50 focus:outline-none"
+                                    >
+                                      {db.map((item) => (
+                                        <option key={item.name} value={item.name}>
+                                          {item.name} ({item.formula})
+                                        </option>
+                                      ))}
+                                      <option value="Custom Precursor">Custom Precursor...</option>
+                                    </select>
+
+                                    {p.precursorName === "Custom Precursor" ? (
+                                      <div className="sm:col-span-4 flex items-center gap-1.5">
+                                        <input
+                                          type="number"
+                                          placeholder="g/mol"
+                                          value={customPrecursorMws[p.element] || ""}
+                                          onChange={(e) => {
+                                            const val = parseFloat(e.target.value) || 0;
+                                            setCustomPrecursorMws(prev => ({ ...prev, [p.element]: val }));
+                                          }}
+                                          className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-center font-mono text-cyan-300 animate-fade-in"
+                                        />
+                                        <span className="text-[9px] text-slate-500 font-mono">g/mol</span>
+                                      </div>
+                                    ) : (
+                                      <div className="sm:col-span-4 bg-slate-950/60 rounded-lg px-2 py-1 text-center font-mono text-[10px] text-slate-400 border border-slate-850/60 flex items-center justify-center">
+                                        {p.precursorMw.toFixed(2)} g/mol
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
                         </div>
                       </div>
-                    ) : (
-                      <div className="py-10 px-6 bg-slate-950/40 border border-slate-800/60 rounded-2xl text-center flex flex-col items-center justify-center">
-                        <Database className="w-10 h-10 text-slate-600 mb-4 stroke-[1.5]" />
-                        <h5 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-1.5">
-                          Adaptive Hydrothermal Solid-Solution Route Optimizer
-                        </h5>
-                        <p className="text-[11px] text-slate-500 max-w-xl leading-relaxed mb-6">
-                           Formulate custom synthetic precursor concentrations, stoichiometric ratios, surfactant/capping ligands, hydrothermal pressure profiles, and calcination parameters tailored specifically for {selectedCandidate.phase_name} ({selectedCandidate.formula}) under a {synthTemp}°C, pH {synthPH.toFixed(1)} calcination environment.
-                        </p>
-                        <button
-                          onClick={handleRunSynthesisAI}
-                          className="px-6 py-4 bg-gradient-to-r from-cyan-600/20 to-indigo-600/20 hover:from-cyan-500/20 hover:to-indigo-500/20 text-cyan-300 hover:text-cyan-200 font-black text-[10px] uppercase tracking-widest rounded-2xl border border-cyan-500/40 hover:border-cyan-400/60 shadow-[0_4px_20px_rgba(6,182,212,0.15)] hover:shadow-[0_4px_30px_rgba(6,182,212,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2.5"
-                        >
-                          <Sparkles className="w-4 h-4 animate-spin-slow" />
-                          Initialize Recipe Optimization Engine
-                        </button>
+
+                      {/* Math Summary Table */}
+                      <div className="bg-slate-950/40 p-5 rounded-2xl border border-slate-850/80 space-y-4">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 font-mono uppercase tracking-wider">
+                          <span>Calculated Precursor Masses</span>
+                          <span className="text-cyan-400 font-bold uppercase font-mono">
+                            Target Yield: {synthTargetMass.toFixed(1)}g
+                          </span>
+                        </div>
+
+                        {(() => {
+                          const { precursors, mwProduct } = calculatePrecursorWeights();
+                          if (!precursors) return null;
+
+                          return (
+                            <div className="space-y-2.5">
+                              {precursors.map((p) => (
+                                <div key={p.element} className="flex items-center justify-between p-2.5 bg-slate-900/30 rounded-xl border border-slate-850/50 hover:border-slate-800 transition-colors">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="text-xs font-bold text-slate-200">
+                                      {p.precursorName}
+                                    </span>
+                                    <span className="text-[9px] font-mono text-slate-500 uppercase">
+                                      {p.precursorFormula} | MW: {p.precursorMw.toFixed(2)} g/mol | {p.atomsPerMolecule} atom/mol
+                                    </span>
+                                  </div>
+                                  <div className="text-right flex flex-col items-end">
+                                    <span className="text-sm font-black text-cyan-400 font-mono">
+                                      {p.massGrams.toFixed(4)} g
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-mono">
+                                      {p.massMilligrams.toFixed(1)} mg
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+
+                              <div className="pt-3 border-t border-slate-900 flex justify-between text-[11px] text-slate-400 font-mono uppercase">
+                                <span>Theoretical Doped MW:</span>
+                                <span className="text-slate-200 font-bold">{mwProduct.toFixed(3)} g/mol</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
-                    )}
+                    </div>
+
+                    {/* Right Column: AI advisor */}
+                    <div className="lg:col-span-7 space-y-6 lg:border-l lg:border-slate-800/40 lg:pl-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-950/40 p-4 rounded-2xl border border-slate-850/80">
+                        <div className="flex items-center gap-2">
+                          <Sparkles size={14} className="text-cyan-400 animate-pulse" />
+                          <span className="text-xs font-bold text-slate-200 uppercase tracking-widest font-mono">AI Recipe Advisor</span>
+                        </div>
+
+                        {/* Focus parameters */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {(["purity", "defects", "confinement"] as const).map((focus) => (
+                            <button
+                              key={focus}
+                              onClick={() => setSynthAiFocus(focus)}
+                              disabled={synthAiLoading}
+                              className={`px-2.5 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
+                                synthAiFocus === focus
+                                  ? "bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+                                  : "bg-slate-900/60 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
+                              }`}
+                            >
+                              {focus === "purity" && "Phase Purity"}
+                              {focus === "defects" && "Defects"}
+                              {focus === "confinement" && "Confinement"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Displaying AI states */}
+                      <div>
+                        {synthAiLoading ? (
+                          <div className="py-20 flex flex-col items-center justify-center text-center">
+                            <div className="relative w-24 h-24 mb-6">
+                                <div className="absolute inset-x-0 inset-y-0 rounded-full border-2 border-cyan-500/20" />
+                                <div className="absolute inset-x-0 inset-y-0 rounded-full border-t-2 border-cyan-400 animate-spin" />
+                                <div className="absolute inset-3 rounded-full border border-indigo-500/20" />
+                                <div className="absolute inset-3 rounded-full border-b border-indigo-400 animate-spin" />
+                                <div className="absolute inset-x-0 inset-y-0 flex items-center justify-center text-cyan-400 font-mono text-[9px] font-bold uppercase tracking-widest animate-pulse">
+                                  AI Core
+                                </div>
+                            </div>
+                            <h5 className="text-sm font-bold text-slate-200 uppercase tracking-widest mb-1.5 font-mono">
+                              {synthAiStep}
+                            </h5>
+                            <p className="text-[10px] text-slate-500 max-w-sm leading-relaxed uppercase tracking-wider font-mono">
+                              Modeling nucleostatic phase matrices for {selectedCandidate.phase_name}
+                            </p>
+                            
+                            <div className="w-48 h-1 bg-slate-950 rounded-full overflow-hidden mt-6 border border-slate-800/80">
+                              <motion.div 
+                                className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500"
+                                animate={{ x: ["-100%", "100%"] }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                              />
+                            </div>
+                          </div>
+                        ) : synthAiResult ? (
+                          <div className="space-y-4">
+                            {/* Actions rail */}
+                            <div className="flex flex-wrap gap-2 items-center justify-end bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60">
+                              <span className="text-[9px] font-mono font-bold text-slate-500 uppercase mr-auto pl-2 tracking-widest hidden sm:inline">
+                                Tuned for: {synthAiFocus === "purity" ? "High Stoichiometry Purity" : synthAiFocus === "defects" ? "Induced Lattice Dislocation Controls" : "Quantum Dot Confinement Boundary"}
+                              </span>
+                              
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(synthAiResult || "");
+                                  setRecipeCopied(true);
+                                  setTimeout(() => setRecipeCopied(false), 2000);
+                                }}
+                                className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 hover:text-white border border-slate-800 text-[9px] font-black text-slate-300 uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5"
+                              >
+                                {recipeCopied ? (
+                                  <>
+                                    <CheckCircle size={10} className="text-emerald-400" />
+                                    Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileText size={10} className="text-cyan-400" />
+                                    Copy Markdown
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  const blob = new Blob([synthAiResult || ""], { type: "text/markdown" });
+                                  const url = URL.createObjectURL(blob);
+                                  const link = document.createElement("a");
+                                  link.href = url;
+                                  link.download = `AI_Synthesis_Recipe_${selectedCandidate.phase_name.replace(/\s+/g, "_")}.md`;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }}
+                                className="px-3.5 py-1.5 bg-cyan-950 hover:bg-cyan-900 hover:text-white border border-cyan-800/60 text-[9px] font-black text-cyan-300 uppercase tracking-widest rounded-xl transition-all flex items-center gap-1.5"
+                              >
+                                <Sparkles size={10} className="text-cyan-400 animate-pulse" />
+                                Download .MD
+                              </button>
+                            </div>
+
+                            {/* Interactive result presentation */}
+                            <div className="bg-slate-950/80 p-5 sm:p-6 rounded-2xl border border-slate-800/80 overflow-y-auto max-h-[500px] custom-scrollbar text-slate-300 font-sans shadow-inner selection:bg-cyan-500/20 leading-relaxed font-sans prose prose-invert prose-headings:text-slate-100 prose-strong:text-cyan-200">
+                              <ReactMarkdown>{synthAiResult}</ReactMarkdown>
+                            </div>
+
+                            <div className="text-center">
+                              <button
+                                onClick={handleRunSynthesisAI}
+                                className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 hover:underline uppercase tracking-widest"
+                              >
+                                Re-run AI Advisor with updated precursor weights
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="py-14 px-6 bg-slate-950/40 border border-slate-800/60 rounded-2xl text-center flex flex-col items-center justify-center">
+                            <Database className="w-10 h-10 text-slate-600 mb-4 stroke-[1.5]" />
+                            <h5 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-1.5">
+                              Adaptive Hydrothermal Solid-Solution Route Advisor
+                            </h5>
+                            <p className="text-[11px] text-slate-555 max-w-xl leading-relaxed mb-6 font-mono uppercase tracking-wide">
+                               Formulate custom synthetic precursor concentrations, stoichiometric ratios, surfactant/capping ligands, hydrothermal pressure profiles, and calcination parameters tailored specifically for {selectedCandidate.phase_name} ({selectedCandidate.formula}) under a {synthTemp}°C, pH {synthPH.toFixed(1)} calcination environment.
+                            </p>
+                            <button
+                              onClick={handleRunSynthesisAI}
+                              className="px-6 py-4 bg-gradient-to-r from-cyan-600/20 to-indigo-600/20 hover:from-cyan-500/20 hover:to-indigo-500/20 text-cyan-300 hover:text-cyan-200 font-black text-[10px] uppercase tracking-widest rounded-2xl border border-cyan-500/40 hover:border-cyan-400/60 shadow-[0_4px_20px_rgba(6,182,212,0.15)] hover:shadow-[0_4px_30px_rgba(6,182,212,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2.5"
+                            >
+                              <Sparkles className="w-4 h-4 animate-spin-slow" />
+                              Initialize Recipe Optimization Engine
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
