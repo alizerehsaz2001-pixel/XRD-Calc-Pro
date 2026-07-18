@@ -20,6 +20,8 @@ import {
   Legend,
   ReferenceLine,
   ReferenceArea,
+  Brush,
+  AreaChart,
 } from "recharts";
 import {
   Box,
@@ -418,6 +420,11 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [progressStep, setProgressStep] = useState(0); // 0: Idle, 1: Preproc, 2: CNN, 3: DB, 4: Done
   const [selectedCandidate, setSelectedCandidate] =
     useState<DLPhaseCandidate | null>(null);
+  
+  // Interactive visualization state
+  const [showResidual, setShowResidual] = useState(true);
+  const [showSimulation, setShowSimulation] = useState(true);
+  const [showInput, setShowInput] = useState(true);
   
   // Synchronize active predicted candidate with localStorage for AI Context support
   useEffect(() => {
@@ -7846,18 +7853,31 @@ if __name__ == '__main__':
             </div>
 
             {selectedCandidate && (
-              <div className="absolute top-4 right-4 z-10 bg-[#0A101C]/90 px-3 py-1.5 rounded-xl border border-slate-700/50 backdrop-blur-md flex items-center gap-3">
-                <span className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400 font-bold">
-                  <div className="w-2 h-0.5 bg-fuchsia-500 rounded-full" /> Sim
-                  Match
-                </span>
-                <span className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400 font-bold">
-                  <div className="w-2 h-0.5 bg-blue-500 rounded-full" /> Raw Sig
-                </span>
-                <span className="flex items-center gap-1.5 text-[9px] font-mono text-slate-400 font-bold">
-                  <div className="w-2 h-0.5 bg-amber-500 rounded-full" />{" "}
-                  Residual
-                </span>
+              <div className="absolute top-4 right-4 z-20 bg-[#0A101C]/90 px-3 py-1.5 rounded-xl border border-slate-700/50 backdrop-blur-md flex items-center gap-3 shadow-lg">
+                <button
+                  onClick={() => setShowSimulation(!showSimulation)}
+                  className={`flex items-center gap-1.5 text-[9px] font-mono font-bold transition-all px-2 py-1 rounded-md ${
+                    showSimulation ? "text-slate-200 bg-fuchsia-500/10 border border-fuchsia-500/20" : "text-slate-500 hover:text-slate-400"
+                  }`}
+                >
+                  <div className={`w-2 h-0.5 rounded-full ${showSimulation ? "bg-fuchsia-500" : "bg-slate-600"}`} /> Sim Match
+                </button>
+                <button
+                  onClick={() => setShowInput(!showInput)}
+                  className={`flex items-center gap-1.5 text-[9px] font-mono font-bold transition-all px-2 py-1 rounded-md ${
+                    showInput ? "text-slate-200 bg-cyan-500/10 border border-cyan-500/20" : "text-slate-500 hover:text-slate-400"
+                  }`}
+                >
+                  <div className={`w-2 h-0.5 rounded-full ${showInput ? "bg-cyan-500" : "bg-slate-600"}`} /> Raw Sig
+                </button>
+                <button
+                  onClick={() => setShowResidual(!showResidual)}
+                  className={`flex items-center gap-1.5 text-[9px] font-mono font-bold transition-all px-2 py-1 rounded-md ${
+                    showResidual ? "text-slate-200 bg-amber-500/10 border border-amber-500/20" : "text-slate-500 hover:text-slate-400"
+                  }`}
+                >
+                  <div className={`w-2 h-0.5 rounded-full ${showResidual ? "bg-amber-500" : "bg-slate-600"}`} /> Residual
+                </button>
               </div>
             )}
 
@@ -7978,26 +7998,28 @@ if __name__ == '__main__':
                   )}
 
                   {/* Input Data */}
-                  <Area
-                    type="natural"
-                    dataKey="intensity"
-                    stroke="#22d3ee"
-                    fill="url(#colorUv)"
-                    strokeWidth={isDiscrete ? 4 : 5}
-                    name={
-                      isDiscrete ? "Simulated Input Pattern" : "Input Pattern"
-                    }
-                    activeDot={{
-                      r: 8,
-                      fill: "#22d3ee",
-                      stroke: "#050b14",
-                      strokeWidth: 3,
-                      className: "drop-shadow-[0_0_15px_rgba(34,211,238,0.9)]",
-                    }}
-                  />
+                  {showInput && (
+                    <Area
+                      type="natural"
+                      dataKey="intensity"
+                      stroke="#22d3ee"
+                      fill="url(#colorUv)"
+                      strokeWidth={isDiscrete ? 4 : 5}
+                      name={
+                        isDiscrete ? "Simulated Input Pattern" : "Input Pattern"
+                      }
+                      activeDot={{
+                        r: 8,
+                        fill: "#22d3ee",
+                        stroke: "#050b14",
+                        strokeWidth: 3,
+                        className: "drop-shadow-[0_0_15px_rgba(34,211,238,0.9)]",
+                      }}
+                    />
+                  )}
 
                   {/* Discrete Raw Stick Data (if provided as sticks) */}
-                  {isDiscrete && (
+                  {isDiscrete && showInput && (
                     <Scatter
                       data={rawInputData}
                       dataKey="rawIntensity"
@@ -8034,7 +8056,7 @@ if __name__ == '__main__':
                   )}
 
                   {/* Reference Data (Gaussian Simulation Overlay) */}
-                  {selectedCandidate && (
+                  {selectedCandidate && showSimulation && (
                     <Area
                       type="natural"
                       dataKey="refIntensity"
@@ -8048,7 +8070,7 @@ if __name__ == '__main__':
                   )}
 
                   {/* Residual / Error Difference Curve */}
-                  {selectedCandidate && (
+                  {selectedCandidate && showResidual && (
                     <Area
                       type="natural"
                       dataKey="residual"
@@ -8060,7 +8082,7 @@ if __name__ == '__main__':
                   )}
 
                   {/* Reference Stick Data */}
-                  {selectedCandidate && (
+                  {selectedCandidate && showSimulation && (
                     <Scatter
                       data={refData}
                       dataKey="refIntensity"
@@ -8113,6 +8135,21 @@ if __name__ == '__main__':
                       }}
                     />
                   )}
+                  
+                  <Brush 
+                    dataKey="twoTheta" 
+                    height={30} 
+                    stroke="#22d3ee"
+                    fill="#0f172a"
+                    tickFormatter={(value) => value.toFixed(0)}
+                    wrapperStyle={{ opacity: 0.8 }}
+                    travellerWidth={10}
+                  >
+                    <AreaChart>
+                      <Area type="monotone" dataKey="intensity" fill="#22d3ee" stroke="none" />
+                    </AreaChart>
+                  </Brush>
+
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
