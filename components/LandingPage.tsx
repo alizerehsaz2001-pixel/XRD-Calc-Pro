@@ -799,6 +799,198 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
   );
 };
 
+// --- Legal Content ---
+const PRIVACY_POLICY_DATA = {
+  en: {
+    title: "Privacy Policy",
+    lastUpdated: "July 18, 2026",
+    sections: [
+      {
+        title: "1. Data Collection",
+        content: "We collect computational metadata and basic analytical parameters to improve our XRD processing algorithms. No sensitive personal data is stored on our servers."
+      },
+      {
+        title: "2. Analytical Data",
+        content: "Experimental diffractograms uploaded to our cloud refined suite are encrypted and only accessible to the authorized laboratory researcher."
+      },
+      {
+        title: "3. Cookie Usage",
+        content: "We use essential cookies to maintain session states and your customized crystallography workbench preferences."
+      }
+    ]
+  },
+  fa: {
+    title: "سیاست حریم خصوصی",
+    lastUpdated: "۲۸ تیر ۱۴۰۵",
+    sections: [
+      {
+        title: "۱. جمع‌آوری داده‌ها",
+        content: "ما متادیتای محاسباتی و پارامترهای تحلیلی پایه را برای بهبود الگوریتم‌های پردازش XRD جمع‌آوری می‌کنیم. هیچ داده شخصی حساسی در سرورهای ما ذخیره نمی‌شود."
+      },
+      {
+        title: "۲. داده‌های تحلیلی",
+        content: "پراش‌نگارهای آزمایشی آپلود شده در مجموعه ابری ما رمزنگاری شده و فقط برای محقق آزمایشگاهی مجاز قابل دسترسی است."
+      },
+      {
+        title: "۳. استفاده از کوکی",
+        content: "ما از کوکی‌های ضروری برای حفظ وضعیت جلسات و تنظیمات سفارشی میز کار بلورشناسی شما استفاده می‌کنیم."
+      }
+    ]
+  }
+};
+
+const TERMS_OF_USE_DATA = {
+  en: {
+    title: "Terms of Use",
+    lastUpdated: "July 18, 2026",
+    sections: [
+      {
+        title: "1. License",
+        content: "XRD-Calc Pro grants you a limited, non-exclusive license to use our computational tools for scientific research and educational purposes."
+      },
+      {
+        title: "2. Accuracy",
+        content: "While we strive for precision, researchers should verify all crystallographic results with secondary analytical methods where critical safety is involved."
+      },
+      {
+        title: "3. Restrictions",
+        content: "Reverse engineering the proprietary neural network models used in phase identification is strictly prohibited."
+      }
+    ]
+  },
+  fa: {
+    title: "شرایط استفاده",
+    lastUpdated: "۲۸ تیر ۱۴۰۵",
+    sections: [
+      {
+        title: "۱. مجوز",
+        content: "XRD-Calc Pro به شما مجوزی محدود و غیر انحصاری برای استفاده از ابزارهای محاسباتی ما برای تحقیقات علمی و اهداف آموزشی اعطا می‌کند."
+      },
+      {
+        title: "۲. دقت",
+        content: "در حالی که ما برای دقت تلاش می‌کنیم، محققان باید تمام نتایج بلورشناسی را با روش‌های تحلیلی ثانویه در موارد حساس ایمنی تایید کنند."
+      },
+      {
+        title: "۳. محدودیت‌ها",
+        content: "مهندسی معکوس مدل‌های شبکه عصبی اختصاصی استفاده شده در شناسایی فاز اکیداً ممنوع است."
+      }
+    ]
+  }
+};
+
+// --- Legal Modal Component ---
+const LegalModal = ({ isOpen, onClose, content, isRTL }: { isOpen: boolean, onClose: () => void, content: any, isRTL: boolean }) => {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+      />
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="relative w-full max-w-3xl max-h-[85vh] bg-[#050b14] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col"
+      >
+        <div className={`p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`flex flex-col ${isRTL ? "items-end" : "items-start"}`}>
+            <h3 className="text-2xl font-black text-white tracking-tight">{content.title}</h3>
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Last Updated: {content.lastUpdated}</p>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+          >
+            <Zap className="w-5 h-5 rotate-45" />
+          </button>
+        </div>
+        
+        <div className={`flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar ${isRTL ? "text-right" : "text-left"}`}>
+          {content.sections.map((section: any, idx: number) => (
+            <div key={idx} className="space-y-3">
+              <h4 className="text-lg font-bold text-violet-400 flex items-center gap-3">
+                {!isRTL && <span className="w-2 h-2 rounded-full bg-cyan-400" />}
+                {section.title}
+                {isRTL && <span className="w-2 h-2 rounded-full bg-cyan-400" />}
+              </h4>
+              <p className="text-slate-400 leading-relaxed text-sm font-medium">
+                {section.content}
+              </p>
+            </div>
+          ))}
+          
+          <div className="pt-10 border-t border-white/5">
+             <div className="bg-violet-600/10 border border-violet-500/20 p-5 rounded-2xl flex items-start gap-4">
+                <ShieldCheck className="w-6 h-6 text-violet-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-300 leading-relaxed">
+                   {isRTL 
+                     ? "این سند بخشی از تعهد ما به شفافیت علمی و امنیت داده‌های تحقیقاتی شماست. برای سوالات بیشتر با بخش پشتیبانی تماس بگیرید."
+                     : "This document is part of our commitment to scientific transparency and the security of your research data. For further inquiries, contact our systems support lab."}
+                </p>
+             </div>
+          </div>
+        </div>
+        
+        <div className={`p-6 border-t border-white/5 bg-white/[0.01] flex justify-end`}>
+           <button 
+             onClick={onClose}
+             className="px-8 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95 text-sm uppercase tracking-widest"
+           >
+             {isRTL ? "متوجه شدم" : "I Understand"}
+           </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// --- Cookie Consent Banner ---
+const CookieBanner = ({ isRTL, onAccept }: { isRTL: boolean, onAccept: () => void }) => {
+  return (
+    <motion.div 
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="fixed bottom-8 left-8 right-8 z-[90] max-w-4xl mx-auto"
+    >
+      <div className="bg-[#050b14]/90 backdrop-blur-2xl border border-white/10 p-6 sm:p-8 rounded-[2rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-center gap-6 ring-1 ring-white/15">
+        <div className="w-16 h-16 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center shrink-0 shadow-inner">
+           <Database className="w-8 h-8 text-violet-400" />
+        </div>
+        
+        <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
+          <h4 className="text-lg font-black text-white tracking-tight mb-1">
+            {isRTL ? "پیکربندی کوکی‌های سیستمی" : "System Cookie Configuration"}
+          </h4>
+          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
+            {isRTL 
+              ? "ما از کوکی‌های فنی برای بهینه‌سازی محاسبات پراش و ذخیره ترجیحات آزمایشگاهی شما استفاده می‌کنیم. با ادامه استفاده، شما این پروتکل را تایید می‌کنید."
+              : "We utilize technical cookies to optimize diffraction computations and persist your laboratory workbench preferences. By continuing, you authorize this metadata protocol."}
+          </p>
+        </div>
+        
+        <div className={`flex gap-3 shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <button 
+            onClick={onAccept}
+            className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-300 text-xs font-bold uppercase tracking-widest transition-all"
+          >
+            {isRTL ? "تنظیمات" : "Settings"}
+          </button>
+          <button 
+            onClick={onAccept}
+            className="px-8 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95"
+          >
+            {isRTL ? "تایید و ادامه" : "Authorize & Sync"}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
 // --- Main Page Component ---
 export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut }: { 
   onEnter: (mode?: 'register' | 'login', targetModule?: any) => void, 
@@ -812,7 +1004,23 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   const [userName, setUserName] = useState<string>('');
   const [heroSearchTerm, setHeroSearchTerm] = useState('');
   const [showHeroSuggestions, setShowHeroSuggestions] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showCookieBanner, setShowCookieBanner] = useState(false);
   const heroSearchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Check for cookie consent on mount
+    const consent = localStorage.getItem('xrd_cookie_consent');
+    if (!consent) {
+      setTimeout(() => setShowCookieBanner(true), 2000);
+    }
+  }, []);
+
+  const handleAcceptCookies = () => {
+    localStorage.setItem('xrd_cookie_consent', 'true');
+    setShowCookieBanner(false);
+  };
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -1869,9 +2077,24 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
            <div className="flex flex-col md:flex-row items-center gap-10">
               <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">© 2026 XRD-CALC PRO SYSTEMS INC. • Designed by Ali Zerehsaz</p>
               <div className="flex gap-8 text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">
-                 <span className="hover:text-white cursor-pointer transition-colors">Privacy Policy</span>
-                 <span className="hover:text-white cursor-pointer transition-colors">Terms of Use</span>
-                 <span className="hover:text-white cursor-pointer transition-colors">Cookie Auth</span>
+                 <span 
+                   onClick={() => setShowPrivacyModal(true)}
+                   className="hover:text-white cursor-pointer transition-colors"
+                 >
+                   Privacy Policy
+                 </span>
+                 <span 
+                   onClick={() => setShowTermsModal(true)}
+                   className="hover:text-white cursor-pointer transition-colors"
+                 >
+                   Terms of Use
+                 </span>
+                 <span 
+                   onClick={() => setShowCookieBanner(true)}
+                   className="hover:text-white cursor-pointer transition-colors"
+                 >
+                   Cookie Auth
+                 </span>
               </div>
            </div>
            <div className="flex items-center gap-4 bg-white/5 px-4 py-2 rounded-full border border-white/10 group cursor-default">
@@ -1880,6 +2103,28 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
            </div>
         </div>
       </footer>
+
+      {/* Legal Modals */}
+      <LegalModal 
+         isOpen={showPrivacyModal} 
+         onClose={() => setShowPrivacyModal(false)} 
+         content={i18n.language === 'fa' ? PRIVACY_POLICY_DATA.fa : PRIVACY_POLICY_DATA.en}
+         isRTL={isRTL}
+      />
+      <LegalModal 
+         isOpen={showTermsModal} 
+         onClose={() => setShowTermsModal(false)} 
+         content={i18n.language === 'fa' ? TERMS_OF_USE_DATA.fa : TERMS_OF_USE_DATA.en}
+         isRTL={isRTL}
+      />
+
+      {/* Cookie Banner */}
+      {showCookieBanner && (
+        <CookieBanner 
+          isRTL={isRTL} 
+          onAccept={handleAcceptCookies} 
+        />
+      )}
     </div>
   );
 };
