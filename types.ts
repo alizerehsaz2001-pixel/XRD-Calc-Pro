@@ -17,6 +17,7 @@ export interface BraggResult {
   sinThetaOverLambda: number;
   hkl?: string;
   intensity?: number;
+  validationError?: string;
 }
 
 export interface BraggState {

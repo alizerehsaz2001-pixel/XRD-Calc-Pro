@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { fetchStandardWavelengths } from '../services/geminiService';
 import { StandardWavelength } from '../types';
-import { XRAY_WAVELENGTHS } from '../utils/physics';
+import { XRAY_WAVELENGTHS, parseSingleHKL, validateHKLAgainstCrystalSystem } from '../utils/physics';
 import { 
   Sliders, 
   HelpCircle, 
@@ -39,6 +39,8 @@ interface BraggInputProps {
   setRawHKL: (val: string) => void;
   onCalculate: () => void;
   onBatchCalculate?: (batchSets: Array<{ sampleId: string; rawPeaks: string; rawHKL: string }>) => void;
+  crystalSystem?: string;
+  setCrystalSystem?: (val: string) => void;
   
   // Alignment correction optional props
   zeroShift?: number;
@@ -124,7 +126,9 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   isSimulationRunning = false,
   simulationStep = 0,
   isSaving = false,
-  lastAutosaved = null
+  lastAutosaved = null,
+  crystalSystem = 'SC',
+  setCrystalSystem
 }) => {
   const { t } = useTranslation();
   const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>(
@@ -616,10 +620,22 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                 setWavelength(preset.wavelength);
                 setRawPeaks(preset.peaks);
                 setRawHKL(preset.hkls);
+                
+                const presetCrystalSystems: Record<string, string> = {
+                  custom: 'SC',
+                  silicon: 'Diamond',
+                  lab6: 'SC',
+                  ceo2: 'FCC',
+                  nacl: 'FCC',
+                  au: 'FCC'
+                };
+                if (presetCrystalSystems[selectedId] && setCrystalSystem) {
+                  setCrystalSystem(presetCrystalSystems[selectedId]);
+                }
               }
             }}
             className="w-full px-3 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold text-xs cursor-pointer"
-            defaultValue="custom"
+            value={CALIBRATION_PRESETS.some(p => p.sampleId === sampleId) ? CALIBRATION_PRESETS.find(p => p.sampleId === sampleId)?.id : "custom"}
           >
             {CALIBRATION_PRESETS.map((p) => (
               <option key={p.id} value={p.id} className="font-bold text-xs">
@@ -807,38 +823,82 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                   <button
                     key={tpl.name}
                     type="button"
-                    onClick={() => setRawHKL(tpl.list)}
+                    onClick={() => {
+                      setRawHKL(tpl.list);
+                      if (setCrystalSystem) {
+                        setCrystalSystem(tpl.name.includes('FCC') ? 'FCC' : tpl.name.includes('BCC') ? 'BCC' : 'Hexagonal');
+                      }
+                    }}
                     className="px-1.5 py-0.5 text-[8px] font-bold uppercase rounded bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-850 dark:hover:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800/80 transition-colors cursor-pointer"
                   >
                     {tpl.name}
                   </button>
                 ))}
               </div>
+              
+              {/* Crystal System Dropdown Selector */}
+              <div className="mt-2.5">
+                <label className="block text-[9px] uppercase tracking-wider font-bold text-slate-400 dark:text-slate-500 mb-1">
+                  Crystal System Constraint Validation
+                </label>
+                <select
+                  value={crystalSystem}
+                  onChange={(e) => setCrystalSystem && setCrystalSystem(e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-white text-slate-800 border border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800/80 rounded-lg focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all font-bold text-[11px] cursor-pointer"
+                >
+                  <option value="SC">Simple Cubic / Primitive (No Constraints)</option>
+                  <option value="BCC">Body-Centered Cubic / I-Centered [h+k+l is even]</option>
+                  <option value="FCC">Face-Centered Cubic / F-Centered [unmixed parity]</option>
+                  <option value="Diamond">Diamond Cubic [FCC + if even, h+k+l div by 4]</option>
+                  <option value="Hexagonal">Hexagonal / HCP [No (l odd & h+2k multiple of 3)]</option>
+                  <option value="Orthorhombic_C">Base-Centered / C-Centered [h+k is even]</option>
+                </select>
+              </div>
             </div>
           </div>
           
           {/* Dynamic Parsing Preview Badge Board */}
           {parsedPeaks.length > 0 && (
-            <div className="p-3 bg-slate-50/50 dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800/50">
-              <span className="block text-[9px] uppercase tracking-widest font-black text-slate-400 dark:text-slate-500 mb-2">
+            <div className="p-3 bg-slate-50/50 dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800/50 space-y-2">
+              <span className="block text-[9px] uppercase tracking-widest font-black text-slate-400 dark:text-slate-500">
                 Parsed Diffraction Matrix ({parsedPeaks.length})
               </span>
               <div className="flex flex-wrap gap-1.5 max-h-[110px] overflow-y-auto custom-scrollbar">
                 {parsedPeaks.map((p, idx) => {
                   const hkl = parsedHKLs[idx];
+                  let hklErr = '';
+                  if (hkl) {
+                    const parsed = parseSingleHKL(hkl);
+                    if (parsed) {
+                      const check = validateHKLAgainstCrystalSystem(parsed.h, parsed.k, parsed.l, crystalSystem);
+                      if (!check.valid) {
+                        hklErr = check.reason || 'Invalid index';
+                      }
+                    } else {
+                      hklErr = 'Invalid format (needs 3 integers)';
+                    }
+                  }
                   return (
                     <span 
                       key={idx} 
+                      title={hklErr || undefined}
                       className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-mono font-black border transition-colors ${
-                        hkl !== undefined
-                          ? 'bg-indigo-50/80 text-indigo-600 border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/40' 
-                          : 'bg-amber-500/5 text-amber-600 border-amber-500/10 dark:text-amber-400'
+                        hklErr
+                          ? 'bg-rose-500/5 text-rose-600 border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/30'
+                          : hkl !== undefined
+                            ? 'bg-indigo-50/80 text-indigo-600 border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/40' 
+                            : 'bg-amber-500/5 text-amber-600 border-amber-500/10 dark:text-amber-400'
                       }`}
                     >
                       <span>{p.toFixed(2)}°</span>
                       <span className="opacity-40">|</span>
-                      <span className="font-sans text-[9px]">
+                      <span className="font-sans text-[9px] flex items-center gap-1">
                         {hkl !== undefined ? `hkl: ${hkl}` : 'no hkl'}
+                        {hklErr && (
+                          <span className="text-[8px] bg-rose-500 text-white dark:bg-rose-600 px-1 rounded-full font-sans font-black scale-90" title={hklErr}>
+                            ✕
+                          </span>
+                        )}
                       </span>
                     </span>
                   );
@@ -852,6 +912,38 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                   </span>
                 </div>
               )}
+              {/* Detailed Crystal System Constraint Violations */}
+              {(() => {
+                const validationErrors: string[] = [];
+                parsedHKLs.forEach((hkl) => {
+                  const parsed = parseSingleHKL(hkl);
+                  if (parsed) {
+                    const check = validateHKLAgainstCrystalSystem(parsed.h, parsed.k, parsed.l, crystalSystem);
+                    if (!check.valid) {
+                      validationErrors.push(`Plane (${hkl}): ${check.reason}`);
+                    }
+                  } else if (hkl) {
+                    validationErrors.push(`Plane (${hkl}): Must be 3 integers (e.g. 111).`);
+                  }
+                });
+
+                if (validationErrors.length > 0) {
+                  return (
+                    <div className="text-[10px] text-rose-600 dark:text-rose-400 mt-2 space-y-1 bg-rose-500/5 p-2.5 rounded-lg border border-rose-500/15">
+                      <div className="flex items-center gap-1.5 font-bold uppercase tracking-wide text-[9px] text-rose-700 dark:text-rose-400">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                        <span>Symmetry Extinction Violations ({validationErrors.length})</span>
+                      </div>
+                      <ul className="list-disc list-inside space-y-0.5 text-[9.5px] pl-1 leading-relaxed">
+                        {validationErrors.map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
           )}
         </div>

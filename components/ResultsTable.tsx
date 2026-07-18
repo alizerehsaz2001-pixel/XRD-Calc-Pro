@@ -268,7 +268,21 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                 const intensity = row.intensity !== undefined ? row.intensity : 100;
                 return (
                   <tr key={`${row.twoTheta}-${index}`} className="bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
-                    <td className="px-6 py-3 font-sans font-bold text-indigo-600 dark:text-indigo-400">({row.hkl || '?'})</td>
+                    <td className="px-6 py-3 font-sans font-bold">
+                      <div className="flex items-center gap-1.5">
+                        <span className={row.validationError ? 'text-rose-600 dark:text-rose-400' : 'text-indigo-600 dark:text-indigo-400'}>
+                          ({row.hkl || '?'})
+                        </span>
+                        {row.validationError && (
+                          <span 
+                            className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500 text-white dark:bg-rose-600 animate-pulse cursor-help shrink-0"
+                            title={row.validationError}
+                          >
+                            FORBIDDEN
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-900 dark:text-slate-100 w-11">{intensity.toFixed(1)}%</span>

@@ -38,7 +38,7 @@ import { LatticeEstimator } from './components/LatticeEstimator';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SettingsContext } from './components/SettingsContext';
 import { PeriodicTableModule } from './components/PeriodicTableModule';
-import { calculateBragg, parsePeakString } from './utils/physics';
+import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers } from 'lucide-react';
 import { playSynthTone } from './utils/sound';
@@ -247,6 +247,7 @@ const App: React.FC = () => {
   const [rawPeaks, setRawPeaks] = useState<string>(savedState?.rawPeaks ?? '28.44, 47.30, 56.12, 69.13, 76.38'); 
   const [rawHKL, setRawHKL] = useState<string>(savedState?.rawHKL ?? '111, 220, 311, 400, 331');
   const [materialName, setMaterialName] = useState<string | null>(savedState?.materialName ?? null);
+  const [crystalSystem, setCrystalSystem] = useState<string>(savedState?.crystalSystem ?? 'SC');
   const [results, setResults] = useState<BraggResult[]>(savedState?.results ?? []);
   const [braggHistory, setBraggHistory] = useState<BraggHistoryItem[]>(() => {
     try {
@@ -423,7 +424,7 @@ const App: React.FC = () => {
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [lastAutosaved, setLastAutosaved] = useState<string | null>(null);
-  const braggStateRef = useRef({ sampleId, wavelength, rawPeaks, rawHKL, results, materialName });
+  const braggStateRef = useRef({ sampleId, wavelength, rawPeaks, rawHKL, results, materialName, crystalSystem });
 
   const [autosaveInterval, setAutosaveInterval] = useState<number>(() => {
     const val = localStorage.getItem('xrd_autosave_interval');
@@ -568,14 +569,26 @@ const App: React.FC = () => {
 
           const res = calculateBragg(wavelength, calibratedTwoTheta);
           if (res) {
+            const hklValue = hklList[idx] || '';
+            let validationError: string | undefined = undefined;
+            if (hklValue) {
+              const parsed = parseSingleHKL(hklValue);
+              if (parsed) {
+                const check = validateHKLAgainstCrystalSystem(parsed.h, parsed.k, parsed.l, crystalSystem);
+                if (!check.valid) {
+                  validationError = check.reason;
+                }
+              }
+            }
             // Assign a natural decreasing simulated default intensity (e.g. 100, 85, 70...) if none is provided
             const assignedIntensity = peakObj.intensity !== undefined 
               ? peakObj.intensity 
               : Math.max(10, 100 - (idx * 15));
             return { 
               ...res, 
-              hkl: hklList[idx] || '', 
-              intensity: assignedIntensity 
+              hkl: hklValue, 
+              intensity: assignedIntensity,
+              validationError
             } as BraggResult;
           }
           return null;
@@ -696,13 +709,25 @@ const App: React.FC = () => {
 
             const res = calculateBragg(wavelength, calibratedTwoTheta);
             if (res) {
+              const hklValue = hklList[idx] || '';
+              let validationError: string | undefined = undefined;
+              if (hklValue) {
+                const parsed = parseSingleHKL(hklValue);
+                if (parsed) {
+                  const check = validateHKLAgainstCrystalSystem(parsed.h, parsed.k, parsed.l, crystalSystem);
+                  if (!check.valid) {
+                    validationError = check.reason;
+                  }
+                }
+              }
               const assignedIntensity = peakObj.intensity !== undefined 
                 ? peakObj.intensity 
                 : Math.max(10, 100 - (idx * 15));
               return { 
                 ...res, 
-                hkl: hklList[idx] || '', 
-                intensity: assignedIntensity 
+                hkl: hklValue, 
+                intensity: assignedIntensity,
+                validationError
               } as BraggResult;
             }
             return null;
@@ -839,7 +864,7 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    braggStateRef.current = { sampleId, wavelength, rawPeaks, rawHKL, results, materialName };
+    braggStateRef.current = { sampleId, wavelength, rawPeaks, rawHKL, results, materialName, crystalSystem };
     // Keep xrd_bragg_current updated on-the-fly as well, but the formal autosave ticks periodically
     localStorage.setItem('xrd_bragg_current', JSON.stringify({
       sampleId,
@@ -847,9 +872,10 @@ const App: React.FC = () => {
       rawPeaks,
       rawHKL,
       results,
-      materialName
+      materialName,
+      crystalSystem
     }));
-  }, [sampleId, wavelength, rawPeaks, rawHKL, results, materialName]);
+  }, [sampleId, wavelength, rawPeaks, rawHKL, results, materialName, crystalSystem]);
 
   useEffect(() => {
     if (autosaveInterval <= 0) {
@@ -1416,6 +1442,8 @@ const App: React.FC = () => {
                           simulationStep={simulationStep}
                           isSaving={isSaving}
                           lastAutosaved={lastAutosaved}
+                          crystalSystem={crystalSystem}
+                          setCrystalSystem={setCrystalSystem}
                         />
                         <BraggHistory 
                           history={braggHistory} 

@@ -45,6 +45,12 @@ const Symmetry3DVisualizer = ({
   showSymmetryAxes,
   showInversionCenter,
   currentSymmetry,
+  showBasisAtoms = true,
+  showCoordinationBonds = true,
+  showMillerPlane = false,
+  millerH = 1,
+  millerK = 1,
+  millerL = 1,
 }: any) => {
   const [time, setTime] = useState(0);
 
@@ -100,14 +106,16 @@ const Symmetry3DVisualizer = ({
   }[] = [];
   let planes: [number, number, number][][] = [];
 
+  const hexRadius = 0.9;
+
   if (isHex) {
     for (let i = 0; i < 6; i++) {
       const a = (i * Math.PI) / 3;
-      vertices.push([Math.cos(a) * 0.9, Math.sin(a) * 0.9, 0.9]);
+      vertices.push([Math.cos(a) * hexRadius, Math.sin(a) * hexRadius, 0.9]);
     }
     for (let i = 0; i < 6; i++) {
       const a = (i * Math.PI) / 3;
-      vertices.push([Math.cos(a) * 0.9, Math.sin(a) * 0.9, -0.9]);
+      vertices.push([Math.cos(a) * hexRadius, Math.sin(a) * hexRadius, -0.9]);
     }
     axes = [
       {
@@ -138,7 +146,7 @@ const Symmetry3DVisualizer = ({
     const hexPlane: [number, number, number][] = [];
     for (let i = 0; i < 6; i++) {
       const a = (i * Math.PI) / 3;
-      hexPlane.push([Math.cos(a) * 0.9, Math.sin(a) * 0.9, 0]);
+      hexPlane.push([Math.cos(a) * hexRadius, Math.sin(a) * hexRadius, 0]);
     }
     planes = [hexPlane];
   } else {
@@ -291,6 +299,32 @@ const Symmetry3DVisualizer = ({
     content: React.ReactElement;
   };
   const renderQueue: RenderElement[] = [];
+
+  const getPtCustom = (dx: number, dy: number, dz: number): [number, number, number] => {
+    if (isHex) {
+      return [dx, dy, dz];
+    }
+    let sx = 0.85, sy = 0.85, sz = 0.85;
+    if (isTet) {
+      sx = 0.7; sy = 0.7; sz = 1.1;
+    } else if (isOrth) {
+      sx = 0.6; sy = 1.0; sz = 1.25;
+    } else if (isMono) {
+      sx = 0.6; sy = 0.9; sz = 1.0;
+    } else if (isTri) {
+      sx = 0.6; sy = 0.85; sz = 0.95;
+    }
+    let rx = dx * sx;
+    let ry = dy * sy;
+    let rz = dz * sz;
+    if (isMono) {
+      ry += dz * 0.35;
+    } else if (isTri) {
+      rx += dy * 0.15 + dz * 0.25;
+      ry += dz * 0.35;
+    }
+    return [rx, ry, rz];
+  };
 
   if (showMirrorPlanes) {
     planes.forEach((p, idx) => {
@@ -455,6 +489,7 @@ const Symmetry3DVisualizer = ({
     });
   }
 
+  // Draw Corner Nodes
   if (showLatticeOutline) {
     vertices.forEach((v, idx) => {
       const p = project3D(v[0], v[1], v[2]);
@@ -467,6 +502,348 @@ const Symmetry3DVisualizer = ({
             <circle cx={p.x} cy={p.y} r={3.5} fill="#cbd5e1" />
           </g>
         ),
+      });
+    });
+  }
+
+  // Draw Basis Atoms
+  if (showBasisAtoms) {
+    let basisNodes: { pos: [number, number, number]; color: string; label: string; size: number }[] = [];
+
+    if (isCubic) {
+      if (system === "BCC") {
+        basisNodes.push({ pos: [0, 0, 0], color: "#fbbf24", label: "Body Center (0.5, 0.5, 0.5)", size: 4.5 });
+      } else if (system === "FCC" || system === "Diamond") {
+        const fcs: [number, number, number][] = [
+          [0, 0, -1], [0, 0, 1],
+          [0, -1, 0], [0, 1, 0],
+          [-1, 0, 0], [1, 0, 0]
+        ];
+        fcs.forEach((fc, idx) => {
+          basisNodes.push({ pos: fc, color: "#3b82f6", label: `Face Center ${idx+1}`, size: 4 });
+        });
+
+        if (system === "Diamond") {
+          const tets: [number, number, number][] = [
+            [-0.5, -0.5, -0.5],
+            [0.5, 0.5, -0.5],
+            [-0.5, 0.5, 0.5],
+            [0.5, -0.5, 0.5]
+          ];
+          tets.forEach((tet, idx) => {
+            basisNodes.push({ pos: tet, color: "#10b981", label: `Tetrahedral basis ${idx+1}`, size: 4 });
+          });
+        }
+      }
+    } else if (isHex) {
+      basisNodes.push({ pos: [0, 0, 0.9], color: "#3b82f6", label: "Top Face Center", size: 4 });
+      basisNodes.push({ pos: [0, 0, -0.9], color: "#3b82f6", label: "Bottom Face Center", size: 4 });
+      
+      const midPts: [number, number, number][] = [
+        [0, 0.6 * 0.9, 0],
+        [-0.52 * 0.9, -0.3 * 0.9, 0],
+        [0.52 * 0.9, -0.3 * 0.9, 0]
+      ];
+      midPts.forEach((mp, idx) => {
+        basisNodes.push({ pos: mp, color: "#a855f7", label: `HCP Interstitial ${idx+1}`, size: 4.2 });
+      });
+    }
+
+    basisNodes.forEach((node, idx) => {
+      const p = project3D(...getPtCustom(node.pos[0], node.pos[1], node.pos[2]));
+      renderQueue.push({
+        type: "basis-node",
+        zObj: p.z,
+        content: (
+          <g key={`basis-node-${idx}`}>
+            <circle cx={p.x} cy={p.y} r={node.size + 1.5} fill="#0f172a" />
+            <circle cx={p.x} cy={p.y} r={node.size} fill={node.color} stroke="#fff" strokeWidth={1} style={{ filter: `drop-shadow(0 0 5px ${node.color})` }} />
+            <title>{node.label}</title>
+          </g>
+        )
+      });
+    });
+
+    if (showCoordinationBonds) {
+      if (system === "BCC") {
+        const corners: [number, number, number][] = [
+          [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+          [-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]
+        ];
+        corners.forEach((corner, idx) => {
+          const ptStart = project3D(...getPtCustom(0, 0, 0));
+          const ptEnd = project3D(...getPtCustom(corner[0], corner[1], corner[2]));
+          renderQueue.push({
+            type: "bond",
+            zObj: (ptStart.z + ptEnd.z) / 2,
+            content: (
+              <line
+                key={`bcc-bond-${idx}`}
+                x1={ptStart.x}
+                y1={ptStart.y}
+                x2={ptEnd.x}
+                y2={ptEnd.y}
+                stroke="#fbbf24"
+                strokeWidth={1}
+                strokeDasharray="2 3"
+                opacity={0.7}
+              />
+            )
+          });
+        });
+      } else if (system === "Diamond") {
+        const bondsList: { from: [number, number, number]; to: [number, number, number] }[] = [
+          { from: [-0.5, -0.5, -0.5], to: [-1, -1, -1] },
+          { from: [-0.5, -0.5, -0.5], to: [0, -1, -1] },
+          { from: [-0.5, -0.5, -0.5], to: [-1, 0, -1] },
+          { from: [-0.5, -0.5, -0.5], to: [-1, -1, 0] },
+
+          { from: [0.5, 0.5, -0.5], to: [1, 1, -1] },
+          { from: [0.5, 0.5, -0.5], to: [0, 1, -1] },
+          { from: [0.5, 0.5, -0.5], to: [1, 0, -1] },
+          { from: [0.5, 0.5, -0.5], to: [1, 1, 0] },
+
+          { from: [-0.5, 0.5, 0.5], to: [-1, 1, 1] },
+          { from: [-0.5, 0.5, 0.5], to: [0, 1, 1] },
+          { from: [-0.5, 0.5, 0.5], to: [-1, 0, 1] },
+          { from: [-0.5, 0.5, 0.5], to: [-1, 1, 0] },
+
+          { from: [0.5, -0.5, 0.5], to: [1, -1, 1] },
+          { from: [0.5, -0.5, 0.5], to: [0, -1, 1] },
+          { from: [0.5, -0.5, 0.5], to: [1, 0, 1] },
+          { from: [0.5, -0.5, 0.5], to: [1, -1, 0] }
+        ];
+
+        bondsList.forEach((bond, idx) => {
+          const ptStart = project3D(...getPtCustom(...bond.from));
+          const ptEnd = project3D(...getPtCustom(...bond.to));
+          renderQueue.push({
+            type: "bond",
+            zObj: (ptStart.z + ptEnd.z) / 2,
+            content: (
+              <line
+                key={`diamond-bond-${idx}`}
+                x1={ptStart.x}
+                y1={ptStart.y}
+                x2={ptEnd.x}
+                y2={ptEnd.y}
+                stroke="#10b981"
+                strokeWidth={1.2}
+                strokeDasharray="2 2"
+                opacity={0.8}
+              />
+            )
+          });
+        });
+      } else if (isHex) {
+        const midPts: [number, number, number][] = [
+          [0, 0.6 * 0.9, 0],
+          [-0.52 * 0.9, -0.3 * 0.9, 0],
+          [0.52 * 0.9, -0.3 * 0.9, 0]
+        ];
+        for (let i = 0; i < 3; i++) {
+          const ptStart = project3D(...getPtCustom(...midPts[i]));
+          const ptEnd = project3D(...getPtCustom(...midPts[(i+1)%3]));
+          renderQueue.push({
+            type: "bond",
+            zObj: (ptStart.z + ptEnd.z) / 2,
+            content: (
+              <line
+                key={`hcp-mid-bond-${i}`}
+                x1={ptStart.x}
+                y1={ptStart.y}
+                x2={ptEnd.x}
+                y2={ptEnd.y}
+                stroke="#a855f7"
+                strokeWidth={1}
+                strokeDasharray="2 3"
+                opacity={0.7}
+              />
+            )
+          });
+        }
+      }
+    }
+  }
+
+  // Miller Index plane intersection algorithm
+  let planePoints: [number, number, number][] = [];
+  if (showMillerPlane && (millerH !== 0 || millerK !== 0 || millerL !== 0)) {
+    const A = millerH;
+    const B = millerK;
+    const C = millerL;
+    const D = 2 - (millerH + millerK + millerL);
+
+    let boxVerts: [number, number, number][] = [];
+    let boxEdges: [number, number][] = [];
+
+    if (isHex) {
+      boxVerts = vertices; // 12 vertices: 0-5 top, 6-11 bottom
+      boxEdges = [
+        [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0], // Top
+        [6, 7], [7, 8], [8, 9], [9, 10], [10, 11], [11, 6], // Bottom
+        [0, 6], [1, 7], [2, 8], [3, 9], [4, 10], [5, 11] // Vertical
+      ];
+    } else {
+      boxVerts = [
+        [-1, -1, -1],
+        [1, -1, -1],
+        [1, 1, -1],
+        [-1, 1, -1],
+        [-1, -1, 1],
+        [1, -1, 1],
+        [1, 1, 1],
+        [-1, 1, 1]
+      ];
+      boxEdges = [
+        [0, 1], [1, 2], [2, 3], [3, 0],
+        [4, 5], [5, 6], [6, 7], [7, 4],
+        [0, 4], [1, 5], [2, 6], [3, 7]
+      ];
+    }
+
+    const rawIntersections: [number, number, number][] = [];
+
+    boxEdges.forEach(([u, v]) => {
+      const p1 = boxVerts[u];
+      const p2 = boxVerts[v];
+
+      const dx = p2[0] - p1[0];
+      const dy = p2[1] - p1[1];
+      const dz = p2[2] - p1[2];
+
+      const denom = A * dx + B * dy + C * dz;
+      if (Math.abs(denom) > 1e-6) {
+        const t = (D - (A * p1[0] + B * p1[1] + C * p1[2])) / denom;
+        if (t >= 0 && t <= 1) {
+          const ix = p1[0] + t * dx;
+          const iy = p1[1] + t * dy;
+          const iz = p1[2] + t * dz;
+          rawIntersections.push([ix, iy, iz]);
+        }
+      }
+    });
+
+    const uniquePoints: [number, number, number][] = [];
+    rawIntersections.forEach(p => {
+      if (!uniquePoints.some(up => 
+        Math.abs(up[0] - p[0]) < 1e-4 && 
+        Math.abs(up[1] - p[1]) < 1e-4 && 
+        Math.abs(up[2] - p[2]) < 1e-4
+      )) {
+        uniquePoints.push(p);
+      }
+    });
+
+    if (uniquePoints.length >= 3) {
+      const cx = uniquePoints.reduce((sum, p) => sum + p[0], 0) / uniquePoints.length;
+      const cy = uniquePoints.reduce((sum, p) => sum + p[1], 0) / uniquePoints.length;
+      const cz = uniquePoints.reduce((sum, p) => sum + p[2], 0) / uniquePoints.length;
+
+      let Ux = -B, Uy = A, Uz = 0;
+      if (Math.abs(A) < 1e-5 && Math.abs(B) < 1e-5) {
+        Ux = 0; Uy = 1; Uz = 0;
+      }
+      const uLen = Math.sqrt(Ux*Ux + Uy*Uy + Uz*Uz);
+      const uxNorm = Ux / (uLen || 1), uyNorm = Uy / (uLen || 1), uzNorm = Uz / (uLen || 1);
+
+      const vx = B * uzNorm - C * uyNorm;
+      const vy = C * uxNorm - A * uzNorm;
+      const vz = A * uyNorm - B * uxNorm;
+      const vLen = Math.sqrt(vx*vx + vy*vy + vz*vz);
+      const vxNorm = vx / (vLen || 1), vyNorm = vy / (vLen || 1), vzNorm = vz / (vLen || 1);
+
+      const pointsWithAngles = uniquePoints.map(p => {
+        const dx = p[0] - cx;
+        const dy = p[1] - cy;
+        const dz = p[2] - cz;
+        const u = dx * uxNorm + dy * uyNorm + dz * uzNorm;
+        const v = dx * vxNorm + dy * vyNorm + dz * vzNorm;
+        const angle = Math.atan2(v, u);
+        return { p, angle };
+      });
+
+      pointsWithAngles.sort((a, b) => a.angle - b.angle);
+      planePoints = pointsWithAngles.map(item => item.p);
+    }
+  }
+
+  if (showMillerPlane && planePoints.length >= 3) {
+    const projectedPts = planePoints.map(pt => project3D(...getPtCustom(pt[0], pt[1], pt[2])));
+    const avgZ = projectedPts.reduce((sum, pt) => sum + pt.z, 0) / projectedPts.length;
+    const pathString = `M ${projectedPts[0].x} ${projectedPts[0].y} ` + 
+      projectedPts.slice(1).map(pt => `L ${pt.x} ${pt.y}`).join(" ") + " Z";
+    
+    renderQueue.push({
+      type: "miller-plane",
+      zObj: avgZ + 0.05,
+      content: (
+        <g key="miller-plane-g">
+          <path
+            d={pathString}
+            fill="rgba(16, 185, 129, 0.28)"
+            stroke="#10b981"
+            strokeWidth={1.75}
+            style={{ filter: "drop-shadow(0 0 8px rgba(16,185,129,0.5))" }}
+          />
+          {projectedPts.map((pt, idx) => (
+            <circle
+              key={`miller-pt-${idx}`}
+              cx={pt.x}
+              cy={pt.y}
+              r={2.5}
+              fill="#34d399"
+              stroke="#fff"
+              strokeWidth={0.75}
+            />
+          ))}
+        </g>
+      )
+    });
+  }
+
+  // Draw Base Lattice Vectors Originating at Vertex 0
+  if (showLatticeOutline && !isHex) {
+    const originPt = project3D(...getPtCustom(-1, -1, -1));
+    const vecA = project3D(...getPtCustom(-0.4, -1, -1));
+    const vecB = project3D(...getPtCustom(-1, -0.4, -1));
+    const vecC = project3D(...getPtCustom(-1, -1, -0.4));
+
+    const axesVectors = [
+      { start: originPt, end: vecA, color: "#ef4444", label: "a" },
+      { start: originPt, end: vecB, color: "#22c55e", label: "b" },
+      { start: originPt, end: vecC, color: "#3b82f6", label: "c" }
+    ];
+
+    axesVectors.forEach((av, idx) => {
+      renderQueue.push({
+        type: "axis-vector",
+        zObj: Math.max(av.start.z, av.end.z) + 0.1,
+        content: (
+          <g key={`axis-vector-${idx}`}>
+            <line
+              x1={av.start.x}
+              y1={av.start.y}
+              x2={av.end.x}
+              y2={av.end.y}
+              stroke={av.color}
+              strokeWidth={1.75}
+              markerEnd="url(#arrow-head)"
+            />
+            <text
+              x={av.end.x + (av.end.x - av.start.x) * 0.3}
+              y={av.end.y + (av.end.y - av.start.y) * 0.3}
+              fill={av.color}
+              fontSize="8"
+              fontFamily="JetBrains Mono"
+              fontWeight="black"
+              textAnchor="middle"
+              dominantBaseline="central"
+            >
+              {av.label}
+            </text>
+          </g>
+        )
       });
     });
   }
@@ -500,7 +877,7 @@ const Symmetry3DVisualizer = ({
     });
   }
 
-  renderQueue.sort((a, b) => a.zObj - b.zObj); // Sort lower z (far) to higher z (near)
+  renderQueue.sort((a, b) => a.zObj - b.zObj);
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-300 w-full">
@@ -523,6 +900,17 @@ const Symmetry3DVisualizer = ({
               <stop offset="0%" stopColor="rgba(6,182,212,0.4)" />
               <stop offset="100%" stopColor="rgba(6,182,212,0.1)" />
             </linearGradient>
+            <marker
+              id="arrow-head"
+              viewBox="0 0 10 10"
+              refX="6"
+              refY="5"
+              markerWidth="4"
+              markerHeight="4"
+              orient="auto-start-reverse"
+            >
+              <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="context-stroke" />
+            </marker>
           </defs>
           <g className="opacity-30 stroke-slate-700" strokeWidth={0.5}>
             <line x1={0} y1={100} x2={300} y2={100} />
@@ -543,17 +931,47 @@ const Symmetry3DVisualizer = ({
             />
           </g>
 
-          {renderQueue.map((item) => item.content)}
+          {renderQueue.map((item, idx) => React.cloneElement(item.content, { key: `item-${item.type}-${idx}` }))}
         </svg>
 
-        <div className="absolute top-3 left-4 flex items-center gap-2 z-10">
-          <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
-          <span className="text-[10px] font-mono font-black text-slate-300 uppercase tracking-[0.2em] drop-shadow-md">
-            Live Render
-          </span>
+        {/* Dynamic Coordinates Overlay */}
+        <div className="absolute top-4 left-5 flex items-start flex-col gap-1.5 z-20 pointer-events-none">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+            </span>
+            <span className="text-[10px] font-mono font-black text-emerald-400 uppercase tracking-[0.2em] drop-shadow-md">
+              Live Matrix
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5 ml-4">
+            <span className="text-[8.5px] font-mono font-bold text-slate-400 uppercase tracking-widest">{system} Lattice</span>
+            <span className="text-[8.5px] font-mono text-slate-500 uppercase tracking-widest">
+              θ: {(((angleY * (180 / Math.PI)) % 360 + 360) % 360).toFixed(1).padStart(5, '0')}°
+            </span>
+            <span className="text-[8.5px] font-mono text-slate-500 uppercase tracking-widest">
+              φ: {(((angleX * (180 / Math.PI)) % 360 + 360) % 360).toFixed(1).padStart(5, '0')}°
+            </span>
+          </div>
         </div>
-        <div className="absolute bottom-3 right-4 text-[9px] font-mono font-black text-slate-500 bg-[#070D18]/80 backdrop-blur px-2.5 py-1 rounded-md border border-[#1e293b]">
-          Kinematic 3D Matrix
+
+        {/* Center Reticle */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <div className="w-1.5 h-1.5 border border-indigo-500/40 rounded-full"></div>
+        </div>
+
+        {/* Bottom Right Info */}
+        <div className="absolute bottom-4 right-5 flex flex-col items-end gap-1.5 z-20 pointer-events-none">
+          {showMillerPlane && (
+             <div className="text-[9px] font-mono font-black text-emerald-400 bg-emerald-950/40 backdrop-blur px-2 py-1 rounded border border-emerald-900/50 flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
+               <span className="opacity-60 text-[8px] uppercase tracking-widest">HKL</span>
+               <span>{millerH} {millerK} {millerL}</span>
+             </div>
+          )}
+          <div className="text-[9px] font-mono font-black text-slate-500 bg-[#070D18]/90 backdrop-blur px-2.5 py-1 rounded border border-[#1e293b] shadow-lg uppercase tracking-widest">
+            Kinematic 3D Matrix
+          </div>
         </div>
       </div>
     </div>
@@ -612,6 +1030,12 @@ export const SelectionRulesModule: React.FC = () => {
   const [showSymmetryAxes, setShowSymmetryAxes] = useState(true);
   const [showMirrorPlanes, setShowMirrorPlanes] = useState(true);
   const [showInversionCenter, setShowInversionCenter] = useState(true);
+  const [showBasisAtoms, setShowBasisAtoms] = useState(true);
+  const [showCoordinationBonds, setShowCoordinationBonds] = useState(true);
+  const [showMillerPlane, setShowMillerPlane] = useState(false);
+  const [visualizerH, setVisualizerH] = useState(1);
+  const [visualizerK, setVisualizerK] = useState(1);
+  const [visualizerL, setVisualizerL] = useState(1);
 
   const [sandboxH, setSandboxH] = useState(1);
   const [sandboxK, setSandboxK] = useState(1);
@@ -1627,12 +2051,16 @@ export const SelectionRulesModule: React.FC = () => {
       inversion: boolean;
       identity: string;
       group: string;
+      laueClass: string;
+      bravais: string;
       operations: number;
       description: string;
     }
   > = {
     SC: {
       group: "m-3m (Oh)",
+      laueClass: "m-3m",
+      bravais: "Primitive (P)",
       operations: 48,
       rotation: [
         "3 x 4-fold (Axes)",
@@ -1647,6 +2075,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     BCC: {
       group: "m-3m (Oh)",
+      laueClass: "m-3m",
+      bravais: "Body-Centered (I)",
       operations: 48,
       rotation: ["3 x 4-fold", "4 x 3-fold", "6 x 2-fold"],
       reflection: "9 Symmetry Planes",
@@ -1657,6 +2087,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     FCC: {
       group: "m-3m (Oh)",
+      laueClass: "m-3m",
+      bravais: "Face-Centered (F)",
       operations: 48,
       rotation: ["3 x 4-fold", "4 x 3-fold", "6 x 2-fold"],
       reflection: "9 Symmetry Planes",
@@ -1667,6 +2099,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     Diamond: {
       group: "m-3m (Oh)",
+      laueClass: "m-3m",
+      bravais: "Face-Centered (F)",
       operations: 48,
       rotation: ["3 x 4-fold", "4 x 3-fold", "6 x 2-fold"],
       reflection: "9 Symmetry Planes",
@@ -1677,6 +2111,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     Hexagonal: {
       group: "6/mmm (D6h)",
+      laueClass: "6/mmm",
+      bravais: "Primitive (P)",
       operations: 24,
       rotation: ["1 x 6-fold (c-axis)", "6 x 2-fold (basal)"],
       reflection: "7 Symmetry Planes",
@@ -1687,6 +2123,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     Tetragonal: {
       group: "4/mmm (D4h)",
+      laueClass: "4/mmm",
+      bravais: "Primitive (P)",
       operations: 16,
       rotation: ["1 x 4-fold (c-axis)", "4 x 2-fold"],
       reflection: "5 Symmetry Planes",
@@ -1697,6 +2135,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     Tetragonal_I: {
       group: "4/mmm (D4h)",
+      laueClass: "4/mmm",
+      bravais: "Body-Centered (I)",
       operations: 16,
       rotation: ["1 x 4-fold", "4 x 2-fold"],
       reflection: "5 Symmetry Planes",
@@ -1707,6 +2147,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     Orthorhombic: {
       group: "mmm (D2h)",
+      laueClass: "mmm",
+      bravais: "Primitive (P)",
       operations: 8,
       rotation: ["3 x 2-fold (Orthogonal)"],
       reflection: "3 Symmetry Planes",
@@ -1717,6 +2159,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     Orthorhombic_F: {
       group: "mmm (D2h)",
+      laueClass: "mmm",
+      bravais: "Face-Centered (F)",
       operations: 8,
       rotation: ["3 x 2-fold"],
       reflection: "3 Symmetry Planes",
@@ -1726,6 +2170,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     Orthorhombic_C: {
       group: "mmm (D2h)",
+      laueClass: "mmm",
+      bravais: "Base-Centered (C)",
       operations: 8,
       rotation: ["3 x 2-fold"],
       reflection: "3 Symmetry Planes",
@@ -1735,6 +2181,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     Cubic: {
       group: "m-3m (Oh)",
+      laueClass: "m-3m",
+      bravais: "Primitive (P)",
       operations: 48,
       rotation: ["3 x 4-fold", "4 x 3-fold", "6 x 2-fold"],
       reflection: "9 Symmetry Planes",
@@ -1745,6 +2193,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     Monoclinic: {
       group: "2/m (C2h)",
+      laueClass: "2/m",
+      bravais: "Primitive (P) / Base-Centered (C)",
       operations: 4,
       rotation: ["1 x 2-fold (b-axis)"],
       reflection: "1 Mirror Plane",
@@ -1755,6 +2205,8 @@ export const SelectionRulesModule: React.FC = () => {
     },
     Triclinic: {
       group: "-1 (Ci)",
+      laueClass: "-1",
+      bravais: "Primitive (P)",
       operations: 2,
       rotation: ["None (except identity)"],
       reflection: "No Planes",
@@ -2940,16 +3392,36 @@ export const SelectionRulesModule: React.FC = () => {
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-1">
+                    <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-wider mb-2">
                       Symmetry Profile
                     </h3>
-                    <div className="flex items-center gap-3">
-                      <p className="flex items-center gap-2 text-[10px] sm:text-xs text-slate-400 font-mono uppercase tracking-[0.2em]">
-                        Group Identifier
-                      </p>
-                      <span className="text-[10px] font-mono font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-lg border border-indigo-500/30 uppercase tracking-[0.2em] shadow-[0_0_10px_rgba(99,102,241,0.2)]">
-                        {currentSymmetry.group}
-                      </span>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[9px] sm:text-[10px] text-slate-500 font-mono uppercase tracking-[0.15em]">
+                          Point Group
+                        </p>
+                        <span className="text-[10px] font-mono font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-lg border border-indigo-500/30 uppercase shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+                          {currentSymmetry.group}
+                        </span>
+                      </div>
+                      <div className="hidden sm:block w-px h-4 bg-[#1e293b]" />
+                      <div className="flex items-center gap-2">
+                        <p className="text-[9px] sm:text-[10px] text-slate-500 font-mono uppercase tracking-[0.15em]">
+                          Laue Class
+                        </p>
+                        <span className="text-[10px] font-mono font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-lg border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.15)]">
+                          {currentSymmetry.laueClass}
+                        </span>
+                      </div>
+                      <div className="hidden sm:block w-px h-4 bg-[#1e293b]" />
+                      <div className="flex items-center gap-2">
+                        <p className="text-[9px] sm:text-[10px] text-slate-500 font-mono uppercase tracking-[0.15em]">
+                          Bravais
+                        </p>
+                        <span className="text-[10px] font-mono font-black text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-lg border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.15)]">
+                          {currentSymmetry.bravais}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3007,6 +3479,12 @@ export const SelectionRulesModule: React.FC = () => {
                       showSymmetryAxes={showSymmetryAxes}
                       showInversionCenter={showInversionCenter}
                       currentSymmetry={currentSymmetry}
+                      showBasisAtoms={showBasisAtoms}
+                      showCoordinationBonds={showCoordinationBonds}
+                      showMillerPlane={showMillerPlane}
+                      millerH={visualizerH}
+                      millerK={visualizerK}
+                      millerL={visualizerL}
                     />
 
                     {/* Toggle Pill Buttons */}
@@ -3063,6 +3541,87 @@ export const SelectionRulesModule: React.FC = () => {
                           className={`w-1.5 h-1.5 rounded-full ${!currentSymmetry.inversion ? "bg-slate-800" : showInversionCenter ? "bg-indigo-400" : "bg-slate-700"}`}
                         />
                       </button>
+
+                      <button
+                        onClick={() => setShowBasisAtoms(!showBasisAtoms)}
+                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showBasisAtoms ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                      >
+                        <span className="flex items-center gap-1">
+                          <Component className="w-3.5 h-3.5" /> Basis Atoms
+                        </span>
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${showBasisAtoms ? "bg-indigo-400" : "bg-slate-700"}`}
+                        />
+                      </button>
+
+                      <button
+                        onClick={() => setShowCoordinationBonds(!showCoordinationBonds)}
+                        className={`py-1.5 px-2.5 rounded-lg text-[9px] font-bold uppercase tracking-wider border flex items-center justify-between transition-all ${showCoordinationBonds ? "bg-indigo-500/10 border-indigo-500/20 text-indigo-300" : "bg-[#0B1221] border-[#1e293b] text-slate-500"}`}
+                      >
+                        <span className="flex items-center gap-1">
+                          <Network className="w-3.5 h-3.5" /> Bonds
+                        </span>
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${showCoordinationBonds ? "bg-indigo-400" : "bg-slate-700"}`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Miller Slicing Plane interactive controls */}
+                    <div className="p-3.5 bg-[#050B14]/60 rounded-xl border border-[#1e293b]/80 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-mono font-black text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                          <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                          Miller Plane (h k l) Slicer
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowMillerPlane(!showMillerPlane)}
+                          className={`px-3 py-1 text-[8px] font-mono font-black uppercase tracking-widest rounded-md border transition-all ${
+                            showMillerPlane
+                              ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                              : "bg-[#0b1221] border-[#1e293b] text-slate-500"
+                          }`}
+                        >
+                          {showMillerPlane ? "ON" : "OFF"}
+                        </button>
+                      </div>
+
+                      {showMillerPlane && (
+                        <div className="space-y-2.5 pt-1 border-t border-[#1e293b]/40 animate-in slide-in-from-top-1 duration-200">
+                          <div className="flex items-center gap-2">
+                            {["h", "k", "l"].map((coord, idx) => {
+                              const val = idx === 0 ? visualizerH : idx === 1 ? visualizerK : visualizerL;
+                              const setter = idx === 0 ? setVisualizerH : idx === 1 ? setVisualizerK : setVisualizerL;
+                              return (
+                                <div key={coord} className="flex-1 bg-black/40 rounded-lg p-1.5 border border-[#1e293b] flex flex-col items-center">
+                                  <span className="text-[9px] font-mono font-black text-slate-500 uppercase">{coord}</span>
+                                  <div className="flex items-center gap-1.5 mt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => setter(Math.max(-4, val - 1))}
+                                      className="w-4 h-4 rounded bg-slate-900 hover:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-400"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="text-xs font-mono font-bold text-emerald-400 w-5 text-center">{val}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setter(Math.min(4, val + 1))}
+                                      className="w-4 h-4 rounded bg-slate-900 hover:bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-400"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="text-[8px] font-mono text-slate-500 text-center leading-relaxed">
+                            Cuts crystal lattice on plane: <span className="text-emerald-400 font-bold">({visualizerH} {visualizerK} {visualizerL})</span>. Intersects sheared bounding box boundaries.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -3222,15 +3781,15 @@ export const SelectionRulesModule: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] shadow-inner flex flex-col h-[130px]">
+                        <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] shadow-inner flex flex-col min-h-[160px] max-h-[220px]">
                           <span className="block text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 font-mono">
-                            Symmetry-Equivalent Family
+                            Symmetry-Equivalent Family {'{h k l}'}
                           </span>
                           <div className="flex-1 overflow-y-auto pr-1 flex flex-wrap gap-1.5 content-start custom-scrollbar">
                             {familyList.map((plane, i) => (
                               <span
                                 key={`equiv-plane-${plane}-${i}`}
-                                className="text-[10px] font-mono font-bold text-indigo-300 bg-[#050B14] px-2 py-0.5 rounded border border-[#1e293b] animate-in zoom-in-95 duration-200"
+                                className="text-[10px] font-mono font-bold text-indigo-300 bg-[#050B14] px-2 py-0.5 rounded border border-[#1e293b] hover:border-indigo-500/50 hover:bg-indigo-500/10 cursor-default transition-colors animate-in zoom-in-95 duration-200"
                               >
                                 {plane}
                               </span>

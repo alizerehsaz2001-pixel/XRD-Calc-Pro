@@ -59,6 +59,8 @@ import {
   Focus as Ruler,
   TestTube as Vial,
   Download,
+  Maximize2,
+  Network
 } from "lucide-react";
 
 import { getActiveMaterials } from "../utils/materialsHelper";
@@ -4217,18 +4219,91 @@ if __name__ == '__main__':
             </div>
           </div>
 
-          {/* Scientific Info Banner of what Engine Hyperparameters is doing */}
-          <div className="mb-6 p-4 bg-indigo-950/40 border border-indigo-800/50 rounded-2xl relative z-10 text-[11px] text-slate-300 leading-relaxed shadow-sm flex flex-col gap-3">
-            <div className="flex items-center gap-2 text-indigo-400 font-black uppercase tracking-widest text-[10px]">
-              <Cpu className="w-4 h-4 text-indigo-400 animate-pulse" />
-              <span>What are Engine Hyperparameters?</span>
+          {/* Network Topology Visualization */}
+          <div className="mb-6 bg-slate-900/60 border border-slate-700/60 rounded-2xl relative z-10 p-5 overflow-hidden group">
+            <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] pointer-events-none" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-indigo-400 font-black uppercase tracking-widest text-[10px]">
+                <Cpu className="w-4 h-4 text-indigo-400 animate-pulse" />
+                <span>Live Network Topology</span>
+              </div>
+              <span className="text-[9px] font-mono text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-800 shadow-inner">
+                {engineConfig.depth}-Layer ResNet
+              </span>
             </div>
-            <p>
-              These parameters calibrate our advanced 1D Residual Convolutional Neural Network (ConvNet/ResNet). They control how the intelligence engine models diffraction peaks (Gaussian/Lorentzian profiles), processes trace signals (via Feature Maps &amp; receptive Kernel widths), stabilizes gradients (Batch Normalization), and filters noisy backgrounds.
-            </p>
-            <p>
-              Fine-tuning these configurations optimizes identification sensitivity for complex multi-phase mineral mixtures and low signal-to-noise scans.
-            </p>
+            
+            <div className="relative h-20 flex items-center justify-between px-2">
+              {/* Input */}
+              <div className="flex flex-col items-center gap-2 z-10">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                  <Activity className="w-4 h-4 text-emerald-400" />
+                </div>
+                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest">Input</span>
+              </div>
+              
+              {/* Conv Layer */}
+              <div className="flex-1 h-px bg-slate-700/50 relative">
+                <motion.div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" animate={{ x: ['0%', '300%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} />
+              </div>
+              
+              {/* Conv Block */}
+              <div className="flex flex-col items-center gap-2 z-10">
+                <div className="w-12 h-12 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center relative overflow-hidden group-hover:border-indigo-400 transition-colors shadow-[inset_0_2px_15px_rgba(99,102,241,0.1)]">
+                   <div className="absolute inset-0 flex items-center justify-center opacity-30 gap-0.5">
+                     {Array.from({ length: 3 }).map((_, i) => (
+                       <div key={i} className="w-0.5 h-6 bg-indigo-400 rounded-full" />
+                     ))}
+                   </div>
+                   <span className="text-[10px] font-black text-indigo-300 relative z-10 bg-indigo-950/80 px-1 rounded">{engineConfig.kernelSize}</span>
+                </div>
+                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest">Conv1D</span>
+              </div>
+              
+              {/* Filters */}
+              <div className="flex-1 h-px bg-slate-700/50 relative">
+                <motion.div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent" animate={{ x: ['0%', '300%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear', delay: 0.2 }} />
+              </div>
+
+              {/* Feature Maps */}
+              <div className="flex flex-col items-center gap-2 z-10">
+                <div className="w-10 h-10 relative">
+                   {Array.from({ length: 3 }).map((_, i) => (
+                     <div key={i} className="absolute top-0 left-0 w-full h-full rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/40 shadow-[0_0_10px_rgba(217,70,239,0.1)]" style={{ marginLeft: i * 4, marginTop: i * -4 }} />
+                   ))}
+                   <div className="absolute inset-0 flex items-center justify-center z-20 ml-2 -mt-2">
+                     <span className="text-[9px] font-black text-fuchsia-300 drop-shadow-md">{engineConfig.filters}</span>
+                   </div>
+                </div>
+                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest ml-2">Features</span>
+              </div>
+              
+              <div className="flex-1 h-px bg-slate-700/50 relative">
+                <motion.div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" animate={{ x: ['0%', '300%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear', delay: 0.4 }} />
+              </div>
+              
+              {/* Output */}
+              <div className="flex flex-col items-center gap-2 z-10">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.15)]">
+                  <span className="text-[8px] font-black text-cyan-300 uppercase">{engineConfig.pooling}</span>
+                </div>
+                <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-widest">Pool</span>
+              </div>
+            </div>
+            
+            <div className="mt-5 grid grid-cols-3 gap-2 border-t border-slate-700/50 pt-3">
+              <div className="flex flex-col">
+                <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Activation</span>
+                <span className="text-[10px] font-black text-indigo-300">{engineConfig.activation}</span>
+              </div>
+              <div className="flex flex-col items-center border-x border-slate-700/50">
+                <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Profile</span>
+                <span className="text-[10px] font-black text-fuchsia-300">{engineConfig.kernelProfile}</span>
+              </div>
+              <div className="flex flex-col items-end">
+                <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Optimization</span>
+                <span className="text-[10px] font-black text-emerald-300">{engineConfig.optimization}</span>
+              </div>
+            </div>
           </div>
 
           {/* Simulated Auto-Tuner Progress Section */}
@@ -6932,166 +7007,204 @@ if __name__ == '__main__':
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-1.5 mb-2 font-black uppercase tracking-widest bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-inner relative z-10 hover:border-violet-500/30 transition-colors"
+                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 font-black uppercase tracking-widest bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.1)] relative z-10 hover:border-violet-400/50 transition-all duration-300"
                         >
-                          <p className="space-y-1.5 relative z-10">
-                            <span className="flex items-center gap-2 text-violet-300">
-                              <span className="text-violet-500 font-bold">
-                                &gt;
-                              </span>{" "}
-                              Tensor shape: [1, 2048, 1]
-                            </span>
-                            <span
-                              className="flex items-center gap-2 text-violet-300"
-                              style={{ animationDelay: "0.2s" }}
-                            >
-                              <span className="text-violet-500 font-bold">
-                                &gt;
-                              </span>{" "}
-                              Kernel: 1D [{engineConfig.kernelSize}]
-                            </span>
-                            <span
-                              className="flex items-center gap-2 text-violet-300"
-                              style={{ animationDelay: "0.4s" }}
-                            >
-                              <span className="text-violet-500 font-bold">
-                                &gt;
-                              </span>{" "}
-                              Standardizing I/I0 & 2θ
-                            </span>
-                          </p>
-                          <div className="w-full h-8 mt-3 relative flex items-end gap-[2px] opacity-60 overflow-hidden">
-                            {Array.from({ length: 40 }).map((_, i) => (
+                          <div className="flex justify-between items-center border-b border-slate-700/50 pb-2">
+                             <span className="text-violet-300 flex items-center gap-1.5">
+                               <SlidersHorizontal className="w-3.5 h-3.5 text-violet-500" /> Input Standardization
+                             </span>
+                             <span className="text-violet-400 animate-pulse text-[8px] bg-violet-500/10 px-1.5 py-0.5 rounded border border-violet-500/20">PRE-PROCESSING</span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            <div className="bg-[#0B1221] p-2 rounded-lg border border-slate-800 shadow-inner flex flex-col gap-1">
+                               <span className="text-[7px] text-slate-500">TENSOR SHAPE</span>
+                               <span className="text-[9px] text-violet-300 drop-shadow-sm font-black">[1, 2048, 1]</span>
+                            </div>
+                            <div className="bg-[#0B1221] p-2 rounded-lg border border-slate-800 shadow-inner flex flex-col gap-1">
+                               <span className="text-[7px] text-slate-500">NORMALIZATION</span>
+                               <span className="text-[9px] text-violet-300 drop-shadow-sm font-black">MIN-MAX I/I0</span>
+                            </div>
+                          </div>
+
+                          <div className="w-full h-12 mt-2 relative flex items-end gap-[1px] opacity-80 overflow-hidden bg-slate-950 p-1.5 rounded-lg border border-slate-800">
+                            <div className="absolute inset-0 flex justify-between px-2 opacity-20 pointer-events-none">
+                              {Array.from({length: 8}).map((_, i) => (
+                                <div key={i} className="w-px h-full bg-violet-500" />
+                              ))}
+                            </div>
+                            
+                            {Array.from({ length: 64 }).map((_, i) => (
                               <div
                                 key={`bar-${i}`}
-                                className="flex-1 bg-violet-500 rounded-t-sm animate-[pulse_1s_ease-in-out_infinite]"
+                                className="flex-1 rounded-t-sm transition-all duration-300 relative z-10"
                                 style={{
-                                  height: `${20 + Math.random() * 80}%`,
+                                  backgroundColor: Math.random() > 0.8 ? '#a855f7' : '#8b5cf6',
+                                  height: `${10 + Math.random() * 90}%`,
+                                  animation: `pulse 1s ease-in-out infinite alternate`,
                                   animationDelay: `${i * 0.05}s`,
                                 }}
                               />
                             ))}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-violet-500/20 to-transparent -translate-x-full animate-[scan_2s_linear_infinite]" />
+                            <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.3),transparent)] -translate-x-full animate-[scan_2s_linear_infinite]" />
                           </div>
                         </motion.div>
                       )}
 
                       {idx === 1 && isActive && (
-                        <div className="mb-2 relative z-10">
-                          <div className="text-[9px] text-slate-400 font-mono space-y-2 mb-3 bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_15px_rgba(139,92,246,0.1)] font-black uppercase tracking-widest hover:border-violet-400/50 transition-colors">
-                            <div className="flex flex-col gap-3">
+                        <div className="mb-2 relative z-10 animate-in slide-in-from-top-1 duration-300">
+                          <div className="text-[9px] text-slate-400 font-mono space-y-2 mb-3 bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-violet-500/30 shadow-[inset_0_0_20px_rgba(139,92,246,0.15)] font-black uppercase tracking-widest hover:border-violet-400/50 transition-all duration-300">
+                            
+                            <div className="flex items-center justify-between mb-3 border-b border-violet-500/20 pb-2">
+                               <span className="text-violet-300 flex items-center gap-1.5">
+                                 <Cpu className="w-4 h-4" /> 1D Convolution Processing
+                               </span>
+                               <span className="bg-violet-500/20 text-violet-400 px-2 py-0.5 rounded border border-violet-500/40 animate-pulse">
+                                 Active
+                               </span>
+                            </div>
+
+                            <div className="flex flex-col gap-4">
                               {/* Animated Kernel Sliding Visualization */}
-                              <div className="relative h-6 bg-slate-950 rounded border border-slate-800 overflow-hidden mb-1 flex items-center">
+                              <div className="relative h-12 bg-[#0B1221] rounded-lg border border-[#1e293b] overflow-hidden mb-1 flex items-center shadow-inner">
+                                <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:8px_8px]" />
                                 {/* Input signal mock */}
-                                <svg className="absolute inset-0 w-full h-full opacity-30" preserveAspectRatio="none" viewBox="0 0 100 100">
-                                  <path d="M0 50 Q 10 10, 20 60 T 40 40 T 60 70 T 80 30 T 100 50" fill="none" stroke="#a78bfa" strokeWidth="2" />
+                                <svg className="absolute inset-0 w-full h-full opacity-40" preserveAspectRatio="none" viewBox="0 0 100 100">
+                                  <path d="M0 70 Q 10 70, 20 20 T 40 80 T 60 10 T 80 90 T 100 50" fill="none" stroke="#8b5cf6" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                                  <path d="M0 70 Q 10 70, 20 20 T 40 80 T 60 10 T 80 90 T 100 50" fill="none" stroke="#a78bfa" strokeWidth="6" opacity="0.2" vectorEffect="non-scaling-stroke" />
                                 </svg>
-                                {/* Sliding kernel */}
+                                {/* Grid Lines */}
+                                <div className="absolute inset-0 flex justify-between px-4">
+                                   {Array.from({length: 10}).map((_, i) => (
+                                     <div key={i} className="w-px h-full bg-violet-500/10" />
+                                   ))}
+                                </div>
+                                {/* Sliding kernel window */}
                                 <div 
-                                  className="absolute h-full bg-violet-500/20 border-x border-violet-400 shadow-[0_0_10px_rgba(139,92,246,0.5)] animate-[slide_2s_ease-in-out_infinite_alternate]"
-                                  style={{ width: `${Math.max(10, engineConfig.kernelSize * 2)}%` }}
+                                  className="absolute h-full bg-violet-500/20 border-x border-violet-400 shadow-[0_0_20px_rgba(139,92,246,0.6)] animate-[slide_3s_ease-in-out_infinite_alternate]"
+                                  style={{ width: `${Math.max(10, engineConfig.kernelSize * 3)}%` }}
                                 >
-                                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[6px] text-violet-300 bg-violet-900 px-1 rounded whitespace-nowrap">k={engineConfig.kernelSize}</div>
+                                  <div className="absolute top-1 left-1/2 -translate-x-1/2 text-[7px] text-white bg-violet-600 px-1.5 rounded-sm whitespace-nowrap shadow-md font-bold">K={engineConfig.kernelSize}</div>
+                                  
+                                  {/* Kernel internals */}
+                                  <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
+                                    {Array.from({length: engineConfig.kernelSize}).map((_, i) => (
+                                      <div key={i} className="w-1 h-3 bg-violet-300 rounded-sm animate-pulse" style={{ animationDelay: `${i * 0.1}s` }} />
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
-                              <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-                                <p className="flex justify-between items-center bg-slate-950/50 px-2 py-1 rounded border border-slate-800">
-                                  <span className="text-violet-300 flex items-center gap-1.5">
-                                    <Layers className="w-3 h-3 text-violet-500"/>
-                                    Filters
-                                  </span>{" "}
-                                  <span className="text-violet-400 drop-shadow-sm">{engineConfig.filters}</span>
-                                </p>
-                                <p className="flex justify-between items-center bg-slate-950/50 px-2 py-1 rounded border border-slate-800">
-                                  <span className="text-violet-300 flex items-center gap-1.5">
-                                    <Activity className="w-3 h-3 text-emerald-500"/>
-                                    Activ
-                                  </span>{" "}
-                                  <span className="text-emerald-400 drop-shadow-sm">{engineConfig.activation}</span>
-                                </p>
-                                <p className="flex justify-between items-center bg-slate-950/50 px-2 py-1 rounded border border-slate-800">
-                                  <span className="text-violet-300 flex items-center gap-1.5">
-                                    <Database className="w-3 h-3 text-amber-500"/>
-                                    Norm
-                                  </span>{" "}
-                                  <span className={engineConfig.batchNorm ? "text-emerald-400" : "text-amber-400"}>
+                              
+                              <div className="grid grid-cols-4 gap-2">
+                                <div className="flex flex-col justify-center items-center bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                                  <Layers className="w-3.5 h-3.5 text-violet-500 mb-1"/>
+                                  <span className="text-[7px] text-slate-500 mb-0.5">FILTERS</span>
+                                  <span className="text-violet-400 drop-shadow-sm font-black">{engineConfig.filters}</span>
+                                </div>
+                                <div className="flex flex-col justify-center items-center bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                                  <Activity className="w-3.5 h-3.5 text-emerald-500 mb-1"/>
+                                  <span className="text-[7px] text-slate-500 mb-0.5">ACTIVATION</span>
+                                  <span className="text-emerald-400 drop-shadow-sm font-black">{engineConfig.activation}</span>
+                                </div>
+                                <div className="flex flex-col justify-center items-center bg-slate-950/60 p-2 rounded-lg border border-slate-800 relative overflow-hidden">
+                                  {engineConfig.batchNorm && <div className="absolute inset-0 bg-emerald-500/10 animate-pulse" />}
+                                  <Database className="w-3.5 h-3.5 text-amber-500 mb-1 relative z-10"/>
+                                  <span className="text-[7px] text-slate-500 mb-0.5 relative z-10">BATCH NORM</span>
+                                  <span className={`relative z-10 font-black ${engineConfig.batchNorm ? "text-emerald-400" : "text-amber-400"}`}>
                                     {engineConfig.batchNorm ? "ACTIVE" : "OFF"}
                                   </span>
-                                </p>
-                                <p className="flex justify-between items-center bg-slate-950/50 px-2 py-1 rounded border border-slate-800">
-                                  <span className="text-violet-300 flex items-center gap-1.5">
-                                    <span className="w-3 h-3 rounded bg-fuchsia-500/20 text-fuchsia-400 flex items-center justify-center border border-fuchsia-500/50 text-[6px]">D</span>
-                                    Drop
-                                  </span>{" "}
-                                  <span className="text-fuchsia-400 drop-shadow-sm">
+                                </div>
+                                <div className="flex flex-col justify-center items-center bg-slate-950/60 p-2 rounded-lg border border-slate-800">
+                                  <div className="w-3.5 h-3.5 rounded bg-fuchsia-500/20 text-fuchsia-400 flex items-center justify-center border border-fuchsia-500/50 text-[8px] mb-1">D</div>
+                                  <span className="text-[7px] text-slate-500 mb-0.5">DROPOUT</span>
+                                  <span className="text-fuchsia-400 drop-shadow-sm font-black">
                                     {engineConfig.dropout.toFixed(2)}
                                   </span>
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-2 w-full bg-slate-900/60 p-3 rounded-xl border border-slate-800 relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest border border-slate-700/50 rounded bg-slate-800/40 px-1 py-0.5">
-                                Showing {Math.min(engineConfig.filters / 8, 5)}{" "}
-                                of {engineConfig.filters} filters
-                              </span>
-                              {engineConfig.batchNorm && (
-                                <span className="text-[7px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1 py-0.5 rounded animate-pulse">
-                                  BN ACTIVE
-                                </span>
-                              )}
-                            </div>
-                            {Array.from({
-                              length: Math.min(engineConfig.filters / 8, 5),
-                            }).map((_, iIdx) => (
-                              <div
-                                key={`filter-map-${iIdx}`}
-                                className="flex items-center gap-2"
-                              >
-                                <span className="text-[7px] text-slate-500 font-mono tracking-widest uppercase w-8 font-bold">
-                                  F{iIdx * 8 + 1}
-                                </span>
-                                <div className="flex-1 flex gap-[2px] h-3.5 rounded bg-slate-950 overflow-hidden relative">
-                                  <div
-                                    className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.3),transparent)] -translate-x-full animate-[scan_2s_linear_infinite]"
-                                    style={{ animationDelay: `${iIdx * 0.4}s` }}
-                                  />
-                                  {Array.from({ length: 32 }).map((_, i) => {
-                                    const isActive =
-                                      engineConfig.dropout === 0 ||
-                                      Math.random() > engineConfig.dropout;
-                                    return (
-                                      <div
-                                        key={`val-${i}`}
-                                        className="flex-1 rounded-[1px] relative z-10 transition-colors"
-                                        style={{
-                                          backgroundColor: !isActive
-                                            ? "#0f172a"
-                                            : i % (iIdx + 2) === 0
-                                              ? "#a855f7"
-                                              : i % 3 === 0
-                                                ? "#7c3aed"
-                                                : "#1e293b",
-                                          opacity: !isActive
-                                            ? 0.2
-                                            : Math.random() * 0.6 + 0.4,
-                                        }}
-                                      />
-                                    );
-                                  })}
                                 </div>
                               </div>
-                            ))}
-                            <div className="mt-1 text-[8px] flex justify-between tracking-[0.2em] uppercase font-bold text-slate-600 font-mono">
-                              <span>Pool: {engineConfig.pooling}</span>
-                              <span>Dim: [1, 512, {engineConfig.filters}]</span>
                             </div>
                           </div>
-                          <p className="text-[9px] text-slate-500 font-mono mt-3 uppercase tracking-[0.2em] text-right font-black flex justify-end items-center gap-1.5">
-                            <Activity className="w-3 h-3 text-violet-400" />{" "}
-                            Feature Map Activations
+
+                          <div className="flex flex-col gap-3 w-full bg-[#070D18] p-4 rounded-xl border border-slate-800/80 shadow-[inset_0_2px_15px_rgba(255,255,255,0.02)] relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-violet-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                            
+                            <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                              <span className="text-[8px] font-mono text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <Network className="w-3 h-3 text-violet-500" />
+                                Feature Maps Extraction
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[7px] font-mono text-slate-500 uppercase tracking-widest bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">
+                                  Top {Math.min(engineConfig.filters / 8, 6)} active
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-2">
+                              {Array.from({
+                                length: Math.min(engineConfig.filters / 8, 6),
+                              }).map((_, iIdx) => (
+                                <div
+                                  key={`filter-map-${iIdx}`}
+                                  className="flex items-center gap-3 bg-slate-900/40 p-1.5 rounded-lg border border-slate-800/50"
+                                >
+                                  <span className="text-[8px] text-violet-400/70 font-mono tracking-widest uppercase w-8 font-black text-right">
+                                    F{iIdx * 8 + 1}
+                                  </span>
+                                  <div className="flex-1 flex gap-[2px] h-4 rounded-sm bg-[#050810] p-[2px] overflow-hidden relative shadow-inner">
+                                    <div
+                                      className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.4),transparent)] -translate-x-full animate-[scan_2s_linear_infinite]"
+                                      style={{ animationDelay: `${iIdx * 0.3}s` }}
+                                    />
+                                    {Array.from({ length: 48 }).map((_, i) => {
+                                      const isActive =
+                                        engineConfig.dropout === 0 ||
+                                        Math.random() > engineConfig.dropout;
+                                        
+                                      // Create varied patterns per filter map
+                                      const isHighlight = i % (iIdx + 2) === 0 || (iIdx % 2 === 0 && i % 3 === 0);
+                                      const isMed = i % 5 === 0;
+
+                                      return (
+                                        <div
+                                          key={`val-${i}`}
+                                          className="flex-1 rounded-[1px] relative z-10 transition-all duration-500"
+                                          style={{
+                                            backgroundColor: !isActive
+                                              ? "#0f172a"
+                                              : isHighlight
+                                                ? "#a855f7" // bright purple
+                                                : isMed
+                                                  ? "#7c3aed" // med purple
+                                                  : "#1e293b", // dark
+                                            opacity: !isActive
+                                              ? 0.1
+                                              : Math.random() * 0.7 + 0.3,
+                                            height: isActive && isHighlight ? "100%" : "60%",
+                                            marginTop: isActive && isHighlight ? "0" : "auto",
+                                            marginBottom: isActive && isHighlight ? "0" : "auto"
+                                          }}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-2 pt-2 border-t border-slate-800 text-[9px] flex justify-between items-center tracking-[0.15em] uppercase font-black text-slate-500 font-mono">
+                              <span className="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-md border border-slate-800">
+                                <Maximize2 className="w-3 h-3 text-cyan-500" />
+                                Pool: {engineConfig.pooling}
+                              </span>
+                              <span className="bg-slate-900 px-2 py-1 rounded-md border border-slate-800 text-slate-400">
+                                Dim: [1, {(1024 / (engineConfig.pooling === 'max' ? 2 : 1)).toFixed(0)}, {engineConfig.filters}]
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <p className="text-[10px] text-slate-500 font-mono mt-4 uppercase tracking-[0.2em] text-right font-black flex justify-end items-center gap-2">
+                            <Activity className="w-3.5 h-3.5 text-violet-400 animate-pulse" />{" "}
+                            Feature Extraction Live
                           </p>
                         </div>
                       )}
@@ -7100,26 +7213,74 @@ if __name__ == '__main__':
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-2.5 mb-2 mt-2 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-inner font-black uppercase tracking-widest relative z-10 hover:border-cyan-500/30 transition-colors"
+                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border border-cyan-500/30 shadow-[inset_0_0_20px_rgba(34,211,238,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-cyan-400/50 transition-all duration-300"
                         >
-                          <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 mb-3">
+                          <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 mb-1">
                             <span className="text-cyan-400 flex items-center gap-2">
-                              <Database className="w-3.5 h-3.5 text-cyan-500" />{" "}
-                              Vector DB
+                              <Database className="w-4 h-4 text-cyan-500" />{" "}
+                              Vector Database Search
                             </span>
-                            <span className="text-slate-500 text-[8px] bg-slate-800/50 px-1.5 py-0.5 rounded border border-slate-700/50">
+                            <span className="text-slate-500 text-[8px] bg-slate-800/50 px-2 py-0.5 rounded border border-slate-700/50">
                               M-TREE COD/ICSD
                             </span>
                           </div>
-                          <div className="relative h-12 w-full flex items-center justify-center border border-dashed border-slate-700/60 rounded-lg overflow-hidden group mb-3 bg-slate-950/50">
-                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMjBMIDIwIDAiIHN0cm9rZT0iIzFmMjkwMyIgc3Ryb2tlLXdpZHRoPSIwLjUiLz48L3N2Zz4=')] opacity-30"></div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/5 to-transparent"></div>
-                            <p className="text-violet-300 flex items-center gap-2 z-10 bg-slate-900 px-3 py-1.5 rounded-lg border border-violet-500/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]">
-                              <Search className="w-3.5 h-3.5 text-violet-500 animate-[spin_3s_linear_infinite]" />{" "}
-                              L2 / Cosine Similarity
-                            </p>
+                          
+                          {/* Neural Embedding Visualization */}
+                          <div className="flex gap-2 items-stretch h-20">
+                            {/* Input Embedding */}
+                            <div className="w-1/3 bg-[#0B1221] rounded-lg border border-slate-800 p-2 flex flex-col justify-center items-center shadow-inner relative overflow-hidden group">
+                               <div className="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                               <Scan className="w-4 h-4 text-cyan-500 mb-1 animate-pulse" />
+                               <span className="text-[6.5px] text-slate-500 mb-1">LIVE TENSOR</span>
+                               <div className="w-full flex gap-0.5 mt-1 opacity-70 justify-center">
+                                 {Array.from({length: 6}).map((_, i) => (
+                                   <div key={i} className="w-1.5 h-1.5 rounded-sm bg-cyan-500" style={{ opacity: Math.random() * 0.8 + 0.2 }} />
+                                 ))}
+                               </div>
+                            </div>
+
+                            {/* Distance Match */}
+                            <div className="flex-1 flex flex-col justify-center items-center relative">
+                               <div className="absolute inset-0 flex items-center justify-center">
+                                 <div className="w-full h-px bg-gradient-to-r from-cyan-500/20 via-cyan-500/50 to-emerald-500/20" />
+                               </div>
+                               <div className="bg-slate-950 z-10 px-2 py-1.5 rounded-lg border border-slate-800 shadow-md flex flex-col items-center gap-1">
+                                 <Search className="w-3 h-3 text-cyan-400 animate-[spin_4s_linear_infinite]" />
+                                 <span className="text-[6.5px] text-cyan-300 font-bold bg-cyan-950/60 px-1 rounded">L2 COSINE</span>
+                               </div>
+                            </div>
+
+                            {/* Target Embeddings */}
+                            <div className="w-1/3 bg-[#0B1221] rounded-lg border border-slate-800 p-2 flex flex-col justify-center items-center shadow-inner relative overflow-hidden group">
+                               <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                               <Layers className="w-4 h-4 text-emerald-500 mb-1" />
+                               <span className="text-[6.5px] text-slate-500 mb-1">CANDIDATES</span>
+                               <div className="w-full flex gap-0.5 mt-1 opacity-70 justify-center">
+                                 {Array.from({length: 6}).map((_, i) => (
+                                   <div key={i} className="w-1.5 h-1.5 rounded-sm bg-emerald-500" style={{ opacity: Math.random() * 0.8 + 0.2 }} />
+                                 ))}
+                               </div>
+                            </div>
                           </div>
-                          <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800 p-0.5 shadow-inner">
+                          
+                          {/* Search Grid */}
+                          <div className="relative w-full h-10 border border-slate-800/80 rounded-lg overflow-hidden group bg-slate-950/50 flex items-center justify-between p-1">
+                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMjBMIDIwIDAiIHN0cm9rZT0iIzFmMjkwMyIgc3Ryb2tlLXdpZHRoPSIwLjUiLz48L3N2Zz4=')] opacity-30"></div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/5 to-transparent pointer-events-none"></div>
+                            
+                            {/* Scanning blips */}
+                            <div className="absolute inset-0 flex gap-1 p-1 flex-wrap content-start overflow-hidden opacity-50">
+                               {Array.from({length: 30}).map((_, i) => (
+                                 <div key={i} className={`w-3 h-1.5 rounded-sm ${Math.random() > 0.8 ? 'bg-cyan-500 animate-pulse' : 'bg-slate-800'}`} style={{ animationDelay: `${Math.random()}s` }} />
+                               ))}
+                            </div>
+                            
+                            <div className="relative z-10 bg-slate-950/80 px-2 py-1 rounded border border-slate-700/50 ml-1">
+                              <span className="text-slate-400 text-[8px]">SEARCH SPACE: <span className="text-cyan-400">{(100 + Math.random() * 50).toFixed(0)}K</span></span>
+                            </div>
+                          </div>
+
+                          <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800 p-0.5 shadow-inner mt-2">
                             <div
                               className="bg-gradient-to-r from-cyan-600 via-cyan-400 to-cyan-600 h-full rounded-full animate-[progress_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(34,211,238,0.6)] bg-[length:200%_100%]"
                               style={{ width: `${10 + Math.random() * 80}%` }}
@@ -7132,46 +7293,57 @@ if __name__ == '__main__':
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="text-[10px] text-slate-400 font-mono space-y-2 mb-2 mt-2 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 shadow-inner font-black uppercase tracking-widest relative z-10 hover:border-emerald-500/30 transition-colors"
+                          className="text-[10px] text-slate-400 font-mono space-y-3 mb-2 mt-2 bg-slate-900/80 backdrop-blur-sm p-4 rounded-xl border border-emerald-500/30 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)] font-black uppercase tracking-widest relative z-10 hover:border-emerald-400/50 transition-all duration-300"
                         >
-                          <div className="grid grid-cols-2 gap-2 mb-3">
-                            <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col justify-center">
-                              <span className="text-[7px] text-slate-500 mb-1">
+                          <div className="grid grid-cols-2 gap-3 mb-2">
+                            <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800 shadow-inner flex flex-col justify-center">
+                              <span className="text-[7px] text-slate-500 mb-1.5 flex items-center gap-1">
+                                <Network className="w-3 h-3 text-violet-500" />
                                 INFERENCE
                               </span>
-                              <span className="text-violet-300 font-bold border-l-2 border-violet-500 pl-1.5">
+                              <span className="text-violet-300 font-bold border-l-2 border-violet-500 pl-2 text-[9px]">
                                 Dense Classifier
                               </span>
                             </div>
-                            <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col justify-center">
-                              <span className="text-[7px] text-slate-500 mb-1">
+                            <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-800 shadow-inner flex flex-col justify-center">
+                              <span className="text-[7px] text-slate-500 mb-1.5 flex items-center gap-1">
+                                <Activity className="w-3 h-3 text-emerald-500" />
                                 DISTRIBUTION
                               </span>
-                              <span className="text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)] font-bold border-l-2 border-emerald-500 pl-1.5">
+                              <span className="text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)] font-bold border-l-2 border-emerald-500 pl-2 text-[9px]">
                                 Softmax
                               </span>
                             </div>
                           </div>
-                          <div className="text-emerald-400 animate-pulse my-3 border border-emerald-500/20 flex items-center gap-2 bg-emerald-500/10 p-3 rounded-lg shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]">
-                            <div className="w-2.5 h-2.5 bg-emerald-500 rounded-sm shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-ping" />
-                            Computing Phase Probabilities...
+
+                          <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl shadow-[inset_0_0_15px_rgba(16,185,129,0.15)] flex flex-col gap-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-emerald-500 rounded-sm shadow-[0_0_10px_rgba(16,185,129,1)] animate-ping" />
+                              <span className="text-emerald-400 text-[9px] animate-pulse">Computing Phase Probabilities...</span>
+                            </div>
+                            
+                            <div className="flex flex-col gap-1.5">
+                              {Array.from({ length: 5 }).map((_, i) => {
+                                const prob = Math.random() * (100 - i * 15);
+                                return (
+                                  <div key={`prob-${i}`} className="flex items-center gap-2">
+                                    <span className="text-[7px] w-4 text-right text-emerald-600">P{i}</span>
+                                    <div className="h-1.5 flex-1 rounded-full bg-slate-900 relative overflow-hidden shadow-inner border border-slate-800/50">
+                                      <div
+                                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 via-emerald-400 to-emerald-300 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.5)] transition-all duration-1000"
+                                        style={{ width: `${Math.max(5, prob)}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-[7px] w-6 text-emerald-400">{(prob/100).toFixed(2)}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-[2px] opacity-80 mt-1">
-                            {Array.from({ length: 8 }).map((_, i) => (
-                              <div
-                                key={`prob-${i}`}
-                                className="h-2 flex-1 rounded-sm bg-slate-800 relative overflow-hidden shadow-inner"
-                              >
-                                <div
-                                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-sm"
-                                  style={{ width: `${Math.random() * 100}%` }}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                          <p className="flex justify-between items-center text-slate-500 mt-4 border-t border-slate-800 pt-2.5">
-                            <span className="text-[8px]">LOSS FUNC</span>{" "}
-                            <span className="text-[9px] text-slate-400">
+
+                          <p className="flex justify-between items-center text-slate-500 mt-4 border-t border-slate-800 pt-3">
+                            <span className="text-[8px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">LOSS FUNC</span>{" "}
+                            <span className="text-[8px] text-emerald-400/70">
                               Categorical Cross-Entropy
                             </span>
                           </p>
