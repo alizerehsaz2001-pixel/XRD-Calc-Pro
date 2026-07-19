@@ -14,6 +14,12 @@ export interface ScientificProperties {
   electricalConductivity: number; // MS/m at 20°C
   thermalConductivity: number; // W/m·K at 27°C
   electronConfig?: string; // Standard ground-state configuration
+  mohsHardness?: number; // Mohs scale
+  speedOfSound?: number; // m/s
+  thermalExpansion?: number; // µm/(m·K)
+  specificHeat?: number; // J/(g·K)
+  factEn?: string; // Scientific Fact in English
+  factFa?: string; // Scientific Fact in Persian/Farsi
 }
 
 export const chemicalPhysicalDb: Record<number, ScientificProperties> = {
@@ -1091,15 +1097,392 @@ export function getElectronConfig(number: number): string {
     .replace('[Rn]', '1s² 2s² 2p⁶ 3s² 3p⁶ 3d¹⁰ 4s² 4p⁶ 4d¹⁰ 5s² 5p⁶ 4f¹⁴ 5d¹⁰ 6s² 6p⁶');
 }
 
+const scientificFactsAndPhysicalExtras: Record<number, {
+  mohsHardness?: number;
+  speedOfSound?: number; // m/s
+  thermalExpansion?: number; // µm/(m·K)
+  specificHeat?: number; // J/(g·K)
+  factEn: string;
+  factFa: string;
+}> = {
+  1: {
+    mohsHardness: 0,
+    speedOfSound: 1310,
+    thermalExpansion: 0,
+    specificHeat: 14.304,
+    factEn: "Hydrogen makes up about 75% of the baryonic mass of the universe. It is the fuel that powers stars through nuclear fusion.",
+    factFa: "هیدروژن حدود ۷۵٪ از جرم باریونی جهان هستی را تشکیل می‌دهد. این عنصر سوخت اصلی ستاره‌ها برای همجوشی هسته‌ای است."
+  },
+  2: {
+    mohsHardness: 0,
+    speedOfSound: 970,
+    thermalExpansion: 0,
+    specificHeat: 5.193,
+    factEn: "Helium is the only element that cannot be solidified by sufficient cooling at normal atmospheric pressure; it remains liquid down to absolute zero.",
+    factFa: "هلیم تنها عنصری است که نمی‌توان آن را با سرمایش در فشار استاندارد جامد کرد؛ این عنصر حتی در صفر مطلق نیز مایع می‌ماند."
+  },
+  3: {
+    mohsHardness: 0.6,
+    speedOfSound: 6000,
+    thermalExpansion: 46,
+    specificHeat: 3.582,
+    factEn: "Lithium is the lightest of all solid metals. It has the highest specific heat capacity of any solid element, making it highly useful in heat transfer applications.",
+    factFa: "لیتیم سبک‌ترین فلز در جدول تناوبی است. این عنصر بالاترین ظرفیت گرمایی ویژه را در میان عناصر جامد دارد که آن را در انتقال حرارت بسیار کارآمد می‌کند."
+  },
+  4: {
+    mohsHardness: 5.5,
+    speedOfSound: 12890,
+    thermalExpansion: 11.3,
+    specificHeat: 1.825,
+    factEn: "Beryllium is extremely rigid and lightweight, with a speed of sound over 12,000 m/s. It is used to make critical components for the James Webb Space Telescope.",
+    factFa: "بریلیم بسیار سخت و سبک‌وزن است و سرعت صوت در آن به بیش از ۱۲,۰۰۰ متر بر ثانیه می‌رسد. از آن در آینه‌های تلسکوپ فضایی جیمز وب استفاده شده است."
+  },
+  5: {
+    mohsHardness: 9.3,
+    speedOfSound: 16200,
+    thermalExpansion: 5,
+    specificHeat: 1.026,
+    factEn: "Boron filaments are used for high-strength, lightweight materials in aerospace. It is also an essential micronutrient for plants.",
+    factFa: "رشته‌های بور در ساخت مواد با استحکام فوق‌العاده بالا و وزن سبک در صنایع هوافضا کاربرد دارند. همچنین یک ریزمغذی ضروری برای رشد گیاهان است."
+  },
+  6: {
+    mohsHardness: 10.0,
+    speedOfSound: 18300,
+    thermalExpansion: 0.8,
+    specificHeat: 0.709,
+    factEn: "Carbon's diamond allotrope is the hardest natural material, while graphite is one of the softest. This extreme variance arises solely from crystal structural packing.",
+    factFa: "آلوتروپ الماس کربن سخت‌ترین ماده طبیعی است، در حالی که گرافیت یکی از نرم‌ترین‌هاست. این تفاوت فاحش صرفاً ناشی از نوع آرایش ساختار بلوری آن‌هاست."
+  },
+  7: {
+    mohsHardness: 0,
+    speedOfSound: 334,
+    thermalExpansion: 0,
+    specificHeat: 1.04,
+    factEn: "Nitrogen gas makes up 78% of Earth's atmosphere. Liquid nitrogen is widely used as a cryogen to preserve biological samples and cool high-tech detectors.",
+    factFa: "گاز نیتروژن ۷۸٪ از اتمسفر زمین را تشکیل می‌دهد. نیتروژن مایع به عنوان یک سرماساز قوی برای نگهداری نمونه‌های زیستی و خنک‌کاری دتکتورها استفاده می‌شود."
+  },
+  8: {
+    mohsHardness: 0,
+    speedOfSound: 317,
+    thermalExpansion: 0,
+    specificHeat: 0.918,
+    factEn: "Oxygen is highly reactive and paramagnetic in its liquid and solid states. It is the third most abundant element in the universe by mass.",
+    factFa: "اکسیژن به شدت واکنش‌پذیر است و در حالت‌های مایع و جامد خواص پارامغناطیسی نشان می‌دهد. این عنصر سومین عنصر فراوان در جهان از نظر جرم است."
+  },
+  9: {
+    mohsHardness: 0,
+    speedOfSound: 310,
+    thermalExpansion: 0,
+    specificHeat: 0.824,
+    factEn: "Fluorine is the most chemically reactive and electronegative of all elements. It reacts instantly with almost all other substances, even glass.",
+    factFa: "فلوئور واکنش‌پذیرترین و الکترونگاتیوترین عنصر جدول است. این گاز فوراً با تقریباً تمام مواد دیگر، حتی شیشه و آب، واکنش می‌دهد."
+  },
+  10: {
+    mohsHardness: 0,
+    speedOfSound: 435,
+    thermalExpansion: 0,
+    specificHeat: 1.03,
+    factEn: "Neon has the most intense light discharge at normal currents, glowing reddish-orange. It is completely inert and forms no known stable chemical compounds.",
+    factFa: "نئون شدیدترین تخلیه نوری را در ولتاژهای معمولی دارد و نور قرمز-نارنجی درخشانی تولید می‌کند. این عنصر کاملاً بی‌اثر است و هیچ ترکیب پایداری تشکیل نمی‌دهد."
+  },
+  11: {
+    mohsHardness: 0.5,
+    speedOfSound: 3200,
+    thermalExpansion: 70,
+    specificHeat: 1.228,
+    factEn: "Sodium is a soft metal that can be cut with a table knife. It reacts violently with water to produce hydrogen gas and sodium hydroxide.",
+    factFa: "سدیم فلزی بسیار نرم است که با چاقوی معمولی بریده می‌شود. این عنصر به شدت با آب واکنش داده و گاز هیدروژن و گرای هیدروکسید تولید می‌کند."
+  },
+  12: {
+    mohsHardness: 2.5,
+    speedOfSound: 4940,
+    thermalExpansion: 24.8,
+    specificHeat: 1.023,
+    factEn: "Magnesium is a key structural metal, being 33% lighter than aluminum. It burns with an extremely bright, dazzling white light used in flares and fireworks.",
+    factFa: "منیزیم یک فلز ساختاری مهم و ۳۳٪ سبک‌تر از آلومینیوم است. این فلز با شعله‌ای بسیار درخشان و خیره‌کننده می‌سوزد که در فشفشه‌ها و نورافکن‌ها کاربرد دارد."
+  },
+  13: {
+    mohsHardness: 2.75,
+    speedOfSound: 5000,
+    thermalExpansion: 23.1,
+    specificHeat: 0.897,
+    factEn: "Aluminum is the most abundant metal in the Earth's crust. It does not rust because it instantly forms a microscopic, protective oxide layer.",
+    factFa: "آلومینیوم فراوان‌ترین فلز در پوسته زمین است. این فلز زنگ نمی‌زند زیرا بلافاصله یک لایه میکروسکوپی محافظ از اکسید آلومینیوم روی خود تشکیل می‌دهد."
+  },
+  14: {
+    mohsHardness: 7.0,
+    speedOfSound: 8430,
+    thermalExpansion: 2.6,
+    specificHeat: 0.705,
+    factEn: "Silicon is the foundation of modern electronics and computing. In its ultra-pure crystalline form, it is used to fabricate semiconductor microchips.",
+    factFa: "سیلیسیم ستون فقرات الکترونیک و رایانه‌های مدرن است. در حالت فوق‌خالص و تک‌بلوری، از این عنصر برای ساخت تراشه‌های نیمه‌رسانا استفاده می‌شود."
+  },
+  15: {
+    mohsHardness: 2.5,
+    speedOfSound: 2150,
+    thermalExpansion: 12.4,
+    specificHeat: 0.769,
+    factEn: "Phosphorus was discovered in 1669 by an alchemist attempting to create the philosopher's stone from urine. It glows in the dark through chemiluminescence.",
+    factFa: "فسفر در سال ۱۶۶۹ توسط کیمیاگری کشف شد که تلاش می‌کرد سنگ فلاسفه را از ادرار بسازد! این عنصر در تاریکی به دلیل پدیده شیمی‌لومینسانس می‌درخشد."
+  },
+  16: {
+    mohsHardness: 2.0,
+    speedOfSound: 1900,
+    thermalExpansion: 74,
+    specificHeat: 0.706,
+    factEn: "Sulfur has been known since ancient times as brimstone. Its crystalline structure packs S8 rings that melt into a blood-red liquid at high heat.",
+    factFa: "گوگرد از دوران باستان شناخته شده است. ساختار بلوری آن شامل حلقه‌های S8 است که در حرارت بالا ذوب شده و مایعی سرخ‌رنگ مانند خون ایجاد می‌کند."
+  },
+  17: {
+    mohsHardness: 0,
+    speedOfSound: 206,
+    thermalExpansion: 0,
+    specificHeat: 0.479,
+    factEn: "Chlorine is a highly toxic, yellow-green gas. Despite its danger, it is essential for life as chloride ions, and is widely used to disinfect water supplies.",
+    factFa: "کلر گازی به شدت سمی و زرد-سبز رنگ است. با وجود خطراتش، یون‌های کلرید برای حیات ضروری هستند و در ضدعفونی کردن منابع آب کاربرد وسیع دارند."
+  },
+  18: {
+    mohsHardness: 0,
+    speedOfSound: 323,
+    thermalExpansion: 0,
+    specificHeat: 0.52,
+    factEn: "Argon is the third-most abundant gas in the Earth's atmosphere (0.93%). It provides an inert shielding atmosphere for laboratory high-temp synthesis and welding.",
+    factFa: "آرگون سومین گاز فراوان در جو زمین است (۰.۹۳٪). این گاز محیطی کاملاً محافظ و بی‌اثر برای سنتزهای دمای بالا در آزمایشگاه‌ها و جوشکاری فراهم می‌کند."
+  },
+  19: {
+    mohsHardness: 0.4,
+    speedOfSound: 2000,
+    thermalExpansion: 83,
+    specificHeat: 0.757,
+    factEn: "Potassium is so chemically reactive that it must be stored under mineral oil. Its radioactive isotope K-40 is a major natural source of radiation in bananas.",
+    factFa: "پتاسیم به قدری واکنش‌پذیر است که باید زیر روغن معدنی نگهداری شود. ایزوتوپ رادیواکتیو پتاسیم-۴۰ منبع طبیعی تابش در موز است."
+  },
+  20: {
+    mohsHardness: 1.75,
+    speedOfSound: 3810,
+    thermalExpansion: 22.3,
+    specificHeat: 0.647,
+    factEn: "Calcium is the fifth most abundant element in Earth's crust. It is a critical building block of bones, shells, and cement structures.",
+    factFa: "کلسیم پنجمین عنصر فراوان در پوسته زمین است. این عنصر ماده سازنده اصلی استخوان‌ها، صدف‌ها و سازه‌های سیمانی است."
+  },
+  22: {
+    mohsHardness: 6.0,
+    speedOfSound: 5090,
+    thermalExpansion: 8.6,
+    specificHeat: 0.523,
+    factEn: "Titanium has the highest strength-to-density ratio of any metallic element. It is highly corrosion-resistant and completely biocompatible with human bone.",
+    factFa: "تیتانیم بالاترین نسبت استحکام به چگالی را در میان تمام فلزات دارد. این فلز به شدت در برابر خوردگی مقاوم بوده و با استخوان‌های بدن انسان سازگار است."
+  },
+  23: {
+    mohsHardness: 7.0,
+    speedOfSound: 4560,
+    thermalExpansion: 8.4,
+    specificHeat: 0.489,
+    factEn: "Vanadium is added to steel to make it shock-resistant and tough. Vanadium oxide crystals can act as optical switches by transitioning from insulator to metal.",
+    factFa: "وانادیم به فولاد اضافه می‌شود تا آن را در برابر ضربه مقاوم و سرسخت کند. بلورهای اکسید وانادیم می‌توانند به عنوان سوئیچ‌های نوری عمل کنند."
+  },
+  24: {
+    mohsHardness: 8.5,
+    speedOfSound: 5940,
+    thermalExpansion: 4.9,
+    specificHeat: 0.449,
+    factEn: "Chromium is the element that gives rubies their red color and emeralds their green. It is the core additive that makes steel stainless (rust-resistant).",
+    factFa: "کروم عنصری است که به یاقوت‌ها رنگ سرخ و به زمردها رنگ سبز می‌بخشد. همچنین ماده افزودنی اصلی است که فولاد را زنگ‌نزن می‌کند."
+  },
+  25: {
+    mohsHardness: 6.0,
+    speedOfSound: 5150,
+    thermalExpansion: 21.7,
+    specificHeat: 0.479,
+    factEn: "Manganese is essential for iron and steel production. It was used by prehistoric cave painters in France as a black pigment 30,000 years ago.",
+    factFa: "منگنز برای تولید آهن و فولاد ضروری است. این عنصر بیش از ۳۰,۰۰۰ سال پیش توسط نقاشان غارهای پیش‌از‌تاریخ در فرانسه به عنوان رنگ‌دانه سیاه استفاده می‌شد."
+  },
+  26: {
+    mohsHardness: 4.0,
+    speedOfSound: 5120,
+    thermalExpansion: 11.8,
+    specificHeat: 0.449,
+    factEn: "Iron is the most common element on Earth by mass, forming much of Earth's outer and inner core. It is the primary element in steel alloys.",
+    factFa: "از نظر جرمی، آهن رایج‌ترین عنصر روی زمین است و بخش عمده‌ای از هسته بیرونی و درونی زمین را تشکیل می‌دهد. این عنصر پایه آلیاژهای فولادی است."
+  },
+  27: {
+    mohsHardness: 5.0,
+    speedOfSound: 4720,
+    thermalExpansion: 13.0,
+    specificHeat: 0.421,
+    factEn: "Cobalt is ferromagnetic like iron. It has been used for centuries to produce rich, beautiful blue pigments in porcelain and glassware.",
+    factFa: "کبالت مانند آهن دارای خاصیت فرومغناطیس است. برای قرن‌ها از آن برای تولید رنگ‌دانه‌های آبی عمیق و زیبا در ظروف چینی و شیشه‌ای استفاده می‌شده است."
+  },
+  28: {
+    mohsHardness: 4.0,
+    speedOfSound: 4900,
+    thermalExpansion: 13.4,
+    specificHeat: 0.444,
+    factEn: "Nickel is highly resistant to corrosion and is used to plate other metals. It is a major component in the superalloys used in jet engine turbines.",
+    factFa: "نیکل مقاومت بسیار بالایی در برابر خوردگی دارد و برای آبکاری فلزات استفاده می‌شود. این فلز جزء اصلی سوپرآلیاژهای به کار رفته در توربین موتور جت است."
+  },
+  29: {
+    mohsHardness: 3.0,
+    speedOfSound: 3810,
+    thermalExpansion: 16.5,
+    specificHeat: 0.385,
+    factEn: "Copper is an outstanding conductor of electricity and heat. It is naturally antibacterial; bacteria die on copper surfaces within a few hours.",
+    factFa: "مس رسانای فوق‌العاده برق و حرارت است. این فلز خاصیت ضدباکتری طبیعی دارد؛ به طوری که میکروب‌ها روی سطوح مسی ظرف چند ساعت نابود می‌شوند."
+  },
+  30: {
+    mohsHardness: 2.5,
+    speedOfSound: 3850,
+    thermalExpansion: 30.2,
+    specificHeat: 0.388,
+    factEn: "Zinc is used to galvanize iron and steel to prevent rusting. It is also an essential mineral for human immune system function.",
+    factFa: "روی برای گالوانیزه کردن آهن و فولاد به منظور جلوگیری از زنگ‌زدگی استفاده می‌شود. این عنصر یک ماده معدنی حیاتی برای عملکرد سیستم ایمنی بدن است."
+  },
+  47: {
+    mohsHardness: 2.5,
+    speedOfSound: 2680,
+    thermalExpansion: 18.9,
+    specificHeat: 0.235,
+    factEn: "Silver has the highest electrical conductivity, thermal conductivity, and reflectivity of any metal known to science.",
+    factFa: "نقره دارای بالاترین میزان رسانایی الکتریکی، رسانایی حرارتی و بازتاب نوری در میان تمامی فلزات شناخته‌شده در علم است."
+  },
+  74: {
+    mohsHardness: 7.5,
+    speedOfSound: 5220,
+    thermalExpansion: 4.5,
+    specificHeat: 0.132,
+    factEn: "Tungsten has the highest melting point of all discovered metals (3422°C). It is exceptionally strong and is used for rocket nozzles and heating elements.",
+    factFa: "تنگستن بالاترین دمای ذوب را در میان تمام فلزات کشف‌شده دارد (۳۴۲۲ درجه سانتی‌گراد). این فلز فوق‌العاده مستحکم است و در نازل موشک‌ها کاربرد دارد."
+  },
+  78: {
+    mohsHardness: 3.5,
+    speedOfSound: 2800,
+    thermalExpansion: 8.8,
+    specificHeat: 0.133,
+    factEn: "Platinum is highly unreactive and extremely rare. It is an extraordinary catalyst, heavily used in catalytic converters to clean automotive exhaust gases.",
+    factFa: "پلاتین فلزی بسیار کم‌واکنش و فوق‌العاده کمیاب است. این فلز یک کاتالیزور فوق‌العاده است که در مبدل‌های کاتالیزوری خودروها کاربرد زیادی دارد."
+  },
+  79: {
+    mohsHardness: 2.5,
+    speedOfSound: 2030,
+    thermalExpansion: 14.2,
+    specificHeat: 0.129,
+    factEn: "Gold is virtually indestructible. It does not oxidize, tarnish, or corrode. Gold nanoparticles are used today in cancer therapies and diagnostics.",
+    factFa: "طلا تقریباً تخریب‌ناپذیر است. این فلز اکسید، کدر یا خورده نمی‌شود. امروزه از نانوذرات طلا در درمان‌های پیشرفته سرطان و کیت‌های تشخیصی استفاده می‌شود."
+  },
+  80: {
+    mohsHardness: 0,
+    speedOfSound: 1450,
+    thermalExpansion: 60,
+    specificHeat: 0.14,
+    factEn: "Mercury is the only metal that is liquid at standard temperature and pressure. It has extremely high surface tension and forms beautiful reflective spheres.",
+    factFa: "جیوه تنها فلزی است که در دما و فشار استاندارد مایع است. این فلز کشش سطحی فوق‌العاده بالایی دارد و قطرات بازتابنده و زیبای کروی تشکیل می‌دهد."
+  },
+  82: {
+    mohsHardness: 1.5,
+    speedOfSound: 1190,
+    thermalExpansion: 28.9,
+    specificHeat: 0.129,
+    factEn: "Lead is a heavy, dense metal that has been used since antiquity. It is highly effective at absorbing X-rays and gamma radiation, making it vital for nuclear shielding.",
+    factFa: "سرب فلزی سنگین و چگال است که از باستان کاربرد داشته است. این فلز در جذب پرتوهای ایکس و گاما بسیار موثر بوده و برای سپر تشعشعی هسته‌ای حیاتی است."
+  },
+  92: {
+    mohsHardness: 6.0,
+    speedOfSound: 3130,
+    thermalExpansion: 13.9,
+    specificHeat: 0.116,
+    factEn: "Uranium was used as a coloring agent in glass (producing uranium glass that glows bright green under UV light) long before its nuclear properties were discovered.",
+    factFa: "اورانیوم مدت‌ها پیش از کشف خواص هسته‌ای، به عنوان رنگ‌دهنده در شیشه‌گری استفاده می‌شد (تولید شیشه‌های اورانیومی که زیر نور فرابنفش به رنگ سبز درخشان می‌درخشند)."
+  }
+};
+
 // Returns standard properties or derives approximation if not listed
 export function getFactualProperties(number: number): ScientificProperties {
   const baseProps = chemicalPhysicalDb[number];
   const config = getElectronConfig(number);
+  const extra = scientificFactsAndPhysicalExtras[number];
+  
+  // Calculate dynamic approximations for extras if not listed in our detailed facts map
+  const getApproximatedExtras = (num: number) => {
+    const isNoble = [2, 10, 18, 36, 54, 86, 118].includes(num);
+    const isHalogen = [9, 17, 35, 53, 85, 117].includes(num);
+    const isAlkaliOrEarth = [3, 4, 11, 12, 19, 20, 37, 38, 55, 56, 87, 88].includes(num);
+    const isLanthanideOrActinide = (num >= 57 && num <= 71) || (num >= 89 && num <= 103);
+    
+    let mohs = 3.0;
+    let sound = 3000;
+    let expansion = 15.0;
+    let specHeat = 0.3;
+    let block = 'd';
+    let fEn = "";
+    let fFa = "";
+    
+    if (isNoble) {
+      mohs = 0;
+      sound = 300;
+      expansion = 0;
+      specHeat = 0.5;
+      block = 'p';
+      fEn = "This is an extremely stable, noble gas element with a completely filled valence shell. It stays inert in almost all laboratory environments.";
+      fFa = "این یک گاز نجیب و فوق‌العاده پایدار با لایه ظرفیت کاملاً پر است که در تقریباً تمامی محیط‌های آزمایشگاهی بی‌اثر باقی می‌ماند.";
+    } else if (isHalogen) {
+      mohs = 0.5;
+      sound = 250;
+      expansion = 40.0;
+      specHeat = 0.4;
+      block = 'p';
+      fEn = "This is a highly reactive halogen. It is extremely electronegative, forming strong salts with active alkali metals instantly.";
+      fFa = "این یک هالوژن به شدت واکنش‌پذیر است. این عنصر فوق‌العاده الکترونگاتیو است و به سرعت با فلزات قلیایی نمک‌های پایدار تشکیل می‌دهد.";
+    } else if (isAlkaliOrEarth) {
+      mohs = num % 2 === 0 ? 1.5 : 0.5;
+      sound = 2500;
+      expansion = 35.0;
+      specHeat = 0.8;
+      block = 's';
+      fEn = "This s-block metal is highly reactive, with low density and low ionization energy. It easily sheds electrons to form stable cations.";
+      fFa = "این فلز بلوک s به شدت واکنش‌پذیر بوده و دارای چگالی کم و انرژی یونش پایینی است. این عنصر به راحتی الکترون از دست می‌دهد تا کاتیون تشکیل دهد.";
+    } else if (isLanthanideOrActinide) {
+      mohs = 5.0;
+      sound = 4000;
+      expansion = 10.0;
+      specHeat = 0.15;
+      block = 'f';
+      fEn = "An inner-transition heavy f-block element with complex f-orbital properties, crucial for high-performance magnets and optics.";
+      fFa = "یک عنصر سنگین واسطه داخلی از بلوک f با خواص اوربیتال پیچیده f، که برای ساخت آهنرباهای پیشرفته و لیزرها حیاتی است.";
+    } else if (num < 84) {
+      mohs = 4.5;
+      sound = 4500;
+      expansion = 12.0;
+      specHeat = 0.45;
+      block = 'd';
+      fEn = "A versatile d-block transition metal. It has partially-filled d shells, allowing beautiful variable oxidation states and catalytic properties.";
+      fFa = "یک فلز واسطه تطبیق‌پذیر از بلوک d. این عنصر دارای لایه d نیمه‌پر است که به آن اجازه می‌دهد حالت‌های اکسایش رنگارنگ و خواص کاتالیزوری عالی داشته باشد.";
+    } else {
+      mohs = 2.0;
+      sound = 1500;
+      expansion = 25.0;
+      specHeat = 0.12;
+      block = 'p';
+      fEn = "A heavy post-transition element near the semi-metal boundary, playing key roles in high-density engineering and materials research.";
+      fFa = "یک عنصر سنگین پس‌واسطه در نزدیکی مرز شبه‌فلزات، که نقش کلیدی در مهندسی مواد چگال و پژوهش‌های نوین دارد.";
+    }
+    
+    return {
+      mohsHardness: mohs,
+      speedOfSound: sound,
+      thermalExpansion: expansion,
+      specificHeat: specHeat,
+      factEn: fEn,
+      factFa: fFa
+    };
+  };
+
+  const extraProps = extra || getApproximatedExtras(number);
   
   if (baseProps) {
     return {
       ...baseProps,
-      electronConfig: baseProps.electronConfig || config
+      electronConfig: baseProps.electronConfig || config,
+      ...extraProps
     };
   }
   
@@ -1119,6 +1502,7 @@ export function getFactualProperties(number: number): ScientificProperties {
     boilingPoint: isMetal ? 1500 + number * 10 : -100,
     electricalConductivity: isMetal ? 5.0 : 0,
     thermalConductivity: isMetal ? 50 : 0.5,
-    electronConfig: config
+    electronConfig: config,
+    ...extraProps
   };
 }

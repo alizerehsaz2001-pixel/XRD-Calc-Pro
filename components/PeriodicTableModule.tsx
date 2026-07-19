@@ -796,7 +796,8 @@ const ElementTooltip: React.FC<{ el: CrystalElement; isXtal: boolean; stateAtTem
 };
 
 export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoadPeaks }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isFa = i18n.language === 'fa';
   const [selectedElement, setSelectedElement] = useState<number | null>(14); // Default to Silicon (Si)
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -1461,7 +1462,13 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
         ionicRadius: detailed.ionicRadius !== undefined ? detailed.ionicRadius : factualProps.ionicRadius,
         boilingPoint: detailed.boilingPoint !== undefined ? detailed.boilingPoint : factualProps.boilingPoint,
         electricalConductivity: detailed.electricalConductivity !== undefined ? detailed.electricalConductivity : factualProps.electricalConductivity,
-        thermalConductivity: detailed.thermalConductivity !== undefined ? detailed.thermalConductivity : factualProps.thermalConductivity
+        thermalConductivity: detailed.thermalConductivity !== undefined ? detailed.thermalConductivity : factualProps.thermalConductivity,
+        mohsHardness: detailed.mohsHardness !== undefined ? detailed.mohsHardness : factualProps.mohsHardness,
+        speedOfSound: detailed.speedOfSound !== undefined ? detailed.speedOfSound : factualProps.speedOfSound,
+        thermalExpansion: detailed.thermalExpansion !== undefined ? detailed.thermalExpansion : factualProps.thermalExpansion,
+        specificHeat: detailed.specificHeat !== undefined ? detailed.specificHeat : factualProps.specificHeat,
+        factEn: detailed.factEn !== undefined ? detailed.factEn : factualProps.factEn,
+        factFa: detailed.factFa !== undefined ? detailed.factFa : factualProps.factFa
       } as CrystalElement;
     });
   }, [elementsDb, customOverrides]);
@@ -2849,6 +2856,65 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                 {activeElementInfo.thermalConductivity.toFixed(1)}
                                 <span className="text-[8px] text-slate-500 font-normal">W/m·K</span>
                               </div>
+                            </div>
+                          </div>
+
+                          {/* Mohs Hardness & Speed of Sound */}
+                          <div className="grid grid-cols-2 gap-3 border-t border-slate-900/60 pt-3">
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Mohs Hardness</span>
+                              <div className="text-amber-400 font-bold font-mono text-sm flex items-baseline gap-1">
+                                {activeElementInfo.mohsHardness && activeElementInfo.mohsHardness > 0 
+                                  ? activeElementInfo.mohsHardness.toFixed(1) 
+                                  : 'N/A'}
+                                <span className="text-[8px] text-slate-500 font-normal">Mohs</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Speed of Sound</span>
+                              <div className="text-indigo-400 font-bold font-mono text-sm flex items-baseline gap-1">
+                                {activeElementInfo.speedOfSound && activeElementInfo.speedOfSound > 0 
+                                  ? activeElementInfo.speedOfSound.toLocaleString() 
+                                  : 'N/A'}
+                                <span className="text-[8px] text-slate-500 font-normal">m/s</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Thermal Expansion & Specific Heat */}
+                          <div className="grid grid-cols-2 gap-3 border-t border-slate-900/60 pt-3">
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Thermal Expansion</span>
+                              <div className="text-pink-400 font-bold font-mono text-sm flex items-baseline gap-1">
+                                {activeElementInfo.thermalExpansion && activeElementInfo.thermalExpansion > 0 
+                                  ? activeElementInfo.thermalExpansion.toFixed(1) 
+                                  : 'N/A'}
+                                <span className="text-[8px] text-slate-500 font-normal">µm/(m·K)</span>
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-slate-500 font-mono text-[9px] uppercase font-bold tracking-wider">Specific Heat</span>
+                              <div className="text-violet-400 font-bold font-mono text-sm flex items-baseline gap-1">
+                                {activeElementInfo.specificHeat && activeElementInfo.specificHeat > 0 
+                                  ? activeElementInfo.specificHeat.toFixed(3) 
+                                  : 'N/A'}
+                                <span className="text-[8px] text-slate-500 font-normal">J/(g·K)</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Scientific Factual Insight / Fact (Bilingual Support) */}
+                          <div className="border-t border-slate-900/60 pt-3 mt-1">
+                            <div className="bg-indigo-950/20 border border-indigo-500/15 p-3 rounded-xl relative overflow-hidden group">
+                              <div className="absolute top-0 right-0 p-1 text-indigo-500/30">
+                                <Sparkles className="w-4 h-4 animate-pulse" />
+                              </div>
+                              <span className="text-indigo-400 font-sans text-[10px] uppercase font-black tracking-wider flex items-center gap-1">
+                                {isFa ? 'دانستنی‌های علمی' : 'Scientific Insight'}
+                              </span>
+                              <p className={`text-[11px] leading-relaxed mt-1 text-slate-300 font-medium ${isFa ? 'font-sans text-right' : 'font-sans'}`} dir={isFa ? 'rtl' : 'ltr'}>
+                                {isFa ? (activeElementInfo.factFa || activeElementInfo.factEn) : (activeElementInfo.factEn || activeElementInfo.factFa)}
+                              </p>
                             </div>
                           </div>
                         </div>
