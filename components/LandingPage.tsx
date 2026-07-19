@@ -839,6 +839,45 @@ const PRIVACY_POLICY_DATA = {
   }
 };
 
+const CHANGELOG_DATA = {
+  en: {
+    title: "Version History",
+    lastUpdated: "July 18, 2026",
+    sections: [
+      {
+        title: "v2.1.0 - Academic Suite Update",
+        content: "Implemented advanced 3D lattice visualizers, multi-language support (50+ languages), and real-time phase matching algorithms."
+      },
+      {
+        title: "v2.0.4 - AI Refinement",
+        content: "Integrated Gemini 1.5 Pro for intelligent peak fitting and automated structural report generation."
+      },
+      {
+        title: "v2.0.0 - Core Launch",
+        content: "Initial migration to full-stack architecture with Express, Firestore, and Python-based Rietveld refinement core."
+      }
+    ]
+  },
+  fa: {
+    title: "تاریخچه نسخه‌ها",
+    lastUpdated: "۲۸ تیر ۱۴۰۵",
+    sections: [
+      {
+        title: "v2.1.0 - بروزرسانی مجموعه علمی",
+        content: "پیاده‌سازی تصویرسازهای سه بعدی شبکه، پشتیبانی از ۵۰+ زبان و الگوریتم‌های تطبیق فاز همزمان."
+      },
+      {
+        title: "v2.0.4 - بهینه‌سازی هوش مصنوعی",
+        content: "ادغام Gemini 1.5 Pro برای برازش هوشمند پیک‌ها و تولید خودکار گزارش‌های ساختاری."
+      },
+      {
+        title: "v2.0.0 - راه‌اندازی هسته",
+        content: "مهاجرت اولیه به معماری Full-stack با Express، Firestore و هسته پالایش Rietveld مبتنی بر پایتون."
+      }
+    ]
+  }
+};
+
 const TERMS_OF_USE_DATA = {
   en: {
     title: "Terms of Use",
@@ -1006,6 +1045,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   const [showHeroSuggestions, setShowHeroSuggestions] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [showCookieBanner, setShowCookieBanner] = useState(false);
   const heroSearchRef = useRef<HTMLDivElement>(null);
 
@@ -2086,6 +2126,14 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                   <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Powered by</span>
                   <span className="text-[9px] font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400 uppercase tracking-wider">Gemini & Google</span>
                 </div>
+                <div className="flex items-center gap-3 mt-3 px-3 py-1 bg-white/5 rounded-full border border-white/5 w-fit">
+                   <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{isRTL ? "تکنولوژی‌ها:" : "Tech Stack:"}</span>
+                   <div className="flex gap-2">
+                      <span className="text-[9px] font-mono text-blue-400 font-bold">TypeScript</span>
+                      <span className="text-[9px] font-mono text-amber-400 font-bold">JavaScript</span>
+                      <span className="text-[9px] font-mono text-emerald-400 font-bold">Python</span>
+                   </div>
+                </div>
               </div>
               <div className="flex gap-8 text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">
                  <span 
@@ -2106,6 +2154,26 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                  >
                    Cookie Auth
                  </span>
+                 <span 
+                   onClick={() => setShowChangelogModal(true)}
+                   className="hover:text-white cursor-pointer transition-colors"
+                 >
+                   Changelog
+                 </span>
+              </div>
+              <div className="flex items-center gap-4 border-l border-white/10 pl-8 ml-2">
+                 <a 
+                   href="https://github.com" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   className="flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-white transition-all uppercase tracking-widest group/github"
+                 >
+                    <Github className="w-4 h-4 text-slate-600 group-hover/github:text-white transition-colors" />
+                    <span>View on GitHub</span>
+                 </a>
+                 <div className="px-2.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                    <span className="text-[8px] font-black text-emerald-400 uppercase tracking-tighter">MIT License</span>
+                 </div>
               </div>
            </div>
            <div className="flex items-center gap-4 bg-white/5 px-4 py-2 rounded-full border border-white/10 group cursor-default">
@@ -2126,6 +2194,12 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
          isOpen={showTermsModal} 
          onClose={() => setShowTermsModal(false)} 
          content={i18n.language === 'fa' ? TERMS_OF_USE_DATA.fa : TERMS_OF_USE_DATA.en}
+         isRTL={isRTL}
+      />
+      <LegalModal 
+         isOpen={showChangelogModal} 
+         onClose={() => setShowChangelogModal(false)} 
+         content={i18n.language === 'fa' ? CHANGELOG_DATA.fa : CHANGELOG_DATA.en}
          isRTL={isRTL}
       />
 
