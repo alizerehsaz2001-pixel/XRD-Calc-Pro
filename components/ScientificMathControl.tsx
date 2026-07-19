@@ -597,9 +597,10 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                       
                       // Calculate slider bounds
                       const isDegreeOrRad = v.symbol.includes('θ') || v.symbol.includes('theta') || v.symbol.includes('β') || v.symbol.includes('beta');
-                      const step = initialVal === 0 ? 0.05 : Math.pow(10, Math.floor(Math.log10(Math.abs(initialVal) || 1)) - 3);
-                      const min = initialVal === 0 ? 0 : Math.min(initialVal * 0.2, initialVal * 1.8);
-                      const max = initialVal === 0 ? 5 : Math.max(initialVal * 0.2, initialVal * 1.8);
+                      const safeInitialVal = isNaN(initialVal) ? 0 : initialVal;
+                      const step = safeInitialVal === 0 ? 0.05 : Math.pow(10, Math.floor(Math.log10(Math.abs(safeInitialVal) || 1)) - 3);
+                      const min = safeInitialVal === 0 ? 0 : Math.min(safeInitialVal * 0.2, safeInitialVal * 1.8);
+                      const max = safeInitialVal === 0 ? 5 : Math.max(safeInitialVal * 0.2, safeInitialVal * 1.8);
 
                       return (
                         <div key={i} className="flex flex-col gap-1.5">
@@ -613,7 +614,7 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                               </span>
                             </div>
                             <div className="text-slate-200 font-bold">
-                              {typeof currentVal === 'number' ? currentVal.toFixed(5).replace(/\.?0+$/, '') : currentVal}
+                              {typeof currentVal === 'number' ? (isNaN(currentVal) ? '0' : currentVal.toFixed(5).replace(/\.?0+$/, '')) : currentVal}
                               <span className="text-slate-500 font-normal ml-1">{v.unit}</span>
                             </div>
                           </div>
@@ -623,10 +624,10 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                             <div className="flex items-center gap-3">
                               <input
                                 type="range"
-                                min={min}
-                                max={max}
+                                min={isNaN(min) ? 0 : min}
+                                max={isNaN(max) ? 100 : max}
                                 step={step || 0.001}
-                                value={currentVal}
+                                value={isNaN(currentVal) ? 0 : currentVal}
                                 onChange={(e) => {
                                   const newVal = parseFloat(e.target.value);
                                   setSimulatedValues(prev => ({
@@ -641,7 +642,7 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                                   // Reset single variable
                                   setSimulatedValues(prev => ({
                                     ...prev,
-                                    [v.symbol]: initialVal
+                                    [v.symbol]: isNaN(initialVal) ? 0 : initialVal
                                   }));
                                 }}
                                 className="text-[9px] text-slate-500 hover:text-slate-300 font-mono transition-colors border border-slate-800 rounded px-1"
