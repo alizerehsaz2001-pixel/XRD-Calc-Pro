@@ -971,7 +971,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       </div>
                       <input
                         type="range" min="-0.5" max="0.5" step="0.005"
-                        value={zeroShift}
+                        value={String(zeroShift) === 'NaN' ? '' : zeroShift}
                         onChange={(e) => {
                           setZeroShift(parseFloat(e.target.value));
                           if (Math.abs(parseFloat(e.target.value) * 1000 % 10) < 1) playSynthTone('tick');
@@ -990,7 +990,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       </div>
                       <input
                         type="range" min="-0.2" max="0.2" step="0.002"
-                        value={sampleDisplacement}
+                        value={String(sampleDisplacement) === 'NaN' ? '' : sampleDisplacement}
                         onChange={(e) => {
                           setSampleDisplacement(parseFloat(e.target.value));
                           if (Math.abs(parseFloat(e.target.value) * 1000 % 5) < 1) playSynthTone('tick');
@@ -1009,7 +1009,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       </div>
                       <input
                         type="range" min="100" max="300" step="1.0"
-                        value={goniometerRadius}
+                        value={String(goniometerRadius) === 'NaN' ? '' : goniometerRadius}
                         onChange={(e) => {
                           setGoniometerRadius(parseFloat(e.target.value));
                           if (parseFloat(e.target.value) % 10 === 0) playSynthTone('tick');
@@ -1058,7 +1058,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     <div className="flex gap-2 max-w-sm">
                       <input 
                         type="number" step="0.00001"
-                        value={defaultWavelength}
+                        value={String(defaultWavelength) === 'NaN' ? '' : defaultWavelength}
                         onChange={(e) => setDefaultWavelength(parseFloat(e.target.value) || 0)}
                         className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-medium outline-none focus:border-amber-500 transition-all text-slate-900 dark:text-white"
                       />

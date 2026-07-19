@@ -1096,7 +1096,7 @@ export const LearnModule: React.FC = () => {
                                  min="-0.3"
                                  max="0.3"
                                  step="0.005"
-                                 value={dispHeight}
+                                 value={String(dispHeight) === 'NaN' ? '' : dispHeight}
                                  onChange={(e) => setDispHeight(parseFloat(e.target.value))}
                                  className="w-full h-1.5 bg-slate-201 dark:bg-slate-800 rounded-lg appearance-none accent-rose-500 cursor-pointer"
                               />
@@ -1118,7 +1118,7 @@ export const LearnModule: React.FC = () => {
                                  min="150"
                                  max="250"
                                  step="5"
-                                 value={gonioRadius}
+                                 value={String(gonioRadius) === 'NaN' ? '' : gonioRadius}
                                  onChange={(e) => setGonioRadius(parseInt(e.target.value))}
                                  className="w-full h-1.5 bg-slate-201 dark:bg-slate-800 rounded-lg appearance-none accent-indigo-500 cursor-pointer"
                               />
@@ -1140,7 +1140,7 @@ export const LearnModule: React.FC = () => {
                                  min="15"
                                  max="90"
                                  step="1"
-                                 value={dispThetaTrue}
+                                 value={String(dispThetaTrue) === 'NaN' ? '' : dispThetaTrue}
                                  onChange={(e) => setDispThetaTrue(parseInt(e.target.value))}
                                  className="w-full h-1.5 bg-slate-201 dark:bg-slate-800 rounded-lg appearance-none accent-indigo-505 cursor-pointer"
                               />
@@ -1663,7 +1663,7 @@ export const LearnModule: React.FC = () => {
                                min="0.5"
                                max="3.0"
                                step="0.0001"
-                               value={scherrerWavelength}
+                               value={String(scherrerWavelength) === 'NaN' ? '' : scherrerWavelength}
                                onChange={(e) => setScherrerWavelength(parseFloat(e.target.value))}
                                className="w-full accent-indigo-600"
                              />
@@ -1680,7 +1680,7 @@ export const LearnModule: React.FC = () => {
                                min="0.6"
                                max="1.5"
                                step="0.01"
-                               value={scherrerK}
+                               value={String(scherrerK) === 'NaN' ? '' : scherrerK}
                                onChange={(e) => setScherrerK(parseFloat(e.target.value))}
                                className="w-full accent-indigo-600"
                              />
@@ -1702,7 +1702,7 @@ export const LearnModule: React.FC = () => {
                                min="10"
                                max="120"
                                step="0.1"
-                               value={scherrerTwoTheta}
+                               value={String(scherrerTwoTheta) === 'NaN' ? '' : scherrerTwoTheta}
                                onChange={(e) => setScherrerTwoTheta(parseFloat(e.target.value))}
                                className="w-full accent-indigo-600"
                              />
@@ -1719,7 +1719,7 @@ export const LearnModule: React.FC = () => {
                                min="0.05"
                                max="1.5"
                                step="0.01"
-                               value={scherrerFWHM}
+                               value={String(scherrerFWHM) === 'NaN' ? '' : scherrerFWHM}
                                onChange={(e) => setScherrerFWHM(parseFloat(e.target.value))}
                                className="w-full accent-indigo-600"
                              />
@@ -1738,7 +1738,7 @@ export const LearnModule: React.FC = () => {
                                min="0.5"
                                max="3.0"
                                step="0.0001"
-                               value={braggWavelength}
+                               value={String(braggWavelength) === 'NaN' ? '' : braggWavelength}
                                onChange={(e) => setBraggWavelength(parseFloat(e.target.value))}
                                className="w-full accent-indigo-600"
                              />
@@ -1755,7 +1755,7 @@ export const LearnModule: React.FC = () => {
                                min="5"
                                max="150"
                                step="0.1"
-                               value={braggTwoTheta}
+                               value={String(braggTwoTheta) === 'NaN' ? '' : braggTwoTheta}
                                onChange={(e) => setBraggTwoTheta(parseFloat(e.target.value))}
                                className="w-full accent-indigo-600"
                              />
@@ -1860,7 +1860,7 @@ export const LearnModule: React.FC = () => {
                           min="100"
                           max="4000"
                           step="50"
-                          value={polAc}
+                          value={String(polAc) === 'NaN' ? '' : polAc}
                           onChange={(e) => setPolAc(parseInt(e.target.value))}
                           className="w-full accent-cyan-500"
                         />
@@ -1877,7 +1877,7 @@ export const LearnModule: React.FC = () => {
                           min="100"
                           max="4000"
                           step="50"
-                          value={polAa}
+                          value={String(polAa) === 'NaN' ? '' : polAa}
                           onChange={(e) => setPolAa(parseInt(e.target.value))}
                           className="w-full accent-indigo-500"
                         />
@@ -2297,7 +2297,7 @@ export const LearnModule: React.FC = () => {
                                            step="0.05"
                                            min="0"
                                            max="1"
-                                           value={symCoordX}
+                                           value={String(symCoordX) === 'NaN' ? '' : symCoordX}
                                            onChange={(e) => setSymCoordX(Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)))}
                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1 text-xs text-slate-800 dark:text-white text-center focus:outline-none focus:border-rose-500"
                                          />
@@ -2310,7 +2310,7 @@ export const LearnModule: React.FC = () => {
                                            step="0.05"
                                            min="0"
                                            max="1"
-                                           value={symCoordY}
+                                           value={String(symCoordY) === 'NaN' ? '' : symCoordY}
                                            onChange={(e) => setSymCoordY(Math.max(0, Math.min(1, parseFloat(e.target.value) || 0)))}
                                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded px-2 py-1 text-xs text-slate-800 dark:text-white text-center focus:outline-none focus:border-rose-500"
                                          />
@@ -2540,7 +2540,7 @@ export const LearnModule: React.FC = () => {
                                      <input 
                                        title="Molar Mass Phase A"
                                        type="number"
-                                       value={qpaPhase1Mass}
+                                       value={String(qpaPhase1Mass) === 'NaN' ? '' : qpaPhase1Mass}
                                        onChange={(e) => setQpaPhase1Mass(parseFloat(e.target.value) || 0)}
                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
                                      />
@@ -2550,7 +2550,7 @@ export const LearnModule: React.FC = () => {
                                      <input 
                                        title="Formula Units Phase A"
                                        type="number"
-                                       value={qpaPhase1Z}
+                                       value={String(qpaPhase1Z) === 'NaN' ? '' : qpaPhase1Z}
                                        onChange={(e) => setQpaPhase1Z(parseFloat(e.target.value) || 0)}
                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
                                      />
@@ -2566,7 +2566,7 @@ export const LearnModule: React.FC = () => {
                                     title="Cell Volume Phase A"
                                     type="number"
                                     step="10"
-                                    value={qpaPhase1Volume}
+                                    value={String(qpaPhase1Volume) === 'NaN' ? '' : qpaPhase1Volume}
                                     onChange={(e) => setQpaPhase1Volume(parseFloat(e.target.value) || 1)}
                                     className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
                                   />
@@ -2583,7 +2583,7 @@ export const LearnModule: React.FC = () => {
                                     min="0.0001"
                                     max="0.0100"
                                     step="0.0001"
-                                    value={qpaPhase1Scale}
+                                    value={String(qpaPhase1Scale) === 'NaN' ? '' : qpaPhase1Scale}
                                     onChange={(e) => setQpaPhase1Scale(parseFloat(e.target.value))}
                                     className="w-full accent-amber-500"
                                   />
@@ -2616,7 +2616,7 @@ export const LearnModule: React.FC = () => {
                                      <input 
                                        title="Molar Mass Phase B"
                                        type="number"
-                                       value={qpaPhase2Mass}
+                                       value={String(qpaPhase2Mass) === 'NaN' ? '' : qpaPhase2Mass}
                                        onChange={(e) => setQpaPhase2Mass(parseFloat(e.target.value) || 0)}
                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
                                      />
@@ -2626,7 +2626,7 @@ export const LearnModule: React.FC = () => {
                                      <input 
                                        title="Formula Units Phase B"
                                        type="number"
-                                       value={qpaPhase2Z}
+                                       value={String(qpaPhase2Z) === 'NaN' ? '' : qpaPhase2Z}
                                        onChange={(e) => setQpaPhase2Z(parseFloat(e.target.value) || 0)}
                                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
                                      />
@@ -2642,7 +2642,7 @@ export const LearnModule: React.FC = () => {
                                     title="Cell Volume Phase B"
                                     type="number"
                                     step="10"
-                                    value={qpaPhase2Volume}
+                                    value={String(qpaPhase2Volume) === 'NaN' ? '' : qpaPhase2Volume}
                                     onChange={(e) => setQpaPhase2Volume(parseFloat(e.target.value) || 1)}
                                     className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-850 dark:text-slate-100 text-center"
                                   />
@@ -2659,7 +2659,7 @@ export const LearnModule: React.FC = () => {
                                     min="0.0001"
                                     max="0.0100"
                                     step="0.0001"
-                                    value={qpaPhase2Scale}
+                                    value={String(qpaPhase2Scale) === 'NaN' ? '' : qpaPhase2Scale}
                                     onChange={(e) => setQpaPhase2Scale(parseFloat(e.target.value))}
                                     className="w-full accent-indigo-500"
                                   />
@@ -2763,7 +2763,7 @@ export const LearnModule: React.FC = () => {
                                    min="-0.0100"
                                    max="0.1000"
                                    step="0.0005"
-                                   value={cagliotiU}
+                                   value={String(cagliotiU) === 'NaN' ? '' : cagliotiU}
                                    onChange={(e) => setCagliotiU(parseFloat(e.target.value))}
                                    className="w-full accent-violet-500"
                                  />
@@ -2781,7 +2781,7 @@ export const LearnModule: React.FC = () => {
                                    min="-0.0900"
                                    max="0.0500"
                                    step="0.0005"
-                                   value={cagliotiV}
+                                   value={String(cagliotiV) === 'NaN' ? '' : cagliotiV}
                                    onChange={(e) => setCagliotiV(parseFloat(e.target.value))}
                                    className="w-full accent-violet-500"
                                  />
@@ -2799,7 +2799,7 @@ export const LearnModule: React.FC = () => {
                                    min="0.0005"
                                    max="0.1000"
                                    step="0.0005"
-                                   value={cagliotiW}
+                                   value={String(cagliotiW) === 'NaN' ? '' : cagliotiW}
                                    onChange={(e) => setCagliotiW(parseFloat(e.target.value))}
                                    className="w-full accent-violet-500"
                                  />
@@ -2947,7 +2947,7 @@ export const LearnModule: React.FC = () => {
                                     min="0.25"
                                     max="2.0"
                                     step="0.05"
-                                    value={prefRValue}
+                                    value={String(prefRValue) === 'NaN' ? '' : prefRValue}
                                     onChange={(e) => setPrefRValue(parseFloat(e.target.value))}
                                     className="w-full accent-emerald-500"
                                   />
@@ -2970,7 +2970,7 @@ export const LearnModule: React.FC = () => {
                                     min="0"
                                     max="90"
                                     step="1"
-                                    value={prefAlphaDeg}
+                                    value={String(prefAlphaDeg) === 'NaN' ? '' : prefAlphaDeg}
                                     onChange={(e) => setPrefAlphaDeg(parseInt(e.target.value) || 0)}
                                     className="w-full accent-emerald-500"
                                   />
@@ -2988,7 +2988,7 @@ export const LearnModule: React.FC = () => {
                                     min="0.0"
                                     max="1.0"
                                     step="0.05"
-                                    value={prefFraction}
+                                    value={String(prefFraction) === 'NaN' ? '' : prefFraction}
                                     onChange={(e) => setPrefFraction(parseFloat(e.target.value))}
                                     className="w-full accent-emerald-500"
                                   />

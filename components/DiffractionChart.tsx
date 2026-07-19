@@ -1318,7 +1318,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                             step="0.01"
                             min="0"
                             max="180"
-                            value={Number(peak.twoTheta.toFixed(3))}
+                            value={isNaN(Number(peak.twoTheta.toFixed(3))) ? '' : Number(peak.twoTheta.toFixed(3))}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value);
                               if (!isNaN(val)) {

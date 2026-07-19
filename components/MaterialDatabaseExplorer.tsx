@@ -1116,7 +1116,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                   type="number"
                   step="0.001"
                   min="0"
-                  value={editMolecularWeight}
+                  value={String(editMolecularWeight) === 'NaN' ? '' : editMolecularWeight}
                   onChange={e => setEditMolecularWeight(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. 269.8"
@@ -1132,7 +1132,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                   type="number"
                   step="0.01"
                   min="0"
-                  value={editDensity}
+                  value={String(editDensity) === 'NaN' ? '' : editDensity}
                   onChange={e => setEditDensity(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. 5.86"
@@ -1146,7 +1146,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                   type="number"
                   step="1"
                   min="0"
-                  value={editElasticModulus}
+                  value={String(editElasticModulus) === 'NaN' ? '' : editElasticModulus}
                   onChange={e => setEditElasticModulus(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. 182"
@@ -1181,7 +1181,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 <input
                   type="number"
                   step="0.001"
-                  value={editEnergyAboveHull}
+                  value={String(editEnergyAboveHull) === 'NaN' ? '' : editEnergyAboveHull}
                   onChange={e => setEditEnergyAboveHull(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. 0.0"
@@ -1196,7 +1196,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 <input
                   type="number"
                   step="0.01"
-                  value={editFormationEnergy}
+                  value={String(editFormationEnergy) === 'NaN' ? '' : editFormationEnergy}
                   onChange={e => setEditFormationEnergy(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. -1.43"
@@ -1209,7 +1209,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 <input
                   type="number"
                   step="1"
-                  value={editFormationEnthalpy}
+                  value={String(editFormationEnthalpy) === 'NaN' ? '' : editFormationEnthalpy}
                   onChange={e => setEditFormationEnthalpy(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. -285"
@@ -1224,7 +1224,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 <input
                   type="number"
                   step="0.1"
-                  value={editStandardEntropy}
+                  value={String(editStandardEntropy) === 'NaN' ? '' : editStandardEntropy}
                   onChange={e => setEditStandardEntropy(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. 51.4"
@@ -1237,7 +1237,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 <input
                   type="number"
                   step="0.1"
-                  value={editHeatCapacity}
+                  value={String(editHeatCapacity) === 'NaN' ? '' : editHeatCapacity}
                   onChange={e => setEditHeatCapacity(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. 84.2"
@@ -1252,7 +1252,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 <input
                   type="number"
                   step="1"
-                  value={editDebyeTemperature}
+                  value={String(editDebyeTemperature) === 'NaN' ? '' : editDebyeTemperature}
                   onChange={e => setEditDebyeTemperature(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. 420"
@@ -1265,7 +1265,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 <input
                   type="number"
                   step="1"
-                  value={editDecompositionTemp}
+                  value={String(editDecompositionTemp) === 'NaN' ? '' : editDecompositionTemp}
                   onChange={e => setEditDecompositionTemp(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. 1850"
@@ -1286,7 +1286,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                   type="number"
                   step="1"
                   min="1"
-                  value={editZValue}
+                  value={String(editZValue) === 'NaN' ? '' : editZValue}
                   onChange={e => setEditZValue(e.target.value)}
                   className="w-full bg-[#030712] border border-slate-800 text-xs px-3 py-2 text-white outline-none rounded-lg focus:border-indigo-500 transition-colors font-mono"
                   placeholder="e.g. 4"
@@ -1316,7 +1316,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                     type="number"
                     step="0.0001"
                     min="0"
-                    value={editLatticeA}
+                    value={String(editLatticeA) === 'NaN' ? '' : editLatticeA}
                     onChange={e => setEditLatticeA(e.target.value)}
                     className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
                     placeholder="e.g. 4.156"
@@ -1328,7 +1328,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                     type="number"
                     step="0.0001"
                     min="0"
-                    value={editLatticeB}
+                    value={String(editLatticeB) === 'NaN' ? '' : editLatticeB}
                     onChange={e => setEditLatticeB(e.target.value)}
                     className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
                     placeholder="e.g. 4.156"
@@ -1340,7 +1340,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                     type="number"
                     step="0.0001"
                     min="0"
-                    value={editLatticeC}
+                    value={String(editLatticeC) === 'NaN' ? '' : editLatticeC}
                     onChange={e => setEditLatticeC(e.target.value)}
                     className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
                     placeholder="e.g. 10.21"
@@ -1360,7 +1360,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                     step="0.1"
                     min="0"
                     max="180"
-                    value={editAlpha}
+                    value={String(editAlpha) === 'NaN' ? '' : editAlpha}
                     onChange={e => setEditAlpha(e.target.value)}
                     className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
                     placeholder="e.g. 90"
@@ -1373,7 +1373,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                     step="0.1"
                     min="0"
                     max="180"
-                    value={editBeta}
+                    value={String(editBeta) === 'NaN' ? '' : editBeta}
                     onChange={e => setEditBeta(e.target.value)}
                     className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
                     placeholder="e.g. 90"
@@ -1386,7 +1386,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                     step="0.1"
                     min="0"
                     max="180"
-                    value={editGamma}
+                    value={String(editGamma) === 'NaN' ? '' : editGamma}
                     onChange={e => setEditGamma(e.target.value)}
                     className="w-full bg-[#030712] border border-slate-800 text-xs px-2.5 py-1.5 text-white outline-none rounded-md focus:border-indigo-500 font-mono"
                     placeholder="e.g. 120"
@@ -4379,7 +4379,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                         min="0"
                         max="1"
                         step="0.01"
-                        value={blendRatio}
+                        value={String(blendRatio) === 'NaN' ? '' : blendRatio}
                         onChange={(e) => setBlendRatio(parseFloat(e.target.value))}
                         className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                       />
@@ -5487,7 +5487,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                               min={0.15}
                               max={1.0}
                               step={0.05}
-                              value={xrdFwhm}
+                              value={String(xrdFwhm) === 'NaN' ? '' : xrdFwhm}
                               onChange={e => setXrdFwhm(parseFloat(e.target.value))}
                               className="w-full h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-500"
                             />
@@ -5915,7 +5915,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                               min="0" 
                               max="1500" 
                               step="50"
-                              value={thermoTemperature}
+                              value={String(thermoTemperature) === 'NaN' ? '' : thermoTemperature}
                               onChange={(e) => setThermoTemperature(Number(e.target.value))}
                               className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-orange-500"
                             />

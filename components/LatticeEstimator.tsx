@@ -866,7 +866,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                         min="2.0"
                         max="10.0"
                         step="0.001"
-                        value={manualA}
+                        value={String(manualA) === 'NaN' ? '' : manualA}
                         onChange={(e) => setManualA(parseFloat(e.target.value))}
                         className="w-full accent-indigo-500 h-1 bg-slate-200 dark:bg-slate-850 rounded-lg cursor-pointer"
                       />
@@ -883,7 +883,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                         min="2.0"
                         max="10.0"
                         step="0.001"
-                        value={manualB}
+                        value={String(manualB) === 'NaN' ? '' : manualB}
                         disabled={crystalSystem === 'Cubic' || crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal'}
                         onChange={(e) => setManualB(parseFloat(e.target.value))}
                         className="w-full accent-indigo-500 h-1 bg-slate-200 dark:bg-slate-850 rounded-lg cursor-pointer"
@@ -901,7 +901,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                         min="2.0"
                         max="15.0"
                         step="0.001"
-                        value={manualC}
+                        value={String(manualC) === 'NaN' ? '' : manualC}
                         disabled={crystalSystem === 'Cubic'}
                         onChange={(e) => setManualC(parseFloat(e.target.value))}
                         className="w-full accent-indigo-500 h-1 bg-slate-200 dark:bg-slate-850 rounded-lg cursor-pointer"
@@ -1026,7 +1026,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                     step="0.01"
                     min="0"
                     placeholder="e.g. 2.50"
-                    value={targetDSpacing}
+                    value={String(targetDSpacing) === 'NaN' ? '' : targetDSpacing}
                     onChange={(e) => setTargetDSpacing(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-lg outline-none font-bold font-mono text-xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                   />

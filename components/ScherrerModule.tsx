@@ -440,7 +440,7 @@ export const ScherrerModule: React.FC = () => {
                   <input
                     type="number"
                     step="0.0001"
-                    value={isNaN(wavelength) ? '' : wavelength}
+                    value={String(wavelength) === 'NaN' ? '' : wavelength}
                     onChange={(e) => setWavelength(parseFloat(e.target.value))}
                     className="w-full pl-24 pr-4 py-4 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/50 rounded-2xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-base font-black transition-all placeholder:text-slate-700 shadow-inner"
                   />
@@ -541,7 +541,7 @@ export const ScherrerModule: React.FC = () => {
                     <input
                       type="number"
                       step="0.01"
-                      value={isNaN(constantK) ? '' : constantK}
+                      value={String(constantK) === 'NaN' ? '' : constantK}
                       onChange={(e) => {
                         setConstantK(parseFloat(e.target.value));
                         setSelectedKType('Custom');
@@ -589,7 +589,7 @@ export const ScherrerModule: React.FC = () => {
                     <input
                       type="number"
                       step="0.001"
-                      value={isNaN(instFwhm) ? '' : instFwhm}
+                      value={String(instFwhm) === 'NaN' ? '' : instFwhm}
                       onChange={(e) => setInstFwhm(parseFloat(e.target.value))}
                       className="w-full px-4 py-3 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/50 rounded-xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-sm font-black transition-all"
                     />
@@ -626,7 +626,7 @@ export const ScherrerModule: React.FC = () => {
                     <div className="space-y-1">
                       <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">U (tan²θ)</label>
                       <input 
-                        type="number" step="0.001" value={isNaN(caglioti.u) ? '' : caglioti.u} 
+                        type="number" step="0.001" value={String(caglioti.u) === 'NaN' ? '' : caglioti.u} 
                         onChange={(e) => setCaglioti({...caglioti, u: parseFloat(e.target.value)})}
                         className="w-full px-2 py-2 bg-black/40 text-amber-400/80 border border-slate-800 rounded-lg outline-none font-mono text-[10px] font-black focus:border-amber-500/30" 
                       />
@@ -634,7 +634,7 @@ export const ScherrerModule: React.FC = () => {
                     <div className="space-y-1">
                       <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">V (tanθ)</label>
                       <input 
-                        type="number" step="0.001" value={isNaN(caglioti.v) ? '' : caglioti.v} 
+                        type="number" step="0.001" value={String(caglioti.v) === 'NaN' ? '' : caglioti.v} 
                         onChange={(e) => setCaglioti({...caglioti, v: parseFloat(e.target.value)})}
                         className="w-full px-2 py-2 bg-black/40 text-amber-400/80 border border-slate-800 rounded-lg outline-none font-mono text-[10px] font-black focus:border-amber-500/30" 
                       />
@@ -642,7 +642,7 @@ export const ScherrerModule: React.FC = () => {
                     <div className="space-y-1">
                       <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">W (const)</label>
                       <input 
-                        type="number" step="0.001" value={isNaN(caglioti.w) ? '' : caglioti.w} 
+                        type="number" step="0.001" value={String(caglioti.w) === 'NaN' ? '' : caglioti.w} 
                         onChange={(e) => setCaglioti({...caglioti, w: parseFloat(e.target.value)})}
                         className="w-full px-2 py-2 bg-black/40 text-amber-400/80 border border-slate-800 rounded-lg outline-none font-mono text-[10px] font-black focus:border-amber-500/30" 
                       />

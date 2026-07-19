@@ -664,7 +664,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                 step="0.00001"
                 min="0.1"
                 max="5.0"
-                value={wavelength}
+                value={String(wavelength) === 'NaN' ? '' : wavelength}
                 onChange={(e) => {
                   const val = parseFloat(e.target.value);
                   if (!isNaN(val)) setWavelength(val);
@@ -1014,7 +1014,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                     min="-0.5"
                     max="0.5"
                     step="0.005"
-                    value={zeroShift}
+                    value={String(zeroShift) === 'NaN' ? '' : zeroShift}
                     onChange={(e) => setZeroShift(parseFloat(e.target.value))}
                     className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                   />
@@ -1045,7 +1045,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                     min="-0.4"
                     max="0.4"
                     step="0.005"
-                    value={sampleDisplacement}
+                    value={String(sampleDisplacement) === 'NaN' ? '' : sampleDisplacement}
                     onChange={(e) => setSampleDisplacement(parseFloat(e.target.value))}
                     className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                   />
@@ -1068,7 +1068,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                       min="100"
                       max="400"
                       step="5"
-                      value={goniometerRadius}
+                      value={String(goniometerRadius) === 'NaN' ? '' : goniometerRadius}
                       onChange={(e) => {
                         const val = parseInt(e.target.value);
                         if (!isNaN(val)) setGoniometerRadius(val);
@@ -1235,7 +1235,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                         min="0.2"
                         max="3.0"
                         step="0.1"
-                        value={alignmentTolerance}
+                        value={String(alignmentTolerance) === 'NaN' ? '' : alignmentTolerance}
                         onChange={(e) => setAlignmentTolerance(parseFloat(e.target.value))}
                         className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                       />
@@ -1562,7 +1562,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                       min="0.1"
                       max="1.5"
                       step="0.05"
-                      value={refineTolerance}
+                      value={String(refineTolerance) === 'NaN' ? '' : refineTolerance}
                       onChange={(e) => setRefineTolerance(parseFloat(e.target.value))}
                       className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                     />

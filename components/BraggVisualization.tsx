@@ -138,7 +138,7 @@ export const BraggVisualization: React.FC<BraggVisualizationProps> = ({ waveleng
               min="10" 
               max="80" 
               step="0.1"
-              value={localTwoTheta}
+              value={String(localTwoTheta) === 'NaN' ? '' : localTwoTheta}
               onChange={(e) => {
                 setLocalTwoTheta(parseFloat(e.target.value));
                 setIsAutoScanning(false);

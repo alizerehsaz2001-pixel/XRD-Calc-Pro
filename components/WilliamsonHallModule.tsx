@@ -365,7 +365,7 @@ export const WilliamsonHallModule: React.FC = () => {
                   <input
                     type="number"
                     step="0.0001"
-                    value={wavelength}
+                    value={String(wavelength) === 'NaN' ? '' : wavelength}
                     onChange={(e) => setWavelength(parseFloat(e.target.value))}
                     className="w-full px-4 py-2.5 bg-[#0A101C] text-cyan-300 border border-white/10 focus:border-cyan-500/50 rounded-lg focus:ring-1 focus:ring-cyan-500/20 outline-none font-mono text-sm transition-all"
                   />
@@ -490,7 +490,7 @@ export const WilliamsonHallModule: React.FC = () => {
                             min="1.0"
                             max="100.0"
                             step="0.1"
-                            value={synchrotronEnergy}
+                            value={String(synchrotronEnergy) === 'NaN' ? '' : synchrotronEnergy}
                             onChange={(e) => setSynchrotronEnergy(parseFloat(e.target.value))}
                             className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-500"
                           />
@@ -590,7 +590,7 @@ export const WilliamsonHallModule: React.FC = () => {
                       <input
                         type="number"
                         step="0.01"
-                        value={constantK}
+                        value={String(constantK) === 'NaN' ? '' : constantK}
                         onChange={(e) => {
                           setConstantK(parseFloat(e.target.value));
                           setSelectedKType('Custom');
@@ -721,7 +721,7 @@ export const WilliamsonHallModule: React.FC = () => {
                               min="0.1"
                               max="15"
                               step="0.1"
-                              value={cylinderAspect}
+                              value={String(cylinderAspect) === 'NaN' ? '' : cylinderAspect}
                               onChange={(e) => setCylinderAspect(parseFloat(e.target.value))}
                               className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-rose-500"
                             />
@@ -745,7 +745,7 @@ export const WilliamsonHallModule: React.FC = () => {
                               min="0"
                               max="0.99"
                               step="0.01"
-                              value={spheroidEccentricity}
+                              value={String(spheroidEccentricity) === 'NaN' ? '' : spheroidEccentricity}
                               onChange={(e) => setSpheroidEccentricity(parseFloat(e.target.value))}
                               className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-rose-500"
                             />
@@ -813,7 +813,7 @@ export const WilliamsonHallModule: React.FC = () => {
                     type="number"
                     step="0.005"
                     min="0"
-                    value={instFwhm}
+                    value={String(instFwhm) === 'NaN' ? '' : instFwhm}
                     onChange={(e) => setInstFwhm(Math.max(0, parseFloat(e.target.value) || 0))}
                     className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
                   />
@@ -856,7 +856,7 @@ export const WilliamsonHallModule: React.FC = () => {
                       <input
                         type="number"
                         step="0.0001"
-                        value={cagliotiU}
+                        value={String(cagliotiU) === 'NaN' ? '' : cagliotiU}
                         onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
                         className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-amber-500/50 outline-none"
                       />
@@ -866,7 +866,7 @@ export const WilliamsonHallModule: React.FC = () => {
                       <input
                         type="number"
                         step="0.0001"
-                        value={cagliotiV}
+                        value={String(cagliotiV) === 'NaN' ? '' : cagliotiV}
                         onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
                         className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-amber-500/50 outline-none"
                       />
@@ -876,7 +876,7 @@ export const WilliamsonHallModule: React.FC = () => {
                       <input
                         type="number"
                         step="0.0001"
-                        value={cagliotiW}
+                        value={String(cagliotiW) === 'NaN' ? '' : cagliotiW}
                         onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
                         className="w-full px-2 py-2 bg-[#0A101C] text-amber-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-amber-500/50 outline-none"
                       />
@@ -993,7 +993,7 @@ export const WilliamsonHallModule: React.FC = () => {
                       min="1"
                       max="600"
                       step="1"
-                      value={youngsModulusGPa}
+                      value={String(youngsModulusGPa) === 'NaN' ? '' : youngsModulusGPa}
                       onChange={(e) => setYoungsModulusGPa(parseInt(e.target.value) || 130)}
                       className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
                     />

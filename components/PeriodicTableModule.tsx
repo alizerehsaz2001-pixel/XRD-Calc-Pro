@@ -447,7 +447,7 @@ const CrystallineLattice3D: React.FC<{
             type="range"
             min="0"
             max="360"
-            value={yaw}
+            value={String(yaw) === 'NaN' ? '' : yaw}
             onChange={(e) => {
               setYaw(parseFloat(e.target.value));
               setIsRotating(false);
@@ -464,7 +464,7 @@ const CrystallineLattice3D: React.FC<{
             type="range"
             min="-90"
             max="90"
-            value={pitch}
+            value={String(pitch) === 'NaN' ? '' : pitch}
             onChange={(e) => {
               setPitch(parseFloat(e.target.value));
               setIsRotating(false);
@@ -1918,7 +1918,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   min="-273.15"
                   max="6000"
                   step="1"
-                  value={temperature}
+                  value={String(temperature) === 'NaN' ? '' : temperature}
                   onChange={(e) => setTemperature(parseFloat(e.target.value))}
                   className="w-full accent-emerald-500 h-1.5 bg-slate-900 rounded-lg cursor-pointer appearance-none"
                 />
@@ -2254,7 +2254,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           <input
                             type="number"
                             step="0.0001"
-                            value={formWeight || ''}
+                            value={String(formWeight || '') === 'NaN' ? '' : formWeight || ''}
                             onChange={(e) => setFormWeight(parseFloat(e.target.value) || 0)}
                             className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors font-mono"
                           />
@@ -2264,7 +2264,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           <input
                             type="number"
                             step="0.01"
-                            value={formDensity || ''}
+                            value={String(formDensity || '') === 'NaN' ? '' : formDensity || ''}
                             onChange={(e) => setFormDensity(parseFloat(e.target.value) || 0)}
                             className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors font-mono"
                           />
@@ -2308,7 +2308,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             <input
                               type="number"
                               step="0.001"
-                              value={formA || ''}
+                              value={String(formA || '') === 'NaN' ? '' : formA || ''}
                               onChange={(e) => setFormA(parseFloat(e.target.value) || 0)}
                               className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg p-2 text-xs outline-none transition-colors font-mono"
                             />
@@ -2318,7 +2318,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             <input
                               type="number"
                               step="0.001"
-                              value={formB || ''}
+                              value={String(formB || '') === 'NaN' ? '' : formB || ''}
                               onChange={(e) => setFormB(e.target.value ? parseFloat(e.target.value) : undefined)}
                               className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg p-2 text-xs outline-none transition-colors font-mono"
                               placeholder="N/A"
@@ -2329,7 +2329,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                             <input
                               type="number"
                               step="0.001"
-                              value={formC || ''}
+                              value={String(formC || '') === 'NaN' ? '' : formC || ''}
                               onChange={(e) => setFormC(e.target.value ? parseFloat(e.target.value) : undefined)}
                               className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg p-2 text-xs outline-none transition-colors font-mono"
                               placeholder="N/A"
@@ -2344,7 +2344,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           <label className="text-[9px] uppercase font-mono font-black tracking-wider text-slate-400">Melting Pt (°C)</label>
                           <input
                             type="number"
-                            value={formMeltingPoint || ''}
+                            value={String(formMeltingPoint || '') === 'NaN' ? '' : formMeltingPoint || ''}
                             onChange={(e) => setFormMeltingPoint(parseFloat(e.target.value) || 0)}
                             className="w-full bg-slate-950 border border-slate-850 focus:border-indigo-500 text-white rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors font-mono"
                           />
@@ -2507,7 +2507,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                     type="number" 
                                     min="0" 
                                     max="9" 
-                                    value={elemH} 
+                                    value={String(elemH) === 'NaN' ? '' : elemH} 
                                     onChange={(e) => setElemH(Math.max(0, parseInt(e.target.value) || 0))}
                                     className="w-8 text-center text-xs bg-slate-950 border border-slate-800 text-slate-200 rounded p-0.5"
                                   />
@@ -2518,7 +2518,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                     type="number" 
                                     min="0" 
                                     max="9" 
-                                    value={elemK} 
+                                    value={String(elemK) === 'NaN' ? '' : elemK} 
                                     onChange={(e) => setElemK(Math.max(0, parseInt(e.target.value) || 0))}
                                     className="w-8 text-center text-xs bg-slate-950 border border-slate-800 text-slate-200 rounded p-0.5"
                                   />
@@ -2529,7 +2529,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                                     type="number" 
                                     min="0" 
                                     max="9" 
-                                    value={elemL} 
+                                    value={String(elemL) === 'NaN' ? '' : elemL} 
                                     onChange={(e) => setElemL(Math.max(0, parseInt(e.target.value) || 0))}
                                     className="w-8 text-center text-xs bg-slate-950 border border-slate-800 text-slate-200 rounded p-0.5"
                                   />

@@ -285,7 +285,7 @@ export const RietveldRFactorCalculator: React.FC<RietveldRFactorCalculatorProps>
                           type="range"
                           min="1"
                           max="40"
-                          value={liveP}
+                          value={String(liveP) === 'NaN' ? '' : liveP}
                           onChange={(e) => setLiveP(parseInt(e.target.value))}
                           className="w-full accent-indigo-500 h-1.5 bg-slate-850 rounded-lg cursor-pointer"
                         />
@@ -452,7 +452,7 @@ export const RietveldRFactorCalculator: React.FC<RietveldRFactorCalculatorProps>
                                 <input
                                   type="number"
                                   step="0.01"
-                                  value={row.twoTheta}
+                                  value={String(row.twoTheta) === 'NaN' ? '' : row.twoTheta}
                                   onChange={(e) => updateCustomCell(i, 'twoTheta', e.target.value)}
                                   className="w-16 px-1.5 py-1 bg-slate-950/80 border border-slate-850 rounded text-center text-xs text-white"
                                 />
@@ -460,7 +460,7 @@ export const RietveldRFactorCalculator: React.FC<RietveldRFactorCalculatorProps>
                               <td className="py-1 pr-2">
                                 <input
                                   type="number"
-                                  value={row.obs}
+                                  value={String(row.obs) === 'NaN' ? '' : row.obs}
                                   onChange={(e) => updateCustomCell(i, 'obs', e.target.value)}
                                   className="w-20 px-1.5 py-1 bg-slate-950/80 border border-slate-850 rounded text-center text-xs text-white text-indigo-400 font-bold"
                                 />
@@ -468,7 +468,7 @@ export const RietveldRFactorCalculator: React.FC<RietveldRFactorCalculatorProps>
                               <td className="py-1 pr-2">
                                 <input
                                   type="number"
-                                  value={row.calc}
+                                  value={String(row.calc) === 'NaN' ? '' : row.calc}
                                   onChange={(e) => updateCustomCell(i, 'calc', e.target.value)}
                                   className="w-20 px-1.5 py-1 bg-slate-950/80 border border-slate-850 rounded text-center text-xs text-white text-emerald-400 font-bold"
                                 />
@@ -476,7 +476,7 @@ export const RietveldRFactorCalculator: React.FC<RietveldRFactorCalculatorProps>
                               <td className="py-1 pr-2">
                                 <input
                                   type="number"
-                                  value={row.sigma || 10}
+                                  value={String(row.sigma || 10) === 'NaN' ? '' : row.sigma || 10}
                                   onChange={(e) => updateCustomCell(i, 'sigma', e.target.value)}
                                   className="w-16 px-1.5 py-1 bg-slate-950/80 border border-slate-850 rounded text-center text-xs text-white text-slate-400"
                                 />
@@ -558,7 +558,7 @@ export const RietveldRFactorCalculator: React.FC<RietveldRFactorCalculatorProps>
                         type="range"
                         min="1"
                         max={Math.max(1, customRows.length - 1)}
-                        value={customP}
+                        value={String(customP) === 'NaN' ? '' : customP}
                         onChange={(e) => setCustomP(parseInt(e.target.value))}
                         className="w-full accent-indigo-500 h-1.5 bg-slate-850 rounded-lg cursor-pointer"
                       />

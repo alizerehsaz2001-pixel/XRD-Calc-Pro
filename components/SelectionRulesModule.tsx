@@ -2528,7 +2528,7 @@ export const SelectionRulesModule: React.FC = () => {
                     min="1"
                     max="6"
                     step="1"
-                    value={maxIndex}
+                    value={String(maxIndex) === 'NaN' ? '' : maxIndex}
                     onChange={(e) => setMaxIndex(parseInt(e.target.value))}
                     className="w-full h-1.5 bg-[#1e293b] rounded-lg appearance-none cursor-pointer accent-emerald-500 transition-all hover:bg-slate-600"
                   />
@@ -2908,7 +2908,7 @@ export const SelectionRulesModule: React.FC = () => {
                         min="0.5"
                         max="3.0"
                         step="0.05"
-                        value={wavelength}
+                        value={String(wavelength) === 'NaN' ? '' : wavelength}
                         onChange={(e) =>
                           setWavelength(parseFloat(e.target.value))
                         }
@@ -2931,7 +2931,7 @@ export const SelectionRulesModule: React.FC = () => {
                         min="2.5"
                         max="8.0"
                         step="0.05"
-                        value={latticeParameter}
+                        value={String(latticeParameter) === 'NaN' ? '' : latticeParameter}
                         onChange={(e) =>
                           setLatticeParameter(parseFloat(e.target.value))
                         }
@@ -3144,7 +3144,7 @@ export const SelectionRulesModule: React.FC = () => {
                       <input
                         type="number"
                         step="1"
-                        value={val}
+                        value={String(val) === 'NaN' ? '' : val}
                         onChange={(e) => setter(parseInt(e.target.value) || 0)}
                         className="w-full font-mono font-bold text-xs bg-transparent text-emerald-400 outline-none text-center"
                       />
@@ -3749,7 +3749,7 @@ export const SelectionRulesModule: React.FC = () => {
                               </label>
                               <input
                                 type="number"
-                                value={sandboxH}
+                                value={String(sandboxH) === 'NaN' ? '' : sandboxH}
                                 onChange={(e) =>
                                   setSandboxH(parseInt(e.target.value) || 0)
                                 }
@@ -3762,7 +3762,7 @@ export const SelectionRulesModule: React.FC = () => {
                               </label>
                               <input
                                 type="number"
-                                value={sandboxK}
+                                value={String(sandboxK) === 'NaN' ? '' : sandboxK}
                                 onChange={(e) =>
                                   setSandboxK(parseInt(e.target.value) || 0)
                                 }
@@ -3775,7 +3775,7 @@ export const SelectionRulesModule: React.FC = () => {
                               </label>
                               <input
                                 type="number"
-                                value={sandboxL}
+                                value={String(sandboxL) === 'NaN' ? '' : sandboxL}
                                 onChange={(e) =>
                                   setSandboxL(parseInt(e.target.value) || 0)
                                 }

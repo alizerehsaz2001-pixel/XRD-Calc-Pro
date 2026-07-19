@@ -4852,7 +4852,7 @@ if __name__ == '__main__':
                     min="1.0"
                     max="5.0"
                     step="0.1"
-                    value={engineConfig.shapeExponent || 2.5}
+                    value={String(engineConfig.shapeExponent || 2.5) === 'NaN' ? '' : engineConfig.shapeExponent || 2.5}
                     onChange={(e) => {
                       setEngineConfig({ ...engineConfig, shapeExponent: parseFloat(e.target.value) });
                       setActivePreset("Custom");
@@ -4937,7 +4937,7 @@ if __name__ == '__main__':
                 min="0"
                 max="0.8"
                 step="0.05"
-                value={engineConfig.dropout}
+                value={String(engineConfig.dropout) === 'NaN' ? '' : engineConfig.dropout}
                 onChange={(e) => {
                   setEngineConfig({
                     ...engineConfig,
@@ -4968,7 +4968,7 @@ if __name__ == '__main__':
                 min="0.0001"
                 max="0.01"
                 step="0.0001"
-                value={engineConfig.learningRate}
+                value={String(engineConfig.learningRate) === 'NaN' ? '' : engineConfig.learningRate}
                 onChange={(e) => {
                   setEngineConfig({
                     ...engineConfig,
@@ -4996,7 +4996,7 @@ if __name__ == '__main__':
                 min="0"
                 max="100"
                 step="1"
-                value={engineConfig.confidenceThreshold}
+                value={String(engineConfig.confidenceThreshold) === 'NaN' ? '' : engineConfig.confidenceThreshold}
                 onChange={(e) => {
                   setEngineConfig({
                     ...engineConfig,
@@ -5077,7 +5077,7 @@ if __name__ == '__main__':
                   min="0"
                   max="0.5"
                   step="0.05"
-                  value={(engineConfig as any).dropout || 0}
+                  value={isNaN((engineConfig as any).dropout || 0) ? '' : (engineConfig as any).dropout || 0}
                   onChange={(e) => {
                     setEngineConfig({
                       ...engineConfig,
@@ -5719,7 +5719,7 @@ if __name__ == '__main__':
                                   min="0.08"
                                   max="1.20"
                                   step="0.02"
-                                  value={inputBroadening}
+                                  value={String(inputBroadening) === 'NaN' ? '' : inputBroadening}
                                   onChange={(e) => setInputBroadening(parseFloat(e.target.value))}
                                   className="w-full accent-cyan-500 mt-1"
                                 />
@@ -5736,7 +5736,7 @@ if __name__ == '__main__':
                                   min="0"
                                   max="50"
                                   step="1"
-                                  value={inputNoiseLevel}
+                                  value={String(inputNoiseLevel) === 'NaN' ? '' : inputNoiseLevel}
                                   onChange={(e) => setInputNoiseLevel(parseInt(e.target.value))}
                                   className="w-full accent-cyan-500 mt-1"
                                 />
@@ -5753,7 +5753,7 @@ if __name__ == '__main__':
                                   min="0"
                                   max="40"
                                   step="1"
-                                  value={inputBgAmorphous}
+                                  value={String(inputBgAmorphous) === 'NaN' ? '' : inputBgAmorphous}
                                   onChange={(e) => setInputBgAmorphous(parseInt(e.target.value))}
                                   className="w-full accent-cyan-500 mt-1"
                                 />
@@ -5856,7 +5856,7 @@ if __name__ == '__main__':
                           min="3"
                           max="29"
                           step="2"
-                          value={inputSgWindow}
+                          value={String(inputSgWindow) === 'NaN' ? '' : inputSgWindow}
                           onChange={(e) => setInputSgWindow(parseInt(e.target.value))}
                           className="w-full accent-emerald-500 mt-2"
                         />
@@ -5871,7 +5871,7 @@ if __name__ == '__main__':
                           min="1"
                           max="5"
                           step="1"
-                          value={inputSgDegree}
+                          value={String(inputSgDegree) === 'NaN' ? '' : inputSgDegree}
                           onChange={(e) => {
                             const val = parseInt(e.target.value);
                             if (val < inputSgWindow) setInputSgDegree(val);
@@ -5932,7 +5932,7 @@ if __name__ == '__main__':
                           min="0.08"
                           max="1.2"
                           step="0.05"
-                          value={inputBroadening}
+                          value={String(inputBroadening) === 'NaN' ? '' : inputBroadening}
                           onChange={(e) => setInputBroadening(parseFloat(e.target.value))}
                           className="w-full accent-fuchsia-500 mt-1"
                         />
@@ -5949,7 +5949,7 @@ if __name__ == '__main__':
                             min="0"
                             max="50"
                             step="2"
-                            value={inputNoiseLevel}
+                            value={String(inputNoiseLevel) === 'NaN' ? '' : inputNoiseLevel}
                             onChange={(e) => setInputNoiseLevel(parseInt(e.target.value))}
                             className="w-full accent-fuchsia-500 mt-1"
                           />
@@ -5964,7 +5964,7 @@ if __name__ == '__main__':
                             min="0"
                             max="80"
                             step="5"
-                            value={inputBgAmorphous}
+                            value={String(inputBgAmorphous) === 'NaN' ? '' : inputBgAmorphous}
                             onChange={(e) => setInputBgAmorphous(parseInt(e.target.value))}
                             className="w-full accent-fuchsia-500 mt-1"
                           />
@@ -9777,7 +9777,7 @@ if __name__ == '__main__':
                             min="2.0"
                             max="50.0"
                             step="0.5"
-                            value={synthSize}
+                            value={String(synthSize) === 'NaN' ? '' : synthSize}
                             onChange={(e) =>
                               setSynthSize(parseFloat(e.target.value))
                             }
@@ -9808,7 +9808,7 @@ if __name__ == '__main__':
                             min="100"
                             max="1200"
                             step="25"
-                            value={synthTemp}
+                            value={String(synthTemp) === 'NaN' ? '' : synthTemp}
                             onChange={(e) =>
                               setSynthTemp(parseInt(e.target.value))
                             }
@@ -9839,7 +9839,7 @@ if __name__ == '__main__':
                             min="0.0"
                             max="15.0"
                             step="0.1"
-                            value={synthDoping}
+                            value={String(synthDoping) === 'NaN' ? '' : synthDoping}
                             onChange={(e) =>
                               setSynthDoping(parseFloat(e.target.value))
                             }
@@ -9870,7 +9870,7 @@ if __name__ == '__main__':
                             min="1.0"
                             max="24.0"
                             step="0.5"
-                            value={synthTime}
+                            value={String(synthTime) === 'NaN' ? '' : synthTime}
                             onChange={(e) =>
                               setSynthTime(parseFloat(e.target.value))
                             }
@@ -9898,7 +9898,7 @@ if __name__ == '__main__':
                             min="1.0"
                             max="14.0"
                             step="0.1"
-                            value={synthPH}
+                            value={String(synthPH) === 'NaN' ? '' : synthPH}
                             onChange={(e) =>
                               setSynthPH(parseFloat(e.target.value))
                             }
@@ -10866,7 +10866,7 @@ ${
                               min={0.1}
                               max={50.0}
                               step={0.1}
-                              value={synthTargetMass}
+                              value={String(synthTargetMass) === 'NaN' ? '' : synthTargetMass}
                               onChange={(e) => setSynthTargetMass(parseFloat(e.target.value))}
                               className="flex-grow accent-cyan-500 h-1 bg-slate-900 rounded-lg cursor-pointer"
                             />
@@ -10875,7 +10875,7 @@ ${
                               min={0.1}
                               max={500}
                               step={0.1}
-                              value={synthTargetMass}
+                              value={String(synthTargetMass) === 'NaN' ? '' : synthTargetMass}
                               onChange={(e) => setSynthTargetMass(Math.max(0.1, parseFloat(e.target.value) || 0.1))}
                               className="w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-1 text-xs text-center font-mono font-bold text-cyan-300"
                             />
@@ -10970,7 +10970,7 @@ ${
                                         <input
                                           type="number"
                                           placeholder="g/mol"
-                                          value={customPrecursorMws[p.element] || ""}
+                                          value={String(customPrecursorMws[p.element] || "") === 'NaN' ? '' : customPrecursorMws[p.element] || ""}
                                           onChange={(e) => {
                                             const val = parseFloat(e.target.value) || 0;
                                             setCustomPrecursorMws(prev => ({ ...prev, [p.element]: val }));
@@ -11756,7 +11756,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               type="range"
                               min="0"
                               max="50"
-                              value={noiseLevel}
+                              value={String(noiseLevel) === 'NaN' ? '' : noiseLevel}
                               onChange={(e) => {
                                 setNoiseLevel(Number(e.target.value));
                                 setPerturbationScore(null);
@@ -11777,7 +11777,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                               type="range"
                               min="0"
                               max="30"
-                              value={backgroundDrift}
+                              value={String(backgroundDrift) === 'NaN' ? '' : backgroundDrift}
                               onChange={(e) => {
                                 setBackgroundDrift(Number(e.target.value));
                                 setPerturbationScore(null);
@@ -12153,7 +12153,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 type="range" 
                                 min="10" 
                                 max="100" 
-                                value={trainEpochs} 
+                                value={String(trainEpochs) === 'NaN' ? '' : trainEpochs} 
                                 step="10"
                                 onChange={(e) => setTrainEpochs(Number(e.target.value))}
                                 className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-emerald-500"
@@ -12171,7 +12171,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 min="0.001" 
                                 max="0.05" 
                                 step="0.001"
-                                value={trainLR} 
+                                value={String(trainLR) === 'NaN' ? '' : trainLR} 
                                 onChange={(e) => setTrainLR(Number(e.target.value))}
                                 className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-emerald-500"
                               />
@@ -12194,7 +12194,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 min="0.5" 
                                 max="5.0" 
                                 step="0.5"
-                                value={trainStrainRange} 
+                                value={String(trainStrainRange) === 'NaN' ? '' : trainStrainRange} 
                                 onChange={(e) => setTrainStrainRange(Number(e.target.value))}
                                 className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-teal-500"
                               />
@@ -12211,7 +12211,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                 min="0.1" 
                                 max="0.6" 
                                 step="0.05"
-                                value={trainBroadeningRange} 
+                                value={String(trainBroadeningRange) === 'NaN' ? '' : trainBroadeningRange} 
                                 onChange={(e) => setTrainBroadeningRange(Number(e.target.value))}
                                 className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-teal-500"
                               />
@@ -12228,7 +12228,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                   min="2" 
                                   max="30" 
                                   step="2"
-                                  value={trainNoiseLevel} 
+                                  value={String(trainNoiseLevel) === 'NaN' ? '' : trainNoiseLevel} 
                                   onChange={(e) => setTrainNoiseLevel(Number(e.target.value))}
                                   className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-teal-500"
                                 />
@@ -12243,7 +12243,7 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
                                   min="1" 
                                   max="15" 
                                   step="1"
-                                  value={trainBgDrift} 
+                                  value={String(trainBgDrift) === 'NaN' ? '' : trainBgDrift} 
                                   onChange={(e) => setTrainBgDrift(Number(e.target.value))}
                                   className="w-full h-1 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-teal-500"
                                 />

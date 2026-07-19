@@ -2335,7 +2335,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                               min={simPhase === 'Quartz' ? 4.5 : 2.5} 
                               max={simPhase === 'Quartz' ? 5.5 : 6.0} 
                               step="0.001"
-                              value={userParams.a}
+                              value={String(userParams.a) === 'NaN' ? '' : userParams.a}
                               onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
                               className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
                             />
@@ -2355,7 +2355,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                               min="100" 
                               max="2000" 
                               step="10"
-                              value={userParams.scale}
+                              value={String(userParams.scale) === 'NaN' ? '' : userParams.scale}
                               onChange={(e) => setUserParams({...userParams, scale: parseFloat(e.target.value)})}
                               className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-blue-500"
                             />
@@ -2501,7 +2501,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                         min="0.0"
                                         max="1.0"
                                         step="0.01"
-                                        value={symmetryProbeX}
+                                        value={String(symmetryProbeX) === 'NaN' ? '' : symmetryProbeX}
                                         onChange={(e) => setSymmetryProbeX(parseFloat(e.target.value))}
                                         className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
                                       />
@@ -2518,7 +2518,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                         min="0.0"
                                         max="1.0"
                                         step="0.01"
-                                        value={symmetryProbeY}
+                                        value={String(symmetryProbeY) === 'NaN' ? '' : symmetryProbeY}
                                         onChange={(e) => setSymmetryProbeY(parseFloat(e.target.value))}
                                         className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
                                       />
@@ -2660,7 +2660,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                    <div className="flex gap-1 items-center bg-black/40 px-1.5 py-1 rounded inline-flex border border-slate-800/80 shadow-inner">
                                      <input 
                                        type="number"
-                                       value={peak.h}
+                                       value={String(peak.h) === 'NaN' ? '' : peak.h}
                                        min="0"
                                        max="9"
                                        onChange={(e) => {
@@ -2673,7 +2673,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                      <span className="text-slate-600 text-[8px] font-black">:</span>
                                      <input 
                                        type="number"
-                                       value={peak.k}
+                                       value={String(peak.k) === 'NaN' ? '' : peak.k}
                                        min="0"
                                        max="9"
                                        onChange={(e) => {
@@ -2686,7 +2686,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                      <span className="text-slate-600 text-[8px] font-black">:</span>
                                      <input 
                                        type="number"
-                                       value={peak.l}
+                                       value={String(peak.l) === 'NaN' ? '' : peak.l}
                                        min="0"
                                        max="9"
                                        onChange={(e) => {
@@ -2710,7 +2710,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                        <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest absolute -left-6">I:</span>
                                        <input 
                                          type="number"
-                                         value={peak.intensity}
+                                         value={String(peak.intensity) === 'NaN' ? '' : peak.intensity}
                                          step="50"
                                          onChange={(e) => {
                                            const newPeaks = [...userParams.peaks];
@@ -2795,13 +2795,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                             <input
                               type="number"
                               step="0.01"
-                              value={userParams.fwhm}
+                              value={String(userParams.fwhm) === 'NaN' ? '' : userParams.fwhm}
                               onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value) || userParams.fwhm})}
                               className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-rose-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-rose-500/50 outline-none"
                             />
                           </div>
                         </div>
-                        <input type="range" min="0.05" max="1.0" step="0.01" value={userParams.fwhm} onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400 transition-all" />
+                        <input type="range" min="0.05" max="1.0" step="0.01" value={String(userParams.fwhm) === 'NaN' ? '' : userParams.fwhm} onChange={(e) => setUserParams({...userParams, fwhm: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400 transition-all" />
                       </div>
 
                       <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/mix">
@@ -2814,13 +2814,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                             <input
                               type="number"
                               step="0.01"
-                              value={userParams.eta}
+                              value={String(userParams.eta) === 'NaN' ? '' : userParams.eta}
                               onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value) || userParams.eta})}
                               className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-rose-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-rose-500/50 outline-none"
                             />
                           </div>
                         </div>
-                        <input type="range" min="0.0" max="1.0" step="0.01" value={userParams.eta} onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400 transition-all" />
+                        <input type="range" min="0.0" max="1.0" step="0.01" value={String(userParams.eta) === 'NaN' ? '' : userParams.eta} onChange={(e) => setUserParams({...userParams, eta: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-rose-500 hover:accent-rose-400 transition-all" />
                       </div>
 
                       <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/size">
@@ -2833,13 +2833,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                             <input
                               type="number"
                               step="1"
-                              value={userParams.crystalliteSize}
+                              value={String(userParams.crystalliteSize) === 'NaN' ? '' : userParams.crystalliteSize}
                               onChange={(e) => setUserParams({...userParams, crystalliteSize: parseFloat(e.target.value) || userParams.crystalliteSize})}
                               className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-indigo-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-indigo-500/50 outline-none"
                             />
                           </div>
                         </div>
-                        <input type="range" min="1" max="2000" step="1" value={userParams.crystalliteSize} onChange={(e) => setUserParams({...userParams, crystalliteSize: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all" />
+                        <input type="range" min="1" max="2000" step="1" value={String(userParams.crystalliteSize) === 'NaN' ? '' : userParams.crystalliteSize} onChange={(e) => setUserParams({...userParams, crystalliteSize: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400 transition-all" />
                       </div>
 
                       <div className="bg-slate-800/40 p-3 rounded-xl border border-slate-700/50 hover:bg-slate-800/60 transition-all group/strain">
@@ -2852,13 +2852,13 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                             <input
                               type="number"
                               step="0.01"
-                              value={userParams.microstrain}
+                              value={String(userParams.microstrain) === 'NaN' ? '' : userParams.microstrain}
                               onChange={(e) => setUserParams({...userParams, microstrain: parseFloat(e.target.value) || userParams.microstrain})}
                               className="w-[42px] bg-black/60 text-[10px] font-mono font-black text-amber-400 px-1 py-0.5 rounded border border-slate-700/50 text-right focus:border-amber-500/50 outline-none"
                             />
                           </div>
                         </div>
-                        <input type="range" min="0" max="2" step="0.01" value={userParams.microstrain} onChange={(e) => setUserParams({...userParams, microstrain: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400 transition-all" />
+                        <input type="range" min="0" max="2" step="0.01" value={String(userParams.microstrain) === 'NaN' ? '' : userParams.microstrain} onChange={(e) => setUserParams({...userParams, microstrain: parseFloat(e.target.value)})} className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400 transition-all" />
                       </div>
                     </div>
                   </div>
@@ -2885,7 +2885,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         <input
                           type="number"
                           step="0.01"
-                          value={userParams.sampleDisplacement}
+                          value={String(userParams.sampleDisplacement) === 'NaN' ? '' : userParams.sampleDisplacement}
                           onChange={(e) => setUserParams({...userParams, sampleDisplacement: parseFloat(e.target.value) || 0})}
                           className="w-16 bg-black/60 text-xs font-mono font-black text-zinc-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-zinc-500/50 text-right"
                         />
@@ -2895,7 +2895,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         min="-2.0" 
                         max="2.0" 
                         step="0.01"
-                        value={userParams.sampleDisplacement}
+                        value={String(userParams.sampleDisplacement) === 'NaN' ? '' : userParams.sampleDisplacement}
                         onChange={(e) => setUserParams({...userParams, sampleDisplacement: parseFloat(e.target.value)})}
                         className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
                       />
@@ -2913,7 +2913,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         <input
                           type="number"
                           step="0.01"
-                          value={userParams.zeroShift}
+                          value={String(userParams.zeroShift) === 'NaN' ? '' : userParams.zeroShift}
                           onChange={(e) => setUserParams({...userParams, zeroShift: parseFloat(e.target.value) || 0})}
                           className="w-16 bg-black/60 text-xs font-mono font-black text-zinc-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-zinc-500/50 text-right"
                         />
@@ -2923,7 +2923,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         min="-1.0" 
                         max="1.0" 
                         step="0.01"
-                        value={userParams.zeroShift}
+                        value={String(userParams.zeroShift) === 'NaN' ? '' : userParams.zeroShift}
                         onChange={(e) => setUserParams({...userParams, zeroShift: parseFloat(e.target.value)})}
                         className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
                       />
@@ -2941,7 +2941,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         <input
                           type="number"
                           step="1"
-                          value={userParams.background}
+                          value={String(userParams.background) === 'NaN' ? '' : userParams.background}
                           onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value) || userParams.background})}
                           className="w-16 bg-black/60 text-xs font-mono font-black text-zinc-400 px-2 py-1 rounded-md border border-slate-700/50 focus:outline-none focus:border-zinc-500/50 text-right"
                         />
@@ -2951,7 +2951,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                         min="0" 
                         max="200" 
                         step="1"
-                        value={userParams.background}
+                        value={String(userParams.background) === 'NaN' ? '' : userParams.background}
                         onChange={(e) => setUserParams({...userParams, background: parseFloat(e.target.value)})}
                         className="w-full h-1.5 bg-slate-900 rounded-full appearance-none cursor-pointer accent-zinc-500 hover:accent-zinc-400 transition-all"
                       />
@@ -3704,7 +3704,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-2">Max Obs Intensity</label>
                       <input
                         type="number"
-                        value={maxObsIntensity}
+                        value={String(maxObsIntensity) === 'NaN' ? '' : maxObsIntensity}
                         onChange={(e) => setMaxObsIntensity(parseFloat(e.target.value))}
                         className="w-full px-3 py-2 bg-black/60 text-teal-400 border border-white/10 rounded-xl text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:border-white/20 transition-all"
                       />
@@ -3738,7 +3738,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-1.5">Custom Wavelength (Å)</label>
                       <input
                         type="number" step="0.0001"
-                        value={wavelength}
+                        value={String(wavelength) === 'NaN' ? '' : wavelength}
                         onChange={(e) => setWavelength(parseFloat(e.target.value))}
                         className="w-full px-3 py-2 bg-black/60 text-amber-400 border border-white/10 text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:border-white/20 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all rounded-lg"
                       />
@@ -3767,7 +3767,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       </div>
                       <input
                         type="number" step="0.001"
-                        value={setupZeroShift}
+                        value={String(setupZeroShift) === 'NaN' ? '' : setupZeroShift}
                         onChange={(e) => setSetupZeroShift(parseFloat(e.target.value))}
                         className="w-full px-2 py-1.5 bg-black/60 text-rose-400 border border-white/10 rounded-xl text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:border-white/20 focus:ring-rose-500/20 focus:border-rose-500/50 transition-all"
                       />
@@ -3786,7 +3786,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       </div>
                       <input
                         type="number" step="0.001"
-                        value={sampleDisplacement}
+                        value={String(sampleDisplacement) === 'NaN' ? '' : sampleDisplacement}
                         onChange={(e) => setSampleDisplacement(parseFloat(e.target.value))}
                         className="w-full px-2 py-1.5 bg-black/60 text-rose-400 border border-white/10 rounded-xl text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:border-white/20 focus:ring-rose-500/20 focus:border-rose-500/50 transition-all"
                       />
@@ -3823,7 +3823,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                       <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest font-mono mb-2">Polarization Factor (Lp)</label>
                       <input
                         type="number" step="0.001"
-                        value={polarization}
+                        value={String(polarization) === 'NaN' ? '' : polarization}
                         onChange={(e) => setPolarization(parseFloat(e.target.value))}
                         className="w-full px-3 py-2 bg-black/60 text-amber-400 border border-white/10 rounded-xl text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:border-white/20 focus:ring-amber-500/20 focus:border-amber-500/50 transition-all"
                       />
@@ -3880,7 +3880,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Terms:</span>
                           <input 
                             type="number" min="1" max="24"
-                            value={bgTerms}
+                            value={String(bgTerms) === 'NaN' ? '' : bgTerms}
                             onChange={(e) => setBgTerms(parseInt(e.target.value))}
                             className="w-full bg-black/60 text-teal-400 border border-slate-700 rounded text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-teal-500/50 px-2 py-0.5"
                           />
@@ -4124,7 +4124,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                <input
                                  type="number"
                                  step="0.0001"
-                                 value={phase.scale || 1.0}
+                                 value={String(phase.scale || 1.0) === 'NaN' ? '' : phase.scale || 1.0}
                                  onChange={(e) => updatePhase(idx, 'scale', parseFloat(e.target.value))}
                                  className="w-full px-4 py-2 bg-[#050B14] text-blue-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-inner"
                                />
@@ -4151,7 +4151,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                <input
                                 type="number"
                                 step="0.001"
-                                value={phase.a}
+                                value={String(phase.a) === 'NaN' ? '' : phase.a}
                                 onChange={(e) => updatePhase(idx, 'a', parseFloat(e.target.value))}
                                 className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 shadow-inner"
                               />
@@ -4167,7 +4167,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                        <input
                                           type="number"
                                           step="0.01"
-                                          value={phase.c || phase.a}
+                                          value={String(phase.c || phase.a) === 'NaN' ? '' : phase.c || phase.a}
                                           onChange={(e) => updatePhase(idx, 'c', parseFloat(e.target.value))}
                                           className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 shadow-inner"
                                         />
@@ -4179,7 +4179,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                        <input
                                           type="number"
                                           step="0.01"
-                                          value={phase.b || phase.a}
+                                          value={String(phase.b || phase.a) === 'NaN' ? '' : phase.b || phase.a}
                                           onChange={(e) => updatePhase(idx, 'b', parseFloat(e.target.value))}
                                           className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 shadow-inner"
                                         />
@@ -4191,7 +4191,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                        <input
                                           type="number"
                                           step="0.1"
-                                          value={phase.beta || 90}
+                                          value={String(phase.beta || 90) === 'NaN' ? '' : phase.beta || 90}
                                           onChange={(e) => updatePhase(idx, 'beta', parseFloat(e.target.value))}
                                           className="w-full px-3 py-2 bg-[#050B14] text-teal-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 shadow-inner"
                                         />
@@ -4207,7 +4207,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                <input
                                   type="number"
                                   placeholder="e.g. 8"
-                                  value={phase.zValue || ''}
+                                  value={String(phase.zValue || '') === 'NaN' ? '' : phase.zValue || ''}
                                   onChange={(e) => updatePhase(idx, 'zValue', parseInt(e.target.value))}
                                   className="w-full px-3 py-2.5 bg-[#050B14] text-amber-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30 shadow-inner"
                                 />
@@ -4218,7 +4218,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                   type="number"
                                   step="0.01"
                                   placeholder="e.g. 28.08"
-                                  value={phase.molarMass || ''}
+                                  value={String(phase.molarMass || '') === 'NaN' ? '' : phase.molarMass || ''}
                                   onChange={(e) => updatePhase(idx, 'molarMass', parseFloat(e.target.value))}
                                   className="w-full px-3 py-2.5 bg-[#050B14] text-amber-400 border border-[#1e293b] rounded-xl text-sm font-bold font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/30 shadow-inner"
                                 />
@@ -4234,7 +4234,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                    <input
                                       type="number"
                                       step="0.001"
-                                      value={phase.u || 0.01}
+                                      value={String(phase.u || 0.01) === 'NaN' ? '' : phase.u || 0.01}
                                       onChange={(e) => updatePhase(idx, 'u', parseFloat(e.target.value))}
                                       className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
                                     />
@@ -4244,7 +4244,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                    <input
                                       type="number"
                                       step="0.001"
-                                      value={phase.v || -0.01}
+                                      value={String(phase.v || -0.01) === 'NaN' ? '' : phase.v || -0.01}
                                       onChange={(e) => updatePhase(idx, 'v', parseFloat(e.target.value))}
                                       className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
                                     />
@@ -4254,7 +4254,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                    <input
                                       type="number"
                                       step="0.001"
-                                      value={phase.w || 0.01}
+                                      value={String(phase.w || 0.01) === 'NaN' ? '' : phase.w || 0.01}
                                       onChange={(e) => updatePhase(idx, 'w', parseFloat(e.target.value))}
                                       className="w-full bg-transparent text-rose-400 text-xs font-mono font-bold focus:outline-none"
                                     />
@@ -4267,7 +4267,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                    <input
                                       type="number"
                                       step="0.001"
-                                      value={phase.lx || 0}
+                                      value={String(phase.lx || 0) === 'NaN' ? '' : phase.lx || 0}
                                       onChange={(e) => updatePhase(idx, 'lx', parseFloat(e.target.value))}
                                       className="w-full bg-transparent text-indigo-400 text-xs font-mono font-bold focus:outline-none"
                                     />
@@ -4277,7 +4277,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                    <input
                                       type="number"
                                       step="0.001"
-                                      value={phase.ly || 0}
+                                      value={String(phase.ly || 0) === 'NaN' ? '' : phase.ly || 0}
                                       onChange={(e) => updatePhase(idx, 'ly', parseFloat(e.target.value))}
                                       className="w-full bg-transparent text-indigo-400 text-xs font-mono font-bold focus:outline-none"
                                     />
@@ -4292,7 +4292,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                       step="0.01"
                                       min="0"
                                       max="1"
-                                      value={phase.eta || 0.5}
+                                      value={String(phase.eta || 0.5) === 'NaN' ? '' : phase.eta || 0.5}
                                       onChange={(e) => updatePhase(idx, 'eta', parseFloat(e.target.value))}
                                       className="w-full bg-transparent text-teal-400 text-xs font-mono font-bold focus:outline-none"
                                     />
@@ -4302,7 +4302,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                    <input
                                       type="number"
                                       step="0.01"
-                                      value={phase.shape || 2.0}
+                                      value={String(phase.shape || 2.0) === 'NaN' ? '' : phase.shape || 2.0}
                                       onChange={(e) => updatePhase(idx, 'shape', parseFloat(e.target.value))}
                                       className="w-full bg-transparent text-teal-400 text-xs font-mono font-bold focus:outline-none"
                                     />
@@ -4315,7 +4315,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                    <input
                                       type="number"
                                       step="0.001"
-                                      value={phase.asymmetry || 0}
+                                      value={String(phase.asymmetry || 0) === 'NaN' ? '' : phase.asymmetry || 0}
                                       onChange={(e) => updatePhase(idx, 'asymmetry', parseFloat(e.target.value))}
                                       className="w-full bg-transparent text-emerald-400 text-xs font-mono font-bold focus:outline-none"
                                     />
@@ -4325,7 +4325,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                    <input
                                       type="number"
                                       step="0.001"
-                                      value={phase.extinction || 0}
+                                      value={String(phase.extinction || 0) === 'NaN' ? '' : phase.extinction || 0}
                                       onChange={(e) => updatePhase(idx, 'extinction', parseFloat(e.target.value))}
                                       className="w-full bg-transparent text-orange-400 text-xs font-mono font-bold focus:outline-none"
                                     />
@@ -4342,7 +4342,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                         <label className="block text-[8px] uppercase text-slate-600 font-black mb-1">March-Dollase r</label>
                                         <input
                                           type="number" step="0.01" min="0" max="1"
-                                          value={phase.marchDollase || 1.0}
+                                          value={String(phase.marchDollase || 1.0) === 'NaN' ? '' : phase.marchDollase || 1.0}
                                           onChange={(e) => updatePhase(idx, 'marchDollase', parseFloat(e.target.value))}
                                           className="w-full bg-transparent text-cyan-400 text-xs font-mono font-bold focus:outline-none"
                                         />
@@ -4433,7 +4433,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                            <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5">X</label>
                                            <input 
                                              type="number" step="0.001"
-                                             value={atom.x} 
+                                             value={String(atom.x) === 'NaN' ? '' : atom.x} 
                                              onChange={(e) => updateAtom(idx, aIdx, 'x', parseFloat(e.target.value))}
                                              className="w-full bg-transparent text-teal-400 text-[10px] font-mono focus:outline-none"
                                            />
@@ -4442,7 +4442,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                            <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5">Y</label>
                                            <input 
                                              type="number" step="0.001"
-                                             value={atom.y} 
+                                             value={String(atom.y) === 'NaN' ? '' : atom.y} 
                                              onChange={(e) => updateAtom(idx, aIdx, 'y', parseFloat(e.target.value))}
                                              className="w-full bg-transparent text-teal-400 text-[10px] font-mono focus:outline-none"
                                            />
@@ -4451,7 +4451,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                            <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5">Z</label>
                                            <input 
                                              type="number" step="0.001"
-                                             value={atom.z} 
+                                             value={String(atom.z) === 'NaN' ? '' : atom.z} 
                                              onChange={(e) => updateAtom(idx, aIdx, 'z', parseFloat(e.target.value))}
                                              className="w-full bg-transparent text-teal-400 text-[10px] font-mono focus:outline-none"
                                            />
@@ -4461,7 +4461,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                          <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5 text-center">SOF</label>
                                          <input 
                                            type="number" step="0.1"
-                                           value={atom.occupancy} 
+                                           value={String(atom.occupancy) === 'NaN' ? '' : atom.occupancy} 
                                            onChange={(e) => updateAtom(idx, aIdx, 'occupancy', parseFloat(e.target.value))}
                                            className="w-full text-center bg-transparent text-amber-400 text-[10px] font-mono focus:outline-none"
                                          />
@@ -4471,7 +4471,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                            <label className="block text-[7px] uppercase text-slate-600 font-bold mb-0.5">Biso</label>
                                            <input 
                                              type="number" step="0.1"
-                                             value={atom.bIso} 
+                                             value={String(atom.bIso) === 'NaN' ? '' : atom.bIso} 
                                              onChange={(e) => updateAtom(idx, aIdx, 'bIso', parseFloat(e.target.value))}
                                              className="w-full bg-transparent text-rose-400 text-[10px] font-mono focus:outline-none"
                                            />

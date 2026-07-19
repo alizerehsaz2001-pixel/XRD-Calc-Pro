@@ -542,7 +542,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                          type="range" 
                          min="50" 
                          max="200" 
-                         value={contrast} 
+                         value={String(contrast) === 'NaN' ? '' : contrast} 
                          onChange={(e) => setContrast(parseInt(e.target.value))}
                          className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                       />
@@ -555,7 +555,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                          type="range" 
                          min="50" 
                          max="150" 
-                         value={brightness} 
+                         value={String(brightness) === 'NaN' ? '' : brightness} 
                          onChange={(e) => setBrightness(parseInt(e.target.value))}
                          className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                       />
@@ -602,7 +602,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                            type="range" 
                            min="20" 
                            max="190" 
-                           value={ringRadius} 
+                           value={String(ringRadius) === 'NaN' ? '' : ringRadius} 
                            onChange={(e) => setRingRadius(parseInt(e.target.value))}
                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                         />
@@ -615,7 +615,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                            type="range" 
                            min="10" 
                            max="80" 
-                           value={ringSpacing} 
+                           value={String(ringSpacing) === 'NaN' ? '' : ringSpacing} 
                            onChange={(e) => setRingSpacing(parseInt(e.target.value))}
                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                         />
@@ -628,7 +628,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                            type="range" 
                            min="1" 
                            max="5" 
-                           value={ringCount} 
+                           value={String(ringCount) === 'NaN' ? '' : ringCount} 
                            onChange={(e) => setRingCount(parseInt(e.target.value))}
                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                         />
@@ -734,7 +734,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                            type="range" 
                            min="30" 
                            max="200" 
-                           value={cvParams.threshold} 
+                           value={String(cvParams.threshold) === 'NaN' ? '' : cvParams.threshold} 
                            onChange={(e) => handleParamChange('threshold', parseInt(e.target.value))}
                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                         />
@@ -751,7 +751,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                            type="range" 
                            min="1" 
                            max="15" 
-                           value={Math.round(cvParams.prominence * 100)} 
+                           value={isNaN(Math.round(cvParams.prominence * 100)) ? '' : Math.round(cvParams.prominence * 100)} 
                            onChange={(e) => handleParamChange('prominence', parseInt(e.target.value) / 100)}
                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                         />
@@ -768,7 +768,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                            type="range" 
                            min="65" 
                            max="99" 
-                           value={cvParams.spot_threshold_p} 
+                           value={String(cvParams.spot_threshold_p) === 'NaN' ? '' : cvParams.spot_threshold_p} 
                            onChange={(e) => handleParamChange('spot_threshold_p', parseInt(e.target.value))}
                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                         />
@@ -785,7 +785,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                              type="range" 
                              min="10" 
                              max="100" 
-                             value={cvParams.canny_low} 
+                             value={String(cvParams.canny_low) === 'NaN' ? '' : cvParams.canny_low} 
                              onChange={(e) => handleParamChange('canny_low', parseInt(e.target.value))}
                              className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                           />
@@ -799,7 +799,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                              type="range" 
                              min="80" 
                              max="220" 
-                             value={cvParams.canny_high} 
+                             value={String(cvParams.canny_high) === 'NaN' ? '' : cvParams.canny_high} 
                              onChange={(e) => handleParamChange('canny_high', parseInt(e.target.value))}
                              className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
                           />

@@ -583,7 +583,7 @@ export const NeutronModule: React.FC = () => {
                    <input
                     type="number"
                     step="0.01"
-                    value={wavelength}
+                    value={String(wavelength) === 'NaN' ? '' : wavelength}
                     onChange={(e) => setWavelength(parseFloat(e.target.value))}
                     className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700 shadow-inner"
                    />
@@ -623,7 +623,7 @@ export const NeutronModule: React.FC = () => {
                           type="number"
                           step="0.01"
                           disabled={item.disabled}
-                          value={lattice[item.axis as keyof LatticeParameters]}
+                          value={String(lattice[item.axis as keyof LatticeParameters]) === 'NaN' ? '' : lattice[item.axis as keyof LatticeParameters]}
                           onChange={(e) => handleLatticeChange(item.axis as keyof LatticeParameters, parseFloat(e.target.value))}
                           className={`w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${item.disabled ? 'opacity-40 cursor-not-allowed bg-slate-900 border-dashed' : 'hover:border-slate-700'}`}
                         />
@@ -642,7 +642,7 @@ export const NeutronModule: React.FC = () => {
                           type="number"
                           step="0.1"
                           disabled={item.disabled}
-                          value={lattice[item.angle as keyof LatticeParameters]}
+                          value={String(lattice[item.angle as keyof LatticeParameters]) === 'NaN' ? '' : lattice[item.angle as keyof LatticeParameters]}
                           onChange={(e) => handleLatticeChange(item.angle as keyof LatticeParameters, parseFloat(e.target.value))}
                           className={`w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${item.disabled ? 'opacity-40 cursor-not-allowed bg-slate-900 border-dashed' : 'hover:border-slate-700'}`}
                         />
@@ -749,7 +749,7 @@ export const NeutronModule: React.FC = () => {
                           <input 
                             type="number" 
                             step="0.01" 
-                            value={atom[field as keyof typeof atom]} 
+                            value={String(atom[field as keyof typeof atom]) === 'NaN' ? '' : atom[field as keyof typeof atom]} 
                             onChange={(e) => updateAtom(atom.id, field as any, parseFloat(e.target.value))} 
                             className="w-full px-3 py-2 bg-black/40 text-slate-300 border border-slate-800 rounded-xl font-mono text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
                           />
@@ -1304,7 +1304,7 @@ export const NeutronModule: React.FC = () => {
                                  type="range" 
                                  min="0" 
                                  max="100" 
-                                 value={d2oFraction} 
+                                 value={String(d2oFraction) === 'NaN' ? '' : d2oFraction} 
                                  onChange={(e) => setD2oFraction(parseInt(e.target.value))}
                                  className="w-full accent-pink-500 h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer border border-slate-800"
                               />

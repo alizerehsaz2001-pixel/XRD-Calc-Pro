@@ -400,7 +400,7 @@ export const WarrenAverbachModule: React.FC = () => {
                   <input
                     type="number"
                     step="0.0001"
-                    value={d1}
+                    value={String(d1) === 'NaN' ? '' : d1}
                     onChange={(e) => {
                       setD1(parseFloat(e.target.value));
                       setSelectedMaterial('Custom');
@@ -423,7 +423,7 @@ export const WarrenAverbachModule: React.FC = () => {
                   <input
                     type="number"
                     step="0.0001"
-                    value={d2}
+                    value={String(d2) === 'NaN' ? '' : d2}
                     onChange={(e) => {
                       setD2(parseFloat(e.target.value));
                       setSelectedMaterial('Custom');
@@ -456,7 +456,7 @@ export const WarrenAverbachModule: React.FC = () => {
                     type="number"
                     step="0.1"
                     min="0.1"
-                    value={shapeFactor}
+                    value={String(shapeFactor) === 'NaN' ? '' : shapeFactor}
                     onChange={(e) => setShapeFactor(parseFloat(e.target.value) || 1.0)}
                     className="w-full px-3 py-2.5 bg-black/60 text-slate-200 focus:text-rose-400 border border-white/10 rounded-xl text-xs font-bold font-mono focus:outline-none focus:ring-1 focus:ring-rose-500/30 focus:border-rose-500/30 transition-all shadow-inner"
                   />
@@ -513,7 +513,7 @@ export const WarrenAverbachModule: React.FC = () => {
                         min="0.001"
                         max="0.020"
                         step="0.001"
-                        value={instrumentalFactor}
+                        value={String(instrumentalFactor) === 'NaN' ? '' : instrumentalFactor}
                         onChange={(e) => setInstrumentalFactor(parseFloat(e.target.value))}
                         className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
                       />
@@ -531,7 +531,7 @@ export const WarrenAverbachModule: React.FC = () => {
                         min="0.000"
                         max="0.150"
                         step="0.005"
-                        value={backgroundOffset}
+                        value={String(backgroundOffset) === 'NaN' ? '' : backgroundOffset}
                         onChange={(e) => setBackgroundOffset(parseFloat(e.target.value))}
                         className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
                       />
@@ -549,7 +549,7 @@ export const WarrenAverbachModule: React.FC = () => {
                         min="10.0"
                         max="150.0"
                         step="5.0"
-                        value={cutoffRadiusValue}
+                        value={String(cutoffRadiusValue) === 'NaN' ? '' : cutoffRadiusValue}
                         onChange={(e) => setCutoffRadiusValue(parseFloat(e.target.value))}
                         className="w-full accent-rose-500 h-1 bg-black/65 rounded-lg cursor-pointer"
                       />
@@ -608,7 +608,7 @@ export const WarrenAverbachModule: React.FC = () => {
                               <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block font-mono">Wavelength (λ) Å</label>
                               <input
                                 type="number" step="0.0001"
-                                value={calcLambda}
+                                value={String(calcLambda) === 'NaN' ? '' : calcLambda}
                                 onChange={(e) => setCalcLambda(parseFloat(e.target.value))}
                                 className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-lg text-xs font-mono outline-none"
                               />
@@ -626,7 +626,7 @@ export const WarrenAverbachModule: React.FC = () => {
                               <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block text-center font-mono">Peak 1 (2θ)</label>
                               <input
                                 type="number" step="0.01"
-                                value={calc2Theta1}
+                                value={String(calc2Theta1) === 'NaN' ? '' : calc2Theta1}
                                 onChange={(e) => setCalc2Theta1(parseFloat(e.target.value))}
                                 className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-lg text-xs font-mono outline-none text-center"
                               />
@@ -635,7 +635,7 @@ export const WarrenAverbachModule: React.FC = () => {
                               <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block text-center font-mono">Peak 2 (2θ)</label>
                               <input
                                 type="number" step="0.01"
-                                value={calc2Theta2}
+                                value={String(calc2Theta2) === 'NaN' ? '' : calc2Theta2}
                                 onChange={(e) => setCalc2Theta2(parseFloat(e.target.value))}
                                 className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-lg text-xs font-mono outline-none text-center"
                               />
@@ -664,7 +664,7 @@ export const WarrenAverbachModule: React.FC = () => {
                               <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block font-mono">Lattice (a) Å</label>
                               <input
                                 type="number" step="0.0001"
-                                value={calcLatticeA}
+                                value={String(calcLatticeA) === 'NaN' ? '' : calcLatticeA}
                                 onChange={(e) => setCalcLatticeA(parseFloat(e.target.value))}
                                 className="w-full px-3 py-2 bg-black/60 text-rose-400 border border-white/10 rounded-lg text-xs font-mono outline-none"
                               />
@@ -1268,7 +1268,7 @@ export const WarrenAverbachModule: React.FC = () => {
                                 min="0.15" 
                                 max="0.40" 
                                 step="0.01"
-                                value={burgersVector}
+                                value={String(burgersVector) === 'NaN' ? '' : burgersVector}
                                 onChange={(e) => setBurgersVector(parseFloat(e.target.value))}
                                 className="w-full opacity-80 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-fuchsia-500 animate-none pointer-events-auto"
                               />
@@ -1284,7 +1284,7 @@ export const WarrenAverbachModule: React.FC = () => {
                                 min="40" 
                                 max="250" 
                                 step="5"
-                                value={youngsModulus}
+                                value={String(youngsModulus) === 'NaN' ? '' : youngsModulus}
                                 onChange={(e) => setYoungsModulus(parseInt(e.target.value))}
                                 className="w-full opacity-80 h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-fuchsia-500 animate-none pointer-events-auto"
                               />

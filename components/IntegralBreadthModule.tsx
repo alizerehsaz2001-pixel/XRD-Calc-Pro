@@ -255,7 +255,7 @@ export const IntegralBreadthModule: React.FC = () => {
                   <input
                     type="number"
                     step="0.0001"
-                    value={wavelength}
+                    value={String(wavelength) === 'NaN' ? '' : wavelength}
                     onChange={(e) => setWavelength(parseFloat(e.target.value))}
                     className="w-full px-4 py-2.5 bg-[#0A101C] text-purple-300 border border-white/10 focus:border-purple-500/50 rounded-lg focus:ring-1 focus:ring-purple-500/20 outline-none font-mono text-sm transition-all"
                   />
@@ -342,7 +342,7 @@ export const IntegralBreadthModule: React.FC = () => {
                     <input
                       type="number"
                       step="0.01"
-                      value={constantK}
+                      value={String(constantK) === 'NaN' ? '' : constantK}
                       onChange={(e) => {
                         setConstantK(parseFloat(e.target.value));
                         setSelectedKType('Custom');
@@ -394,7 +394,7 @@ export const IntegralBreadthModule: React.FC = () => {
                     type="number"
                     step="0.005"
                     min="0"
-                    value={instBetaIB}
+                    value={String(instBetaIB) === 'NaN' ? '' : instBetaIB}
                     onChange={(e) => setInstBetaIB(Math.max(0, parseFloat(e.target.value) || 0))}
                     className="w-full px-4 py-2.5 bg-[#0A101C] text-purple-300 border border-white/10 focus:border-purple-500/50 rounded-lg focus:ring-1 focus:ring-purple-500/20 outline-none font-mono text-sm transition-all"
                   />
@@ -437,7 +437,7 @@ export const IntegralBreadthModule: React.FC = () => {
                       <input
                         type="number"
                         step="0.0001"
-                        value={cagliotiU}
+                        value={String(cagliotiU) === 'NaN' ? '' : cagliotiU}
                         onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
                         className="w-full px-2 py-2 bg-[#0A101C] text-purple-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-purple-500/50 outline-none"
                       />
@@ -447,7 +447,7 @@ export const IntegralBreadthModule: React.FC = () => {
                       <input
                         type="number"
                         step="0.0001"
-                        value={cagliotiV}
+                        value={String(cagliotiV) === 'NaN' ? '' : cagliotiV}
                         onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
                         className="w-full px-2 py-2 bg-[#0A101C] text-purple-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-purple-500/50 outline-none"
                       />
@@ -457,7 +457,7 @@ export const IntegralBreadthModule: React.FC = () => {
                       <input
                         type="number"
                         step="0.0001"
-                        value={cagliotiW}
+                        value={String(cagliotiW) === 'NaN' ? '' : cagliotiW}
                         onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
                         className="w-full px-2 py-2 bg-[#0A101C] text-purple-300 border border-white/5 rounded-lg text-center font-mono text-xs focus:border-purple-500/50 outline-none"
                       />

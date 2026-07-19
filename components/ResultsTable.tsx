@@ -165,7 +165,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
                 type="range"
                 min="0"
                 max="100"
-                value={minIntensity}
+                value={String(minIntensity) === 'NaN' ? '' : minIntensity}
                 onChange={(e) => setMinIntensity(Number(e.target.value))}
                 className="flex-1 accent-indigo-600 dark:accent-indigo-400 h-1 bg-slate-200 dark:bg-slate-800 rounded-lg cursor-pointer"
               />
@@ -185,7 +185,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
               type="number"
               step="0.01"
               min="0"
-              value={minDSpacing}
+              value={String(minDSpacing) === 'NaN' ? '' : minDSpacing}
               onChange={(e) => setMinDSpacing(e.target.value)}
               placeholder="e.g. 1.0"
               className="w-full px-3 py-1.5 bg-white text-slate-900 border border-slate-200 dark:bg-slate-900 dark:text-white dark:border-slate-805 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500 font-mono"
@@ -202,7 +202,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
               type="number"
               step="0.01"
               min="0"
-              value={maxDSpacing}
+              value={String(maxDSpacing) === 'NaN' ? '' : maxDSpacing}
               onChange={(e) => setMaxDSpacing(e.target.value)}
               placeholder="e.g. 3.0"
               className="w-full px-3 py-1.5 bg-white text-slate-900 border border-slate-200 dark:bg-slate-900 dark:text-white dark:border-slate-805 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500 font-mono"

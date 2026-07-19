@@ -462,7 +462,7 @@ export const MillerPlaneVisualizer: React.FC<MillerPlaneVisualizerProps> = ({ sy
           type="range" 
           min="0" 
           max="80" 
-          value={tilt} 
+          value={String(tilt) === 'NaN' ? '' : tilt} 
           onChange={(e) => {
             setTilt(parseInt(e.target.value));
             setAutoRotate(false);

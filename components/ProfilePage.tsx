@@ -1283,7 +1283,7 @@ export const ProfilePage: React.FC = () => {
                        <label className="text-[9px] font-black uppercase tracking-wider text-slate-500">H-Index</label>
                        <input 
                          type="number" 
-                         value={profile.stats.hIndex} 
+                         value={String(profile.stats.hIndex) === 'NaN' ? '' : profile.stats.hIndex} 
                          onChange={(e) => saveProfileData({ ...profile, stats: { ...profile.stats, hIndex: parseInt(e.target.value) || 0 } })}
                          className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-500"
                        />
@@ -1292,7 +1292,7 @@ export const ProfilePage: React.FC = () => {
                        <label className="text-[9px] font-black uppercase tracking-wider text-slate-500 font-sans">Total Citations</label>
                        <input 
                          type="number" 
-                         value={profile.stats.citations} 
+                         value={String(profile.stats.citations) === 'NaN' ? '' : profile.stats.citations} 
                          onChange={(e) => saveProfileData({ ...profile, stats: { ...profile.stats, citations: parseInt(e.target.value) || 0 } })}
                          className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-500"
                        />
@@ -1301,7 +1301,7 @@ export const ProfilePage: React.FC = () => {
                        <label className="text-[9px] font-black uppercase tracking-wider text-slate-500">Peer Reviews Verified</label>
                        <input 
                          type="number" 
-                         value={profile.stats.peerReviews} 
+                         value={String(profile.stats.peerReviews) === 'NaN' ? '' : profile.stats.peerReviews} 
                          onChange={(e) => saveProfileData({ ...profile, stats: { ...profile.stats, peerReviews: parseInt(e.target.value) || 0 } })}
                          className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-500"
                        />
@@ -1310,7 +1310,7 @@ export const ProfilePage: React.FC = () => {
                        <label className="text-[9px] font-black uppercase tracking-wider text-slate-500">XRD Datasets Analyzed</label>
                        <input 
                          type="number" 
-                         value={profile.stats.scansAnalyzed} 
+                         value={String(profile.stats.scansAnalyzed) === 'NaN' ? '' : profile.stats.scansAnalyzed} 
                          onChange={(e) => saveProfileData({ ...profile, stats: { ...profile.stats, scansAnalyzed: parseInt(e.target.value) || 0 } })}
                          className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-500"
                        />
@@ -1347,7 +1347,7 @@ export const ProfilePage: React.FC = () => {
                               type="range" 
                               min="0" 
                               max="100" 
-                              value={skill.level} 
+                              value={String(skill.level) === 'NaN' ? '' : skill.level} 
                               onChange={(e) => handleSkillChange(index, parseInt(e.target.value))}
                               className="flex-1 accent-indigo-600"
                             />

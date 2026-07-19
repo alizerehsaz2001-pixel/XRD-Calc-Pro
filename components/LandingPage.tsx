@@ -506,7 +506,7 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
             min="0.5"
             max="3.0"
             step="0.001"
-            value={lambda}
+            value={String(lambda) === 'NaN' ? '' : lambda}
             onChange={(e) => {
               setLambda(parseFloat(e.target.value));
               setActiveAnode('custom');
@@ -530,7 +530,7 @@ const BraggSandboxWrapper = ({ onEnter }: { onEnter: () => void }) => {
             min="1.00"
             max="6.00"
             step="0.01"
-            value={dSpace}
+            value={String(dSpace) === 'NaN' ? '' : dSpace}
             onChange={(e) => {
               setDSpace(parseFloat(e.target.value));
               setSelectedMaterial('custom');

@@ -401,7 +401,7 @@ export const FWHMModule: React.FC = () => {
                 </div>
                 <input
                   type="range" min="10" max="150" step="0.1"
-                  value={center} onChange={(e) => setCenter(parseFloat(e.target.value))}
+                  value={String(center) === 'NaN' ? '' : center} onChange={(e) => setCenter(parseFloat(e.target.value))}
                   className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                 />
               </div>
@@ -428,7 +428,7 @@ export const FWHMModule: React.FC = () => {
                     </div>
                     <input
                       type="range" min="0.02" max="4" step="0.01"
-                      value={fwhmManual} onChange={(e) => setFwhmManual(parseFloat(e.target.value))}
+                      value={String(fwhmManual) === 'NaN' ? '' : fwhmManual} onChange={(e) => setFwhmManual(parseFloat(e.target.value))}
                       className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                     />
                   </div>
@@ -459,7 +459,7 @@ export const FWHMModule: React.FC = () => {
                           <input 
                             type="number"
                             step="0.001"
-                            value={cagliotiParams[param as keyof typeof cagliotiParams]}
+                            value={String(cagliotiParams[param as keyof typeof cagliotiParams]) === 'NaN' ? '' : cagliotiParams[param as keyof typeof cagliotiParams]}
                             onChange={(e) => {
                               setCagliotiPreset('Custom');
                               setCagliotiParams({...cagliotiParams, [param]: parseFloat(e.target.value) || 0});
@@ -486,7 +486,7 @@ export const FWHMModule: React.FC = () => {
                   </div>
                   <input
                     type="range" min="0" max="1" step="0.01"
-                    value={eta} 
+                    value={String(eta) === 'NaN' ? '' : eta} 
                     onChange={(e) => setEta(parseFloat(e.target.value))}
                     className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                   />
@@ -532,7 +532,7 @@ export const FWHMModule: React.FC = () => {
                     <input 
                       type="number"
                       step="0.0001"
-                      value={customWavelength}
+                      value={String(customWavelength) === 'NaN' ? '' : customWavelength}
                       onChange={(e) => setCustomWavelength(parseFloat(e.target.value) || 0.15406)}
                       className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-xs p-1.5 font-mono text-slate-700 dark:text-slate-300"
                     />
@@ -548,7 +548,7 @@ export const FWHMModule: React.FC = () => {
                 </div>
                 <input
                   type="range" min="0.5" max="1.5" step="0.01"
-                  value={scherrerK} 
+                  value={String(scherrerK) === 'NaN' ? '' : scherrerK} 
                   onChange={(e) => setScherrerK(parseFloat(e.target.value))}
                   className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                 />
@@ -670,7 +670,7 @@ export const FWHMModule: React.FC = () => {
                 </div>
                 <input
                   type="range" min="0" max="80" step="1"
-                  value={background} 
+                  value={String(background) === 'NaN' ? '' : background} 
                   onChange={(e) => setBackground(parseFloat(e.target.value))}
                   className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                 />
@@ -684,7 +684,7 @@ export const FWHMModule: React.FC = () => {
                 </div>
                 <input
                   type="range" min="0" max="10" step="0.5"
-                  value={noiseLevel} 
+                  value={String(noiseLevel) === 'NaN' ? '' : noiseLevel} 
                   onChange={(e) => setNoiseLevel(parseFloat(e.target.value))}
                   className="w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                 />

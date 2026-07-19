@@ -567,7 +567,7 @@ export const PreferredOrientationModule: React.FC = () => {
                    min={habitModel === 'Platelet' ? 0.1 : 1.02}
                    max={habitModel === 'Platelet' ? 0.98 : 4.0}
                    step="0.01"
-                   value={rValue}
+                   value={String(rValue) === 'NaN' ? '' : rValue}
                    onChange={(e) => {
                      setRValue(parseFloat(e.target.value));
                      setSolverResult(null);
@@ -618,7 +618,7 @@ export const PreferredOrientationModule: React.FC = () => {
                 min="0.0"
                 max="1.0"
                 step="0.01"
-                value={fraction}
+                value={String(fraction) === 'NaN' ? '' : fraction}
                 onChange={(e) => {
                   setFraction(parseFloat(e.target.value));
                   setSolverResult(null);
@@ -655,7 +655,7 @@ export const PreferredOrientationModule: React.FC = () => {
                   <div className="space-y-2">
                     <label className="text-[9px] uppercase font-bold text-slate-500 font-mono">a (Å)</label>
                     <input 
-                      type="number" step="0.01" min="0.1" value={latticeA} 
+                      type="number" step="0.01" min="0.1" value={String(latticeA) === 'NaN' ? '' : latticeA} 
                       onChange={(e) => { setLatticeA(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
                       className="w-full px-2 py-2 bg-white dark:bg-black/60 text-pink-600 dark:text-pink-400 border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:border-pink-400 dark:focus:border-pink-500/50 shadow-inner font-mono text-xs text-center font-bold"
                     />
@@ -672,7 +672,7 @@ export const PreferredOrientationModule: React.FC = () => {
                   <div className="space-y-2">
                      <label className="text-[9px] uppercase font-bold text-slate-500 font-mono">c (Å)</label>
                      <input 
-                       type="number" step="0.01" min="0.1" value={latticeC} 
+                       type="number" step="0.01" min="0.1" value={String(latticeC) === 'NaN' ? '' : latticeC} 
                        onChange={(e) => { setLatticeC(parseFloat(e.target.value) || 1.0); setSolverResult(null); }}
                        className="w-full px-2 py-2 bg-white dark:bg-black/60 text-pink-600 dark:text-pink-400 border border-slate-200 dark:border-white/10 rounded-lg outline-none focus:border-pink-400 dark:focus:border-pink-500/50 shadow-inner font-mono text-xs text-center font-bold"
                      />
@@ -1365,7 +1365,7 @@ export const PreferredOrientationModule: React.FC = () => {
                    <label className="text-[9px] uppercase font-black text-slate-500 font-mono tracking-widest">Index h</label>
                    <input 
                      type="number" 
-                     value={testH} 
+                     value={String(testH) === 'NaN' ? '' : testH} 
                      onChange={(e) => setTestH(parseInt(e.target.value) || 0)} 
                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-black/60 text-slate-800 dark:text-white font-mono font-bold text-center rounded-xl border border-slate-200 dark:border-white/10 shadow-inner focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
                    />
@@ -1374,7 +1374,7 @@ export const PreferredOrientationModule: React.FC = () => {
                    <label className="text-[9px] uppercase font-black text-slate-500 font-mono tracking-widest">Index k</label>
                    <input 
                      type="number" 
-                     value={testK} 
+                     value={String(testK) === 'NaN' ? '' : testK} 
                      onChange={(e) => setTestK(parseInt(e.target.value) || 0)} 
                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-black/60 text-slate-800 dark:text-white font-mono font-bold text-center rounded-xl border border-slate-200 dark:border-white/10 shadow-inner focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
                    />
@@ -1383,7 +1383,7 @@ export const PreferredOrientationModule: React.FC = () => {
                    <label className="text-[9px] uppercase font-black text-slate-500 font-mono tracking-widest">Index l</label>
                    <input 
                      type="number" 
-                     value={testL} 
+                     value={String(testL) === 'NaN' ? '' : testL} 
                      onChange={(e) => setTestL(parseInt(e.target.value) || 0)} 
                      className="w-full px-3 py-2.5 bg-slate-50 dark:bg-black/60 text-slate-800 dark:text-white font-mono font-bold text-center rounded-xl border border-slate-200 dark:border-white/10 shadow-inner focus:outline-none focus:border-amber-400 dark:focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all text-sm"
                    />

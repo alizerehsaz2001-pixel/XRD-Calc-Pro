@@ -2895,7 +2895,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                 <input
                   type="number"
                   step="0.0001"
-                  value={newWavelength}
+                  value={String(newWavelength) === 'NaN' ? '' : newWavelength}
                   onChange={e => setNewWavelength(e.target.value)}
                   className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white font-mono focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner"
                 />

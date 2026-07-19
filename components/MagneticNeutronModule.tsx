@@ -745,7 +745,7 @@ export const MagneticNeutronModule: React.FC = () => {
                      <input
                       type="number"
                       step="0.01"
-                      value={wavelength}
+                      value={String(wavelength) === 'NaN' ? '' : wavelength}
                       onChange={(e) => setWavelength(parseFloat(e.target.value))}
                       className="w-full px-4 py-3 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-inner"
                      />
@@ -776,7 +776,7 @@ export const MagneticNeutronModule: React.FC = () => {
                         <input
                           type="number"
                           step="0.01"
-                          value={lattice[axis as keyof LatticeParameters]}
+                          value={String(lattice[axis as keyof LatticeParameters]) === 'NaN' ? '' : lattice[axis as keyof LatticeParameters]}
                           onChange={(e) => setLattice({ ...lattice, [axis]: parseFloat(e.target.value) || 0 })}
                           className="w-full px-3 py-2 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none"
                         />
@@ -792,7 +792,7 @@ export const MagneticNeutronModule: React.FC = () => {
                         <input
                           type="number"
                           step="0.1"
-                          value={lattice[angle as keyof LatticeParameters]}
+                          value={String(lattice[angle as keyof LatticeParameters]) === 'NaN' ? '' : lattice[angle as keyof LatticeParameters]}
                           onChange={(e) => setLattice({ ...lattice, [angle]: parseFloat(e.target.value) || 0 })}
                           className="w-full px-3 py-2 bg-slate-950/50 text-indigo-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none"
                         />
@@ -818,7 +818,7 @@ export const MagneticNeutronModule: React.FC = () => {
                         <input
                           type="number"
                           step="0.05"
-                          value={kVector[key]}
+                          value={String(kVector[key]) === 'NaN' ? '' : kVector[key]}
                           onChange={(e) => setKVector({ ...kVector, [key]: parseFloat(e.target.value) || 0 })}
                           className="w-full px-2 py-1.5 bg-slate-900 border border-slate-800 text-indigo-400 font-mono text-[11px] font-black rounded-lg outline-none focus:ring-1 focus:ring-indigo-500/50"
                         />
@@ -867,7 +867,7 @@ export const MagneticNeutronModule: React.FC = () => {
                       type="range"
                       min="0"
                       max="600"
-                      value={temperature}
+                      value={String(temperature) === 'NaN' ? '' : temperature}
                       onChange={(e) => setTemperature(parseInt(e.target.value))}
                       className="w-full accent-indigo-550 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                     />
@@ -881,7 +881,7 @@ export const MagneticNeutronModule: React.FC = () => {
                         type="number"
                         min="1"
                         max="2000"
-                        value={criticalTemp}
+                        value={String(criticalTemp) === 'NaN' ? '' : criticalTemp}
                         onChange={(e) => setCriticalTemp(parseInt(e.target.value) || 0)}
                         className="w-full px-2 py-1.5 bg-slate-900 border border-slate-800 text-indigo-400 font-mono text-[11px] font-black rounded-lg outline-none focus:ring-1 focus:ring-indigo-500/50"
                       />
@@ -994,9 +994,9 @@ export const MagneticNeutronModule: React.FC = () => {
                      </div>
 
                      <div className="grid grid-cols-3 gap-3 mb-4">
-                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">x</label><input type="number" step="0.05" value={atom.x} onChange={(e) => updateAtom(atom.id, 'x', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
-                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">y</label><input type="number" step="0.05" value={atom.y} onChange={(e) => updateAtom(atom.id, 'y', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
-                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">z</label><input type="number" step="0.05" value={atom.z} onChange={(e) => updateAtom(atom.id, 'z', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
+                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">x</label><input type="number" step="0.05" value={String(atom.x) === 'NaN' ? '' : atom.x} onChange={(e) => updateAtom(atom.id, 'x', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
+                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">y</label><input type="number" step="0.05" value={String(atom.y) === 'NaN' ? '' : atom.y} onChange={(e) => updateAtom(atom.id, 'y', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
+                           <div className="space-y-1.5"><label className="text-[9px] font-bold text-slate-600 px-1 uppercase tracking-widest">z</label><input type="number" step="0.05" value={String(atom.z) === 'NaN' ? '' : atom.z} onChange={(e) => updateAtom(atom.id, 'z', parseFloat(e.target.value) || 0)} className="w-full bg-black/40 text-white border border-slate-800 rounded-xl px-3 py-1.5 font-mono text-[11px] font-black focus:border-slate-600 outline-none transition-all"/></div>
                      </div>
 
                      <div className="bg-indigo-500/5 p-4 rounded-2xl border border-indigo-500/10">
@@ -1005,9 +1005,9 @@ export const MagneticNeutronModule: React.FC = () => {
                           <span className="text-[10px] text-indigo-400 font-black uppercase tracking-widest">Moment Vector (μB)</span>
                         </div>
                         <div className="grid grid-cols-3 gap-3">
-                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mx (μB)</span><input type="number" step="0.1" value={atom.mx} onChange={(e) => updateAtom(atom.id, 'mx', parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
-                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">My (μB)</span><input type="number" step="0.1" value={atom.my} onChange={(e) => updateAtom(atom.id, 'my', parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
-                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mz (μB)</span><input type="number" step="0.1" value={atom.mz} onChange={(e) => updateAtom(atom.id, 'mz', parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
+                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mx (μB)</span><input type="number" step="0.1" value={String(atom.mx) === 'NaN' ? '' : atom.mx} onChange={(e) => updateAtom(atom.id, 'mx', parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
+                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">My (μB)</span><input type="number" step="0.1" value={String(atom.my) === 'NaN' ? '' : atom.my} onChange={(e) => updateAtom(atom.id, 'my', parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
+                           <div className="space-y-1"><span className="text-[8px] text-indigo-500/60 font-black px-1 uppercase tracking-widest">Mz (μB)</span><input type="number" step="0.1" value={String(atom.mz) === 'NaN' ? '' : atom.mz} onChange={(e) => updateAtom(atom.id, 'mz', parseFloat(e.target.value) || 0)} className="w-full bg-slate-950 text-indigo-400 border border-indigo-500/20 rounded-lg px-2 py-1 font-mono text-[11px] font-black focus:ring-1 focus:ring-indigo-500/30 outline-none transition-all"/></div>
                         </div>
                      </div>
                    </div>
