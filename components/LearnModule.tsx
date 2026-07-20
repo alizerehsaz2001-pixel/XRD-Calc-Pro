@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 import { 
   Rocket, 
   FileCode, 
@@ -309,6 +311,94 @@ const DRILLDOWN_SPACE_GROUP_INFO: Record<string, {
   }
 };
 
+interface SymmetryMatrixOp {
+  matrix: number[][];
+  translation: number[];
+  algebraic: string;
+}
+
+const getSymmetryOperators = (spaceGroup: string): SymmetryMatrixOp[] => {
+  switch (spaceGroup) {
+    case 'Simple Cubic':
+    case 'Perovskite':
+      return [
+        { matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0, 0, 0], algebraic: 'x, y, z' },
+        { matrix: [[-1, 0, 0], [0, -1, 0], [0, 0, -1]], translation: [0, 0, 0], algebraic: '-x, -y, -z' },
+        { matrix: [[0, 1, 0], [0, 0, 1], [1, 0, 0]], translation: [0, 0, 0], algebraic: 'y, z, x' },
+        { matrix: [[0, -1, 0], [0, 0, -1], [-1, 0, 0]], translation: [0, 0, 0], algebraic: '-y, -z, -x' },
+        { matrix: [[0, 0, 1], [1, 0, 0], [0, 1, 0]], translation: [0, 0, 0], algebraic: 'z, x, y' },
+        { matrix: [[0, 0, -1], [-1, 0, 0], [0, -1, 0]], translation: [0, 0, 0], algebraic: '-z, -x, -y' },
+        { matrix: [[1, 0, 0], [0, -1, 0], [0, 0, -1]], translation: [0, 0, 0], algebraic: 'x, -y, -z' },
+        { matrix: [[-1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0, 0, 0], algebraic: '-x, y, z' }
+      ];
+    case 'BCC':
+      return [
+        { matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0, 0, 0], algebraic: 'x, y, z' },
+        { matrix: [[-1, 0, 0], [0, -1, 0], [0, 0, -1]], translation: [0, 0, 0], algebraic: '-x, -y, -z' },
+        { matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0.5, 0.5, 0.5], algebraic: 'x+½, y+½, z+½' },
+        { matrix: [[-1, 0, 0], [0, -1, 0], [0, 0, -1]], translation: [0.5, 0.5, 0.5], algebraic: '-x+½, -y+½, -z+½' },
+        { matrix: [[0, 1, 0], [0, 0, 1], [1, 0, 0]], translation: [0, 0, 0], algebraic: 'y, z, x' },
+        { matrix: [[0, -1, 0], [0, 0, -1], [-1, 0, 0]], translation: [0, 0, 0], algebraic: '-y, -z, -x' }
+      ];
+    case 'FCC':
+      return [
+        { matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0, 0, 0], algebraic: 'x, y, z' },
+        { matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0, 0.5, 0.5], algebraic: 'x, y+½, z+½' },
+        { matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0.5, 0, 0.5], algebraic: 'x+½, y, z+½' },
+        { matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0.5, 0.5, 0], algebraic: 'x+½, y+½, z' },
+        { matrix: [[-1, 0, 0], [0, -1, 0], [0, 0, -1]], translation: [0, 0, 0], algebraic: '-x, -y, -z' }
+      ];
+    case 'Rutile':
+      return [
+        { matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0, 0, 0], algebraic: 'x, y, z' },
+        { matrix: [[-1, 0, 0], [0, -1, 0], [0, 0, 1]], translation: [0, 0, 0], algebraic: '-x, -y, z' },
+        { matrix: [[1, 0, 0], [0, -1, 0], [0, 0, 1]], translation: [0.5, 0.5, 0.5], algebraic: 'x+½, -y+½, z+½' },
+        { matrix: [[-1, 0, 0], [0, 1, 0], [0, 0, -1]], translation: [0.5, 0.5, 0.5], algebraic: '-x+½, y+½, -z+½' },
+        { matrix: [[0, -1, 0], [1, 0, 0], [0, 0, 1]], translation: [0, 0, 0], algebraic: '-y, x, z' },
+        { matrix: [[0, 1, 0], [-1, 0, 0], [0, 0, 1]], translation: [0, 0, 0], algebraic: 'y, -x, z' }
+      ];
+    case 'Quartz':
+      return [
+        { matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0, 0, 0], algebraic: 'x, y, z' },
+        { matrix: [[0, -1, 0], [1, -1, 0], [0, 0, 1]], translation: [0, 0, 0.667], algebraic: '-y, x-y, z+⅔' },
+        { matrix: [[-1, 1, 0], [-1, 0, 0], [0, 0, 1]], translation: [0, 0, 0.333], algebraic: 'y-x, -x, z+⅓' },
+        { matrix: [[0, 1, 0], [1, 0, 0], [0, 0, -1]], translation: [0, 0, 0], algebraic: 'y, x, -z' },
+        { matrix: [[-1, 0, 0], [-1, 1, 0], [0, 0, -1]], translation: [0, 0, 0.667], algebraic: '-x, y-x, -z+⅔' },
+        { matrix: [[1, -1, 0], [0, -1, 0], [0, 0, -1]], translation: [0, 0, 0.333], algebraic: 'x-y, -y, -z+⅓' }
+      ];
+    default:
+      return [];
+  }
+};
+
+const LatexFraction: React.FC<{ tex: string }> = ({ tex }) => {
+  const containerRef = React.useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (containerRef.current) {
+      try {
+        katex.render(tex, containerRef.current, { throwOnError: false, displayMode: false });
+      } catch (err) {
+        containerRef.current.textContent = tex;
+      }
+    }
+  }, [tex]);
+  return <span ref={containerRef} />;
+};
+
+const LaTeXBlock: React.FC<{ tex: string }> = ({ tex }) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (containerRef.current) {
+      try {
+        katex.render(tex, containerRef.current, { throwOnError: false, displayMode: true });
+      } catch (err) {
+        containerRef.current.textContent = tex;
+      }
+    }
+  }, [tex]);
+  return <div ref={containerRef} className="overflow-x-auto my-3 p-3 bg-slate-100 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800" />;
+};
+
 /**
  * Calculates transformed atomic coordinates (ab-plane projection) from [x, y] to help
  * the user visualize symmetry equivalent positions dynamically.
@@ -495,6 +585,16 @@ export const LearnModule: React.FC = () => {
   const [symmetryActiveGroup, setSymmetryActiveGroup] = useState<string>('Simple Cubic');
   const [symCoordX, setSymCoordX] = useState<number>(0.25);
   const [symCoordY, setSymCoordY] = useState<number>(0.35);
+
+  const [selectedOpIdx, setSelectedOpIdx] = useState<number>(0);
+  const [symHklH, setSymHklH] = useState<number>(1);
+  const [symHklK, setSymHklK] = useState<number>(1);
+  const [symHklL, setSymHklL] = useState<number>(0);
+  const [asymPeakPos, setAsymPeakPos] = useState<number>(28.5);
+  const [asymFWHM, setAsymFWHM] = useState<number>(0.35);
+  const [asymFactor, setAsymFactor] = useState<number>(0.25);
+  const [asymEta, setAsymEta] = useState<number>(0.4);
+  const [asymPeakType, setAsymPeakType] = useState<'gaussian' | 'lorentzian' | 'pseudovoigt'>('pseudovoigt');
 
   const [qpaPhase1Name, setQpaPhase1Name] = useState<string>('Hematite Fe2O3');
   const [qpaPhase1Scale, setQpaPhase1Scale] = useState<number>(0.0025);
@@ -2473,13 +2573,530 @@ export const LearnModule: React.FC = () => {
                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
                                       {transformedList.map((trans, ti) => {
                                          const opTitle = sDetails.ops[ti] || `op_${ti}`;
+                                         const isSelected = selectedOpIdx === ti;
                                          return (
-                                            <div key={ti} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-150 dark:border-slate-850 text-center flex flex-col justify-between">
+                                            <button
+                                               key={ti}
+                                               onClick={() => setSelectedOpIdx(ti)}
+                                               className={`p-3 rounded-2xl border text-center flex flex-col justify-between transition-all cursor-pointer ${
+                                                  isSelected
+                                                     ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.2)] ring-2 ring-indigo-500/50'
+                                                     : 'bg-slate-50 dark:bg-slate-950 border-slate-150 dark:border-slate-850 hover:border-slate-300 dark:hover:border-slate-700'
+                                               }`}
+                                            >
                                                <span className="text-[8px] text-slate-400 font-semibold block leading-none">{opTitle}</span>
-                                               <span className="text-[10px] font-black text-indigo-650 dark:text-indigo-400 block mt-1.5 leading-none">{trans}</span>
-                                            </div>
+                                               <span className={`text-[10px] font-black block mt-1.5 leading-none ${isSelected ? 'text-indigo-650 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`}>{trans}</span>
+                                            </button>
                                          );
                                       })}
+                                   </div>
+
+                                   {/* Detailed Math sections */}
+                                   <div className="mt-8 space-y-8 md:col-span-2 lg:col-span-12 text-left">
+                                      {/* SECTION 1: Matrix and Translation Vector Analysis */}
+                                      {(() => {
+                                         const opsList = getSymmetryOperators(symmetryActiveGroup);
+                                         const currentOp = opsList[selectedOpIdx] || opsList[0] || { matrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], translation: [0, 0, 0], algebraic: 'x, y, z' };
+                                         const opAlgebraic = sDetails.ops[selectedOpIdx] || currentOp.algebraic;
+
+                                         // Calculate determinant of W
+                                         const m = currentOp.matrix;
+                                         const det = m[0][0]*(m[1][1]*m[2][2] - m[1][2]*m[2][1]) 
+                                                   - m[0][1]*(m[1][0]*m[2][2] - m[1][2]*m[2][0]) 
+                                                   + m[0][2]*(m[1][0]*m[2][1] - m[1][1]*m[2][0]);
+                                         
+                                         // Calculate trace of W
+                                         const trace = m[0][0] + m[1][1] + m[2][2];
+
+                                         // Classify symmetry operation
+                                         let classificationEn = 'Glide / Screw Symmetry';
+                                         let classificationFa = 'تقارن لغزشی یا پیچشی';
+                                         if (det === 1 && trace === 3) {
+                                            classificationEn = 'Identity (Preserves Chirality)';
+                                            classificationFa = 'انطباق همانی (حفظ دست‌سانی)';
+                                         } else if (det === -1 && trace === -3) {
+                                            classificationEn = 'Inversion Center (Flips Chirality)';
+                                            classificationFa = 'مرکز معکوس‌سازی (تغییر دست‌سانی)';
+                                         } else if (det === 1 && trace === -1) {
+                                            classificationEn = '2-fold Rotation (180° C₂ Axis)';
+                                            classificationFa = 'تقارن چرخشی مرتبه ۲ (محور ۱۸۰ درجه)';
+                                         } else if (det === 1 && trace === 0) {
+                                            classificationEn = '3-fold Rotation (120° C₃ Axis)';
+                                            classificationFa = 'تقارن چرخشی مرتبه ۳ (محور ۱۲۰ درجه)';
+                                         } else if (det === 1 && trace === 1) {
+                                            classificationEn = '4-fold Rotation (90° C₄ Axis)';
+                                            classificationFa = 'تقارن چرخشی مرتبه ۴ (محور ۹۰ درجه)';
+                                         } else if (det === -1 && trace === 1) {
+                                            classificationEn = 'Reflection / Mirror Plane';
+                                            classificationFa = 'بازتاب آینه‌ای (تغییر دست‌سانی)';
+                                         }
+
+                                         // Step-by-step vector matrix multiplication math
+                                         const x_val = symCoordX;
+                                         const y_val = symCoordY;
+                                         const z_val = symCoordZ;
+
+                                         const rx = m[0][0]*x_val + m[0][1]*y_val + m[0][2]*z_val + currentOp.translation[0];
+                                         const ry = m[1][0]*x_val + m[1][1]*y_val + m[1][2]*z_val + currentOp.translation[1];
+                                         const rz = m[2][0]*x_val + m[2][1]*y_val + m[2][2]*z_val + currentOp.translation[2];
+
+                                         const rx_mod = (rx % 1 + 1) % 1;
+                                         const ry_mod = (ry % 1 + 1) % 1;
+                                         const rz_mod = (rz % 1 + 1) % 1;
+
+                                         const matrixLatex = `\\mathbf{W} = \\begin{pmatrix} ${m[0][0]} & ${m[0][1]} & ${m[0][2]} \\\\ ${m[1][0]} & ${m[1][1]} & ${m[1][2]} \\\\ ${m[2][0]} & ${m[2][1]} & ${m[2][2]} \\end{pmatrix}, \\quad \\mathbf{w} = \\begin{pmatrix} ${currentOp.translation[0]} \\\\ ${currentOp.translation[1]} \\\\ ${currentOp.translation[2]} \\end{pmatrix}`;
+
+                                         const calculationLatex = `\\begin{pmatrix} ${m[0][0]} & ${m[0][1]} & ${m[0][2]} \\\\ ${m[1][0]} & ${m[1][1]} & ${m[1][2]} \\\\ ${m[2][0]} & ${m[2][1]} & ${m[2][2]} \\end{pmatrix} \\begin{pmatrix} ${x_val.toFixed(3)} \\\\ ${y_val.toFixed(3)} \\\\ ${z_val.toFixed(3)} \\end{pmatrix} + \\begin{pmatrix} ${currentOp.translation[0]} \\\\ ${currentOp.translation[1]} \\\\ ${currentOp.translation[2]} \\end{pmatrix} = \\begin{pmatrix} ${rx.toFixed(3)} \\\\ ${ry.toFixed(3)} \\\\ ${rz.toFixed(3)} \\end{pmatrix} \\xrightarrow{\\text{mod } 1} \\begin{pmatrix} ${rx_mod.toFixed(3)} \\\\ ${ry_mod.toFixed(3)} \\\\ ${rz_mod.toFixed(3)} \\end{pmatrix}`;
+
+                                         return (
+                                            <div className="p-6 bg-slate-50 dark:bg-slate-950/40 rounded-[2.5rem] border border-slate-150 dark:border-slate-850 space-y-6 text-slate-800 dark:text-slate-200">
+                                               <div className="flex flex-col md:flex-row justify-between md:items-center gap-2 pb-4 border-b border-slate-155 dark:border-slate-850">
+                                                  <div className="space-y-1">
+                                                     <h4 className="text-[11px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 leading-none">
+                                                        <Calculator size={13} /> Section A: Matrix Operator & Fractional Coordinate Solver
+                                                     </h4>
+                                                     <p className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-normal">
+                                                        تحلیل ریاضی عملگر ماتریس تقارن و تبدیل گام‌به‌گام مختصات کسری
+                                                     </p>
+                                                  </div>
+                                                  <span className="self-start md:self-center px-3 py-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[9px] font-black font-mono rounded-full uppercase">
+                                                     Operator: {opAlgebraic}
+                                                  </span>
+                                               </div>
+
+                                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                                                  {/* Operator Matrix Display */}
+                                                  <div className="space-y-3">
+                                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Symmetry Affine Matrix representation [W|w]</span>
+                                                     <LaTeXBlock tex={matrixLatex} />
+                                                     
+                                                     {/* Matrix properties table */}
+                                                     <div className="grid grid-cols-3 gap-2 font-sans text-[9px]">
+                                                        <div className="p-2.5 bg-slate-100 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
+                                                           <span className="text-[7.5px] text-slate-400 block uppercase">Determinant</span>
+                                                           <span className="font-mono font-black text-slate-700 dark:text-slate-200 block mt-1">det(W) = {det}</span>
+                                                        </div>
+                                                        <div className="p-2.5 bg-slate-100 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
+                                                           <span className="text-[7.5px] text-slate-400 block uppercase">Trace</span>
+                                                           <span className="font-mono font-black text-slate-700 dark:text-slate-200 block mt-1">tr(W) = {trace}</span>
+                                                        </div>
+                                                        <div className="p-2.5 bg-slate-100 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
+                                                           <span className="text-[7.5px] text-slate-400 block uppercase">Chirality</span>
+                                                           <span className="font-black text-indigo-550 dark:text-indigo-450 block mt-1 truncate">{det === 1 ? 'Preserved' : 'Inverted'}</span>
+                                                        </div>
+                                                     </div>
+
+                                                     <div className="p-3 bg-indigo-500/5 dark:bg-indigo-500/5 border border-indigo-500/10 rounded-xl text-[9px] leading-relaxed text-slate-600 dark:text-slate-350 font-sans">
+                                                        <span className="font-bold block text-indigo-600 dark:text-indigo-400 mb-0.5">Classification (طبقه‌بندی هندسی):</span>
+                                                        <p className="font-semibold">{classificationEn}</p>
+                                                        <p className="font-medium text-[8.5px] text-slate-450 mt-0.5">{classificationFa}</p>
+                                                     </div>
+                                                  </div>
+
+                                                  {/* Interactive coordinate converter */}
+                                                  <div className="space-y-4">
+                                                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Affine Coordinate Transformation [W · r + w]</span>
+                                                     
+                                                     {/* Numeric Sliders for coordinate X, Y, Z */}
+                                                     <div className="space-y-3 bg-slate-100/50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                                                        <div className="space-y-1">
+                                                           <div className="flex items-center justify-between text-[9px] font-mono">
+                                                              <span className="text-slate-455 font-bold uppercase font-sans">Fractional X (طول کسری)</span>
+                                                              <span className="text-indigo-555 dark:text-indigo-400 font-black">{symCoordX.toFixed(3)}</span>
+                                                           </div>
+                                                           <input
+                                                              type="range"
+                                                              min="0.0"
+                                                              max="1.0"
+                                                              step="0.005"
+                                                              value={symCoordX}
+                                                              onChange={(e) => setSymCoordX(parseFloat(e.target.value))}
+                                                              className="w-full h-1 bg-slate-300 dark:bg-slate-950 rounded-full appearance-none cursor-pointer accent-indigo-500"
+                                                           />
+                                                        </div>
+
+                                                        <div className="space-y-1">
+                                                           <div className="flex items-center justify-between text-[9px] font-mono">
+                                                              <span className="text-slate-455 font-bold uppercase font-sans">Fractional Y (عرض کسری)</span>
+                                                              <span className="text-indigo-555 dark:text-indigo-400 font-black">{symCoordY.toFixed(3)}</span>
+                                                           </div>
+                                                           <input
+                                                              type="range"
+                                                              min="0.0"
+                                                              max="1.0"
+                                                              step="0.005"
+                                                              value={symCoordY}
+                                                              onChange={(e) => setSymCoordY(parseFloat(e.target.value))}
+                                                              className="w-full h-1 bg-slate-300 dark:bg-slate-950 rounded-full appearance-none cursor-pointer accent-indigo-500"
+                                                           />
+                                                        </div>
+
+                                                        <div className="space-y-1">
+                                                           <div className="flex items-center justify-between text-[9px] font-mono">
+                                                              <span className="text-slate-455 font-bold uppercase font-sans">Fractional Z (ارتفاع کسری)</span>
+                                                              <span className="text-indigo-555 dark:text-indigo-400 font-black">{symCoordZ.toFixed(3)}</span>
+                                                           </div>
+                                                           <input
+                                                              type="range"
+                                                              min="0.0"
+                                                              max="1.0"
+                                                              step="0.005"
+                                                              value={symCoordZ}
+                                                              onChange={(e) => setSymCoordZ(parseFloat(e.target.value))}
+                                                              className="w-full h-1 bg-slate-300 dark:bg-slate-950 rounded-full appearance-none cursor-pointer accent-indigo-500"
+                                                           />
+                                                        </div>
+                                                     </div>
+
+                                                     <div className="p-3 bg-emerald-500/5 dark:bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-center">
+                                                        <span className="text-[8px] font-black uppercase text-emerald-650 dark:text-emerald-400 tracking-wider block mb-1">Transformed Fractional Coordinate (مختصات جدید داخل سلول)</span>
+                                                        <span className="font-mono text-xs font-black text-emerald-700 dark:text-emerald-400">[ {rx_mod.toFixed(4)}, {ry_mod.toFixed(4)}, {rz_mod.toFixed(4)} ]</span>
+                                                     </div>
+                                                  </div>
+                                               </div>
+
+                                               {/* Matrix Multiplication Stepper LaTeX */}
+                                               <div className="space-y-2 text-center md:text-left">
+                                                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Vector Matrix Multiplication step-by-step resolution:</span>
+                                                  <LaTeXBlock tex={calculationLatex} />
+                                               </div>
+                                            </div>
+                                         );
+                                      })()}
+
+                                      {/* SECTION 2: Structure Factor and Systematic Extinctions */}
+                                      <div className="p-6 bg-slate-50 dark:bg-slate-950/40 rounded-[2.5rem] border border-slate-150 dark:border-slate-850 space-y-6 text-slate-800 dark:text-slate-200">
+                                         <div className="flex flex-col md:flex-row justify-between md:items-center gap-2 pb-4 border-b border-slate-155 dark:border-slate-850">
+                                            <div className="space-y-1">
+                                               <h4 className="text-[11px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1.5 leading-none">
+                                                  <Layers size={13} /> Section B: Systematic Extinctions & Structure Factor contribution solver
+                                               </h4>
+                                               <p className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-normal">
+                                                  محاسبه فاکتور ساختار تقارنی و بررسی خاموشی ساختاری پیک‌های پراش
+                                               </p>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-[10px]">
+                                               <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1">
+                                                  <span className="text-slate-400 font-mono">h:</span>
+                                                  <input 
+                                                     type="number" 
+                                                     value={symHklH} 
+                                                     onChange={(e) => setSymHklH(Math.max(-10, Math.min(10, parseInt(e.target.value) || 0)))}
+                                                     className="w-8 font-black font-mono text-slate-800 dark:text-white bg-transparent border-none outline-none text-center"
+                                                  />
+                                               </div>
+                                               <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1">
+                                                  <span className="text-slate-400 font-mono">k:</span>
+                                                  <input 
+                                                     type="number" 
+                                                     value={symHklK} 
+                                                     onChange={(e) => setSymHklK(Math.max(-10, Math.min(10, parseInt(e.target.value) || 0)))}
+                                                     className="w-8 font-black font-mono text-slate-800 dark:text-white bg-transparent border-none outline-none text-center"
+                                                  />
+                                               </div>
+                                               <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1">
+                                                  <span className="text-slate-400 font-mono">l:</span>
+                                                  <input 
+                                                     type="number" 
+                                                     value={symHklL} 
+                                                     onChange={(e) => setSymHklL(Math.max(-10, Math.min(10, parseInt(e.target.value) || 0)))}
+                                                     className="w-8 font-black font-mono text-slate-800 dark:text-white bg-transparent border-none outline-none text-center"
+                                                  />
+                                               </div>
+                                            </div>
+                                         </div>
+
+                                         {(() => {
+                                            // Resolve all positions
+                                            const h = symHklH;
+                                            const k = symHklK;
+                                            const l = symHklL;
+                                            
+                                            const posList = getSymmetryCoordinates(symmetryActiveGroup, symCoordX, symCoordY);
+                                            
+                                            let sumCos = 0;
+                                            let sumSin = 0;
+                                            
+                                            const tableRows = posList.map((pt, index) => {
+                                               const z_val = symCoordZ;
+                                               const atomZ = pt.label.includes('z') ? (pt.label.includes('-z') ? -z_val : z_val) : 0;
+                                               const phase = 2 * Math.PI * (h * pt.x + k * pt.y + l * atomZ);
+                                               const cosVal = Math.cos(phase);
+                                               const sinVal = Math.sin(phase);
+                                               
+                                               sumCos += cosVal;
+                                               sumSin += sinVal;
+                                               
+                                               return {
+                                                  index: index + 1,
+                                                  coords: `[${pt.x.toFixed(3)}, ${pt.y.toFixed(3)}, ${atomZ.toFixed(3)}]`,
+                                                  phaseDeg: (phase * (180 / Math.PI)) % 360,
+                                                  cosVal,
+                                                  sinVal
+                                               };
+                                            });
+
+                                            const intensity = sumCos * sumCos + sumSin * sumSin;
+                                            const isExtinct = intensity < 1e-4;
+
+                                            return (
+                                               <div className="space-y-4">
+                                                  <div className="text-[10px] text-slate-650 dark:text-slate-300 font-medium leading-relaxed font-sans">
+                                                     The overall structure factor contribution based purely on crystallographic symmetry positions is defined by:
+                                                     <LaTeXBlock tex="F_{\\text{sym}}(hkl) = \\sum_{n=1}^{N} \\exp(2\\pi i (h x_n + k y_n + l z_n)) = A + i B" />
+                                                     Below is the step-by-step contribution of each symmetry-generated node inside the unit cell:
+                                                  </div>
+
+                                                  <div className="bg-white dark:bg-slate-950 border border-slate-150 dark:border-slate-850 rounded-2xl overflow-hidden shadow-inner">
+                                                     <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                                                        <table className="w-full text-left border-collapse font-mono text-[9px]">
+                                                           <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 font-sans">
+                                                              <tr>
+                                                                 <th className="p-2.5 font-black uppercase text-slate-400">Node</th>
+                                                                 <th className="p-2.5 font-black uppercase text-slate-400">Coordinate [x,y,z]</th>
+                                                                 <th className="p-2.5 font-black uppercase text-slate-400 text-center">Phase Angle φ(°)</th>
+                                                                 <th className="p-2.5 font-black uppercase text-slate-400 text-right">cos(φ) [Aₙ]</th>
+                                                                 <th className="p-2.5 font-black uppercase text-slate-400 text-right">sin(φ) [Bₙ]</th>
+                                                              </tr>
+                                                           </thead>
+                                                           <tbody className="divide-y divide-slate-100 dark:divide-slate-850">
+                                                              {tableRows.map((row) => (
+                                                                 <tr key={row.index} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
+                                                                    <td className="p-2 text-slate-450">#{row.index}</td>
+                                                                    <td className="p-2 text-slate-700 dark:text-slate-300 font-black">{row.coords}</td>
+                                                                    <td className="p-2 text-slate-650 dark:text-slate-400 text-center">{row.phaseDeg.toFixed(1)}°</td>
+                                                                    <td className={`p-2 text-right font-black ${row.cosVal >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>{row.cosVal.toFixed(4)}</td>
+                                                                    <td className={`p-2 text-right font-black ${row.sinVal >= 0 ? 'text-emerald-650 dark:text-emerald-400' : 'text-amber-600'}`}>{row.sinVal.toFixed(4)}</td>
+                                                                 </tr>
+                                                              ))}
+                                                           </tbody>
+                                                        </table>
+                                                     </div>
+                                                  </div>
+
+                                                  {/* Sums summary */}
+                                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                                     <div className="p-3 bg-slate-100 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 text-center font-sans">
+                                                        <span className="text-[8px] text-slate-400 uppercase tracking-wider block">Real Part (A)</span>
+                                                        <span className="font-mono text-xs font-black text-slate-700 dark:text-slate-300 block mt-1">{sumCos.toFixed(4)}</span>
+                                                     </div>
+                                                     <div className="p-3 bg-slate-100 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 text-center font-sans">
+                                                        <span className="text-[8px] text-slate-400 uppercase tracking-wider block">Imaginary Part (B)</span>
+                                                        <span className="font-mono text-xs font-black text-slate-700 dark:text-slate-300 block mt-1">{sumSin.toFixed(4)}</span>
+                                                     </div>
+                                                     <div className="p-3 bg-slate-100 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 text-center font-sans">
+                                                        <span className="text-[8px] text-slate-400 uppercase tracking-wider block">Total Intensity |F_sym|²</span>
+                                                        <span className="font-mono text-xs font-black text-indigo-650 dark:text-indigo-450 block mt-1">{intensity.toFixed(4)}</span>
+                                                     </div>
+                                                  </div>
+
+                                                  {/* Status banner */}
+                                                  <div className={`p-4 rounded-2xl border flex items-center justify-between text-[10px] font-black font-sans ${
+                                                     isExtinct 
+                                                        ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40 text-rose-700 dark:text-rose-400' 
+                                                        : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/40 text-emerald-700 dark:text-emerald-400'
+                                                  }`}>
+                                                     <div className="flex items-center gap-2">
+                                                        <span className={`w-2.5 h-2.5 rounded-full ${isExtinct ? 'bg-rose-500 animate-ping' : 'bg-emerald-500 animate-pulse'}`} />
+                                                        <div>
+                                                           <p className="uppercase tracking-wider">{isExtinct ? `🔴 SYSTEMATIC EXTINCTION AT (${h},${k},${l})` : `🟢 ALLOWED REFLECTION AT (${h},${k},${l})`}</p>
+                                                           <p className="text-[8.5px] font-medium text-slate-500 mt-0.5">
+                                                              {isExtinct 
+                                                                 ? 'Structure Factor collapses to zero. This peak is symmetry-forbidden in Bragg spectrum.' 
+                                                                 : 'Peak is symmetry-allowed. It will construct a visible diffraction intensity contribution.'}
+                                                           </p>
+                                                        </div>
+                                                     </div>
+                                                     <span className="font-sans text-[8.5px] uppercase font-bold tracking-widest hidden sm:inline">
+                                                        {isExtinct ? 'خاموشی تقارنی' : 'مجاز تقارنی'}
+                                                     </span>
+                                                  </div>
+                                               </div>
+                                            );
+                                         })()}
+                                      </div>
+
+                                      {/* SECTION 3: Peak Shape Asymmetry Profile */}
+                                      <div className="p-6 bg-slate-50 dark:bg-slate-950/40 rounded-[2.5rem] border border-slate-150 dark:border-slate-850 space-y-6 text-slate-800 dark:text-slate-200">
+                                         <div className="pb-4 border-b border-slate-155 dark:border-slate-850 space-y-1">
+                                            <h4 className="text-[11px] font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 flex items-center gap-1.5 leading-none">
+                                               <Activity size={13} /> Section C: Peak Shape Asymmetry Profile (Finger-Cox-Jephcoat Model)
+                                            </h4>
+                                            <p className="text-[9.5px] text-slate-500 dark:text-slate-400 font-bold leading-normal">
+                                               شبیه‌سازی ریاضی پیک نامتقارن پراش XRD به علت واگرایی محوری پرتوی اشعه ایکس
+                                            </p>
+                                         </div>
+
+                                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                                            {/* Peak Chart Controls */}
+                                            <div className="lg:col-span-5 space-y-4 font-sans">
+                                               <div className="space-y-3 bg-slate-100/50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                                                  {/* Peak position */}
+                                                  <div className="space-y-1">
+                                                     <div className="flex items-center justify-between text-[9px] font-mono">
+                                                        <span className="text-slate-450 font-bold uppercase font-sans">Peak Position 2θ₀ (موقعیت پیک)</span>
+                                                        <span className="text-teal-650 dark:text-teal-400 font-black">{asymPeakPos.toFixed(2)}°</span>
+                                                     </div>
+                                                     <input
+                                                        type="range"
+                                                        min="15.0"
+                                                        max="60.0"
+                                                        step="0.1"
+                                                        value={asymPeakPos}
+                                                        onChange={(e) => setAsymPeakPos(parseFloat(e.target.value))}
+                                                        className="w-full h-1 bg-slate-300 dark:bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
+                                                     />
+                                                  </div>
+
+                                                  {/* FWHM */}
+                                                  <div className="space-y-1">
+                                                     <div className="flex items-center justify-between text-[9px] font-mono">
+                                                        <span className="text-slate-450 font-bold uppercase font-sans">Peak Width FWHM (عرض پیک)</span>
+                                                        <span className="text-teal-655 dark:text-teal-400 font-black">{asymFWHM.toFixed(3)}°</span>
+                                                     </div>
+                                                     <input
+                                                        type="range"
+                                                        min="0.1"
+                                                        max="1.5"
+                                                        step="0.01"
+                                                        value={asymFWHM}
+                                                        onChange={(e) => setAsymFWHM(parseFloat(e.target.value))}
+                                                        className="w-full h-1 bg-slate-300 dark:bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
+                                                     />
+                                                  </div>
+
+                                                  {/* Asymmetry factor */}
+                                                  <div className="space-y-1">
+                                                     <div className="flex items-center justify-between text-[9px] font-mono">
+                                                        <span className="text-slate-450 font-bold uppercase font-sans">Asymmetry Factor A (ضریب نامتقارنی)</span>
+                                                        <span className="text-rose-500 font-black">{asymFactor.toFixed(3)}</span>
+                                                     </div>
+                                                     <input
+                                                        type="range"
+                                                        min="-0.6"
+                                                        max="0.6"
+                                                        step="0.01"
+                                                        value={asymFactor}
+                                                        onChange={(e) => setAsymFactor(parseFloat(e.target.value))}
+                                                        className="w-full h-1 bg-slate-300 dark:bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
+                                                     />
+                                                  </div>
+
+                                                  {/* Eta mixing ratio */}
+                                                  <div className="space-y-1">
+                                                     <div className="flex items-center justify-between text-[9px] font-mono">
+                                                        <span className="text-slate-455 font-bold uppercase font-sans">Lorentzian mixing η (نسبت لورنتزین)</span>
+                                                        <span className="text-teal-650 dark:text-teal-400 font-black">{asymEta.toFixed(2)}</span>
+                                                     </div>
+                                                     <input
+                                                        type="range"
+                                                        min="0.0"
+                                                        max="1.0"
+                                                        step="0.05"
+                                                        value={asymEta}
+                                                        onChange={(e) => setAsymEta(parseFloat(e.target.value))}
+                                                        className="w-full h-1 bg-slate-300 dark:bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
+                                                     />
+                                                  </div>
+                                               </div>
+
+                                               <div className="p-3 bg-slate-100 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-800 text-[8.5px] leading-relaxed text-slate-500 dark:text-slate-400 space-y-1 font-sans">
+                                                  <span className="font-bold text-teal-650 dark:text-teal-400 block uppercase">Profile Mathematics Description:</span>
+                                                  <p>Crystallite profiles at low angles (<span className="font-mono">2θ &lt; 30°</span>) suffer from severe geometric axial divergence. It stretches the peak tail towards the left, shifting the apparent center of gravity.</p>
+                                               </div>
+                                            </div>
+
+                                            {/* Peak Chart Graphic SVG */}
+                                            <div className="lg:col-span-7 flex flex-col items-center">
+                                               {(() => {
+                                                  // Let's generate coordinates for the SVG path
+                                                  const center = asymPeakPos;
+                                                  const fwhm = asymFWHM;
+                                                  const asym = asymFactor;
+                                                  const eta = asymEta;
+                                                  
+                                                  const range = 5 * fwhm;
+                                                  const steps = 100;
+                                                  
+                                                  const symPoints: { x: number; y: number }[] = [];
+                                                  const asymPoints: { x: number; y: number }[] = [];
+                                                  
+                                                  for (let i = 0; i <= steps; i++) {
+                                                     const t = center - range + (i / steps) * (2 * range);
+                                                     
+                                                     // Calculate symmetric profile (standard Pseudo-Voigt)
+                                                     const xSym = (t - center) / (fwhm / 2);
+                                                     const gSym = Math.exp(-Math.LN2 * xSym * xSym);
+                                                     const lSym = 1 / (1 + xSym * xSym);
+                                                     const iSym = eta * lSym + (1 - eta) * gSym;
+                                                     
+                                                     // Calculate asymmetric profile (split Pseudo-Voigt)
+                                                     const factor = t < center ? (1 - asym) : (1 + asym);
+                                                     const adjustedFWHM = fwhm * factor;
+                                                     
+                                                     const xAsym = (t - center) / (adjustedFWHM / 2);
+                                                     const gAsym = Math.exp(-Math.LN2 * xAsym * xAsym);
+                                                     const lAsym = 1 / (1 + xAsym * xAsym);
+                                                     const iAsym = eta * lAsym + (1 - eta) * gAsym;
+                                                     
+                                                     // Map to SVG coordinate: x [0, 300], y [0, 150] (y=0 is top, y=150 is bottom)
+                                                     const svgX = (i / steps) * 300;
+                                                     const svgY_sym = 140 - iSym * 120;
+                                                     const svgY_asym = 140 - iAsym * 120;
+                                                     
+                                                     symPoints.push({ x: svgX, y: svgY_sym });
+                                                     asymPoints.push({ x: svgX, y: svgY_asym });
+                                                  }
+                                                  
+                                                  const symPath = `M ${symPoints.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')}`;
+                                                  const asymPath = `M ${asymPoints.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')}`;
+
+                                                  return (
+                                                     <div className="w-full max-w-[400px] space-y-2">
+                                                        <div className="bg-white dark:bg-slate-950 p-4 rounded-3xl border border-slate-150 dark:border-slate-850 shadow-inner flex flex-col items-center font-sans">
+                                                           <svg width="100%" height="160" viewBox="0 0 300 160" className="overflow-visible">
+                                                              {/* Gridlines */}
+                                                              <line x1="0" y1="140" x2="300" y2="140" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3,3" className="dark:stroke-slate-800" />
+                                                              <line x1="150" y1="0" x2="150" y2="150" stroke="#cbd5e1" strokeWidth="0.5" strokeDasharray="2,2" className="dark:stroke-slate-800" />
+                                                              
+                                                              {/* Symmetric Peak (Dotted Indigo/Blue) */}
+                                                              <path d={symPath} fill="none" stroke="#6366f1" strokeWidth="2" strokeDasharray="4,4" opacity="0.6" />
+                                                              
+                                                              {/* Asymmetric Peak (Teal Solid) */}
+                                                              <path d={asymPath} fill="none" stroke="#0d9488" strokeWidth="3.5" strokeLinecap="round" />
+                                                              
+                                                              {/* X & Y Axes labels */}
+                                                              <text x="150" y="152" textAnchor="middle" className="fill-slate-400 text-[8px] font-mono font-black uppercase">Center (2θ₀)</text>
+                                                              <text x="10" y="20" className="fill-slate-400 text-[8px] font-sans font-bold uppercase" transform="rotate(-90 10 20)">Intensity</text>
+                                                           </svg>
+                                                           
+                                                           {/* Chart Legends */}
+                                                           <div className="flex justify-center gap-6 text-[8px] font-black uppercase mt-1">
+                                                              <div className="flex items-center gap-1.5 text-indigo-500 font-sans">
+                                                                 <span className="w-3 h-0.5 border-b-2 border-indigo-500 border-dashed" />
+                                                                 <span>Symmetric Peak</span>
+                                                              </div>
+                                                              <div className="flex items-center gap-1.5 text-teal-600 dark:text-teal-400 font-sans">
+                                                                 <span className="w-3 h-1 bg-teal-500 rounded" />
+                                                                 <span>Asymmetric peak</span>
+                                                              </div>
+                                                           </div>
+                                                        </div>
+                                                     </div>
+                                                  );
+                                               })()}
+                                            </div>
+                                         </div>
+
+                                         <div className="text-[9.5px] leading-relaxed text-slate-500 dark:text-slate-400 space-y-2 font-sans">
+                                            <p className="font-bold uppercase text-slate-450">Profile Mathematical Formulas:</p>
+                                            <LaTeXBlock tex="I(2\\theta) = I_0 \\cdot \\left[ \\eta \\cdot \\frac{1}{1 + \\left(\\frac{2\\theta - 2\\theta_0}{\\Gamma_{L,G}}\\right)^2} + (1-\\eta) \\cdot e^{-\\ln 2 \\left(\\frac{2\\theta - 2\\theta_0}{\\Gamma_{L,G}}\\right)^2} \\right]" />
+                                            <p className="font-medium">
+                                               {"where the FWHM parameter $\\Gamma_{L,G}$ is modulated based on the side of the reflection center:"}
+                                            </p>
+                                            <LaTeXBlock tex="\\Gamma_{L,G} = \\begin{cases} \\text{FWHM} \\cdot (1 - A) & \\text{for } 2\\theta \\le 2\\theta_0 \\\\ \\text{FWHM} \\cdot (1 + A) & \\text{for } 2\\theta > 2\\theta_0 \\end{cases}" />
+                                         </div>
+                                      </div>
                                    </div>
                                 </div>
                              </div>
