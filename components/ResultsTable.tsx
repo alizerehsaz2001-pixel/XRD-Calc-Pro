@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
-import { Filter, SlidersHorizontal, RefreshCw } from 'lucide-react';
+import { Filter, SlidersHorizontal, RefreshCw, Check } from 'lucide-react';
 import { ScientificMathControl } from './ScientificMathControl';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface ResultsTableProps {
   results: BraggResult[];
+  onExportCompare?: (selectedResults: BraggResult[]) => void;
 }
 
-export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
+export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCompare }) => {
   const { t } = useTranslation();
   const { precision } = useSettings();
 
@@ -18,6 +20,20 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
   const [maxDSpacing, setMaxDSpacing] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showFilters, setShowFilters] = useState<boolean>(true);
+
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+  const [showAverageResult, setShowAverageResult] = useState<{
+    avgD: number;
+    stdDev: number;
+    minD: number;
+    maxD: number;
+  } | null>(null);
+
+  // Reset selection and calculations when results change
+  React.useEffect(() => {
+    setSelectedIndices([]);
+    setShowAverageResult(null);
+  }, [results]);
 
   const filteredResults = React.useMemo(() => results.filter(row => {
     // 1. Intensity check
@@ -46,6 +62,84 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
 
     return true;
   }), [results, minIntensity, minDSpacing, maxDSpacing, searchQuery]);
+
+  // Selection state helpers
+  const isAllVisibleSelected = React.useMemo(() => {
+    if (filteredResults.length === 0) return false;
+    return filteredResults.every(row => {
+      const originalIndex = results.indexOf(row);
+      return selectedIndices.includes(originalIndex);
+    });
+  }, [filteredResults, selectedIndices, results]);
+
+  const isSomeVisibleSelected = React.useMemo(() => {
+    if (filteredResults.length === 0) return false;
+    return filteredResults.some(row => {
+      const originalIndex = results.indexOf(row);
+      return selectedIndices.includes(originalIndex);
+    }) && !isAllVisibleSelected;
+  }, [filteredResults, selectedIndices, results, isAllVisibleSelected]);
+
+  const handleSelectAllToggle = () => {
+    if (isAllVisibleSelected) {
+      // Deselect all visible rows
+      const visibleIndices = filteredResults.map(row => results.indexOf(row));
+      setSelectedIndices(prev => prev.filter(idx => !visibleIndices.includes(idx)));
+    } else {
+      // Select all visible rows
+      const visibleIndices = filteredResults.map(row => results.indexOf(row));
+      setSelectedIndices(prev => {
+        const union = new Set([...prev, ...visibleIndices]);
+        return Array.from(union);
+      });
+    }
+    setShowAverageResult(null);
+  };
+
+  const handleRowSelectToggle = (row: BraggResult) => {
+    const originalIndex = results.indexOf(row);
+    setSelectedIndices(prev => {
+      if (prev.includes(originalIndex)) {
+        return prev.filter(idx => idx !== originalIndex);
+      } else {
+        return [...prev, originalIndex];
+      }
+    });
+    setShowAverageResult(null);
+  };
+
+  const computeAverageDSpacing = () => {
+    const selectedRows = results.filter((_, idx) => selectedIndices.includes(idx));
+    if (selectedRows.length === 0) return;
+
+    const dValues = selectedRows.map(r => r.dSpacing);
+    const count = dValues.length;
+    
+    // Average
+    const sum = dValues.reduce((acc, val) => acc + val, 0);
+    const avgD = sum / count;
+
+    // Standard deviation
+    const variance = dValues.reduce((acc, val) => acc + Math.pow(val - avgD, 2), 0) / count;
+    const stdDev = Math.sqrt(variance);
+
+    const minD = Math.min(...dValues);
+    const maxD = Math.max(...dValues);
+
+    setShowAverageResult({
+      avgD,
+      stdDev,
+      minD,
+      maxD
+    });
+  };
+
+  const handleBulkExport = () => {
+    const selectedRows = results.filter((_, idx) => selectedIndices.includes(idx));
+    if (selectedRows.length > 0 && onExportCompare) {
+      onExportCompare(selectedRows);
+    }
+  };
   
   const exportToCSV = () => {
     const dataToExport = filteredResults;
@@ -149,6 +243,12 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
               : `${filteredResults.length}/${results.length} ${t('Shown')}`
             }
           </span>
+
+          {selectedIndices.length > 0 && (
+            <span id="selected-peaks-status-badge" className="text-xs font-mono bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-full font-bold transition-all animate-in fade-in zoom-in-95 duration-150">
+              {selectedIndices.length} of {results.length} selected
+            </span>
+          )}
         </div>
       </div>
 
@@ -244,10 +344,138 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
         </div>
       )}
 
+      {/* Bulk Action Panel */}
+      <AnimatePresence>
+        {selectedIndices.length > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-b border-slate-300 dark:border-slate-800"
+          >
+            <div className="p-4 bg-indigo-500/5 dark:bg-indigo-400/5 border-b border-slate-300 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-inner">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-indigo-600/10 dark:bg-indigo-400/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <Check className="w-4 h-4 stroke-[3]" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                    {selectedIndices.length} {selectedIndices.length === 1 ? 'Peak Selected' : 'Peaks Selected'}
+                  </h4>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
+                    Bulk operations for selected reflections
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={computeAverageDSpacing}
+                  className="px-3.5 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg shadow-sm transition-colors flex items-center gap-1.5 active:scale-95"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  Compute Average d-spacing
+                </button>
+                
+                {onExportCompare && (
+                  <button
+                    onClick={handleBulkExport}
+                    className="px-3.5 py-1.5 text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50 rounded-lg shadow-sm transition-colors flex items-center gap-1.5 active:scale-95"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    Export Selected to Compare
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setSelectedIndices([]);
+                    setShowAverageResult(null);
+                  }}
+                  className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Average Calculation Results Display */}
+      <AnimatePresence>
+        {showAverageResult && selectedIndices.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden border-b border-slate-300 dark:border-slate-800"
+          >
+            <div className="p-4 bg-emerald-500/5 border-b border-slate-300 dark:border-slate-800 grid grid-cols-2 md:grid-cols-4 gap-4 shadow-inner text-emerald-800 dark:text-emerald-300">
+              <div className="flex flex-col p-1 border-r border-slate-300 dark:border-slate-800 last:border-0">
+                <span className="text-[9px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1">
+                  Average d-spacing (d_avg)
+                </span>
+                <span className="text-sm font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
+                  {showAverageResult.avgD.toFixed(precision)} Å
+                </span>
+              </div>
+              
+              <div className="flex flex-col p-1 border-r border-slate-300 dark:border-slate-800 last:border-0 md:border-r">
+                <span className="text-[9px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1">
+                  Standard Dev (σ)
+                </span>
+                <span className="text-sm font-black font-mono tracking-tight text-slate-700 dark:text-slate-300">
+                  ±{showAverageResult.stdDev.toFixed(precision)} Å
+                </span>
+              </div>
+
+              <div className="flex flex-col p-1 border-r border-slate-300 dark:border-slate-800 last:border-0">
+                <span className="text-[9px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1">
+                  Minimum d-spacing
+                </span>
+                <span className="text-sm font-black font-mono tracking-tight text-slate-700 dark:text-slate-300">
+                  {showAverageResult.minD.toFixed(precision)} Å
+                </span>
+              </div>
+
+              <div className="flex flex-col p-1 last:border-0">
+                <span className="text-[9px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400 mb-1">
+                  Maximum d-spacing
+                </span>
+                <span className="text-sm font-black font-mono tracking-tight text-slate-700 dark:text-slate-300">
+                  {showAverageResult.maxD.toFixed(precision)} Å
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="overflow-x-auto overflow-y-auto flex-1 max-h-[600px]">
         <table id="filtered-results-table" className="w-full text-sm text-left text-slate-800 dark:text-slate-200">
           <thead className="text-xs text-slate-900 dark:text-slate-400 uppercase bg-slate-200 dark:bg-slate-800 sticky top-0 z-10">
             <tr>
+              <th scope="col" className="px-4 py-3 border-b border-slate-300 dark:border-slate-700 w-10">
+                <div className="flex items-center justify-center">
+                  <input
+                    id="select-all-checkbox"
+                    type="checkbox"
+                    checked={isAllVisibleSelected}
+                    ref={el => {
+                      if (el) {
+                        el.indeterminate = isSomeVisibleSelected;
+                      }
+                    }}
+                    onChange={handleSelectAllToggle}
+                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
+                  />
+                </div>
+              </th>
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('HKL')}</th>
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">Intensity</th>
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('2theta_deg')}</th>
@@ -259,15 +487,36 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results }) => {
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
             {filteredResults.length === 0 ? (
               <tr className="bg-white dark:bg-slate-900">
-                <td colSpan={6} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500 font-bold font-sans">
+                <td colSpan={7} className="px-6 py-12 text-center text-slate-400 dark:text-slate-500 font-bold font-sans">
                   No diffraction peaks match current filter constraints.
                 </td>
               </tr>
             ) : (
               filteredResults.map((row, index) => {
+                const originalIndex = results.indexOf(row);
+                const isSelected = selectedIndices.includes(originalIndex);
                 const intensity = row.intensity !== undefined ? row.intensity : 100;
                 return (
-                  <tr key={`${row.twoTheta}-${index}`} className="bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors">
+                  <tr 
+                    key={`${row.twoTheta}-${index}`} 
+                    className={`transition-colors cursor-pointer ${
+                      isSelected 
+                        ? 'bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-50/60 dark:hover:bg-indigo-950/30' 
+                        : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                    onClick={() => handleRowSelectToggle(row)}
+                  >
+                    <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-center">
+                        <input
+                          id={`row-checkbox-${originalIndex}`}
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleRowSelectToggle(row)}
+                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
+                        />
+                      </div>
+                    </td>
                     <td className="px-6 py-3 font-sans font-bold">
                       <div className="flex items-center gap-1.5">
                         <span className={row.validationError ? 'text-rose-600 dark:text-rose-400' : 'text-indigo-600 dark:text-indigo-400'}>

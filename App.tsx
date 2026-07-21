@@ -249,6 +249,8 @@ const App: React.FC = () => {
   const [materialName, setMaterialName] = useState<string | null>(savedState?.materialName ?? null);
   const [crystalSystem, setCrystalSystem] = useState<string>(savedState?.crystalSystem ?? 'SC');
   const [results, setResults] = useState<BraggResult[]>(savedState?.results ?? []);
+  const [comparePeaks, setComparePeaks] = useState<BraggResult[] | null>(null);
+  const [compareMaterialName, setCompareMaterialName] = useState<string | null>(null);
   const [braggHistory, setBraggHistory] = useState<BraggHistoryItem[]>(() => {
     try {
       const saved = localStorage.getItem('xrd_bragg_history');
@@ -441,6 +443,8 @@ const App: React.FC = () => {
     setRawPeaks('');
     setRawHKL('');
     setResults([]);
+    setComparePeaks(null);
+    setCompareMaterialName(null);
     setMaterialName(null);
     setWavelength(defaultWavelength);
     playSynthTone('switch');
@@ -1481,7 +1485,14 @@ const App: React.FC = () => {
                           wavelength={wavelength} 
                           onResultsChange={setResults} 
                         />
-                        <ResultsTable results={results} />
+                        <ResultsTable 
+                          results={results} 
+                          onExportCompare={(selectedResults) => {
+                            setComparePeaks(selectedResults);
+                            setCompareMaterialName(materialName ? `${materialName} (Selected Peaks)` : 'Selected Peaks');
+                            setActiveModule('compare');
+                          }}
+                        />
                         <LatticeEstimator results={results} />
                       </div>
                     </div>
@@ -1491,8 +1502,8 @@ const App: React.FC = () => {
                   {activeModule === 'selection' && <SelectionRulesModule />}
                   {activeModule === 'compare' && (
                     <DiffractionCompareModule 
-                      activeResults={results} 
-                      activeMaterialName={materialName} 
+                      activeResults={comparePeaks || results} 
+                      activeMaterialName={compareMaterialName || materialName} 
                     />
                   )}
                   {activeModule === 'scherrer' && <ScherrerModule />}
