@@ -46,6 +46,14 @@ interface PeakInput {
   intensity?: number;
 }
 
+interface PresetSample {
+  name: string;
+  system: CrystalSystem;
+  refLattice?: { a?: number; b?: number; c?: number };
+  wavelength: number;
+  peaks: PeakInput[];
+}
+
 interface CohenRefinementModuleProps {
   activeResults?: BraggResult[];
   activeMaterialName?: string | null;
