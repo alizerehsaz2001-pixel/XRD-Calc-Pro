@@ -49,7 +49,9 @@ import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'fireb
 import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOfflineMaterial, OfflineAnalysisResult, clearOfflineAnalyses } from './utils/offlineDb';
 import { syncOfflineHelper } from './utils/materialsHelper';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'cohen' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table';
+import { ResidualStressModule } from './components/ResidualStressModule';
+
+type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'cohen' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress';
 
 const getModuleIcon = (id: Module, active: boolean) => {
   const iconProps = {
@@ -79,6 +81,8 @@ const getModuleIcon = (id: Module, active: boolean) => {
       return <Network {...iconProps} />;
     case 'preferred_orientation':
       return <Compass {...iconProps} />;
+    case 'residual_stress':
+      return <Activity {...iconProps} />;
     case 'cohen':
       return <Grid {...iconProps} />;
     case 'rietveld':
@@ -917,6 +921,7 @@ const App: React.FC = () => {
       { id: 'integral', label: t('Integral Breadth'), group: t('Size & Strain') },
       { id: 'integral_adv', label: t('IB Advanced (W-H)'), group: t('Size & Strain') },
       { id: 'wa', label: t('Warren-Averbach'), group: t('Size & Strain') },
+      { id: 'residual_stress', label: t('Residual Stress'), group: t('Size & Strain') },
       { id: 'preferred_orientation', label: t('Preferred Orientation'), group: t('Fundamentals') },
       { id: 'cohen', label: t("Cohen's Matrix Method"), group: t('Advanced Refinement') },
       { id: 'rietveld', label: t('Rietveld Setup'), group: t('Advanced Sim') },
@@ -1515,6 +1520,7 @@ const App: React.FC = () => {
                   {activeModule === 'integral' && <IntegralBreadthModule />}
                   {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
                   {activeModule === 'wa' && <WarrenAverbachModule />}
+                  {activeModule === 'residual_stress' && <ResidualStressModule />}
                   {activeModule === 'preferred_orientation' && <PreferredOrientationModule />}
                   {activeModule === 'cohen' && (
                     <CohenRefinementModule 
