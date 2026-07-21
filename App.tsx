@@ -18,6 +18,7 @@ import { MagneticNeutronModule } from './components/MagneticNeutronModule';
 import { DeepLearningModule } from './components/DeepLearningModule';
 import { FWHMModule } from './components/FWHMModule';
 import { PreferredOrientationModule } from './components/PreferredOrientationModule';
+import { CohenRefinementModule } from './components/CohenRefinementModule';
 import { ImageAnalysisModule } from './components/ImageAnalysisModule';
 import { ImageGenerationModule } from './components/ImageGenerationModule';
 import { PythonExportModule } from './components/PythonExportModule';
@@ -48,7 +49,7 @@ import { collection, query, where, getDocs, setDoc, doc, deleteDoc } from 'fireb
 import { saveOfflineAnalysis, getOfflineAnalyses, getOfflineMaterials, saveOfflineMaterial, OfflineAnalysisResult, clearOfflineAnalyses } from './utils/offlineDb';
 import { syncOfflineHelper } from './utils/materialsHelper';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'cohen' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table';
 
 const getModuleIcon = (id: Module, active: boolean) => {
   const iconProps = {
@@ -78,6 +79,8 @@ const getModuleIcon = (id: Module, active: boolean) => {
       return <Network {...iconProps} />;
     case 'preferred_orientation':
       return <Compass {...iconProps} />;
+    case 'cohen':
+      return <Grid {...iconProps} />;
     case 'rietveld':
       return <Sliders {...iconProps} />;
     case 'neutron':
@@ -915,6 +918,7 @@ const App: React.FC = () => {
       { id: 'integral_adv', label: t('IB Advanced (W-H)'), group: t('Size & Strain') },
       { id: 'wa', label: t('Warren-Averbach'), group: t('Size & Strain') },
       { id: 'preferred_orientation', label: t('Preferred Orientation'), group: t('Fundamentals') },
+      { id: 'cohen', label: t("Cohen's Matrix Method"), group: t('Advanced Refinement') },
       { id: 'rietveld', label: t('Rietveld Setup'), group: t('Advanced Sim') },
       { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
       { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
@@ -1112,7 +1116,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
-            {[t('Fundamentals'), t('Size & Strain'), t('Advanced Sim'), t('AI Tools'), t('Intelligence')].map((group) => (
+            {Array.from(new Set(modules.map(m => m.group || ''))).map((group) => (
               <div key={group} className="space-y-2">
                 <h3 className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-3">
                   {group}
@@ -1512,6 +1516,12 @@ const App: React.FC = () => {
                   {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
                   {activeModule === 'wa' && <WarrenAverbachModule />}
                   {activeModule === 'preferred_orientation' && <PreferredOrientationModule />}
+                  {activeModule === 'cohen' && (
+                    <CohenRefinementModule 
+                      activeResults={results} 
+                      activeMaterialName={materialName} 
+                    />
+                  )}
                   {activeModule === 'rietveld' && <RietveldModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'neutron' && <NeutronModule />}
                   {activeModule === 'magnetic' && <MagneticNeutronModule />}
