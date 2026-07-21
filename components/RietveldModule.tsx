@@ -45,9 +45,12 @@ const TARGET_PARAMS: Record<string, SimulationParams> = {
   'Simple Cubic': { a: 4.0, scale: 1000, fwhm: 0.2, eta: 0.5, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 100, microstrain: 0.05, background: 50, noise: 20, peaks: [] },
   'BCC': { a: 3.5, scale: 1200, fwhm: 0.15, eta: 0.6, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 80, microstrain: 0.1, background: 40, noise: 15, peaks: [] },
   'FCC': { a: 4.5, scale: 1500, fwhm: 0.25, eta: 0.4, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 120, microstrain: 0.02, background: 60, noise: 25, peaks: [] },
+  'Silicon (Diamond Cubic)': { a: 5.431, scale: 1300, fwhm: 0.12, eta: 0.6, zeroShift: 0.0, sampleDisplacement: 0.02, crystalliteSize: 180, microstrain: 0.01, background: 45, noise: 15, peaks: [] },
   'Quartz': { a: 4.913, scale: 800, fwhm: 0.1, eta: 0.7, zeroShift: 0.0, sampleDisplacement: 0.1, crystalliteSize: 200, microstrain: 0.01, background: 80, noise: 30, peaks: [] },
   'Rutile': { a: 4.594, scale: 1000, fwhm: 0.18, eta: 0.6, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 150, microstrain: 0.03, background: 40, noise: 20, peaks: [] },
-  'Perovskite': { a: 3.905, scale: 900, fwhm: 0.12, eta: 0.5, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 180, microstrain: 0.02, background: 30, noise: 15, peaks: [] }
+  'Perovskite': { a: 3.905, scale: 900, fwhm: 0.12, eta: 0.5, zeroShift: 0.0, sampleDisplacement: 0, crystalliteSize: 180, microstrain: 0.02, background: 30, noise: 15, peaks: [] },
+  'Alumina (Hexagonal)': { a: 4.758, scale: 1100, fwhm: 0.14, eta: 0.5, zeroShift: 0.0, sampleDisplacement: 0.01, crystalliteSize: 160, microstrain: 0.02, background: 35, noise: 18, peaks: [] },
+  'Graphite (Hexagonal)': { a: 2.461, scale: 900, fwhm: 0.22, eta: 0.4, zeroShift: 0.0, sampleDisplacement: 0.05, crystalliteSize: 90, microstrain: 0.04, background: 55, noise: 22, peaks: [] }
 };
 
 const QUARTZ_PEAKS = [
@@ -67,6 +70,15 @@ const PEROVSKITE_PEAKS = [
   { t: 46.57, i: 35 }, { t: 52.48, i: 12 }, { t: 57.94, i: 23 }, 
   { t: 68.01, i: 15 }, { t: 72.76, i: 8 }, { t: 77.39, i: 12 }
 ];
+const ALUMINA_PEAKS = [
+  { t: 25.58, i: 75 }, { t: 35.15, i: 90 }, { t: 37.78, i: 40 }, 
+  { t: 43.36, i: 100 }, { t: 52.55, i: 45 }, { t: 57.50, i: 95 }, 
+  { t: 61.30, i: 15 }, { t: 66.52, i: 30 }, { t: 68.21, i: 50 }
+];
+const GRAPHITE_PEAKS = [
+  { t: 26.54, i: 100 }, { t: 42.43, i: 10 }, { t: 44.39, i: 15 }, 
+  { t: 54.54, i: 20 }, { t: 77.24, i: 12 }
+];
 
 const getPeaksForPhase = (phase: string, a: number): SimulationPeak[] => {
   if (phase === 'Quartz') {
@@ -75,12 +87,14 @@ const getPeaksForPhase = (phase: string, a: number): SimulationPeak[] => {
     return RUTILE_PEAKS.map((p, idx) => ({ h: 0, k: 0, l: idx + 1, intensity: p.i * 10, enabled: true }));
   } else if (phase === 'Perovskite') {
     return PEROVSKITE_PEAKS.map((p, idx) => ({ h: 0, k: 0, l: idx + 1, intensity: p.i * 10, enabled: true }));
+  } else if (phase === 'Alumina (Hexagonal)') {
+    return ALUMINA_PEAKS.map((p, idx) => ({ h: 0, k: 0, l: idx + 1, intensity: p.i * 10, enabled: true }));
+  } else if (phase === 'Graphite (Hexagonal)') {
+    return GRAPHITE_PEAKS.map((p, idx) => ({ h: 0, k: 0, l: idx + 1, intensity: p.i * 10, enabled: true }));
   }
 
   const peaks: SimulationPeak[] = [];
-  const maxHKL = 4; // reduced from 5 to avoid "too many peaks" initially
   for (let s2 = 1; s2 <= 32; s2++) {
-    // Find first h,k,l that gives this sum of squares
     let found = false;
     for (let h = 0; h <= 5 && !found; h++) {
       for (let k = 0; k <= h && !found; k++) {
@@ -93,9 +107,24 @@ const getPeaksForPhase = (phase: string, a: number): SimulationPeak[] => {
               const isEven = (h % 2 === 0) && (k % 2 === 0) && (l % 2 === 0);
               const isOdd = (h % 2 !== 0) && (k % 2 !== 0) && (l % 2 !== 0);
               allowed = isEven || isOdd;
+            } else if (phase === 'Silicon (Diamond Cubic)') {
+              const isEven = (h % 2 === 0) && (k % 2 === 0) && (l % 2 === 0);
+              const isOdd = (h % 2 !== 0) && (k % 2 !== 0) && (l % 2 !== 0);
+              const unmixed = isEven || isOdd;
+              allowed = unmixed && (!isEven || (h + k + l) % 4 === 0);
             }
             if (allowed) {
-              peaks.push({ h, k, l, intensity: 1000, enabled: true });
+              let intensity = 1000;
+              if (phase === 'Silicon (Diamond Cubic)') {
+                if (h===1 && k===1 && l===1) intensity = 1000;
+                else if (h===2 && k===2 && l===0) intensity = 550;
+                else if (h===3 && k===1 && l===1) intensity = 300;
+                else if (h===4 && k===0 && l===0) intensity = 60;
+                else if (h===3 && k===3 && l===1) intensity = 110;
+                else if (h===4 && k===2 && l===2) intensity = 120;
+                else intensity = 80;
+              }
+              peaks.push({ h, k, l, intensity, enabled: true });
               found = true;
             }
           }
@@ -113,32 +142,40 @@ const computeCrystallographicVolumeAndDensity = (phaseType: string, a: number) =
   
   if (phaseType === 'Simple Cubic') {
     volume = Math.pow(a, 3);
-    density = (1 * 28.0855) / (volume * 0.60221415); // Silicon simple cubic Z=1 MW=28.0855
+    density = (1 * 28.0855) / (volume * 0.60221415);
     unitCellFormula = 'Si';
   } else if (phaseType === 'BCC') {
     volume = Math.pow(a, 3);
-    density = (2 * 55.845) / (volume * 0.60221415); // Iron BCC Z=2 MW=55.845
+    density = (2 * 55.845) / (volume * 0.60221415);
     unitCellFormula = 'Fe-α';
   } else if (phaseType === 'FCC') {
     volume = Math.pow(a, 3);
-    density = (4 * 63.546) / (volume * 0.60221415); // Copper FCC Z=4 MW=63.546
+    density = (4 * 63.546) / (volume * 0.60221415);
     unitCellFormula = 'Cu';
+  } else if (phaseType === 'Silicon (Diamond Cubic)') {
+    volume = Math.pow(a, 3);
+    density = (8 * 28.0855) / (volume * 0.60221415);
+    unitCellFormula = 'Si';
   } else if (phaseType === 'Quartz') {
-    // Quartz Trigonal: standard SiO2 Z=3 MW=60.08 c/a ratio ~1.1
-    // V = a^2 * c * sin(60), where c ~ 1.1 * a, sin(60) ~ 0.866
     volume = 0.866025 * Math.pow(a, 3) * 1.1;
     density = (3 * 60.08) / (volume * 0.60221415);
     unitCellFormula = 'SiO₂';
   } else if (phaseType === 'Rutile') {
-    // Rutile Tetragonal: TiO2 Z=2 MW=79.866 c/a ratio ~0.644
     volume = Math.pow(a, 3) * 0.644;
     density = (2 * 79.866) / (volume * 0.60221415);
     unitCellFormula = 'TiO₂';
   } else if (phaseType === 'Perovskite') {
-    // SrTiO3 or similar: CaTiO3 Z=1 MW=135.96
     volume = Math.pow(a, 3);
     density = (1 * 135.962) / (volume * 0.60221415);
     unitCellFormula = 'CaTiO₃';
+  } else if (phaseType === 'Alumina (Hexagonal)') {
+    volume = 0.866025 * Math.pow(a, 3) * 2.73;
+    density = (6 * 101.96) / (volume * 0.60221415);
+    unitCellFormula = 'Al₂O₃';
+  } else if (phaseType === 'Graphite (Hexagonal)') {
+    volume = 0.866025 * Math.pow(a, 3) * 2.72;
+    density = (4 * 12.011) / (volume * 0.60221415);
+    unitCellFormula = 'C';
   }
 
   return { volume, density, unitCellFormula };
@@ -276,6 +313,60 @@ const SPACE_GROUP_DETAILS: Record<string, SpaceGroupInfo> = {
       { site: '3c', multiplicity: 3, symmetry: '4/m.m.m', coordinates: '(0,½,½) - O' }
     ],
     symmetryElements: ['Standard Cubic symmetry', 'Perfect octahedral alignment', 'Pm-3m simple lattices']
+  },
+  'Silicon (Diamond Cubic)': {
+    number: 227,
+    hermannMauguin: 'F d -3 m',
+    schoenflies: 'O_h^7',
+    hall: '-F 4y 2',
+    crystalSystem: 'Cubic',
+    pointGroup: 'm-3m (O_h)',
+    laueClass: 'm-3m',
+    latticeType: 'Face-Centered Cubic with 2-atom basis (cF)',
+    centrosymmetric: true,
+    chiral: false,
+    symmorphic: false,
+    wyckoffSites: [
+      { site: '8a', multiplicity: 8, symmetry: '-43m', coordinates: '(0,0,0) + FCC' },
+      { site: '8b', multiplicity: 8, symmetry: '-43m', coordinates: '(¼,¼,¼) + FCC' }
+    ],
+    symmetryElements: ['d-glide planes', 'Screw axes 4_1 along <100>', 'Centering translations', '3-fold axes on diagonals']
+  },
+  'Alumina (Hexagonal)': {
+    number: 167,
+    hermannMauguin: 'R -3 c',
+    schoenflies: 'D_3d^6',
+    hall: '-R 3c',
+    crystalSystem: 'Trigonal / Hexagonal',
+    pointGroup: '-3m (D_3d)',
+    laueClass: '-3m',
+    latticeType: 'Rhombohedral / Hexagonal (hR)',
+    centrosymmetric: true,
+    chiral: false,
+    symmorphic: false,
+    wyckoffSites: [
+      { site: '12c', multiplicity: 12, symmetry: '3.', coordinates: '(0, 0, z)' },
+      { site: '18e', multiplicity: 18, symmetry: '.2', coordinates: '(x, 0, ¼)' }
+    ],
+    symmetryElements: ['3-fold rotoinversion axis', 'c-glide planes', '2-fold rotation axes', 'Inversion center']
+  },
+  'Graphite (Hexagonal)': {
+    number: 194,
+    hermannMauguin: 'P 6_3/m m c',
+    schoenflies: 'D_6h^4',
+    hall: '-P 6c 2c',
+    crystalSystem: 'Hexagonal',
+    pointGroup: '6/mmm (D_6h)',
+    laueClass: '6/mmm',
+    latticeType: 'Primitive Hexagonal (hP)',
+    centrosymmetric: true,
+    chiral: false,
+    symmorphic: false,
+    wyckoffSites: [
+      { site: '2a', multiplicity: 2, symmetry: '-3m', coordinates: '(0, 0, 0)' },
+      { site: '2c', multiplicity: 2, symmetry: '-6m2', coordinates: '(⅓, ⅔, ¼)' }
+    ],
+    symmetryElements: ['6_3 screw axis along c', 'c-glide and d-glide planes', 'Mirror planes', '2-fold axes']
   }
 };
 
@@ -311,7 +402,7 @@ const getEquivalentPositions = (type: string, x: number, y: number) => {
       addPt(p.x, p.y);
       addPt(p.x + 0.5, p.y + 0.5);
     });
-  } else if (type === 'FCC') {
+  } else if (type === 'FCC' || type === 'Silicon (Diamond Cubic)') {
     const base = [
       { x, y }, { x: 1 - x, y }, { x, y: 1 - y }, { x: 1 - x, y: 1 - y },
       { x: y, y: x }, { x: 1 - y, y: x }, { x: y, y: 1 - x }, { x: 1 - y, y: 1 - x }
@@ -331,7 +422,7 @@ const getEquivalentPositions = (type: string, x: number, y: number) => {
     addPt(-y, -x);
     addPt(0.5 - y, 0.5 + x);
     addPt(0.5 + y, 0.5 - x);
-  } else if (type === 'Quartz') {
+  } else if (type === 'Quartz' || type === 'Alumina (Hexagonal)' || type === 'Graphite (Hexagonal)') {
     addPt(x, y);
     addPt(-y, x - y);
     addPt(y - x, -x);
@@ -780,7 +871,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
     });
   };
 
-  const handleAddNewSimStructure = (type: 'Simple Cubic' | 'BCC' | 'FCC' | 'Quartz' | 'Rutile' | 'Perovskite') => {
+  const handleAddNewSimStructure = (type: 'Simple Cubic' | 'BCC' | 'FCC' | 'Quartz' | 'Rutile' | 'Perovskite' | 'Silicon (Diamond Cubic)' | 'Alumina (Hexagonal)' | 'Graphite (Hexagonal)') => {
     const defaultParams = TARGET_PARAMS[type];
     const newPhase: SimStructure = {
       id: `phase_${Date.now()}`,
@@ -812,8 +903,273 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
   };
 
   const [isAutoRefining, setIsAutoRefining] = useState(false);
-  const [rFactor, setRFactor] = useState<number>(0);
 
+  const obsIntensities = useMemo(() => {
+    const steps = Math.floor((SIMULATION_RANGE.end - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
+    const dataLen = steps + 1;
+    const intensities = new Float32Array(dataLen);
+    
+    const globalBkg = 60;
+    for (let i = 0; i < dataLen; i++) {
+      const twoT = SIMULATION_RANGE.start + i * SIMULATION_RANGE.step;
+      intensities[i] += globalBkg * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
+    }
+
+    simPhases.forEach((p) => {
+      if (!p.enabled) return;
+      const a = p.targetA;
+      const scale = p.targetScale;
+      const fwhm = p.targetFwhm;
+      const eta = p.targetEta;
+      const crystalliteSize = p.targetCrystalliteSize;
+      const microstrain = p.targetMicrostrain;
+      const peaks = p.peaks;
+
+      const addPeak = (pos2Theta, peakFwhm, amplitude) => {
+        const gamma = Math.max(0.0001, peakFwhm / 2);
+        const sigma = Math.max(0.0001, peakFwhm / 2.35482);
+        const gammaSq = gamma * gamma;
+        const sigmaSq2 = 2 * sigma * sigma;
+        
+        const halfWidth = peakFwhm * 10;
+        const minT = Math.max(SIMULATION_RANGE.start, pos2Theta - halfWidth);
+        const maxT = Math.min(SIMULATION_RANGE.end, pos2Theta + halfWidth);
+        
+        const startIdx = Math.max(0, Math.ceil((minT - SIMULATION_RANGE.start) / SIMULATION_RANGE.step));
+        const endIdx = Math.min(dataLen - 1, Math.floor((maxT - SIMULATION_RANGE.start) / SIMULATION_RANGE.step));
+
+        for (let idx = startIdx; idx <= endIdx; idx++) {
+          const x = SIMULATION_RANGE.start + idx * SIMULATION_RANGE.step;
+          const diff = x - pos2Theta;
+          const diffSq = diff * diff;
+          
+          const g = amplitude * Math.exp(-diffSq / sigmaSq2);
+          const l = amplitude * (gammaSq / (diffSq + gammaSq));
+          intensities[idx] += eta * l + (1 - eta) * g;
+        }
+      };
+
+      const wavelength = 1.5406;
+      peaks.filter(peak => peak.enabled).forEach((peak, peakIdx) => {
+        let twoThetaBase = 0;
+        let d = 0;
+        if (['Quartz', 'Rutile', 'Perovskite', 'Alumina (Hexagonal)', 'Graphite (Hexagonal)'].includes(p.phaseType)) {
+          const origPeak = p.phaseType === 'Quartz' ? QUARTZ_PEAKS[peakIdx] : p.phaseType === 'Rutile' ? RUTILE_PEAKS[peakIdx] : p.phaseType === 'Perovskite' ? PEROVSKITE_PEAKS[peakIdx] : p.phaseType === 'Alumina (Hexagonal)' ? ALUMINA_PEAKS[peakIdx] : GRAPHITE_PEAKS[peakIdx];
+          if (!origPeak) return;
+          const shift = (a - TARGET_PARAMS[p.phaseType].a) * 2; 
+          twoThetaBase = origPeak.t - shift;
+          const theta1 = (origPeak.t / 2) * (Math.PI / 180);
+          d = 1.5406 / (2 * Math.sin(theta1));
+        } else {
+          d = a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
+          const sinTheta = wavelength / (2 * d);
+          if (sinTheta >= 1) return;
+          const theta = Math.asin(sinTheta);
+          twoThetaBase = 2 * theta * (180 / Math.PI);
+        }
+        const theta = (twoThetaBase / 2) * (Math.PI / 180);
+        
+        const zeroShift = 0.0;
+        const sampleDisplacement = 0.0;
+        const displacementShift = -sampleDisplacement * Math.cos(theta);
+        const twoTheta = twoThetaBase + zeroShift + displacementShift;
+
+        if (twoTheta >= SIMULATION_RANGE.start && twoTheta <= SIMULATION_RANGE.end) {
+          let intensity = peak.intensity;
+          
+          if (p.phaseType !== 'Quartz') {
+            const lp = (1 + Math.cos(2*theta)**2) / (Math.sin(theta)**2 * Math.cos(theta));
+            intensity *= lp / 10;
+            
+            let mult = 0;
+            const {h, k, l} = peak;
+            if (h===k && k===l) mult = 8;
+            else if (h===k || k===l || h===l) mult = 24;
+            else mult = 48;
+            if (h===0 || k===0 || l===0) mult /= 2;
+            intensity *= (mult / 10);
+          }
+
+          const bSizeRad = (0.9 * wavelength) / ((crystalliteSize * 10) * Math.cos(theta));
+          const bSizeDeg = bSizeRad * (180 / Math.PI);
+          const bStrainRad = 4 * microstrain * Math.tan(theta);
+          const bStrainDeg = bStrainRad * (180 / Math.PI);
+          
+          const totalFwhm = fwhm + bSizeDeg + bStrainDeg;
+          const baseAmplitude = intensity * (scale / 1000);
+
+          addPeak(twoTheta, totalFwhm, baseAmplitude);
+
+          const wavelength2 = 1.5444; 
+          const sinTheta2 = wavelength2 / (2 * d);
+          if (sinTheta2 < 1) {
+            const theta2 = Math.asin(sinTheta2);
+            const displacementShift2 = -sampleDisplacement * Math.cos(theta2);
+            const twoTheta2 = 2 * theta2 * (180 / Math.PI) + zeroShift + displacementShift2;
+            addPeak(twoTheta2, totalFwhm, baseAmplitude * 0.5);
+          }
+        }
+      });
+    });
+
+    for (let i = 0; i < dataLen; i++) {
+      const val = intensities[i];
+      intensities[i] += Math.sqrt(Math.max(1, val)) * (Math.random() - 0.5) * 2.25;
+    }
+    return intensities;
+  }, [simPhases.map(p => `${p.enabled}-${p.targetA}-${p.targetScale}-${p.targetFwhm}-${p.targetEta}-${p.targetCrystalliteSize}-${p.targetMicrostrain}`).join(',')]);
+
+  const generatePatternData = useMemo(() => {
+    const steps = Math.floor((SIMULATION_RANGE.end - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
+    const dataLen = steps + 1;
+    const data = new Array(dataLen);
+
+    const calcIntensities = new Float32Array(dataLen);
+    const individualPhaseCalcIntensities = simPhases.map(() => new Float32Array(dataLen));
+
+    simPhases.forEach((p, phaseIdx) => {
+      if (!p.enabled) return;
+      const a = p.a;
+      const scale = p.scale;
+      const fwhm = p.fwhm;
+      const eta = p.eta;
+      const crystalliteSize = p.crystalliteSize;
+      const microstrain = p.microstrain;
+      const peaks = p.peaks;
+      const phaseIntensities = individualPhaseCalcIntensities[phaseIdx];
+
+      const addPeak = (pos2Theta, peakFwhm, amplitude) => {
+        const gamma = Math.max(0.0001, peakFwhm / 2);
+        const sigma = Math.max(0.0001, peakFwhm / 2.35482);
+        const gammaSq = gamma * gamma;
+        const sigmaSq2 = 2 * sigma * sigma;
+        
+        const halfWidth = peakFwhm * 10;
+        const minT = Math.max(SIMULATION_RANGE.start, pos2Theta - halfWidth);
+        const maxT = Math.min(SIMULATION_RANGE.end, pos2Theta + halfWidth);
+        
+        const startIdx = Math.max(0, Math.ceil((minT - SIMULATION_RANGE.start) / SIMULATION_RANGE.step));
+        const endIdx = Math.min(dataLen - 1, Math.floor((maxT - SIMULATION_RANGE.start) / SIMULATION_RANGE.step));
+
+        for (let idx = startIdx; idx <= endIdx; idx++) {
+          const x = SIMULATION_RANGE.start + idx * SIMULATION_RANGE.step;
+          const diff = x - pos2Theta;
+          const diffSq = diff * diff;
+          
+          const g = amplitude * Math.exp(-diffSq / sigmaSq2);
+          const l = amplitude * (gammaSq / (diffSq + gammaSq));
+          const y = eta * l + (1 - eta) * g;
+          phaseIntensities[idx] += y;
+          calcIntensities[idx] += y;
+        }
+      };
+
+      const wavelength = 1.5406;
+      peaks.filter(peak => peak.enabled).forEach((peak, peakIdx) => {
+        let twoThetaBase = 0;
+        let d = 0;
+        if (['Quartz', 'Rutile', 'Perovskite', 'Alumina (Hexagonal)', 'Graphite (Hexagonal)'].includes(p.phaseType)) {
+          const origPeak = p.phaseType === 'Quartz' ? QUARTZ_PEAKS[peakIdx] : p.phaseType === 'Rutile' ? RUTILE_PEAKS[peakIdx] : p.phaseType === 'Perovskite' ? PEROVSKITE_PEAKS[peakIdx] : p.phaseType === 'Alumina (Hexagonal)' ? ALUMINA_PEAKS[peakIdx] : GRAPHITE_PEAKS[peakIdx];
+          if (!origPeak) return;
+          const shift = (a - TARGET_PARAMS[p.phaseType].a) * 2; 
+          twoThetaBase = origPeak.t - shift;
+          const theta1 = (origPeak.t / 2) * (Math.PI / 180);
+          d = 1.5406 / (2 * Math.sin(theta1));
+        } else {
+          d = a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
+          const sinTheta = wavelength / (2 * d);
+          if (sinTheta >= 1) return;
+          const theta = Math.asin(sinTheta);
+          twoThetaBase = 2 * theta * (180 / Math.PI);
+        }
+        const theta = (twoThetaBase / 2) * (Math.PI / 180);
+        
+        const zeroShift = 0.0;
+        const sampleDisplacement = 0.0;
+        const displacementShift = -sampleDisplacement * Math.cos(theta);
+        const twoTheta = twoThetaBase + zeroShift + displacementShift;
+
+        if (twoTheta >= SIMULATION_RANGE.start && twoTheta <= SIMULATION_RANGE.end) {
+          let intensity = peak.intensity;
+          
+          if (p.phaseType !== 'Quartz') {
+            const lp = (1 + Math.cos(2*theta)**2) / (Math.sin(theta)**2 * Math.cos(theta));
+            intensity *= lp / 10;
+            
+            let mult = 0;
+            const {h, k, l} = peak;
+            if (h===k && k===l) mult = 8;
+            else if (h===k || k===l || h===l) mult = 24;
+            else mult = 48;
+            if (h===0 || k===0 || l===0) mult /= 2;
+            intensity *= (mult / 10);
+          }
+
+          const bSizeRad = (0.9 * wavelength) / ((crystalliteSize * 10) * Math.cos(theta));
+          const bSizeDeg = bSizeRad * (180 / Math.PI);
+          const bStrainRad = 4 * microstrain * Math.tan(theta);
+          const bStrainDeg = bStrainRad * (180 / Math.PI);
+          
+          const totalFwhm = fwhm + bSizeDeg + bStrainDeg;
+          const baseAmplitude = intensity * (scale / 1000);
+
+          addPeak(twoTheta, totalFwhm, baseAmplitude);
+
+          const wavelength2 = 1.5444; 
+          const sinTheta2 = wavelength2 / (2 * d);
+          if (sinTheta2 < 1) {
+            const theta2 = Math.asin(sinTheta2);
+            const displacementShift2 = -sampleDisplacement * Math.cos(theta2);
+            const twoTheta2 = 2 * theta2 * (180 / Math.PI) + zeroShift + displacementShift2;
+            addPeak(twoTheta2, totalFwhm, baseAmplitude * 0.5);
+          }
+        }
+      });
+    });
+
+    let sumResSq = 0;
+    let sumObsSq = 0;
+    let maxObs = 0;
+    for (let i = 0; i < dataLen; i++) {
+      if (obsIntensities[i] > maxObs) {
+        maxObs = obsIntensities[i];
+      }
+    }
+    
+    const diffOffset = -maxObs * 0.15; 
+    const globalBkg = 60;
+
+    for (let i = 0; i < dataLen; i++) {
+      const twoT = SIMULATION_RANGE.start + i * SIMULATION_RANGE.step;
+      const trueBkg = globalBkg * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
+      
+      const obs = obsIntensities[i];
+      const calc = calcIntensities[i] + trueBkg;
+      
+      const dataPoint = {
+        twoTheta: twoT,
+        obs: obs,
+        calc: calc,
+        diff: (obs - calc) + diffOffset,
+        bkg: trueBkg
+      };
+
+      const trueDiff = obs - calc;
+      sumResSq += trueDiff * trueDiff;
+      sumObsSq += obs * obs;
+
+      simPhases.forEach((p, idx) => {
+        dataPoint[`calc_phase_${idx}`] = individualPhaseCalcIntensities[idx][i] + trueBkg;
+      });
+      data[i] = dataPoint;
+    }
+
+    const R = Math.sqrt(sumResSq / Math.max(0.0001, sumObsSq)) * 100;
+    
+    return { data, R };
+  }, [simPhases, obsIntensities]);
+
+  const rFactor = generatePatternData.R;
   const referenceRwp = useMemo(() => {
     return getNominalReferenceRwp(currentPhaseObj.name, currentPhaseObj.phaseType);
   }, [currentPhaseObj.name, currentPhaseObj.phaseType]);
@@ -1000,8 +1356,8 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
         let twoThetaBase = 0;
         let d = 0;
         
-        if (['Quartz', 'Rutile', 'Perovskite'].includes(p.phaseType)) {
-          const origPeak = p.phaseType === 'Quartz' ? QUARTZ_PEAKS[peakIdx] : p.phaseType === 'Rutile' ? RUTILE_PEAKS[peakIdx] : PEROVSKITE_PEAKS[peakIdx];
+        if (['Quartz', 'Rutile', 'Perovskite', 'Alumina (Hexagonal)', 'Graphite (Hexagonal)'].includes(p.phaseType)) {
+          const origPeak = p.phaseType === 'Quartz' ? QUARTZ_PEAKS[peakIdx] : p.phaseType === 'Rutile' ? RUTILE_PEAKS[peakIdx] : p.phaseType === 'Perovskite' ? PEROVSKITE_PEAKS[peakIdx] : p.phaseType === 'Alumina (Hexagonal)' ? ALUMINA_PEAKS[peakIdx] : GRAPHITE_PEAKS[peakIdx];
           if (!origPeak) return;
           const shift = (p.a - TARGET_PARAMS[p.phaseType].a) * 2; 
           twoThetaBase = origPeak.t - shift;
@@ -1028,264 +1384,6 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
     return allPeaks;
   }, [simPhases]);
 
-  const generatePatternData = useMemo(() => {
-    const data: any[] = [];
-    const steps = Math.floor((SIMULATION_RANGE.end - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
-    
-    // Initialize data array
-    for (let i = 0; i <= steps; i++) {
-      data.push({
-        twoTheta: SIMULATION_RANGE.start + i * SIMULATION_RANGE.step,
-        obs: 0,
-        calc: 0,
-        diff: 0,
-        bkg: 0
-      });
-    }
-
-    const calculateIntensity = (useTargets: boolean) => {
-      const intensities = new Array(data.length).fill(0);
-      
-      // Base background shared globally (simulating incoherent core scatter)
-      const globalBkg = 60;
-      for (let i = 0; i < intensities.length; i++) {
-        const twoT = SIMULATION_RANGE.start + i * SIMULATION_RANGE.step;
-        const bgVal = globalBkg * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
-        intensities[i] += bgVal;
-      }
-
-      // Sum all enabled structures' contributions
-      simPhases.forEach((p) => {
-        if (!p.enabled) return;
-
-        const a = useTargets ? p.targetA : p.a;
-        const scale = useTargets ? p.targetScale : p.scale;
-        const fwhm = useTargets ? p.targetFwhm : p.fwhm;
-        const eta = useTargets ? p.targetEta : p.eta;
-        const crystalliteSize = useTargets ? p.targetCrystalliteSize : p.crystalliteSize;
-        const microstrain = useTargets ? p.targetMicrostrain : p.microstrain;
-        const peaks = p.peaks;
-
-        const addPeak = (pos2Theta: number, peakFwhm: number, amplitude: number) => {
-          const profile = simulatePeak(
-            'Pseudo-Voigt', pos2Theta, peakFwhm, eta, 
-            amplitude, 
-            [pos2Theta - (peakFwhm * 10), pos2Theta + (peakFwhm * 10)], 100
-          );
-          
-          profile.points.forEach(pt => {
-            const idx = Math.round((pt.x - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
-            if (idx >= 0 && idx < data.length) {
-              intensities[idx] += pt.y;
-            }
-          });
-        };
-
-        const wavelength = 1.5406;
-
-        peaks.filter(peak => peak.enabled).forEach((peak, peakIdx) => {
-          let twoThetaBase = 0;
-          let d = 0;
-
-          if (['Quartz', 'Rutile', 'Perovskite'].includes(p.phaseType)) {
-            const origPeak = p.phaseType === 'Quartz' ? QUARTZ_PEAKS[peakIdx] : p.phaseType === 'Rutile' ? RUTILE_PEAKS[peakIdx] : PEROVSKITE_PEAKS[peakIdx];
-            if (!origPeak) return;
-            const shift = (a - TARGET_PARAMS[p.phaseType].a) * 2; 
-            twoThetaBase = origPeak.t - shift;
-            const theta1 = (origPeak.t / 2) * (Math.PI / 180);
-            d = 1.5406 / (2 * Math.sin(theta1));
-          } else {
-            d = a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
-            const sinTheta = wavelength / (2 * d);
-            if (sinTheta >= 1) return;
-            const theta = Math.asin(sinTheta);
-            twoThetaBase = 2 * theta * (180 / Math.PI);
-          }
-
-          const theta = (twoThetaBase / 2) * (Math.PI / 180);
-          
-          const zeroShift = 0.0;
-          const sampleDisplacement = 0.0;
-          const displacementShift = -sampleDisplacement * Math.cos(theta);
-          const twoTheta = twoThetaBase + zeroShift + displacementShift;
-
-          if (twoTheta >= SIMULATION_RANGE.start && twoTheta <= SIMULATION_RANGE.end) {
-            let intensity = peak.intensity; 
-            
-            if (p.phaseType !== 'Quartz') {
-              const lp = (1 + Math.cos(2*theta)**2) / (Math.sin(theta)**2 * Math.cos(theta));
-              intensity *= lp / 10;
-              
-              let mult = 0;
-              const {h, k, l} = peak;
-              if (h===k && k===l) mult = 8;
-              else if (h===k || k===l || h===l) mult = 24;
-              else mult = 48;
-              if (h===0 || k===0 || l===0) mult /= 2;
-              intensity *= (mult / 10);
-            }
-
-            const bSizeRad = (0.9 * wavelength) / ((crystalliteSize * 10) * Math.cos(theta));
-            const bSizeDeg = bSizeRad * (180 / Math.PI);
-            const bStrainRad = 4 * microstrain * Math.tan(theta);
-            const bStrainDeg = bStrainRad * (180 / Math.PI);
-            
-            const totalFwhm = fwhm + bSizeDeg + bStrainDeg;
-            const baseAmplitude = intensity * (scale / 1000);
-
-            // Ka1
-            addPeak(twoTheta, totalFwhm, baseAmplitude);
-
-            // Ka2
-            const wavelength2 = 1.5444; 
-            const sinTheta2 = wavelength2 / (2 * d);
-            if (sinTheta2 < 1) {
-              const theta2 = Math.asin(sinTheta2);
-              const displacementShift2 = -sampleDisplacement * Math.cos(theta2);
-              const twoTheta2 = 2 * theta2 * (180 / Math.PI) + zeroShift + displacementShift2;
-              addPeak(twoTheta2, totalFwhm, baseAmplitude * 0.5);
-            }
-          }
-        });
-      });
-
-      // Apply realistic Poisson-like noise to observed data
-      if (useTargets) {
-        for (let i = 0; i < intensities.length; i++) {
-          const val = intensities[i];
-          const noiseFactor = 15 * 0.15;
-          intensities[i] += Math.sqrt(Math.max(1, val)) * (Math.random() - 0.5) * noiseFactor;
-        }
-      }
-
-      return intensities;
-    };
-
-    const obsIntensities = calculateIntensity(true);
-    const calcIntensities = calculateIntensity(false);
-
-    // Calculate individual current structures' calculated profiles to project separately
-    const individualPhaseCalcIntensities = simPhases.map((p) => {
-      const phaseIntensities = new Array(data.length).fill(0);
-      if (!p.enabled) return phaseIntensities;
-
-      const scale = p.scale;
-      const fwhm = p.fwhm;
-      const eta = p.eta;
-      const crystalliteSize = p.crystalliteSize;
-      const microstrain = p.microstrain;
-      const peaks = p.peaks;
-
-      const addPeak = (pos2Theta: number, peakFwhm: number, amplitude: number) => {
-        const profile = simulatePeak(
-          'Pseudo-Voigt', pos2Theta, peakFwhm, eta, 
-          amplitude, 
-          [pos2Theta - (peakFwhm * 10), pos2Theta + (peakFwhm * 10)], 100
-        );
-        
-        profile.points.forEach(pt => {
-          const idx = Math.round((pt.x - SIMULATION_RANGE.start) / SIMULATION_RANGE.step);
-          if (idx >= 0 && idx < data.length) {
-            phaseIntensities[idx] += pt.y;
-          }
-        });
-      };
-
-      const wavelength = 1.5406;
-
-      peaks.filter(peak => peak.enabled).forEach((peak, peakIdx) => {
-        let twoThetaBase = 0;
-        let d = 0;
-
-        if (['Quartz', 'Rutile', 'Perovskite'].includes(p.phaseType)) {
-          const origPeak = p.phaseType === 'Quartz' ? QUARTZ_PEAKS[peakIdx] : p.phaseType === 'Rutile' ? RUTILE_PEAKS[peakIdx] : PEROVSKITE_PEAKS[peakIdx];
-          if (!origPeak) return;
-          const shift = (p.a - TARGET_PARAMS[p.phaseType].a) * 2; 
-          twoThetaBase = origPeak.t - shift;
-          const theta1 = (origPeak.t / 2) * (Math.PI / 180);
-          d = 1.5406 / (2 * Math.sin(theta1));
-        } else {
-          d = p.a / Math.sqrt(peak.h*peak.h + peak.k*peak.k + peak.l*peak.l);
-          const sinTheta = wavelength / (2 * d);
-          if (sinTheta >= 1) return;
-          const theta = Math.asin(sinTheta);
-          twoThetaBase = 2 * theta * (180 / Math.PI);
-        }
-
-        const theta = (twoThetaBase / 2) * (Math.PI / 180);
-        
-        const zeroShift = 0.0;
-        const sampleDisplacement = 0.0;
-        const displacementShift = -sampleDisplacement * Math.cos(theta);
-        const twoTheta = twoThetaBase + zeroShift + displacementShift;
-
-        if (twoTheta >= SIMULATION_RANGE.start && twoTheta <= SIMULATION_RANGE.end) {
-          let intensity = peak.intensity; 
-          
-          if (p.phaseType !== 'Quartz') {
-            const lp = (1 + Math.cos(2*theta)**2) / (Math.sin(theta)**2 * Math.cos(theta));
-            intensity *= lp / 10;
-            
-            let mult = 0;
-            const {h, k, l} = peak;
-            if (h===k && k===l) mult = 8;
-            else if (h===k || k===l || h===l) mult = 24;
-            else mult = 48;
-            if (h===0 || k===0 || l===0) mult /= 2;
-            intensity *= (mult / 10);
-          }
-
-          const bSizeRad = (0.9 * wavelength) / ((crystalliteSize * 10) * Math.cos(theta));
-          const bSizeDeg = bSizeRad * (180 / Math.PI);
-          const bStrainRad = 4 * microstrain * Math.tan(theta);
-          const bStrainDeg = bStrainRad * (180 / Math.PI);
-          
-          const totalFwhm = fwhm + bSizeDeg + bStrainDeg;
-          const baseAmplitude = intensity * (scale / 1000);
-
-          addPeak(twoTheta, totalFwhm, baseAmplitude);
-        }
-      });
-
-      return phaseIntensities;
-    });
-
-    let sumResSq = 0;
-    let sumObsSq = 0;
-    let maxObs = 0;
-
-    for (let i = 0; i < data.length; i++) {
-      if (obsIntensities[i] > maxObs) {
-        maxObs = obsIntensities[i];
-      }
-    }
-    
-    const diffOffset = -maxObs * 0.15; 
-
-    for (let i = 0; i < data.length; i++) {
-      data[i].obs = obsIntensities[i];
-      data[i].calc = calcIntensities[i];
-      data[i].diff = (obsIntensities[i] - calcIntensities[i]) + diffOffset;
-      
-      const twoT = data[i].twoTheta;
-      const trueBkg = 60 * (0.2 + 10 / Math.max(1, twoT) + 1.5 * Math.exp(-0.02 * Math.pow(twoT - 25, 2)));
-      data[i].bkg = trueBkg;
-
-      const trueDiff = obsIntensities[i] - calcIntensities[i];
-      sumResSq += Math.pow(trueDiff, 2);
-      sumObsSq += Math.pow(data[i].obs, 2);
-
-      // Save individual phase curves to show as colored shaded components
-      simPhases.forEach((p, idx) => {
-        data[i][`calc_phase_${idx}`] = individualPhaseCalcIntensities[idx][i];
-      });
-    }
-
-    const R = Math.sqrt(sumResSq / sumObsSq) * 100;
-    setRFactor(R);
-
-    return data;
-  }, [simPhases]);
 
   // Track R-factor history
   useEffect(() => {
@@ -2313,9 +2411,12 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                               <option value="Simple Cubic">Simple Cubic (P m-3m)</option>
                               <option value="BCC">Body Centered Iron Type (I m-3m)</option>
                               <option value="FCC">Face Centered Copper Type (F m-3m)</option>
+                              <option value="Silicon (Diamond Cubic)">Silicon Diamond Cubic (F d -3 m)</option>
                               <option value="Perovskite">Perovskite CaTiO3 Type (P m-3m)</option>
                               <option value="Rutile">Rutile TiO2 Type (P 4_2/m n m)</option>
                               <option value="Quartz">Quartz Alpha-SiO2 Type (P 32 21)</option>
+                              <option value="Alumina (Hexagonal)">Alumina Alpha-Al2O3 (R -3 c)</option>
+                              <option value="Graphite (Hexagonal)">Graphite Standard (P 6_3/m m c)</option>
                             </select>
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                               <ChevronDown className="w-4 h-4 text-slate-500" />
@@ -2332,16 +2433,16 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                             </div>
                             <input 
                               type="range" 
-                              min={simPhase === 'Quartz' ? 4.5 : 2.5} 
-                              max={simPhase === 'Quartz' ? 5.5 : 6.0} 
+                              min={TARGET_PARAMS[simPhase] ? Number((TARGET_PARAMS[simPhase].a * 0.8).toFixed(2)) : 2.5} 
+                              max={TARGET_PARAMS[simPhase] ? Number((TARGET_PARAMS[simPhase].a * 1.2).toFixed(2)) : 6.0} 
                               step="0.001"
                               value={String(userParams.a) === 'NaN' ? '' : userParams.a}
                               onChange={(e) => setUserParams({...userParams, a: parseFloat(e.target.value)})}
                               className="w-full h-1 bg-slate-950 rounded-full appearance-none cursor-pointer accent-teal-500"
                             />
                             <div className="flex items-center justify-between text-[8px] text-slate-500 font-mono mt-1 select-none">
-                              <span>{simPhase === 'Quartz' ? '4.50' : '2.50'}</span>
-                              <span>{simPhase === 'Quartz' ? '5.50' : '6.00'}</span>
+                              <span>{TARGET_PARAMS[simPhase] ? (TARGET_PARAMS[simPhase].a * 0.8).toFixed(2) : '2.50'}</span>
+                              <span>{TARGET_PARAMS[simPhase] ? (TARGET_PARAMS[simPhase].a * 1.2).toFixed(2) : '6.00'}</span>
                             </div>
                           </div>
 
@@ -2611,18 +2712,20 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                            <thead className="sticky top-0 bg-[#070D18] z-10 shadow-md">
                              <tr className="border-b border-indigo-500/20">
                                <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest">HKL Index</th>
-                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center">Pos 2θ(°)</th>
+                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center" title="Interplanar Spacing">d-spacing (Å)</th>
+                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center" title="Bragg Angle">Pos 2θ(°)</th>
+                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center" title="Lorentz-Polarization & Multiplicity">LP / j</th>
                                <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center">FWHM(°)</th>
-                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center">Intensity & State</th>
-                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-right">Delete</th>
+                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-center">Intensity</th>
+                               <th className="p-3 text-[9px] uppercase text-indigo-400/80 font-black tracking-widest text-right">Action</th>
                              </tr>
                            </thead>
                            <tbody className="divide-y divide-indigo-500/10">
                              {userParams.peaks.map((peak, pIdx) => {
                                 let display2Theta = 0;
                                 let rawTheta = 0;
-                                if (['Quartz', 'Rutile', 'Perovskite'].includes(simPhase)) {
-                                  const origPeak = simPhase === 'Quartz' ? QUARTZ_PEAKS[pIdx] : simPhase === 'Rutile' ? RUTILE_PEAKS[pIdx] : PEROVSKITE_PEAKS[pIdx];
+                                if (['Quartz', 'Rutile', 'Perovskite', 'Alumina (Hexagonal)', 'Graphite (Hexagonal)'].includes(simPhase)) {
+                                  const origPeak = simPhase === 'Quartz' ? QUARTZ_PEAKS[pIdx] : simPhase === 'Rutile' ? RUTILE_PEAKS[pIdx] : simPhase === 'Perovskite' ? PEROVSKITE_PEAKS[pIdx] : simPhase === 'Alumina (Hexagonal)' ? ALUMINA_PEAKS[pIdx] : GRAPHITE_PEAKS[pIdx];
                                   if (origPeak) {
                                     const shift = (userParams.a - TARGET_PARAMS[simPhase].a) * 2; 
                                     display2Theta = origPeak.t - shift;
@@ -2639,11 +2742,28 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                   }
                                 }
                                 
-                                if (display2Theta > 0) {
-                                  const thetaRad = rawTheta * (Math.PI / 180);
-                                  const displacementShift = -userParams.sampleDisplacement * Math.cos(thetaRad);
-                                  display2Theta += userParams.zeroShift + displacementShift;
-                                }
+                                let dSpacing = 0;
+                                 let lpFactor = 0;
+                                 let mult = 0;
+
+                                 if (display2Theta > 0) {
+                                   const thetaRad = rawTheta * (Math.PI / 180);
+                                   const displacementShift = -userParams.sampleDisplacement * Math.cos(thetaRad);
+                                   display2Theta += userParams.zeroShift + displacementShift;
+                                   
+                                   // Calculate d-spacing
+                                   dSpacing = 1.5406 / (2 * Math.sin(thetaRad));
+                                   
+                                   // Calculate Lorentz-Polarization (LP) factor
+                                   lpFactor = (1 + Math.pow(Math.cos(2 * thetaRad), 2)) / (Math.pow(Math.sin(thetaRad), 2) * Math.cos(thetaRad));
+                                   
+                                   // Multiplicity approximation based on HKL symmetry
+                                   const { h, k, l } = peak;
+                                   if (h === k && k === l) mult = 8;
+                                   else if (h === k || k === l || h === l) mult = 24;
+                                   else mult = 48;
+                                   if (h === 0 || k === 0 || l === 0) mult /= 2;
+                                 }
 
                                 let displayFWHM = 0;
                                 if (display2Theta > 0) {
@@ -2698,8 +2818,17 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                                      />
                                    </div>
                                  </td>
+                                 <td className="p-3 text-center text-[11px] font-mono font-bold text-blue-300 tracking-tight">
+                                    {dSpacing > 0 ? dSpacing.toFixed(4) : <span className="text-slate-600">-</span>}
+                                 </td>
                                  <td className="p-3 text-center text-xs font-mono font-bold text-teal-200 tracking-tight">
                                     {display2Theta > 0 ? display2Theta.toFixed(2) : <span className="text-slate-600">-</span>}
+                                 </td>
+                                 <td className="p-3 text-center">
+                                    <div className="flex flex-col items-center justify-center">
+                                      <span className="text-[10px] font-mono font-bold text-purple-300">{lpFactor > 0 ? lpFactor.toFixed(1) : '-'}</span>
+                                      <span className="text-[8px] font-mono text-slate-400">j={mult || '-'}</span>
+                                    </div>
                                  </td>
                                  <td className="p-3 text-center text-xs font-mono font-bold text-amber-200/90 tracking-tight">
                                     {displayFWHM > 0 ? displayFWHM.toFixed(3) : <span className="text-slate-600">-</span>}
@@ -3223,7 +3352,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
 
               <div className="flex-1 w-full min-h-0 relative z-10 bg-black/20 rounded-2xl border border-white/5 p-4 backdrop-blur-sm">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={generatePatternData} margin={{ top: 20, right: 20, left: -10, bottom: 20 }}>
+                  <ComposedChart data={generatePatternData.data} margin={{ top: 20, right: 20, left: -10, bottom: 20 }}>
                     <defs>
                       <linearGradient id="diffGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#475569" stopOpacity={0.6}/>
@@ -5004,7 +5133,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
       {activeTab === 'rfactor' && (
         <div className="animate-in fade-in duration-500">
           <RietveldRFactorCalculator 
-            livePatternData={generatePatternData}
+            livePatternData={generatePatternData.data}
             numRefinedParameters={8} 
           />
         </div>
