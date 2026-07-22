@@ -40,11 +40,13 @@ import {
   Shapes,
   Atom,
   Search,
-  Calculator
+  Calculator,
+  Loader2
 } from 'lucide-react';
 
 import { SideSeekBar } from './SideSeekBar';
 import { FooterInfoModal, FooterModalType } from './FooterInfoModal';
+import { AppLaunchPortal, AnimatedGoToAppButton } from './AppLaunchPortal';
 
 // --- Background Decorations ---
 const DiffractionGrid = () => (
@@ -1049,7 +1051,16 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [showCookieBanner, setShowCookieBanner] = useState(false);
   const [footerModal, setFooterModal] = useState<FooterModalType>(null);
+  const [isEnteringApp, setIsEnteringApp] = useState(false);
+  const [pendingLaunchMode, setPendingLaunchMode] = useState<'login' | 'register'>('login');
+  const [pendingTargetModule, setPendingTargetModule] = useState<any>(null);
   const heroSearchRef = useRef<HTMLDivElement>(null);
+
+  const handleEnterApp = (mode: 'login' | 'register' = 'login', targetModule?: any) => {
+    setPendingLaunchMode(mode);
+    setPendingTargetModule(targetModule || null);
+    setIsEnteringApp(true);
+  };
 
   useEffect(() => {
     // Check for cookie consent on mount
@@ -1194,7 +1205,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       {/* Dynamic Navbar */}
       <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-700 ${isScrolled ? 'bg-[#050B14]/80 backdrop-blur-2xl border-b border-white/10 py-3 shadow-2xl' : 'bg-transparent py-6'}`}>
         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => onEnter(isRegistered ? 'login' : 'register')}>
+          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}>
              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-700 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(139,92,246,0.4),inset_0_1px_1px_rgba(255,255,255,0.3)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 relative overflow-hidden">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent_70%)]" />
               <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-white/10 blur-xl rounded-full" />
@@ -1224,12 +1235,12 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   {userName || 'User'}
                 </span>
-                <button 
-                  onClick={() => onEnter('login')}
-                  className="hover:text-white font-bold transition-colors text-indigo-400"
-                >
-                  {t('Go to App')}
-                </button>
+                <AnimatedGoToAppButton 
+                  onClick={() => handleEnterApp('login')}
+                  text={t('Go to App')}
+                  variant="navbar"
+                  isRTL={isRTL}
+                />
                 <button 
                   onClick={onSignOut}
                   className="bg-rose-500/10 text-rose-450 border border-rose-500/20 hover:bg-rose-550/20 px-4 py-2 rounded-full font-bold transition-all active:scale-95"
@@ -1240,24 +1251,24 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
             ) : (
               <>
                 <button 
-                  onClick={() => onEnter('login')}
+                  onClick={() => handleEnterApp('login')}
                   className="hover:text-white transition-colors text-indigo-400 font-bold"
                 >
                   {t('Log In')}
                 </button>
                 <div className="flex gap-2">
                   <button 
-                    onClick={() => onEnter('login')}
+                    onClick={() => handleEnterApp('login')}
                     className="hover:text-white hover:bg-white/5 border border-white/10 px-4 py-2.5 rounded-full font-bold transition-all"
                   >
                     {t('Sign In')}
                   </button>
-                  <button 
-                    onClick={() => onEnter('register')}
-                    className="bg-white text-slate-900 hover:bg-slate-200 px-5 py-2.5 rounded-full shadow-lg font-bold transition-all active:scale-95"
-                  >
-                    {t('Get Started')}
-                  </button>
+                  <AnimatedGoToAppButton 
+                    onClick={() => handleEnterApp('register')}
+                    text={t('Get Started')}
+                    variant="navbar"
+                    isRTL={isRTL}
+                  />
                 </div>
               </>
             )}
@@ -1272,7 +1283,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 {t('Sign Out')}
               </button>
             )}
-            <button onClick={() => onEnter(isRegistered ? 'login' : 'register')} className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700">
+            <button onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')} className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700">
               <ArrowRight className="w-5 h-5 text-violet-400" />
             </button>
           </div>
@@ -1358,24 +1369,24 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                     placeholder={isRTL ? "جستجوی ساختارها... مانند 'TiO2 Anatase' یا 'NaCl'" : "Search structures... e.g. 'TiO2 Anatase', 'NaCl'"} 
                     className={`flex-1 bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 font-medium text-base sm:text-lg px-2 w-full ${isRTL ? "text-right font-sans" : "text-left font-sans"}`}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') onEnter(isRegistered ? 'login' : 'register');
+                      if (e.key === 'Enter') handleEnterApp(isRegistered ? 'login' : 'register');
                     }}
                   />
                   <div className={`flex gap-2 shrink-0 ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
-                    <button 
-                      onClick={() => onEnter(isRegistered ? 'login' : 'register')}
-                      className="hidden sm:flex px-5 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl items-center justify-center gap-2 transition-all text-slate-350 hover:text-white font-bold text-sm"
-                    >
-                      <Beaker className="w-4 h-4 text-cyan-400" />
-                      {isRegistered ? t('Go to App') : (isRTL ? "دسترسی دمو" : "Demo Access")}
-                    </button>
-                    <button 
-                      onClick={() => onEnter(isRegistered ? 'login' : 'register')}
-                      className="px-6 py-3.5 bg-violet-600 hover:bg-violet-500 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(139,92,246,0.35)] active:scale-95 text-white font-bold text-sm uppercase tracking-wider h-12"
-                    >
-                      <span>{isRegistered ? (isRTL ? "ورود به سیستم" : "Launch Core") : (isRTL ? "شروع به کار" : "Start")}</span>
-                      <ArrowRight className={`w-4 h-4 transition-transform group-hover:translate-x-1 ${isRTL ? "rotate-180" : ""}`} />
-                    </button>
+                    <AnimatedGoToAppButton
+                      onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
+                      text={isRegistered ? t('Go to App') : (isRTL ? "دسترسی دمو" : "Demo Access")}
+                      variant="secondary"
+                      isRTL={isRTL}
+                      className="hidden sm:flex py-3.5 h-12"
+                    />
+                    <AnimatedGoToAppButton
+                      onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
+                      text={isRegistered ? (isRTL ? "ورود به سیستم" : "Launch Core") : (isRTL ? "شروع به کار" : "Start")}
+                      variant="primary"
+                      isRTL={isRTL}
+                      className="py-3.5 h-12"
+                    />
                   </div>
                 </div>
 
@@ -1396,7 +1407,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                             try {
                               localStorage.setItem("xrd_initial_search", item.name);
                             } catch (err) {}
-                            onEnter(isRegistered ? 'login' : 'register', 'database');
+                            handleEnterApp(isRegistered ? 'login' : 'register', 'database');
                           }}
                           className={`w-full p-3 rounded-2xl bg-white/[0.01] hover:bg-violet-600/10 border border-transparent hover:border-violet-500/20 transition-all duration-200 cursor-pointer flex items-center justify-between group/suggest ${isRTL ? "flex-row-reverse text-right" : ""}`}
                         >
@@ -1434,7 +1445,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                 ].map((mat, idx) => (
                   <button
                     key={idx}
-                    onClick={() => onEnter(isRegistered ? 'login' : 'register', 'database')}
+                    onClick={() => handleEnterApp(isRegistered ? 'login' : 'register', 'database')}
                     className="px-3 py-1 bg-[#090F1E]/80 hover:bg-violet-950/40 border border-slate-800 hover:border-violet-500/40 rounded-xl flex items-center gap-1.5 text-slate-300 hover:text-white transition-all text-xs font-mono cursor-pointer shadow-md"
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" />
@@ -1660,7 +1671,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
               </p>
             </div>
 
-            <BraggSandboxWrapper onEnter={onEnter} />
+            <BraggSandboxWrapper onEnter={() => handleEnterApp(isRegistered ? 'login' : 'register')} />
           </div>
         </section>
 
@@ -1677,7 +1688,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
               {features.map((f, i) => (
-                <FeatureCard key={i} index={i} {...f} onLaunch={(mod) => onEnter(isRegistered ? 'login' : 'register', mod)} />
+                <FeatureCard key={i} index={i} {...f} onLaunch={(mod) => handleEnterApp(isRegistered ? 'login' : 'register', mod)} />
               ))}
             </div>
           </div>
@@ -1717,12 +1728,13 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                   </li>
                 ))}
               </ul>
-              <button
-                onClick={() => onEnter(isRegistered ? 'login' : 'register')}
-                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all flex items-center gap-2 hover:-translate-y-0.5"
-              >
-                Try AI Advisor <ArrowRight className="w-4 h-4" />
-              </button>
+              <AnimatedGoToAppButton
+                onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
+                text={isRTL ? "امتحان مشاور هوشمند" : "Try AI Advisor"}
+                variant="primary"
+                isRTL={isRTL}
+                className="py-3 px-6"
+              />
             </motion.div>
             
             <motion.div 
@@ -2021,15 +2033,18 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                     </p>
                     
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                       <button onClick={() => onEnter(isRegistered ? 'login' : 'register')} className="px-10 py-5 bg-white text-slate-900 rounded-2xl font-bold tracking-wide hover:bg-slate-100 transition-all shadow-xl active:scale-95">
-                          {isRegistered ? 'Enter Custom Workspace' : 'Initialize General Access'}
-                       </button>
+                       <AnimatedGoToAppButton 
+                          onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
+                          text={isRegistered ? (isRTL ? "ورود به محیط سفارشی" : "Enter Custom Workspace") : (isRTL ? "راه‌اندازی دسترسی عمومی" : "Initialize General Access")}
+                          variant="primary"
+                          isRTL={isRTL}
+                       />
                        {isRegistered ? (
                          <button onClick={onSignOut} className="px-10 py-5 bg-transparent border border-rose-600/30 text-rose-300 rounded-2xl font-bold tracking-wide hover:bg-rose-950/20 hover:text-rose-450 transition-all active:scale-95">
                             {t('Sign Out')}
                          </button>
                        ) : (
-                         <button onClick={() => onEnter('login')} className="px-10 py-5 bg-transparent border border-slate-600 text-slate-300 rounded-2xl font-bold tracking-wide hover:bg-slate-800 hover:text-white transition-all active:scale-95">
+                         <button onClick={() => handleEnterApp('login')} className="px-10 py-5 bg-transparent border border-slate-600 text-slate-300 rounded-2xl font-bold tracking-wide hover:bg-slate-800 hover:text-white transition-all active:scale-95">
                             {t('Log In / Sign In')}
                          </button>
                        )}
@@ -2055,7 +2070,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       <footer className="bg-slate-950 py-32 px-6 border-t border-slate-900 relative z-10">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-20">
           <div className="lg:col-span-2">
-             <div className="flex items-center gap-3 mb-10 group" onClick={() => onEnter(isRegistered ? 'login' : 'register')}>
+             <div className="flex items-center gap-3 mb-10 group" onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}>
                 <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-800 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.3)] group-hover:scale-105 transition-transform duration-300">
                   <Hexagon className="w-6 h-6 text-white" />
                 </div>
@@ -2242,7 +2257,17 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
         isRTL={isRTL}
         onActionNavigate={(targetModule) => {
           setFooterModal(null);
-          onEnter(isRegistered ? 'login' : 'register', targetModule);
+          handleEnterApp(isRegistered ? 'login' : 'register', targetModule);
+        }}
+      />
+
+      {/* Animated Portal Launch Screen */}
+      <AppLaunchPortal 
+        isEntering={isEnteringApp}
+        targetModule={pendingTargetModule}
+        isRTL={isRTL}
+        onComplete={() => {
+          onEnter(pendingLaunchMode, pendingTargetModule);
         }}
       />
 
