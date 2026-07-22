@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 
 import { SideSeekBar } from './SideSeekBar';
+import { FooterInfoModal, FooterModalType } from './FooterInfoModal';
 
 // --- Background Decorations ---
 const DiffractionGrid = () => (
@@ -1047,6 +1048,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showChangelogModal, setShowChangelogModal] = useState(false);
   const [showCookieBanner, setShowCookieBanner] = useState(false);
+  const [footerModal, setFooterModal] = useState<FooterModalType>(null);
   const heroSearchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -2082,33 +2084,33 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
           <div>
             <h4 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 italic text-violet-400">Core Suite</h4>
             <ul className="space-y-5 text-sm font-medium text-slate-500">
-              <li className="hover:text-white transition-colors cursor-pointer">Peak Detection AI</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Phase Matching Engine</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Refinement Strategy</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Lattice Analytics</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Systematic Absences</li>
+              <li onClick={() => setFooterModal('peak-ai')} className="hover:text-white transition-colors cursor-pointer">Peak Detection AI</li>
+              <li onClick={() => setFooterModal('phase-match')} className="hover:text-white transition-colors cursor-pointer">Phase Matching Engine</li>
+              <li onClick={() => setFooterModal('refinement')} className="hover:text-white transition-colors cursor-pointer">Refinement Strategy</li>
+              <li onClick={() => setFooterModal('lattice-analytics')} className="hover:text-white transition-colors cursor-pointer">Lattice Analytics</li>
+              <li onClick={() => setFooterModal('systematic-absences')} className="hover:text-white transition-colors cursor-pointer">Systematic Absences</li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 italic text-violet-400">Company</h4>
             <ul className="space-y-5 text-sm font-medium text-slate-500">
-              <li className="hover:text-white transition-colors cursor-pointer">The Mission</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Partners</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Case Studies</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Pricing Model</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Security Core</li>
+              <li onClick={() => setFooterModal('mission')} className="hover:text-white transition-colors cursor-pointer">The Mission</li>
+              <li onClick={() => setFooterModal('partners')} className="hover:text-white transition-colors cursor-pointer">Partners</li>
+              <li onClick={() => setFooterModal('case-studies')} className="hover:text-white transition-colors cursor-pointer">Case Studies</li>
+              <li onClick={() => setFooterModal('pricing')} className="hover:text-white transition-colors cursor-pointer">Pricing Model</li>
+              <li onClick={() => setFooterModal('security')} className="hover:text-white transition-colors cursor-pointer">Security Core</li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 italic text-violet-400">Support</h4>
             <ul className="space-y-5 text-sm font-medium text-slate-500">
-              <li className="hover:text-white transition-colors cursor-pointer">Documentation</li>
-              <li className="hover:text-white transition-colors cursor-pointer">API Reference</li>
-              <li className="hover:text-white transition-colors cursor-pointer">System Status</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Help Center</li>
-              <li className="hover:text-white transition-colors cursor-pointer">Contact Lab</li>
+              <li onClick={() => setFooterModal('documentation')} className="hover:text-white transition-colors cursor-pointer">Documentation</li>
+              <li onClick={() => setFooterModal('api-reference')} className="hover:text-white transition-colors cursor-pointer">API Reference</li>
+              <li onClick={() => setFooterModal('system-status')} className="hover:text-white transition-colors cursor-pointer">System Status</li>
+              <li onClick={() => setFooterModal('help-center')} className="hover:text-white transition-colors cursor-pointer">Help Center</li>
+              <li onClick={() => setFooterModal('contact-lab')} className="hover:text-white transition-colors cursor-pointer">Contact Lab</li>
             </ul>
           </div>
         </div>
@@ -2116,34 +2118,48 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
         <div className="max-w-7xl mx-auto mt-32 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
            <div className="flex flex-col md:flex-row items-center gap-10">
               <div className={`flex flex-col ${isRTL ? "items-end text-right" : "items-start text-left"} gap-1.5`}>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">© 2026 XRD-CALC PRO • Designed by Ali Zerehsaz</p>
-                <p className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.15em] max-w-sm leading-relaxed">
+                <p 
+                  onClick={() => setFooterModal('about-creator')}
+                  className="text-[10px] font-black text-slate-400 hover:text-violet-300 transition-colors uppercase tracking-[0.3em] cursor-pointer"
+                >
+                  © 2026 XRD-CALC PRO • Designed by Ali Zerehsaz
+                </p>
+                <p 
+                  onClick={() => setFooterModal('about-creator')}
+                  className="text-[9px] font-bold text-slate-600 hover:text-slate-400 transition-colors uppercase tracking-[0.15em] max-w-sm leading-relaxed cursor-pointer"
+                >
                   {isRTL 
                     ? "طراحی و توسعه توسط علی زره‌ساز. این یک پروژه مستقل علمی است و توسط یک تیم بزرگ ساخته نشده است."
                     : "Designed and Engineered by Ali Zerehsaz. This is an independent scientific project, not built by a large corporate team."}
                 </p>
-                <div className="flex items-center gap-2 mt-2 opacity-50 hover:opacity-100 transition-opacity">
+                <div 
+                  onClick={() => setFooterModal('powered-by-google')}
+                  className="flex items-center gap-2 mt-2 opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
+                >
                   <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Powered by</span>
                   <span className="text-[9px] font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400 uppercase tracking-wider">Gemini & Google</span>
                 </div>
-                <div className="flex flex-col gap-3 mt-3 px-4 py-3 bg-white/5 rounded-2xl border border-white/5 w-fit group">
+                <div 
+                  onClick={() => setFooterModal('tech-stack')}
+                  className="flex flex-col gap-3 mt-3 px-4 py-3 bg-white/5 hover:bg-white/10 transition-colors rounded-2xl border border-white/5 w-fit group cursor-pointer"
+                >
                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{isRTL ? "تکنولوژی‌ها:" : "Tech Stack:"}</span>
                    <div className="flex gap-4">
-                      <div className="flex flex-col gap-1 cursor-help group/ts">
+                      <div className="flex flex-col gap-1 group/ts">
                         <span className="text-[10px] font-mono text-blue-400 font-bold">TypeScript</span>
-                        <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight opacity-0 group-hover/ts:opacity-100 transition-opacity">
+                        <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight">
                           {isRTL ? "برای نوع‌دهی قوی و ساختار امن سمت کلاینت" : "For strong typing and secure client-side architecture"}
                         </span>
                       </div>
-                      <div className="flex flex-col gap-1 cursor-help group/js">
+                      <div className="flex flex-col gap-1 group/js">
                         <span className="text-[10px] font-mono text-amber-400 font-bold">JavaScript</span>
-                        <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight opacity-0 group-hover/js:opacity-100 transition-opacity">
+                        <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight">
                           {isRTL ? "برای پویایی و تعاملات سریع رابط کاربری" : "For UI dynamism and fast interactive components"}
                         </span>
                       </div>
-                      <div className="flex flex-col gap-1 cursor-help group/py">
+                      <div className="flex flex-col gap-1 group/py">
                         <span className="text-[10px] font-mono text-emerald-400 font-bold">Python</span>
-                        <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight opacity-0 group-hover/py:opacity-100 transition-opacity">
+                        <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight">
                           {isRTL ? "برای تولید اسکریپت‌های تحلیلی و پراسس داده‌ها" : "For generating analytical scripts and data processing"}
                         </span>
                       </div>
@@ -2164,7 +2180,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                    Terms of Use
                  </span>
                  <span 
-                   onClick={() => setShowCookieBanner(true)}
+                   onClick={() => setFooterModal('cookie-auth')}
                    className="hover:text-white cursor-pointer transition-colors"
                  >
                    Cookie Auth
@@ -2216,6 +2232,18 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
          onClose={() => setShowChangelogModal(false)} 
          content={i18n.language === 'fa' ? CHANGELOG_DATA.fa : CHANGELOG_DATA.en}
          isRTL={isRTL}
+      />
+
+      {/* Dynamic Footer Info Modal */}
+      <FooterInfoModal 
+        isOpen={!!footerModal}
+        modalType={footerModal}
+        onClose={() => setFooterModal(null)}
+        isRTL={isRTL}
+        onActionNavigate={(targetModule) => {
+          setFooterModal(null);
+          onEnter(isRegistered ? 'login' : 'register', targetModule);
+        }}
       />
 
       {/* Cookie Banner */}

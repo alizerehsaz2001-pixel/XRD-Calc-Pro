@@ -31,6 +31,7 @@ import { AIChatSupport } from './components/AIChatSupport';
 import { ModuleIntro } from './components/ModuleIntro';
 import { LandingPage } from './components/LandingPage';
 import { RegistrationPage } from './components/RegistrationPage';
+import { FooterInfoModal, FooterModalType } from './components/FooterInfoModal';
 import { SideSeekBar } from './components/SideSeekBar';
 import LanguageSelector from './components/LanguageSelector';
 import { BraggHistory } from './components/BraggHistory';
@@ -214,6 +215,7 @@ const App: React.FC = () => {
     const val = localStorage.getItem('xrd_python_features');
     return val === 'true'; // default to false
   });
+  const [appFooterModal, setAppFooterModal] = useState<FooterModalType>(null);
   
   // Calibration, Geometry offsets and Defaults
   const [zeroShift, setZeroShift] = useState<number>(() => {
@@ -1171,7 +1173,12 @@ const App: React.FC = () => {
             </button>
             <div className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
               <div className="mb-1 font-bold uppercase tracking-widest">v2.5.0 • {t('Lab Active')}</div>
-              <div className="opacity-60">{t('Designed by')} Ali Zerehsaz</div>
+              <div 
+                onClick={() => setAppFooterModal('about-creator')}
+                className="opacity-70 hover:opacity-100 hover:text-violet-400 transition-all cursor-pointer font-medium"
+              >
+                {t('Designed by')} Ali Zerehsaz
+              </div>
             </div>
           </div>
         </aside>
@@ -1576,7 +1583,10 @@ const App: React.FC = () => {
               )}
             </div>
             <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800 text-center space-y-2">
-              <p className="text-slate-400 dark:text-slate-500 text-xs">
+              <p 
+                onClick={() => setAppFooterModal('about-creator')}
+                className="text-slate-400 dark:text-slate-500 hover:text-violet-400 transition-colors text-xs cursor-pointer inline-block"
+              >
                 XRD-Calc Pro {t('Laboratory Environment')} • {t('Designed by')} Ali Zerehsaz
               </p>
               <p className="text-[10px] text-slate-400 dark:text-slate-600 max-w-2xl mx-auto italic leading-relaxed">
@@ -1585,6 +1595,20 @@ const App: React.FC = () => {
             </div>
           </main>
           <AIChatSupport />
+
+          {/* Footer Info Modal for App */}
+          <FooterInfoModal 
+            isOpen={!!appFooterModal}
+            modalType={appFooterModal}
+            onClose={() => setAppFooterModal(null)}
+            isRTL={i18n.language === 'fa'}
+            onActionNavigate={(modKey) => {
+              setAppFooterModal(null);
+              if (modKey) {
+                setActiveModule(modKey as any);
+              }
+            }}
+          />
           
           {/* Global Keyboard Shortcut Modal / Cheat Sheet Overlay */}
           {showShortcutsModal && (
