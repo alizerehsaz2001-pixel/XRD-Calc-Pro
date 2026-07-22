@@ -41,7 +41,7 @@ import { SettingsContext } from './components/SettingsContext';
 import { PeriodicTableModule } from './components/PeriodicTableModule';
 import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon } from 'lucide-react';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
 import { useAuth, db, handleFirestoreError, OperationType } from './services/firebase';
