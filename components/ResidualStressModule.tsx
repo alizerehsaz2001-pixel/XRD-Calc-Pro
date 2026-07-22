@@ -804,10 +804,10 @@ export const ResidualStressModule: React.FC = () => {
               </div>
               Plot Slope (m) ➔ Stress (σ)
             </div>
-            <p className="text-sm text-indigo-100/70 leading-relaxed space-y-2">
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-rose-400/50" /> <div><strong className="text-white">Tensile (σ &gt; 0):</strong> Positive slope (line tilts upwards). Lattice expands parallel to surface.</div></span>
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-rose-400/50" /> <div><strong className="text-white">Compressive (σ &lt; 0):</strong> Negative slope (line tilts downwards). Lattice compresses.</div></span>
-            </p>
+            <div className="text-sm text-indigo-100/70 leading-relaxed space-y-2">
+              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-rose-400/50" /> <span className="block"><strong className="text-white">Tensile (σ &gt; 0):</strong> Positive slope (line tilts upwards). Lattice expands parallel to surface.</span></span>
+              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-rose-400/50" /> <span className="block"><strong className="text-white">Compressive (σ &lt; 0):</strong> Negative slope (line tilts downwards). Lattice compresses.</span></span>
+            </div>
           </div>
 
           {/* Factor 2: Elastic Constants E and nu */}
@@ -818,10 +818,10 @@ export const ResidualStressModule: React.FC = () => {
               </div>
               Slope Sensitivity ➔ E & ν
             </div>
-            <p className="text-sm text-indigo-100/70 leading-relaxed space-y-2">
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-indigo-400/50" /> <div><strong className="text-white">Young's Modulus (E):</strong> Stiffer materials (higher E) exhibit a flatter slope for a given stress level.</div></span>
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-indigo-400/50" /> <div><strong className="text-white">Poisson's Ratio (ν):</strong> Higher ν values slightly increase the angular dependency and the slope.</div></span>
-            </p>
+            <div className="text-sm text-indigo-100/70 leading-relaxed space-y-2">
+              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-indigo-400/50" /> <span className="block"><strong className="text-white">Young's Modulus (E):</strong> Stiffer materials (higher E) exhibit a flatter slope for a given stress level.</span></span>
+              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-indigo-400/50" /> <span className="block"><strong className="text-white">Poisson's Ratio (ν):</strong> Higher ν values slightly increase the angular dependency and the slope.</span></span>
+            </div>
           </div>
 
           {/* Factor 3: Unstressed d0 & 2Theta0 */}
@@ -832,10 +832,10 @@ export const ResidualStressModule: React.FC = () => {
               </div>
               Vertical Shift ➔ d₀
             </div>
-            <p className="text-sm text-indigo-100/70 leading-relaxed space-y-2">
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-amber-400/50" /> <div><strong className="text-white">Unstressed Angle (2θ₀):</strong> Shifting 2θ₀ shifts the entire line vertically (modifying y-intercept).</div></span>
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-amber-400/50" /> <div><strong className="text-white">Strain Baseline:</strong> Essential for accurate absolute strain calculations.</div></span>
-            </p>
+            <div className="text-sm text-indigo-100/70 leading-relaxed space-y-2">
+              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-amber-400/50" /> <span className="block"><strong className="text-white">Unstressed Angle (2θ₀):</strong> Shifting 2θ₀ shifts the entire line vertically (modifying y-intercept).</span></span>
+              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-amber-400/50" /> <span className="block"><strong className="text-white">Strain Baseline:</strong> Essential for accurate absolute strain calculations.</span></span>
+            </div>
           </div>
         </div>
       </div>
