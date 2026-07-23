@@ -398,13 +398,13 @@ $R_p = ${fmt(rP, 2)}\\%, \\quad R_{wp} = ${fmt(rWP, 2)}\\%, \\quad R_{\\text{Bra
         </div>
 
         {/* Input Parameters Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="space-y-1.5 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-            <span className="text-xs font-mono font-bold text-indigo-300 block">System</span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">System</span>
             <select
               value={system}
               onChange={(e) => setSystem(e.target.value as CrystalSystem)}
-              className="w-full bg-slate-900 text-white font-mono font-bold text-xs py-2 px-2 rounded-xl border border-slate-700 outline-none cursor-pointer"
+              className="w-full bg-slate-950 text-white font-mono font-bold text-sm py-2 px-2.5 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none cursor-pointer transition-all"
             >
               <option value="Cubic">Cubic</option>
               <option value="Tetragonal">Tetragonal</option>
@@ -412,52 +412,52 @@ $R_p = ${fmt(rP, 2)}\\%, \\quad R_{wp} = ${fmt(rWP, 2)}\\%, \\quad R_{\\text{Bra
             </select>
           </div>
 
-          <div className="space-y-1.5 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-            <span className="text-xs font-mono font-bold text-indigo-300 block">a (Å)</span>
+          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">a (Å)</span>
             <input
               type="number"
               step="0.001"
               value={a}
               onChange={(e) => setA(parseFloat(e.target.value) || 1)}
-              className="w-full bg-slate-900 text-white font-mono font-bold text-sm px-2.5 py-1.5 rounded-xl border border-slate-700 outline-none"
+              className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
             />
           </div>
 
-          <div className="space-y-1.5 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-            <span className="text-xs font-mono font-bold text-indigo-300 block">U (deg²)</span>
+          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">U (deg²)</span>
             <input
               type="number"
               step="0.001"
               value={paramU}
               onChange={(e) => setParamU(parseFloat(e.target.value) || 0)}
-              className="w-full bg-slate-900 text-white font-mono font-bold text-sm px-2.5 py-1.5 rounded-xl border border-slate-700 outline-none"
+              className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
             />
           </div>
 
-          <div className="space-y-1.5 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-            <span className="text-xs font-mono font-bold text-indigo-300 block">V (deg²)</span>
+          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">V (deg²)</span>
             <input
               type="number"
               step="0.001"
               value={paramV}
               onChange={(e) => setParamV(parseFloat(e.target.value) || 0)}
-              className="w-full bg-slate-900 text-white font-mono font-bold text-sm px-2.5 py-1.5 rounded-xl border border-slate-700 outline-none"
+              className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
             />
           </div>
 
-          <div className="space-y-1.5 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-            <span className="text-xs font-mono font-bold text-indigo-300 block">W (deg²)</span>
+          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">W (deg²)</span>
             <input
               type="number"
               step="0.001"
               value={paramW}
               onChange={(e) => setParamW(parseFloat(e.target.value) || 0)}
-              className="w-full bg-slate-900 text-white font-mono font-bold text-sm px-2.5 py-1.5 rounded-xl border border-slate-700 outline-none"
+              className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
             />
           </div>
 
-          <div className="space-y-1.5 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-            <span className="text-xs font-mono font-bold text-indigo-300 block">Pseudo-Voigt η</span>
+          <div className="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-800 shadow-inner">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-400/80 block">Pseudo-Voigt η</span>
             <input
               type="number"
               step="0.05"
@@ -465,7 +465,7 @@ $R_p = ${fmt(rP, 2)}\\%, \\quad R_{wp} = ${fmt(rWP, 2)}\\%, \\quad R_{\\text{Bra
               min="0"
               value={eta}
               onChange={(e) => setEta(parseFloat(e.target.value) || 0)}
-              className="w-full bg-slate-900 text-white font-mono font-bold text-sm px-2.5 py-1.5 rounded-xl border border-slate-700 outline-none"
+              className="w-full bg-slate-950 text-white font-mono font-bold text-sm px-2.5 py-2 rounded-lg border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all"
             />
           </div>
         </div>
@@ -491,18 +491,22 @@ $R_p = ${fmt(rP, 2)}\\%, \\quad R_{wp} = ${fmt(rWP, 2)}\\%, \\quad R_{\\text{Bra
           </div>
 
           {/* R-Factors Display */}
-          <div className="flex items-center gap-4 text-xs font-mono">
-            <div className="text-slate-400">
-              R_p: <span className="text-indigo-300 font-bold">{fmt(rP, 2)}%</span>
+          <div className="flex items-center gap-3">
+            <div className="bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-800 shadow-inner flex flex-col items-center min-w-[70px]">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">R_p</span>
+              <span className="text-sm font-mono text-indigo-400 font-bold">{fmt(rP, 2)}%</span>
             </div>
-            <div className="text-slate-400">
-              R_wp: <span className="text-cyan-300 font-bold">{fmt(rWP, 2)}%</span>
+            <div className="bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-800 shadow-inner flex flex-col items-center min-w-[70px]">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">R_wp</span>
+              <span className="text-sm font-mono text-cyan-400 font-bold">{fmt(rWP, 2)}%</span>
             </div>
-            <div className="text-slate-400">
-              R_Bragg: <span className="text-emerald-400 font-bold">{fmt(rBragg, 2)}%</span>
+            <div className="bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-800 shadow-inner flex flex-col items-center min-w-[70px]">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">R_Bragg</span>
+              <span className="text-sm font-mono text-emerald-400 font-bold">{fmt(rBragg, 2)}%</span>
             </div>
-            <div className="text-slate-400">
-              χ²: <span className="text-amber-300 font-bold">{fmt(chi2, 2)}</span>
+            <div className="bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-800 shadow-inner flex flex-col items-center min-w-[70px]">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">χ²</span>
+              <span className="text-sm font-mono text-amber-300 font-bold">{fmt(chi2, 2)}</span>
             </div>
           </div>
         </div>
@@ -605,18 +609,18 @@ $R_p = ${fmt(rP, 2)}\\%, \\quad R_{wp} = ${fmt(rWP, 2)}\\%, \\quad R_{\\text{Bra
           </div>
         </div>
 
-        <div className="overflow-x-auto max-h-64">
+        <div className="overflow-x-auto max-h-64 border border-slate-800 rounded-xl">
           <table className="w-full text-left text-xs font-mono border-collapse">
-            <thead>
+            <thead className="sticky top-0 bg-slate-900/95 backdrop-blur-sm z-10">
               <tr className="border-b border-slate-800 text-slate-400">
-                <th className="py-2.5 px-3">Reflection (h k l)</th>
-                <th className="py-2.5 px-3">2θ Calc (°)</th>
-                <th className="py-2.5 px-3">d-spacing (Å)</th>
-                <th className="py-2.5 px-3 text-indigo-300">Extracted Intensity I_k</th>
-                <th className="py-2.5 px-3 text-cyan-300">Rel. Intensity (%)</th>
+                <th className="py-3 px-3">Reflection (h k l)</th>
+                <th className="py-3 px-3">2θ Calc (°)</th>
+                <th className="py-3 px-3">d-spacing (Å)</th>
+                <th className="py-3 px-3 text-indigo-300">Extracted Intensity I_k</th>
+                <th className="py-3 px-3 text-cyan-300">Rel. Intensity (%)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-800/60 bg-slate-950/50">
               {reflections.map((r) => {
                 const key = `${r.h}_${r.k}_${r.l}`;
                 const currI = peakIntensities[key] ?? r.intensity;
@@ -624,12 +628,14 @@ $R_p = ${fmt(rP, 2)}\\%, \\quad R_{wp} = ${fmt(rWP, 2)}\\%, \\quad R_{\\text{Bra
                 const relI = (currI / maxI) * 100;
 
                 return (
-                  <tr key={key}>
+                  <tr key={key} className="hover:bg-slate-800/30 transition-colors">
                     <td className="py-2.5 px-3 font-bold text-white">({r.h} {r.k} {r.l})</td>
                     <td className="py-2.5 px-3 text-slate-300">{fmt(r.twoTheta, 3)}</td>
                     <td className="py-2.5 px-3 text-slate-300">{fmt(r.dSpacing, 4)}</td>
                     <td className="py-2.5 px-3 font-bold text-indigo-300">{Math.round(currI)}</td>
-                    <td className="py-2.5 px-3 font-bold text-cyan-300">{fmt(relI, 1)}%</td>
+                    <td className="py-2.5 px-3 font-bold text-cyan-300 bg-cyan-950/10">
+                      {fmt(relI, 1)}%
+                    </td>
                   </tr>
                 );
               })}
