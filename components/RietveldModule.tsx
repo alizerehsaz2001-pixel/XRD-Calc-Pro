@@ -8,7 +8,7 @@ import {
   Activity, Settings, RefreshCw, BarChart2, Download, PlayCircle, RotateCcw, 
   Beaker, Calculator, ChevronRight, BookOpen, Layers, Info, Ruler, Maximize, AlertTriangle, 
   Binary, Zap, Gauge, LineChart as ChartIcon, Database, Scale, Compass, Thermometer, CheckCircle2,
-  Globe, ChevronDown, Grid, Lock, Unlock, Edit2, Check, Trash2, Cpu
+  Globe, ChevronDown, Grid, Lock, Unlock, Edit2, Check, Trash2, Cpu, Terminal
 } from 'lucide-react';
 import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } from '../types';
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
@@ -457,9 +457,10 @@ const toSymmetryScreenCoords = (px: number, py: number, width: number, height: n
   }
 };
 
-export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = true }) => {
+export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
   const [activeTab, setActiveTab ] = useState<'simulation' | 'setup' | 'log' | 'rfactor'>('simulation');
   const [showMatrix, setShowMatrix] = useState(false);
+  const [isPythonActive, setIsPythonActive] = useState<boolean>(pythonFeaturesEnabled);
 
   // --- Simulation State ---
   interface SimStructure {
@@ -1916,7 +1917,15 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                      <Grid className="w-4 h-4" />
                      Matrix
                    </button>
-                   {pythonFeaturesEnabled && (
+                   <button 
+                    onClick={() => setIsPythonActive(!isPythonActive)}
+                    className={`px-3 py-2 rounded-xl transition-all border active:scale-95 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest ${isPythonActive ? 'text-amber-300 bg-amber-500/20 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'text-slate-400 border-slate-700 hover:bg-slate-800'}`}
+                    title="Toggle Python Features"
+                   >
+                     <Terminal className="w-4 h-4 text-amber-400" />
+                     Python Engine
+                   </button>
+                   {(pythonFeaturesEnabled || isPythonActive) && (
                     <button 
                      onClick={runPythonRietveldRefinement}
                      disabled={isPythonRefining}
@@ -3542,7 +3551,7 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
           </div>
 
           {/* Python and Pandas Refinement Report */}
-          {pythonFeaturesEnabled && (isPythonRefining || pythonRefineResult || pythonRefineError) && (
+          {(pythonFeaturesEnabled || isPythonActive) && (isPythonRefining || pythonRefineResult || pythonRefineError) && (
             <div className="mt-8 bg-slate-950/90 rounded-[2rem] border border-amber-500/20 p-8 shadow-[0_0_50px_rgba(245,158,11,0.08)] relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[80px] pointer-events-none" />
               

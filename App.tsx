@@ -1548,13 +1548,13 @@ const App: React.FC = () => {
                     />
                   )}
                   {activeModule === 'metric_tensor' && (
-                    <CrystallographicMetricTensorModule />
+                    <CrystallographicMetricTensorModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
                   )}
                   {activeModule === 'supercell_transform' && (
-                    <SupercellTransformationModule />
+                    <SupercellTransformationModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
                   )}
                   {activeModule === 'pawley_lebail' && (
-                    <PawleyLeBailDecompositionModule />
+                    <PawleyLeBailDecompositionModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
                   )}
                   {activeModule === 'rietveld' && <RietveldModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'neutron' && <NeutronModule />}

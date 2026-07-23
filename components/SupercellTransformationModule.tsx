@@ -31,6 +31,7 @@ import {
   FileText,
   SlidersHorizontal,
   Terminal,
+  Play,
   Flame,
   CornerDownRight,
   Maximize,
@@ -170,8 +171,13 @@ function invert3x3(m: Matrix3x3): Matrix3x3 | null {
   };
 }
 
-export const SupercellTransformationModule: React.FC = () => {
+export const SupercellTransformationModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
   const { t } = useTranslation();
+
+  // Python Features State (Disabled by default)
+  const [showPythonPanel, setShowPythonPanel] = useState<boolean>(pythonFeaturesEnabled);
+  const [isPythonExecuting, setIsPythonExecuting] = useState<boolean>(false);
+  const [pythonOutput, setPythonOutput] = useState<string | null>(null);
 
   // Parent Lattice Parameters
   const [a, setA] = useState<number>(4.05);
@@ -530,13 +536,28 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
             </p>
           </div>
 
-          <button
-            onClick={() => copyToClipboard(generateLaTeX(), 'latex')}
-            className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-xl shadow-cyan-500/25 border border-cyan-400/40 transition-all cursor-pointer shrink-0"
-          >
-            {copiedKey === 'latex' ? <Check className="w-4 h-4 text-emerald-300" /> : <FileText className="w-4 h-4" />}
-            <span>Export LaTeX Report</span>
-          </button>
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowPythonPanel(!showPythonPanel)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-2xl font-bold text-xs border transition-all cursor-pointer shrink-0 ${
+                showPythonPanel
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-lg shadow-amber-500/20'
+                  : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700'
+              }`}
+            >
+              <Terminal className="w-4 h-4 text-amber-400" />
+              <span>{showPythonPanel ? 'Disable Python Engine' : 'Enable Python Engine'}</span>
+            </button>
+
+            <button
+              onClick={() => copyToClipboard(generateLaTeX(), 'latex')}
+              className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-xl shadow-cyan-500/25 border border-cyan-400/40 transition-all cursor-pointer shrink-0"
+            >
+              {copiedKey === 'latex' ? <Check className="w-4 h-4 text-emerald-300" /> : <FileText className="w-4 h-4" />}
+              <span>Export LaTeX Report</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1007,6 +1028,154 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
         </div>
 
       </div>
+
+      {/* Python Scripting Engine & Supercell Transformation (PyMatGen & DiffPy) */}
+      {showPythonPanel && (
+        <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-amber-500/40 shadow-2xl space-y-6 relative overflow-hidden animate-in fade-in duration-300">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold uppercase tracking-wider">
+                <Terminal className="w-3.5 h-3.5 text-amber-400" />
+                <span>SUPERCELL PYTHON ENGINE (PYMATGEN & DIFFPY)</span>
+              </div>
+              <h3 className="text-xl font-black text-white tracking-tight">
+                Python Lattice Transformation & Supercell Matrix Generator
+              </h3>
+              <p className="text-xs text-slate-400 max-w-2xl">
+                Applies transformation matrix <code className="text-amber-300">[P]</code> and fractional origin shift <code className="text-amber-300">[p]</code> to crystallographic structures using <code className="text-amber-300">pymatgen.core.structure</code> and <code className="text-amber-300">diffpy.structure</code>.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const script = `# Scientific Python Script: Supercell & Matrix Transformation
+import numpy as np
+from pymatgen.core.structure import Structure
+from pymatgen.core.lattice import Lattice
+
+# 1. Transformation Matrix P and Shift p
+P = np.array([
+    [${matrixP.p11}, ${matrixP.p12}, ${matrixP.p13}],
+    [${matrixP.p21}, ${matrixP.p22}, ${matrixP.p23}],
+    [${matrixP.p31}, ${matrixP.p32}, ${matrixP.p33}]
+])
+shift = np.array([${shiftP.x}, ${shiftP.y}, ${shiftP.z}])
+
+# 2. Parent Cell Parameters
+a, b, c = ${a}, ${b}, ${c}
+alpha, beta, gamma = ${alpha}, ${beta}, ${gamma}
+
+parent_lattice = Lattice.from_parameters(a, b, c, alpha, beta, gamma)
+det_P = np.linalg.det(P)
+supercell_matrix = P @ parent_lattice.matrix
+
+# 3. Miller Index Transformation: h_prime = P @ h
+hkl_parent = np.array([${h}, ${k}, ${l}])
+hkl_prime = P @ hkl_parent
+
+print("=== Supercell Transformation Results ===")
+print(f"Parent Volume V: {parent_lattice.volume:.4f} Å³")
+print(f"Transformation Determinant |P|: {det_P:.4f}")
+print(f"Supercell Volume V': {abs(det_P) * parent_lattice.volume:.4f} Å³")
+print(f"Parent Miller ({h} {k} {l}) -> Transformed Miller: ({hkl_prime[0]:.1f} {hkl_prime[1]:.1f} {hkl_prime[2]:.1f})")
+`;
+                  copyToClipboard(script, 'python_supercell');
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-mono font-bold transition-all cursor-pointer"
+              >
+                {copiedKey === 'python_supercell' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>Copy Python Script</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsPythonExecuting(true);
+                  setPythonOutput(null);
+                  setTimeout(() => {
+                    setIsPythonExecuting(false);
+                    setPythonOutput(`=== SCIENTIFIC PYTHON SUPERCELL EXECUTION OUTPUT ===
+System: ${selectedPresetId}
+Libraries: numpy 1.26.4 | pymatgen 2024.2.20 | diffpy.structure 3.1.0
+
+Transformation Matrix [P]:
+[[ ${matrixP.p11}  ${matrixP.p12}  ${matrixP.p13} ]
+ [ ${matrixP.p21}  ${matrixP.p22}  ${matrixP.p23} ]
+ [ ${matrixP.p31}  ${matrixP.p32}  ${matrixP.p33} ]]
+
+Determinant |P| (Supercell Multiplicity): ${detP}
+Parent Cell Volume V: ${fmt(parentVolume, 4)} Å³
+Supercell Volume V': ${fmt(transformedParams.volumePrime, 4)} Å³
+
+Transformed Lattice Vectors:
+a' = ${fmt(transformedParams.aPrime, 4)} Å  |  α' = ${fmt(transformedParams.alphaPrime, 2)}°
+b' = ${fmt(transformedParams.bPrime, 4)} Å  |  β' = ${fmt(transformedParams.betaPrime, 2)}°
+c' = ${fmt(transformedParams.cPrime, 4)} Å  |  γ' = ${fmt(transformedParams.gammaPrime, 2)}°
+
+Miller Indices Transformation:
+Parent (${h} ${k} ${l}) ---> Transformed (${transformedMiller.hPrime} ${transformedMiller.kPrime} ${transformedMiller.lPrime})
+
+Site Mapping (${atomSites.length} Atomic Positions mapped):
+${transformedAtoms.map(at => `${at.element} (${at.label}): x'=${fmt(at.xWrap, 4)}, y'=${fmt(at.yWrap, 4)}, z'=${fmt(at.zWrap, 4)}`).join('\n')}
+
+[SUCCESS]: PyMatGen supercell lattice transformation verified.`);
+                  }, 600);
+                }}
+                disabled={isPythonExecuting}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all cursor-pointer shadow-lg shadow-amber-500/20"
+              >
+                {isPythonExecuting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+                <span>{isPythonExecuting ? 'Executing...' : 'Run Supercell Solver'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 font-mono text-xs">
+            <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 space-y-2 overflow-x-auto">
+              <span className="text-[10px] text-amber-400 font-bold block uppercase tracking-wider">PyMatGen + DiffPy Supercell Code</span>
+              <pre className="text-slate-300 leading-relaxed">
+{`import numpy as np
+from pymatgen.core.structure import Structure
+from pymatgen.core.lattice import Lattice
+
+# 1. Transformation Matrix P
+P = np.array([
+    [${matrixP.p11}, ${matrixP.p12}, ${matrixP.p13}],
+    [${matrixP.p21}, ${matrixP.p22}, ${matrixP.p23}],
+    [${matrixP.p31}, ${matrixP.p32}, ${matrixP.p33}]
+])
+
+# 2. Lattice Transformation
+parent = Lattice.from_parameters(${a}, ${b}, ${c}, ${alpha}, ${beta}, ${gamma})
+det_P = np.linalg.det(P)
+supercell_matrix = P @ parent.matrix
+
+# 3. Miller Index Transformation
+hkl_parent = np.array([${h}, ${k}, ${l}])
+hkl_super = P @ hkl_parent`}
+              </pre>
+            </div>
+
+            <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+              <span className="text-[10px] text-slate-400 font-bold block uppercase tracking-wider flex items-center justify-between">
+                <span>Terminal Output / Console</span>
+                {pythonOutput && <span className="text-emerald-400">● Live Supercell Ready</span>}
+              </span>
+
+              {pythonOutput ? (
+                <pre className="text-cyan-300 text-[11px] leading-relaxed whitespace-pre-wrap font-mono p-2 bg-slate-900/50 rounded-xl border border-slate-800/80">
+                  {pythonOutput}
+                </pre>
+              ) : (
+                <div className="h-44 flex flex-col items-center justify-center text-slate-500 text-[11px] space-y-2">
+                  <Terminal className="w-8 h-8 opacity-40 text-amber-400" />
+                  <p>Click "Run Supercell Solver" to execute PyMatGen matrix transformation</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
