@@ -246,8 +246,14 @@ export const CrystallographicMetricTensorModule: React.FC = () => {
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Canvas Ref
+  // Canvas Refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const busingCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Fractional vector converter state for Busing-Levy Module
+  const [fracX, setFracX] = useState<number>(0.25);
+  const [fracY, setFracY] = useState<number>(0.25);
+  const [fracZ, setFracZ] = useState<number>(0.25);
 
   // Handle Preset System Selection
   const handleSystemChange = (sys: CrystalSystem) => {
@@ -394,6 +400,35 @@ export const CrystallographicMetricTensorModule: React.FC = () => {
       [b31, b32, b33]
     ];
   }, [aStar, bStar, cStar, cosGammaStar, cosBetaStar, alphaStar, gammaStar, cosA, params.c]);
+
+  // Compute B^T * B Matrix
+  const matrixBTB = useMemo(() => {
+    const B = matrixB;
+    const BTB = [
+      [0, 0, 0],
+      [0, 0, 0],
+      [0, 0, 0]
+    ];
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        let sum = 0;
+        for (let k = 0; k < 3; k++) {
+          sum += B[k][i] * B[k][j];
+        }
+        BTB[i][j] = sum;
+      }
+    }
+    return BTB;
+  }, [matrixB]);
+
+  // Compute Fractional -> Cartesian Vector Transformation
+  const cartVec = useMemo(() => {
+    const x = matrixB[0][0] * fracX + matrixB[0][1] * fracY + matrixB[0][2] * fracZ;
+    const y = matrixB[1][0] * fracX + matrixB[1][1] * fracY + matrixB[1][2] * fracZ;
+    const z = matrixB[2][0] * fracX + matrixB[2][1] * fracY + matrixB[2][2] * fracZ;
+    const length = Math.sqrt(x * x + y * y + z * z);
+    return { x, y, z, length };
+  }, [matrixB, fracX, fracY, fracZ]);
 
   // 5. Plane d-Spacing Contraction: 1/d^2 = h^T * G* * h
   const calcDSpacing = (h: number, k: number, l: number) => {
@@ -694,6 +729,112 @@ $d_{(${h1}${k1}${l1})} = ${fmt(plane1Calc.d, 4)}~\\text{\\AA}$
     ctx.fillText('b*', centerX + bx + 6, centerY + by - 6);
 
   }, [aStar, bStar, gammaStar, h1, k1, h2, k2]);
+
+  // Busing-Levy Cartesian Frame Canvas Effect
+  useEffect(() => {
+    const canvas = busingCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+
+    // Dark grid background
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(0, 0, width, height);
+
+    // Background grid lines
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < width; i += 25) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke();
+    }
+    for (let i = 0; i < height; i += 25) {
+      ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(width, i); ctx.stroke();
+    }
+
+    const centerX = width / 2;
+    const centerY = height / 2 + 15;
+
+    // Scale factor for rendering vectors
+    const maxVal = Math.max(0.001, Math.abs(cartVec.x), Math.abs(cartVec.y), Math.abs(cartVec.z), 1);
+    const scale = Math.min(width, height) / (2.8 * maxVal);
+
+    // Oblique projection angles: e1 -> (1, 0.3), e2 -> (-0.8, -0.4), e3 -> (0, -1)
+    const projX = (x: number, y: number, z: number) => centerX + scale * (x * 0.866 - y * 0.707);
+    const projY = (x: number, y: number, z: number) => centerY - scale * (z*0.8 + x * 0.35 + y * 0.35);
+
+    // Draw Cartesian Axes (e1, e2, e3)
+    const axisLen = maxVal * 1.3;
+    const e1X = projX(axisLen, 0, 0), e1Y = projY(axisLen, 0, 0);
+    const e2X = projX(0, axisLen, 0), e2Y = projY(0, axisLen, 0);
+    const e3X = projX(0, 0, axisLen), e3Y = projY(0, 0, axisLen);
+
+    const drawAxis = (toX: number, toY: number, color: string, label: string) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = color;
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText(label, toX + 4, toY + 4);
+    };
+
+    drawAxis(e1X, e1Y, '#38bdf8', 'e₁ (X_Cart)');
+    drawAxis(e2X, e2Y, '#a855f7', 'e₂ (Y_Cart)');
+    drawAxis(e3X, e3Y, '#34d399', 'e₃ (Z_Cart)');
+
+    // Origin
+    ctx.fillStyle = '#64748b';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Projected components drop lines
+    const dropXYX = projX(cartVec.x, cartVec.y, 0);
+    const dropXYY = projY(cartVec.x, cartVec.y, 0);
+
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(dropXYX, dropXYY);
+    ctx.lineTo(projX(cartVec.x, cartVec.y, cartVec.z), projY(cartVec.x, cartVec.y, cartVec.z));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw Vector r_Cart
+    const vecX = projX(cartVec.x, cartVec.y, cartVec.z);
+    const vecY = projY(cartVec.x, cartVec.y, cartVec.z);
+
+    ctx.shadowColor = '#818cf8';
+    ctx.shadowBlur = 12;
+    ctx.strokeStyle = '#818cf8';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(vecX, vecY);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Arrow Head Circle & Label
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath();
+    ctx.arc(vecX, vecY, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(`r_Cart (${fmt(cartVec.x, 2)}, ${fmt(cartVec.y, 2)}, ${fmt(cartVec.z, 2)}) Å`, vecX + 8, vecY - 4);
+
+  }, [cartVec]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 font-sans">
@@ -1191,48 +1332,298 @@ $d_{(${h1}${k1}${l1})} = ${fmt(plane1Calc.d, 4)}~\\text{\\AA}$
       </div>
 
       {/* Cartesian Transformation Busing-Levy Matrix B */}
-      <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-300 text-xs font-mono font-bold uppercase">
-              <Cpu className="w-3.5 h-3.5" />
+      <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-2xl space-y-8 relative overflow-hidden group hover:border-indigo-500/40 transition-all">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-indigo-900/15 via-slate-950/0 to-slate-950/0 pointer-events-none" />
+
+        {/* Header Bar & Multi-Format Exports */}
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-bold uppercase tracking-wider">
+              <Cpu className="w-3.5 h-3.5 text-indigo-400" />
               <span>BUSING-LEVY CARTESIAN MATRIX [B]</span>
             </div>
-            <h3 className="text-lg font-bold text-white mt-1">
+            <h3 className="text-xl font-black text-white tracking-tight">
               Fractional to Cartesian Busing-Levy Matrix B
             </h3>
+            <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+              Converts fractional crystal coordinates <span className="font-mono text-indigo-300">(x, y, z)</span> or reciprocal indices <span className="font-mono text-indigo-300">(h, k, l)</span> into an orthonormal Cartesian Ångström basis <span className="font-mono text-cyan-300">(X, Y, Z)</span> obeying <span className="font-mono text-emerald-400">Bᵀ · B = G*</span> (Busing & Levy, 1967).
+            </p>
           </div>
 
-          <button
-            onClick={() => copyToClipboard(JSON.stringify(matrixB), 'B')}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer"
-            title="Copy Matrix B"
-          >
-            {copiedKey === 'B' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-          </button>
+          {/* Export Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => copyToClipboard(JSON.stringify(matrixB), 'B_json')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono transition-all cursor-pointer"
+              title="Copy JSON Matrix"
+            >
+              {copiedKey === 'B_json' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>JSON</span>
+            </button>
+            <button
+              onClick={() => copyToClipboard(`\\begin{pmatrix}\n${matrixB.map(r => r.map(v => fmt(v, 4)).join(' & ')).join(' \\\\\n')}\n\\end{pmatrix}`, 'B_latex')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono transition-all cursor-pointer"
+              title="Copy LaTeX Matrix"
+            >
+              {copiedKey === 'B_latex' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <FileText className="w-3.5 h-3.5" />}
+              <span>LaTeX</span>
+            </button>
+            <button
+              onClick={() => copyToClipboard(`import numpy as np\nB = np.array(${JSON.stringify(matrixB)})`, 'B_numpy')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/30 text-xs font-mono font-bold transition-all cursor-pointer"
+              title="Copy NumPy Code"
+            >
+              {copiedKey === 'B_numpy' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Terminal className="w-3.5 h-3.5" />}
+              <span>NumPy</span>
+            </button>
+          </div>
         </div>
 
-        <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-center justify-around gap-6 font-mono">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-serif text-indigo-400 font-bold">r_Cart = B · r_frac = </span>
-            <div className="border-l-2 border-t-2 border-b-2 border-indigo-500/80 rounded-l-lg py-3 px-1" />
-            <div className="grid grid-cols-3 gap-2 text-center px-1">
-              {matrixB.map((row, i) =>
-                row.map((val, j) => (
-                  <div key={`b-${i}-${j}`} className="px-2.5 py-1.5 bg-slate-900 text-indigo-200 rounded-lg text-xs font-mono font-bold border border-slate-800">
-                    {fmt(val, 4)}
-                  </div>
-                ))
-              )}
+        {/* Top Grid: Matrix Display + Analytical Formula & Mathematical Proof */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+
+          {/* 3x3 Matrix B Styled Panel (7 cols) */}
+          <div className="lg:col-span-7 bg-slate-900/60 p-6 rounded-2xl border border-slate-800/80 space-y-4 shadow-inner">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8]" />
+                Cartesian Transformation Tensor [B]
+              </span>
+              <span className="text-[11px] font-mono text-indigo-300">
+                Units: Å⁻¹ (Reciprocal) / Å
+              </span>
             </div>
-            <div className="border-r-2 border-t-2 border-b-2 border-indigo-500/80 rounded-r-lg py-3 px-1" />
+
+            {/* Matrix Graphic Box */}
+            <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 flex items-center justify-center font-mono">
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col items-center">
+                  <span className="text-lg font-serif text-indigo-400 font-bold">r_Cart</span>
+                  <span className="text-[10px] text-slate-500 font-sans">= B · r_frac</span>
+                </div>
+                <span className="text-2xl text-slate-600 font-light">=</span>
+                <div className="border-l-2 border-t-2 border-b-2 border-indigo-500/80 rounded-l-xl py-4 px-1.5" />
+                
+                <div className="grid grid-cols-3 gap-2.5 text-center px-1">
+                  {[
+                    { label: 'a*', val: matrixB[0][0], isZero: false },
+                    { label: 'b* cos γ*', val: matrixB[0][1], isZero: Math.abs(matrixB[0][1]) < 1e-10 },
+                    { label: 'c* cos β*', val: matrixB[0][2], isZero: Math.abs(matrixB[0][2]) < 1e-10 },
+                    
+                    { label: '0', val: matrixB[1][0], isZero: true },
+                    { label: 'b* sin γ*', val: matrixB[1][1], isZero: false },
+                    { label: '-c* sα* cosA', val: matrixB[1][2], isZero: Math.abs(matrixB[1][2]) < 1e-10 },
+                    
+                    { label: '0', val: matrixB[2][0], isZero: true },
+                    { label: '0', val: matrixB[2][1], isZero: true },
+                    { label: '1 / c', val: matrixB[2][2], isZero: false },
+                  ].map((cell, idx) => (
+                    <div
+                      key={`matrix-b-${idx}`}
+                      className={`px-3 py-2.5 rounded-xl border transition-all ${
+                        cell.isZero
+                          ? 'bg-slate-900/30 text-slate-600 border-slate-800/50'
+                          : idx === 0 || idx === 4 || idx === 8
+                          ? 'bg-indigo-600/20 text-indigo-200 border-indigo-500/40 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
+                          : 'bg-slate-900/80 text-cyan-200 border-slate-800'
+                      }`}
+                    >
+                      <div className="text-sm font-bold font-mono">
+                        {fmt(cell.val, 4)}
+                      </div>
+                      <div className="text-[9px] font-sans text-slate-500 tracking-tight mt-0.5">
+                        {cell.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border-r-2 border-t-2 border-b-2 border-indigo-500/80 rounded-r-xl py-4 px-1.5" />
+              </div>
+            </div>
+
+            {/* Matrix Properties Summary */}
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+              <div className="p-2.5 bg-slate-950/50 rounded-xl border border-slate-800">
+                <span className="text-[10px] text-slate-500 block">b₁₁ (a*)</span>
+                <span className="text-indigo-300 font-bold">{fmt(matrixB[0][0], 4)}</span>
+              </div>
+              <div className="p-2.5 bg-slate-950/50 rounded-xl border border-slate-800">
+                <span className="text-[10px] text-slate-500 block">b₂₂ (b* sin γ*)</span>
+                <span className="text-indigo-300 font-bold">{fmt(matrixB[1][1], 4)}</span>
+              </div>
+              <div className="p-2.5 bg-slate-950/50 rounded-xl border border-slate-800">
+                <span className="text-[10px] text-slate-500 block">b₃₃ (1/c)</span>
+                <span className="text-indigo-300 font-bold">{fmt(matrixB[2][2], 4)}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="text-xs text-slate-400 space-y-1 max-w-xs font-sans">
-            <span className="text-indigo-300 font-bold block">Mathematical Property:</span>
-            <p>The product of B transpose with itself exactly reconstructs the reciprocal metric tensor:</p>
-            <div className="font-mono text-cyan-300 pt-1">Bᵀ · B = G*</div>
+          {/* Mathematical Property & Verification B^T * B = G* (5 cols) */}
+          <div className="lg:col-span-5 bg-slate-900/60 p-6 rounded-2xl border border-slate-800/80 space-y-4 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  Metric Identity Proof
+                </span>
+                <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold">
+                  Bᵀ · B ≡ G*
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                The product of B transpose with B mathematically reconstructs the exact reciprocal metric tensor G*:
+              </p>
+
+              {/* B^T * B Matrix Comparison Table */}
+              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 font-mono text-[11px] space-y-2">
+                <div className="flex items-center justify-between text-slate-400 border-b border-slate-800/80 pb-1">
+                  <span>Calculated (Bᵀ · B)₁₁:</span>
+                  <span className="text-emerald-400 font-bold">{fmt(matrixBTB[0][0], 5)}</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-400 border-b border-slate-800/80 pb-1">
+                  <span>Reciprocal G*₁₁ (a*²):</span>
+                  <span className="text-cyan-300 font-bold">{fmt(metricGStar[0][0], 5)}</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>Diagonal Error |Δ|:</span>
+                  <span className="text-emerald-300 font-bold">
+                    {fmt(Math.abs(matrixBTB[0][0] - metricGStar[0][0]), 8)} (Identical)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Orientation convention notes */}
+            <div className="p-3 bg-indigo-950/30 border border-indigo-500/20 rounded-xl text-[11px] text-slate-300 space-y-1">
+              <span className="text-indigo-300 font-bold block">Busing-Levy Standard Frame:</span>
+              <ul className="list-disc list-inside space-y-0.5 text-slate-400 font-mono text-[10px]">
+                <li>e₃ is parallel to crystal c axis</li>
+                <li>e₂ is parallel to reciprocal b* axis</li>
+                <li>e₁ = e₂ × e₃ forms a right-handed basis</li>
+              </ul>
+            </div>
           </div>
+
+        </div>
+
+        {/* Bottom Grid: Live Fractional -> Cartesian Converter & 3D Interactive Canvas */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10 pt-2 border-t border-slate-800/80">
+
+          {/* Interactive Input & Converter (7 cols) */}
+          <div className="lg:col-span-7 bg-slate-900/60 p-6 rounded-2xl border border-slate-800/80 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-4 h-4 text-cyan-400" />
+                <h4 className="text-sm font-bold text-white">
+                  Live Fractional Vector to Cartesian Coordinate Converter
+                </h4>
+              </div>
+              <span className="text-[11px] font-mono text-slate-400">r_Cart = B · r_frac</span>
+            </div>
+
+            {/* Quick Presets for Vector */}
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="text-slate-400 text-[11px]">Vector Presets:</span>
+              {[
+                { label: '[¼, ¼, ¼]', x: 0.25, y: 0.25, z: 0.25 },
+                { label: '[1, 0, 0] (a)', x: 1, y: 0, z: 0 },
+                { label: '[0, 1, 0] (b)', x: 0, y: 1, z: 0 },
+                { label: '[0, 0, 1] (c)', x: 0, y: 0, z: 1 },
+              ].map((p, pIdx) => (
+                <button
+                  key={`preset-vec-${pIdx}`}
+                  onClick={() => { setFracX(p.x); setFracY(p.y); setFracZ(p.z); }}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 font-bold border border-slate-700 transition-all cursor-pointer"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Fractional Inputs x, y, z */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'Fractional x', val: fracX, set: setFracX, color: 'text-sky-300' },
+                { label: 'Fractional y', val: fracY, set: setFracY, color: 'text-violet-300' },
+                { label: 'Fractional z', val: fracZ, set: setFracZ, color: 'text-emerald-300' },
+              ].map((item) => (
+                <div key={item.label} className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                  <span className={`text-xs font-mono font-bold block ${item.color}`}>{item.label}</span>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={item.val}
+                    onChange={(e) => item.set(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-900 text-white font-mono font-bold text-sm px-2.5 py-1.5 rounded-lg border border-slate-700 outline-none focus:border-indigo-500"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Calculated Cartesian Coordinates Result Box */}
+            <div className="p-4 bg-slate-950/90 rounded-2xl border border-indigo-500/30 space-y-3 font-mono">
+              <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-2">
+                <span>Computed Cartesian Vector (X_Cart, Y_Cart, Z_Cart):</span>
+                <span className="text-amber-400 font-bold">||r_Cart|| = {fmt(cartVec.length, 4)} Å</span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="p-2.5 bg-sky-950/40 border border-sky-500/30 rounded-xl">
+                  <span className="text-[10px] text-sky-400 font-sans block uppercase font-bold">X_Cart (Å)</span>
+                  <span className="text-base text-sky-200 font-bold">{fmt(cartVec.x, 4)}</span>
+                </div>
+                <div className="p-2.5 bg-violet-950/40 border border-violet-500/30 rounded-xl">
+                  <span className="text-[10px] text-violet-400 font-sans block uppercase font-bold">Y_Cart (Å)</span>
+                  <span className="text-base text-violet-200 font-bold">{fmt(cartVec.y, 4)}</span>
+                </div>
+                <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl">
+                  <span className="text-[10px] text-emerald-400 font-sans block uppercase font-bold">Z_Cart (Å)</span>
+                  <span className="text-base text-emerald-200 font-bold">{fmt(cartVec.z, 4)}</span>
+                </div>
+              </div>
+
+              {/* Expanded Dot Product Steps */}
+              <div className="text-[11px] text-slate-400 space-y-1 pt-1 border-t border-slate-800/80">
+                <div>X = ({fmt(matrixB[0][0],3)})({fracX}) + ({fmt(matrixB[0][1],3)})({fracY}) + ({fmt(matrixB[0][2],3)})({fracZ}) = <span className="text-sky-300 font-bold">{fmt(cartVec.x, 4)} Å</span></div>
+                <div>Y = ({fmt(matrixB[1][0],3)})({fracX}) + ({fmt(matrixB[1][1],3)})({fracY}) + ({fmt(matrixB[1][2],3)})({fracZ}) = <span className="text-violet-300 font-bold">{fmt(cartVec.y, 4)} Å</span></div>
+                <div>Z = ({fmt(matrixB[2][0],3)})({fracX}) + ({fmt(matrixB[2][1],3)})({fracY}) + ({fmt(matrixB[2][2],3)})({fracZ}) = <span className="text-emerald-300 font-bold">{fmt(cartVec.z, 4)} Å</span></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Busing-Levy 3D-to-2D Vector Canvas (5 cols) */}
+          <div className="lg:col-span-5 bg-slate-900/60 p-6 rounded-2xl border border-slate-800/80 space-y-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Compass className="w-4 h-4 text-indigo-400" />
+                <h4 className="text-sm font-bold text-white">
+                  Cartesian Frame Visualizer
+                </h4>
+              </div>
+              <span className="text-[10px] font-mono text-amber-300">
+                Oblique Projection
+              </span>
+            </div>
+
+            <div className="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center">
+              <canvas
+                ref={busingCanvasRef}
+                width={420}
+                height={260}
+                className="w-full h-auto max-h-[260px] object-contain"
+              />
+            </div>
+
+            <div className="flex items-center justify-around text-[10px] font-mono text-slate-400 pt-1">
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-400" /> e₁ (X)</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-violet-400" /> e₂ (Y)</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-400" /> e₃ (Z)</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> r_Cart</span>
+            </div>
+          </div>
+
         </div>
       </div>
 

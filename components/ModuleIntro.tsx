@@ -358,23 +358,6 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; tag: 
         </FormulaContainer>
       </div>
     )
-  },
-  patterson_harker: {
-    title: "Patterson Vector Map & Harker Sections Engine",
-    tag: "Heavy Atom & Phase Deconvolution",
-    icon: Target,
-    color: "from-amber-500 to-orange-500",
-    description: "Synthesize Patterson vector density maps P(u, v, w) from structure factor magnitudes |F_hkl|^2 without phase information, and deconvolve heavy atom coordinates using Harker section cuts.",
-    formulas: (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormulaContainer label="Patterson Fourier Synthesis">
-          {"P(u, v, w) = (1/V) \\sum_{hkl} |F(hkl)|^2 \\cos(2\\pi(hu + kv + lw))"}
-        </FormulaContainer>
-        <FormulaContainer label="Harker Vector Plane Deconvolution">
-          {"P_{Harker}(u, 1/2, w) \\implies \\mathbf{u} = 2\\mathbf{x}, \\quad \\mathbf{w} = 2\\mathbf{z}"}
-        </FormulaContainer>
-      </div>
-    )
   }
 };
 

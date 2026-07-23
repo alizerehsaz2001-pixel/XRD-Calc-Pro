@@ -19,7 +19,6 @@ import {
   Award,
   Code,
   Cpu,
-  Globe,
   Terminal,
   Layers,
   ShieldCheck,

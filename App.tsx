@@ -22,7 +22,6 @@ import { CohenRefinementModule } from './components/CohenRefinementModule';
 import { CrystallographicMetricTensorModule } from './components/CrystallographicMetricTensorModule';
 import { SupercellTransformationModule } from './components/SupercellTransformationModule';
 import { PawleyLeBailDecompositionModule } from './components/PawleyLeBailDecompositionModule';
-import { PattersonHarkerModule } from './components/PattersonHarkerModule';
 import { ImageAnalysisModule } from './components/ImageAnalysisModule';
 import { ImageGenerationModule } from './components/ImageGenerationModule';
 import { PythonExportModule } from './components/PythonExportModule';
@@ -56,7 +55,7 @@ import { syncOfflineHelper } from './utils/materialsHelper';
 
 import { ResidualStressModule } from './components/ResidualStressModule';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'patterson_harker' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress';
 
 const getModuleIcon = (id: Module, active: boolean) => {
   const iconProps = {
@@ -96,8 +95,6 @@ const getModuleIcon = (id: Module, active: boolean) => {
       return <Grid {...iconProps} />;
     case 'pawley_lebail':
       return <Activity {...iconProps} />;
-    case 'patterson_harker':
-      return <Target {...iconProps} />;
     case 'rietveld':
       return <Sliders {...iconProps} />;
     case 'neutron':
@@ -941,7 +938,6 @@ const App: React.FC = () => {
       { id: 'metric_tensor', label: t("Metric Tensor Algebra"), group: t('Advanced Refinement') },
       { id: 'supercell_transform', label: t("Supercell & Matrix Engine"), group: t('Advanced Refinement') },
       { id: 'pawley_lebail', label: t("Pawley & Le Bail Fitting"), group: t('Advanced Refinement') },
-      { id: 'patterson_harker', label: t("Patterson & Harker Map"), group: t('Advanced Refinement') },
       { id: 'rietveld', label: t('Rietveld Setup'), group: t('Advanced Sim') },
       { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
       { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
@@ -1559,9 +1555,6 @@ const App: React.FC = () => {
                   )}
                   {activeModule === 'pawley_lebail' && (
                     <PawleyLeBailDecompositionModule />
-                  )}
-                  {activeModule === 'patterson_harker' && (
-                    <PattersonHarkerModule />
                   )}
                   {activeModule === 'rietveld' && <RietveldModule pythonFeaturesEnabled={pythonFeaturesEnabled} />}
                   {activeModule === 'neutron' && <NeutronModule />}
