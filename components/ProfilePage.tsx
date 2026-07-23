@@ -12,8 +12,8 @@ import {
 } from "recharts";
 import {
   Mail,
-  Linkedin,
-  Github,
+  Globe,
+  GitBranch,
   MapPin,
   ExternalLink,
   Award,
@@ -152,13 +152,13 @@ const PRESETS: Record<string, ProfileData> = {
       {
         label: "LinkedIn Mesh",
         val: "ali-zerehsaz",
-        icon: "Linkedin",
+        icon: "Globe",
         url: "https://linkedin.com",
       },
       {
         label: "GitHub Forge",
         val: "ali-zerehsaz",
-        icon: "Github",
+        icon: "GitBranch",
         url: "https://github.com",
       },
     ],
@@ -241,13 +241,13 @@ const PRESETS: Record<string, ProfileData> = {
       {
         label: "Research Mesh",
         val: "elizabeth-bragg-xrd",
-        icon: "Linkedin",
+        icon: "Globe",
         url: "https://linkedin.com",
       },
       {
         label: "Optics Forge",
         val: "bragg-diffraction-labs",
-        icon: "Github",
+        icon: "GitBranch",
         url: "https://github.com",
       },
     ],
@@ -330,13 +330,13 @@ const PRESETS: Record<string, ProfileData> = {
       {
         label: "Refinement Link",
         val: "rietveld-refinement-core",
-        icon: "Linkedin",
+        icon: "Globe",
         url: "https://linkedin.com",
       },
       {
         label: "Matrix Codebase",
         val: "rietveld-profile-fit",
-        icon: "Github",
+        icon: "GitBranch",
         url: "https://github.com",
       },
     ],
@@ -1143,10 +1143,10 @@ export const ProfilePage: React.FC = () => {
     switch (iconName) {
       case "Mail":
         return Mail;
-      case "Linkedin":
-        return Linkedin;
-      case "Github":
-        return Github;
+      case "Globe":
+        return Globe;
+      case "GitBranch":
+        return GitBranch;
       default:
         return Globe;
     }

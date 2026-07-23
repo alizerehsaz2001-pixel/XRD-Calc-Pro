@@ -31,9 +31,9 @@ import {
   Apple,
   PlayCircle,
   Download,
-  Twitter,
-  Github,
-  Linkedin,
+  Globe,
+  GitBranch,
+  Globe,
   Mail,
   Box,
   Binary,
@@ -2088,7 +2088,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                The global leader in AI-driven crystallographic computation. Trusted by researchers to push the boundaries of materials science.
              </p>
              <div className="flex gap-4">
-                {[Twitter, Github, Linkedin, Mail].map((Icon, i) => (
+                {[Globe, GitBranch, Globe, Mail].map((Icon, i) => (
                   <a key={i} href="#" className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:border-violet-500/50 hover:bg-violet-500/10 transition-all">
                     <Icon className="w-5 h-5" />
                   </a>
@@ -2214,7 +2214,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
                    rel="noopener noreferrer"
                    className="flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-white transition-all uppercase tracking-widest group/github"
                  >
-                    <Github className="w-4 h-4 text-slate-600 group-hover/github:text-white transition-colors" />
+                    <GitBranch className="w-4 h-4 text-slate-600 group-hover/github:text-white transition-colors" />
                     <span>View on GitHub</span>
                  </a>
                  <div className="px-2.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">

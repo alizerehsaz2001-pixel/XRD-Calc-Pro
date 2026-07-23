@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, ChevronRight, Info, Zap, Layers, Cpu, Database, Brain, ArrowRight, Check } from 'lucide-react';
+import { BookOpen, ChevronRight, Info, Zap, Layers, Cpu, Database, Brain, ArrowRight, Check, Sparkles, Activity, Target } from 'lucide-react';
 
 interface ModuleIntroProps {
   module: string;
@@ -292,6 +292,86 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; tag: 
         </FormulaContainer>
         <FormulaContainer label="Cubic Lattice Axis Angle">
           <F>cos</F>(<M>α</M>) = <Fraction num={<span><M>h</M>·<M>H</M> + <M>k</M>·<M>K</M> + <M>l</M>·<M>L</M></span>} den={<span>√(<M>h</M>² + <M>k</M>² + <M>l</M>²) · √(<M>H</M>² + <M>K</M>² + <M>L</M>²)</span>} />
+        </FormulaContainer>
+      </div>
+    )
+  },
+  cohen: {
+    title: "Cohen's Least-Squares Matrix Refinement",
+    tag: "Lattice Parameter Refinement",
+    icon: Layers,
+    color: "from-indigo-500 to-violet-500",
+    description: "Systematic matrix algebra for refining lattice constants while eliminating experimental systematic drift errors.",
+    formulas: (
+      <FormulaContainer label="Cohen Normal Matrix">
+        <strong>A</strong> · <strong>x</strong> = <strong>v</strong>
+      </FormulaContainer>
+    )
+  },
+  metric_tensor: {
+    title: "Crystallographic Metric Tensor Algebra",
+    tag: "Linear Algebra & Space Tensors",
+    icon: Sparkles,
+    color: "from-violet-500 to-cyan-500",
+    description: "Rigorous direct [G] and reciprocal [G*] metric tensor algebra for d-spacing contractions, interplanar angles, Cartesian transformations, and lattice strain.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Metric Tensor G">
+          <M>g</M><sub>ij</sub> = <strong>a</strong><sub>i</sub> · <strong>a</strong><sub>j</sub>
+        </FormulaContainer>
+        <FormulaContainer label="d-Spacing Contraction">
+          1 / <M>d</M>²<sub>hkl</sub> = <strong>h</strong>ᵀ <M>G</M>* <strong>h</strong>
+        </FormulaContainer>
+      </div>
+    )
+  },
+  supercell_transform: {
+    title: "Supercell & Coordinate Transformation Matrix Engine",
+    tag: "Linear Transformation & Matrix Algebra",
+    icon: Sparkles,
+    color: "from-cyan-500 to-blue-500",
+    description: "Linear matrix transformations P and origin shift vector p for supercells, subcells, primitive-to-conventional conversions, atomic coordinate mapping, and Miller indices mapping.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Supercell Basis Matrix P">
+          (<strong>a</strong>', <strong>b</strong>', <strong>c</strong>')ᵀ = <strong>P</strong> · (<strong>a</strong>, <strong>b</strong>, <strong>c</strong>)ᵀ
+        </FormulaContainer>
+        <FormulaContainer label="Atomic Coordinate Inverse Mapping">
+          <strong>x</strong>' = <strong>P</strong>⁻¹ (<strong>x</strong> - <strong>p</strong>)
+        </FormulaContainer>
+      </div>
+    )
+  },
+  pawley_lebail: {
+    title: "Pawley & Le Bail Whole Pattern Decomposition",
+    tag: "Structureless Pattern Fitting",
+    icon: Activity,
+    color: "from-indigo-500 to-violet-500",
+    description: "Extract reflection intensities I_k and refine unit cell parameters without an atomic model using Le Bail iterative partitioning or Pawley non-linear least squares matrix fitting.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Le Bail Intensity Partitioning">
+          {"I_k^{(n+1)} = I_k^{(n)} \\sum_i [ y_{obs}(i) S_k(2\\theta_i) / y_{calc}(i) ]"}
+        </FormulaContainer>
+        <FormulaContainer label="Calculated Profile y_calc">
+          {"y_{calc}(i) = y_{bg}(i) + \\sum_k I_k \\phi(2\\theta_i - 2\\theta_k)"}
+        </FormulaContainer>
+      </div>
+    )
+  },
+  patterson_harker: {
+    title: "Patterson Vector Map & Harker Sections Engine",
+    tag: "Heavy Atom & Phase Deconvolution",
+    icon: Target,
+    color: "from-amber-500 to-orange-500",
+    description: "Synthesize Patterson vector density maps P(u, v, w) from structure factor magnitudes |F_hkl|^2 without phase information, and deconvolve heavy atom coordinates using Harker section cuts.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Patterson Fourier Synthesis">
+          {"P(u, v, w) = (1/V) \\sum_{hkl} |F(hkl)|^2 \\cos(2\\pi(hu + kv + lw))"}
+        </FormulaContainer>
+        <FormulaContainer label="Harker Vector Plane Deconvolution">
+          {"P_{Harker}(u, 1/2, w) \\implies \\mathbf{u} = 2\\mathbf{x}, \\quad \\mathbf{w} = 2\\mathbf{z}"}
         </FormulaContainer>
       </div>
     )
