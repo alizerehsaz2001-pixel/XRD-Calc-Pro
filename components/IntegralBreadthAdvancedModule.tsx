@@ -80,6 +80,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
   const [cagliotiV, setCagliotiV] = useState<number>(-0.002);
   const [cagliotiW, setCagliotiW] = useState<number>(0.015);
   const [decouplingMethod, setDecouplingMethod] = useState<'linear' | 'squared'>('linear');
+  const [separationMethod, setSeparationMethod] = useState<'udm' | 'hw' | 'ssp'>('udm');
   const [youngsModulusGPa, setYoungsModulusGPa] = useState<number>(130);
 
   // Default Data: 2Theta, Area, Imax
@@ -125,6 +126,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
     setCagliotiV(-0.002);
     setCagliotiW(0.015);
     setDecouplingMethod('linear');
+    setSeparationMethod('udm');
     setYoungsModulusGPa(130);
   };
 
@@ -157,7 +159,8 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
         instrumentalMode,
         { U: cagliotiU, V: cagliotiV, W: cagliotiW },
         decouplingMethod,
-        youngsModulusGPa > 0 ? youngsModulusGPa : undefined
+        youngsModulusGPa > 0 ? youngsModulusGPa : undefined,
+        separationMethod
       );
       setResult(computed);
     }, 3800);
@@ -165,7 +168,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
 
   useEffect(() => {
     setResult(null); // Clear result when inputs change to enforce re-analyzing
-  }, [wavelength, constantK, instBetaIB, inputData, instrumentalMode, cagliotiU, cagliotiV, cagliotiW, decouplingMethod, youngsModulusGPa]);
+  }, [wavelength, constantK, instBetaIB, inputData, instrumentalMode, cagliotiU, cagliotiV, cagliotiW, decouplingMethod, youngsModulusGPa, separationMethod]);
 
   const handleDownloadCSV = () => {
     if (!result) return;
@@ -204,13 +207,24 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const d = payload[0].payload;
+      
+      let xLabel = 'X (4sinθ)';
+      let yLabel = 'Y (βcosθ)';
+      if (separationMethod === 'hw') {
+        xLabel = 'X (β/(tanθ·sinθ))';
+        yLabel = 'Y (β/tanθ)²';
+      } else if (separationMethod === 'ssp') {
+        xLabel = 'X (d²·βcosθ)';
+        yLabel = 'Y (d·βcosθ)²';
+      }
+
       return (
         <div className="bg-[#0A101C] text-white p-4 rounded-xl shadow-[0_0_30px_rgba(244,114,182,0.15)] border border-pink-500/30 text-xs font-mono">
           <p className="font-black mb-3 text-pink-400 border-b border-white/5 pb-2 uppercase tracking-widest">Peak at {d.twoTheta?.toFixed(2)}°</p>
           <div className="space-y-2 text-[10px]">
             <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">β_IB Sample</span> <span className="text-pink-300 font-bold">{d.betaSample?.toFixed(4)}°</span></p>
-            <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">X (4sinθ)</span> <span className="text-cyan-300 font-bold">{d.x?.toFixed(5)}</span></p>
-            <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">Y (βcosθ)</span> <span className="text-cyan-300 font-bold">{d.y?.toFixed(5)}</span></p>
+            <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">{xLabel}</span> <span className="text-cyan-300 font-bold">{d.x?.toExponential(3)}</span></p>
+            <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">{yLabel}</span> <span className="text-cyan-300 font-bold">{d.y?.toExponential(3)}</span></p>
             <p className="flex justify-between gap-6 border-t border-white/5 pt-2 mt-2">
               <span className="text-slate-500 uppercase">Deviation</span>
               <span className={`font-bold ${d.deviation > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
@@ -498,6 +512,50 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                             ? 'Mathematical Best-Fit for Lorentzian/Cauchy profiles.'
                             : 'Mathematical Best-Fit for Gaussian / Dislocation profiles.'}
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="block text-[9px] font-black text-slate-500 mb-1.5 uppercase tracking-widest flex items-center gap-1.5">
+                        Separation Method (Plot)
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSeparationMethod('udm')}
+                          className={`py-2 px-1 rounded-lg text-[8.5px] font-black uppercase tracking-widest transition-all border ${
+                            separationMethod === 'udm'
+                              ? 'bg-pink-500/10 border-pink-500/50 text-pink-400'
+                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
+                          }`}
+                          title="Uniform Deformation Model (Standard W-H)"
+                        >
+                          UDM (W-H)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSeparationMethod('hw')}
+                          className={`py-2 px-1 rounded-lg text-[8.5px] font-black uppercase tracking-widest transition-all border ${
+                            separationMethod === 'hw'
+                              ? 'bg-pink-500/10 border-pink-500/50 text-pink-400'
+                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
+                          }`}
+                          title="Halder-Wagner Method"
+                        >
+                          Halder-Wagner
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSeparationMethod('ssp')}
+                          className={`py-2 px-1 rounded-lg text-[8.5px] font-black uppercase tracking-widest transition-all border ${
+                            separationMethod === 'ssp'
+                              ? 'bg-pink-500/10 border-pink-500/50 text-pink-400'
+                              : 'bg-[#0A101C] border-white/5 text-slate-400 hover:text-slate-300'
+                          }`}
+                          title="Size-Strain Plot (SSP)"
+                        >
+                          SSP
+                        </button>
                       </div>
                     </div>
 
@@ -1181,15 +1239,18 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                   <XAxis 
                     dataKey="x" 
                     type="number" 
-                    domain={['dataMin - 0.2', 'dataMax + 0.2']}
-                    label={{ value: '4 sin(θ)', position: 'bottom', offset: 20, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                    domain={['auto', 'auto']}
+                    label={{ value: separationMethod === 'hw' ? 'β/(tanθ·sinθ)' : separationMethod === 'ssp' ? 'd²·βcosθ' : '4 sin(θ)', position: 'bottom', offset: 20, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
                     tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700, fontFamily: 'monospace' }}
+                    tickFormatter={(val) => val.toExponential(1)}
                     tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                     axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                   />
                   <YAxis 
-                    label={{ value: 'β_IB cos(θ) [rad]', angle: -90, position: 'insideLeft', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
+                    domain={['auto', 'auto']}
+                    label={{ value: separationMethod === 'hw' ? '(β/tanθ)²' : separationMethod === 'ssp' ? '(d·βcosθ)²' : 'β_IB cos(θ)', angle: -90, position: 'insideLeft', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
                     tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700, fontFamily: 'monospace' }}
+                    tickFormatter={(val) => val.toExponential(1)}
                     tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                     axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                   />

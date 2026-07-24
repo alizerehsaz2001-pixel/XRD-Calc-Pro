@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { IntegralBreadthInput, IntegralBreadthResult } from '../types';
 import { parseIntegralBreadthInput, calculateIntegralBreadth, XRAY_WAVELENGTHS } from '../utils/physics';
-import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion, ChevronDown, Check, Database, Zap } from 'lucide-react';
+import { Info, BookOpen, Activity, Calculator, Sparkles, Loader2, Atom, Binary, ShieldQuestion, ChevronDown, Check, Database, Zap, BarChart2 } from 'lucide-react';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 import { useSettings } from './SettingsContext';
 import { ScientificMathControl } from './ScientificMathControl';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
+import { MorphologyVisualizer } from './MorphologyVisualizer';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -191,6 +195,43 @@ export const IntegralBreadthModule: React.FC = () => {
     if (phi > 0.9) return { type: 'Gaussian', color: 'text-emerald-600', bg: 'bg-emerald-50' };
     return { type: 'Pseudo-Voigt', color: 'text-purple-600', bg: 'bg-purple-50' };
   };
+
+  const histogramData = useMemo(() => {
+    const validResults = results.filter(r => r.calcSizeNm > 0);
+    if (validResults.length === 0) return [];
+    
+    const sizes = validResults.map(r => r.calcSizeNm);
+    const min = Math.min(...sizes);
+    const max = Math.max(...sizes);
+    
+    const numBins = Math.max(5, Math.min(15, Math.ceil(Math.sqrt(validResults.length))));
+    let binWidth = (max - min) / numBins;
+    if (binWidth === 0) binWidth = 1; 
+
+    // Extend range slightly to ensure all values fit inside neatly
+    const rangeStart = Math.max(0, min - binWidth * 0.1);
+
+    const bins = Array.from({ length: numBins }, (_, i) => ({
+      rangeStart: rangeStart + i * binWidth,
+      rangeEnd: rangeStart + (i + 1) * binWidth,
+      center: rangeStart + (i + 0.5) * binWidth,
+      count: 0
+    }));
+
+    sizes.forEach(size => {
+      for (const bin of bins) {
+        if (size >= bin.rangeStart && size < bin.rangeEnd) {
+          bin.count++;
+          break;
+        }
+      }
+      if (size === bins[bins.length - 1].rangeEnd) {
+        bins[bins.length - 1].count++;
+      }
+    });
+
+    return bins;
+  }, [results]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
@@ -698,6 +739,87 @@ export const IntegralBreadthModule: React.FC = () => {
              <span className="text-xl text-cyan-500/60 font-black mb-1">NM</span>
            </div>
         </div>
+
+        {/* Size Distribution Histogram & Morphology */}
+        {results.length > 0 && histogramData.length > 0 && (
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            {/* Histogram */}
+            <div className="xl:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group flex flex-col">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="p-2.5 bg-cyan-500/20 rounded-xl border border-cyan-500/30">
+                  <BarChart2 className="h-5 w-5 text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider mb-0.5">Size Distribution</h3>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Grain Size Frequency Histogram</p>
+                </div>
+              </div>
+              <div className="flex-1 w-full relative z-10 min-h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={histogramData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <XAxis 
+                      dataKey="center" 
+                      tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      tickLine={{ stroke: '#334155' }}
+                      axisLine={{ stroke: '#334155' }}
+                      label={{ value: 'Crystallite Size [nm]', position: 'insideBottom', offset: -10, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                    />
+                    <YAxis 
+                      allowDecimals={false}
+                      tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                      tickLine={{ stroke: '#334155' }}
+                      axisLine={{ stroke: '#334155' }}
+                      label={{ value: 'Frequency Count', angle: -90, position: 'insideLeft', offset: 15, fill: '#94a3b8', fontSize: 10, fontWeight: 'bold' }}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: 'rgba(255,255,255,0.02)' }}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-[#0A101C] border border-cyan-500/30 p-3 rounded-xl shadow-xl font-mono text-xs">
+                              <p className="text-cyan-400 font-bold mb-1 border-b border-white/10 pb-1 uppercase tracking-widest">
+                                {data.rangeStart.toFixed(1)} - {data.rangeEnd.toFixed(1)} nm
+                              </p>
+                              <div className="flex justify-between items-center gap-4 mt-2">
+                                <span className="text-slate-400 uppercase tracking-wider text-[10px]">Count</span>
+                                <span className="text-white font-black text-sm">{data.count}</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      radius={[4, 4, 0, 0]}
+                    >
+                      {histogramData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill="rgba(6, 182, 212, 0.8)" stroke="rgba(6, 182, 212, 1)" strokeWidth={1} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Morphology */}
+            <div className="xl:col-span-4 flex flex-col gap-6">
+              <div className="bg-[#050b14] border border-cyan-900/30 rounded-3xl p-6 shadow-2xl relative flex flex-col h-full min-h-[300px] overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-bl-full pointer-events-none transition-transform group-hover:scale-110" />
+                <h3 className="text-[11px] font-black text-cyan-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 relative z-10">
+                  <Atom className="w-3.5 h-3.5" /> Morphological Projection
+                </h3>
+                <div className="flex-1 w-full relative z-10 border border-cyan-900/40 rounded-xl bg-black/40 overflow-hidden">
+                  <MorphologyVisualizer kType={selectedKType} sizeNm={avgSize} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-[#0A101C]/80 backdrop-blur-xl rounded-[2rem] shadow-[0_0_30px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden flex flex-col min-h-[500px]">
           <div className="p-5 border-b border-white/5 bg-[#070D18] flex justify-between items-center relative">

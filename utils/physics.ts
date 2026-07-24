@@ -931,7 +931,8 @@ export const calculateIBAdvanced = (
   instrumentalMode: 'constant' | 'caglioti' = 'constant',
   cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
   decouplingMethod: 'linear' | 'squared' = 'linear',
-  youngsModulusGPa?: number
+  youngsModulusGPa?: number,
+  separationMethod: 'udm' | 'hw' | 'ssp' = 'udm'
 ): IBAdvancedResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
   
@@ -972,9 +973,25 @@ export const calculateIBAdvanced = (
 
     if (betaSampleRad <= 0) continue;
 
-    // Standard W-H with IB: Y = beta * cos(theta), X = 4 * sin(theta)
-    const y = betaSampleRad * cosTheta;
-    const x = 4 * Math.sin(thetaRad);
+    let x = 0;
+    let y = 0;
+    const sinTheta = Math.sin(thetaRad);
+
+    if (separationMethod === 'hw') {
+      // Halder-Wagner method
+      const tanTheta = Math.tan(thetaRad);
+      y = Math.pow(betaSampleRad / tanTheta, 2);
+      x = betaSampleRad / (tanTheta * sinTheta);
+    } else if (separationMethod === 'ssp') {
+      // Size-Strain Plot
+      const d_hkl = wavelength / (2 * sinTheta); // in Angstroms
+      y = Math.pow(d_hkl * betaSampleRad * cosTheta, 2);
+      x = Math.pow(d_hkl, 2) * betaSampleRad * cosTheta;
+    } else {
+      // Standard W-H with IB: Y = beta * cos(theta), X = 4 * sin(theta)
+      y = betaSampleRad * cosTheta;
+      x = 4 * sinTheta;
+    }
 
     points.push({ x, y, twoTheta, betaSample: betaSampleRad * (180/Math.PI) });
 
@@ -1013,7 +1030,20 @@ export const calculateIBAdvanced = (
   }
 
   // Isotropic stress and elastic energy density calculations
-  const absoluteStrain = slope;
+  let absoluteStrain = 0;
+  let sizeInterceptNm = 0;
+
+  if (separationMethod === 'hw') {
+    sizeInterceptNm = slope > 0 ? (K * wavelength) / slope / 10 : 0;
+    absoluteStrain = Math.sqrt(Math.abs(intercept)) / 4;
+  } else if (separationMethod === 'ssp') {
+    sizeInterceptNm = slope > 0 ? (K * wavelength) / slope / 10 : 0;
+    absoluteStrain = Math.sqrt(Math.abs(intercept)) / 2;
+  } else {
+    absoluteStrain = slope;
+    sizeInterceptNm = intercept > 0 ? (K * wavelength) / intercept / 10 : 0;
+  }
+
   let stressMPa: number | undefined = undefined;
   let energyDensityKjM3: number | undefined = undefined;
 
@@ -1023,8 +1053,8 @@ export const calculateIBAdvanced = (
   }
 
   return {
-    strainPercent: slope * 100, // Slope is Strain
-    sizeInterceptNm: intercept > 0 ? (K * wavelength) / intercept / 10 : 0, // Intercept is K*lambda / D
+    strainPercent: absoluteStrain * 100,
+    sizeInterceptNm,
     regression: { slope, intercept, rSquared: ssTot === 0 ? 0 : 1 - (ssRes / ssTot) },
     points,
     stressMPa,

@@ -244,6 +244,62 @@ export const PreferredOrientationModule: React.FC = () => {
     };
   }, [overlayResults]);
 
+  // Texture Analysis: Lotgering Factor & Harris Texture Coefficient
+  const textureAnalysis = useMemo(() => {
+    if (!results || results.length === 0) return null;
+
+    let sumImeasTotal = 0;
+    let sumIthTotal = 0;
+    
+    let sumImeasTarget = 0;
+    let sumIthTarget = 0;
+    
+    const n = results.length;
+
+    // First pass for sums
+    results.forEach(r => {
+      sumImeasTotal += r.iMeas;
+      sumIthTotal += r.iTh;
+      
+      // If angle is 0 or 180 (parallel to target HKL)
+      if (Math.abs(r.angle) < 0.1 || Math.abs(r.angle - 180) < 0.1) {
+        sumImeasTarget += r.iMeas;
+        sumIthTarget += r.iTh;
+      }
+    });
+
+    // Lotgering Factor F
+    const p = sumImeasTotal > 0 ? sumImeasTarget / sumImeasTotal : 0;
+    const p0 = sumIthTotal > 0 ? sumIthTarget / sumIthTotal : 0;
+    const lotgeringF = (1 - p0) > 0 ? (p - p0) / (1 - p0) : 0;
+
+    // Second pass for TC
+    // TC(hkl) = [I_meas/I_th] / [(1/N) * sum(I_meas/I_th)]
+    let sumRatio = 0;
+    results.forEach(r => {
+      if (r.iTh > 0) {
+        sumRatio += r.iMeas / r.iTh;
+      }
+    });
+    
+    const avgRatio = sumRatio / n;
+    
+    const tcResults = results.map(r => {
+      const tc = (r.iTh > 0 && avgRatio > 0) ? (r.iMeas / r.iTh) / avgRatio : 0;
+      return {
+        hkl: r.hkl,
+        tc: tc
+      };
+    });
+
+    return {
+      lotgeringF,
+      p,
+      p0,
+      tcResults
+    };
+  }, [results, targetHKL]);
+
   const chartData = useMemo(() => {
     return overlayResults.map(r => ({
       name: r.hkl,
@@ -1206,6 +1262,68 @@ export const PreferredOrientationModule: React.FC = () => {
                 </ResponsiveContainer>
               </div>
             </div>
+
+          {/* Texture Analysis Panel: Lotgering & Harris */}
+          {textureAnalysis && (
+            <div className="bg-white dark:bg-black/40 border border-slate-200 dark:border-white/5 hover:border-violet-300 dark:hover:border-violet-500/30 transition-all rounded-[2rem] p-6 shadow-sm dark:shadow-2xl relative overflow-hidden backdrop-blur-md z-0 group">
+              <div className="absolute top-0 right-0 p-32 opacity-10 dark:opacity-5 bg-gradient-to-bl from-violet-400 to-fuchsia-400 rounded-bl-[100px] pointer-events-none group-hover:opacity-20 dark:group-hover:opacity-10 group-hover:scale-110 transition-all duration-700"></div>
+              
+              <div className="relative z-10 flex flex-col md:flex-row gap-8">
+                
+                {/* Lotgering Factor */}
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 py-1.5 max-w-fit bg-violet-50 dark:bg-violet-500/10 rounded-lg border border-violet-200 dark:border-violet-500/20 shadow-inner">
+                      <TrendingUp className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <h3 className="text-xs uppercase font-black text-slate-800 dark:text-slate-200 tracking-widest">
+                      Lotgering Factor (F)
+                    </h3>
+                  </div>
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-white/5 shadow-inner">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-3xl font-black text-violet-600 dark:text-violet-400 font-sans tracking-tighter">
+                        {textureAnalysis.lotgeringF.toFixed(4)}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Target: ({targetHKL})</span>
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Evaluates the degree of orientation (0 = random, 1 = perfectly oriented parallel to target).
+                    </p>
+                    <div className="mt-4 flex gap-4 text-[10px] font-mono text-slate-400">
+                      <div>p = {textureAnalysis.p.toFixed(3)}</div>
+                      <div>p₀ = {textureAnalysis.p0.toFixed(3)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Harris Texture Coefficient */}
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-1.5 py-1.5 max-w-fit bg-fuchsia-50 dark:bg-fuchsia-500/10 rounded-lg border border-fuchsia-200 dark:border-fuchsia-500/20 shadow-inner">
+                      <Layers className="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400" />
+                    </div>
+                    <h3 className="text-xs uppercase font-black text-slate-800 dark:text-slate-200 tracking-widest">
+                      Harris Texture Coefficient (TC)
+                    </h3>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-white/5 shadow-inner p-4 max-h-[160px] overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-2 gap-2">
+                      {textureAnalysis.tcResults.map((tc, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-white dark:bg-black/40 px-3 py-2 rounded-xl border border-slate-100 dark:border-white/5">
+                          <span className="text-[10px] font-bold text-slate-500 font-mono tracking-widest">{tc.hkl}</span>
+                          <span className={`text-xs font-black font-sans ${tc.tc > 1.2 ? 'text-emerald-500' : tc.tc < 0.8 ? 'text-rose-500' : 'text-slate-700 dark:text-slate-300'}`}>
+                            {tc.tc.toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
 
           {/* Data Table */}
           <div className="bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 transition-all rounded-[2rem] p-6 shadow-sm dark:shadow-2xl space-y-6 backdrop-blur-md relative z-0">
