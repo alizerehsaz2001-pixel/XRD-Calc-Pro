@@ -1493,7 +1493,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           el.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           el.crystalStructure.toLowerCase().includes(searchQuery.toLowerCase());
       
-      if (categoryFilter === 'all') return matchQuery;
+      if (categoryFilter === 'all' || categoryFilter === 'entire') return matchQuery;
       return el.category === categoryFilter && matchQuery;
     });
   }, [fullElementsGrid, searchQuery, categoryFilter]);
@@ -1894,16 +1894,17 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="w-full bg-slate-950 text-slate-200 border border-slate-800/80 hover:border-slate-700/80 rounded-xl py-2.5 pl-10 pr-4 text-xs font-medium outline-none transition-all cursor-pointer focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 appearance-none"
               >
-                <option value="all">Filter: All Crystallographic Series</option>
-                <option value="alkali">Alkali Metals (BCC structures)</option>
-                <option value="alkaline_earth">Alkaline Earth (HCP/FCC types)</option>
-                <option value="transition_metal">Transition Metals (Refractory lattices)</option>
-                <option value="post_transition">Post-Transition Metals</option>
-                <option value="metalloid">Metalloids / Chalcogen Phase</option>
-                <option value="nonmetal">Reactive Nonmetals</option>
-                <option value="noble_gas">Noble Gases (Cryo FCC lattices)</option>
-                <option value="lanthanoid">Lanthanoids Series</option>
-                <option value="actinoid">Actinoids Series</option>
+                <option value="entire">{isFa ? 'نمایش همه عناصر (Entire / All Elements)' : 'Entire / All Elements'}</option>
+                <option value="all">{isFa ? 'همه سری‌های بلورشناسی (All Series)' : 'Filter: All Crystallographic Series'}</option>
+                <option value="alkali">{isFa ? 'فلزات قلیایی (Alkali Metals)' : 'Alkali Metals (BCC structures)'}</option>
+                <option value="alkaline_earth">{isFa ? 'فلزات قلیایی خاکی (Alkaline Earth)' : 'Alkaline Earth (HCP/FCC types)'}</option>
+                <option value="transition_metal">{isFa ? 'فلزات واسطه (Transition Metals)' : 'Transition Metals (Refractory lattices)'}</option>
+                <option value="post_transition">{isFa ? 'فلزات پس‌واسطه (Post-Transition)' : 'Post-Transition Metals'}</option>
+                <option value="metalloid">{isFa ? 'شبه‌فلزات (Metalloids)' : 'Metalloids / Chalcogen Phase'}</option>
+                <option value="nonmetal">{isFa ? 'نافلیزات (Reactive Nonmetals)' : 'Reactive Nonmetals'}</option>
+                <option value="noble_gas">{isFa ? 'گازهای نجیب (Noble Gases)' : 'Noble Gases (Cryo FCC lattices)'}</option>
+                <option value="lanthanoid">{isFa ? 'لانتانیدها (Lanthanoids)' : 'Lanthanoids Series'}</option>
+                <option value="actinoid">{isFa ? 'اکتینیدها (Actinoids)' : 'Actinoids Series'}</option>
               </select>
               <Layers className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500 group-hover:text-slate-400 transition-colors pointer-events-none" />
               <div className="absolute right-4 top-4 pointer-events-none border-l border-slate-800 pl-2">
@@ -1980,11 +1981,12 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
                   const isActive = selectedElement === el.number;
                   const isXtal = isCrystalMaterial(el.number);
+                  const isSelectable = isXtal || categoryFilter === 'entire';
                   const stateAtTemp = getPhysicalStateAtTemp(el.number, el.meltingPoint, (el as any).boilingPoint, temperature);
                   
                   let stateStatus: 'active' | 'match' | 'normal' | 'disabled' = 'normal';
                   if (isActive) stateStatus = 'active';
-                  else if (isMatch && isXtal) stateStatus = 'match';
+                  else if (isMatch && (isXtal || categoryFilter === 'entire')) stateStatus = 'match';
                   else if (isMatch && !isXtal) stateStatus = 'disabled';
                   else stateStatus = 'normal';
 
@@ -2000,11 +2002,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   return (
                     <button
                       key={`el-${el.number}`}
-                      onClick={isXtal ? () => {
+                      onClick={isSelectable ? () => {
                         setSelectedElement(el.number);
                         playSynthTone('switch');
                       } : undefined}
-                      disabled={!isXtal}
+                      disabled={!isSelectable}
                       className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
                     >
                       <ElementTooltip el={el as any} isXtal={isXtal} stateAtTemp={stateAtTemp} />
@@ -2044,11 +2046,12 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               const isMatch = filteredElements.some(f => f.number === el.number);
               const isActive = selectedElement === el.number;
               const isXtal = isCrystalMaterial(el.number);
+              const isSelectable = isXtal || categoryFilter === 'entire';
               const stateAtTemp = getPhysicalStateAtTemp(el.number, el.meltingPoint, (el as any).boilingPoint, temperature);
               
               let stateStatus: 'active' | 'match' | 'normal' | 'disabled' = 'normal';
               if (isActive) stateStatus = 'active';
-              else if (isMatch && isXtal) stateStatus = 'match';
+              else if (isMatch && (isXtal || categoryFilter === 'entire')) stateStatus = 'match';
               else if (isMatch && !isXtal) stateStatus = 'disabled';
               else stateStatus = 'normal';
 
@@ -2063,11 +2066,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               return (
                 <button
                   key={`el-${el.number}`}
-                  onClick={isXtal ? () => {
+                  onClick={isSelectable ? () => {
                     setSelectedElement(el.number);
                     playSynthTone('switch');
                   } : undefined}
-                  disabled={!isXtal}
+                  disabled={!isSelectable}
                   className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
                 >
                   <ElementTooltip el={el as any} isXtal={isXtal} stateAtTemp={stateAtTemp} />
@@ -2096,11 +2099,12 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               const isMatch = filteredElements.some(f => f.number === el.number);
               const isActive = selectedElement === el.number;
               const isXtal = isCrystalMaterial(el.number);
+              const isSelectable = isXtal || categoryFilter === 'entire';
               const stateAtTemp = getPhysicalStateAtTemp(el.number, el.meltingPoint, (el as any).boilingPoint, temperature);
               
               let stateStatus: 'active' | 'match' | 'normal' | 'disabled' = 'normal';
               if (isActive) stateStatus = 'active';
-              else if (isMatch && isXtal) stateStatus = 'match';
+              else if (isMatch && (isXtal || categoryFilter === 'entire')) stateStatus = 'match';
               else if (isMatch && !isXtal) stateStatus = 'disabled';
               else stateStatus = 'normal';
 
@@ -2115,11 +2119,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               return (
                 <button
                   key={`el-${el.number}`}
-                  onClick={isXtal ? () => {
+                  onClick={isSelectable ? () => {
                     setSelectedElement(el.number);
                     playSynthTone('switch');
                   } : undefined}
-                  disabled={!isXtal}
+                  disabled={!isSelectable}
                   className={`aspect-square p-1 rounded-lg border flex flex-col justify-between transition-all duration-200 relative group/el ${borderClasses}`}
                 >
                   <ElementTooltip el={el as any} isXtal={isXtal} stateAtTemp={stateAtTemp} />
@@ -2142,24 +2146,45 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
           </div>
 
           {/* Color Key block legends mapping */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-1.5 p-3.5 bg-slate-900/40 border border-slate-800 rounded-xl">
+          <div className="flex flex-wrap items-center gap-1.5 p-3.5 bg-slate-900/40 border border-slate-800 rounded-xl">
+            <button
+              type="button"
+              onClick={() => {
+                setCategoryFilter('entire');
+                playSynthTone('tick');
+              }}
+              className={`text-[8px] text-center px-2 py-1.5 rounded-md border font-black uppercase tracking-wider transition-all cursor-pointer ${
+                categoryFilter === 'entire' || categoryFilter === 'all'
+                  ? 'bg-indigo-500/20 border-indigo-500/80 text-indigo-300 ring-1 ring-indigo-500/50 shadow-sm'
+                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {isFa ? 'همه عناصر (Entire)' : 'Entire / All'}
+            </button>
             {[
-              { label: 'Nonmetals', cat: 'nonmetal' },
-              { label: 'Alkali Metals', cat: 'alkali' },
-              { label: 'Alkaline Earth', cat: 'alkaline_earth' },
-              { label: 'Trans-Metals', cat: 'transition_metal' },
-              { label: 'Post-Trans', cat: 'post_transition' },
-              { label: 'Metalloids', cat: 'metalloid' },
-              { label: 'Lanthanides', cat: 'lanthanoid' },
-              { label: 'Actinides', cat: 'actinoid' },
-              { label: 'Noble Gases', cat: 'noble_gas' }
+              { label: isFa ? 'نافلیزات' : 'Nonmetals', cat: 'nonmetal' },
+              { label: isFa ? 'فلزات قلیایی' : 'Alkali Metals', cat: 'alkali' },
+              { label: isFa ? 'قلیایی خاکی' : 'Alkaline Earth', cat: 'alkaline_earth' },
+              { label: isFa ? 'فلزات واسطه' : 'Trans-Metals', cat: 'transition_metal' },
+              { label: isFa ? 'پس‌واسطه' : 'Post-Trans', cat: 'post_transition' },
+              { label: isFa ? 'شبه‌فلزات' : 'Metalloids', cat: 'metalloid' },
+              { label: isFa ? 'لانتانیدها' : 'Lanthanides', cat: 'lanthanoid' },
+              { label: isFa ? 'اکتینیدها' : 'Actinides', cat: 'actinoid' },
+              { label: isFa ? 'گازهای نجیب' : 'Noble Gases', cat: 'noble_gas' }
             ].map(k => (
-              <span 
+              <button 
                 key={k.cat} 
-                className={`text-[8px] text-center px-1.5 py-1 rounded-md border font-black uppercase tracking-wider ${categoryColor(k.cat)}`}
+                type="button"
+                onClick={() => {
+                  setCategoryFilter(prev => prev === k.cat ? 'entire' : k.cat);
+                  playSynthTone('tick');
+                }}
+                className={`text-[8px] text-center px-2 py-1.5 rounded-md border font-black uppercase tracking-wider transition-all cursor-pointer ${categoryColor(k.cat)} ${
+                  categoryFilter === k.cat ? 'ring-2 ring-white/90 scale-105 z-10 shadow-md' : 'opacity-80 hover:opacity-100'
+                }`}
               >
                 {k.label}
-              </span>
+              </button>
             ))}
           </div>
         </div>
