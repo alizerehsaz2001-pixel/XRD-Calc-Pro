@@ -589,40 +589,42 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     <div className="w-full flex flex-col gap-6 p-4 md:p-6 lg:p-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
       
       {/* Header Banner */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
-        <div className="absolute -top-10 -right-10 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-950 border border-slate-800/80 rounded-3xl p-6 md:p-8 shadow-2xl backdrop-blur-xl group">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none transition-transform duration-700 group-hover:scale-110" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-emerald-500/5 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/3 pointer-events-none transition-transform duration-700 group-hover:scale-110" />
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                <Layers className="w-6 h-6" />
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 border border-indigo-500/20 text-indigo-400 shadow-inner">
+                <Layers className="w-7 h-7" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-black text-slate-100 tracking-tight flex items-center gap-2">
+                <h1 className="text-2xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-100 to-slate-400 tracking-tight flex items-center gap-2">
                   {t('Reference Intensity Ratio')} (RIR)
                 </h1>
-                <p className="text-xs font-mono text-indigo-400 font-semibold tracking-wider uppercase">
+                <p className="text-[11px] font-mono text-indigo-400 font-bold tracking-widest uppercase mt-1">
                   Chung Adiabatic & Internal Standard Quantitative Phase Engine
                 </p>
               </div>
             </div>
-            <p className="text-slate-400 text-xs md:text-sm max-w-2xl leading-relaxed mt-1">
+            <p className="text-slate-400 text-sm max-w-2xl leading-relaxed mt-2 font-medium">
               {t('Perform fast quantitative XRD phase analysis using reference intensity ratio ($I/I_c$) constants. Features amorphous content scaling, internal standard calibration, mass absorption calculations, error bounds propagation, and continuous pattern simulation.')}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={copyReportToClipboard}
-              className="px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all flex items-center gap-1.5 shadow-md active:scale-95"
+              className="px-4 py-2.5 text-xs font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20 border border-indigo-400/20 active:scale-95"
             >
-              {copiedReport ? <CheckCircle2 className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+              {copiedReport ? <CheckCircle2 className="w-4 h-4 text-emerald-200" /> : <Copy className="w-4 h-4" />}
               <span>{copiedReport ? 'Copied Report!' : 'Copy Summary'}</span>
             </button>
 
             <button
               onClick={() => setShowDbModal(true)}
-              className="px-3.5 py-2 text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl hover:bg-indigo-500/30 transition-all flex items-center gap-1.5 shadow-md active:scale-95"
+              className="px-4 py-2.5 text-xs font-bold bg-slate-800/80 hover:bg-slate-700/80 text-indigo-300 border border-slate-700 hover:border-indigo-500/50 rounded-xl transition-all flex items-center gap-2 shadow-lg backdrop-blur-md active:scale-95"
             >
               <Database className="w-4 h-4 text-indigo-400" />
               <span>Reference DB</span>
@@ -630,7 +632,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
             <button
               onClick={exportCSV}
-              className="px-3.5 py-2 text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-xl hover:bg-emerald-500/30 transition-all flex items-center gap-1.5 shadow-md active:scale-95"
+              className="px-4 py-2.5 text-xs font-bold bg-slate-800/80 hover:bg-slate-700/80 text-emerald-300 border border-slate-700 hover:border-emerald-500/50 rounded-xl transition-all flex items-center gap-2 shadow-lg backdrop-blur-md active:scale-95"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
               <span>Export CSV</span>
@@ -638,7 +640,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
             <button
               onClick={exportJSON}
-              className="px-3.5 py-2 text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700 rounded-xl hover:bg-slate-700 transition-all flex items-center gap-1.5 shadow-md active:scale-95"
+              className="px-4 py-2.5 text-xs font-bold bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700 hover:border-slate-500 rounded-xl transition-all flex items-center gap-2 shadow-lg backdrop-blur-md active:scale-95"
             >
               <Download className="w-4 h-4 text-slate-400" />
               <span>Save Session</span>
@@ -646,7 +648,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-2 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl transition-all flex items-center gap-1.5"
+              className="px-3.5 py-2.5 text-xs font-bold bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-slate-700 hover:border-slate-500 rounded-xl transition-all flex items-center justify-center shadow-lg backdrop-blur-md active:scale-95"
               title="Load Saved JSON Session"
             >
               <Upload className="w-4 h-4 text-slate-400" />
@@ -663,27 +665,27 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       </div>
 
       {/* Preset Mixture Scenarios Selector */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 shadow-xl backdrop-blur-sm">
-        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5 flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+      <div className="bg-gradient-to-br from-slate-900/60 to-slate-900/40 border border-slate-800/80 rounded-3xl p-5 shadow-xl backdrop-blur-sm">
+        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400" />
           <span>Load Benchmarking Laboratory Mixture Scenario</span>
         </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {MIXTURE_SCENARIOS.map((scen, sIdx) => (
             <button
               key={sIdx}
               onClick={() => loadScenario(scen)}
-              className="p-3 bg-slate-950/80 hover:bg-indigo-950/50 border border-slate-800 hover:border-indigo-500/40 rounded-xl text-left transition-all flex flex-col justify-between group"
+              className="p-4 bg-slate-950/50 hover:bg-indigo-950/30 border border-slate-800/60 hover:border-indigo-500/50 rounded-2xl text-left transition-all duration-300 flex flex-col justify-between group hover:shadow-lg hover:shadow-indigo-500/5 hover:-translate-y-0.5"
             >
               <div>
-                <span className="font-bold text-slate-200 text-xs block group-hover:text-indigo-300 transition-colors">
+                <span className="font-bold text-slate-200 text-sm block group-hover:text-indigo-300 transition-colors">
                   {scen.name}
                 </span>
-                <span className="text-[10px] text-slate-500 leading-tight block mt-1 line-clamp-2">
+                <span className="text-[11px] text-slate-500 leading-relaxed block mt-1.5 line-clamp-2">
                   {scen.description}
                 </span>
               </div>
-              <span className="mt-2 text-[9px] font-mono text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 self-start">
+              <span className="mt-3 text-[10px] font-mono text-indigo-400 font-bold bg-indigo-500/10 px-2.5 py-1 rounded-md border border-indigo-500/20 self-start transition-colors group-hover:bg-indigo-500/20 group-hover:border-indigo-500/30">
                 {scen.phases.length} Phases
               </span>
             </button>
@@ -698,42 +700,48 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         <div className="lg:col-span-7 flex flex-col gap-6">
           
           {/* Phase Input Table */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-2">
-                <FlaskConical className="w-5 h-5 text-indigo-400" />
-                <h2 className="text-base font-bold text-slate-200">
-                  {t('Crystalline Mixture Components')}
-                </h2>
-                <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border border-indigo-500/30">
-                  {phases.length} {phases.length === 1 ? 'Phase' : 'Phases'}
-                </span>
+          <div className="bg-gradient-to-br from-slate-900/80 to-slate-900/40 border border-slate-800/80 rounded-3xl p-6 shadow-xl backdrop-blur-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-800/80 pb-5">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                  <FlaskConical className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-200">
+                    {t('Crystalline Mixture Components')}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="bg-indigo-500/20 text-indigo-300 text-[11px] font-mono px-2.5 py-0.5 rounded-md font-bold border border-indigo-500/30">
+                      {phases.length} {phases.length === 1 ? 'Phase' : 'Phases'}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <button
                 onClick={addPhase}
-                className="px-3.5 py-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all flex items-center gap-1.5 shadow-md active:scale-95 self-start sm:self-auto"
+                className="px-4 py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-95 self-start sm:self-auto"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-4 h-4" />
                 <span>{t('Add Phase')}</span>
               </button>
             </div>
 
             {/* List of Phases */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <AnimatePresence>
                 {phases.map((phase, idx) => (
                   <motion.div
                     key={phase.id}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-4 flex flex-col gap-3 relative group/phase hover:border-indigo-500/30 transition-colors"
+                    className="bg-slate-950/60 border border-slate-800/60 rounded-2xl p-5 flex flex-col gap-4 relative group/phase hover:border-indigo-500/40 hover:bg-slate-950/80 transition-all duration-300 shadow-sm hover:shadow-indigo-500/5"
                   >
-                    <div className="flex items-center justify-between gap-2 border-b border-slate-800/50 pb-2">
-                      <div className="flex items-center gap-2 flex-1">
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
+                      <div className="flex items-center gap-3 flex-1">
                         <span 
-                          className="w-5 h-5 rounded-full font-mono text-[10px] font-bold flex items-center justify-center text-white shadow-sm"
+                          className="w-6 h-6 rounded-full font-mono text-xs font-bold flex items-center justify-center text-white shadow-sm ring-2 ring-slate-950"
                           style={{ backgroundColor: phase.color || COLOR_PALETTE[idx % COLOR_PALETTE.length] }}
                         >
                           {idx + 1}
@@ -742,42 +750,43 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                           type="text"
                           value={phase.name}
                           onChange={(e) => updatePhase(phase.id, 'name', e.target.value)}
-                          className="bg-transparent font-bold text-slate-100 text-sm focus:bg-slate-900 border border-transparent focus:border-slate-700 rounded px-2 py-1 outline-none w-full max-w-xs transition-colors"
+                          className="bg-transparent font-bold text-slate-100 text-base focus:bg-slate-900 border border-transparent focus:border-indigo-500/50 rounded-lg px-2.5 py-1 outline-none w-full max-w-xs transition-colors"
                           placeholder="Phase Name"
                         />
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                          RIR: {phase.rir}
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-md border border-emerald-500/20 flex items-center gap-1.5">
+                          <span>RIR:</span>
+                          <span>{phase.rir}</span>
                         </span>
                         {phases.length > 1 && (
                           <button
                             onClick={() => removePhase(phase.id)}
-                            className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                            className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors opacity-60 group-hover/phase:opacity-100"
                             title="Remove Phase"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         )}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-sm">
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">
                           Peak Int. (I)
                         </label>
                         <input
                           type="number"
                           value={phase.intensity || ''}
                           onChange={(e) => updatePhase(phase.id, 'intensity', parseFloat(e.target.value) || 0)}
-                          className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                          className="w-full bg-slate-900/50 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">
                           RIR (I/Ic)
                         </label>
                         <input
@@ -785,24 +794,24 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                           step="0.05"
                           value={phase.rir || ''}
                           onChange={(e) => updatePhase(phase.id, 'rir', parseFloat(e.target.value) || 0.01)}
-                          className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                          className="w-full bg-slate-900/50 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">
                           Reflection (hkl)
                         </label>
                         <input
                           type="text"
                           value={phase.hkl}
                           onChange={(e) => updatePhase(phase.id, 'hkl', e.target.value)}
-                          className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                          className="w-full bg-slate-900/50 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">
                           2θ Angle (°)
                         </label>
                         <input
@@ -810,12 +819,12 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                           step="0.01"
                           value={phase.twoTheta || ''}
                           onChange={(e) => updatePhase(phase.id, 'twoTheta', parseFloat(e.target.value) || 0)}
-                          className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                          className="w-full bg-slate-900/50 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
                         />
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">
                           MAC (cm²/g)
                         </label>
                         <input
@@ -823,7 +832,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                           step="1"
                           value={phase.mac || ''}
                           onChange={(e) => updatePhase(phase.id, 'mac', parseFloat(e.target.value) || 0)}
-                          className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded-lg px-2.5 py-1.5 font-mono text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                          className="w-full bg-slate-900/50 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
                         />
                       </div>
                     </div>
@@ -833,28 +842,28 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
             </div>
 
             {/* Quick Add Preset Bar */}
-            <div className="mt-5 border-t border-slate-800/80 pt-4">
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="mt-6 border-t border-slate-800/80 pt-5">
+              <div className="flex justify-between items-center mb-3">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-indigo-400" />
                   <span>Quick Add Minerals / Standards</span>
                 </label>
                 <button
                   onClick={() => setShowDbModal(true)}
-                  className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300"
+                  className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
                 >
                   View Full Library ({DATABASE_PRESETS.length}) →
                 </button>
               </div>
-              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
                 {DATABASE_PRESETS.slice(0, 10).map((preset, pIdx) => (
                   <button
                     key={pIdx}
                     onClick={() => addPresetPhase(preset)}
-                    className="text-[11px] bg-slate-950 hover:bg-indigo-950/60 text-slate-300 hover:text-indigo-200 border border-slate-800 hover:border-indigo-500/40 rounded-lg px-2.5 py-1 transition-all flex items-center gap-1.5 group/preset"
+                    className="text-xs bg-slate-900/80 hover:bg-indigo-900/40 text-slate-300 hover:text-indigo-200 border border-slate-700/80 hover:border-indigo-500/50 rounded-xl px-3 py-1.5 transition-all duration-200 flex items-center gap-2 group/preset hover:shadow-md hover:shadow-indigo-500/10"
                   >
                     <span>{preset.name}</span>
-                    <span className="text-[9px] font-mono font-bold text-indigo-400 bg-indigo-500/10 px-1 rounded">
+                    <span className="text-[10px] font-mono font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-md">
                       {preset.rir}
                     </span>
                   </button>
@@ -864,18 +873,18 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
           </div>
 
           {/* Amorphous & Internal Standard & Error Propagation Controls */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-sm space-y-4">
+          <div className="bg-gradient-to-br from-slate-900/80 to-slate-900/40 border border-slate-800/80 rounded-3xl p-6 shadow-xl backdrop-blur-sm space-y-5">
             <h2 className="text-sm font-bold text-slate-200 flex items-center gap-2">
               <Scale className="w-4 h-4 text-emerald-400" />
               <span>Amorphous Matrix, Internal Standards & Error Bounds</span>
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Amorphous Slider */}
-              <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-2">
+              <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-3 shadow-inner">
                 <div className="flex justify-between items-center text-xs">
                   <label className="font-bold text-slate-300">Amorphous Phase (wt%)</label>
-                  <span className="font-mono text-emerald-400 font-bold">{amorphousWtPct}%</span>
+                  <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">{amorphousWtPct}%</span>
                 </div>
                 <input
                   type="range"
@@ -892,7 +901,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
               </div>
 
               {/* Internal Standard Mode */}
-              <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-2">
+              <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-3 shadow-inner">
                 <div className="flex items-center justify-between text-xs">
                   <label className="font-bold text-slate-300">Internal Standard Mode</label>
                   <input
@@ -903,24 +912,24 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                   />
                 </div>
                 {internalStandardMode && (
-                  <div className="space-y-2 pt-1">
+                  <div className="space-y-3 pt-1">
                     <select
                       value={standardPhaseId}
                       onChange={(e) => setStandardPhaseId(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded px-2 py-1 text-xs outline-none"
+                      className="w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 text-xs outline-none transition-all focus:ring-2 focus:ring-indigo-500/50"
                     >
                       {phases.map(p => (
                         <option key={p.id} value={p.id}>Standard: {p.name}</option>
                       ))}
                     </select>
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="text-slate-400">Added Std Wt%:</span>
+                      <span className="text-slate-400 font-medium">Added Std Wt%:</span>
                       <input
                         type="number"
                         step="0.5"
                         value={standardAddedWtPct}
                         onChange={(e) => setStandardAddedWtPct(parseFloat(e.target.value) || 0)}
-                        className="w-20 bg-slate-900 border border-slate-800 text-slate-200 rounded px-2 py-1 font-mono outline-none"
+                        className="w-24 bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-1.5 font-mono outline-none transition-all focus:ring-2 focus:ring-indigo-500/50"
                       />
                     </div>
                   </div>
@@ -929,53 +938,62 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
             </div>
 
             {/* Error Propagation Panel */}
-            <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-2">
+            <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 space-y-3 shadow-inner">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
                   <span>Experimental Uncertainty & Error Propagation</span>
                 </span>
                 <button
                   onClick={() => setShowUncertainty(!showUncertainty)}
-                  className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300"
+                  className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20 transition-colors"
                 >
                   {showUncertainty ? 'Hide' : 'Configure'}
                 </button>
               </div>
 
-              {showUncertainty && (
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800 text-xs">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">
-                      Peak Int. Uncertainty (ΔI/I %)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      max="20"
-                      value={intensityUncertaintyPct}
-                      onChange={(e) => setIntensityUncertaintyPct(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded px-2.5 py-1 font-mono text-xs outline-none"
-                    />
-                  </div>
+              <AnimatePresence>
+                {showUncertainty && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800 text-xs">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">
+                          Peak Int. Uncertainty (ΔI/I %)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          max="20"
+                          value={intensityUncertaintyPct}
+                          onChange={(e) => setIntensityUncertaintyPct(parseFloat(e.target.value) || 0)}
+                          className="w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono text-xs outline-none transition-all focus:ring-2 focus:ring-indigo-500/50"
+                        />
+                      </div>
 
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 block mb-1">
-                      RIR Const. Uncertainty (ΔRIR/RIR %)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      max="20"
-                      value={rirUncertaintyPct}
-                      onChange={(e) => setRirUncertaintyPct(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded px-2.5 py-1 font-mono text-xs outline-none"
-                    />
-                  </div>
-                </div>
-              )}
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 block mb-1.5 uppercase tracking-wider">
+                          RIR Const. Uncertainty (ΔRIR/RIR %)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          max="20"
+                          value={rirUncertaintyPct}
+                          onChange={(e) => setRirUncertaintyPct(parseFloat(e.target.value) || 0)}
+                          className="w-full bg-slate-900 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono text-xs outline-none transition-all focus:ring-2 focus:ring-indigo-500/50"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -984,47 +1002,49 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         <div className="lg:col-span-5 flex flex-col gap-6">
 
           {/* Tab Selection Navigation */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-1.5 backdrop-blur-md flex gap-1">
+          <div className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-1.5 backdrop-blur-md flex gap-1.5 shadow-lg">
             <button
               onClick={() => setActiveTab('charts')}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'charts' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+              className={`flex-1 py-2.5 text-[11px] uppercase tracking-wider font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'charts' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'}`}
             >
-              <PieChartIcon className="w-3.5 h-3.5" />
+              <PieChartIcon className="w-4 h-4" />
               <span>Distribution</span>
             </button>
 
             <button
               onClick={() => setActiveTab('stick')}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'stick' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+              className={`flex-1 py-2.5 text-[11px] uppercase tracking-wider font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'stick' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'}`}
             >
-              <BarChart3 className="w-3.5 h-3.5" />
+              <BarChart3 className="w-4 h-4" />
               <span>XRD Pattern</span>
             </button>
 
             <button
               onClick={() => setActiveTab('mac')}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'mac' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+              className={`flex-1 py-2.5 text-[11px] uppercase tracking-wider font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'mac' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'}`}
             >
-              <Scale className="w-3.5 h-3.5" />
+              <Scale className="w-4 h-4" />
               <span>Calibration</span>
             </button>
 
             <button
               onClick={() => setActiveTab('theory')}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'theory' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
+              className={`flex-1 py-2.5 text-[11px] uppercase tracking-wider font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === 'theory' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'}`}
             >
-              <BookOpen className="w-3.5 h-3.5" />
+              <BookOpen className="w-4 h-4" />
               <span>Theory</span>
             </button>
           </div>
 
           {/* TAB 1: Pie & Bar Charts */}
           {activeTab === 'charts' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-2xl backdrop-blur-md flex flex-col gap-5">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <PieChartIcon className="w-5 h-5 text-indigo-400" />
-                  <h2 className="text-base font-bold text-slate-200">
+            <div className="bg-gradient-to-br from-slate-900/90 to-slate-900/60 border border-slate-800/80 rounded-3xl p-6 shadow-2xl backdrop-blur-md flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                    <PieChartIcon className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-200">
                     Phase Composition Breakdown
                   </h2>
                 </div>
@@ -1104,76 +1124,89 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
           {/* TAB 2: Peak Sticks & Continuous Diffraction Spectrum */}
           {activeTab === 'stick' && (
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-2xl backdrop-blur-md flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-indigo-400" />
-                  <h2 className="text-base font-bold text-slate-200">
+            <div className="bg-gradient-to-br from-slate-900/90 to-slate-900/60 border border-slate-800/80 rounded-3xl p-6 shadow-2xl backdrop-blur-md flex flex-col gap-5 animate-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                    <BarChart3 className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-200">
                     Simulated XRD Spectrum
                   </h2>
                 </div>
 
-                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
+                <div className="flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800/80 shadow-inner text-xs font-bold">
                   <button
                     onClick={() => setSpectrumMode('stick')}
-                    className={`px-2 py-0.5 rounded-lg font-bold transition-all ${spectrumMode === 'stick' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                    className={`px-3 py-1.5 rounded-lg transition-all ${spectrumMode === 'stick' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                   >
                     Stick Diagram
                   </button>
                   <button
                     onClick={() => setSpectrumMode('continuous')}
-                    className={`px-2 py-0.5 rounded-lg font-bold transition-all ${spectrumMode === 'continuous' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                    className={`px-3 py-1.5 rounded-lg transition-all ${spectrumMode === 'continuous' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                   >
                     Continuous Profile
                   </button>
                 </div>
               </div>
 
-              {spectrumMode === 'continuous' && (
-                <div className="flex items-center justify-between gap-3 text-xs bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-slate-400 font-bold">Pseudo-Voigt Peak FWHM:</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="range"
-                      min="0.1"
-                      max="1.0"
-                      step="0.05"
-                      value={profileFWHM}
-                      onChange={(e) => setProfileFWHM(parseFloat(e.target.value) || 0.3)}
-                      className="w-24 accent-indigo-500 h-1 bg-slate-800 rounded cursor-pointer"
-                    />
-                    <span className="font-mono text-indigo-400 font-bold">{profileFWHM}° 2θ</span>
-                  </div>
-                </div>
-              )}
+              <AnimatePresence mode="wait">
+                {spectrumMode === 'continuous' && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80 shadow-inner overflow-hidden"
+                  >
+                    <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Pseudo-Voigt Peak FWHM</span>
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="1.0"
+                        step="0.05"
+                        value={profileFWHM}
+                        onChange={(e) => setProfileFWHM(parseFloat(e.target.value) || 0.3)}
+                        className="w-full sm:w-32 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                      <span className="font-mono text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">{profileFWHM}° 2θ</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              <p className="text-[11px] text-slate-400">
+              <p className="text-xs text-slate-400 leading-relaxed font-medium">
                 {spectrumMode === 'stick' 
                   ? 'Peak reflections plotted at 2θ angles with height equal to raw integrated intensity (I).' 
                   : 'Continuous XRD diffraction pattern synthesized with 50/50 pseudo-Voigt profile broadening.'}
               </p>
 
-              <div className="h-64 w-full">
+              <div className="h-72 w-full mt-2">
                 <ResponsiveContainer width="100%" height="100%">
                   {spectrumMode === 'stick' ? (
-                    <BarChart data={simulatedPeakSticks} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <BarChart data={simulatedPeakSticks} margin={{ top: 20, right: 20, left: -20, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                       <XAxis 
                         dataKey="twoTheta" 
                         stroke="#64748b" 
-                        fontSize={10} 
-                        tickFormatter={(v) => `${v}°`} 
+                        fontSize={11} 
+                        tickFormatter={(v) => `${v}°`}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
                       />
-                      <YAxis stroke="#64748b" fontSize={10} />
+                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} dx={-10} />
                       <RechartsTooltip
+                        cursor={{fill: '#1e293b', opacity: 0.4}}
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl shadow-xl text-xs">
-                                <span className="font-bold text-slate-200 block">{data.name}</span>
-                                <span className="text-slate-400 text-[10px] block">Reflection: {data.hkl}</span>
-                                <span className="text-indigo-400 font-mono font-bold block mt-1">
+                              <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-2xl text-xs backdrop-blur-md">
+                                <span className="font-bold text-slate-200 block text-sm mb-1">{data.name}</span>
+                                <span className="text-slate-400 block mb-1">Reflection: {data.hkl}</span>
+                                <span className="text-indigo-400 font-mono font-bold block">
                                   2θ: {data.twoTheta}° | Intensity: {data.intensity}
                                 </span>
                               </div>
@@ -1182,34 +1215,37 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                           return null;
                         }}
                       />
-                      <Bar dataKey="intensity" radius={[4, 4, 0, 0]}>
+                      <Bar dataKey="intensity" radius={[4, 4, 0, 0]} maxBarSize={40}>
                         {simulatedPeakSticks.map((entry, index) => (
                           <Cell key={`bar-${index}`} fill={entry.color} />
                         ))}
                       </Bar>
                     </BarChart>
                   ) : (
-                    <AreaChart data={continuousPatternData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <AreaChart data={continuousPatternData} margin={{ top: 20, right: 20, left: -20, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                       <XAxis 
                         dataKey="twoTheta" 
                         stroke="#64748b" 
-                        fontSize={10} 
+                        fontSize={11} 
                         tickFormatter={(v) => `${v}°`} 
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
                       />
-                      <YAxis stroke="#64748b" fontSize={10} />
+                      <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} dx={-10} />
                       <RechartsTooltip
                         content={({ active, payload }) => {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl shadow-xl text-xs space-y-1">
-                                <span className="font-bold text-indigo-300 block">2θ: {data.twoTheta}°</span>
-                                <span className="font-mono font-bold text-slate-200 block">Total Intensity: {data.Total}</span>
-                                <div className="border-t border-slate-800 pt-1 space-y-0.5">
+                              <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-2xl text-xs space-y-2 backdrop-blur-md min-w-[150px]">
+                                <span className="font-bold text-indigo-300 block text-sm">2θ: {data.twoTheta}°</span>
+                                <span className="font-mono font-bold text-slate-200 block">Total Int: {data.Total}</span>
+                                <div className="border-t border-slate-700/80 pt-2 space-y-1">
                                   {phases.map(p => (
-                                    <div key={p.id} className="flex justify-between items-center text-[10px] gap-3">
-                                      <span className="text-slate-400">{p.name}:</span>
+                                    <div key={p.id} className="flex justify-between items-center text-[11px] gap-4">
+                                      <span className="text-slate-400 truncate max-w-[100px]" style={{color: p.color}}>{p.name}:</span>
                                       <span className="font-mono font-bold text-slate-200">{data[p.name] || 0}</span>
                                     </div>
                                   ))}
@@ -1220,7 +1256,13 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                           return null;
                         }}
                       />
-                      <Area type="monotone" dataKey="Total" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} strokeWidth={2} />
+                      <Area type="monotone" dataKey="Total" stroke="#6366f1" strokeWidth={3} fill="url(#colorTotal)" />
+                      <defs>
+                        <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
                     </AreaChart>
                   )}
                 </ResponsiveContainer>
@@ -1230,185 +1272,210 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
           {/* TAB 3: MAC & Calibration */}
           {activeTab === 'mac' && (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-6 animate-in slide-in-from-bottom-4 duration-500">
               
               {/* Sample Mass Absorption Summary */}
-              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-2xl backdrop-blur-md space-y-3">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                  <Scale className="w-5 h-5 text-emerald-400" />
-                  <h2 className="text-sm font-bold text-slate-200">
+              <div className="bg-gradient-to-br from-slate-900/90 to-slate-900/60 border border-slate-800/80 rounded-3xl p-6 shadow-2xl backdrop-blur-md space-y-4">
+                <div className="flex items-center gap-3 border-b border-slate-800/80 pb-4">
+                  <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                    <Scale className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-200">
                     Sample Mass Attenuation Coefficient (Cu Kα)
                   </h2>
                 </div>
 
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 shadow-inner">
                   <div>
-                    <span className="text-xs text-slate-400 block font-bold">Total Sample μ*</span>
-                    <span className="text-[10px] text-slate-500">Weighted average matrix absorption</span>
+                    <span className="text-sm text-slate-300 block font-bold mb-1">Total Sample μ*</span>
+                    <span className="text-xs text-slate-500 font-medium">Weighted average matrix absorption from phases</span>
                   </div>
-                  <span className="text-2xl font-black font-mono text-emerald-400">
-                    {calculations.totalSampleMAC.toFixed(1)} <span className="text-xs text-slate-500">cm²/g</span>
-                  </span>
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-xl self-start sm:self-auto">
+                    <span className="text-3xl font-black font-mono text-emerald-400 drop-shadow-md">
+                      {calculations.totalSampleMAC.toFixed(1)} <span className="text-sm font-sans text-emerald-500/70 font-bold ml-1">cm²/g</span>
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* RIR Calibration Tool */}
-              <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-2xl backdrop-blur-md space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+              <div className="bg-gradient-to-br from-slate-900/90 to-slate-900/60 border border-slate-800/80 rounded-3xl p-6 shadow-2xl backdrop-blur-md space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <h2 className="text-base font-bold text-slate-200 uppercase tracking-wider">
                       RIR Constant Calibration Engine
                     </h2>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[10px]">
+                  <div className="flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-xl border border-slate-800/80 text-[11px] font-bold shadow-inner self-start sm:self-auto">
                     <button
                       onClick={() => setCalibMode('single')}
-                      className={`px-2 py-0.5 rounded-lg font-bold transition-all ${calibMode === 'single' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${calibMode === 'single' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                       Single Point
                     </button>
                     <button
                       onClick={() => setCalibMode('multi')}
-                      className={`px-2 py-0.5 rounded-lg font-bold transition-all ${calibMode === 'multi' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                      className={`px-3 py-1.5 rounded-lg transition-all ${calibMode === 'multi' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
                     >
                       Multi-Point Linear
                     </button>
                   </div>
                 </div>
 
-                {calibMode === 'single' ? (
-                  <div className="space-y-3">
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
-                      Calculate the unknown RIR value for a newly synthesized material by measuring a known 1:1 or binary mass ratio mixture against a reference standard phase.
-                    </p>
+                <AnimatePresence mode="wait">
+                  {calibMode === 'single' ? (
+                    <motion.div 
+                      key="single"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-5"
+                    >
+                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                        Calculate the unknown RIR value for a newly synthesized material by measuring a known 1:1 or binary mass ratio mixture against a reference standard phase.
+                      </p>
 
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
-                          Analyte Int. (I_A)
-                        </label>
-                        <input
-                          type="number"
-                          value={calibIntensityA}
-                          onChange={(e) => setCalibIntensityA(parseFloat(e.target.value) || 0)}
-                          className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
-                          Std Int. (I_B)
-                        </label>
-                        <input
-                          type="number"
-                          value={calibIntensityB}
-                          onChange={(e) => setCalibIntensityB(parseFloat(e.target.value) || 0)}
-                          className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
-                          Std RIR (I/Ic)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={calibRIRB}
-                          onChange={(e) => setCalibRIRB(parseFloat(e.target.value) || 1.0)}
-                          className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
-                          Known W_A / W_B Ratio
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          value={calibWeightRatioAB}
-                          onChange={(e) => setCalibWeightRatioAB(parseFloat(e.target.value) || 1.0)}
-                          className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3 flex justify-between items-center">
-                      <span className="text-xs font-bold text-indigo-300">Calibrated RIR_A Value</span>
-                      <span className="text-lg font-mono font-black text-indigo-400">
-                        {calculatedCalibRIR.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
-                      Fit a linear regression curve (I_A/I_B vs W_A/W_B) across multiple calibration standard mixtures to extract high-precision slope and RIR_A.
-                    </p>
-
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-3 gap-2 text-[10px] font-bold text-slate-400 uppercase">
-                        <span>W_A / W_B Mass Ratio</span>
-                        <span>I_A / I_B Int. Ratio</span>
-                        <span>Action</span>
-                      </div>
-                      {calibPoints.map((pt, ptIdx) => (
-                        <div key={pt.id} className="grid grid-cols-3 gap-2 items-center text-xs">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                            Analyte Int. (I_A)
+                          </label>
                           <input
                             type="number"
-                            step="0.05"
-                            value={pt.weightRatio}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              setCalibPoints(prev => prev.map(p => p.id === pt.id ? { ...p, weightRatio: val } : p));
-                            }}
-                            className="bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1 font-mono text-xs outline-none"
+                            value={calibIntensityA}
+                            onChange={(e) => setCalibIntensityA(parseFloat(e.target.value) || 0)}
+                            className="w-full bg-slate-950/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono outline-none transition-all focus:ring-2 focus:ring-indigo-500/50 shadow-inner"
                           />
-                          <input
-                            type="number"
-                            step="0.05"
-                            value={pt.intensityRatio}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              setCalibPoints(prev => prev.map(p => p.id === pt.id ? { ...p, intensityRatio: val } : p));
-                            }}
-                            className="bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1 font-mono text-xs outline-none"
-                          />
-                          <button
-                            onClick={() => setCalibPoints(prev => prev.filter(p => p.id !== pt.id))}
-                            className="text-slate-500 hover:text-rose-400 p-1 text-left"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
                         </div>
-                      ))}
 
-                      <button
-                        onClick={() => {
-                          const newId = Math.random().toString(36).substring(2, 9);
-                          setCalibPoints(prev => [...prev, { id: newId, weightRatio: 1.5, intensityRatio: 5.4 }]);
-                        }}
-                        className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 pt-1"
-                      >
-                        <Plus className="w-3 h-3" /> Add Standard Mixture Point
-                      </button>
-                    </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                            Std Int. (I_B)
+                          </label>
+                          <input
+                            type="number"
+                            value={calibIntensityB}
+                            onChange={(e) => setCalibIntensityB(parseFloat(e.target.value) || 0)}
+                            className="w-full bg-slate-950/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono outline-none transition-all focus:ring-2 focus:ring-indigo-500/50 shadow-inner"
+                          />
+                        </div>
 
-                    <div className="grid grid-cols-2 gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3 text-xs">
-                      <div>
-                        <span className="text-slate-400 block text-[10px] uppercase font-bold">R² Goodness of Fit</span>
-                        <span className="font-mono font-black text-emerald-400 text-sm">{multiPointStats.r2.toFixed(4)}</span>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                            Std RIR (I/Ic)
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={calibRIRB}
+                            onChange={(e) => setCalibRIRB(parseFloat(e.target.value) || 1.0)}
+                            className="w-full bg-slate-950/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono outline-none transition-all focus:ring-2 focus:ring-indigo-500/50 shadow-inner"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                            Known W_A / W_B
+                          </label>
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={calibWeightRatioAB}
+                            onChange={(e) => setCalibWeightRatioAB(parseFloat(e.target.value) || 1.0)}
+                            className="w-full bg-slate-950/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono outline-none transition-all focus:ring-2 focus:ring-indigo-500/50 shadow-inner"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Extracted RIR_A</span>
-                        <span className="font-mono font-black text-indigo-400 text-sm">{multiPointStats.calibRIR.toFixed(2)}</span>
+
+                      <div className="bg-gradient-to-r from-indigo-500/20 to-indigo-500/5 border border-indigo-500/30 rounded-2xl p-4 flex justify-between items-center shadow-inner">
+                        <span className="text-sm font-bold text-indigo-200 uppercase tracking-wide">Calibrated RIR_A Value</span>
+                        <span className="text-3xl font-mono font-black text-indigo-400 drop-shadow-md">
+                          {calculatedCalibRIR.toFixed(2)}
+                        </span>
                       </div>
-                    </div>
-                  </div>
-                )}
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="multi"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-5"
+                    >
+                      <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                        Fit a linear regression curve (I_A/I_B vs W_A/W_B) across multiple calibration standard mixtures to extract high-precision slope and RIR_A.
+                      </p>
+
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-[1fr_1fr_auto] gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">
+                          <span>W_A / W_B Mass Ratio</span>
+                          <span>I_A / I_B Int. Ratio</span>
+                          <span className="w-8 text-center">Act</span>
+                        </div>
+                        <div className="space-y-2">
+                          {calibPoints.map((pt, ptIdx) => (
+                            <div key={pt.id} className="grid grid-cols-[1fr_1fr_auto] gap-4 items-center text-xs">
+                              <input
+                                type="number"
+                                step="0.05"
+                                value={pt.weightRatio}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  setCalibPoints(prev => prev.map(p => p.id === pt.id ? { ...p, weightRatio: val } : p));
+                                }}
+                                className="bg-slate-950/80 border border-slate-700/80 text-slate-200 rounded-xl px-3 py-2 font-mono text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500/50 shadow-inner"
+                              />
+                              <input
+                                type="number"
+                                step="0.05"
+                                value={pt.intensityRatio}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  setCalibPoints(prev => prev.map(p => p.id === pt.id ? { ...p, intensityRatio: val } : p));
+                                }}
+                                className="bg-slate-950/80 border border-slate-700/80 text-slate-200 rounded-xl px-3 py-2 font-mono text-sm outline-none transition-all focus:ring-2 focus:ring-indigo-500/50 shadow-inner"
+                              />
+                              <button
+                                onClick={() => setCalibPoints(prev => prev.filter(p => p.id !== pt.id))}
+                                className="text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 p-2 rounded-xl transition-all w-8 h-8 flex items-center justify-center"
+                                title="Remove Point"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            const newId = Math.random().toString(36).substring(2, 9);
+                            setCalibPoints(prev => [...prev, { id: newId, weightRatio: 1.5, intensityRatio: 5.4 }]);
+                          }}
+                          className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-2 pt-2 px-2 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" /> Add Standard Mixture Point
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 bg-gradient-to-r from-indigo-500/20 to-indigo-500/5 border border-indigo-500/30 rounded-2xl p-5 shadow-inner">
+                        <div>
+                          <span className="text-indigo-200/70 block text-[11px] uppercase tracking-widest font-bold mb-1">R² Goodness of Fit</span>
+                          <span className="font-mono font-black text-emerald-400 text-2xl drop-shadow-sm">{multiPointStats.r2.toFixed(4)}</span>
+                        </div>
+                        <div>
+                          <span className="text-indigo-200/70 block text-[11px] uppercase tracking-widest font-bold mb-1">Extracted RIR_A</span>
+                          <span className="font-mono font-black text-indigo-400 text-2xl drop-shadow-sm">{multiPointStats.calibRIR.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           )}
@@ -1418,90 +1485,95 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
       {/* TAB 4: Theory Modal or Inline */}
       {activeTab === 'theory' && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-8 overflow-hidden">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-4xl w-full max-h-[85vh] flex flex-col gap-4 shadow-2xl overflow-y-auto"
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 rounded-3xl p-6 md:p-8 max-w-4xl w-full max-h-[90vh] flex flex-col gap-6 shadow-2xl overflow-hidden relative"
           >
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-indigo-400" />
-                <h2 className="text-lg font-bold text-slate-100">
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+
+            <div className="flex justify-between items-center border-b border-slate-800/80 pb-4 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-inner">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-100 tracking-tight">
                   Quantitative Phase Analysis Theory
                 </h2>
               </div>
               <button
                 onClick={() => setActiveTab('charts')}
-                className="text-slate-400 hover:text-slate-200 p-1 text-xl"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/50 text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition-colors"
               >
                 ×
               </button>
             </div>
             
-            <div className="space-y-6 text-sm text-slate-300 leading-relaxed">
-              <section className="space-y-3">
-                <h3 className="font-bold text-slate-100 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+            <div className="space-y-8 text-sm text-slate-300 leading-relaxed overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent relative z-10 pb-8">
+              <section className="space-y-4">
+                <h3 className="font-bold text-slate-100 flex items-center gap-2.5 text-base">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span>
                   The Reference Intensity Ratio (RIR) Method
                 </h3>
-                <p>
+                <p className="text-slate-400">
                   The reference intensity ratio ($I/I_c$) is a universal constant defining the ratio of the strongest diffraction peak intensity of phase <em>A</em> to the strongest peak of a reference standard (typically Corundum, $\alpha$-Al₂O₃) in a 1:1 mixture by weight.
                 </p>
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto text-center flex justify-center">
+                <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner overflow-x-auto text-center flex justify-center">
                   <span dangerouslySetInnerHTML={{ __html: katex.renderToString('RIR_A = \\frac{I_A}{I_c} \\quad (W_A = W_c)', { throwOnError: false, displayMode: true }) }} />
                 </div>
               </section>
 
-              <section className="space-y-3">
-                <h3 className="font-bold text-slate-100 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <section className="space-y-4">
+                <h3 className="font-bold text-slate-100 flex items-center gap-2.5 text-base">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"></span>
                   Chung's Adiabatic Method (Matrix Flushing)
                 </h3>
-                <p>
+                <p className="text-slate-400">
                   For a mixture containing <em>n</em> crystalline phases (assuming no amorphous content initially), the weight fraction $W_i$ of each component can be determined without knowing the sample's overall mass absorption coefficient, by normalizing the ratios of measured intensity to RIR:
                 </p>
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto text-center flex justify-center">
+                <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner overflow-x-auto text-center flex justify-center">
                   <span dangerouslySetInnerHTML={{ __html: katex.renderToString('W_i = \\frac{ I_i / RIR_i }{ \\sum_{k=1}^{n} (I_k / RIR_k) }', { throwOnError: false, displayMode: true }) }} />
                 </div>
               </section>
 
-              <section className="space-y-3">
-                <h3 className="font-bold text-slate-100 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              <section className="space-y-4">
+                <h3 className="font-bold text-slate-100 flex items-center gap-2.5 text-base">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
                   Amorphous Content Correction
                 </h3>
-                <p>
+                <p className="text-slate-400">
                   If the sample contains an amorphous fraction {"$W_{amorphous}$"}, the actual weight fraction {"$W_{i,true}$"} of crystalline phase <em>i</em> in the total sample is scaled proportionately:
                 </p>
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto text-center flex justify-center">
+                <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner overflow-x-auto text-center flex justify-center">
                   <span dangerouslySetInnerHTML={{ __html: katex.renderToString('W_{i,true} = W_i \\times (1 - W_{amorphous})', { throwOnError: false, displayMode: true }) }} />
                 </div>
               </section>
 
-              <section className="space-y-3">
-                <h3 className="font-bold text-slate-100 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+              <section className="space-y-4">
+                <h3 className="font-bold text-slate-100 flex items-center gap-2.5 text-base">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
                   Internal Standard Method
                 </h3>
-                <p>
+                <p className="text-slate-400">
                   By adding a known weight fraction ($W_S$) of an internal standard to the unknown sample, absolute weight fractions of any phase <em>A</em> can be determined directly, bypassing the matrix absorption completely:
                 </p>
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto text-center flex justify-center">
+                <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner overflow-x-auto text-center flex justify-center">
                   <span dangerouslySetInnerHTML={{ __html: katex.renderToString('W_A = W_S \\times \\frac{I_A}{I_S} \\times \\frac{RIR_S}{RIR_A}', { throwOnError: false, displayMode: true }) }} />
                 </div>
               </section>
 
-              <section className="space-y-3">
-                <h3 className="font-bold text-slate-100 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+              <section className="space-y-4">
+                <h3 className="font-bold text-slate-100 flex items-center gap-2.5 text-base">
+                  <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.6)]"></span>
                   Error Propagation Formulas
                 </h3>
-                <p>
+                <p className="text-slate-400">
                   Uncertainty in measured integrated intensity (ΔI) and reference constant (ΔRIR) propagates into phase weight fraction error bounds via standard quadrature:
                 </p>
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto text-center flex justify-center">
+                <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner overflow-x-auto text-center flex justify-center">
                   <span dangerouslySetInnerHTML={{ __html: katex.renderToString('\\frac{\\Delta W_i}{W_i} = \\sqrt{ \\left(\\frac{\\Delta I_i}{I_i}\\right)^2 + \\left(\\frac{\\Delta RIR_i}{RIR_i}\\right)^2 }', { throwOnError: false, displayMode: true }) }} />
                 </div>
               </section>
@@ -1513,45 +1585,50 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       {/* Reference Library Modal */}
       <AnimatePresence>
         {showDbModal && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-8">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-4xl w-full max-h-[85vh] flex flex-col gap-4 shadow-2xl overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 rounded-3xl p-6 md:p-8 max-w-5xl w-full h-[85vh] flex flex-col gap-6 shadow-2xl overflow-hidden relative"
             >
-              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <Database className="w-5 h-5 text-indigo-400" />
-                  <h2 className="text-lg font-bold text-slate-100">
+              <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/3 pointer-events-none" />
+
+              <div className="flex justify-between items-center border-b border-slate-800/80 pb-4 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-inner">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-100 tracking-tight">
                     ICDD Reference Intensity Ratio (RIR) Library
                   </h2>
                 </div>
                 <button
                   onClick={() => setShowDbModal(false)}
-                  className="text-slate-400 hover:text-slate-200 p-1 text-xl"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/50 text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition-colors"
                 >
                   ×
                 </button>
               </div>
 
               {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+              <div className="flex flex-col sm:flex-row gap-4 relative z-10">
+                <div className="relative flex-1 group">
+                  <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 group-focus-within:text-indigo-400 transition-colors" />
                   <input
                     type="text"
                     value={dbSearch}
                     onChange={(e) => setDbSearch(e.target.value)}
                     placeholder="Search by mineral, chemical formula, PDF card..."
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-950/60 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-inner"
                   />
                 </div>
 
                 <select
                   value={dbCategoryFilter}
                   onChange={(e) => setDbCategoryFilter(e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none"
+                  className="bg-slate-950/60 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-slate-200 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-inner"
                 >
                   {dbCategories.map((cat, idx) => (
                     <option key={idx} value={cat}>{cat}</option>
@@ -1560,41 +1637,50 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
               </div>
 
               {/* Table */}
-              <div className="overflow-y-auto flex-1 border border-slate-800 rounded-xl">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950 text-slate-400 font-mono text-[10px] uppercase sticky top-0">
+              <div className="overflow-y-auto flex-1 border border-slate-800/80 rounded-2xl relative z-10 bg-slate-950/40 shadow-inner scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-slate-950/90 text-slate-400 font-bold text-xs uppercase tracking-wider sticky top-0 backdrop-blur-md border-b border-slate-800/80">
                     <tr>
-                      <th className="p-3">Phase Name</th>
-                      <th className="p-3">Formula</th>
-                      <th className="p-3">PDF Card</th>
-                      <th className="p-3">System</th>
-                      <th className="p-3">RIR (I/Ic)</th>
-                      <th className="p-3">Reflection</th>
-                      <th className="p-3">Action</th>
+                      <th className="px-5 py-4">Phase Name</th>
+                      <th className="px-5 py-4">Formula</th>
+                      <th className="px-5 py-4">PDF Card</th>
+                      <th className="px-5 py-4">System</th>
+                      <th className="px-5 py-4">RIR (I/Ic)</th>
+                      <th className="px-5 py-4">Reflection</th>
+                      <th className="px-5 py-4 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-slate-300">
                     {filteredDatabase.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-3 font-bold text-slate-200">{item.name}</td>
-                        <td className="p-3 font-mono text-indigo-300">{item.formula}</td>
-                        <td className="p-3 font-mono text-slate-400 text-[11px]">{item.pdfCard}</td>
-                        <td className="p-3">{item.crystalSystem}</td>
-                        <td className="p-3 font-mono font-bold text-emerald-400">{item.rir}</td>
-                        <td className="p-3 font-mono text-slate-400">{item.hkl} @ {item.twoTheta}°</td>
-                        <td className="p-3">
+                      <tr key={idx} className="hover:bg-indigo-500/5 transition-colors group">
+                        <td className="px-5 py-3 font-bold text-slate-200">{item.name}</td>
+                        <td className="px-5 py-3 font-mono text-indigo-300/80 text-xs">{item.formula}</td>
+                        <td className="px-5 py-3 font-mono text-slate-400 text-[11px]">{item.pdfCard}</td>
+                        <td className="px-5 py-3 text-xs">{item.crystalSystem}</td>
+                        <td className="px-5 py-3 font-mono font-bold text-emerald-400">{item.rir.toFixed(2)}</td>
+                        <td className="px-5 py-3 font-mono text-slate-400 text-xs">{item.hkl} @ {item.twoTheta}°</td>
+                        <td className="px-5 py-3 text-right">
                           <button
                             onClick={() => {
                               addPresetPhase(item);
                               setShowDbModal(false);
                             }}
-                            className="px-2.5 py-1 text-[10px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+                            className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-3 py-1.5 transition-all shadow-md active:scale-95 opacity-80 group-hover:opacity-100 flex items-center gap-1.5 ml-auto"
                           >
-                            + Import
+                            <Plus className="w-3.5 h-3.5" />
+                            Import
                           </button>
                         </td>
                       </tr>
                     ))}
+                    {filteredDatabase.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="text-center py-12 text-slate-500">
+                          <Search className="w-8 h-8 mx-auto mb-3 text-slate-600 opacity-50" />
+                          <p>No reference materials found matching your search.</p>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

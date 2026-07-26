@@ -310,7 +310,12 @@ export const WilliamsonHallModule: React.FC = () => {
               </span> 
               <span className="text-cyan-300 font-bold">{d.x.toFixed(5)}</span>
             </p>
-            <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">Y (βcosθ)</span> <span className="text-cyan-300 font-bold">{d.y.toFixed(5)}</span></p>
+            <p className="flex justify-between gap-6">
+              <span className="text-slate-500 uppercase">
+                Y (βcosθ)
+              </span> 
+              <span className="text-cyan-300 font-bold">{d.y.toFixed(5)}</span>
+            </p>
             <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">Linear Fit</span> <span className="text-rose-400">{d.fit.toFixed(5)}</span></p>
           </div>
         </div>
@@ -1428,7 +1433,8 @@ export const WilliamsonHallModule: React.FC = () => {
           <div className="flex justify-between items-center mb-6 relative z-10 px-2">
             <div className="flex items-center gap-3">
                <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-               <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Williamson-Hall Plot</h3>
+               <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">
+               </h3>
             </div>
             <div className="flex items-center gap-3">
               {result && (
@@ -1490,7 +1496,6 @@ export const WilliamsonHallModule: React.FC = () => {
                     axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                   />
                   <YAxis 
-                    label={{ value: 'β cos(θ) [rad]', angle: -90, position: 'insideLeft', offset: -30, fill: '#94a3b8', fontSize: 10, fontWeight: 900, fontFamily: 'monospace' }}
                     tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700, fontFamily: 'monospace' }}
                     tickLine={{ stroke: 'rgba(255,255,255,0.1)' }}
                     axisLine={{ stroke: 'rgba(255,255,255,0.1)' }}

@@ -1,5 +1,5 @@
 import { getActiveMaterials } from './materialsHelper';
-import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
+import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
 
 // --- Signal Processing (Savitzky-Golay) ---
 
@@ -691,7 +691,7 @@ export const calculateWilliamsonHall = (
   instrumentalMode: 'constant' | 'caglioti' = 'constant',
   cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
   youngsModulusGPa?: number,
-  strainModel: 'UDM' | 'USDM' | 'UDEDM' | 'Stephens' = 'UDM',
+  strainModel: 'UDM' | 'USDM' | 'UDEDM' | 'Stephens' | 'Monshi-Scherrer' = 'UDM',
   presetMaterial?: string
 ): WHResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
@@ -735,15 +735,20 @@ export const calculateWilliamsonHall = (
     
     // X and Y selection depending on the Strain Model
     let x = 4 * Math.sin(thetaRad);
-    const y = betaSampleRad * Math.cos(thetaRad);
+    let y = betaSampleRad * Math.cos(thetaRad);
 
-    if (youngsModulusGPa && youngsModulusGPa > 0) {
-      if (strainModel === 'USDM') {
-        const E_hkl = getEhkl(youngsModulusGPa, hkl, presetMaterial);
-        x = (4 * Math.sin(thetaRad)) / E_hkl;
-      } else if (strainModel === 'UDEDM') {
-        const E_hkl = getEhkl(youngsModulusGPa, hkl, presetMaterial);
-        x = (4 * Math.sin(thetaRad)) / Math.sqrt(E_hkl);
+    if (strainModel === 'Monshi-Scherrer') {
+      x = Math.log(1 / Math.cos(thetaRad));
+      y = Math.log(betaSampleRad);
+    } else {
+      if (youngsModulusGPa && youngsModulusGPa > 0) {
+        if (strainModel === 'USDM') {
+          const E_hkl = getEhkl(youngsModulusGPa, hkl, presetMaterial);
+          x = (4 * Math.sin(thetaRad)) / E_hkl;
+        } else if (strainModel === 'UDEDM') {
+          const E_hkl = getEhkl(youngsModulusGPa, hkl, presetMaterial);
+          x = (4 * Math.sin(thetaRad)) / Math.sqrt(E_hkl);
+        }
       }
     }
 
@@ -811,35 +816,42 @@ export const calculateWilliamsonHall = (
   let strainPercent = 0;
   let stressMPa: number | undefined = undefined;
   let energyDensityKjM3: number | undefined = undefined;
+  let sizeInterceptNm = 0;
   
-  if (youngsModulusGPa && youngsModulusGPa > 0) {
-    if (strainModel === 'USDM') {
-      // Slope of beta*cos(theta) vs 4*sin(theta)/Ehkl is stress in GPa
-      stressMPa = slope * 1000;
-      strainPercent = (slope / youngsModulusGPa) * 100; // average strain
-      energyDensityKjM3 = 0.5 * (slope * slope / youngsModulusGPa) * 1000000; // average energy density
-    } else if (strainModel === 'UDEDM') {
-      // Slope of beta*cos(theta) vs 4*sin(theta)/sqrt(Ehkl) is sqrt(2*u)
-      const u_GPa = 0.5 * slope * slope;
-      energyDensityKjM3 = u_GPa * 1000000; // 1 GPa = 1e6 kJ/m3
-      const avgStressGPa = Math.sqrt(2 * u_GPa * youngsModulusGPa);
-      stressMPa = avgStressGPa * 1000;
-      strainPercent = (avgStressGPa / youngsModulusGPa) * 100;
-    } else {
-      // Standard UDM
-      const absoluteStrain = parseFloat(slope.toFixed(6));
-      strainPercent = slope * 100;
-      stressMPa = absoluteStrain * youngsModulusGPa * 1000;
-      energyDensityKjM3 = 0.5 * youngsModulusGPa * absoluteStrain * absoluteStrain * 1000000;
-    }
+  if (strainModel === 'Monshi-Scherrer') {
+    sizeInterceptNm = Math.exp(-intercept) * (K * wavelength) / 10;
+    strainPercent = 0; // Monshi-Scherrer assumes negligible strain, or does not decouple it in standard form
   } else {
-    // If no modulus, fallback to slope being pure strain (UDM style)
-    strainPercent = slope * 100;
+    sizeInterceptNm = intercept > 0 ? (K * wavelength) / intercept / 10 : 0;
+    if (youngsModulusGPa && youngsModulusGPa > 0) {
+      if (strainModel === 'USDM') {
+        // Slope of beta*cos(theta) vs 4*sin(theta)/Ehkl is stress in GPa
+        stressMPa = slope * 1000;
+        strainPercent = (slope / youngsModulusGPa) * 100; // average strain
+        energyDensityKjM3 = 0.5 * (slope * slope / youngsModulusGPa) * 1000000; // average energy density
+      } else if (strainModel === 'UDEDM') {
+        // Slope of beta*cos(theta) vs 4*sin(theta)/sqrt(Ehkl) is sqrt(2*u)
+        const u_GPa = 0.5 * slope * slope;
+        energyDensityKjM3 = u_GPa * 1000000; // 1 GPa = 1e6 kJ/m3
+        const avgStressGPa = Math.sqrt(2 * u_GPa * youngsModulusGPa);
+        stressMPa = avgStressGPa * 1000;
+        strainPercent = (avgStressGPa / youngsModulusGPa) * 100;
+      } else {
+        // Standard UDM
+        const absoluteStrain = parseFloat(slope.toFixed(6));
+        strainPercent = slope * 100;
+        stressMPa = absoluteStrain * youngsModulusGPa * 1000;
+        energyDensityKjM3 = 0.5 * youngsModulusGPa * absoluteStrain * absoluteStrain * 1000000;
+      }
+    } else {
+      // If no modulus, fallback to slope being pure strain (UDM style)
+      strainPercent = slope * 100;
+    }
   }
   
   return {
     strainPercent,
-    sizeInterceptNm: intercept > 0 ? (K * wavelength) / intercept / 10 : 0,
+    sizeInterceptNm,
     regression: { slope, intercept, rSquared },
     stephensParams: strainModel === 'Stephens' ? { S400, S220 } : undefined,
     points,
@@ -2798,4 +2810,115 @@ export const parseXYData = (input: string) => {
       l: p.length > 4 && !isNaN(p[4]) ? p[4] : undefined
     };
   }).filter(p => !isNaN(p.twoTheta) && p.twoTheta > 0);
+};
+
+export const calculateMonshiScherrer = (
+  wavelength: number,
+  K: number,
+  instFwhm: number,
+  peaks: ScherrerInput[],
+  broadeningModel: 'Gaussian' | 'Lorentzian' = 'Gaussian',
+  instrumentalMode: 'constant' | 'caglioti' = 'constant',
+  cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 }
+): MonshiScherrerResult | null => {
+  if (wavelength <= 0 || peaks.length < 2) return null;
+
+  const points: MonshiScherrerPoint[] = [];
+  const pointsExtended: MonshiScherrerResult['pointsExtended'] = [];
+
+  for (const peak of peaks) {
+    const { twoTheta, fwhmObs, hkl } = peak;
+    const thetaRad = (twoTheta / 2) * (Math.PI / 180);
+    const betaObsRad = fwhmObs * (Math.PI / 180);
+
+    let peakInstFwhmDeg = instFwhm;
+    if (instrumentalMode === 'caglioti') {
+      const tanTheta = Math.tan(thetaRad);
+      const valDegSq = cagliotiParams.U * tanTheta * tanTheta + cagliotiParams.V * tanTheta + cagliotiParams.W;
+      peakInstFwhmDeg = Math.sqrt(Math.max(1e-6, valDegSq));
+    }
+    const betaInstRad = peakInstFwhmDeg * (Math.PI / 180);
+
+    let betaSampleRad = 0;
+    if (broadeningModel === 'Gaussian') {
+      const betaSq = Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad);
+      betaSampleRad = Math.sqrt(betaSq);
+    } else {
+      betaSampleRad = Math.max(0, betaObsRad - betaInstRad);
+    }
+
+    if (betaSampleRad <= 0) continue;
+
+    const cosTheta = Math.cos(thetaRad);
+    if (cosTheta <= 1e-10) continue;
+
+    // Monshi-Scherrer Scheme coordinates:
+    // X = ln(1 / cos(theta)) = -ln(cos(theta))
+    // Y = ln(beta_sample_rad)
+    const x = Math.log(1 / cosTheta);
+    const y = Math.log(betaSampleRad);
+
+    points.push({ x, y, twoTheta, hkl });
+
+    const singlePeakSizeNm = (K * wavelength) / (betaSampleRad * cosTheta) / 10;
+
+    pointsExtended.push({
+      twoTheta,
+      fwhmObs,
+      fwhmInst: peakInstFwhmDeg,
+      betaCorrectedDeg: betaSampleRad * (180 / Math.PI),
+      betaCorrectedRad: betaSampleRad,
+      x,
+      y,
+      singlePeakSizeNm,
+      hkl
+    });
+  }
+
+  if (points.length < 2) return null;
+
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  for (const p of points) {
+    sumX += p.x;
+    sumY += p.y;
+    sumXY += p.x * p.y;
+    sumX2 += p.x * p.x;
+  }
+  const n = points.length;
+  const denom = (n * sumX2 - sumX * sumX);
+  if (Math.abs(denom) < 1e-12) return null;
+
+  const slope = (n * sumXY - sumX * sumY) / denom;
+  const intercept = (sumY - slope * sumX) / n;
+
+  const meanY = sumY / n;
+  let ssTot = 0, ssRes = 0;
+  for (const p of points) {
+    const yPred = slope * p.x + intercept;
+    ssTot += Math.pow(p.y - meanY, 2);
+    ssRes += Math.pow(p.y - yPred, 2);
+  }
+  const rSquared = ssTot === 0 ? 0 : Math.max(0, 1 - (ssRes / ssTot));
+
+  // D = (K * lambda) / (10 * e^(intercept)) = (K * lambda * e^(-intercept)) / 10
+  const sizeNm = Math.exp(-intercept) * (K * wavelength) / 10;
+
+  let slopeInterpretation = '';
+  if (Math.abs(slope - 1.0) <= 0.15) {
+    slopeInterpretation = 'Slope ≈ 1.0 indicates near-pure isotropic size broadening with minimal strain distortion (Monshi-Scherrer ideal case).';
+  } else if (slope > 1.15) {
+    slopeInterpretation = `Slope (${slope.toFixed(3)}) > 1.0 reflects significant microstrain contribution or anisotropic broadening at higher diffraction angles.`;
+  } else {
+    slopeInterpretation = `Slope (${slope.toFixed(3)}) < 1.0 indicates instrumental broadening over-subtraction or planar defect contribution (stacking faults/twins).`;
+  }
+
+  return {
+    sizeNm,
+    slope,
+    intercept,
+    rSquared,
+    slopeInterpretation,
+    points,
+    pointsExtended
+  };
 };

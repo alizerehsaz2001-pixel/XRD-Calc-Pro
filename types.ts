@@ -87,6 +87,33 @@ export interface FWHMResult {
   maxIntensity: number;
 }
 
+export interface MonshiScherrerPoint {
+  x: number; // ln(1 / cos(theta))
+  y: number; // ln(beta_sample_rad)
+  twoTheta: number;
+  hkl?: [number, number, number];
+}
+
+export interface MonshiScherrerResult {
+  sizeNm: number;
+  slope: number;
+  intercept: number;
+  rSquared: number;
+  slopeInterpretation: string;
+  points: MonshiScherrerPoint[];
+  pointsExtended: {
+    twoTheta: number;
+    fwhmObs: number;
+    fwhmInst: number;
+    betaCorrectedDeg: number;
+    betaCorrectedRad: number;
+    x: number;
+    y: number;
+    singlePeakSizeNm: number;
+    hkl?: [number, number, number];
+  }[];
+}
+
 export interface WHPoint {
   x: number; // 4 * sin(theta)
   y: number; // beta * cos(theta)
