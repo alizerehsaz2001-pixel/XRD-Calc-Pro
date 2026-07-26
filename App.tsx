@@ -10,6 +10,7 @@ import { SelectionRulesModule } from './components/SelectionRulesModule';
 import { ScherrerModule } from './components/ScherrerModule';
 import { WilliamsonHallModule } from './components/WilliamsonHallModule';
 import { MonshiScherrerModule } from './components/MonshiScherrerModule';
+import { DoubleVoigtModule } from './components/DoubleVoigtModule';
 import { IntegralBreadthModule } from './components/IntegralBreadthModule';
 import { IntegralBreadthAdvancedModule } from './components/IntegralBreadthAdvancedModule';
 import { WarrenAverbachModule } from './components/WarrenAverbachModule';
@@ -57,7 +58,7 @@ import { syncOfflineHelper } from './utils/materialsHelper';
 
 import { ResidualStressModule } from './components/ResidualStressModule';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress';
 
 const getModuleIcon = (id: Module, active: boolean) => {
   const iconProps = {
@@ -81,6 +82,8 @@ const getModuleIcon = (id: Module, active: boolean) => {
       return <TrendingUp {...iconProps} />;
     case 'monshi_scherrer':
       return <Activity {...iconProps} />;
+    case 'double_voigt':
+      return <Layers {...iconProps} />;
     case 'integral':
       return <Infinity {...iconProps} />;
     case 'integral_adv':
@@ -936,6 +939,7 @@ const App: React.FC = () => {
       { id: 'scherrer', label: t('Scherrer Method'), group: t('Size & Strain') },
       { id: 'wh', label: t('Williamson-Hall'), group: t('Size & Strain') },
       { id: 'monshi_scherrer', label: t('Monshi-Scherrer Scheme'), group: t('Size & Strain') },
+      { id: 'double_voigt', label: t('Double-Voigt Method'), group: t('Size & Strain') },
       { id: 'integral', label: t('Integral Breadth'), group: t('Size & Strain') },
       { id: 'integral_adv', label: t('IB Advanced (W-H)'), group: t('Size & Strain') },
       { id: 'wa', label: t('Warren-Averbach'), group: t('Size & Strain') },
@@ -1545,6 +1549,7 @@ const App: React.FC = () => {
                   {activeModule === 'scherrer' && <ScherrerModule />}
                   {activeModule === 'wh' && <WilliamsonHallModule />}
                   {activeModule === 'monshi_scherrer' && <MonshiScherrerModule />}
+                  {activeModule === 'double_voigt' && <DoubleVoigtModule />}
                   {activeModule === 'integral' && <IntegralBreadthModule />}
                   {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
                   {activeModule === 'wa' && <WarrenAverbachModule />}

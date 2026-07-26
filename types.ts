@@ -114,6 +114,38 @@ export interface MonshiScherrerResult {
   }[];
 }
 
+export interface DoubleVoigtPoint {
+  twoTheta: number;
+  s: number;          // 2 * sin(theta) / lambda [nm^-1]
+  s2: number;         // s^2
+  betaStar: number;   // beta * cos(theta) / lambda [nm^-1]
+  betaCStar: number;  // Cauchy component in reciprocal space [nm^-1]
+  betaGStarSq: number;// (Gaussian component in reciprocal space)^2 [nm^-2]
+  betaGStar: number;  // Gaussian component in reciprocal space [nm^-1]
+  singleDvNm: number; // Single peak apparent volume size
+  hkl?: [number, number, number];
+}
+
+export interface DoubleVoigtResult {
+  volumeSizeDvNm: number;     // D_V = 1 / beta_{C,S}* [nm]
+  gaussianSizeDgNm: number;   // D_G = 1 / (pi * beta_{G,S}*) [nm]
+  areaSizeDaNm: number;       // D_A area-weighted crystallite size [nm]
+  cauchyStrainEc: number;     // e_C = Slope_C / 2
+  gaussianStrainEg: number;   // e_G = sqrt(Slope_G / (8*pi))
+  rmsStrain: number;          // <e^2>^(1/2) = sqrt(e_C^2 + 2*pi*e_G^2)
+  cauchyFit: {
+    slope: number;
+    intercept: number;
+    rSquared: number;
+  };
+  gaussianFit: {
+    slope: number;
+    intercept: number;
+    rSquared: number;
+  };
+  points: DoubleVoigtPoint[];
+}
+
 export interface WHPoint {
   x: number; // 4 * sin(theta)
   y: number; // beta * cos(theta)

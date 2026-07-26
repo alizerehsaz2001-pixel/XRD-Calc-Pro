@@ -400,7 +400,14 @@ async function startServer() {
 
       if (responseText) {
         try {
-          const parsed = JSON.parse(responseText);
+          let cleanJson = responseText.trim();
+          cleanJson = cleanJson.replace(/```json\n?/gi, "").replace(/\n?```/g, "").trim();
+          const firstBrace = cleanJson.indexOf('{');
+          const lastBrace = cleanJson.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
+            cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+          }
+          const parsed = JSON.parse(cleanJson);
           // Store new translations in cache and in result
           Object.keys(parsed).forEach((key) => {
             const val = parsed[key];

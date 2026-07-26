@@ -1,5 +1,5 @@
 import { getActiveMaterials } from './materialsHelper';
-import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
+import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
 
 // --- Signal Processing (Savitzky-Golay) ---
 
@@ -2920,5 +2920,214 @@ export const calculateMonshiScherrer = (
     slopeInterpretation,
     points,
     pointsExtended
+  };
+};
+
+export interface DoubleVoigtPeakInput {
+  twoTheta: number;
+  fwhmObs: number;
+  eta?: number; // Lorentzian fraction [0, 1]
+  hkl?: [number, number, number];
+}
+
+export const parseDoubleVoigtInput = (raw: string): DoubleVoigtPeakInput[] => {
+  if (!raw) return [];
+  const lines = raw.split('\n');
+  const results: DoubleVoigtPeakInput[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const parts = trimmed.split(/[\s,]+/).map(Number);
+    if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      const twoTheta = parts[0];
+      const fwhmObs = parts[1];
+      let eta = 0.5;
+      let hkl: [number, number, number] | undefined = undefined;
+
+      if (parts.length >= 3 && !isNaN(parts[2])) {
+        // If 3rd parameter is between 0 and 1, treat as eta, otherwise h
+        if (parts[2] >= 0 && parts[2] <= 1 && parts.length !== 5) {
+          eta = parts[2];
+        } else if (parts.length >= 5) {
+          // 2theta, fwhm, h, k, l, optional eta
+          hkl = [parts[2], parts[3], parts[4]];
+          if (parts.length >= 6 && !isNaN(parts[5])) {
+            eta = Math.min(1, Math.max(0, parts[5]));
+          }
+        }
+      }
+
+      results.push({ twoTheta, fwhmObs, eta, hkl });
+    }
+  }
+
+  return results.filter(p => p.twoTheta > 0 && p.fwhmObs > 0);
+};
+
+// Error function helper for area-weighted crystallite size calculation
+function erfc(x: number): number {
+  // Abramowitz and Stegun approximation
+  const a1 = 0.254829592;
+  const a2 = -0.284496736;
+  const a3 = 1.421413741;
+  const a4 = -1.453152027;
+  const a5 = 1.061405429;
+  const p  = 0.3275911;
+
+  const sign = x < 0 ? -1 : 1;
+  const absX = Math.abs(x);
+
+  const t = 1.0 / (1.0 + p * absX);
+  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX);
+
+  const res = 1.0 - sign * y;
+  return res;
+}
+
+export const calculateDoubleVoigt = (
+  wavelength: number, // in Angstroms
+  instFwhm: number,   // in deg
+  peaks: DoubleVoigtPeakInput[]
+): DoubleVoigtResult | null => {
+  if (wavelength <= 0 || peaks.length < 2) return null;
+
+  const lambdaNm = wavelength / 10;
+  const points: DoubleVoigtPoint[] = [];
+
+  for (const peak of peaks) {
+    const { twoTheta, fwhmObs, eta = 0.5, hkl } = peak;
+    const thetaRad = (twoTheta / 2) * (Math.PI / 180);
+    const cosTheta = Math.cos(thetaRad);
+    const sinTheta = Math.sin(thetaRad);
+
+    if (cosTheta <= 1e-10) continue;
+
+    const s = (2 * sinTheta) / lambdaNm; // scattering vector [nm^-1]
+    const s2 = s * s;
+
+    const betaObsRad = fwhmObs * (Math.PI / 180);
+    const betaInstRad = instFwhm * (Math.PI / 180);
+
+    // Corrected sample integral breadth
+    const betaSampleSq = Math.max(1e-10, betaObsRad * betaObsRad - betaInstRad * betaInstRad);
+    const betaSampleRad = Math.sqrt(betaSampleSq);
+
+    // Pseudo-Voigt deconvolution into Cauchy (C) and Gaussian (G) parts
+    const etaClean = Math.min(0.99, Math.max(0.01, eta));
+    const betaCRad = etaClean * betaSampleRad;
+    const betaGRad = Math.sqrt(Math.max(1e-10, (1 - etaClean * etaClean) * betaSampleRad * betaSampleRad));
+
+    // Convert to reciprocal space
+    const betaStar = (betaSampleRad * cosTheta) / lambdaNm;
+    const betaCStar = (betaCRad * cosTheta) / lambdaNm;
+    const betaGStar = (betaGRad * cosTheta) / lambdaNm;
+    const betaGStarSq = betaGStar * betaGStar;
+
+    const singleDvNm = betaCStar > 0 ? 1 / betaCStar : 0;
+
+    points.push({
+      twoTheta,
+      s,
+      s2,
+      betaStar,
+      betaCStar,
+      betaGStarSq,
+      betaGStar,
+      singleDvNm,
+      hkl
+    });
+  }
+
+  if (points.length < 2) return null;
+
+  // Linear regression for Cauchy plot: betaCStar vs s
+  let sumXc = 0, sumYc = 0, sumXYc = 0, sumX2c = 0;
+  for (const p of points) {
+    sumXc += p.s;
+    sumYc += p.betaCStar;
+    sumXYc += p.s * p.betaCStar;
+    sumX2c += p.s * p.s;
+  }
+  const n = points.length;
+  const denomC = n * sumX2c - sumXc * sumXc;
+  if (Math.abs(denomC) < 1e-12) return null;
+
+  const slopeC = (n * sumXYc - sumXc * sumYc) / denomC;
+  const interceptC = (sumYc - slopeC * sumXc) / n;
+
+  const meanYc = sumYc / n;
+  let ssTotC = 0, ssResC = 0;
+  for (const p of points) {
+    const yPred = slopeC * p.s + interceptC;
+    ssTotC += Math.pow(p.betaCStar - meanYc, 2);
+    ssResC += Math.pow(p.betaCStar - yPred, 2);
+  }
+  const rSquaredC = ssTotC === 0 ? 0 : Math.max(0, 1 - ssResC / ssTotC);
+
+  // Linear regression for Gaussian plot: (betaGStar)^2 vs s^2
+  let sumXg = 0, sumYg = 0, sumXYg = 0, sumX2g = 0;
+  for (const p of points) {
+    sumXg += p.s2;
+    sumYg += p.betaGStarSq;
+    sumXYg += p.s2 * p.betaGStarSq;
+    sumX2g += p.s2 * p.s2;
+  }
+  const denomG = n * sumX2g - sumXg * sumXg;
+  if (Math.abs(denomG) < 1e-12) return null;
+
+  const slopeG = (n * sumXYg - sumXg * sumYg) / denomG;
+  const interceptG = (sumYg - slopeG * sumXg) / n;
+
+  const meanYg = sumYg / n;
+  let ssTotG = 0, ssResG = 0;
+  for (const p of points) {
+    const yPred = slopeG * p.s2 + interceptG;
+    ssTotG += Math.pow(p.betaGStarSq - meanYg, 2);
+    ssResG += Math.pow(p.betaGStarSq - yPred, 2);
+  }
+  const rSquaredG = ssTotG === 0 ? 0 : Math.max(0, 1 - ssResG / ssTotG);
+
+  // Derive microstructural properties
+  // 1. Cauchy Volume-Weighted Crystallite Size: D_V = 1 / Intercept_C
+  const volumeSizeDvNm = interceptC > 1e-8 ? 1 / interceptC : 0;
+
+  // 2. Cauchy Strain: e_C = Slope_C / 2
+  const cauchyStrainEc = Math.max(0, slopeC / 2);
+
+  // 3. Gaussian Size: D_G = 1 / (pi * sqrt(Intercept_G))
+  const betaGStarSize = Math.sqrt(Math.max(1e-10, interceptG));
+  const gaussianSizeDgNm = 1 / (Math.PI * betaGStarSize);
+
+  // 4. Gaussian Strain: e_G = sqrt(Slope_G / (8 * pi))
+  const gaussianStrainEg = Math.sqrt(Math.max(0, slopeG / (8 * Math.PI)));
+
+  // 5. Area-weighted crystallite size (Langford formulation):
+  // D_A = (1 / (pi * betaGStarSize)) * exp( (betaCStarSize / (pi * betaGStarSize))^2 ) * erfc( betaCStarSize / (sqrt(pi) * betaGStarSize) )
+  const betaCStarSize = Math.max(1e-10, interceptC);
+  const kRatio = betaCStarSize / (Math.sqrt(Math.PI) * betaGStarSize);
+  const areaSizeDaNm = (1 / (Math.PI * betaGStarSize)) * Math.exp(kRatio * kRatio) * erfc(kRatio);
+
+  // 6. RMS Strain
+  const rmsStrain = Math.sqrt(cauchyStrainEc * cauchyStrainEc + 2 * Math.PI * gaussianStrainEg * gaussianStrainEg);
+
+  return {
+    volumeSizeDvNm,
+    gaussianSizeDgNm,
+    areaSizeDaNm,
+    cauchyStrainEc,
+    gaussianStrainEg,
+    rmsStrain,
+    cauchyFit: {
+      slope: slopeC,
+      intercept: interceptC,
+      rSquared: rSquaredC
+    },
+    gaussianFit: {
+      slope: slopeG,
+      intercept: interceptG,
+      rSquared: rSquaredG
+    },
+    points
   };
 };
