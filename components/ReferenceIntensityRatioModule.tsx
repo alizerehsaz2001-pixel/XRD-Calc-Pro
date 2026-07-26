@@ -4,13 +4,14 @@ import {
   FileSpreadsheet, Calculator, Info, Sparkles, RefreshCw, 
   BarChart3, PieChart as PieChartIcon, Check, BookOpen, Scale,
   Search, Upload, FileText, ArrowRightLeft, Database, HelpCircle,
-  Eye, Sliders, Play
+  Eye, Sliders, Play, Copy, CheckCircle2, TrendingUp, AlertTriangle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, LineChart, Line, ReferenceLine
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend, LineChart, Line,
+  AreaChart, Area, ScatterChart, Scatter, ZAxis
 } from 'recharts';
 import { playSynthTone } from '../utils/sound';
 import katex from 'katex';
@@ -38,6 +39,12 @@ interface RIRDatabaseEntry {
   twoTheta: number;
   macCu: number; // cm^2/g for Cu K-alpha
   category: string;
+}
+
+interface CalibPoint {
+  id: string;
+  weightRatio: number;
+  intensityRatio: number;
 }
 
 const COLOR_PALETTE = [
@@ -149,17 +156,36 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
   const [standardPhaseId, setStandardPhaseId] = useState<string>('3');
   const [standardAddedWtPct, setStandardAddedWtPct] = useState<number>(10.0);
 
+  // Uncertainty Estimator State
+  const [intensityUncertaintyPct, setIntensityUncertaintyPct] = useState<number>(3.0);
+  const [rirUncertaintyPct, setRirUncertaintyPct] = useState<number>(5.0);
+  const [showUncertainty, setShowUncertainty] = useState<boolean>(true);
+
   // Calibration estimator state
+  const [calibMode, setCalibMode] = useState<'single' | 'multi'>('single');
   const [calibIntensityA, setCalibIntensityA] = useState(3200);
   const [calibIntensityB, setCalibIntensityB] = useState(1000);
   const [calibRIRB, setCalibRIRB] = useState(1.0); // Corundum standard
   const [calibWeightRatioAB, setCalibWeightRatioAB] = useState(3.2); // W_A / W_B ratio
+
+  // Multi-point calibration points
+  const [calibPoints, setCalibPoints] = useState<CalibPoint[]>([
+    { id: '1', weightRatio: 0.25, intensityRatio: 0.90 },
+    { id: '2', weightRatio: 0.50, intensityRatio: 1.80 },
+    { id: '3', weightRatio: 1.00, intensityRatio: 3.60 },
+    { id: '4', weightRatio: 2.00, intensityRatio: 7.20 },
+  ]);
+
+  // Spectrum Profile Visualizer State
+  const [spectrumMode, setSpectrumMode] = useState<'stick' | 'continuous'>('stick');
+  const [profileFWHM, setProfileFWHM] = useState<number>(0.3); // degrees 2Theta
 
   // Search & Filter state for Reference DB
   const [dbSearch, setDbSearch] = useState('');
   const [dbCategoryFilter, setDbCategoryFilter] = useState('All');
   const [showDbModal, setShowDbModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'charts' | 'stick' | 'mac' | 'theory'>('charts');
+  const [copiedReport, setCopiedReport] = useState(false);
 
   // Add Phase
   const addPhase = () => {
@@ -242,6 +268,11 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
     const amorphousFactor = (100 - Math.min(99, Math.max(0, amorphousWtPct))) / 100;
 
+    // Error Propagation Factor
+    const relErrI = (intensityUncertaintyPct || 0) / 100;
+    const relErrRIR = (rirUncertaintyPct || 0) / 100;
+    const baseRelError = Math.sqrt(relErrI * relErrI + relErrRIR * relErrRIR);
+
     const phaseResults = phases.map((p, idx) => {
       const match = reducedIntensities.find(r => r.id === p.id);
       const rI = match ? match.rI : 0;
@@ -252,6 +283,10 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       // Total sample weight fraction considering amorphous content
       const totalSampleFraction = crystallineFraction * amorphousFactor;
 
+      // Propagated standard deviation
+      const errMarginCrystalline = crystallineFraction * baseRelError;
+      const errMarginTotal = totalSampleFraction * baseRelError;
+
       // Accumulate for sample MAC
       weightedMacSum += (crystallineFraction / 100) * (p.mac || 50.0);
 
@@ -260,6 +295,8 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         reducedIntensity: rI,
         crystallineFraction,
         totalSampleFraction,
+        errMarginCrystalline,
+        errMarginTotal,
         color: p.color || COLOR_PALETTE[idx % COLOR_PALETTE.length]
       };
     });
@@ -289,13 +326,44 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       amorphousFactor,
       totalSampleMAC
     };
-  }, [phases, amorphousWtPct, internalStandardMode, standardPhaseId, standardAddedWtPct]);
+  }, [phases, amorphousWtPct, internalStandardMode, standardPhaseId, standardAddedWtPct, intensityUncertaintyPct, rirUncertaintyPct]);
 
-  // Calibrated RIR calculation
+  // Calibrated single-point RIR calculation
   const calculatedCalibRIR = useMemo(() => {
     if (calibIntensityB <= 0 || calibWeightRatioAB <= 0) return 0;
     return calibRIRB * (calibIntensityA / calibIntensityB) * (1 / calibWeightRatioAB);
   }, [calibIntensityA, calibIntensityB, calibRIRB, calibWeightRatioAB]);
+
+  // Multi-point linear regression calibration
+  const multiPointStats = useMemo(() => {
+    if (calibPoints.length < 2) {
+      return { slope: 0, intercept: 0, r2: 0, calibRIR: 0 };
+    }
+    const n = calibPoints.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    calibPoints.forEach(pt => {
+      const x = pt.weightRatio;
+      const y = pt.intensityRatio;
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumXX += x * x;
+    });
+
+    const denominator = (n * sumXX - sumX * sumX);
+    const slope = denominator !== 0 ? (n * sumXY - sumX * sumY) / denominator : 0;
+    const intercept = (sumY - slope * sumX) / n;
+    
+    // R^2 calculation
+    const yMean = sumY / n;
+    const ssTot = calibPoints.reduce((acc, pt) => acc + Math.pow(pt.intensityRatio - yMean, 2), 0);
+    const ssRes = calibPoints.reduce((acc, pt) => acc + Math.pow(pt.intensityRatio - (slope * pt.weightRatio + intercept), 2), 0);
+    const r2 = ssTot > 0 ? Math.max(0, 1 - ssRes / ssTot) : 1;
+
+    const calibRIR = slope * calibRIRB;
+
+    return { slope, intercept, r2, calibRIR };
+  }, [calibPoints, calibRIRB]);
 
   // Filtered Reference DB
   const filteredDatabase = useMemo(() => {
@@ -316,24 +384,51 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
   // Stick diagram simulated XRD data
   const simulatedPeakSticks = useMemo(() => {
-    // Generate peaks sorted by 2Theta
     const sortedPhases = [...calculations.phaseResults].sort((a, b) => a.twoTheta - b.twoTheta);
-    
-    // Create stick points with line pairs
-    const points: any[] = [];
-    sortedPhases.forEach(p => {
-      points.push({
-        twoTheta: p.twoTheta,
-        intensity: p.intensity,
-        reducedIntensity: p.reducedIntensity,
-        name: p.name,
-        hkl: p.hkl,
-        color: p.color
-      });
-    });
-
-    return points;
+    return sortedPhases.map(p => ({
+      twoTheta: p.twoTheta,
+      intensity: p.intensity,
+      reducedIntensity: p.reducedIntensity,
+      name: p.name,
+      hkl: p.hkl,
+      color: p.color
+    }));
   }, [calculations]);
+
+  // Continuous Pseudo-Voigt Diffraction Profile
+  const continuousPatternData = useMemo(() => {
+    if (phases.length === 0) return [];
+    
+    const minAngle = Math.max(10, Math.floor(Math.min(...phases.map(p => p.twoTheta)) - 4));
+    const maxAngle = Math.min(80, Math.ceil(Math.max(...phases.map(p => p.twoTheta)) + 4));
+    const step = 0.2;
+    const numSteps = Math.ceil((maxAngle - minAngle) / step);
+
+    const data: any[] = [];
+    const fwhm = profileFWHM > 0 ? profileFWHM : 0.3;
+
+    for (let i = 0; i <= numSteps; i++) {
+      const twoTheta = Number((minAngle + i * step).toFixed(2));
+      const point: Record<string, any> = { twoTheta, Total: 0 };
+
+      let totalInt = 0;
+      phases.forEach(p => {
+        const diff = twoTheta - p.twoTheta;
+        const g = Math.exp(-4 * Math.LN2 * Math.pow(diff / fwhm, 2));
+        const l = 1 / (1 + 4 * Math.pow(diff / fwhm, 2));
+        const profileVal = (p.intensity || 0) * (0.5 * g + 0.5 * l);
+        
+        const phaseVal = Number(profileVal.toFixed(1));
+        point[p.name] = phaseVal;
+        totalInt += phaseVal;
+      });
+
+      point.Total = Number(totalInt.toFixed(1));
+      data.push(point);
+    }
+
+    return data;
+  }, [phases, profileFWHM]);
 
   // Chart data for Pie
   const pieChartData = useMemo(() => {
@@ -358,6 +453,42 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     return data;
   }, [calculations, amorphousWtPct]);
 
+  // Copy Summary Report to Clipboard
+  const copyReportToClipboard = () => {
+    playSynthTone('success');
+    let report = `XRD QUANTITATIVE PHASE ANALYSIS REPORT (RIR METHOD)\n`;
+    report += `====================================================\n`;
+    report += `Date/Time: ${new Date().toLocaleString()}\n`;
+    report += `Amorphous Content Correction: ${amorphousWtPct} wt%\n`;
+    report += `Sample Mass Attenuation Coefficient (Cu Kα): ${calculations.totalSampleMAC.toFixed(2)} cm²/g\n`;
+    report += `Assumed Measurement Uncertainty: ±${intensityUncertaintyPct}% (Int), ±${rirUncertaintyPct}% (RIR)\n\n`;
+
+    report += `PHASE QUANTITATIVE SUMMARY:\n`;
+    report += `----------------------------------------------------\n`;
+    report += `Phase Name              | hkl   | 2-Theta | Int (I) | RIR   | Cryst. wt%     | Total Sample wt%\n`;
+    report += `----------------------------------------------------\n`;
+
+    calculations.phaseResults.forEach(p => {
+      const namePad = p.name.padEnd(23, ' ').substring(0, 23);
+      const hklPad = p.hkl.padEnd(5, ' ').substring(0, 5);
+      const ttPad = p.twoTheta.toFixed(2).padStart(7, ' ');
+      const intPad = p.intensity.toString().padStart(7, ' ');
+      const rirPad = p.rir.toFixed(2).padStart(5, ' ');
+      const crystPad = `${p.crystallineFraction.toFixed(1)} ± ${p.errMarginCrystalline.toFixed(1)}%`.padStart(14, ' ');
+      const totPad = `${p.totalSampleFraction.toFixed(1)} ± ${p.errMarginTotal.toFixed(1)}%`.padStart(16, ' ');
+
+      report += `${namePad} | ${hklPad} | ${ttPad} | ${intPad} | ${rirPad} | ${crystPad} | ${totPad}\n`;
+    });
+
+    report += `----------------------------------------------------\n`;
+    report += `Amorphous Matrix        | ---   | ---     | ---     | ---   | ---            | ${amorphousWtPct.toFixed(1)} wt%\n`;
+    report += `====================================================\n`;
+
+    navigator.clipboard.writeText(report);
+    setCopiedReport(true);
+    setTimeout(() => setCopiedReport(false), 2500);
+  };
+
   // CSV Export
   const exportCSV = () => {
     playSynthTone('success');
@@ -373,17 +504,17 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     csvContent += `# Total Sample Mass Attenuation Coeff (Cu K-alpha): ${calculations.totalSampleMAC.toFixed(2)} cm2/g\n`;
     csvContent += `\n`;
     
-    csvContent += `Phase Name,Reflection (hkl),2-Theta (deg),Integrated Intensity (I),RIR (I/Ic),MAC (cm2/g),Reduced Intensity (I/RIR),Crystalline Wt (%),Total Sample Wt (%),Notes\n`;
+    csvContent += `Phase Name,Reflection (hkl),2-Theta (deg),Integrated Intensity (I),RIR (I/Ic),MAC (cm2/g),Reduced Intensity (I/RIR),Crystalline Wt (%),Err Margin (%),Total Sample Wt (%),Err Margin (%),Notes\n`;
 
     calculations.phaseResults.forEach(p => {
       const nameEscaped = `"${p.name.replace(/"/g, '""')}"`;
       const hklEscaped = `"${p.hkl.replace(/"/g, '""')}"`;
       const notesEscaped = `"${(p.notes || '').replace(/"/g, '""')}"`;
-      csvContent += `${nameEscaped},${hklEscaped},${p.twoTheta},${p.intensity},${p.rir},${p.mac || 0},${p.reducedIntensity.toFixed(2)},${p.crystallineFraction.toFixed(2)},${p.totalSampleFraction.toFixed(2)},${notesEscaped}\n`;
+      csvContent += `${nameEscaped},${hklEscaped},${p.twoTheta},${p.intensity},${p.rir},${p.mac || 0},${p.reducedIntensity.toFixed(2)},${p.crystallineFraction.toFixed(2)},${p.errMarginCrystalline.toFixed(2)},${p.totalSampleFraction.toFixed(2)},${p.errMarginTotal.toFixed(2)},${notesEscaped}\n`;
     });
 
     csvContent += `\n`;
-    csvContent += `Sum Total,---,---,---,---,${calculations.totalSampleMAC.toFixed(2)},${calculations.totalReducedIntensity.toFixed(2)},100.00,${(100 - amorphousWtPct).toFixed(2)},---\n`;
+    csvContent += `Sum Total,---,---,---,---,${calculations.totalSampleMAC.toFixed(2)},${calculations.totalReducedIntensity.toFixed(2)},100.00,---,${(100 - amorphousWtPct).toFixed(2)},---,---\n`;
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -404,6 +535,8 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       internalStandardMode,
       standardPhaseId,
       standardAddedWtPct,
+      intensityUncertaintyPct,
+      rirUncertaintyPct,
       phases,
       calculations: {
         totalReducedIntensity: calculations.totalReducedIntensity,
@@ -440,6 +573,8 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
           if (data.amorphousWtPct !== undefined) setAmorphousWtPct(data.amorphousWtPct);
           if (data.internalStandardMode !== undefined) setInternalStandardMode(data.internalStandardMode);
           if (data.standardAddedWtPct !== undefined) setStandardAddedWtPct(data.standardAddedWtPct);
+          if (data.intensityUncertaintyPct !== undefined) setIntensityUncertaintyPct(data.intensityUncertaintyPct);
+          if (data.rirUncertaintyPct !== undefined) setRirUncertaintyPct(data.rirUncertaintyPct);
           playSynthTone('success');
         }
       } catch (err) {
@@ -472,11 +607,19 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
               </div>
             </div>
             <p className="text-slate-400 text-xs md:text-sm max-w-2xl leading-relaxed mt-1">
-              {t('Perform fast quantitative XRD phase analysis using reference intensity ratio ($I/I_c$) constants. Features amorphous content scaling, internal standard calibration, mass absorption calculations, and stick spectrum visualization.')}
+              {t('Perform fast quantitative XRD phase analysis using reference intensity ratio ($I/I_c$) constants. Features amorphous content scaling, internal standard calibration, mass absorption calculations, error bounds propagation, and continuous pattern simulation.')}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={copyReportToClipboard}
+              className="px-3.5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all flex items-center gap-1.5 shadow-md active:scale-95"
+            >
+              {copiedReport ? <CheckCircle2 className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+              <span>{copiedReport ? 'Copied Report!' : 'Copy Summary'}</span>
+            </button>
+
             <button
               onClick={() => setShowDbModal(true)}
               className="px-3.5 py-2 text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl hover:bg-indigo-500/30 transition-all flex items-center gap-1.5 shadow-md active:scale-95"
@@ -720,14 +863,15 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
             </div>
           </div>
 
-          {/* Amorphous & Internal Standard Corrections */}
+          {/* Amorphous & Internal Standard & Error Propagation Controls */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 shadow-xl backdrop-blur-sm space-y-4">
             <h2 className="text-sm font-bold text-slate-200 flex items-center gap-2">
               <Scale className="w-4 h-4 text-emerald-400" />
-              <span>Amorphous Matrix & Internal Standard Corrections</span>
+              <span>Amorphous Matrix, Internal Standards & Error Bounds</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Amorphous Slider */}
               <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <label className="font-bold text-slate-300">Amorphous Phase (wt%)</label>
@@ -747,6 +891,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                 </p>
               </div>
 
+              {/* Internal Standard Mode */}
               <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <label className="font-bold text-slate-300">Internal Standard Mode</label>
@@ -782,6 +927,56 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {/* Error Propagation Panel */}
+            <div className="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Experimental Uncertainty & Error Propagation</span>
+                </span>
+                <button
+                  onClick={() => setShowUncertainty(!showUncertainty)}
+                  className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300"
+                >
+                  {showUncertainty ? 'Hide' : 'Configure'}
+                </button>
+              </div>
+
+              {showUncertainty && (
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800 text-xs">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                      Peak Int. Uncertainty (ΔI/I %)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="20"
+                      value={intensityUncertaintyPct}
+                      onChange={(e) => setIntensityUncertaintyPct(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded px-2.5 py-1 font-mono text-xs outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                      RIR Const. Uncertainty (ΔRIR/RIR %)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="20"
+                      value={rirUncertaintyPct}
+                      onChange={(e) => setRirUncertaintyPct(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-slate-900 border border-slate-800 text-slate-200 rounded px-2.5 py-1 font-mono text-xs outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -803,7 +998,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
               className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'stick' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
             >
               <BarChart3 className="w-3.5 h-3.5" />
-              <span>Peak Sticks</span>
+              <span>XRD Pattern</span>
             </button>
 
             <button
@@ -811,8 +1006,9 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
               className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'mac' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
             >
               <Scale className="w-3.5 h-3.5" />
-              <span>MAC / Calibration</span>
+              <span>Calibration</span>
             </button>
+
             <button
               onClick={() => setActiveTab('theory')}
               className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${activeTab === 'theory' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
@@ -876,9 +1072,9 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                 </ResponsiveContainer>
               </div>
 
-              {/* Numerical List */}
+              {/* Numerical List with Error Margins */}
               <div className="space-y-2.5">
-                {calculations.phaseResults.map((p, pIdx) => (
+                {calculations.phaseResults.map((p) => (
                   <div key={p.id} className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
                     <div className="flex items-center gap-2">
                       <span 
@@ -892,11 +1088,11 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <span className="font-mono font-black text-indigo-400 text-sm block">
-                        {p.crystallineFraction.toFixed(1)}%
+                        {p.crystallineFraction.toFixed(1)} <span className="text-[10px] text-slate-400 font-normal">± {p.errMarginCrystalline.toFixed(1)}%</span>
                       </span>
                       {amorphousWtPct > 0 && (
-                        <span className="text-[9px] text-slate-500 font-mono">
-                          Tot: {p.totalSampleFraction.toFixed(1)}%
+                        <span className="text-[9px] text-slate-500 font-mono block">
+                          Tot: {p.totalSampleFraction.toFixed(1)} ± {p.errMarginTotal.toFixed(1)}%
                         </span>
                       )}
                     </div>
@@ -906,56 +1102,127 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
             </div>
           )}
 
-          {/* TAB 2: Peak Sticks Diagram */}
+          {/* TAB 2: Peak Sticks & Continuous Diffraction Spectrum */}
           {activeTab === 'stick' && (
             <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-2xl backdrop-blur-md flex flex-col gap-4">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-indigo-400" />
                   <h2 className="text-base font-bold text-slate-200">
-                    Simulated Stick Diffraction Diagram
+                    Simulated XRD Spectrum
                   </h2>
+                </div>
+
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[11px]">
+                  <button
+                    onClick={() => setSpectrumMode('stick')}
+                    className={`px-2 py-0.5 rounded-lg font-bold transition-all ${spectrumMode === 'stick' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                  >
+                    Stick Diagram
+                  </button>
+                  <button
+                    onClick={() => setSpectrumMode('continuous')}
+                    className={`px-2 py-0.5 rounded-lg font-bold transition-all ${spectrumMode === 'continuous' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                  >
+                    Continuous Profile
+                  </button>
                 </div>
               </div>
 
+              {spectrumMode === 'continuous' && (
+                <div className="flex items-center justify-between gap-3 text-xs bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                  <span className="text-slate-400 font-bold">Pseudo-Voigt Peak FWHM:</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="1.0"
+                      step="0.05"
+                      value={profileFWHM}
+                      onChange={(e) => setProfileFWHM(parseFloat(e.target.value) || 0.3)}
+                      className="w-24 accent-indigo-500 h-1 bg-slate-800 rounded cursor-pointer"
+                    />
+                    <span className="font-mono text-indigo-400 font-bold">{profileFWHM}° 2θ</span>
+                  </div>
+                </div>
+              )}
+
               <p className="text-[11px] text-slate-400">
-                Peak reflections plotted at $2\theta$ angles with height equal to raw integrated intensity ($I$).
+                {spectrumMode === 'stick' 
+                  ? 'Peak reflections plotted at 2θ angles with height equal to raw integrated intensity (I).' 
+                  : 'Continuous XRD diffraction pattern synthesized with 50/50 pseudo-Voigt profile broadening.'}
               </p>
 
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={simulatedPeakSticks} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                    <XAxis 
-                      dataKey="twoTheta" 
-                      stroke="#64748b" 
-                      fontSize={10} 
-                      tickFormatter={(v) => `${v}°`} 
-                    />
-                    <YAxis stroke="#64748b" fontSize={10} />
-                    <RechartsTooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl shadow-xl text-xs">
-                              <span className="font-bold text-slate-200 block">{data.name}</span>
-                              <span className="text-slate-400 text-[10px] block">Reflection: {data.hkl}</span>
-                              <span className="text-indigo-400 font-mono font-bold block mt-1">
-                                2θ: {data.twoTheta}° | Intensity: {data.intensity}
-                              </span>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Bar dataKey="intensity" radius={[4, 4, 0, 0]}>
-                      {simulatedPeakSticks.map((entry, index) => (
-                        <Cell key={`bar-${index}`} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
+                  {spectrumMode === 'stick' ? (
+                    <BarChart data={simulatedPeakSticks} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis 
+                        dataKey="twoTheta" 
+                        stroke="#64748b" 
+                        fontSize={10} 
+                        tickFormatter={(v) => `${v}°`} 
+                      />
+                      <YAxis stroke="#64748b" fontSize={10} />
+                      <RechartsTooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl shadow-xl text-xs">
+                                <span className="font-bold text-slate-200 block">{data.name}</span>
+                                <span className="text-slate-400 text-[10px] block">Reflection: {data.hkl}</span>
+                                <span className="text-indigo-400 font-mono font-bold block mt-1">
+                                  2θ: {data.twoTheta}° | Intensity: {data.intensity}
+                                </span>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Bar dataKey="intensity" radius={[4, 4, 0, 0]}>
+                        {simulatedPeakSticks.map((entry, index) => (
+                          <Cell key={`bar-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  ) : (
+                    <AreaChart data={continuousPatternData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                      <XAxis 
+                        dataKey="twoTheta" 
+                        stroke="#64748b" 
+                        fontSize={10} 
+                        tickFormatter={(v) => `${v}°`} 
+                      />
+                      <YAxis stroke="#64748b" fontSize={10} />
+                      <RechartsTooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-xl shadow-xl text-xs space-y-1">
+                                <span className="font-bold text-indigo-300 block">2θ: {data.twoTheta}°</span>
+                                <span className="font-mono font-bold text-slate-200 block">Total Intensity: {data.Total}</span>
+                                <div className="border-t border-slate-800 pt-1 space-y-0.5">
+                                  {phases.map(p => (
+                                    <div key={p.id} className="flex justify-between items-center text-[10px] gap-3">
+                                      <span className="text-slate-400">{p.name}:</span>
+                                      <span className="font-mono font-bold text-slate-200">{data[p.name] || 0}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Area type="monotone" dataKey="Total" stroke="#6366f1" fill="#6366f1" fillOpacity={0.2} strokeWidth={2} />
+                    </AreaChart>
+                  )}
                 </ResponsiveContainer>
               </div>
             </div>
@@ -987,75 +1254,161 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
               {/* RIR Calibration Tool */}
               <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-2xl backdrop-blur-md space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                    Binary RIR Constant Calibration
-                  </h2>
-                </div>
-
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Calculate the unknown RIR value for a newly synthesized material by measuring a known 1:1 or binary mass ratio mixture against a reference standard phase.
-                </p>
-
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
-                      Analyte Int. (I_A)
-                    </label>
-                    <input
-                      type="number"
-                      value={calibIntensityA}
-                      onChange={(e) => setCalibIntensityA(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
-                    />
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                      RIR Constant Calibration Engine
+                    </h2>
                   </div>
 
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
-                      Std Int. (I_B)
-                    </label>
-                    <input
-                      type="number"
-                      value={calibIntensityB}
-                      onChange={(e) => setCalibIntensityB(parseFloat(e.target.value) || 0)}
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
-                      Std RIR (I/Ic)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={calibRIRB}
-                      onChange={(e) => setCalibRIRB(parseFloat(e.target.value) || 1.0)}
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
-                      Known W_A / W_B Ratio
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={calibWeightRatioAB}
-                      onChange={(e) => setCalibWeightRatioAB(parseFloat(e.target.value) || 1.0)}
-                      className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
-                    />
+                  <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-[10px]">
+                    <button
+                      onClick={() => setCalibMode('single')}
+                      className={`px-2 py-0.5 rounded-lg font-bold transition-all ${calibMode === 'single' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                      Single Point
+                    </button>
+                    <button
+                      onClick={() => setCalibMode('multi')}
+                      className={`px-2 py-0.5 rounded-lg font-bold transition-all ${calibMode === 'multi' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                      Multi-Point Linear
+                    </button>
                   </div>
                 </div>
 
-                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3 flex justify-between items-center">
-                  <span className="text-xs font-bold text-indigo-300">Calibrated RIR_A Value</span>
-                  <span className="text-lg font-mono font-black text-indigo-400">
-                    {calculatedCalibRIR.toFixed(2)}
-                  </span>
-                </div>
+                {calibMode === 'single' ? (
+                  <div className="space-y-3">
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Calculate the unknown RIR value for a newly synthesized material by measuring a known 1:1 or binary mass ratio mixture against a reference standard phase.
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                          Analyte Int. (I_A)
+                        </label>
+                        <input
+                          type="number"
+                          value={calibIntensityA}
+                          onChange={(e) => setCalibIntensityA(parseFloat(e.target.value) || 0)}
+                          className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                          Std Int. (I_B)
+                        </label>
+                        <input
+                          type="number"
+                          value={calibIntensityB}
+                          onChange={(e) => setCalibIntensityB(parseFloat(e.target.value) || 0)}
+                          className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                          Std RIR (I/Ic)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={calibRIRB}
+                          onChange={(e) => setCalibRIRB(parseFloat(e.target.value) || 1.0)}
+                          className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">
+                          Known W_A / W_B Ratio
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={calibWeightRatioAB}
+                          onChange={(e) => setCalibWeightRatioAB(parseFloat(e.target.value) || 1.0)}
+                          className="w-full bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1.5 font-mono outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3 flex justify-between items-center">
+                      <span className="text-xs font-bold text-indigo-300">Calibrated RIR_A Value</span>
+                      <span className="text-lg font-mono font-black text-indigo-400">
+                        {calculatedCalibRIR.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Fit a linear regression curve (I_A/I_B vs W_A/W_B) across multiple calibration standard mixtures to extract high-precision slope and RIR_A.
+                    </p>
+
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-3 gap-2 text-[10px] font-bold text-slate-400 uppercase">
+                        <span>W_A / W_B Mass Ratio</span>
+                        <span>I_A / I_B Int. Ratio</span>
+                        <span>Action</span>
+                      </div>
+                      {calibPoints.map((pt, ptIdx) => (
+                        <div key={pt.id} className="grid grid-cols-3 gap-2 items-center text-xs">
+                          <input
+                            type="number"
+                            step="0.05"
+                            value={pt.weightRatio}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setCalibPoints(prev => prev.map(p => p.id === pt.id ? { ...p, weightRatio: val } : p));
+                            }}
+                            className="bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1 font-mono text-xs outline-none"
+                          />
+                          <input
+                            type="number"
+                            step="0.05"
+                            value={pt.intensityRatio}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setCalibPoints(prev => prev.map(p => p.id === pt.id ? { ...p, intensityRatio: val } : p));
+                            }}
+                            className="bg-slate-950 border border-slate-800 text-slate-200 rounded px-2 py-1 font-mono text-xs outline-none"
+                          />
+                          <button
+                            onClick={() => setCalibPoints(prev => prev.filter(p => p.id !== pt.id))}
+                            className="text-slate-500 hover:text-rose-400 p-1 text-left"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+
+                      <button
+                        onClick={() => {
+                          const newId = Math.random().toString(36).substring(2, 9);
+                          setCalibPoints(prev => [...prev, { id: newId, weightRatio: 1.5, intensityRatio: 5.4 }]);
+                        }}
+                        className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 pt-1"
+                      >
+                        <Plus className="w-3 h-3" /> Add Standard Mixture Point
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-3 text-xs">
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">R² Goodness of Fit</span>
+                        <span className="font-mono font-black text-emerald-400 text-sm">{multiPointStats.r2.toFixed(4)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[10px] uppercase font-bold">Extracted RIR_A</span>
+                        <span className="font-mono font-black text-indigo-400 text-sm">{multiPointStats.calibRIR.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1137,6 +1490,19 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                 </p>
                 <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto text-center flex justify-center">
                   <span dangerouslySetInnerHTML={{ __html: katex.renderToString('W_A = W_S \\times \\frac{I_A}{I_S} \\times \\frac{RIR_S}{RIR_A}', { throwOnError: false, displayMode: true }) }} />
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="font-bold text-slate-100 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                  Error Propagation Formulas
+                </h3>
+                <p>
+                  Uncertainty in measured integrated intensity (ΔI) and reference constant (ΔRIR) propagates into phase weight fraction error bounds via standard quadrature:
+                </p>
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 overflow-x-auto text-center flex justify-center">
+                  <span dangerouslySetInnerHTML={{ __html: katex.renderToString('\\frac{\\Delta W_i}{W_i} = \\sqrt{ \\left(\\frac{\\Delta I_i}{I_i}\\right)^2 + \\left(\\frac{\\Delta RIR_i}{RIR_i}\\right)^2 }', { throwOnError: false, displayMode: true }) }} />
                 </div>
               </section>
             </div>
