@@ -1,5 +1,5 @@
 import { getActiveMaterials } from './materialsHelper';
-import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
+import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, MomentDataPoint, MethodOfMomentsResult, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, WAInputPoint, WAResult, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters } from '../types';
 
 // --- Signal Processing (Savitzky-Golay) ---
 
@@ -2920,6 +2920,176 @@ export const calculateMonshiScherrer = (
     slopeInterpretation,
     points,
     pointsExtended
+  };
+};
+
+export const parseMomentInput = (inputData: string): { sigmaDeg: number; varianceDeg2: number; mu4Rad4?: number }[] => {
+  if (!inputData) return [];
+  const lines = inputData.split('\n');
+  const results: { sigmaDeg: number; varianceDeg2: number; mu4Rad4?: number }[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line || line.startsWith('#') || line.startsWith('//')) continue;
+    const parts = line.split(/[\s,;\t]+/).map(p => parseFloat(p)).filter(p => !isNaN(p));
+    if (parts.length >= 2) {
+      const sigmaDeg = parts[0];
+      const varianceDeg2 = parts[1];
+      const mu4Rad4 = parts.length >= 3 ? parts[2] : undefined;
+      if (sigmaDeg > 0 && varianceDeg2 >= 0) {
+        results.push({ sigmaDeg, varianceDeg2, mu4Rad4 });
+      }
+    }
+  }
+  return results;
+};
+
+export const calculateMethodOfMoments = (
+  wavelength: number,
+  twoTheta0: number,
+  momentInputs: { sigmaDeg: number; varianceDeg2: number; mu4Rad4?: number }[]
+): MethodOfMomentsResult | null => {
+  if (wavelength <= 0 || twoTheta0 <= 0 || twoTheta0 >= 180 || momentInputs.length < 3) {
+    return null;
+  }
+
+  const DEG_TO_RAD = Math.PI / 180;
+  const RAD_TO_DEG = 180 / Math.PI;
+  const theta0Rad = (twoTheta0 / 2) * DEG_TO_RAD;
+  const cosTheta0 = Math.cos(theta0Rad);
+  const tanTheta0 = Math.tan(theta0Rad);
+
+  if (cosTheta0 <= 1e-10 || tanTheta0 <= 1e-10) return null;
+
+  // Convert inputs to radians
+  const points: MomentDataPoint[] = momentInputs.map(pt => {
+    const sigmaRad = pt.sigmaDeg * DEG_TO_RAD;
+    const varianceRad2 = pt.varianceDeg2 * DEG_TO_RAD * DEG_TO_RAD;
+    const kurtosis = pt.mu4Rad4 && varianceRad2 > 0 ? pt.mu4Rad4 / (varianceRad2 * varianceRad2) : undefined;
+    return {
+      sigmaDeg: pt.sigmaDeg,
+      sigmaRad,
+      varianceDeg2: pt.varianceDeg2,
+      varianceRad2,
+      fourthMomentRad4: pt.mu4Rad4,
+      kurtosis
+    };
+  });
+
+  // Fit quadratic equation: W(sigma) = W0 + K1 * sigma + K2 * sigma^2
+  // Using 2nd order polynomial least squares
+  let n = points.length;
+  let sumX = 0, sumX2 = 0, sumX3 = 0, sumX4 = 0;
+  let sumY = 0, sumXY = 0, sumX2Y = 0;
+
+  for (const p of points) {
+    const x = p.sigmaRad;
+    const y = p.varianceRad2;
+    const x2 = x * x;
+    sumX += x;
+    sumX2 += x2;
+    sumX3 += x2 * x;
+    sumX4 += x2 * x2;
+    sumY += y;
+    sumXY += x * y;
+    sumX2Y += x2 * y;
+  }
+
+  // 3x3 System matrix solving via Gaussian Elimination / Cramer's rule
+  // [ n      sumX   sumX2 ] [ W0 ]   [ sumY   ]
+  // [ sumX   sumX2  sumX3 ] [ K1 ] = [ sumXY  ]
+  // [ sumX2  sumX3  sumX4 ] [ K2 ]   [ sumX2Y ]
+
+  const detA = n * (sumX2 * sumX4 - sumX3 * sumX3) -
+               sumX * (sumX * sumX4 - sumX3 * sumX2) +
+               sumX2 * (sumX * sumX3 - sumX2 * sumX2);
+
+  if (Math.abs(detA) < 1e-20) return null;
+
+  const detW0 = sumY * (sumX2 * sumX4 - sumX3 * sumX3) -
+                sumX * (sumXY * sumX4 - sumX3 * sumX2Y) +
+                sumX2 * (sumXY * sumX3 - sumX2 * sumX2Y);
+
+  const detK1 = n * (sumXY * sumX4 - sumX3 * sumX2Y) -
+                sumY * (sumX * sumX4 - sumX3 * sumX2) +
+                sumX2 * (sumX * sumX2Y - sumXY * sumX2);
+
+  const detK2 = n * (sumX2 * sumX2Y - sumXY * sumX3) -
+                sumX * (sumX * sumX2Y - sumXY * sumX2) +
+                sumY * (sumX * sumX3 - sumX2 * sumX2);
+
+  const interceptW0 = detW0 / detA;
+  const slopeK1 = detK1 / detA;
+  const quadraticK2 = detK2 / detA;
+
+  // Calculate R-squared for quadratic fit
+  const meanY = sumY / n;
+  let ssTot = 0, ssRes = 0;
+
+  const fittedPoints = points.map(p => {
+    const x = p.sigmaRad;
+    const fittedWRad2 = interceptW0 + slopeK1 * x + quadraticK2 * x * x;
+    const fittedWDeg2 = fittedWRad2 * RAD_TO_DEG * RAD_TO_DEG;
+    const linearComponentDeg2 = (interceptW0 + slopeK1 * x) * RAD_TO_DEG * RAD_TO_DEG;
+    const quadraticComponentDeg2 = (quadraticK2 * x * x) * RAD_TO_DEG * RAD_TO_DEG;
+
+    ssTot += Math.pow(p.varianceRad2 - meanY, 2);
+    ssRes += Math.pow(p.varianceRad2 - fittedWRad2, 2);
+
+    return {
+      sigmaDeg: p.sigmaDeg,
+      sigmaRad: x,
+      fittedWDeg2,
+      fittedWRad2,
+      linearComponentDeg2,
+      quadraticComponentDeg2
+    };
+  });
+
+  const rSquared = ssTot === 0 ? 0 : Math.max(0, 1 - (ssRes / ssTot));
+
+  // Compute physical parameters:
+  // Volume-weighted crystallite size: D_V = lambda / (pi^2 * K1 * cos(theta0)) in Angstroms
+  // Convert to nm by dividing by 10
+  let sizeNm = 0;
+  if (slopeK1 > 1e-12) {
+    const sizeAngstrom = wavelength / (Math.PI * Math.PI * slopeK1 * cosTheta0);
+    sizeNm = Math.max(0, sizeAngstrom / 10);
+  }
+
+  // RMS microstrain <e^2>^0.5 = sqrt(max(0, K2)) / (2 * tan(theta0))
+  let rmsStrain = 0;
+  if (quadraticK2 > 0) {
+    rmsStrain = Math.sqrt(quadraticK2) / (2 * tanTheta0);
+  }
+
+  // Mean kurtosis
+  const validKurtoses = points.filter(p => p.kurtosis !== undefined).map(p => p.kurtosis as number);
+  const meanKurtosis = validKurtoses.length > 0 ? validKurtoses.reduce((a, b) => a + b, 0) / validKurtoses.length : 3.0;
+
+  let profileInterpretation = '';
+  if (slopeK1 <= 0) {
+    profileInterpretation = 'Negative or zero linear slope K1 detected. Range limits may be truncated or background improperly subtracted.';
+  } else if (quadraticK2 <= 0) {
+    profileInterpretation = `Linear-dominated variance profile with size D_V = ${sizeNm.toFixed(2)} nm and negligible lattice strain (pure size broadening).`;
+  } else {
+    profileInterpretation = `Mixed size and strain broadening: D_V = ${sizeNm.toFixed(2)} nm, RMS Strain <ε²>½ = ${(rmsStrain * 100).toFixed(4)}%. Linear slope yields reciprocal crystallite size, while quadratic curvature represents microstrain distortion.`;
+  }
+
+  return {
+    twoTheta0,
+    theta0Rad,
+    wavelength,
+    slopeK1,
+    quadraticK2,
+    interceptW0,
+    sizeNm,
+    rmsStrain,
+    meanKurtosis,
+    rSquared,
+    points,
+    fittedPoints,
+    profileInterpretation
   };
 };
 

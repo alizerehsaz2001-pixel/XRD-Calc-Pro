@@ -114,6 +114,38 @@ export interface MonshiScherrerResult {
   }[];
 }
 
+export interface MomentDataPoint {
+  sigmaDeg: number;       // Integration range limit sigma = Delta(2theta)/2 in degrees
+  sigmaRad: number;       // Integration range limit sigma in radians
+  varianceDeg2: number;   // Variance W(sigma) in deg^2
+  varianceRad2: number;   // Variance W(sigma) in rad^2
+  fourthMomentRad4?: number; // 4th moment mu_4(sigma) in rad^4
+  kurtosis?: number;      // Kurtosis K = mu_4 / W^2
+}
+
+export interface MethodOfMomentsResult {
+  twoTheta0: number;          // Centroid 2-Theta (deg)
+  theta0Rad: number;          // Centroid Theta (rad)
+  wavelength: number;         // X-ray wavelength (Angstrom)
+  slopeK1: number;            // Linear term K1 = dW / d_sigma (rad)
+  quadraticK2: number;        // Quadratic term K2 = d^2 W / d_sigma^2
+  interceptW0: number;        // Constant variance term W0 (rad^2)
+  sizeNm: number;             // Volume-weighted crystallite size D_V = lambda / (pi^2 * K1 * cos(theta0)) in nm
+  rmsStrain: number;          // RMS microstrain <e^2>^0.5 = sqrt(K2) / (2 * tan(theta0))
+  meanKurtosis: number;       // Average kurtosis ratio mu_4 / W^2
+  rSquared: number;           // Regression R^2 for W(sigma) = W0 + K1*sigma + K2*sigma^2
+  points: MomentDataPoint[];  // Range-variance data points
+  fittedPoints: {
+    sigmaDeg: number;
+    sigmaRad: number;
+    fittedWDeg2: number;
+    fittedWRad2: number;
+    linearComponentDeg2: number;
+    quadraticComponentDeg2: number;
+  }[];
+  profileInterpretation: string;
+}
+
 export interface DoubleVoigtPoint {
   twoTheta: number;
   s: number;          // 2 * sin(theta) / lambda [nm^-1]

@@ -14,6 +14,7 @@ import { DoubleVoigtModule } from './components/DoubleVoigtModule';
 import { IntegralBreadthModule } from './components/IntegralBreadthModule';
 import { IntegralBreadthAdvancedModule } from './components/IntegralBreadthAdvancedModule';
 import { WarrenAverbachModule } from './components/WarrenAverbachModule';
+import { MethodOfMomentsModule } from './components/MethodOfMomentsModule';
 import { RietveldModule } from './components/RietveldModule';
 import { NeutronModule } from './components/NeutronModule';
 import { MagneticNeutronModule } from './components/MagneticNeutronModule';
@@ -58,7 +59,7 @@ import { syncOfflineHelper } from './utils/materialsHelper';
 
 import { ResidualStressModule } from './components/ResidualStressModule';
 
-type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress';
+type Module = 'bragg' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rir' | 'rietveld' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress';
 
 const getModuleIcon = (id: Module, active: boolean) => {
   const iconProps = {
@@ -90,6 +91,8 @@ const getModuleIcon = (id: Module, active: boolean) => {
       return <Sliders {...iconProps} />;
     case 'wa':
       return <Network {...iconProps} />;
+    case 'method_of_moments':
+      return <Activity {...iconProps} />;
     case 'preferred_orientation':
       return <Compass {...iconProps} />;
     case 'residual_stress':
@@ -943,6 +946,7 @@ const App: React.FC = () => {
       { id: 'integral', label: t('Integral Breadth'), group: t('Size & Strain') },
       { id: 'integral_adv', label: t('IB Advanced (W-H)'), group: t('Size & Strain') },
       { id: 'wa', label: t('Warren-Averbach'), group: t('Size & Strain') },
+      { id: 'method_of_moments', label: t('Method of Moments'), group: t('Size & Strain') },
       { id: 'residual_stress', label: t('Residual Stress'), group: t('Size & Strain') },
       { id: 'preferred_orientation', label: t('Preferred Orientation'), group: t('Fundamentals') },
       { id: 'cohen', label: t("Cohen's Matrix Method"), group: t('Advanced Refinement') },
@@ -1553,6 +1557,7 @@ const App: React.FC = () => {
                   {activeModule === 'integral' && <IntegralBreadthModule />}
                   {activeModule === 'integral_adv' && <IntegralBreadthAdvancedModule />}
                   {activeModule === 'wa' && <WarrenAverbachModule />}
+                  {activeModule === 'method_of_moments' && <MethodOfMomentsModule />}
                   {activeModule === 'residual_stress' && <ResidualStressModule />}
                   {activeModule === 'preferred_orientation' && <PreferredOrientationModule />}
                   {activeModule === 'cohen' && (
