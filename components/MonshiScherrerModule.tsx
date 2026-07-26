@@ -268,7 +268,7 @@ export const MonshiScherrerModule: React.FC = () => {
               </span>
             </h1>
             <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
-              A robust modified Scherrer method formulated by Monshi et al. (2012). By taking the natural logarithm of both sides of Scherrer&apos;s equation $\ln(\beta) = \ln(K\lambda/D) + \ln(1/\cos\theta)$, it avoids low-angle division errors, provides equal statistical weighting across all reflections, and reveals strain or defect contributions from the linear slope $m$.
+              Formulated by Monshi et al. (2012), this logarithmic modification ln(β) = ln(Kλ/D) + ln(1/cosθ) avoids low-angle division errors, balances reflection weights, and identifies strain or defect contributions via the slope m.
             </p>
           </div>
 
@@ -290,7 +290,7 @@ export const MonshiScherrerModule: React.FC = () => {
 
             <div className="text-center space-y-1 pt-1 border-t border-white/5">
               <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-widest block">
-                2. Crystallite Size Extraction ($D$)
+                2. Crystallite Size Extraction
               </span>
               <div 
                 className="text-emerald-300 text-xs py-1.5 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto"
@@ -573,6 +573,46 @@ export const MonshiScherrerModule: React.FC = () => {
                   <AlertTriangle className="w-3 h-3" /> Minimum 2 reflections required
                 </span>
               )}
+            </div>
+          </div>
+
+          {/* Methodology & Formula Guide Card */}
+          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-3">
+            <h4 className="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+              <Info className="w-4 h-4 text-cyan-400" />
+              Methodology & Formula Guide
+            </h4>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Plots Y = ln(β) against X = ln(1/cosθ) to perform linear regression Y = m·X + C:
+            </p>
+            <div 
+              className="text-cyan-300 text-xs py-2 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto text-center"
+              dangerouslySetInnerHTML={{
+                __html: katex.renderToString(
+                  '\\ln(\\beta) = m \\cdot \\ln\\left(\\frac{1}{\\cos\\theta}\\right) + \\ln\\left(\\frac{K \\cdot \\lambda}{D}\\right)',
+                  { throwOnError: false, displayMode: true }
+                )
+              }}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px] font-mono">
+              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1">
+                <span className="text-emerald-400 font-bold block">1. Crystallite Size (D)</span>
+                <div 
+                  className="text-slate-200"
+                  dangerouslySetInnerHTML={{
+                    __html: katex.renderToString(
+                      'D = K \\cdot \\lambda \\cdot e^{-C}',
+                      { throwOnError: false, displayMode: false }
+                    )
+                  }}
+                />
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1">
+                <span className="text-cyan-400 font-bold block">2. Slope Physical Significance</span>
+                <p className="text-slate-300 text-[10px]">
+                  Ideal m ≈ 1.0 (pure size). Deviation m &gt; 1 indicates lattice strain or planar faults.
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -285,7 +285,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
               </span>
             </h1>
             <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
-              Langford&apos;s Double-Voigt method treats both crystallite size and microstrain broadening as Voigt functions possessing both Cauchy (C) and Gaussian (G) components. By deconvoluting the Voigt profile into reciprocal space coordinates s = 2sinθ / λ, it rigorously separates volume-weighted (D_V) and area-weighted (D_A) sizes from root-mean-square strains without simplifying profile shape assumptions.
+              Deconvolutes size and strain broadening into Voigt functions in reciprocal space (s = 2sinθ / λ). By separating Cauchy and Gaussian components, it extracts volume-weighted (D_V) and area-weighted (D_A) sizes alongside root-mean-square microstrains.
             </p>
           </div>
 
@@ -459,10 +459,10 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
           <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-3">
             <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
               <Info className="w-4 h-4 text-indigo-400" />
-              Double-Voigt Physical Formulation
+              Double-Voigt Physical Formulation Guide
             </h4>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Unlike classical methods assuming purely Gaussian or purely Cauchy shapes, Double-Voigt analysis calculates area-weighted crystallite size ($D_A$) via Langford&apos;s formula:
+              Calculates area-weighted crystallite size (D_A) via Langford&apos;s formula by integrating the combined Cauchy and Gaussian Voigt contributions:
             </p>
             <div 
               className="text-emerald-300 text-xs py-2 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto text-center"
@@ -473,9 +473,18 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                 )
               }}
             />
-            <p className="text-[11px] text-slate-400 font-mono text-center">
-              Where k = β_C,S* / (√π · β_G,S*)
-            </p>
+            <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 text-[11px] font-mono space-y-1">
+              <span className="text-indigo-400 font-bold block">Voigt Parameter Ratio:</span>
+              <div 
+                className="text-slate-200 text-center"
+                dangerouslySetInnerHTML={{
+                  __html: katex.renderToString(
+                    'k = \\frac{\\beta_{C,S}^*}{\\sqrt{\\pi} \\beta_{G,S}^*}',
+                    { throwOnError: false, displayMode: false }
+                  )
+                }}
+              />
+            </div>
           </div>
 
         </div>

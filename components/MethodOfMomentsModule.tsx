@@ -279,18 +279,18 @@ export const MethodOfMomentsModule: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
               Method of Moments
               <span className="text-xs font-mono font-normal text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">
-                Variance-Range $W(\sigma)$
+                Variance-Range Analysis
               </span>
             </h1>
             <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
-              Deconvolutes domain size and lattice strain by evaluating second ($W$) and fourth ($\mu_4$) statistical moments of the diffraction line profile. Plotting profile variance $W$ against the integration cutoff span $\sigma$ yields a linear slope proportional to reciprocal crystallite size ($1/D_V$) and quadratic curvature representing mean-square microstrain ($\langle\epsilon^2\rangle$).
+              Separates crystallite size and microstrain by analyzing profile variance W and kurtosis μ₄ across integration ranges σ. The linear slope yields reciprocal domain size (1/D_V), while quadratic curvature gives mean-square strain ⟨ε²⟩.
             </p>
           </div>
 
           <div className="bg-[#050B16]/85 backdrop-blur-md p-4 rounded-2xl border border-indigo-500/30 shadow-inner max-w-md w-full space-y-3">
             <div className="text-center space-y-1">
               <span className="text-[10px] font-mono text-indigo-400 font-bold uppercase tracking-widest block">
-                1. Profile Variance Definition ($W$)
+                1. Profile Variance Definition
               </span>
               <div 
                 className="text-white text-xs py-1.5 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto"
@@ -317,7 +317,7 @@ export const MethodOfMomentsModule: React.FC = () => {
                 }}
               />
               <p className="text-[10px] text-slate-400 font-mono mt-1">
-                Slope $K_1 \propto 1/D_V$, Curvature $K_2 \propto \langle\epsilon^2\rangle$
+                Linear Slope K₁ ∝ 1/D_V, Curvature K₂ ∝ ⟨ε²⟩
               </p>
             </div>
           </div>
@@ -451,6 +451,52 @@ export const MethodOfMomentsModule: React.FC = () => {
                   <AlertTriangle className="w-3 h-3" /> Minimum 3 range points required
                 </span>
               )}
+            </div>
+          </div>
+
+          {/* Theoretical & Formula Guide Card */}
+          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-3">
+            <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
+              <Info className="w-4 h-4 text-indigo-400" />
+              Methodology & Formula Guide
+            </h4>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Evaluating profile variance W against integration limits σ yields a linear-quadratic regression:
+            </p>
+            <div 
+              className="text-indigo-300 text-xs py-2 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto text-center"
+              dangerouslySetInnerHTML={{
+                __html: katex.renderToString(
+                  'W(\\sigma) = W_0 + K_1 \\cdot \\sigma + K_2 \\cdot \\sigma^2',
+                  { throwOnError: false, displayMode: true }
+                )
+              }}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px] font-mono">
+              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1">
+                <span className="text-indigo-400 font-bold block">1. Volume Size (D_V)</span>
+                <div 
+                  className="text-slate-200"
+                  dangerouslySetInnerHTML={{
+                    __html: katex.renderToString(
+                      'D_V = \\frac{\\lambda}{\\pi^2 K_1 \\cos\\theta_0}',
+                      { throwOnError: false, displayMode: false }
+                    )
+                  }}
+                />
+              </div>
+              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1">
+                <span className="text-purple-400 font-bold block">2. Microstrain (⟨ε²⟩¹/²)</span>
+                <div 
+                  className="text-slate-200"
+                  dangerouslySetInnerHTML={{
+                    __html: katex.renderToString(
+                      '\\langle\\epsilon^2\\rangle^{1/2} = \\frac{\\sqrt{K_2}}{2 \\tan\\theta_0}',
+                      { throwOnError: false, displayMode: false }
+                    )
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>

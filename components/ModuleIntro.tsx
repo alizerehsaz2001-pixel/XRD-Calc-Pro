@@ -358,6 +358,160 @@ const MODULE_CONTENT: Record<string, { title: string; description: string; tag: 
         </FormulaContainer>
       </div>
     )
+  },
+  monshi_scherrer: {
+    title: "Monshi-Scherrer Logarithmic Scheme",
+    tag: "Microstructural",
+    icon: Info,
+    color: "from-emerald-500 to-teal-500",
+    description: "Formulated by Monshi et al. (2012), this logarithmic modification ln(β) = ln(Kλ/D) + ln(1/cosθ) avoids low-angle division errors, balances reflection weights, and extracts crystallite size D from the intercept C.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Monshi Linear Equation">
+          <F>ln</F>(<M>β</M>) = <M>m</M> · <F>ln</F>(1 / <F>cos</F><M>θ</M>) + <F>ln</F>(<M>K</M><M>λ</M> / <M>D</M>)
+        </FormulaContainer>
+        <FormulaContainer label="Crystallite Size (D)">
+          <M>D</M> = <M>K</M> <M>λ</M> <F>exp</F>(−<M>C</M>)
+        </FormulaContainer>
+      </div>
+    )
+  },
+  double_voigt: {
+    title: "Double-Voigt Method (Langford)",
+    tag: "Advanced Microstructure",
+    icon: Brain,
+    color: "from-indigo-500 to-purple-500",
+    description: "Deconvolutes size and strain broadening into Voigt functions possessing both Cauchy and Gaussian contributions in reciprocal space s = 2sinθ / λ, extracting volume-weighted (D_V) and area-weighted (D_A) sizes.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Area-Weighted Size (D_A)">
+          <M>D</M><sub>A</sub> = <Fraction num="1" den={<span>2 <M>β</M><sub>C,S</sub>* <F>exp</F>(<M>k</M>²) <F>erfc</F>(<M>k</M>)</span>} />
+        </FormulaContainer>
+        <FormulaContainer label="Parameter Ratio (k)">
+          <M>k</M> = <Fraction num={<><M>β</M><sub>C,S</sub>*</>} den={<span>√<M>π</M> <M>β</M><sub>G,S</sub>*</span>} />
+        </FormulaContainer>
+      </div>
+    )
+  },
+  method_of_moments: {
+    title: "Method of Moments (Variance-Range W)",
+    tag: "Statistical Profiles",
+    icon: Activity,
+    color: "from-indigo-500 to-cyan-500",
+    description: "Deconvolutes domain size and lattice strain by evaluating second (W) and fourth (μ_4) statistical moments of diffraction line profiles across integration spans σ.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Variance Regression W(σ)">
+          <M>W</M>(<M>σ</M>) = <M>W</M>₀ + <M>K</M>₁<M>σ</M> + <M>K</M>₂<M>σ</M>²
+        </FormulaContainer>
+        <FormulaContainer label="Volume-Weighted Size (D_V)">
+          <M>D</M><sub>V</sub> = <Fraction num={<M>λ</M>} den={<span><M>π</M>² <M>K</M>₁ <F>cos</F><M>θ</M>₀</span>} />
+        </FormulaContainer>
+      </div>
+    )
+  },
+  residual_stress: {
+    title: "Residual Stress (sin²ψ Method)",
+    tag: "Lattice Mechanics",
+    icon: Target,
+    color: "from-rose-500 to-amber-500",
+    description: "Determines non-destructive surface residual stress σ_φ by measuring elastic lattice d-spacing strain shifts as a function of specimen tilt angle ψ.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Lattice Strain ε(ψ)">
+          <M>ε</M><sub>ψ</sub> = <Fraction num={<span><M>d</M><sub>ψ</sub> − <M>d</M>₀</span>} den={<><M>d</M>₀</>} /> = <span>(</span><Fraction num={<span>1 + <M>ν</M></span>} den={<M>E</M>} /><span>)</span> <M>σ</M><sub>φ</sub> <F>sin</F>²<M>ψ</M>
+        </FormulaContainer>
+        <FormulaContainer label="Stress Slope Formula">
+          <M>σ</M><sub>φ</sub> = <span>(</span><Fraction num={<M>E</M>} den={<span>1 + <M>ν</M></span>} /><span>)</span> <span className="mx-1">·</span> <Fraction num={<span>∂(<M>d</M><sub>ψ</sub> / <M>d</M>₀)</span>} den={<span>∂(<F>sin</F>²<M>ψ</M>)</span>} />
+        </FormulaContainer>
+      </div>
+    )
+  },
+  rir: {
+    title: "Reference Intensity Ratio (RIR) Quant",
+    tag: "Quantitative Phase",
+    icon: Database,
+    color: "from-blue-500 to-emerald-500",
+    description: "Calculates phase weight fractions W_α in multi-component polycrystalline mixtures using relative diffraction intensity ratios scaled against Corundum (I/I_c) reference constants.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Phase Weight Fraction (W_α)">
+          <M>W</M><sub>α</sub> = <Fraction num={<span><M>I</M><sub>α</sub> / <M>RIR</M><sub>α</sub></span>} den={<span><F>Σ</F><sub>j</sub> (<M>I</M><sub>j</sub> / <M>RIR</M><sub>j</sub>)</span>} />
+        </FormulaContainer>
+        <FormulaContainer label="Binary Ratio">
+          <Fraction num={<><M>W</M><sub>A</sub></>} den={<><M>W</M><sub>B</sub></>} /> = <Fraction num={<><M>I</M><sub>A</sub></>} den={<><M>I</M><sub>B</sub></>} /> · <Fraction num={<span><M>RIR</M><sub>B</sub></span>} den={<span><M>RIR</M><sub>A</sub></span>} />
+        </FormulaContainer>
+      </div>
+    )
+  },
+  python_export: {
+    title: "Python Script Generator",
+    tag: "Automation & Code",
+    icon: Cpu,
+    color: "from-amber-500 to-yellow-500",
+    description: "Exports standalone, fully documented SciPy & NumPy code snippets for programmatic peak profiling, batch diffraction fitting, and publication plot generation.",
+    formulas: (
+      <FormulaContainer label="SciPy Voigt Profile Engine">
+        <M>I</M>(2<M>θ</M>) = <M>I</M>₀ · <F>Real</F>[<F>w</F>(<M>z</M>)] / (<M>σ</M> √2<M>π</M>)
+      </FormulaContainer>
+    )
+  },
+  database: {
+    title: "Crystallographic Material Registry",
+    tag: "Database",
+    icon: Database,
+    color: "from-cyan-500 to-blue-500",
+    description: "Searchable repository of inorganic material structures, CIF parameters, space groups, lattice dimensions, and benchmark XRD powder patterns.",
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormulaContainer label="Cubic Cell Volume">
+          <M>V</M> = <M>a</M>³
+        </FormulaContainer>
+        <FormulaContainer label="Theoretical Density (ρ)">
+          <M>ρ</M> = <Fraction num={<span><M>Z</M> · <M>M</M></span>} den={<span><M>N</M><sub>A</sub> · <M>V</M></span>} />
+        </FormulaContainer>
+      </div>
+    )
+  },
+  periodic_table: {
+    title: "X-ray Element & Form Factor Database",
+    tag: "Atomic Physics",
+    icon: Sparkles,
+    color: "from-violet-500 to-fuchsia-500",
+    description: "Atomic scattering factors f₀(s), dispersion corrections (f', f''), X-ray edge absorption energies, and mass attenuation coefficients across elemental species.",
+    formulas: (
+      <FormulaContainer label="Atomic Form Factor Parameterization">
+        <M>f</M>₀(<M>s</M>) = <F>Σ</F><sub>i=1..4</sub> <M>a</M><sub>i</sub> <F>exp</F>(−<M>b</M><sub>i</sub> <M>s</M>²) + <M>c</M>
+      </FormulaContainer>
+    )
+  },
+  learn: {
+    title: "Diffraction Protocol Guide",
+    tag: "Intelligence & Protocols",
+    icon: BookOpen,
+    color: "from-blue-600 to-indigo-600",
+    description: "Interactive operational guide for standard XRD analysis workflows, instrument alignment, sample preparation, and error troubleshooting.",
+    formulas: (
+      <FormulaContainer label="Resolution Function (Caglioti)">
+        <M>H</M>² = <M>U</M> <F>tan</F>²<M>θ</M> + <M>V</M> <F>tan</F><M>θ</M> + <M>W</M>
+      </FormulaContainer>
+    )
+  },
+  profile: {
+    title: "Laboratory Director Portal",
+    tag: "Workspace Administration",
+    icon: BookOpen,
+    color: "from-purple-600 to-slate-800",
+    description: "Laboratory management dashboard for monitoring active computations, dataset records, cloud synchronization, and system diagnostics.",
+    formulas: null
+  },
+  settings: {
+    title: "System & Engine Preferences",
+    tag: "System Configuration",
+    icon: BookOpen,
+    color: "from-slate-700 to-slate-900",
+    description: "Configure calculation precision, global radiation sources, unit preferences, theme styles, and AI assistant behavior.",
+    formulas: null
   }
 };
 
