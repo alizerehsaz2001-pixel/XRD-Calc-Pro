@@ -44,6 +44,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { AIAnalysis } from './AIAnalysis';
+import { PythonCodeExporter } from './PythonCodeExporter';
 
 const XRAY_WAVELENGTHS = [
   { label: 'Cu Kα1', value: 1.54056 },
@@ -571,47 +572,83 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   </div>
 
                   {instrumentalMode === 'constant' ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={instFwhm}
-                        onChange={(e) => setInstFwhm(parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
-                      />
-                      <span className="text-xs text-slate-400 font-mono whitespace-nowrap">°2θ FWHM</span>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={instFwhm}
+                          onChange={(e) => setInstFwhm(parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                        />
+                        <span className="text-xs text-slate-400 font-mono whitespace-nowrap">°2θ FWHM</span>
+                      </div>
+                      <div className="flex gap-2">
+                        {[0, 0.05, 0.08, 0.12].map(val => (
+                          <button 
+                            key={val}
+                            type="button"
+                            onClick={() => setInstFwhm(val)}
+                            className={`flex-1 py-1 rounded-lg border text-[9px] font-black transition-all ${instFwhm === val ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300' : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-300'}`}
+                          >
+                            {val === 0 ? '0 (Raw)' : `${val}°`}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-mono mb-1">U (tan²θ)</span>
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={cagliotiU}
-                          onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
-                          className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
-                        />
+                    <div className="space-y-2">
+                      <div className="flex gap-1 mb-1 overflow-x-auto pb-1">
+                        {[
+                          { name: '0 (Raw)', u: 0, v: 0, w: 0 },
+                          { name: 'Lab XRD', u: 0.005, v: -0.002, w: 0.015 },
+                          { name: 'Synchrotron', u: 0.0002, v: -0.0001, w: 0.001 }
+                        ].map((preset) => (
+                          <button
+                            key={preset.name}
+                            type="button"
+                            onClick={() => {
+                              setCagliotiU(preset.u);
+                              setCagliotiV(preset.v);
+                              setCagliotiW(preset.w);
+                            }}
+                            className="px-2 py-1 bg-black/40 border border-white/10 rounded-md text-[9px] font-mono text-slate-300 hover:text-indigo-400 hover:border-indigo-500/40 whitespace-nowrap"
+                          >
+                            {preset.name}
+                          </button>
+                        ))}
                       </div>
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-mono mb-1">V (tanθ)</span>
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={cagliotiV}
-                          onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
-                          className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
-                        />
-                      </div>
-                      <div>
-                        <span className="block text-[10px] text-slate-400 font-mono mb-1">W (const)</span>
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={cagliotiW}
-                          onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
-                          className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
-                        />
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-mono mb-1">U (tan²θ)</span>
+                          <input
+                            type="number"
+                            step="0.001"
+                            value={cagliotiU}
+                            onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
+                            className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                          />
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-mono mb-1">V (tanθ)</span>
+                          <input
+                            type="number"
+                            step="0.001"
+                            value={cagliotiV}
+                            onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
+                            className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                          />
+                        </div>
+                        <div>
+                          <span className="block text-[10px] text-slate-400 font-mono mb-1">W (const)</span>
+                          <input
+                            type="number"
+                            step="0.001"
+                            value={cagliotiW}
+                            onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
+                            className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -904,7 +941,21 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
           )}
 
           {result && (
-            <AIAnalysis methodName="Double-Voigt Method (Langford)" resultData={result} />
+            <div className="space-y-4">
+              <AIAnalysis methodName="Double-Voigt Method (Langford)" resultData={result} />
+              <PythonCodeExporter 
+                methodName="Double-Voigt Method"
+                parameters={{
+                  wavelength: Number(wavelength),
+                  twoTheta: result.points.map(p => p.twoTheta),
+                  betaL: result.points[0]?.betaCStar || 0.18,
+                  betaG: result.points[0]?.betaGStar || 0.12,
+                  x: result.points.map(p => p.s),
+                  yCauchy: result.points.map(p => p.betaCStar),
+                  yGaussian: result.points.map(p => p.betaGStarSq)
+                }}
+              />
+            </div>
           )}
 
           {/* Interactive Plots Navigation Container */}

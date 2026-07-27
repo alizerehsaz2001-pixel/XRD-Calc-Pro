@@ -7,6 +7,7 @@ import { useSettings } from './SettingsContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { MorphologyVisualizer } from './MorphologyVisualizer';
 import { ScientificMathControl } from './ScientificMathControl';
+import { PythonCodeExporter } from './PythonCodeExporter';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -24,6 +25,7 @@ const K_FACTORS = [
 ];
 
 const CAGLIOTI_PRESETS = [
+  { label: '0 (Raw)', u: 0, v: 0, w: 0 },
   { label: 'Lab Diffractometer', u: 0.004, v: -0.002, w: 0.01 },
   { label: 'Synchrotron (High Res)', u: 0.0001, v: -0.00005, w: 0.0002 },
   { label: 'Neutron Diffractometer', u: 0.02, v: -0.01, w: 0.05 },
@@ -596,13 +598,13 @@ export const ScherrerModule: React.FC = () => {
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-600 uppercase tracking-widest pointer-events-none">deg (Binst)</span>
                   </div>
                   <div className="flex gap-2">
-                     {[0.05, 0.08, 0.12].map(val => (
+                     {[0, 0.05, 0.08, 0.12].map(val => (
                        <button 
                          key={val}
                          onClick={() => setInstFwhm(val)}
                          className={`flex-1 py-1.5 rounded-lg border text-[9px] font-black transition-all ${instFwhm === val ? 'bg-amber-500/10 border-amber-500/40 text-amber-500' : 'bg-black/20 border-slate-800 text-slate-600 hover:text-slate-400'}`}
                        >
-                         {val}°
+                         {val === 0 ? '0 (Raw)' : `${val}°`}
                        </button>
                      ))}
                   </div>
@@ -1152,6 +1154,19 @@ export const ScherrerModule: React.FC = () => {
                  )}
               </div>
             </div>
+          )}
+
+          {/* Python Script Exporter */}
+          {results.length > 0 && (
+            <PythonCodeExporter 
+              methodName="Scherrer Particle Sizing"
+              parameters={{
+                wavelength: Number(wavelength),
+                twoTheta: results.map(r => r.twoTheta),
+                beta: results.map(r => r.fwhmObs),
+                shapeFactor: Number(constantK)
+              }}
+            />
           )}
 
           {/* Detailed Table */}

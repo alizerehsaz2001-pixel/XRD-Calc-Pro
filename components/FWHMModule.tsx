@@ -167,6 +167,7 @@ export const FWHMModule: React.FC = () => {
   const [cagliotiParams, setCagliotiParams] = useState<{u: number, v: number, w: number}>({ u: 0.04, v: -0.02, w: 0.04 });
 
   const CAGLIOTI_PRESETS: Record<string, { u: number, v: number, w: number }> = {
+    '0 (Raw)': { u: 0, v: 0, w: 0 },
     'Lab (Cu Kα)': { u: 0.04, v: -0.02, w: 0.04 },
     'Synchrotron': { u: 0.002, v: -0.001, w: 0.002 },
     'Neutron': { u: 0.1, v: -0.05, w: 0.1 }

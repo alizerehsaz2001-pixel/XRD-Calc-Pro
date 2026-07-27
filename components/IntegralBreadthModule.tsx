@@ -52,6 +52,7 @@ const IB_PRESETS = [
 ];
 
 const CAGLIOTI_PRESETS = [
+  { name: '0 (Raw / No Correction)', u: 0, v: 0, w: 0, desc: 'Zero instrumental broadening (raw sample profile)' },
   { name: 'Standard Lab XRD', u: 0.005, v: -0.002, w: 0.015, desc: 'Bragg-Brentano focus, standard divergent slit' },
   { name: 'High-Res Synchrotron', u: 0.0002, v: -0.0001, w: 0.001, desc: 'Extremely parallel mono-chromated beam' },
   { name: 'Neutron Diffractometer', u: 0.05, v: -0.03, w: 0.02, desc: 'Thermal powder diffractometer line' }
@@ -439,6 +440,18 @@ export const IntegralBreadthModule: React.FC = () => {
                     onChange={(e) => setInstBetaIB(Math.max(0, parseFloat(e.target.value) || 0))}
                     className="w-full px-4 py-2.5 bg-[#0A101C] text-purple-300 border border-white/10 focus:border-purple-500/50 rounded-lg focus:ring-1 focus:ring-purple-500/20 outline-none font-mono text-sm transition-all"
                   />
+                  <div className="flex gap-2 mt-2">
+                    {[0, 0.05, 0.08, 0.12].map(val => (
+                      <button 
+                        key={val}
+                        type="button"
+                        onClick={() => setInstBetaIB(val)}
+                        className={`flex-1 py-1.5 rounded-lg border text-[9px] font-black transition-all ${instBetaIB === val ? 'bg-purple-500/20 border-purple-500/50 text-purple-300' : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'}`}
+                      >
+                        {val === 0 ? '0 (Raw)' : `${val}°`}
+                      </button>
+                    ))}
+                  </div>
                   <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider leading-relaxed mt-1">
                     Uniform background contribution subtracted at all theta positions.</p>
                   

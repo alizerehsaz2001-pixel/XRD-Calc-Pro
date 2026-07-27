@@ -1216,6 +1216,43 @@ Provide a step-by-step strategy for the refinement of this specific system. Outl
     }
   });
 
+  // Generic Python Code Execution Endpoint
+  app.post("/api/python/run", async (req, res) => {
+    try {
+      const { code } = req.body;
+      if (!code || typeof code !== "string") {
+        res.status(400).json({ success: false, error: "Python code string is required." });
+        return;
+      }
+
+      const { spawn } = await import("child_process");
+      const child = spawn("python3", ["-c", code]);
+
+      let stdout = "";
+      let stderr = "";
+
+      child.stdout.on("data", (data) => {
+        stdout += data.toString();
+      });
+
+      child.stderr.on("data", (data) => {
+        stderr += data.toString();
+      });
+
+      child.on("close", (exitCode) => {
+        res.json({
+          success: exitCode === 0,
+          exitCode,
+          stdout: stdout.trim(),
+          stderr: stderr.trim()
+        });
+      });
+    } catch (error: any) {
+      console.error("Python Execution Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Advanced Method Analysis Endpoint using ThinkingLevel.HIGH
   app.post("/api/gemini/analyze-method", async (req, res) => {
     try {

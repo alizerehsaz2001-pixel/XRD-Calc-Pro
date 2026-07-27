@@ -16,6 +16,7 @@ import {
 import { Info, BookOpen, AlertTriangle, TrendingUp, Ruler, ChevronDown, Check, Atom, Binary, ShieldQuestion, Download, RefreshCw, Trash2, Loader2, Database, FlaskConical, Activity, Layers, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ScientificMathControl } from './ScientificMathControl';
+import { PythonCodeExporter } from './PythonCodeExporter';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
@@ -60,6 +61,7 @@ const WH_PRESETS = [
 ];
 
 const CAGLIOTI_PRESETS = [
+  { name: '0 (Raw / No Correction)', u: 0, v: 0, w: 0, desc: 'Zero instrumental broadening (raw data profile)' },
   { name: 'Standard Lab XRD', u: 0.005, v: -0.002, w: 0.015, desc: 'Bragg-Brentano focus, standard divergent slit' },
   { name: 'High-Res Synchrotron', u: 0.0002, v: -0.0001, w: 0.001, desc: 'Extremely parallel mono-chromated beam' },
   { name: 'Neutron Diffractometer', u: 0.05, v: -0.03, w: 0.02, desc: 'Thermal neutron powder instrument line' }
@@ -822,6 +824,18 @@ export const WilliamsonHallModule: React.FC = () => {
                     onChange={(e) => setInstFwhm(Math.max(0, parseFloat(e.target.value) || 0))}
                     className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
                   />
+                  <div className="flex gap-2 mt-2">
+                    {[0, 0.05, 0.08, 0.12].map(val => (
+                      <button 
+                        key={val}
+                        type="button"
+                        onClick={() => setInstFwhm(val)}
+                        className={`flex-1 py-1.5 rounded-lg border text-[9px] font-black transition-all ${instFwhm === val ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' : 'bg-black/20 border-white/5 text-slate-600 hover:text-slate-400'}`}
+                      >
+                        {val === 0 ? '0 (Raw)' : `${val}°`}
+                      </button>
+                    ))}
+                  </div>
                   <p className="text-[8px] text-slate-500 uppercase font-black tracking-wider leading-relaxed mt-1">
                     Flat instrumental contribution across all 2θ angles.
                   </p>
@@ -1406,6 +1420,21 @@ export const WilliamsonHallModule: React.FC = () => {
              </>
            )}
         </div>
+
+        {/* Python Script Exporter */}
+        {result && (
+          <PythonCodeExporter 
+            methodName="Williamson-Hall Analysis"
+            parameters={{
+              wavelength: Number(wavelength),
+              twoTheta: result.points.map(p => p.twoTheta),
+              beta: result.pointsExtended ? result.pointsExtended.map(p => p.fwhmObs) : [],
+              shapeFactor: Number(constantK || 0.9),
+              x: result.points.map(p => p.x),
+              y: result.points.map(p => p.y)
+            }}
+          />
+        )}
 
         {/* Warnings */}
         {result && result.sizeInterceptNm === 0 && (

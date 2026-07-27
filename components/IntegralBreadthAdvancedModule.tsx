@@ -408,7 +408,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                       </div>
 
                       {instrumentalMode === 'constant' ? (
-                        <div>
+                        <div className="space-y-2">
                           <label className="block text-[9px] font-black text-slate-600 mb-1.5 uppercase tracking-[0.15em] flex justify-between items-center">
                             <span>Resolution β_IB (DEG)</span>
                             <span className="text-[8px] text-amber-600/60 font-mono">Constant</span>
@@ -421,12 +421,46 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
                             className="w-full px-4 py-2.5 bg-[#0A101C] text-amber-300 border border-white/10 focus:border-amber-500/50 rounded-lg focus:ring-1 focus:ring-amber-500/20 outline-none font-mono text-sm transition-all"
                             placeholder="e.g. 0.05"
                           />
+                          <div className="flex gap-2">
+                            {[0, 0.05, 0.08, 0.12].map(val => (
+                              <button 
+                                key={val}
+                                type="button"
+                                onClick={() => setInstBetaIB(val)}
+                                className={`flex-1 py-1 rounded-lg border text-[9px] font-black transition-all ${instBetaIB === val ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' : 'bg-black/20 border-white/5 text-slate-500 hover:text-slate-300'}`}
+                              >
+                                {val === 0 ? '0 (Raw)' : `${val}°`}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       ) : (
                         <div className="space-y-2.5 bg-[#0A101C] p-3 rounded-xl border border-amber-500/10 shadow-inner">
-                          <span className="text-[8px] font-black uppercase tracking-widest text-amber-500/80 block mb-1">
-                            Polynomial: β_inst² = U·tan²θ + V·tanθ + W
-                          </span>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-amber-500/80 block">
+                              Polynomial: β_inst² = U·tan²θ + V·tanθ + W
+                            </span>
+                            <div className="flex gap-1">
+                              {[
+                                { name: '0 (Raw)', u: 0, v: 0, w: 0 },
+                                { name: 'Lab XRD', u: 0.005, v: -0.002, w: 0.015 },
+                                { name: 'Synchrotron', u: 0.0002, v: -0.0001, w: 0.001 }
+                              ].map((preset) => (
+                                <button
+                                  key={preset.name}
+                                  type="button"
+                                  onClick={() => {
+                                    setCagliotiU(preset.u);
+                                    setCagliotiV(preset.v);
+                                    setCagliotiW(preset.w);
+                                  }}
+                                  className="px-1.5 py-0.5 bg-[#070D18] border border-amber-500/20 rounded text-[8px] font-mono text-amber-300 hover:bg-amber-500/10"
+                                >
+                                  {preset.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                           <div className="grid grid-cols-3 gap-2">
                             <div>
                               <span className="text-[8px] font-bold text-slate-600 uppercase block mb-1">U-param</span>
