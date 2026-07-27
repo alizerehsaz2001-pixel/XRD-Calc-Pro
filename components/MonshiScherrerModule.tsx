@@ -43,6 +43,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { AIAnalysis } from './AIAnalysis';
 
 const XRAY_WAVELENGTHS = [
   { label: 'Cu Kα1', value: 1.54056 },
@@ -110,7 +111,14 @@ export const MonshiScherrerModule: React.FC = () => {
   const [cagliotiW, setCagliotiW] = useState<number>(0.015);
 
   const [inputData, setInputData] = useState<string>(MS_PRESETS[0].data);
-  const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian'>('Gaussian');
+  const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Voigt'>('Gaussian');
+  const [pvEta, setPvEta] = useState<number>(0.5);
+  const [zeroShiftDeg, setZeroShiftDeg] = useState<number>(0.0);
+  const [applyLPFactor, setApplyLPFactor] = useState<boolean>(false);
+  const [monochromatorAngle, setMonochromatorAngle] = useState<number>(26.4);
+  const [kAlpha2Correction, setKAlpha2Correction] = useState<boolean>(false);
+  
+  const [physicsSubTab, setPhysicsSubTab] = useState<'setup' | 'profiles' | 'corrections'>('setup');
   const [activeTab, setActiveTab] = useState<'logPlot' | 'comparison' | 'residuals' | 'spectrum'>('logPlot');
   
   const [result, setResult] = useState<MonshiScherrerResult | null>(() => {
@@ -138,7 +146,14 @@ export const MonshiScherrerModule: React.FC = () => {
         parsedPeaks,
         broadeningModel,
         instrumentalMode,
-        { U: cagliotiU, V: cagliotiV, W: cagliotiW }
+        { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+        {
+          zeroShiftDeg,
+          pvEta,
+          applyLPFactor,
+          monochromatorAngleDeg: monochromatorAngle,
+          kAlpha2Correction
+        }
       );
       setResult(computed);
       if (computed) {
@@ -148,7 +163,22 @@ export const MonshiScherrerModule: React.FC = () => {
       setResult(null);
     }
     isFirstRender.current = false;
-  }, [wavelength, constantK, instFwhm, inputData, broadeningModel, instrumentalMode, cagliotiU, cagliotiV, cagliotiW]);
+  }, [
+    wavelength,
+    constantK,
+    instFwhm,
+    inputData,
+    broadeningModel,
+    pvEta,
+    zeroShiftDeg,
+    applyLPFactor,
+    monochromatorAngle,
+    kAlpha2Correction,
+    instrumentalMode,
+    cagliotiU,
+    cagliotiV,
+    cagliotiW
+  ]);
 
   const handleApplyPreset = (preset: typeof MS_PRESETS[0]) => {
     setWavelength(preset.wavelength);
@@ -251,34 +281,34 @@ export const MonshiScherrerModule: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1528] via-[#08101E] to-[#040811] p-6 md:p-8 border border-cyan-500/20 shadow-[0_12px_50px_rgba(0,0,0,0.6)]">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[110px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#020813] via-[#0B1A30] to-[#061020] p-6 md:p-10 border border-cyan-500/20 shadow-[0_0_40px_rgba(6,182,212,0.15)] group">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-cyan-500/30 transition-colors duration-700" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-600/30 transition-colors duration-700" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          <div className="space-y-4 flex-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-medium shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+              <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
               <span>Modified Scherrer Logarithmic Transformation • Monshi et al. (2012) Method</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-cyan-100 to-cyan-400 tracking-tight flex flex-wrap items-center gap-3">
               Monshi-Scherrer Scheme
-              <span className="text-xs font-mono font-normal text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-lg border border-cyan-500/20">
+              <span className="text-xs font-mono font-normal text-cyan-400 bg-cyan-500/10 px-3 py-1.5 rounded-lg border border-cyan-500/30 shadow-inner">
                 Logarithmic Fit
               </span>
             </h1>
-            <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
-              Formulated by Monshi et al. (2012), this logarithmic modification ln(β) = ln(Kλ/D) + ln(1/cosθ) avoids low-angle division errors, balances reflection weights, and identifies strain or defect contributions via the slope m.
+            <p className="text-slate-300 text-sm md:text-base max-w-2xl leading-relaxed">
+              Formulated by Monshi et al. (2012), this logarithmic modification <span className="font-mono text-cyan-300">ln(β) = ln(Kλ/D) + ln(1/cosθ)</span> avoids low-angle division errors, balances reflection weights, and identifies strain or defect contributions via the slope <span className="font-mono text-cyan-300">m</span>.
             </p>
           </div>
 
-          <div className="bg-[#050C17]/85 backdrop-blur-md p-4 rounded-2xl border border-cyan-500/30 shadow-inner max-w-md w-full space-y-3">
-            <div className="text-center space-y-1">
+          <div className="bg-[#050C17]/85 backdrop-blur-md p-5 rounded-2xl border border-cyan-500/30 shadow-[inset_0_0_20px_rgba(6,182,212,0.1)] lg:w-[420px] w-full shrink-0 space-y-4 hover:border-cyan-400/50 transition-colors duration-500">
+            <div className="text-center space-y-1.5">
               <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-widest block">
                 1. Governing Linear Logarithmic Equation
               </span>
               <div 
-                className="text-white text-xs py-1.5 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto"
+                className="text-white text-xs sm:text-sm py-2 px-3 bg-black/60 rounded-xl border border-white/10 font-mono overflow-x-auto shadow-inner"
                 dangerouslySetInnerHTML={{
                   __html: katex.renderToString(
                     '\\ln(\\beta) = \\ln\\left(\\frac{K \\cdot \\lambda}{D}\\right) + \\ln\\left(\\frac{1}{\\cos\\theta}\\right)',
@@ -288,12 +318,12 @@ export const MonshiScherrerModule: React.FC = () => {
               />
             </div>
 
-            <div className="text-center space-y-1 pt-1 border-t border-white/5">
+            <div className="text-center space-y-1.5 pt-2 border-t border-white/10">
               <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-widest block">
                 2. Crystallite Size Extraction
               </span>
               <div 
-                className="text-emerald-300 text-xs py-1.5 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto"
+                className="text-emerald-300 text-xs sm:text-sm py-2 px-3 bg-black/60 rounded-xl border border-emerald-500/20 font-mono overflow-x-auto shadow-inner"
                 dangerouslySetInnerHTML={{
                   __html: katex.renderToString(
                     'D = \\frac{K \\cdot \\lambda}{\\exp(C)} = K \\cdot \\lambda \\cdot e^{-C}',
@@ -301,7 +331,7 @@ export const MonshiScherrerModule: React.FC = () => {
                   )
                 }}
               />
-              <p className="text-[10px] text-slate-400 font-mono mt-1">
+              <p className="text-[10px] text-slate-400 font-mono mt-1.5">
                 Where Intercept C = ln(K·λ / D), Slope m ≈ 1.0 (Ideal)
               </p>
             </div>
@@ -310,19 +340,19 @@ export const MonshiScherrerModule: React.FC = () => {
       </div>
 
       {/* Preset Selector Row */}
-      <div className="bg-[#080E1A]/90 p-4 rounded-2xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
-        <div className="flex items-center gap-2 text-xs text-slate-300 font-semibold">
-          <FlaskConical className="w-4 h-4 text-cyan-400" />
-          <span>Curated Experimental Presets:</span>
+      <div className="bg-[#050C17]/90 p-4 sm:p-5 rounded-3xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] relative z-20 hover:border-cyan-500/30 transition-colors duration-500">
+        <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-300 font-bold uppercase tracking-wider">
+          <FlaskConical className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
+          <span>Curated Experimental Presets</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {MS_PRESETS.map((p) => (
             <button
               key={p.name}
               onClick={() => handleApplyPreset(p)}
-              className="px-3 py-1.5 rounded-xl text-xs font-mono font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-black/50 hover:bg-cyan-500/10 text-cyan-400 text-xs font-mono font-bold rounded-xl border border-white/5 hover:border-cyan-500/30 transition-all flex-1 md:flex-none text-center shadow-inner flex items-center justify-center gap-1.5 group/btn"
             >
-              <Zap className="w-3 h-3 text-cyan-400" />
+              <Zap className="w-3.5 h-3.5 text-cyan-400 group-hover/btn:text-cyan-300 group-hover/btn:animate-pulse" />
               <span>{p.name}</span>
             </button>
           ))}
@@ -336,205 +366,451 @@ export const MonshiScherrerModule: React.FC = () => {
         <div className="lg:col-span-5 space-y-6">
           
           {/* Instrument & Physical Settings Card */}
-          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5 hover:border-cyan-500/30 transition-all duration-500 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-cyan-500/10 transition-colors" />
+
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 relative z-10">
               <div className="flex items-center gap-2">
-                <Atom className="w-4 h-4 text-cyan-400" />
+                <Atom className="w-4 h-4 text-cyan-400 animate-spin-slow" />
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">Parameters & Physics</h3>
               </div>
-              <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20">
-                Setup
+              <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-2.5 py-0.5 rounded-full border border-cyan-500/20 shadow-inner">
+                Advanced Physics
               </span>
             </div>
 
-            {/* Wavelength Picker */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">
-                X-Ray Radiation Wavelength (λ) [Å]
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={wavelength}
-                  onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                  className="w-full px-3 py-2 bg-[#050B14] text-cyan-300 border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-cyan-500/50"
-                >
-                  {XRAY_WAVELENGTHS.map((w) => (
-                    <option key={w.label} value={w.value}>
-                      {w.label} ({w.value} Å)
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  step="0.00001"
-                  value={wavelength}
-                  onChange={(e) => setWavelength(parseFloat(e.target.value) || 1.54056)}
-                  className="w-full px-3 py-2 bg-[#050B14] text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-cyan-500/50"
-                  placeholder="Custom Å"
-                />
-              </div>
+            {/* Sub-tab Navigation */}
+            <div className="flex p-1 bg-black/50 rounded-xl border border-white/10 gap-1 relative z-10">
+              <button
+                onClick={() => setPhysicsSubTab('setup')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  physicsSubTab === 'setup'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-inner'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Sliders className="w-3 h-3" />
+                Geometry & K
+              </button>
+
+              <button
+                onClick={() => setPhysicsSubTab('profiles')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  physicsSubTab === 'profiles'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-inner'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Activity className="w-3 h-3" />
+                Broadening Mode
+              </button>
+
+              <button
+                onClick={() => setPhysicsSubTab('corrections')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  physicsSubTab === 'corrections'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-inner'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Zap className="w-3 h-3" />
+                Corrections
+              </button>
             </div>
 
-            {/* Shape Factor K */}
-            <div className="relative">
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Crystallite Shape Factor (K)
-                </label>
-                <span className="text-xs font-mono text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-                  K = {constantK}
-                </span>
-              </div>
-              
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
-                  className="w-full px-3 py-2 bg-[#050B14] text-left border border-white/10 rounded-xl text-xs font-mono text-slate-200 flex items-center justify-between hover:border-cyan-500/30 transition-colors"
-                >
-                  <span>{K_FACTORS.find(k => k.value === constantK)?.label || 'Custom Factor'} ({constantK})</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-
-                <AnimatePresence>
-                  {isKTypeMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute z-30 left-0 right-0 mt-1 bg-[#091222] border border-cyan-500/30 rounded-xl shadow-2xl p-2 space-y-1 max-h-56 overflow-y-auto"
+            {/* Subtab 1: Geometry & K */}
+            {physicsSubTab === 'setup' && (
+              <div className="space-y-4 relative z-10">
+                {/* Wavelength Picker */}
+                <div className="group/input">
+                  <label className="block text-xs font-semibold text-slate-300 mb-2 group-hover/input:text-cyan-300 transition-colors">
+                    X-Ray Radiation Wavelength (λ) [Å]
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={wavelength}
+                      onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                      className="w-full px-3 py-2 bg-black/40 text-cyan-300 border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-cyan-500/50 hover:border-white/20 transition-colors cursor-pointer appearance-none shadow-inner"
                     >
-                      {K_FACTORS.map((k) => (
+                      {XRAY_WAVELENGTHS.map((w) => (
+                        <option key={w.label} value={w.value}>
+                          {w.label} ({w.value} Å)
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      step="0.00001"
+                      value={wavelength}
+                      onChange={(e) => setWavelength(parseFloat(e.target.value) || 1.54056)}
+                      className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-cyan-500/50 hover:border-white/20 transition-colors shadow-inner"
+                      placeholder="Custom Å"
+                    />
+                  </div>
+                </div>
+
+                {/* Shape Factor K */}
+                <div className="relative group/input">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-300 group-hover/input:text-cyan-300 transition-colors">
+                      Crystallite Shape Factor (K)
+                    </label>
+                    <span className="text-xs font-mono text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 shadow-inner">
+                      K = {constantK}
+                    </span>
+                  </div>
+                  
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsKTypeMenuOpen(!isKTypeMenuOpen)}
+                      className="w-full px-3 py-2 bg-black/40 text-left border border-white/10 rounded-xl text-xs font-mono text-slate-200 flex items-center justify-between hover:border-cyan-500/50 transition-colors shadow-inner"
+                    >
+                      <span>{K_FACTORS.find(k => k.value === constantK)?.label || 'Custom Factor'} ({constantK})</span>
+                      <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isKTypeMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {isKTypeMenuOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -5, scale: 0.98 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute z-30 left-0 right-0 mt-2 bg-[#091222]/95 backdrop-blur-xl border border-cyan-500/30 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] p-2 space-y-1 max-h-60 overflow-y-auto custom-scrollbar"
+                        >
+                          {K_FACTORS.map((k) => (
+                            <button
+                              key={k.label}
+                              onClick={() => {
+                                setConstantK(k.value);
+                                setIsKTypeMenuOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-2.5 rounded-lg text-xs font-mono transition-all flex items-start gap-3 ${
+                                constantK === k.value
+                                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                                  : 'text-slate-300 hover:bg-white/10 border border-transparent'
+                              }`}
+                            >
+                              <span className="text-base mt-0.5">{k.icon}</span>
+                              <div>
+                                <div className="font-bold text-white">{k.label} (K = {k.value})</div>
+                                <div className="text-[10px] text-slate-400 leading-tight mt-0.5">{k.desc}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                {/* Zero-Point Goniometer Shift Correction */}
+                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-2 shadow-inner">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-300 font-medium flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                      Zero-Shift Error (Δ2θ₀)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-mono text-xs px-2 py-0.5 rounded border ${
+                        zeroShiftDeg !== 0 
+                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold' 
+                          : 'bg-black/60 text-slate-400 border-white/5'
+                      }`}>
+                        {zeroShiftDeg > 0 ? `+${zeroShiftDeg.toFixed(2)}` : zeroShiftDeg.toFixed(2)}° 2θ
+                      </span>
+                      {zeroShiftDeg !== 0 && (
                         <button
-                          key={k.label}
-                          onClick={() => {
-                            setConstantK(k.value);
-                            setIsKTypeMenuOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-mono transition-all flex items-start gap-2 ${
-                            constantK === k.value
-                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                              : 'text-slate-300 hover:bg-white/5'
+                          onClick={() => setZeroShiftDeg(0)}
+                          className="text-[10px] text-cyan-400 hover:underline font-mono"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="-0.5"
+                    max="0.5"
+                    step="0.01"
+                    value={zeroShiftDeg}
+                    onChange={(e) => setZeroShiftDeg(parseFloat(e.target.value))}
+                    className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                  />
+                  <p className="text-[10px] text-slate-400 leading-tight">
+                    Corrects goniometer alignment offset: 2θ_corr = 2θ_obs + Δ2θ₀
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Subtab 2: Instrumental & Profiles */}
+            {physicsSubTab === 'profiles' && (
+              <div className="space-y-4 relative z-10">
+                {/* Instrumental Broadening Mode */}
+                <div className="group/input">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-xs font-semibold text-slate-300 group-hover/input:text-cyan-300 transition-colors">
+                      Instrumental Broadening (β_inst)
+                    </label>
+                    <div className="flex bg-black/60 p-1 rounded-lg border border-white/10 text-[10px] font-mono shadow-inner">
+                      <button
+                        onClick={() => setInstrumentalMode('constant')}
+                        className={`px-2.5 py-1 rounded-md transition-all ${
+                          instrumentalMode === 'constant' ? 'bg-cyan-500 text-black font-bold shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        Constant
+                      </button>
+                      <button
+                        onClick={() => setInstrumentalMode('caglioti')}
+                        className={`px-2.5 py-1 rounded-md transition-all ${
+                          instrumentalMode === 'caglioti' ? 'bg-cyan-500 text-black font-bold shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        Caglioti
+                      </button>
+                    </div>
+                  </div>
+
+                  {instrumentalMode === 'constant' ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={instFwhm}
+                        onChange={(e) => setInstFwhm(parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-cyan-500/50 shadow-inner"
+                      />
+                      <span className="text-xs text-slate-400 font-mono whitespace-nowrap">°2θ FWHM</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-mono mb-1">U (tan²θ)</span>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={cagliotiU}
+                          onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
+                          className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-cyan-500/50 shadow-inner"
+                        />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-mono mb-1">V (tanθ)</span>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={cagliotiV}
+                          onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
+                          className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-cyan-500/50 shadow-inner"
+                        />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-mono mb-1">W (const)</span>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={cagliotiW}
+                          onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
+                          className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-cyan-500/50 shadow-inner"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Profile Deconvolution Model */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-2">
+                    Peak Broadening Profile Model
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setBroadeningModel('Gaussian')}
+                      className={`py-2 px-2.5 rounded-xl border text-[11px] font-mono transition-all text-center ${
+                        broadeningModel === 'Gaussian'
+                          ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 font-bold shadow-inner'
+                          : 'bg-black/40 border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      Gaussian (β² = βₒ² - βᵢ²)
+                    </button>
+
+                    <button
+                      onClick={() => setBroadeningModel('Lorentzian')}
+                      className={`py-2 px-2.5 rounded-xl border text-[11px] font-mono transition-all text-center ${
+                        broadeningModel === 'Lorentzian'
+                          ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 font-bold shadow-inner'
+                          : 'bg-black/40 border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      Lorentzian (β = βₒ - βᵢ)
+                    </button>
+
+                    <button
+                      onClick={() => setBroadeningModel('Pseudo-Voigt')}
+                      className={`py-2 px-2.5 rounded-xl border text-[11px] font-mono transition-all text-center ${
+                        broadeningModel === 'Pseudo-Voigt'
+                          ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 font-bold shadow-inner'
+                          : 'bg-black/40 border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      Pseudo-Voigt (η Mix)
+                    </button>
+
+                    <button
+                      onClick={() => setBroadeningModel('Voigt')}
+                      className={`py-2 px-2.5 rounded-xl border text-[11px] font-mono transition-all text-center ${
+                        broadeningModel === 'Voigt'
+                          ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 font-bold shadow-inner'
+                          : 'bg-black/40 border-white/10 text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      Voigt (Olivero Approx)
+                    </button>
+                  </div>
+
+                  {broadeningModel === 'Pseudo-Voigt' && (
+                    <div className="mt-3 p-3 bg-black/40 rounded-xl border border-white/5 space-y-1.5 shadow-inner">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-slate-300">Mixing Ratio (η):</span>
+                        <span className="text-cyan-300 font-mono font-bold">{pvEta.toFixed(2)}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={pvEta}
+                        onChange={(e) => setPvEta(parseFloat(e.target.value))}
+                        className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                      />
+                      <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+                        <span>0.0 (Gaussian)</span>
+                        <span>1.0 (Lorentzian)</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Subtab 3: Advanced Corrections */}
+            {physicsSubTab === 'corrections' && (
+              <div className="space-y-4 relative z-10">
+                {/* Lorentz-Polarization (L-P) Factor Toggle */}
+                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-white block">
+                        Lorentz-Polarization (L-P) Correction
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Adjusts FWHM for geometry intensity weighting
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setApplyLPFactor(!applyLPFactor)}
+                      className={`w-11 h-6 rounded-full transition-colors relative ${
+                        applyLPFactor ? 'bg-cyan-500' : 'bg-white/10'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                          applyLPFactor ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {applyLPFactor && (
+                    <div className="pt-2 border-t border-white/10 space-y-1.5">
+                      <label className="text-[10px] text-slate-300 font-mono block">
+                        Monochromator 2θ_m Angle [deg]
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setMonochromatorAngle(0)}
+                          className={`py-1 px-2 rounded-lg text-[10px] font-mono border ${
+                            monochromatorAngle === 0 
+                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' 
+                              : 'bg-black/60 text-slate-400 border-white/5'
                           }`}
                         >
-                          <span className="text-base">{k.icon}</span>
-                          <div>
-                            <div className="font-bold">{k.label} (K = {k.value})</div>
-                            <div className="text-[10px] text-slate-400 leading-tight">{k.desc}</div>
-                          </div>
+                          Unpolarized (0°)
                         </button>
-                      ))}
-                    </motion.div>
+                        <button
+                          type="button"
+                          onClick={() => setMonochromatorAngle(26.4)}
+                          className={`py-1 px-2 rounded-lg text-[10px] font-mono border ${
+                            monochromatorAngle === 26.4 
+                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' 
+                              : 'bg-black/60 text-slate-400 border-white/5'
+                          }`}
+                        >
+                          Graphite (26.4°)
+                        </button>
+                      </div>
+                    </div>
                   )}
-                </AnimatePresence>
-              </div>
-            </div>
+                </div>
 
-            {/* Instrumental Broadening Mode */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Instrumental Broadening (β_inst)
-                </label>
-                <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/10 text-[10px] font-mono">
+                {/* K-Alpha2 Doublet Wavelength Correction */}
+                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-between shadow-inner">
+                  <div>
+                    <span className="text-xs font-semibold text-white block">
+                      Kα₂ Doublet Splitting Correction
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Rachinger doublet stripping at higher 2θ angles
+                    </span>
+                  </div>
+
                   <button
-                    onClick={() => setInstrumentalMode('constant')}
-                    className={`px-2 py-0.5 rounded-md transition-all ${
-                      instrumentalMode === 'constant' ? 'bg-cyan-500 text-black font-bold' : 'text-slate-400 hover:text-white'
+                    type="button"
+                    onClick={() => setKAlpha2Correction(!kAlpha2Correction)}
+                    className={`w-11 h-6 rounded-full transition-colors relative ${
+                      kAlpha2Correction ? 'bg-cyan-500' : 'bg-white/10'
                     }`}
                   >
-                    Constant
-                  </button>
-                  <button
-                    onClick={() => setInstrumentalMode('caglioti')}
-                    className={`px-2 py-0.5 rounded-md transition-all ${
-                      instrumentalMode === 'caglioti' ? 'bg-cyan-500 text-black font-bold' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Caglioti
+                    <span
+                      className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        kAlpha2Correction ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
                   </button>
                 </div>
-              </div>
 
-              {instrumentalMode === 'constant' ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    step="0.001"
-                    value={instFwhm}
-                    onChange={(e) => setInstFwhm(parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 bg-[#050B14] text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-cyan-500/50"
-                  />
-                  <span className="text-xs text-slate-400 font-mono whitespace-nowrap">°2θ FWHM</span>
+                {/* Monshi Slope Microstrain Extractor Info */}
+                <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-2xl space-y-1.5 shadow-inner">
+                  <div className="flex items-center gap-1.5 text-xs text-cyan-300 font-bold">
+                    <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                    Monshi Logarithmic Strain Extractor
+                  </div>
+                  <p className="text-[10px] text-slate-300 leading-relaxed">
+                    When slope <code className="text-cyan-300">m &gt; 1.0</code>, Monshi scheme extracts lattice microstrain from slope excess: 
+                    <span className="font-mono text-cyan-300 block mt-0.5">⟨ε⟩ ≈ (m - 1) · β_avg / (4 · tan θ_avg)</span>
+                  </p>
+                  {result && result.estimatedStrain !== undefined && result.estimatedStrain > 0 && (
+                    <div className="mt-1 pt-1 border-t border-cyan-500/20 flex justify-between text-[11px] font-mono text-emerald-300 font-bold">
+                      <span>Extracted Microstrain:</span>
+                      <span>{(result.estimatedStrain * 100).toFixed(4)}%</span>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-mono mb-1">U (tan²θ)</span>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={cagliotiU}
-                      onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
-                      className="w-full px-2 py-1.5 bg-[#050B14] text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-cyan-500/50"
-                    />
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-mono mb-1">V (tanθ)</span>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={cagliotiV}
-                      onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
-                      className="w-full px-2 py-1.5 bg-[#050B14] text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-cyan-500/50"
-                    />
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 font-mono mb-1">W (const)</span>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={cagliotiW}
-                      onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
-                      className="w-full px-2 py-1.5 bg-[#050B14] text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-cyan-500/50"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Profile Deconvolution Model */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">
-                Peak Broadening Profile Model
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setBroadeningModel('Gaussian')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-mono transition-all ${
-                    broadeningModel === 'Gaussian'
-                      ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 font-bold'
-                      : 'bg-[#050B14] border-white/10 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Gaussian (β² = βₒ² - βᵢ²)
-                </button>
-                <button
-                  onClick={() => setBroadeningModel('Lorentzian')}
-                  className={`py-2 px-3 rounded-xl border text-xs font-mono transition-all ${
-                    broadeningModel === 'Lorentzian'
-                      ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 font-bold'
-                      : 'bg-[#050B14] border-white/10 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Lorentzian (β = βₒ - βᵢ)
-                </button>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Peak Input Data Area */}
-          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-3">
+          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 hover:border-white/20 transition-colors duration-500">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-cyan-400" />
@@ -542,7 +818,7 @@ export const MonshiScherrerModule: React.FC = () => {
               </div>
               <button
                 onClick={() => setInputData('')}
-                className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1 transition-colors px-2 py-1 bg-white/5 rounded-lg"
+                className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1.5 transition-colors px-2.5 py-1.5 bg-black/40 rounded-lg hover:bg-white/5 border border-transparent hover:border-red-500/20"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Clear
@@ -550,43 +826,48 @@ export const MonshiScherrerModule: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-400 leading-normal">
-              Enter one peak per line: <code className="text-cyan-300 bg-black/40 px-1 py-0.5 rounded font-mono">2θ [deg], FWHM [deg], h, k, l</code>
+              Enter one peak per line: <code className="text-cyan-300 bg-black/60 px-1.5 py-0.5 rounded font-mono shadow-inner border border-white/5 text-[11px]">2θ [deg], FWHM [deg], h, k, l</code>
             </p>
 
-            <textarea
-              value={inputData}
-              onChange={(e) => setInputData(e.target.value)}
-              rows={8}
-              spellCheck={false}
-              className="w-full p-3 bg-[#030710] text-cyan-300 font-mono text-xs border border-white/10 rounded-2xl outline-none focus:border-cyan-500/50 transition-all custom-scrollbar leading-relaxed"
-            />
+            <div className="relative group/textarea">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-[30px] pointer-events-none group-focus-within/textarea:bg-cyan-500/10 transition-colors" />
+              <textarea
+                value={inputData}
+                onChange={(e) => setInputData(e.target.value)}
+                rows={8}
+                spellCheck={false}
+                className="w-full p-4 bg-black/60 text-cyan-300 font-mono text-xs border border-white/10 rounded-2xl outline-none focus:border-cyan-500/50 hover:border-white/20 transition-all custom-scrollbar leading-relaxed shadow-inner relative z-10"
+              />
+            </div>
 
             {/* Input Peak Counter */}
-            <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-1">
-              <span>Parsed reflections: <strong className="text-cyan-300">{result?.points?.length || 0}</strong></span>
+            <div className="flex items-center justify-between text-[11px] font-mono pt-1">
+              <span className="text-slate-400">Parsed reflections: <strong className="text-cyan-300 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">{result?.points?.length || 0}</strong></span>
               {result && result.points.length >= 2 ? (
-                <span className="text-emerald-400 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" /> Ready for logarithmic regression
+                <span className="text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                  <CheckCircle className="w-3.5 h-3.5" /> Ready for regression
                 </span>
               ) : (
-                <span className="text-amber-400 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> Minimum 2 reflections required
+                <span className="text-amber-400 flex items-center gap-1.5 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
+                  <AlertTriangle className="w-3.5 h-3.5" /> Minimum 2 reflections
                 </span>
               )}
             </div>
           </div>
 
           {/* Methodology & Formula Guide Card */}
-          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-3">
-            <h4 className="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-2">
-              <Info className="w-4 h-4 text-cyan-400" />
+          <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-cyan-500/20 shadow-[0_8px_30px_rgba(6,182,212,0.05)] space-y-4 hover:border-cyan-500/40 transition-colors duration-500 relative overflow-hidden group">
+            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-[50px] pointer-events-none group-hover:bg-cyan-500/20 transition-colors" />
+            
+            <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2 relative z-10">
+              <Info className="w-4 h-4" />
               Methodology & Formula Guide
             </h4>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Plots Y = ln(β) against X = ln(1/cosθ) to perform linear regression Y = m·X + C:
+            <p className="text-xs text-slate-300 leading-relaxed relative z-10">
+              Plots <span className="font-mono text-cyan-300">Y = ln(β)</span> against <span className="font-mono text-cyan-300">X = ln(1/cosθ)</span> to perform linear regression <span className="font-mono text-cyan-300">Y = m·X + C</span>:
             </p>
             <div 
-              className="text-cyan-300 text-xs py-2 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto text-center"
+              className="text-white text-xs sm:text-sm py-3 px-3 bg-black/60 rounded-xl border border-white/10 font-mono overflow-x-auto text-center shadow-inner relative z-10"
               dangerouslySetInnerHTML={{
                 __html: katex.renderToString(
                   '\\ln(\\beta) = m \\cdot \\ln\\left(\\frac{1}{\\cos\\theta}\\right) + \\ln\\left(\\frac{K \\cdot \\lambda}{D}\\right)',
@@ -594,11 +875,11 @@ export const MonshiScherrerModule: React.FC = () => {
                 )
               }}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px] font-mono">
-              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1">
-                <span className="text-emerald-400 font-bold block">1. Crystallite Size (D)</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-[11px] font-mono relative z-10">
+              <div className="bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/20 space-y-2 hover:bg-emerald-500/10 transition-colors">
+                <span className="text-emerald-400 font-bold block flex items-center gap-1.5"><Ruler className="w-3.5 h-3.5" />1. Crystallite Size (D)</span>
                 <div 
-                  className="text-slate-200"
+                  className="text-emerald-300 bg-black/40 py-1.5 px-2 rounded-lg text-center"
                   dangerouslySetInnerHTML={{
                     __html: katex.renderToString(
                       'D = K \\cdot \\lambda \\cdot e^{-C}',
@@ -607,10 +888,10 @@ export const MonshiScherrerModule: React.FC = () => {
                   }}
                 />
               </div>
-              <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 space-y-1">
-                <span className="text-cyan-400 font-bold block">2. Slope Physical Significance</span>
-                <p className="text-slate-300 text-[10px]">
-                  Ideal m ≈ 1.0 (pure size). Deviation m &gt; 1 indicates lattice strain or planar faults.
+              <div className="bg-blue-500/5 p-3 rounded-xl border border-blue-500/20 space-y-1.5 hover:bg-blue-500/10 transition-colors">
+                <span className="text-blue-400 font-bold block flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" />2. Slope Significance</span>
+                <p className="text-slate-300 text-[10px] leading-relaxed">
+                  Ideal <span className="text-blue-300">m ≈ 1.0</span> (pure size). Deviation <span className="text-red-400">m &gt; 1</span> indicates lattice strain or planar faults.
                 </p>
               </div>
             </div>
@@ -629,7 +910,8 @@ export const MonshiScherrerModule: React.FC = () => {
             >
               
               {/* Monshi-Scherrer Crystallite Size D */}
-              <div className="bg-gradient-to-br from-[#0B1A30] to-[#061020] p-5 rounded-3xl border border-cyan-500/30 shadow-lg relative overflow-hidden group">
+              <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-cyan-500/30 shadow-[0_8px_30px_rgba(6,182,212,0.1)] relative overflow-hidden group hover:border-cyan-400/60 transition-colors duration-500">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-cyan-500/20 transition-colors" />
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-cyan-400">
                     <Ruler className="w-4 h-4" />
@@ -637,20 +919,21 @@ export const MonshiScherrerModule: React.FC = () => {
                   </div>
                   <Award className="w-4 h-4 text-cyan-400/50" />
                 </div>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">
+                <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-cyan-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
                     {result.sizeNm.toFixed(2)}
                   </span>
                   <span className="text-cyan-300 text-sm font-mono font-semibold">nm</span>
                 </div>
-                <div className="mt-3 pt-2 border-t border-white/5 space-y-0.5 text-[11px] font-mono text-slate-400">
-                  <div>Length: <span className="text-slate-200 font-bold">{(result.sizeNm * 10).toFixed(1)} Å</span></div>
-                  <div>Mean Single-Peak: <span className="text-slate-200 font-bold">{meanSinglePeakSize.toFixed(2)} nm</span></div>
+                <div className="mt-4 pt-3 border-t border-cyan-500/20 space-y-1 text-[11px] font-mono text-slate-400">
+                  <div className="flex justify-between"><span>Length:</span> <span className="text-slate-200 font-bold">{(result.sizeNm * 10).toFixed(1)} Å</span></div>
+                  <div className="flex justify-between"><span>Mean Single-Peak:</span> <span className="text-slate-200 font-bold">{meanSinglePeakSize.toFixed(2)} nm</span></div>
                 </div>
               </div>
 
               {/* Logarithmic Slope m */}
-              <div className="bg-gradient-to-br from-[#0D182A] to-[#07101E] p-5 rounded-3xl border border-blue-500/30 shadow-lg relative overflow-hidden group">
+              <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-blue-500/30 shadow-[0_8px_30px_rgba(59,130,246,0.1)] relative overflow-hidden group hover:border-blue-400/60 transition-colors duration-500">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-blue-500/20 transition-colors" />
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-blue-400">
                     <TrendingUp className="w-4 h-4" />
@@ -658,21 +941,22 @@ export const MonshiScherrerModule: React.FC = () => {
                   </div>
                   <Activity className="w-4 h-4 text-blue-400/50" />
                 </div>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">
+                <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-blue-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                     {result.slope.toFixed(4)}
                   </span>
                 </div>
-                <div className="mt-3 pt-2 border-t border-white/5 space-y-0.5 text-[11px] font-mono text-slate-400">
-                  <div>Ideal Slope: <span className="text-blue-300 font-bold">1.0000</span></div>
-                  <div>Dev Status: <span className="text-slate-200 font-bold">
+                <div className="mt-4 pt-3 border-t border-blue-500/20 space-y-1 text-[11px] font-mono text-slate-400">
+                  <div className="flex justify-between"><span>Ideal Slope:</span> <span className="text-blue-300 font-bold">1.0000</span></div>
+                  <div className="flex justify-between"><span>Dev Status:</span> <span className="text-slate-200 font-bold truncate ml-2">
                     {Math.abs(result.slope - 1) <= 0.15 ? 'Isotropic Size' : result.slope > 1 ? 'Microstrain' : 'Defect/Over-sub'}
                   </span></div>
                 </div>
               </div>
 
               {/* Fit Quality R² */}
-              <div className="bg-gradient-to-br from-[#0B1A30] to-[#061020] p-5 rounded-3xl border border-emerald-500/30 shadow-lg relative overflow-hidden group">
+              <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-emerald-500/30 shadow-[0_8px_30px_rgba(16,185,129,0.1)] relative overflow-hidden group hover:border-emerald-400/60 transition-colors duration-500">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-colors" />
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-emerald-400">
                     <CheckCircle className="w-4 h-4" />
@@ -680,14 +964,14 @@ export const MonshiScherrerModule: React.FC = () => {
                   </div>
                   <Layers className="w-4 h-4 text-emerald-400/50" />
                 </div>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">
+                <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-emerald-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                     {(result.rSquared * 100).toFixed(2)}%
                   </span>
                 </div>
-                <div className="mt-3 pt-2 border-t border-white/5 space-y-0.5 text-[11px] font-mono text-slate-400">
-                  <div>Intercept C: <span className="text-emerald-300 font-bold">{result.intercept.toFixed(4)}</span></div>
-                  <div>exp(C): <span className="text-slate-200 font-bold">{Math.exp(result.intercept).toFixed(4)}</span></div>
+                <div className="mt-4 pt-3 border-t border-emerald-500/20 space-y-1 text-[11px] font-mono text-slate-400">
+                  <div className="flex justify-between"><span>Intercept C:</span> <span className="text-emerald-300 font-bold">{result.intercept.toFixed(4)}</span></div>
+                  <div className="flex justify-between"><span>exp(C):</span> <span className="text-slate-200 font-bold">{Math.exp(result.intercept).toFixed(4)}</span></div>
                 </div>
               </div>
             </motion.div>
@@ -699,19 +983,24 @@ export const MonshiScherrerModule: React.FC = () => {
             </div>
           )}
 
+          {result && (
+            <AIAnalysis methodName="Monshi-Scherrer Logarithmic Scheme" resultData={result} />
+          )}
+
           {/* Interactive Plot Tabs & Visualization Container */}
           {result && (
-            <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5">
+            <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5 hover:border-cyan-500/30 transition-colors duration-500 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[60px] pointer-events-none group-hover:bg-cyan-500/10 transition-colors" />
               
               {/* Tab Selector Header */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3">
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/5 pb-4 relative z-10">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   <button
                     onClick={() => setActiveTab('logPlot')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all shadow-inner border flex-1 sm:flex-none text-center ${
                       activeTab === 'logPlot'
-                        ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
-                        : 'bg-white/5 text-slate-400 hover:text-white'
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                        : 'bg-black/40 text-slate-400 border-white/5 hover:border-cyan-500/30 hover:text-cyan-200'
                     }`}
                   >
                     1. Monshi Log Regression
@@ -719,10 +1008,10 @@ export const MonshiScherrerModule: React.FC = () => {
 
                   <button
                     onClick={() => setActiveTab('comparison')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all shadow-inner border flex-1 sm:flex-none text-center ${
                       activeTab === 'comparison'
-                        ? 'bg-blue-500 text-black shadow-md shadow-blue-500/20'
-                        : 'bg-white/5 text-slate-400 hover:text-white'
+                        ? 'bg-blue-500/20 text-blue-300 border-blue-500/50'
+                        : 'bg-black/40 text-slate-400 border-white/5 hover:border-blue-500/30 hover:text-blue-200'
                     }`}
                   >
                     2. Single-Peak vs Monshi Size
@@ -730,10 +1019,10 @@ export const MonshiScherrerModule: React.FC = () => {
 
                   <button
                     onClick={() => setActiveTab('residuals')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all shadow-inner border flex-1 sm:flex-none text-center ${
                       activeTab === 'residuals'
-                        ? 'bg-purple-500 text-black shadow-md shadow-purple-500/20'
-                        : 'bg-white/5 text-slate-400 hover:text-white'
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/50'
+                        : 'bg-black/40 text-slate-400 border-white/5 hover:border-purple-500/30 hover:text-purple-200'
                     }`}
                   >
                     3. Residual Analysis
@@ -741,45 +1030,49 @@ export const MonshiScherrerModule: React.FC = () => {
 
                   <button
                     onClick={() => setActiveTab('spectrum')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                    className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all shadow-inner border flex-1 sm:flex-none text-center ${
                       activeTab === 'spectrum'
-                        ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/20'
-                        : 'bg-white/5 text-slate-400 hover:text-white'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                        : 'bg-black/40 text-slate-400 border-white/5 hover:border-emerald-500/30 hover:text-emerald-200'
                     }`}
                   >
                     4. Size Distribution Spectrum
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                   <button
                     onClick={handleDownloadCSV}
-                    className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono flex items-center gap-1 transition-all"
+                    className="px-3 py-2 rounded-xl bg-black/40 hover:bg-white/10 text-slate-300 border border-white/5 hover:border-white/20 text-xs font-mono flex items-center gap-1.5 transition-all shadow-inner"
                     title="Export CSV"
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">CSV</span>
+                    <Download className="w-4 h-4" />
+                    <span>Export CSV</span>
                   </button>
 
                   <button
                     onClick={handleCopyLaTeX}
-                    className="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono flex items-center gap-1.5 transition-all"
+                    className={`px-3 py-2 rounded-xl text-xs font-mono flex items-center gap-1.5 transition-all shadow-inner border ${
+                      copiedNotification 
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50' 
+                        : 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                    }`}
                   >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>{copiedNotification ? 'Copied LaTeX!' : 'LaTeX'}</span>
+                    {copiedNotification ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedNotification ? 'Copied LaTeX!' : 'Copy LaTeX'}</span>
                   </button>
                 </div>
               </div>
 
               {/* Tab 1: Log Plot */}
               {activeTab === 'logPlot' && chartData && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs font-mono text-slate-300">
-                    <span>Logarithmic Fit: <strong className="text-cyan-400">ln(β) = {result.slope.toFixed(4)} · ln(1/cos θ) + {result.intercept.toFixed(4)}</strong></span>
-                    <span className="text-slate-400">R²: <strong className="text-emerald-400">{(result.rSquared * 100).toFixed(2)}%</strong></span>
+                <div className="space-y-4 bg-black/20 p-4 sm:p-6 rounded-2xl border border-white/5 shadow-inner relative z-10">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono text-slate-300 gap-2">
+                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">Logarithmic Fit: <strong className="text-cyan-400">ln(β) = {result.slope.toFixed(4)} · ln(1/cos θ) + {result.intercept.toFixed(4)}</strong></span>
+                    <span className="bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 shadow-inner text-emerald-400">R²: <strong>{(result.rSquared * 100).toFixed(2)}%</strong></span>
                   </div>
 
-                  <div className="h-72 sm:h-80 w-full pt-2">
+                  <div className="h-72 sm:h-96 w-full pt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
@@ -819,15 +1112,16 @@ export const MonshiScherrerModule: React.FC = () => {
                             if (active && payload && payload.length) {
                               const data = payload[0].payload;
                               return (
-                                <div className="bg-[#050C17]/95 border border-cyan-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs text-white space-y-1">
-                                  <div className="text-cyan-400 font-bold border-b border-white/10 pb-1">
+                                <div className="bg-[#050C17]/95 border border-cyan-500/40 p-4 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md font-mono text-xs text-white space-y-1.5 relative overflow-hidden">
+                                  <div className="absolute top-0 right-0 w-16 h-16 bg-cyan-500/20 rounded-full blur-[20px] pointer-events-none" />
+                                  <div className="text-cyan-400 font-bold border-b border-white/10 pb-2 relative z-10">
                                     {data.hkl ? `Reflection: ${data.hkl}` : `2θ = ${data.twoTheta?.toFixed(2)}°`}
                                   </div>
-                                  <div>2θ: <span className="text-cyan-300">{data.twoTheta?.toFixed(2)}°</span></div>
-                                  <div>X = ln(1/cosθ): <span className="text-cyan-300">{data.x?.toFixed(4)}</span></div>
-                                  <div>Y = ln(β): <span className="text-cyan-300">{data.y?.toFixed(4)}</span></div>
-                                  <div>Single-Peak D: <span className="text-emerald-400 font-bold">{data.singleSize?.toFixed(2)} nm</span></div>
-                                  <div>Residual ΔY: <span className="text-purple-300 font-mono">{data.residual?.toFixed(5)}</span></div>
+                                  <div className="relative z-10">2θ: <span className="text-cyan-300">{data.twoTheta?.toFixed(2)}°</span></div>
+                                  <div className="relative z-10">X = ln(1/cosθ): <span className="text-cyan-300">{data.x?.toFixed(4)}</span></div>
+                                  <div className="relative z-10">Y = ln(β): <span className="text-cyan-300 bg-cyan-500/10 px-1 py-0.5 rounded font-bold">{data.y?.toFixed(4)}</span></div>
+                                  <div className="relative z-10">Single-Peak D: <span className="text-emerald-400 font-bold">{data.singleSize?.toFixed(2)} nm</span></div>
+                                  <div className="relative z-10">Residual ΔY: <span className="text-purple-300 font-mono">{data.residual?.toFixed(5)}</span></div>
                                 </div>
                               );
                             }
@@ -873,21 +1167,22 @@ export const MonshiScherrerModule: React.FC = () => {
                     </ResponsiveContainer>
                   </div>
 
-                  <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-2xl text-xs text-cyan-200 leading-relaxed font-mono">
-                    <span className="font-bold text-cyan-300 block mb-1">Scientific Commentary on Monshi-Scherrer Fit:</span>
-                    {result.slopeInterpretation}
+                  <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-2xl text-xs text-cyan-200 leading-relaxed font-mono shadow-inner relative overflow-hidden group/interp">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[30px] pointer-events-none group-hover/interp:bg-cyan-500/20 transition-colors" />
+                    <span className="font-bold text-cyan-300 block mb-1.5 flex items-center gap-1.5 relative z-10"><Info className="w-3.5 h-3.5" /> Scientific Commentary on Monshi-Scherrer Fit:</span>
+                    <span className="relative z-10">{result.slopeInterpretation}</span>
                   </div>
                 </div>
               )}
 
               {/* Tab 2: Single Peak vs Monshi Consensus Size Comparison */}
               {activeTab === 'comparison' && (
-                <div className="space-y-3">
+                <div className="space-y-4 bg-black/20 p-4 sm:p-6 rounded-2xl border border-white/5 shadow-inner relative z-10">
                   <div className="flex items-center justify-between text-xs font-mono text-slate-300">
-                    <span>Individual Reflection Sizes D_hkl vs Consensus Monshi Size D = <strong className="text-emerald-400">{result.sizeNm.toFixed(2)} nm</strong></span>
+                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">Individual Reflection Sizes <strong className="text-blue-400">D_hkl</strong> vs Consensus Monshi Size D = <strong className="text-emerald-400">{result.sizeNm.toFixed(2)} nm</strong></span>
                   </div>
 
-                  <div className="h-72 sm:h-80 w-full pt-2">
+                  <div className="h-72 sm:h-96 w-full pt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={singlePeakComparisonData} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
@@ -923,13 +1218,14 @@ export const MonshiScherrerModule: React.FC = () => {
                             if (active && payload && payload.length) {
                               const d = payload[0].payload;
                               return (
-                                <div className="bg-[#050C17]/95 border border-blue-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs text-white space-y-1">
-                                  <div className="text-blue-400 font-bold border-b border-white/10 pb-1">
+                                <div className="bg-[#050C17]/95 border border-blue-500/40 p-4 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md font-mono text-xs text-white space-y-1.5 relative overflow-hidden">
+                                  <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/20 rounded-full blur-[20px] pointer-events-none" />
+                                  <div className="text-blue-400 font-bold border-b border-white/10 pb-2 relative z-10">
                                     Reflection: {d.hkl} (2θ = {d.twoTheta}°)
                                   </div>
-                                  <div>Single Peak D: <span className="text-white font-bold">{d.singleSize.toFixed(2)} nm</span></div>
-                                  <div>Monshi Consensus D: <span className="text-emerald-400 font-bold">{d.monshiSize.toFixed(2)} nm</span></div>
-                                  <div>Deviation ΔD: <span className="text-cyan-300">{d.diff > 0 ? `+${d.diff.toFixed(2)}` : d.diff.toFixed(2)} nm</span></div>
+                                  <div className="relative z-10">Single Peak D: <span className="text-white font-bold bg-blue-500/10 px-1 py-0.5 rounded">{d.singleSize.toFixed(2)} nm</span></div>
+                                  <div className="relative z-10">Monshi Consensus D: <span className="text-emerald-400 font-bold">{d.monshiSize.toFixed(2)} nm</span></div>
+                                  <div className="relative z-10">Deviation ΔD: <span className="text-cyan-300">{d.diff > 0 ? `+${d.diff.toFixed(2)}` : d.diff.toFixed(2)} nm</span></div>
                                 </div>
                               );
                             }
@@ -952,7 +1248,7 @@ export const MonshiScherrerModule: React.FC = () => {
                           name="Single-Peak Scherrer Sizes D_hkl"
                           fill="#60a5fa"
                           stroke="#2563eb"
-                          strokeWidth={2}
+                          strokeWidth={2.5}
                         />
                       </ComposedChart>
                     </ResponsiveContainer>
@@ -962,12 +1258,12 @@ export const MonshiScherrerModule: React.FC = () => {
 
               {/* Tab 3: Residual Analysis Plot */}
               {activeTab === 'residuals' && chartData && (
-                <div className="space-y-3">
+                <div className="space-y-4 bg-black/20 p-4 sm:p-6 rounded-2xl border border-white/5 shadow-inner relative z-10">
                   <div className="text-xs font-mono text-slate-300">
-                    Linear Log Regression Residuals ΔY = ln(β_obs) - ln(β_fit):
+                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">Linear Log Regression Residuals <strong className="text-purple-400">ΔY = ln(β_obs) - ln(β_fit)</strong></span>
                   </div>
 
-                  <div className="h-72 sm:h-80 w-full pt-2">
+                  <div className="h-72 sm:h-96 w-full pt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={chartData.points} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
@@ -1003,12 +1299,13 @@ export const MonshiScherrerModule: React.FC = () => {
                             if (active && payload && payload.length) {
                               const d = payload[0].payload;
                               return (
-                                <div className="bg-[#050C17]/95 border border-purple-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs text-white space-y-1">
-                                  <div className="text-purple-400 font-bold border-b border-white/10 pb-1">
+                                <div className="bg-[#050C17]/95 border border-purple-500/40 p-4 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md font-mono text-xs text-white space-y-1.5 relative overflow-hidden">
+                                  <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/20 rounded-full blur-[20px] pointer-events-none" />
+                                  <div className="text-purple-400 font-bold border-b border-white/10 pb-2 relative z-10">
                                     Reflection: {d.hkl}
                                   </div>
-                                  <div>2θ: <span className="text-slate-300">{d.twoTheta}°</span></div>
-                                  <div>Residual ΔY: <span className="text-purple-300 font-bold">{d.residual?.toFixed(5)}</span></div>
+                                  <div className="relative z-10">2θ: <span className="text-slate-300">{d.twoTheta}°</span></div>
+                                  <div className="relative z-10">Residual ΔY: <span className="text-purple-300 font-bold bg-purple-500/10 px-1 py-0.5 rounded">{d.residual?.toFixed(5)}</span></div>
                                 </div>
                               );
                             }
@@ -1016,7 +1313,7 @@ export const MonshiScherrerModule: React.FC = () => {
                           }}
                         />
                         <ReferenceLine y={0} stroke="#a855f7" strokeWidth={1.5} />
-                        <Bar dataKey="residual" name="Fit Residual ΔY">
+                        <Bar dataKey="residual" name="Fit Residual ΔY" radius={[4, 4, 0, 0]}>
                           {chartData.points.map((p, idx) => (
                             <Cell key={idx} fill={p.residual >= 0 ? '#c084fc' : '#e879f9'} />
                           ))}
@@ -1029,12 +1326,12 @@ export const MonshiScherrerModule: React.FC = () => {
 
               {/* Tab 4: Size Distribution Spectrum */}
               {activeTab === 'spectrum' && singlePeakComparisonData && (
-                <div className="space-y-3">
+                <div className="space-y-4 bg-black/20 p-4 sm:p-6 rounded-2xl border border-white/5 shadow-inner relative z-10">
                   <div className="text-xs font-mono text-slate-300">
-                    Crystallite Size Spectrum across indexed reflections:
+                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 shadow-inner">Crystallite Size Spectrum across indexed reflections</span>
                   </div>
 
-                  <div className="h-72 sm:h-80 w-full pt-2">
+                  <div className="h-72 sm:h-96 w-full pt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={singlePeakComparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 25 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
@@ -1061,11 +1358,12 @@ export const MonshiScherrerModule: React.FC = () => {
                             if (active && payload && payload.length) {
                               const d = payload[0].payload;
                               return (
-                                <div className="bg-[#050C17]/95 border border-emerald-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs text-white space-y-1">
-                                  <div className="text-emerald-400 font-bold border-b border-white/10 pb-1">
+                                <div className="bg-[#050C17]/95 border border-emerald-500/40 p-4 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md font-mono text-xs text-white space-y-1.5 relative overflow-hidden">
+                                  <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/20 rounded-full blur-[20px] pointer-events-none" />
+                                  <div className="text-emerald-400 font-bold border-b border-white/10 pb-2 relative z-10">
                                     {d.hkl} (2θ = {d.twoTheta}°)
                                   </div>
-                                  <div>Calculated Size: <span className="text-white font-bold">{d.singleSize.toFixed(2)} nm</span></div>
+                                  <div className="relative z-10">Calculated Size: <span className="text-white font-bold bg-emerald-500/10 px-1 py-0.5 rounded">{d.singleSize.toFixed(2)} nm</span></div>
                                 </div>
                               );
                             }
@@ -1089,37 +1387,38 @@ export const MonshiScherrerModule: React.FC = () => {
 
           {/* Extended Calculations Table */}
           {result && result.pointsExtended && (
-            <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.4)] space-y-4 hover:border-white/20 transition-colors duration-500 relative overflow-hidden group">
+              <div className="absolute top-0 right-1/4 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none group-hover:bg-cyan-500/10 transition-colors" />
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 relative z-10">
                 <Layers className="w-4 h-4 text-cyan-400" />
                 Reflections Deconvolution &amp; Single-Peak Comparison
               </h3>
 
-              <div className="overflow-x-auto custom-scrollbar">
+              <div className="overflow-x-auto custom-scrollbar relative z-10 bg-[#030710]/50 rounded-2xl border border-white/5">
                 <table className="w-full text-left font-mono text-xs">
                   <thead>
-                    <tr className="border-b border-white/10 text-slate-400 text-[11px] uppercase">
-                      <th className="py-2.5 px-3">2θ [°]</th>
-                      <th className="py-2.5 px-3">hkl</th>
-                      <th className="py-2.5 px-3">FWHM_obs [°]</th>
-                      <th className="py-2.5 px-3">FWHM_inst [°]</th>
-                      <th className="py-2.5 px-3">β_sample [rad]</th>
-                      <th className="py-2.5 px-3 text-cyan-400">X = ln(1/cosθ)</th>
-                      <th className="py-2.5 px-3 text-cyan-400">Y = ln(β)</th>
-                      <th className="py-2.5 px-3 text-emerald-400">Single D [nm]</th>
+                    <tr className="border-b border-white/10 bg-black/40 text-slate-400 text-[10px] sm:text-[11px] uppercase tracking-wider">
+                      <th className="py-3 px-4 rounded-tl-2xl">2θ [°]</th>
+                      <th className="py-3 px-4">hkl</th>
+                      <th className="py-3 px-4">FWHM_obs [°]</th>
+                      <th className="py-3 px-4">FWHM_inst [°]</th>
+                      <th className="py-3 px-4">β_sample [rad]</th>
+                      <th className="py-3 px-4 text-cyan-400">X = ln(1/cosθ)</th>
+                      <th className="py-3 px-4 text-cyan-400">Y = ln(β)</th>
+                      <th className="py-3 px-4 text-emerald-400 rounded-tr-2xl">Single D [nm]</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 text-slate-200">
                     {result.pointsExtended.map((p, idx) => (
-                      <tr key={idx} className="hover:bg-white/5 transition-colors">
-                        <td className="py-2 px-3 font-bold text-white">{p.twoTheta.toFixed(2)}</td>
-                        <td className="py-2 px-3 text-cyan-300">{p.hkl ? `(${p.hkl.join('')})` : '-'}</td>
-                        <td className="py-2 px-3">{p.fwhmObs.toFixed(3)}</td>
-                        <td className="py-2 px-3 text-slate-400">{p.fwhmInst.toFixed(3)}</td>
-                        <td className="py-2 px-3">{p.betaCorrectedRad.toFixed(5)}</td>
-                        <td className="py-2 px-3 text-cyan-300 font-bold">{p.x.toFixed(4)}</td>
-                        <td className="py-2 px-3 text-cyan-300 font-bold">{p.y.toFixed(4)}</td>
-                        <td className="py-2 px-3 text-emerald-400 font-bold">{p.singlePeakSizeNm.toFixed(2)}</td>
+                      <tr key={idx} className="hover:bg-cyan-500/10 transition-colors group/row">
+                        <td className="py-2.5 px-4 font-bold text-white group-hover/row:text-cyan-300 transition-colors">{p.twoTheta.toFixed(3)}</td>
+                        <td className="py-2.5 px-4 text-cyan-400/70 font-bold">{p.hkl ? `(${p.hkl.join('')})` : '-'}</td>
+                        <td className="py-2.5 px-4 text-slate-300">{p.fwhmObs.toFixed(4)}</td>
+                        <td className="py-2.5 px-4 text-slate-400">{p.fwhmInst.toFixed(4)}</td>
+                        <td className="py-2.5 px-4 text-slate-300">{p.betaCorrectedRad.toExponential(4)}</td>
+                        <td className="py-2.5 px-4 text-cyan-200/80 font-bold">{p.x.toFixed(5)}</td>
+                        <td className="py-2.5 px-4 text-cyan-200/80 font-bold">{p.y.toFixed(5)}</td>
+                        <td className="py-2.5 px-4 font-bold text-emerald-400 group-hover/row:text-emerald-300 transition-colors">{p.singlePeakSizeNm.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>

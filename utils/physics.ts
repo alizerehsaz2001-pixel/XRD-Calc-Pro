@@ -2817,19 +2817,62 @@ export const calculateMonshiScherrer = (
   K: number,
   instFwhm: number,
   peaks: ScherrerInput[],
-  broadeningModel: 'Gaussian' | 'Lorentzian' = 'Gaussian',
+  broadeningModel: 'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt' | 'Voigt' = 'Gaussian',
   instrumentalMode: 'constant' | 'caglioti' = 'constant',
-  cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 }
+  cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
+  advancedPhysics?: {
+    zeroShiftDeg?: number;
+    pvEta?: number;
+    applyLPFactor?: boolean;
+    monochromatorAngleDeg?: number;
+    kAlpha2Correction?: boolean;
+  }
 ): MonshiScherrerResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
+
+  const zeroShift = advancedPhysics?.zeroShiftDeg || 0;
+  const pvEta = advancedPhysics?.pvEta !== undefined ? advancedPhysics.pvEta : 0.5;
+  const applyLP = advancedPhysics?.applyLPFactor || false;
+  const monoAngle = advancedPhysics?.monochromatorAngleDeg !== undefined ? advancedPhysics.monochromatorAngleDeg : 26.4;
+  const kAlpha2Corr = advancedPhysics?.kAlpha2Correction || false;
 
   const points: MonshiScherrerPoint[] = [];
   const pointsExtended: MonshiScherrerResult['pointsExtended'] = [];
 
+  let sumThetaRad = 0;
+  let sumBetaRad = 0;
+
   for (const peak of peaks) {
-    const { twoTheta, fwhmObs, hkl } = peak;
-    const thetaRad = (twoTheta / 2) * (Math.PI / 180);
-    const betaObsRad = fwhmObs * (Math.PI / 180);
+    const rawTwoTheta = peak.twoTheta;
+    const twoThetaCorr = Math.max(1, Math.min(179, rawTwoTheta + zeroShift));
+    const thetaRad = (twoThetaCorr / 2) * (Math.PI / 180);
+
+    let rawFwhmObs = peak.fwhmObs;
+    // Optional K-alpha2 doublet correction (approximate Rachinger factor if kAlpha2Corr is active)
+    if (kAlpha2Corr && twoThetaCorr > 30) {
+      const doubletSepDeg = (1.54439 - 1.54056) / 1.54056 * Math.tan(thetaRad) * (180 / Math.PI);
+      if (rawFwhmObs > doubletSepDeg * 0.5) {
+        rawFwhmObs = Math.max(0.01, rawFwhmObs - doubletSepDeg * 0.25);
+      }
+    }
+
+    let betaObsRad = rawFwhmObs * (Math.PI / 180);
+
+    // Optional Lorentz-Polarization factor weighting correction
+    if (applyLP) {
+      const monoRad = (monoAngle / 2) * (Math.PI / 180);
+      const cos2Mono = Math.cos(2 * monoRad);
+      const cos2Theta = Math.cos(2 * thetaRad);
+      const sinTheta = Math.sin(thetaRad);
+      const cosTheta = Math.cos(thetaRad);
+
+      const pol = (1 + Math.pow(cos2Theta, 2) * Math.pow(cos2Mono, 2)) / (1 + Math.pow(cos2Mono, 2));
+      const lpFactor = pol / (Math.pow(sinTheta, 2) * cosTheta);
+
+      // Apply normalized LP scale to line breadth
+      const lpNorm = Math.min(2.5, Math.max(0.5, lpFactor / 4.0));
+      betaObsRad = betaObsRad / Math.sqrt(lpNorm);
+    }
 
     let peakInstFwhmDeg = instFwhm;
     if (instrumentalMode === 'caglioti') {
@@ -2843,8 +2886,20 @@ export const calculateMonshiScherrer = (
     if (broadeningModel === 'Gaussian') {
       const betaSq = Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad);
       betaSampleRad = Math.sqrt(betaSq);
-    } else {
+    } else if (broadeningModel === 'Lorentzian') {
       betaSampleRad = Math.max(0, betaObsRad - betaInstRad);
+    } else if (broadeningModel === 'Pseudo-Voigt') {
+      const betaG = Math.sqrt(Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad));
+      const betaL = Math.max(0, betaObsRad - betaInstRad);
+      betaSampleRad = pvEta * betaL + (1 - pvEta) * betaG;
+    } else if (broadeningModel === 'Voigt') {
+      const betaG = Math.sqrt(Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad));
+      const betaL = Math.max(0, betaObsRad - betaInstRad);
+      // Olivero & Longbothum Voigt breadth approximation
+      betaSampleRad = 0.5346 * betaL + Math.sqrt(0.2166 * betaL * betaL + betaG * betaG);
+    } else {
+      const betaSq = Math.max(0, betaObsRad * betaObsRad - betaInstRad * betaInstRad);
+      betaSampleRad = Math.sqrt(betaSq);
     }
 
     if (betaSampleRad <= 0) continue;
@@ -2858,20 +2913,23 @@ export const calculateMonshiScherrer = (
     const x = Math.log(1 / cosTheta);
     const y = Math.log(betaSampleRad);
 
-    points.push({ x, y, twoTheta, hkl });
+    points.push({ x, y, twoTheta: twoThetaCorr, hkl: peak.hkl });
+
+    sumThetaRad += thetaRad;
+    sumBetaRad += betaSampleRad;
 
     const singlePeakSizeNm = (K * wavelength) / (betaSampleRad * cosTheta) / 10;
 
     pointsExtended.push({
-      twoTheta,
-      fwhmObs,
+      twoTheta: twoThetaCorr,
+      fwhmObs: peak.fwhmObs,
       fwhmInst: peakInstFwhmDeg,
       betaCorrectedDeg: betaSampleRad * (180 / Math.PI),
       betaCorrectedRad: betaSampleRad,
       x,
       y,
       singlePeakSizeNm,
-      hkl
+      hkl: peak.hkl
     });
   }
 
@@ -2903,11 +2961,20 @@ export const calculateMonshiScherrer = (
   // D = (K * lambda) / (10 * e^(intercept)) = (K * lambda * e^(-intercept)) / 10
   const sizeNm = Math.exp(-intercept) * (K * wavelength) / 10;
 
+  // Monshi-derived strain calculation when slope m > 1
+  const avgThetaRad = sumThetaRad / points.length;
+  const avgBetaRad = sumBetaRad / points.length;
+  let estimatedStrain = 0;
+  if (slope > 1.0 && avgThetaRad > 0) {
+    // Microstrain from excess logarithmic slope: e = (m - 1) * beta_avg / (4 * tan(theta_avg))
+    estimatedStrain = Math.max(0, ((slope - 1.0) * avgBetaRad) / (4 * Math.tan(avgThetaRad)));
+  }
+
   let slopeInterpretation = '';
   if (Math.abs(slope - 1.0) <= 0.15) {
     slopeInterpretation = 'Slope ≈ 1.0 indicates near-pure isotropic size broadening with minimal strain distortion (Monshi-Scherrer ideal case).';
   } else if (slope > 1.15) {
-    slopeInterpretation = `Slope (${slope.toFixed(3)}) > 1.0 reflects significant microstrain contribution or anisotropic broadening at higher diffraction angles.`;
+    slopeInterpretation = `Slope (${slope.toFixed(3)}) > 1.0 reflects significant microstrain contribution or anisotropic broadening at higher diffraction angles (Estimated Microstrain: ${(estimatedStrain * 100).toFixed(4)}%).`;
   } else {
     slopeInterpretation = `Slope (${slope.toFixed(3)}) < 1.0 indicates instrumental broadening over-subtraction or planar defect contribution (stacking faults/twins).`;
   }
@@ -2919,7 +2986,10 @@ export const calculateMonshiScherrer = (
     rSquared,
     slopeInterpretation,
     points,
-    pointsExtended
+    pointsExtended,
+    estimatedStrain,
+    zeroShiftApplied: zeroShift,
+    broadeningModelUsed: broadeningModel
   };
 };
 
@@ -2947,29 +3017,86 @@ export const parseMomentInput = (inputData: string): { sigmaDeg: number; varianc
 export const calculateMethodOfMoments = (
   wavelength: number,
   twoTheta0: number,
-  momentInputs: { sigmaDeg: number; varianceDeg2: number; mu4Rad4?: number }[]
+  momentInputs: { sigmaDeg: number; varianceDeg2: number; mu4Rad4?: number }[],
+  instrumentalMode: 'constant' | 'caglioti' = 'constant',
+  cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
+  instFwhm: number = 0.05,
+  advancedPhysics?: {
+    zeroShiftDeg?: number;
+    applyLPFactor?: boolean;
+    monochromatorAngleDeg?: number;
+    kAlpha2Correction?: boolean;
+    shapeK?: number;
+  }
 ): MethodOfMomentsResult | null => {
   if (wavelength <= 0 || twoTheta0 <= 0 || twoTheta0 >= 180 || momentInputs.length < 3) {
     return null;
   }
 
+  const zeroShift = advancedPhysics?.zeroShiftDeg || 0;
+  const twoTheta0Corr = Math.max(1, Math.min(179, twoTheta0 + zeroShift));
+
   const DEG_TO_RAD = Math.PI / 180;
   const RAD_TO_DEG = 180 / Math.PI;
-  const theta0Rad = (twoTheta0 / 2) * DEG_TO_RAD;
+  const theta0Rad = (twoTheta0Corr / 2) * DEG_TO_RAD;
   const cosTheta0 = Math.cos(theta0Rad);
   const tanTheta0 = Math.tan(theta0Rad);
 
   if (cosTheta0 <= 1e-10 || tanTheta0 <= 1e-10) return null;
 
-  // Convert inputs to radians
+  const applyLP = advancedPhysics?.applyLPFactor || false;
+  const monoAngle = advancedPhysics?.monochromatorAngleDeg !== undefined ? advancedPhysics.monochromatorAngleDeg : 26.4;
+  const kAlpha2Corr = advancedPhysics?.kAlpha2Correction || false;
+  const shapeK = advancedPhysics?.shapeK || 1.0;
+
+  // Instrumental variance contribution W_inst
+  let peakInstFwhmDeg = instFwhm;
+  if (instrumentalMode === 'caglioti') {
+    const tanTheta = Math.tan(theta0Rad);
+    const valDegSq = cagliotiParams.U * tanTheta * tanTheta + cagliotiParams.V * tanTheta + cagliotiParams.W;
+    peakInstFwhmDeg = Math.sqrt(Math.max(1e-6, valDegSq));
+  }
+  const betaInstRad = peakInstFwhmDeg * DEG_TO_RAD;
+  // Gaussian variance equivalent for instrumental FWHM: W_inst = betaInstRad^2 / (8 * ln(2))
+  const wInstRad2 = (betaInstRad * betaInstRad) / (8 * Math.LN2);
+
+  // Convert inputs to radians with physical corrections
   const points: MomentDataPoint[] = momentInputs.map(pt => {
     const sigmaRad = pt.sigmaDeg * DEG_TO_RAD;
-    const varianceRad2 = pt.varianceDeg2 * DEG_TO_RAD * DEG_TO_RAD;
+    let varianceDeg2 = pt.varianceDeg2;
+
+    // Optional K-alpha2 doublet correction
+    if (kAlpha2Corr && twoTheta0Corr > 30) {
+      const doubletSepDeg = (1.54439 - 1.54056) / 1.54056 * Math.tan(theta0Rad) * RAD_TO_DEG;
+      const doubletVarAddition = (doubletSepDeg * doubletSepDeg) / 12;
+      varianceDeg2 = Math.max(0.000001, varianceDeg2 - doubletVarAddition * 0.2);
+    }
+
+    let varianceRad2 = varianceDeg2 * DEG_TO_RAD * DEG_TO_RAD;
+
+    // Subtract instrumental variance
+    varianceRad2 = Math.max(1e-10, varianceRad2 - wInstRad2);
+
+    // Optional LP factor scaling
+    if (applyLP) {
+      const monoRad = (monoAngle / 2) * DEG_TO_RAD;
+      const cos2Mono = Math.cos(2 * monoRad);
+      const cos2Theta = Math.cos(2 * theta0Rad);
+      const sinTheta = Math.sin(theta0Rad);
+
+      const pol = (1 + Math.pow(cos2Theta, 2) * Math.pow(cos2Mono, 2)) / (1 + Math.pow(cos2Mono, 2));
+      const lpFactor = pol / (Math.pow(sinTheta, 2) * cosTheta0);
+
+      const lpNorm = Math.min(2.5, Math.max(0.5, lpFactor / 4.0));
+      varianceRad2 = varianceRad2 / Math.sqrt(lpNorm);
+    }
+
     const kurtosis = pt.mu4Rad4 && varianceRad2 > 0 ? pt.mu4Rad4 / (varianceRad2 * varianceRad2) : undefined;
+
     return {
       sigmaDeg: pt.sigmaDeg,
       sigmaRad,
-      varianceDeg2: pt.varianceDeg2,
+      varianceDeg2: varianceRad2 * RAD_TO_DEG * RAD_TO_DEG,
       varianceRad2,
       fourthMomentRad4: pt.mu4Rad4,
       kurtosis
@@ -2996,10 +3123,6 @@ export const calculateMethodOfMoments = (
   }
 
   // 3x3 System matrix solving via Gaussian Elimination / Cramer's rule
-  // [ n      sumX   sumX2 ] [ W0 ]   [ sumY   ]
-  // [ sumX   sumX2  sumX3 ] [ K1 ] = [ sumXY  ]
-  // [ sumX2  sumX3  sumX4 ] [ K2 ]   [ sumX2Y ]
-
   const detA = n * (sumX2 * sumX4 - sumX3 * sumX3) -
                sumX * (sumX * sumX4 - sumX3 * sumX2) +
                sumX2 * (sumX * sumX3 - sumX2 * sumX2);
@@ -3049,11 +3172,11 @@ export const calculateMethodOfMoments = (
   const rSquared = ssTot === 0 ? 0 : Math.max(0, 1 - (ssRes / ssTot));
 
   // Compute physical parameters:
-  // Volume-weighted crystallite size: D_V = lambda / (pi^2 * K1 * cos(theta0)) in Angstroms
+  // Volume-weighted crystallite size: D_V = (shapeK * lambda) / (pi^2 * K1 * cos(theta0)) in Angstroms
   // Convert to nm by dividing by 10
   let sizeNm = 0;
   if (slopeK1 > 1e-12) {
-    const sizeAngstrom = wavelength / (Math.PI * Math.PI * slopeK1 * cosTheta0);
+    const sizeAngstrom = (shapeK * wavelength) / (Math.PI * Math.PI * slopeK1 * cosTheta0);
     sizeNm = Math.max(0, sizeAngstrom / 10);
   }
 
@@ -3077,7 +3200,7 @@ export const calculateMethodOfMoments = (
   }
 
   return {
-    twoTheta0,
+    twoTheta0: twoTheta0Corr,
     theta0Rad,
     wavelength,
     slopeK1,
@@ -3089,7 +3212,11 @@ export const calculateMethodOfMoments = (
     rSquared,
     points,
     fittedPoints,
-    profileInterpretation
+    profileInterpretation,
+    zeroShiftApplied: zeroShift,
+    instrumentalModeUsed: instrumentalMode,
+    lpCorrectionApplied: applyLP,
+    shapeKApplied: shapeK
   };
 };
 
@@ -3158,46 +3285,100 @@ function erfc(x: number): number {
 export const calculateDoubleVoigt = (
   wavelength: number, // in Angstroms
   instFwhm: number,   // in deg
-  peaks: DoubleVoigtPeakInput[]
+  peaks: DoubleVoigtPeakInput[],
+  instrumentalMode: 'constant' | 'caglioti' = 'constant',
+  cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
+  advancedPhysics?: {
+    zeroShiftDeg?: number;
+    instEta?: number;
+    applyLPFactor?: boolean;
+    monochromatorAngleDeg?: number;
+    kAlpha2Correction?: boolean;
+    shapeK?: number;
+  }
 ): DoubleVoigtResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
+
+  const zeroShift = advancedPhysics?.zeroShiftDeg || 0;
+  const instEta = advancedPhysics?.instEta !== undefined ? advancedPhysics.instEta : 0.5;
+  const applyLP = advancedPhysics?.applyLPFactor || false;
+  const monoAngle = advancedPhysics?.monochromatorAngleDeg !== undefined ? advancedPhysics.monochromatorAngleDeg : 26.4;
+  const kAlpha2Corr = advancedPhysics?.kAlpha2Correction || false;
+  const shapeK = advancedPhysics?.shapeK || 1.0;
 
   const lambdaNm = wavelength / 10;
   const points: DoubleVoigtPoint[] = [];
 
   for (const peak of peaks) {
-    const { twoTheta, fwhmObs, eta = 0.5, hkl } = peak;
-    const thetaRad = (twoTheta / 2) * (Math.PI / 180);
+    const rawTwoTheta = peak.twoTheta;
+    const twoThetaCorr = Math.max(1, Math.min(179, rawTwoTheta + zeroShift));
+    const thetaRad = (twoThetaCorr / 2) * (Math.PI / 180);
     const cosTheta = Math.cos(thetaRad);
     const sinTheta = Math.sin(thetaRad);
 
     if (cosTheta <= 1e-10) continue;
 
+    let rawFwhmObs = peak.fwhmObs;
+    // Optional K-alpha2 doublet correction
+    if (kAlpha2Corr && twoThetaCorr > 30) {
+      const doubletSepDeg = (1.54439 - 1.54056) / 1.54056 * Math.tan(thetaRad) * (180 / Math.PI);
+      if (rawFwhmObs > doubletSepDeg * 0.5) {
+        rawFwhmObs = Math.max(0.01, rawFwhmObs - doubletSepDeg * 0.25);
+      }
+    }
+
+    let betaObsRad = rawFwhmObs * (Math.PI / 180);
+
+    // Optional Lorentz-Polarization factor weighting correction
+    if (applyLP) {
+      const monoRad = (monoAngle / 2) * (Math.PI / 180);
+      const cos2Mono = Math.cos(2 * monoRad);
+      const cos2Theta = Math.cos(2 * thetaRad);
+
+      const pol = (1 + Math.pow(cos2Theta, 2) * Math.pow(cos2Mono, 2)) / (1 + Math.pow(cos2Mono, 2));
+      const lpFactor = pol / (Math.pow(sinTheta, 2) * cosTheta);
+
+      const lpNorm = Math.min(2.5, Math.max(0.5, lpFactor / 4.0));
+      betaObsRad = betaObsRad / Math.sqrt(lpNorm);
+    }
+
+    // Instrumental FWHM calculation
+    let peakInstFwhmDeg = instFwhm;
+    if (instrumentalMode === 'caglioti') {
+      const tanTheta = Math.tan(thetaRad);
+      const valDegSq = cagliotiParams.U * tanTheta * tanTheta + cagliotiParams.V * tanTheta + cagliotiParams.W;
+      peakInstFwhmDeg = Math.sqrt(Math.max(1e-6, valDegSq));
+    }
+    const betaInstRad = peakInstFwhmDeg * (Math.PI / 180);
+
     const s = (2 * sinTheta) / lambdaNm; // scattering vector [nm^-1]
     const s2 = s * s;
 
-    const betaObsRad = fwhmObs * (Math.PI / 180);
-    const betaInstRad = instFwhm * (Math.PI / 180);
+    // Deconvolve observed profile into Cauchy (C) and Gaussian (G) parts using eta_obs
+    const etaClean = Math.min(0.99, Math.max(0.01, peak.eta ?? 0.5));
+    const betaCObs = etaClean * betaObsRad;
+    const betaGObs = Math.sqrt(Math.max(1e-10, (1 - etaClean * etaClean) * betaObsRad * betaObsRad));
 
-    // Corrected sample integral breadth
-    const betaSampleSq = Math.max(1e-10, betaObsRad * betaObsRad - betaInstRad * betaInstRad);
-    const betaSampleRad = Math.sqrt(betaSampleSq);
+    // Deconvolve instrumental profile into Cauchy and Gaussian parts using instEta
+    const instEtaClean = Math.min(0.99, Math.max(0.01, instEta));
+    const betaCInst = instEtaClean * betaInstRad;
+    const betaGInst = Math.sqrt(Math.max(1e-10, (1 - instEtaClean * instEtaClean) * betaInstRad * betaInstRad));
 
-    // Pseudo-Voigt deconvolution into Cauchy (C) and Gaussian (G) parts
-    const etaClean = Math.min(0.99, Math.max(0.01, eta));
-    const betaCRad = etaClean * betaSampleRad;
-    const betaGRad = Math.sqrt(Math.max(1e-10, (1 - etaClean * etaClean) * betaSampleRad * betaSampleRad));
+    // Subtract instrumental Cauchy and Gaussian components independently (Langford's Double-Voigt method)
+    const betaCSample = Math.max(1e-10, betaCObs - betaCInst);
+    const betaGSampleSq = Math.max(1e-10, betaGObs * betaGObs - betaGInst * betaGInst);
+    const betaGSample = Math.sqrt(betaGSampleSq);
 
-    // Convert to reciprocal space
-    const betaStar = (betaSampleRad * cosTheta) / lambdaNm;
-    const betaCStar = (betaCRad * cosTheta) / lambdaNm;
-    const betaGStar = (betaGRad * cosTheta) / lambdaNm;
+    // Convert to reciprocal space, incorporating optional crystallite shape factor shapeK
+    const betaCStar = (betaCSample * cosTheta) / (lambdaNm * shapeK);
+    const betaGStar = (betaGSample * cosTheta) / (lambdaNm * shapeK);
     const betaGStarSq = betaGStar * betaGStar;
+    const betaStar = Math.sqrt(betaCStar * betaCStar + betaGStarSq);
 
     const singleDvNm = betaCStar > 0 ? 1 / betaCStar : 0;
 
     points.push({
-      twoTheta,
+      twoTheta: twoThetaCorr,
       s,
       s2,
       betaStar,
@@ -3205,7 +3386,7 @@ export const calculateDoubleVoigt = (
       betaGStarSq,
       betaGStar,
       singleDvNm,
-      hkl
+      hkl: peak.hkl
     });
   }
 
@@ -3273,7 +3454,6 @@ export const calculateDoubleVoigt = (
   const gaussianStrainEg = Math.sqrt(Math.max(0, slopeG / (8 * Math.PI)));
 
   // 5. Area-weighted crystallite size (Langford formulation):
-  // D_A = (1 / (pi * betaGStarSize)) * exp( (betaCStarSize / (pi * betaGStarSize))^2 ) * erfc( betaCStarSize / (sqrt(pi) * betaGStarSize) )
   const betaCStarSize = Math.max(1e-10, interceptC);
   const kRatio = betaCStarSize / (Math.sqrt(Math.PI) * betaGStarSize);
   const areaSizeDaNm = (1 / (Math.PI * betaGStarSize)) * Math.exp(kRatio * kRatio) * erfc(kRatio);
@@ -3298,6 +3478,9 @@ export const calculateDoubleVoigt = (
       intercept: interceptG,
       rSquared: rSquaredG
     },
-    points
+    points,
+    zeroShiftApplied: zeroShift,
+    instrumentalModeUsed: instrumentalMode,
+    lpCorrectionApplied: applyLP
   };
 };

@@ -112,6 +112,9 @@ export interface MonshiScherrerResult {
     singlePeakSizeNm: number;
     hkl?: [number, number, number];
   }[];
+  estimatedStrain?: number;
+  zeroShiftApplied?: number;
+  broadeningModelUsed?: string;
 }
 
 export interface MomentDataPoint {
@@ -144,6 +147,10 @@ export interface MethodOfMomentsResult {
     quadraticComponentDeg2: number;
   }[];
   profileInterpretation: string;
+  zeroShiftApplied?: number;
+  instrumentalModeUsed?: string;
+  lpCorrectionApplied?: boolean;
+  shapeKApplied?: number;
 }
 
 export interface DoubleVoigtPoint {
@@ -176,6 +183,9 @@ export interface DoubleVoigtResult {
     rSquared: number;
   };
   points: DoubleVoigtPoint[];
+  zeroShiftApplied?: number;
+  instrumentalModeUsed?: string;
+  lpCorrectionApplied?: boolean;
 }
 
 export interface WHPoint {

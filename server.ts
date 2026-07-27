@@ -1216,6 +1216,44 @@ Provide a step-by-step strategy for the refinement of this specific system. Outl
     }
   });
 
+  // Advanced Method Analysis Endpoint using ThinkingLevel.HIGH
+  app.post("/api/gemini/analyze-method", async (req, res) => {
+    try {
+      const { method, payload } = req.body;
+      const ai = getGeminiClient();
+
+      let prompt = `You are an expert X-ray diffraction scientist. Analyze the following results from the ${method}.
+      
+      Provide a highly professional, academic, and detailed interpretation of these results. 
+      What do the slope and intercept indicate physically? Are there signs of strain or solely size broadening?
+      Are the fits (R^2) reliable? What could be the sources of error?
+      
+      Format your response strictly in clean Markdown with appropriate headings, bullet points, and inline LaTeX approximations if needed. Do not output raw JSON, just the markdown text.
+      
+      Here is the data:
+      ${JSON.stringify(payload, null, 2)}
+      `;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-pro-preview",
+        contents: [
+          { role: 'user', parts: [{ text: prompt }] }
+        ],
+        config: {
+          thinkingConfig: {
+            thinkingLevel: ThinkingLevel.HIGH
+          },
+          temperature: 0.2
+        }
+      });
+
+      res.json({ success: true, text: response.text });
+    } catch (error: any) {
+      console.error("Method Analysis Endpoint Error:", error);
+      res.status(500).json({ success: false, error: error.message || "Failed to analyze method data." });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

@@ -43,6 +43,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { AIAnalysis } from './AIAnalysis';
 
 const XRAY_WAVELENGTHS = [
   { label: 'Cu Kα1', value: 1.54056 },
@@ -88,6 +89,19 @@ const DV_PRESETS = [
 export const DoubleVoigtModule: React.FC = () => {
   const [wavelength, setWavelength] = useState<number>(1.54056);
   const [instFwhm, setInstFwhm] = useState<number>(0.06);
+  const [instrumentalMode, setInstrumentalMode] = useState<'constant' | 'caglioti'>('constant');
+  const [cagliotiU, setCagliotiU] = useState<number>(0.005);
+  const [cagliotiV, setCagliotiV] = useState<number>(-0.002);
+  const [cagliotiW, setCagliotiW] = useState<number>(0.015);
+  const [instEta, setInstEta] = useState<number>(0.5);
+  const [zeroShiftDeg, setZeroShiftDeg] = useState<number>(0.0);
+  const [applyLPFactor, setApplyLPFactor] = useState<boolean>(false);
+  const [monochromatorAngle, setMonochromatorAngle] = useState<number>(26.4);
+  const [kAlpha2Correction, setKAlpha2Correction] = useState<boolean>(false);
+  const [shapeK, setShapeK] = useState<number>(1.0);
+
+  const [expSubTab, setExpSubTab] = useState<'wavelength' | 'instrument' | 'corrections'>('wavelength');
+
   const [inputData, setInputData] = useState<string>(DV_PRESETS[0].data);
   const [activePlotTab, setActivePlotTab] = useState<'cauchy' | 'gaussian' | 'profile' | 'summary'>('cauchy');
   const [selectedPeakIdx, setSelectedPeakIdx] = useState<number>(0);
@@ -107,7 +121,21 @@ export const DoubleVoigtModule: React.FC = () => {
   useEffect(() => {
     const parsedPeaks = parseDoubleVoigtInput(inputData);
     if (parsedPeaks.length >= 2) {
-      const computed = calculateDoubleVoigt(wavelength, instFwhm, parsedPeaks);
+      const computed = calculateDoubleVoigt(
+        wavelength,
+        instFwhm,
+        parsedPeaks,
+        instrumentalMode,
+        { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+        {
+          zeroShiftDeg,
+          instEta,
+          applyLPFactor,
+          monochromatorAngleDeg: monochromatorAngle,
+          kAlpha2Correction,
+          shapeK
+        }
+      );
       setResult(computed);
       if (computed) {
         localStorage.setItem('xrd_double_voigt_current', JSON.stringify(computed));
@@ -116,7 +144,21 @@ export const DoubleVoigtModule: React.FC = () => {
       setResult(null);
     }
     isFirstRender.current = false;
-  }, [wavelength, instFwhm, inputData]);
+  }, [
+    wavelength,
+    instFwhm,
+    inputData,
+    instrumentalMode,
+    cagliotiU,
+    cagliotiV,
+    cagliotiW,
+    instEta,
+    zeroShiftDeg,
+    applyLPFactor,
+    monochromatorAngle,
+    kAlpha2Correction,
+    shapeK
+  ]);
 
   const handleApplyPreset = (preset: typeof DV_PRESETS[0]) => {
     setWavelength(preset.wavelength);
@@ -268,34 +310,34 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1528] via-[#081020] to-[#040814] p-6 md:p-8 border border-indigo-500/25 shadow-[0_12px_50px_rgba(0,0,0,0.6)]">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[110px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#020813] via-[#0B1230] to-[#060A20] p-6 md:p-10 border border-indigo-500/20 shadow-[0_0_40px_rgba(99,102,241,0.15)] group">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-indigo-500/30 transition-colors duration-700" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-purple-600/30 transition-colors duration-700" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          <div className="space-y-4 flex-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-medium shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+              <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
               <span>Advanced Convolution Profile Analysis • Langford Double-Voigt Method</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-indigo-400 tracking-tight flex flex-wrap items-center gap-3">
               Double-Voigt Method
-              <span className="text-xs font-mono font-normal text-indigo-400 bg-indigo-500/10 px-2.5 py-1 rounded-lg border border-indigo-500/20">
+              <span className="text-xs font-mono font-normal text-indigo-400 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/30 shadow-inner">
                 Voigt-Voigt Deconvolution
               </span>
             </h1>
-            <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
-              Deconvolutes size and strain broadening into Voigt functions in reciprocal space (s = 2sinθ / λ). By separating Cauchy and Gaussian components, it extracts volume-weighted (D_V) and area-weighted (D_A) sizes alongside root-mean-square microstrains.
+            <p className="text-slate-300 text-sm md:text-base max-w-2xl leading-relaxed">
+              Deconvolutes size and strain broadening into Voigt functions in reciprocal space <span className="font-mono text-indigo-300">(s = 2sinθ / λ)</span>. By separating Cauchy and Gaussian components, it extracts volume-weighted <span className="font-mono text-indigo-300">(D_V)</span> and area-weighted <span className="font-mono text-indigo-300">(D_A)</span> sizes alongside root-mean-square microstrains.
             </p>
           </div>
 
-          <div className="bg-[#050C17]/85 backdrop-blur-md p-4 rounded-2xl border border-indigo-500/30 shadow-inner max-w-md w-full space-y-3">
-            <div className="text-center space-y-1">
+          <div className="bg-[#050C17]/85 backdrop-blur-md p-5 rounded-2xl border border-indigo-500/30 shadow-[inset_0_0_20px_rgba(99,102,241,0.1)] lg:w-[420px] w-full shrink-0 space-y-4 hover:border-indigo-400/50 transition-colors duration-500">
+            <div className="text-center space-y-1.5">
               <span className="text-[10px] font-mono text-indigo-400 font-bold uppercase tracking-widest block">
                 1. Cauchy Reciprocal Linear Relation
               </span>
               <div 
-                className="text-white text-xs py-1.5 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto"
+                className="text-white text-xs sm:text-sm py-2 px-3 bg-black/60 rounded-xl border border-white/10 font-mono overflow-x-auto shadow-inner"
                 dangerouslySetInnerHTML={{
                   __html: katex.renderToString(
                     '\\beta_C^*(s) = \\frac{1}{D_V} + 2 e_C \\cdot s',
@@ -305,12 +347,12 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
               />
             </div>
 
-            <div className="text-center space-y-1 pt-1 border-t border-white/5">
+            <div className="text-center space-y-1.5 pt-2 border-t border-white/10">
               <span className="text-[10px] font-mono text-purple-400 font-bold uppercase tracking-widest block">
                 2. Gaussian Reciprocal Linear Relation
               </span>
               <div 
-                className="text-purple-300 text-xs py-1.5 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto"
+                className="text-purple-300 text-xs sm:text-sm py-2 px-3 bg-black/60 rounded-xl border border-purple-500/20 font-mono overflow-x-auto shadow-inner"
                 dangerouslySetInnerHTML={{
                   __html: katex.renderToString(
                     '(\\beta_G^*(s))^2 = \\left(\\frac{1}{\\pi D_G}\\right)^2 + 8\\pi e_G^2 \\cdot s^2',
@@ -324,19 +366,19 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
       </div>
 
       {/* Experimental Sample Presets Toolbar */}
-      <div className="bg-[#080E1A]/90 p-4 rounded-2xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
-        <div className="flex items-center gap-2 text-xs text-slate-300 font-semibold">
-          <FlaskConical className="w-4 h-4 text-indigo-400" />
-          <span>Curated Experimental Presets:</span>
+      <div className="bg-[#050C17]/90 p-4 sm:p-5 rounded-3xl border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-[0_8px_30px_rgba(0,0,0,0.4)] relative z-20 hover:border-indigo-500/30 transition-colors duration-500">
+        <div className="flex items-center gap-3 text-xs sm:text-sm text-slate-300 font-bold uppercase tracking-wider">
+          <FlaskConical className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
+          <span>Curated Experimental Presets</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {DV_PRESETS.map((p) => (
             <button
               key={p.name}
               onClick={() => handleApplyPreset(p)}
-              className="px-3 py-1.5 rounded-xl text-xs font-mono font-semibold bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 bg-black/50 hover:bg-indigo-500/10 text-indigo-400 text-xs font-mono font-bold rounded-xl border border-white/5 hover:border-indigo-500/30 transition-all flex-1 md:flex-none text-center shadow-inner flex items-center justify-center gap-1.5 group/btn"
             >
-              <Zap className="w-3 h-3 text-indigo-400" />
+              <Zap className="w-3.5 h-3.5 text-indigo-400 group-hover/btn:text-indigo-300 group-hover/btn:animate-pulse" />
               <span>{p.name}</span>
             </button>
           ))}
@@ -350,68 +392,351 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
         <div className="lg:col-span-5 space-y-6">
           
           {/* Instrument Settings Card */}
-          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5">
-            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5 hover:border-indigo-500/30 transition-all duration-500 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/10 transition-colors" />
+
+            <div className="flex items-center justify-between border-b border-white/5 pb-3 relative z-10">
               <div className="flex items-center gap-2">
-                <Atom className="w-4 h-4 text-indigo-400" />
+                <Atom className="w-4 h-4 text-indigo-400 animate-spin-slow" />
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">Experimental Configuration</h3>
               </div>
-              <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20">
-                Setup
+              <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-full border border-indigo-500/20 shadow-inner">
+                Langford Double-Voigt
               </span>
             </div>
 
-            {/* Wavelength Picker */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">
-                X-Ray Wavelength (λ) [Å]
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={wavelength}
-                  onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                  className="w-full px-3 py-2 bg-[#050B14] text-indigo-300 border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50"
-                >
-                  {XRAY_WAVELENGTHS.map((w) => (
-                    <option key={w.label} value={w.value}>
-                      {w.label} ({w.value} Å)
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  step="0.00001"
-                  value={wavelength}
-                  onChange={(e) => setWavelength(parseFloat(e.target.value) || 1.54056)}
-                  className="w-full px-3 py-2 bg-[#050B14] text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50"
-                  placeholder="Custom Å"
-                />
-              </div>
+            {/* Sub-tab Navigation */}
+            <div className="flex p-1 bg-black/50 rounded-xl border border-white/10 gap-1 relative z-10">
+              <button
+                onClick={() => setExpSubTab('wavelength')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  expSubTab === 'wavelength'
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Sliders className="w-3 h-3" />
+                Radiation & K
+              </button>
+
+              <button
+                onClick={() => setExpSubTab('instrument')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  expSubTab === 'instrument'
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Activity className="w-3 h-3" />
+                Instrumental
+              </button>
+
+              <button
+                onClick={() => setExpSubTab('corrections')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  expSubTab === 'corrections'
+                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-inner'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Zap className="w-3 h-3" />
+                Corrections
+              </button>
             </div>
 
-            {/* Instrumental FWHM */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-2">
-                Instrumental Broadening (FWHM_inst) [°2θ]
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  step="0.001"
-                  value={instFwhm}
-                  onChange={(e) => setInstFwhm(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-[#050B14] text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50"
-                />
-                <span className="text-xs text-slate-400 font-mono whitespace-nowrap">°2θ</span>
+            {/* Tab 1: Wavelength, Shape K, and Zero Shift */}
+            {expSubTab === 'wavelength' && (
+              <div className="space-y-4 relative z-10">
+                {/* Wavelength Picker */}
+                <div className="group/input">
+                  <label className="block text-xs font-semibold text-slate-300 mb-2 group-hover/input:text-indigo-300 transition-colors">
+                    X-Ray Radiation Wavelength (λ) [Å]
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={wavelength}
+                      onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                      className="w-full px-3 py-2 bg-black/40 text-indigo-300 border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors cursor-pointer appearance-none shadow-inner"
+                    >
+                      {XRAY_WAVELENGTHS.map((w) => (
+                        <option key={w.label} value={w.value}>
+                          {w.label} ({w.value} Å)
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      step="0.00001"
+                      value={wavelength}
+                      onChange={(e) => setWavelength(parseFloat(e.target.value) || 1.54056)}
+                      className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors shadow-inner"
+                      placeholder="Custom Å"
+                    />
+                  </div>
+                </div>
+
+                {/* Crystallite Shape Scale K */}
+                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-2 shadow-inner">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-300 font-medium">Shape Habit Multiplier (K):</span>
+                    <span className="text-indigo-300 font-mono font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                      K = {shapeK.toFixed(2)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.80"
+                    max="1.20"
+                    step="0.01"
+                    value={shapeK}
+                    onChange={(e) => setShapeK(parseFloat(e.target.value))}
+                    className="w-full accent-indigo-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+                    <span>0.89 (Spherical)</span>
+                    <span>1.00 (Standard)</span>
+                    <span>1.07 (Octahedral)</span>
+                  </div>
+                </div>
+
+                {/* Goniometer Zero-Shift Correction */}
+                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-2 shadow-inner">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-300 font-medium flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                      Goniometer Zero-Shift (Δ2θ₀)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-mono text-xs px-2 py-0.5 rounded border ${
+                        zeroShiftDeg !== 0 
+                          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 font-bold' 
+                          : 'bg-black/60 text-slate-400 border-white/5'
+                      }`}>
+                        {zeroShiftDeg > 0 ? `+${zeroShiftDeg.toFixed(2)}` : zeroShiftDeg.toFixed(2)}° 2θ
+                      </span>
+                      {zeroShiftDeg !== 0 && (
+                        <button
+                          onClick={() => setZeroShiftDeg(0)}
+                          className="text-[10px] text-indigo-400 hover:underline font-mono"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="-0.5"
+                    max="0.5"
+                    step="0.01"
+                    value={zeroShiftDeg}
+                    onChange={(e) => setZeroShiftDeg(parseFloat(e.target.value))}
+                    className="w-full accent-indigo-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                  />
+                  <p className="text-[10px] text-slate-400 leading-tight">
+                    Corrects systematic zero error: 2θ_corr = 2θ_obs + Δ2θ₀
+                  </p>
+                </div>
               </div>
-              <p className="text-[11px] text-slate-500 font-mono mt-1">
-                Standard Caglioti/LaB6 instrumental profile reference subtraction
-              </p>
-            </div>
+            )}
+
+            {/* Tab 2: Instrumental Broadening & Caglioti */}
+            {expSubTab === 'instrument' && (
+              <div className="space-y-4 relative z-10">
+                {/* Instrumental Mode Toggle */}
+                <div className="group/input">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-xs font-semibold text-slate-300 group-hover/input:text-indigo-300 transition-colors">
+                      Instrumental Profile Resolution
+                    </label>
+                    <div className="flex bg-black/60 p-1 rounded-lg border border-white/10 text-[10px] font-mono shadow-inner">
+                      <button
+                        onClick={() => setInstrumentalMode('constant')}
+                        className={`px-2.5 py-1 rounded-md transition-all ${
+                          instrumentalMode === 'constant' ? 'bg-indigo-500 text-black font-bold shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        Constant
+                      </button>
+                      <button
+                        onClick={() => setInstrumentalMode('caglioti')}
+                        className={`px-2.5 py-1 rounded-md transition-all ${
+                          instrumentalMode === 'caglioti' ? 'bg-indigo-500 text-black font-bold shadow' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        Caglioti
+                      </button>
+                    </div>
+                  </div>
+
+                  {instrumentalMode === 'constant' ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        step="0.001"
+                        value={instFwhm}
+                        onChange={(e) => setInstFwhm(parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                      />
+                      <span className="text-xs text-slate-400 font-mono whitespace-nowrap">°2θ FWHM</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-mono mb-1">U (tan²θ)</span>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={cagliotiU}
+                          onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
+                          className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                        />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-mono mb-1">V (tanθ)</span>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={cagliotiV}
+                          onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
+                          className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                        />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] text-slate-400 font-mono mb-1">W (const)</span>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={cagliotiW}
+                          onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
+                          className="w-full px-2 py-1.5 bg-black/40 text-white border border-white/10 rounded-lg text-xs font-mono outline-none focus:border-indigo-500/50 shadow-inner"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Instrumental Profile Cauchy Fraction Slider (instEta) */}
+                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-1.5 shadow-inner">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-300 font-medium">Instrumental Voigt Fraction (η_inst):</span>
+                    <span className="text-indigo-300 font-mono font-bold">{instEta.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={instEta}
+                    onChange={(e) => setInstEta(parseFloat(e.target.value))}
+                    className="w-full accent-indigo-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+                    <span>0.0 (Pure Gaussian Inst)</span>
+                    <span>1.0 (Pure Cauchy Inst)</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 leading-tight pt-1">
+                    Langford Subtraction: β_C,S = β_C,obs - β_C,inst & β_G,S² = β_G,obs² - β_G,inst²
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Tab 3: Advanced Corrections */}
+            {expSubTab === 'corrections' && (
+              <div className="space-y-4 relative z-10">
+                {/* Lorentz-Polarization (L-P) Factor Toggle */}
+                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 space-y-3 shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-white block">
+                        Lorentz-Polarization (L-P) Factor Correction
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Adjusts line breadth for scattering geometry weighting
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setApplyLPFactor(!applyLPFactor)}
+                      className={`w-11 h-6 rounded-full transition-colors relative ${
+                        applyLPFactor ? 'bg-indigo-500' : 'bg-white/10'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                          applyLPFactor ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {applyLPFactor && (
+                    <div className="pt-2 border-t border-white/10 space-y-1.5">
+                      <label className="text-[10px] text-slate-300 font-mono block">
+                        Monochromator Angle (2θ_m)
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setMonochromatorAngle(0)}
+                          className={`py-1 px-2 rounded-lg text-[10px] font-mono border ${
+                            monochromatorAngle === 0 
+                              ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' 
+                              : 'bg-black/60 text-slate-400 border-white/5'
+                          }`}
+                        >
+                          Unpolarized (0°)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMonochromatorAngle(26.4)}
+                          className={`py-1 px-2 rounded-lg text-[10px] font-mono border ${
+                            monochromatorAngle === 26.4 
+                              ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' 
+                              : 'bg-black/60 text-slate-400 border-white/5'
+                          }`}
+                        >
+                          Graphite (26.4°)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* K-Alpha2 Doublet Wavelength Correction */}
+                <div className="p-3 bg-black/40 rounded-2xl border border-white/5 flex items-center justify-between shadow-inner">
+                  <div>
+                    <span className="text-xs font-semibold text-white block">
+                      Kα₂ Doublet Splitting Correction
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Rachinger doublet stripping at higher 2θ angles
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setKAlpha2Correction(!kAlpha2Correction)}
+                    className={`w-11 h-6 rounded-full transition-colors relative ${
+                      kAlpha2Correction ? 'bg-indigo-500' : 'bg-white/10'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        kAlpha2Correction ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Peak Data Input */}
-          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-3">
+          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 hover:border-white/20 transition-colors duration-500">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Database className="w-4 h-4 text-indigo-400" />
@@ -420,7 +745,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setInputData('')}
-                  className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1 transition-colors px-2 py-1 bg-white/5 rounded-lg"
+                  className="text-xs text-slate-400 hover:text-red-400 flex items-center gap-1.5 transition-colors px-2.5 py-1.5 bg-black/40 rounded-lg hover:bg-white/5 border border-transparent hover:border-red-500/20"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Clear
@@ -429,43 +754,47 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
             </div>
 
             <p className="text-xs text-slate-400 leading-normal">
-              One reflection per line: <code className="text-indigo-300 bg-black/40 px-1.5 py-0.5 rounded font-mono">2θ [deg], FWHM [deg], η [0..1], h, k, l</code>
+              One reflection per line: <code className="text-indigo-300 bg-black/60 px-1.5 py-0.5 rounded font-mono shadow-inner border border-white/5 text-[11px]">2θ [deg], FWHM [deg], η [0..1], h, k, l</code>
             </p>
 
-            <textarea
-              value={inputData}
-              onChange={(e) => setInputData(e.target.value)}
-              rows={9}
-              spellCheck={false}
-              className="w-full p-3 bg-[#030710] text-indigo-300 font-mono text-xs border border-white/10 rounded-2xl outline-none focus:border-indigo-500/50 transition-all custom-scrollbar leading-relaxed"
-            />
+            <div className="relative group/textarea">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-[30px] pointer-events-none group-focus-within/textarea:bg-indigo-500/10 transition-colors" />
+              <textarea
+                value={inputData}
+                onChange={(e) => setInputData(e.target.value)}
+                rows={9}
+                spellCheck={false}
+                className="w-full p-4 bg-black/60 text-indigo-300 font-mono text-xs border border-white/10 rounded-2xl outline-none focus:border-indigo-500/50 hover:border-white/20 transition-all custom-scrollbar leading-relaxed shadow-inner relative z-10"
+              />
+            </div>
 
             {/* Input Peak Counter */}
-            <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-1">
-              <span>Parsed reflections: <strong className="text-indigo-300">{result?.points?.length || 0}</strong></span>
+            <div className="flex items-center justify-between text-[11px] font-mono pt-1">
+              <span className="text-slate-400">Parsed reflections: <strong className="text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">{result?.points?.length || 0}</strong></span>
               {result && result.points.length >= 2 ? (
-                <span className="text-emerald-400 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" /> Ready for deconvolution
+                <span className="text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded-md border border-emerald-500/20">
+                  <CheckCircle className="w-3.5 h-3.5" /> Ready for deconvolution
                 </span>
               ) : (
-                <span className="text-amber-400 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> Minimum 2 reflections required
+                <span className="text-amber-400 flex items-center gap-1.5 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
+                  <AlertTriangle className="w-3.5 h-3.5" /> Minimum 2 reflections
                 </span>
               )}
             </div>
           </div>
 
           {/* Theoretical Summary Box */}
-          <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-3">
-            <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
-              <Info className="w-4 h-4 text-indigo-400" />
+          <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/20 shadow-[0_8px_30px_rgba(99,102,241,0.05)] space-y-4 hover:border-indigo-500/40 transition-colors duration-500 relative overflow-hidden group">
+            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-[50px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
+            <h4 className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2 relative z-10">
+              <Info className="w-4 h-4" />
               Double-Voigt Physical Formulation Guide
             </h4>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Calculates area-weighted crystallite size (D_A) via Langford&apos;s formula by integrating the combined Cauchy and Gaussian Voigt contributions:
+            <p className="text-xs text-slate-300 leading-relaxed relative z-10">
+              Calculates area-weighted crystallite size <span className="font-mono text-indigo-300">(D_A)</span> via Langford&apos;s formula by integrating the combined Cauchy and Gaussian Voigt contributions:
             </p>
             <div 
-              className="text-emerald-300 text-xs py-2 px-3 bg-black/50 rounded-xl border border-white/5 font-mono overflow-x-auto text-center"
+              className="text-white text-xs sm:text-sm py-3 px-3 bg-black/60 rounded-xl border border-white/10 font-mono overflow-x-auto text-center shadow-inner relative z-10"
               dangerouslySetInnerHTML={{
                 __html: katex.renderToString(
                   'D_A = \\frac{1}{\\pi \\beta_{G,S}^*} \\cdot \\exp(k^2) \\cdot \\text{erfc}(k)',
@@ -473,10 +802,10 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                 )
               }}
             />
-            <div className="bg-black/40 p-2.5 rounded-xl border border-white/5 text-[11px] font-mono space-y-1">
-              <span className="text-indigo-400 font-bold block">Voigt Parameter Ratio:</span>
+            <div className="bg-indigo-500/5 p-3 rounded-xl border border-indigo-500/20 space-y-1.5 hover:bg-indigo-500/10 transition-colors relative z-10">
+              <span className="text-indigo-400 font-bold block flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" />Voigt Parameter Ratio:</span>
               <div 
-                className="text-slate-200 text-center"
+                className="text-slate-200 text-center bg-black/40 py-1.5 px-2 rounded-lg"
                 dangerouslySetInnerHTML={{
                   __html: katex.renderToString(
                     'k = \\frac{\\beta_{C,S}^*}{\\sqrt{\\pi} \\beta_{G,S}^*}',
@@ -501,7 +830,8 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
             >
               
               {/* Volume-Weighted Size D_V */}
-              <div className="bg-gradient-to-br from-[#0C1A32] to-[#071122] p-5 rounded-3xl border border-indigo-500/30 shadow-lg relative overflow-hidden group">
+              <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/30 shadow-[0_8px_30px_rgba(99,102,241,0.1)] relative overflow-hidden group hover:border-indigo-400/60 transition-colors duration-500">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-indigo-500/20 transition-colors" />
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-indigo-400">
                     <Ruler className="w-4 h-4" />
@@ -509,20 +839,21 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   </div>
                   <Award className="w-4 h-4 text-indigo-400/50" />
                 </div>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">
+                <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-indigo-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">
                     {result.volumeSizeDvNm.toFixed(2)}
                   </span>
                   <span className="text-indigo-300 text-sm font-mono font-semibold">nm</span>
                 </div>
-                <div className="mt-3 pt-2 border-t border-white/5 space-y-0.5 text-[11px] font-mono text-slate-400">
-                  <div>Area Size D_A: <span className="text-slate-200 font-bold">{result.areaSizeDaNm.toFixed(2)} nm</span></div>
-                  <div>Gaussian Size D_G: <span className="text-slate-200 font-bold">{result.gaussianSizeDgNm.toFixed(2)} nm</span></div>
+                <div className="mt-4 pt-3 border-t border-indigo-500/20 space-y-1 text-[11px] font-mono text-slate-400">
+                  <div className="flex justify-between"><span>Area Size D_A:</span> <span className="text-slate-200 font-bold">{result.areaSizeDaNm.toFixed(2)} nm</span></div>
+                  <div className="flex justify-between"><span>Gaussian Size D_G:</span> <span className="text-slate-200 font-bold">{result.gaussianSizeDgNm.toFixed(2)} nm</span></div>
                 </div>
               </div>
 
               {/* Cauchy Strain e_C */}
-              <div className="bg-gradient-to-br from-[#121632] to-[#0A0D22] p-5 rounded-3xl border border-purple-500/30 shadow-lg relative overflow-hidden group">
+              <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-purple-500/30 shadow-[0_8px_30px_rgba(168,85,247,0.1)] relative overflow-hidden group hover:border-purple-400/60 transition-colors duration-500">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-purple-500/20 transition-colors" />
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-purple-400">
                     <TrendingUp className="w-4 h-4" />
@@ -530,20 +861,21 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   </div>
                   <Layers className="w-4 h-4 text-purple-400/50" />
                 </div>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">
+                <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-purple-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">
                     {(result.cauchyStrainEc * 100).toFixed(4)}
                   </span>
                   <span className="text-purple-300 text-sm font-mono font-semibold">%</span>
                 </div>
-                <div className="mt-3 pt-2 border-t border-white/5 space-y-0.5 text-[11px] font-mono text-slate-400">
-                  <div>Gaussian Strain e_G: <span className="text-slate-200 font-bold">{(result.gaussianStrainEg * 100).toFixed(4)}%</span></div>
-                  <div>Cauchy Slope m_C: <span className="text-slate-200 font-bold">{result.cauchyFit.slope.toFixed(4)}</span></div>
+                <div className="mt-4 pt-3 border-t border-purple-500/20 space-y-1 text-[11px] font-mono text-slate-400">
+                  <div className="flex justify-between"><span>Gaussian Strain e_G:</span> <span className="text-slate-200 font-bold">{(result.gaussianStrainEg * 100).toFixed(4)}%</span></div>
+                  <div className="flex justify-between"><span>Cauchy Slope m_C:</span> <span className="text-slate-200 font-bold">{result.cauchyFit.slope.toFixed(4)}</span></div>
                 </div>
               </div>
 
               {/* Root-Mean-Square Strain */}
-              <div className="bg-gradient-to-br from-[#0B1E2E] to-[#05111C] p-5 rounded-3xl border border-cyan-500/30 shadow-lg relative overflow-hidden group">
+              <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-cyan-500/30 shadow-[0_8px_30px_rgba(6,182,212,0.1)] relative overflow-hidden group hover:border-cyan-400/60 transition-colors duration-500">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-cyan-500/20 transition-colors" />
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-cyan-400">
                     <CheckCircle className="w-4 h-4" />
@@ -551,15 +883,15 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                   </div>
                   <Activity className="w-4 h-4 text-cyan-400/50" />
                 </div>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-white font-mono tracking-tight">
+                <div className="flex items-baseline gap-2 mt-1 relative z-10">
+                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-cyan-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
                     {(result.rmsStrain * 100).toFixed(4)}
                   </span>
                   <span className="text-cyan-300 text-sm font-mono font-semibold">%</span>
                 </div>
-                <div className="mt-3 pt-2 border-t border-white/5 space-y-0.5 text-[11px] font-mono text-slate-400">
-                  <div>Cauchy R²: <span className="text-indigo-300 font-bold">{(result.cauchyFit.rSquared * 100).toFixed(1)}%</span></div>
-                  <div>Gaussian R²: <span className="text-purple-300 font-bold">{(result.gaussianFit.rSquared * 100).toFixed(1)}%</span></div>
+                <div className="mt-4 pt-3 border-t border-cyan-500/20 space-y-1 text-[11px] font-mono text-slate-400">
+                  <div className="flex justify-between"><span>Cauchy R²:</span> <span className="text-indigo-300 font-bold">{(result.cauchyFit.rSquared * 100).toFixed(1)}%</span></div>
+                  <div className="flex justify-between"><span>Gaussian R²:</span> <span className="text-purple-300 font-bold">{(result.gaussianFit.rSquared * 100).toFixed(1)}%</span></div>
                 </div>
               </div>
             </motion.div>
@@ -571,19 +903,23 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
             </div>
           )}
 
+          {result && (
+            <AIAnalysis methodName="Double-Voigt Method (Langford)" resultData={result} />
+          )}
+
           {/* Interactive Plots Navigation Container */}
           {result && (
             <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-5">
               
               {/* Tab Selector Buttons */}
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3">
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/5 pb-4">
+                <div className="flex flex-wrap items-center gap-2 p-1 bg-black/40 rounded-xl border border-white/10 w-full sm:w-auto">
                   <button
                     onClick={() => setActivePlotTab('cauchy')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                    className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center ${
                       activePlotTab === 'cauchy'
-                        ? 'bg-indigo-500 text-black shadow-md shadow-indigo-500/20'
-                        : 'bg-white/5 text-slate-400 hover:text-white'
+                        ? 'bg-indigo-500 text-black shadow-lg shadow-indigo-500/30'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     1. Cauchy Plot (β_C* vs s)
@@ -591,10 +927,10 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
 
                   <button
                     onClick={() => setActivePlotTab('gaussian')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                    className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center ${
                       activePlotTab === 'gaussian'
-                        ? 'bg-purple-500 text-black shadow-md shadow-purple-500/20'
-                        : 'bg-white/5 text-slate-400 hover:text-white'
+                        ? 'bg-purple-500 text-black shadow-lg shadow-purple-500/30'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     2. Gaussian Plot ((β_G*)^2 vs s^2)
@@ -602,10 +938,10 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
 
                   <button
                     onClick={() => setActivePlotTab('profile')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                    className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center ${
                       activePlotTab === 'profile'
-                        ? 'bg-cyan-500 text-black shadow-md shadow-cyan-500/20'
-                        : 'bg-white/5 text-slate-400 hover:text-white'
+                        ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/30'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     3. Peak Profile Deconvolution
@@ -613,45 +949,49 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
 
                   <button
                     onClick={() => setActivePlotTab('summary')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
+                    className={`px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all flex-1 sm:flex-none text-center ${
                       activePlotTab === 'summary'
-                        ? 'bg-emerald-500 text-black shadow-md shadow-emerald-500/20'
-                        : 'bg-white/5 text-slate-400 hover:text-white'
+                        ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/30'
+                        : 'text-slate-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
-                    4. Size Distribution Spectrum
+                    4. Size Spectrum
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                   <button
                     onClick={handleDownloadCSV}
-                    className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono flex items-center gap-1 transition-all"
+                    className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono flex items-center gap-2 transition-all border border-white/10 hover:border-white/20"
                     title="Export CSV"
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">CSV</span>
+                    <Download className="w-4 h-4" />
+                    <span>Export CSV</span>
                   </button>
 
                   <button
                     onClick={handleCopyLaTeX}
-                    className="px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-mono flex items-center gap-1.5 transition-all"
+                    className={`px-4 py-2 rounded-xl text-xs font-mono flex items-center gap-2 transition-all border ${
+                      copiedNotification 
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                        : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                    }`}
                   >
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>{copiedNotification ? 'Copied LaTeX!' : 'LaTeX'}</span>
+                    {copiedNotification ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedNotification ? 'Copied LaTeX!' : 'Copy LaTeX'}</span>
                   </button>
                 </div>
               </div>
 
               {/* Tab 1: Cauchy Chart */}
               {activePlotTab === 'cauchy' && cauchyChartData && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs font-mono text-slate-300">
-                    <span>Linear Cauchy Regression: <strong className="text-indigo-400">β_C* = 1/D_V + 2 e_C · s</strong></span>
-                    <span className="text-slate-400">Intercept (s=0): <strong className="text-indigo-300">{result.cauchyFit.intercept.toFixed(4)} nm⁻¹</strong></span>
+                <div className="space-y-4 bg-[#030710]/50 p-4 sm:p-6 rounded-2xl border border-white/5 relative shadow-inner">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono text-slate-300 gap-2">
+                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">Linear Cauchy Regression: <strong className="text-indigo-400">β_C* = 1/D_V + 2 e_C · s</strong></span>
+                    <span className="bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20 text-slate-400">Intercept (s=0): <strong className="text-indigo-300">{result.cauchyFit.intercept.toFixed(4)} nm⁻¹</strong></span>
                   </div>
 
-                  <div className="h-72 sm:h-80 w-full pt-2">
+                  <div className="h-72 sm:h-96 w-full pt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
@@ -741,13 +1081,13 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
 
               {/* Tab 2: Gaussian Chart */}
               {activePlotTab === 'gaussian' && gaussianChartData && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs font-mono text-slate-300">
-                    <span>Linear Gaussian Regression: <strong className="text-purple-400">(β_G*)^2 = (1/π D_G)^2 + 8π e_G^2 · s^2</strong></span>
-                    <span className="text-slate-400">Intercept (s²=0): <strong className="text-purple-300">{result.gaussianFit.intercept.toFixed(5)} nm⁻²</strong></span>
+                <div className="space-y-4 bg-[#030710]/50 p-4 sm:p-6 rounded-2xl border border-white/5 relative shadow-inner">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-mono text-slate-300 gap-2">
+                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">Linear Gaussian Regression: <strong className="text-purple-400">(β_G*)^2 = (1/π D_G)^2 + 8π e_G^2 · s^2</strong></span>
+                    <span className="bg-purple-500/10 px-3 py-1.5 rounded-lg border border-purple-500/20 text-slate-400">Intercept (s²=0): <strong className="text-purple-300">{result.gaussianFit.intercept.toFixed(5)} nm⁻²</strong></span>
                   </div>
 
-                  <div className="h-72 sm:h-80 w-full pt-2">
+                  <div className="h-72 sm:h-96 w-full pt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
@@ -836,9 +1176,9 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
 
               {/* Tab 3: Peak Profile Deconvolution Simulator */}
               {activePlotTab === 'profile' && selectedPeakProfileData && (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
-                    <span className="text-slate-300">
+                <div className="space-y-4 bg-[#030710]/50 p-4 sm:p-6 rounded-2xl border border-white/5 relative shadow-inner">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 text-slate-300">
                       Select Reflection to Inspect Deconvoluted Voigt Components:
                     </span>
 
@@ -846,7 +1186,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     <select
                       value={selectedPeakIdx}
                       onChange={(e) => setSelectedPeakIdx(parseInt(e.target.value))}
-                      className="px-3 py-1.5 bg-[#030710] text-cyan-300 border border-cyan-500/30 rounded-xl outline-none font-bold"
+                      className="px-3 py-1.5 bg-black/40 text-cyan-300 border border-cyan-500/30 rounded-xl outline-none font-bold hover:border-cyan-400/50 transition-colors cursor-pointer appearance-none"
                     >
                       {result.points.map((p, idx) => (
                         <option key={idx} value={idx}>
@@ -856,7 +1196,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono bg-black/40 p-3 rounded-2xl border border-white/5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono bg-black/40 p-3 rounded-2xl border border-white/5 shadow-inner">
                     <div>
                       <span className="text-slate-500 text-[10px] uppercase block">Position</span>
                       <strong className="text-white">{selectedPeakProfileData.peak.twoTheta.toFixed(2)}° 2θ</strong>
@@ -875,7 +1215,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                     </div>
                   </div>
 
-                  <div className="h-72 sm:h-80 w-full pt-2">
+                  <div className="h-72 sm:h-96 w-full pt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={selectedPeakProfileData.data} margin={{ top: 15, right: 25, bottom: 25, left: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
@@ -962,12 +1302,12 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
 
               {/* Tab 4: Size Distribution Spectrum Bar Chart */}
               {activePlotTab === 'summary' && sizeComparisonData && (
-                <div className="space-y-4">
+                <div className="space-y-4 bg-[#030710]/50 p-4 sm:p-6 rounded-2xl border border-white/5 relative shadow-inner">
                   <div className="text-xs font-mono text-slate-300">
-                    Microstructural Size Metric Spectrum comparison derived from Langford Voigt deconvolution:
+                    <span className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">Microstructural Size Metric Spectrum comparison derived from Langford Voigt deconvolution</span>
                   </div>
 
-                  <div className="h-72 sm:h-80 w-full pt-2">
+                  <div className="h-72 sm:h-96 w-full pt-4">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={sizeComparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 25 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
@@ -1021,28 +1361,29 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
 
           {/* Reflection Parameters Summary Table */}
           {result && result.points && (
-            <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="bg-[#080E1A]/90 p-5 rounded-3xl border border-white/10 shadow-xl space-y-4 hover:border-indigo-500/30 transition-colors duration-500 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[60px] pointer-events-none group-hover:bg-indigo-500/10 transition-colors" />
+              <div className="flex items-center justify-between relative z-10">
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <Layers className="w-4 h-4 text-indigo-400" />
                   Double-Voigt Reflection Deconvolution Table
                 </h3>
-                <span className="text-xs font-mono text-slate-400">
-                  {result.points.length} peaks deconvoluted
+                <span className="text-xs font-mono text-slate-400 bg-black/40 px-3 py-1 rounded-full border border-white/5">
+                  <strong className="text-indigo-400">{result.points.length}</strong> peaks deconvoluted
                 </span>
               </div>
 
-              <div className="overflow-x-auto custom-scrollbar">
+              <div className="overflow-x-auto custom-scrollbar relative z-10 bg-black/40 rounded-2xl border border-white/5">
                 <table className="w-full text-left font-mono text-xs">
                   <thead>
-                    <tr className="border-b border-white/10 text-slate-400 text-[11px] uppercase">
-                      <th className="py-2.5 px-3">2θ [°]</th>
-                      <th className="py-2.5 px-3">hkl</th>
-                      <th className="py-2.5 px-3">s [nm⁻¹]</th>
-                      <th className="py-2.5 px-3">s² [nm⁻²]</th>
-                      <th className="py-2.5 px-3 text-indigo-400">β_C* [nm⁻¹]</th>
-                      <th className="py-2.5 px-3 text-purple-400">(β_G*)² [nm⁻²]</th>
-                      <th className="py-2.5 px-3 text-emerald-400">Single D_V [nm]</th>
+                    <tr className="border-b border-white/10 text-slate-400 text-[11px] uppercase bg-black/40">
+                      <th className="py-3 px-4 font-semibold tracking-wider">2θ [°]</th>
+                      <th className="py-3 px-4 font-semibold tracking-wider">hkl</th>
+                      <th className="py-3 px-4 font-semibold tracking-wider">s [nm⁻¹]</th>
+                      <th className="py-3 px-4 font-semibold tracking-wider">s² [nm⁻²]</th>
+                      <th className="py-3 px-4 font-semibold tracking-wider text-indigo-400">β_C* [nm⁻¹]</th>
+                      <th className="py-3 px-4 font-semibold tracking-wider text-purple-400">(β_G*)² [nm⁻²]</th>
+                      <th className="py-3 px-4 font-semibold tracking-wider text-emerald-400">Single D_V [nm]</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 text-slate-200">
@@ -1053,15 +1394,17 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                           setSelectedPeakIdx(idx);
                           setActivePlotTab('profile');
                         }}
-                        className={`hover:bg-white/5 transition-colors cursor-pointer ${selectedPeakIdx === idx ? 'bg-indigo-500/10 border-l-2 border-indigo-400' : ''}`}
+                        className={`hover:bg-indigo-500/10 transition-colors cursor-pointer ${selectedPeakIdx === idx ? 'bg-indigo-500/20 border-l-2 border-indigo-400 shadow-[inset_0_0_20px_rgba(99,102,241,0.1)]' : 'border-l-2 border-transparent'}`}
                       >
-                        <td className="py-2.5 px-3 font-bold text-white">{p.twoTheta.toFixed(2)}°</td>
-                        <td className="py-2.5 px-3 text-indigo-300">{p.hkl ? `(${p.hkl.join('')})` : '-'}</td>
-                        <td className="py-2.5 px-3 text-slate-300">{p.s.toFixed(4)}</td>
-                        <td className="py-2.5 px-3 text-slate-400">{p.s2.toFixed(4)}</td>
-                        <td className="py-2.5 px-3 text-indigo-300 font-bold">{p.betaCStar.toFixed(4)}</td>
-                        <td className="py-2.5 px-3 text-purple-300 font-bold">{p.betaGStarSq.toFixed(5)}</td>
-                        <td className="py-2.5 px-3 text-emerald-400 font-bold">{p.singleDvNm.toFixed(2)}</td>
+                        <td className="py-3 px-4 font-bold text-white">{p.twoTheta.toFixed(2)}°</td>
+                        <td className="py-3 px-4 text-indigo-300">
+                          <span className="bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">{p.hkl ? `(${p.hkl.join('')})` : '-'}</span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-300">{p.s.toFixed(4)}</td>
+                        <td className="py-3 px-4 text-slate-400">{p.s2.toFixed(4)}</td>
+                        <td className="py-3 px-4 text-indigo-300 font-bold bg-indigo-500/5">{p.betaCStar.toFixed(4)}</td>
+                        <td className="py-3 px-4 text-purple-300 font-bold bg-purple-500/5">{p.betaGStarSq.toFixed(5)}</td>
+                        <td className="py-3 px-4 text-emerald-400 font-bold bg-emerald-500/5">{p.singleDvNm.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
