@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchStandardWavelengths } from '../services/geminiService';
 import { StandardWavelength } from '../types';
 import { XRAY_WAVELENGTHS, parseSingleHKL, validateHKLAgainstCrystalSystem } from '../utils/physics';
+import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { 
   Sliders, 
   HelpCircle, 
@@ -131,6 +132,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
   setCrystalSystem
 }) => {
   const { t } = useTranslation();
+  const { lengthUnit = 'Å' } = useSettings();
   const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>(
     Object.entries(XRAY_WAVELENGTHS).map(([label, value]) => ({ label, value, type: 'X-Ray' }))
   );
@@ -649,7 +651,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
         <div>
           <div className="flex justify-between items-center mb-1.5">
             <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400">
-              {t('Wavelength')}
+              {t('Wavelength')} ({lengthUnit})
             </label>
             {energyKev && (
               <span className="text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 px-2 py-0.5 rounded-full border border-indigo-500/10">
@@ -661,35 +663,45 @@ export const BraggInput: React.FC<BraggInputProps> = ({
             <div className="relative flex-1">
               <input
                 type="number"
-                step="0.00001"
-                min="0.1"
-                max="5.0"
-                value={String(wavelength) === 'NaN' ? '' : wavelength}
+                step={lengthUnit === 'pm' ? '0.01' : lengthUnit === 'nm' ? '0.00001' : '0.0001'}
+                min="0.001"
+                max="500"
+                value={String(wavelength) === 'NaN' ? '' : Number(convertLength(wavelength, lengthUnit).toFixed(lengthUnit === 'pm' ? 2 : lengthUnit === 'nm' ? 6 : 5))}
                 onChange={(e) => {
                   const val = parseFloat(e.target.value);
-                  if (!isNaN(val)) setWavelength(val);
+                  if (!isNaN(val)) {
+                    setWavelength(convertToAngstrom(val, lengthUnit));
+                  }
                 }}
                 className="w-full px-3.5 py-2 bg-slate-50 text-slate-900 border border-slate-200 dark:bg-slate-950 dark:text-white dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all font-bold font-mono text-xs"
               />
               <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400 text-xs font-bold font-mono">
-                Å
+                {lengthUnit}
               </div>
             </div>
             {/* Fine tuning buttons */}
             <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => setWavelength(Number((wavelength - 0.0001).toFixed(5)))}
+                onClick={() => {
+                  const currentInUnit = convertLength(wavelength, lengthUnit);
+                  const step = lengthUnit === 'pm' ? 0.01 : lengthUnit === 'nm' ? 0.00001 : 0.0001;
+                  setWavelength(convertToAngstrom(currentInUnit - step, lengthUnit));
+                }}
                 className="px-3 bg-slate-50 dark:bg-slate-950 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-xs"
-                title="Decrease 0.0001 Å"
+                title={`Decrease wavelength (${lengthUnit})`}
               >
                 -
               </button>
               <button
                 type="button"
-                onClick={() => setWavelength(Number((wavelength + 0.0001).toFixed(5)))}
+                onClick={() => {
+                  const currentInUnit = convertLength(wavelength, lengthUnit);
+                  const step = lengthUnit === 'pm' ? 0.01 : lengthUnit === 'nm' ? 0.00001 : 0.0001;
+                  setWavelength(convertToAngstrom(currentInUnit + step, lengthUnit));
+                }}
                 className="px-3 bg-slate-50 dark:bg-slate-950 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-xs border-l border-slate-200 dark:border-slate-800"
-                title="Increase 0.0001 Å"
+                title={`Increase wavelength (${lengthUnit})`}
               >
                 +
               </button>
@@ -708,7 +720,7 @@ export const BraggInput: React.FC<BraggInputProps> = ({
                     ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm font-extrabold' 
                     : 'bg-white dark:bg-slate-850 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850'
                 }`}
-                title={`${sw.label}: ${sw.value} Å`}
+                title={`${sw.label}: ${convertLength(sw.value, lengthUnit).toFixed(lengthUnit === 'pm' ? 2 : lengthUnit === 'nm' ? 5 : 4)} ${lengthUnit}`}
               >
                 {sw.label.replace(' (avg)', '')}
               </button>

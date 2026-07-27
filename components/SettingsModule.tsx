@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
 import LanguageSelector from './LanguageSelector';
 import { openOfflineDB } from '../utils/offlineDb';
+import { LengthUnit, useSettings } from './SettingsContext';
 
 interface SettingsModuleProps {
   theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic' | 'gruvbox' | 'monokai';
@@ -38,6 +39,9 @@ interface SettingsModuleProps {
 
   pythonFeaturesEnabled: boolean;
   setPythonFeaturesEnabled: (enabled: boolean) => void;
+
+  lengthUnit?: LengthUnit;
+  setLengthUnit?: (unit: LengthUnit) => void;
 }
 
 export const SettingsModule: React.FC<SettingsModuleProps> = ({
@@ -61,7 +65,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   setAutosaveInterval,
   pythonFeaturesEnabled,
   setPythonFeaturesEnabled,
+  lengthUnit: propLengthUnit,
+  setLengthUnit: propSetLengthUnit,
 }) => {
+  const contextSettings = useSettings();
+  const currentLengthUnit = propLengthUnit || contextSettings.lengthUnit || 'Å';
+  const handleSetLengthUnit = propSetLengthUnit || contextSettings.setLengthUnit;
   const { t, i18n } = useTranslation();
   const isFa = i18n.language === 'fa';
 
@@ -848,6 +857,85 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                             {t(pOption.label)}
                           </button>
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Global Length Unit Toggle */}
+                    <div className="pb-6 border-b border-slate-100 dark:border-slate-800">
+                      <div className="mb-4">
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-medium text-slate-900 dark:text-slate-200 block">
+                            {t('Global Crystallographic Length Unit', 'Global Length Unit')}
+                          </label>
+                          <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                            Global Setting
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {t('Global unit for all d-spacing, wavelength, and lattice parameter calculations across all modules.')}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {[
+                          { 
+                            id: 'Å' as LengthUnit, 
+                            label: 'Ångströms (Å)', 
+                            symbol: 'Å', 
+                            factor: '1 Å = 10⁻¹⁰ m',
+                            example: 'Cu-Kα = 1.5406 Å'
+                          },
+                          { 
+                            id: 'nm' as LengthUnit, 
+                            label: 'Nanometers (nm)', 
+                            symbol: 'nm', 
+                            factor: '1 nm = 10 Å',
+                            example: 'Cu-Kα = 0.15406 nm'
+                          },
+                          { 
+                            id: 'pm' as LengthUnit, 
+                            label: 'Picometers (pm)', 
+                            symbol: 'pm', 
+                            factor: '1 pm = 0.01 Å',
+                            example: 'Cu-Kα = 154.06 pm'
+                          },
+                        ].map((uOption) => {
+                          const isSelected = currentLengthUnit === uOption.id;
+                          return (
+                            <button
+                              key={uOption.id}
+                              type="button"
+                              onClick={() => {
+                                if (handleSetLengthUnit) handleSetLengthUnit(uOption.id);
+                                playSynthTone('switch');
+                              }}
+                              className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden ${
+                                isSelected
+                                  ? 'border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/30 ring-2 ring-indigo-500/20 shadow-sm'
+                                  : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:border-indigo-300 dark:hover:border-indigo-800'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-lg font-black font-mono text-indigo-600 dark:text-indigo-400">
+                                  {uOption.symbol}
+                                </span>
+                                {isSelected && (
+                                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                                    <Check className="w-3 h-3 stroke-[3]" />
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 mb-0.5">
+                                {uOption.label}
+                              </h4>
+                              <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mb-1">
+                                {uOption.factor}
+                              </p>
+                              <div className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/15 inline-block">
+                                {uOption.example}
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 

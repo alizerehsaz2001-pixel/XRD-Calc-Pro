@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BraggResult } from '../types';
-import { useSettings } from './SettingsContext';
+import { useSettings, convertLength } from './SettingsContext';
 import { Filter, SlidersHorizontal, RefreshCw, Check } from 'lucide-react';
 import { ScientificMathControl } from './ScientificMathControl';
 import { motion, AnimatePresence } from 'motion/react';
@@ -13,7 +13,7 @@ interface ResultsTableProps {
 
 export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCompare }) => {
   const { t } = useTranslation();
-  const { precision } = useSettings();
+  const { precision, lengthUnit = 'Å' } = useSettings();
 
   const [minIntensity, setMinIntensity] = useState<number>(0);
   const [minDSpacing, setMinDSpacing] = useState<string>('');
@@ -40,16 +40,18 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
     const intensity = row.intensity !== undefined ? row.intensity : 100;
     if (intensity < minIntensity) return false;
 
+    const rowDInUnit = convertLength(row.dSpacing, lengthUnit);
+
     // 2. Minimum d-spacings check
     if (minDSpacing !== '') {
       const minD = parseFloat(minDSpacing);
-      if (!isNaN(minD) && row.dSpacing < minD) return false;
+      if (!isNaN(minD) && rowDInUnit < minD) return false;
     }
 
     // 3. Maximum d-spacings check
     if (maxDSpacing !== '') {
       const maxD = parseFloat(maxDSpacing);
-      if (!isNaN(maxD) && row.dSpacing > maxD) return false;
+      if (!isNaN(maxD) && rowDInUnit > maxD) return false;
     }
 
     // 4. Query text check
@@ -61,7 +63,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
     }
 
     return true;
-  }), [results, minIntensity, minDSpacing, maxDSpacing, searchQuery]);
+  }), [results, minIntensity, minDSpacing, maxDSpacing, searchQuery, lengthUnit]);
 
   // Selection state helpers
   const isAllVisibleSelected = React.useMemo(() => {
@@ -146,13 +148,13 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
     if (dataToExport.length === 0) return;
     
     // Header for CSV
-    const headers = ['hkl', '2theta (deg)', 'd-spacing (Å)', 'Q (1/Å)', 'sin(theta)/lambda', 'Intensity (%)'];
+    const headers = ['hkl', '2theta (deg)', `d-spacing (${lengthUnit})`, 'Q (1/Å)', 'sin(theta)/lambda', 'Intensity (%)'];
     
     // Data rows
     const rows = dataToExport.map(r => [
       r.hkl || '',
       r.twoTheta.toFixed(precision),
-      r.dSpacing.toFixed(precision),
+      convertLength(r.dSpacing, lengthUnit).toFixed(precision),
       r.qVector.toFixed(precision),
       r.sinThetaOverLambda.toFixed(precision),
       (r.intensity !== undefined ? r.intensity : 100).toFixed(1)
@@ -201,10 +203,10 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
           variables={results.length > 0 ? [
             { symbol: 'n', name: 'Order of reflection', value: 1, unit: '' },
             { symbol: 'θ', name: 'Bragg Angle', value: ((results[0].twoTheta / 2) * Math.PI / 180), unit: 'rad' },
-            { symbol: 'λ', name: 'Scattering Wavelength', value: (2 * results[0].dSpacing * Math.sin((results[0].twoTheta / 2) * Math.PI / 180)), unit: 'Å' }
+            { symbol: 'λ', name: 'Scattering Wavelength', value: convertLength(2 * results[0].dSpacing * Math.sin((results[0].twoTheta / 2) * Math.PI / 180), lengthUnit), unit: lengthUnit }
           ] : []}
-          result={results.length > 0 ? results[0].dSpacing : 0}
-          resultUnit="Å"
+          result={results.length > 0 ? convertLength(results[0].dSpacing, lengthUnit) : 0}
+          resultUnit={lengthUnit}
           resultName="Calculated D-Spacing"
         />
       </div>
@@ -278,7 +280,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
           {/* Min d-spacing filter */}
           <div className="space-y-1.5">
             <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400">
-              Min d-spacing (Å)
+              Min d-spacing ({lengthUnit})
             </label>
             <input 
               id="min-dspacing-filter"
@@ -287,7 +289,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
               min="0"
               value={String(minDSpacing) === 'NaN' ? '' : minDSpacing}
               onChange={(e) => setMinDSpacing(e.target.value)}
-              placeholder="e.g. 1.0"
+              placeholder={`e.g. ${convertLength(1.0, lengthUnit).toFixed(1)}`}
               className="w-full px-3 py-1.5 bg-white text-slate-900 border border-slate-200 dark:bg-slate-900 dark:text-white dark:border-slate-805 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500 font-mono"
             />
           </div>
@@ -295,7 +297,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
           {/* Max d-spacing filter */}
           <div className="space-y-1.5">
             <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 dark:text-slate-400">
-              Max d-spacing (Å)
+              Max d-spacing ({lengthUnit})
             </label>
             <input 
               id="max-dspacing-filter"
@@ -304,7 +306,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
               min="0"
               value={String(maxDSpacing) === 'NaN' ? '' : maxDSpacing}
               onChange={(e) => setMaxDSpacing(e.target.value)}
-              placeholder="e.g. 3.0"
+              placeholder={`e.g. ${convertLength(3.0, lengthUnit).toFixed(1)}`}
               className="w-full px-3 py-1.5 bg-white text-slate-900 border border-slate-200 dark:bg-slate-900 dark:text-white dark:border-slate-805 rounded-lg text-xs font-bold outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500 font-mono"
             />
           </div>
@@ -421,7 +423,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
                   Average d-spacing (d_avg)
                 </span>
                 <span className="text-sm font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400">
-                  {showAverageResult.avgD.toFixed(precision)} Å
+                  {convertLength(showAverageResult.avgD, lengthUnit).toFixed(precision)} {lengthUnit}
                 </span>
               </div>
               
@@ -430,7 +432,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
                   Standard Dev (σ)
                 </span>
                 <span className="text-sm font-black font-mono tracking-tight text-slate-700 dark:text-slate-300">
-                  ±{showAverageResult.stdDev.toFixed(precision)} Å
+                  ±{convertLength(showAverageResult.stdDev, lengthUnit).toFixed(precision)} {lengthUnit}
                 </span>
               </div>
 
@@ -439,7 +441,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
                   Minimum d-spacing
                 </span>
                 <span className="text-sm font-black font-mono tracking-tight text-slate-700 dark:text-slate-300">
-                  {showAverageResult.minD.toFixed(precision)} Å
+                  {convertLength(showAverageResult.minD, lengthUnit).toFixed(precision)} {lengthUnit}
                 </span>
               </div>
 
@@ -448,7 +450,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
                   Maximum d-spacing
                 </span>
                 <span className="text-sm font-black font-mono tracking-tight text-slate-700 dark:text-slate-300">
-                  {showAverageResult.maxD.toFixed(precision)} Å
+                  {convertLength(showAverageResult.maxD, lengthUnit).toFixed(precision)} {lengthUnit}
                 </span>
               </div>
             </div>
@@ -479,7 +481,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('HKL')}</th>
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">Intensity</th>
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('2theta_deg')}</th>
-              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('d_spacing')}</th>
+              <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">d-spacing ({lengthUnit})</th>
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('Q_vector')}</th>
               <th scope="col" className="px-6 py-3 font-bold border-b border-slate-300 dark:border-slate-700">{t('sin_theta')}</th>
             </tr>
@@ -544,7 +546,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({ results, onExportCom
                       </div>
                     </td>
                     <td className="px-6 py-3 font-bold text-slate-900 dark:text-slate-100">{row.twoTheta.toFixed(Math.min(precision, 3))}</td>
-                    <td className="px-6 py-3 text-indigo-700 dark:text-indigo-300 font-bold">{row.dSpacing.toFixed(precision)}</td>
+                    <td className="px-6 py-3 text-indigo-700 dark:text-indigo-300 font-bold">{convertLength(row.dSpacing, lengthUnit).toFixed(precision)}</td>
                     <td className="px-6 py-3 text-slate-700 dark:text-slate-400">{row.qVector.toFixed(precision)}</td>
                     <td className="px-6 py-3 text-slate-700 dark:text-slate-400">{row.sinThetaOverLambda.toFixed(precision)}</td>
                   </tr>

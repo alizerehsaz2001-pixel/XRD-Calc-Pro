@@ -18,7 +18,7 @@ import {
 } from 'recharts';
 import { Activity, Terminal, RotateCcw, Tag, Camera, ArrowLeft, ArrowRight, ZoomIn, ZoomOut, MinusCircle, Maximize, Minimize, Layers } from 'lucide-react';
 import { BraggResult } from '../types';
-import { useSettings } from './SettingsContext';
+import { useSettings, convertLength } from './SettingsContext';
 import { getActiveMaterials } from '../utils/materialsHelper';
 import { calculateBragg } from '../utils/physics';
 
@@ -31,7 +31,7 @@ interface DiffractionChartProps {
 
 export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, materialName, wavelength, onResultsChange }) => {
   const { t } = useTranslation();
-  const { precision } = useSettings();
+  const { precision, lengthUnit = 'Å' } = useSettings();
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Zooming states
@@ -573,7 +573,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                 <div className="grid grid-cols-2 gap-3">
                    <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                      <p className="text-[8px] font-black text-slate-500 uppercase mb-0.5">d-spacing</p>
-                     <p className="text-[11px] font-bold text-emerald-400 font-mono">{d.dSpacing?.toFixed(precision)} Å</p>
+                     <p className="text-[11px] font-bold text-emerald-400 font-mono">{d.dSpacing ? `${convertLength(d.dSpacing, lengthUnit).toFixed(precision)} ${lengthUnit}` : '---'}</p>
                    </div>
                    <div className="bg-white/5 p-2 rounded-lg border border-white/5">
                      <p className="text-[8px] font-black text-slate-500 uppercase mb-0.5">Q-vector</p>
@@ -727,7 +727,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
         <div className="bg-[#020617]/60 p-3 rounded-xl border border-white/5 flex flex-col justify-between min-h-[64px]">
           <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Interplanar (d)</span>
           <span className="text-lg font-black text-emerald-400 font-mono tracking-tighter">
-            {hoverCrystallographyMetrics?.d ? `${hoverCrystallographyMetrics.d.toFixed(4)} Å` : '---'}
+            {hoverCrystallographyMetrics?.d ? `${convertLength(hoverCrystallographyMetrics.d, lengthUnit).toFixed(precision)} ${lengthUnit}` : '---'}
           </span>
         </div>
         {/* Scattering Vector Q Monitor */}
@@ -931,7 +931,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
 
                           <div className="flex justify-between items-center py-1 border-b border-white/5">
                             <span className="text-slate-400 text-[9px] uppercase tracking-wider">d-spacing (d)</span>
-                            <span className="font-bold text-emerald-400">{peak.dSpacing?.toFixed(precision)} Å</span>
+                            <span className="font-bold text-emerald-400">{peak.dSpacing ? `${convertLength(peak.dSpacing, lengthUnit).toFixed(precision)} ${lengthUnit}` : '---'}</span>
                           </div>
 
                           <div className="flex justify-between items-center py-1 border-b border-white/5">
@@ -1244,7 +1244,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                   <th className="py-2.5 px-3">{t('Index', 'Index')}</th>
                   <th className="py-2.5 px-3">{t('Angle (2θ)', 'Angle (2θ)')}</th>
                   <th className="py-2.5 px-3">{t('Miller (hkl)', 'Miller (hkl)')}</th>
-                  <th className="py-2.5 px-3">{t('d-spacing (Å)', 'd-spacing (Å)')}</th>
+                  <th className="py-2.5 px-3">{t(`d-spacing (${lengthUnit})`, `d-spacing (${lengthUnit})`)}</th>
                   <th className="py-2.5 px-3">{t('Wavevector Q (Å⁻¹)', 'Wavevector Q (Å⁻¹)')}</th>
                   <th className="py-2.5 px-3 text-right">{t('Rel. Intensity', 'Rel. Intensity')}</th>
                   <th className="py-2.5 px-3 text-center">{t('Fine Tuning', 'Fine Tuning')}</th>
@@ -1292,7 +1292,7 @@ export const DiffractionChart: React.FC<DiffractionChartProps> = ({ results, mat
                           {peak.hkl ? `(${peak.hkl})` : 'N/A'}
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-mono font-bold text-emerald-400">{peak.dSpacing.toFixed(4)} Å</td>
+                      <td className="py-3 px-3 font-mono font-bold text-emerald-400">{convertLength(peak.dSpacing, lengthUnit).toFixed(precision)} {lengthUnit}</td>
                       <td className="py-3 px-3 font-mono text-sky-400">{(4 * Math.PI * Math.sin((peak.twoTheta / 2) * (Math.PI / 180)) / activeWavelengthVal).toFixed(4)}</td>
                       <td className="py-3 px-3 text-right">
                         <div className="flex items-center justify-end gap-2">

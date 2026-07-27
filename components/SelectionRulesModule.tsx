@@ -54,7 +54,20 @@ const Symmetry3DVisualizer = ({
 }: any) => {
   const [rotation, setRotation] = useState({ x: -Math.PI / 6, y: Math.PI / 4 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isAutoSpin, setIsAutoSpin] = useState<boolean>(false);
+  const [zoomScale, setZoomScale] = useState<number>(55);
   const lastMouseRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (!isAutoSpin || isDragging) return;
+    const interval = setInterval(() => {
+      setRotation((prev) => ({
+        ...prev,
+        y: prev.y + 0.012,
+      }));
+    }, 30);
+    return () => clearInterval(interval);
+  }, [isAutoSpin, isDragging]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -101,7 +114,7 @@ const Symmetry3DVisualizer = ({
     const z2 = y1 * Math.sin(angleX) + z1 * Math.cos(angleX);
     const x2 = x1;
 
-    const scale = 55;
+    const scale = zoomScale;
     return {
       x: 150 + x2 * scale,
       y: 100 + y2 * scale,
@@ -974,6 +987,49 @@ const Symmetry3DVisualizer = ({
           </div>
         </div>
 
+        {/* Top Right Control Buttons */}
+        <div className="absolute top-3 right-4 flex items-center gap-1.5 z-30">
+          <button
+            type="button"
+            onClick={() => setIsAutoSpin(!isAutoSpin)}
+            className={`px-2 py-1 rounded-lg border font-mono text-[9px] flex items-center gap-1 transition-all ${
+              isAutoSpin
+                ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/40 shadow-[0_0_10px_rgba(99,102,241,0.2)]"
+                : "bg-black/50 text-slate-400 border-white/10 hover:text-white hover:bg-black/80"
+            }`}
+            title="Toggle 3D Auto Spin"
+          >
+            {isAutoSpin ? <Pause className="w-3 h-3 text-indigo-400" /> : <Play className="w-3 h-3 text-slate-400" />}
+            <span className="font-bold uppercase tracking-wider">{isAutoSpin ? "Spinning" : "Auto Spin"}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setRotation({ x: -Math.PI / 6, y: Math.PI / 4 })}
+            className="p-1.5 rounded-lg border border-white/10 bg-black/50 text-slate-400 hover:text-white hover:bg-black/80 font-mono text-[9px] transition-all"
+            title="Reset View"
+          >
+            <RotateCw className="w-3 h-3" />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setZoomScale((s) => Math.min(85, s + 10))}
+            className="w-6 h-6 rounded-lg border border-white/10 bg-black/50 text-slate-400 hover:text-white flex items-center justify-center font-mono text-xs font-black transition-all"
+            title="Zoom In"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoomScale((s) => Math.max(30, s - 10))}
+            className="w-6 h-6 rounded-lg border border-white/10 bg-black/50 text-slate-400 hover:text-white flex items-center justify-center font-mono text-xs font-black transition-all"
+            title="Zoom Out"
+          >
+            -
+          </button>
+        </div>
+
         {/* Center Reticle */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
           <div className="w-1.5 h-1.5 border border-indigo-500/40 rounded-full"></div>
@@ -1042,7 +1098,7 @@ export const SelectionRulesModule: React.FC = () => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const [symmetryTab, setSymmetryTab] = useState<
-    "visualizer" | "properties" | "sandbox"
+    "visualizer" | "spacegroup" | "properties" | "reciprocal" | "sandbox"
   >("visualizer");
   const [showLatticeOutline, setShowLatticeOutline] = useState(true);
   const [showSymmetryAxes, setShowSymmetryAxes] = useState(true);
@@ -2232,6 +2288,499 @@ export const SelectionRulesModule: React.FC = () => {
       identity: "1",
       description:
         "Lowest possible symmetry. Contains only inversion and identity.",
+    },
+  };
+
+  const spacegroupDetails: Record<
+    CrystalSystem,
+    {
+      symbol: string;
+      number: number;
+      centering: string;
+      extinctions: {
+        centeringCondition: string;
+        glidePlanes: string;
+        screwAxes: string;
+        generalRule: string;
+      };
+      wyckoffPositions: {
+        site: string;
+        mult: number;
+        symmetry: string;
+        coords: string;
+      }[];
+    }
+  > = {
+    SC: {
+      symbol: "Pm-3m",
+      number: 221,
+      centering: "Primitive (P)",
+      extinctions: {
+        centeringCondition: "None (P lattice)",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "All (h k l) reflections allowed",
+      },
+      wyckoffPositions: [
+        { site: "1a", mult: 1, symmetry: "m-3m", coords: "(0, 0, 0)" },
+        { site: "1b", mult: 1, symmetry: "m-3m", coords: "(1/2, 1/2, 1/2)" },
+        { site: "3c", mult: 3, symmetry: "4/mmm", coords: "(0, 1/2, 1/2)" },
+        { site: "6e", mult: 6, symmetry: "4mm", coords: "(x, 0, 0)" },
+      ],
+    },
+    BCC: {
+      symbol: "Im-3m",
+      number: 229,
+      centering: "Body-Centered (I)",
+      extinctions: {
+        centeringCondition: "h + k + l = 2n (even)",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "Sum of Miller indices must be even",
+      },
+      wyckoffPositions: [
+        { site: "2a", mult: 2, symmetry: "m-3m", coords: "(0, 0, 0), (1/2, 1/2, 1/2)" },
+        { site: "6b", mult: 6, symmetry: "4/mmm", coords: "(0, 1/2, 1/2)" },
+        { site: "12d", mult: 12, symmetry: "-42m", coords: "(0, 1/4, 1/2)" },
+      ],
+    },
+    FCC: {
+      symbol: "Fm-3m",
+      number: 225,
+      centering: "Face-Centered (F)",
+      extinctions: {
+        centeringCondition: "h, k, l all even or all odd (unmixed)",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "Unmixed parities allowed; mixed parities forbidden",
+      },
+      wyckoffPositions: [
+        { site: "4a", mult: 4, symmetry: "m-3m", coords: "(0, 0, 0)" },
+        { site: "4b", mult: 4, symmetry: "m-3m", coords: "(1/2, 1/2, 1/2)" },
+        { site: "8c", mult: 8, symmetry: "-43m", coords: "(1/4, 1/4, 1/4)" },
+        { site: "24e", mult: 24, symmetry: "4mm", coords: "(x, 0, 0)" },
+      ],
+    },
+    Diamond: {
+      symbol: "Fd-3m",
+      number: 227,
+      centering: "Face-Centered + Diamond Glide (Fd)",
+      extinctions: {
+        centeringCondition: "h, k, l all even or all odd (unmixed)",
+        glidePlanes: "Diamond glide d: if h,k,l all even, h+k+l = 4n",
+        screwAxes: "None",
+        generalRule: "h,k,l unmixed; if even, h+k+l must be divisible by 4",
+      },
+      wyckoffPositions: [
+        { site: "8a", mult: 8, symmetry: "-43m", coords: "(0, 0, 0), (1/4, 1/4, 1/4)" },
+        { site: "8b", mult: 8, symmetry: "-43m", coords: "(1/2, 1/2, 1/2)" },
+        { site: "16c", mult: 16, symmetry: ".3m", coords: "(1/8, 1/8, 1/8)" },
+        { site: "48f", mult: 48, symmetry: "2.mm", coords: "(x, 0, 0)" },
+      ],
+    },
+    Hexagonal: {
+      symbol: "P6_3/mmc",
+      number: 194,
+      centering: "Primitive Hexagonal (P)",
+      extinctions: {
+        centeringCondition: "None",
+        glidePlanes: "c-glide plane: (hh-2hl) l = 2n",
+        screwAxes: "6_3 screw axis along c: (000l) l = 2n",
+        generalRule: "Axial reflections (000l) require l even",
+      },
+      wyckoffPositions: [
+        { site: "2a", mult: 2, symmetry: "-3m", coords: "(0, 0, 0), (0, 0, 1/2)" },
+        { site: "2c", mult: 2, symmetry: "-6m2", coords: "(1/3, 2/3, 1/4)" },
+        { site: "2d", mult: 2, symmetry: "-6m2", coords: "(2/3, 1/3, 1/4)" },
+        { site: "4f", mult: 4, symmetry: "3m.", coords: "(1/3, 2/3, z)" },
+      ],
+    },
+    Tetragonal: {
+      symbol: "P4/mmm",
+      number: 123,
+      centering: "Primitive Tetragonal (P)",
+      extinctions: {
+        centeringCondition: "None",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "All reflections allowed",
+      },
+      wyckoffPositions: [
+        { site: "1a", mult: 1, symmetry: "4/mmm", coords: "(0, 0, 0)" },
+        { site: "1b", mult: 1, symmetry: "4/mmm", coords: "(0, 0, 1/2)" },
+        { site: "2f", mult: 2, symmetry: "2/m..", coords: "(0, 1/2, 0)" },
+      ],
+    },
+    Tetragonal_I: {
+      symbol: "I4/mmm",
+      number: 139,
+      centering: "Body-Centered Tetragonal (I)",
+      extinctions: {
+        centeringCondition: "h + k + l = 2n (even)",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "Sum h + k + l must be even",
+      },
+      wyckoffPositions: [
+        { site: "2a", mult: 2, symmetry: "4/mmm", coords: "(0, 0, 0)" },
+        { site: "2b", mult: 2, symmetry: "4/mmm", coords: "(0, 0, 1/2)" },
+        { site: "4d", mult: 4, symmetry: "-4m2", coords: "(0, 1/2, 1/4)" },
+      ],
+    },
+    Orthorhombic: {
+      symbol: "Pmmm",
+      number: 47,
+      centering: "Primitive Orthorhombic (P)",
+      extinctions: {
+        centeringCondition: "None",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "All reflections allowed",
+      },
+      wyckoffPositions: [
+        { site: "1a", mult: 1, symmetry: "mmm", coords: "(0, 0, 0)" },
+        { site: "1b", mult: 1, symmetry: "mmm", coords: "(1/2, 0, 0)" },
+        { site: "1c", mult: 1, symmetry: "mmm", coords: "(0, 1/2, 0)" },
+      ],
+    },
+    Orthorhombic_F: {
+      symbol: "Fmmm",
+      number: 69,
+      centering: "Face-Centered Orthorhombic (F)",
+      extinctions: {
+        centeringCondition: "h, k, l unmixed (all even or all odd)",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "Unmixed indices required",
+      },
+      wyckoffPositions: [
+        { site: "4a", mult: 4, symmetry: "mmm", coords: "(0, 0, 0)" },
+        { site: "4b", mult: 4, symmetry: "mmm", coords: "(1/2, 0, 0)" },
+      ],
+    },
+    Orthorhombic_C: {
+      symbol: "Cmmm",
+      number: 65,
+      centering: "Base-Centered Orthorhombic (C)",
+      extinctions: {
+        centeringCondition: "h + k = 2n (even)",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "h + k must be even",
+      },
+      wyckoffPositions: [
+        { site: "2a", mult: 2, symmetry: "mmm", coords: "(0, 0, 0)" },
+        { site: "2b", mult: 2, symmetry: "mmm", coords: "(1/2, 0, 0)" },
+      ],
+    },
+    Cubic: {
+      symbol: "Pm-3m",
+      number: 221,
+      centering: "Primitive Cubic (P)",
+      extinctions: {
+        centeringCondition: "None",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "All reflections allowed",
+      },
+      wyckoffPositions: [
+        { site: "1a", mult: 1, symmetry: "m-3m", coords: "(0, 0, 0)" },
+      ],
+    },
+    Monoclinic: {
+      symbol: "P2/m",
+      number: 10,
+      centering: "Primitive Monoclinic (P)",
+      extinctions: {
+        centeringCondition: "None",
+        glidePlanes: "None (for P2/m); c-glide in P2_1/c requires h0l: l=2n",
+        screwAxes: "2_1 screw axis along b requires 0k0: k=2n",
+        generalRule: "Axial or zone restrictions apply for glide/screw variants",
+      },
+      wyckoffPositions: [
+        { site: "1a", mult: 1, symmetry: "2/m", coords: "(0, 0, 0)" },
+        { site: "1b", mult: 1, symmetry: "2/m", coords: "(0, 1/2, 0)" },
+      ],
+    },
+    Triclinic: {
+      symbol: "P-1",
+      number: 2,
+      centering: "Primitive Triclinic (P)",
+      extinctions: {
+        centeringCondition: "None",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "All reflections allowed (Centrosymmetric inversion)",
+      },
+      wyckoffPositions: [
+        { site: "1a", mult: 1, symmetry: "-1", coords: "(0, 0, 0)" },
+        { site: "1b", mult: 1, symmetry: "-1", coords: "(1/2, 0, 0)" },
+      ],
+    },
+  };
+
+  const characterTables: Record<
+    string,
+    {
+      pointGroup: string;
+      classes: string[];
+      irreps: {
+        name: string;
+        characters: number[];
+        activity: "IR" | "Raman" | "IR & Raman" | "Inactive";
+        basis: string;
+      }[];
+    }
+  > = {
+    "m-3m (Oh)": {
+      pointGroup: "O_h (m-3m)",
+      classes: ["E", "8C₃", "6C₂", "6C₄", "3C₂'", "i", "6S₄", "8S₆", "3σ_h", "6σ_d"],
+      irreps: [
+        { name: "A1g", characters: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], activity: "Raman", basis: "x²+y²+z²" },
+        { name: "A2g", characters: [1, 1, -1, -1, 1, 1, -1, 1, 1, -1], activity: "Raman", basis: "Rotations / High-order" },
+        { name: "Eg", characters: [2, -1, 0, 0, 2, 2, 0, -1, 2, 0], activity: "Raman", basis: "(2z²-x²-y², x²-y²)" },
+        { name: "T1g", characters: [3, 0, -1, 1, -1, 3, 1, 0, -1, -1], activity: "Inactive", basis: "(Rx, Ry, Rz)" },
+        { name: "T2g", characters: [3, 0, 1, -1, -1, 3, -1, 0, -1, 1], activity: "Raman", basis: "(xy, xz, yz)" },
+        { name: "A1u", characters: [1, 1, 1, 1, 1, -1, -1, -1, -1, -1], activity: "Inactive", basis: "None" },
+        { name: "A2u", characters: [1, 1, -1, -1, 1, -1, 1, -1, -1, 1], activity: "Inactive", basis: "None" },
+        { name: "Eu", characters: [2, -1, 0, 0, 2, -2, 0, 1, -2, 0], activity: "Inactive", basis: "None" },
+        { name: "T1u", characters: [3, 0, -1, 1, -1, -3, -1, 0, 1, 1], activity: "IR", basis: "(x, y, z)" },
+        { name: "T2u", characters: [3, 0, 1, -1, -1, -3, 1, 0, 1, -1], activity: "Inactive", basis: "None" },
+      ],
+    },
+    "6/mmm (D6h)": {
+      pointGroup: "D_6h (6/mmm)",
+      classes: ["E", "2C₆", "2C₃", "C₂", "3C₂'", "3C₂''", "i", "2S₃", "2S₆", "σ_h", "3σ_v", "3σ_d"],
+      irreps: [
+        { name: "A1g", characters: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], activity: "Raman", basis: "x²+y², z²" },
+        { name: "A2g", characters: [1, 1, 1, 1, -1, -1, 1, 1, 1, 1, -1, -1], activity: "Inactive", basis: "Rz" },
+        { name: "B1g", characters: [1, -1, 1, -1, 1, -1, 1, -1, 1, -1, 1, -1], activity: "Inactive", basis: "None" },
+        { name: "B2g", characters: [1, -1, 1, -1, -1, 1, 1, -1, 1, -1, -1, 1], activity: "Inactive", basis: "None" },
+        { name: "E1g", characters: [2, 1, -1, -2, 0, 0, 2, 1, -1, -2, 0, 0], activity: "Raman", basis: "(xz, yz)" },
+        { name: "E2g", characters: [2, -1, -1, 2, 0, 0, 2, -1, -1, 2, 0, 0], activity: "Raman", basis: "(x²-y², xy)" },
+        { name: "A1u", characters: [1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1], activity: "Inactive", basis: "None" },
+        { name: "A2u", characters: [1, 1, 1, 1, -1, -1, -1, -1, -1, -1, 1, 1], activity: "IR", basis: "z" },
+        { name: "E1u", characters: [2, 1, -1, -2, 0, 0, -2, -1, 1, 2, 0, 0], activity: "IR", basis: "(x, y)" },
+        { name: "E2u", characters: [2, -1, -1, 2, 0, 0, -2, 1, 1, -2, 0, 0], activity: "Inactive", basis: "None" },
+      ],
+    },
+    "4/mmm (D4h)": {
+      pointGroup: "D_4h (4/mmm)",
+      classes: ["E", "2C₄", "C₂", "2C₂'", "2C₂''", "i", "2S₄", "σ_h", "2σ_v", "2σ_d"],
+      irreps: [
+        { name: "A1g", characters: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], activity: "Raman", basis: "x²+y², z²" },
+        { name: "A2g", characters: [1, 1, 1, -1, -1, 1, 1, 1, -1, -1], activity: "Inactive", basis: "Rz" },
+        { name: "B1g", characters: [1, -1, 1, 1, -1, 1, -1, 1, 1, -1], activity: "Raman", basis: "x²-y²" },
+        { name: "B2g", characters: [1, -1, 1, -1, 1, 1, -1, 1, -1, 1], activity: "Raman", basis: "xy" },
+        { name: "Eg", characters: [2, 0, -2, 0, 0, 2, 0, -2, 0, 0], activity: "Raman", basis: "(xz, yz)" },
+        { name: "A1u", characters: [1, 1, 1, 1, 1, -1, -1, -1, -1, -1], activity: "Inactive", basis: "None" },
+        { name: "A2u", characters: [1, 1, 1, -1, -1, -1, -1, -1, 1, 1], activity: "IR", basis: "z" },
+        { name: "B1u", characters: [1, -1, 1, 1, -1, -1, 1, -1, -1, 1], activity: "Inactive", basis: "None" },
+        { name: "Eu", characters: [2, 0, -2, 0, 0, -2, 0, 2, 0, 0], activity: "IR", basis: "(x, y)" },
+      ],
+    },
+    "mmm (D2h)": {
+      pointGroup: "D_2h (mmm)",
+      classes: ["E", "C₂(z)", "C₂(y)", "C₂(x)", "i", "σ(xy)", "σ(xz)", "σ(yz)"],
+      irreps: [
+        { name: "Ag", characters: [1, 1, 1, 1, 1, 1, 1, 1], activity: "Raman", basis: "x², y², z²" },
+        { name: "B1g", characters: [1, 1, -1, -1, 1, 1, -1, -1], activity: "Raman", basis: "xy" },
+        { name: "B2g", characters: [1, -1, 1, -1, 1, -1, 1, -1], activity: "Raman", basis: "xz" },
+        { name: "B3g", characters: [1, -1, -1, 1, 1, -1, -1, 1], activity: "Raman", basis: "yz" },
+        { name: "Au", characters: [1, 1, 1, 1, -1, -1, -1, -1], activity: "Inactive", basis: "None" },
+        { name: "B1u", characters: [1, 1, -1, -1, -1, -1, 1, 1], activity: "IR", basis: "z" },
+        { name: "B2u", characters: [1, -1, 1, -1, -1, 1, -1, 1], activity: "IR", basis: "y" },
+        { name: "B3u", characters: [1, -1, -1, 1, -1, 1, 1, -1], activity: "IR", basis: "x" },
+      ],
+    },
+    "2/m (C2h)": {
+      pointGroup: "C_2h (2/m)",
+      classes: ["E", "C₂", "i", "σ_h"],
+      irreps: [
+        { name: "Ag", characters: [1, 1, 1, 1], activity: "Raman", basis: "x², y², z², xy" },
+        { name: "Bg", characters: [1, -1, 1, -1], activity: "Raman", basis: "xz, yz" },
+        { name: "Au", characters: [1, 1, -1, -1], activity: "IR", basis: "z" },
+        { name: "Bu", characters: [1, -1, -1, 1], activity: "IR", basis: "x, y" },
+      ],
+    },
+    "-1 (Ci)": {
+      pointGroup: "C_i (-1)",
+      classes: ["E", "i"],
+      irreps: [
+        { name: "Ag", characters: [1, 1], activity: "Raman", basis: "x², y², z², xy, xz, yz" },
+        { name: "Au", characters: [1, -1], activity: "IR", basis: "x, y, z" },
+      ],
+    },
+  };
+
+  const reciprocalDetails: Record<
+    CrystalSystem,
+    {
+      aStar: string;
+      bStar: string;
+      cStar: string;
+      bzPoints: { name: string; coord: string; desc: string }[];
+      dFormula: string;
+    }
+  > = {
+    SC: {
+      aStar: "2π/a",
+      bStar: "2π/a",
+      cStar: "2π/a",
+      dFormula: "d_hkl = a / √(h² + k² + l²)",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Brillouin Zone center" },
+        { name: "X", coord: "(0, 1/2, 0)", desc: "Square face center" },
+        { name: "M", coord: "(1/2, 1/2, 0)", desc: "Edge center" },
+        { name: "R", coord: "(1/2, 1/2, 1/2)", desc: "Corner point" },
+      ],
+    },
+    BCC: {
+      aStar: "2π/a (along FCC directions)",
+      bStar: "2π/a",
+      cStar: "2π/a",
+      dFormula: "d_hkl = a / √(h² + k² + l²)",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "BZ center" },
+        { name: "H", coord: "(0, 1, 0)", desc: "Octahedral vertex" },
+        { name: "N", coord: "(1/2, 1/2, 0)", desc: "Rhombic face center" },
+        { name: "P", coord: "(1/2, 1/2, 1/2)", desc: "Corner vertex" },
+      ],
+    },
+    FCC: {
+      aStar: "2π/a (along BCC directions)",
+      bStar: "2π/a",
+      cStar: "2π/a",
+      dFormula: "d_hkl = a / √(h² + k² + l²)",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "BZ center" },
+        { name: "X", coord: "(1, 0, 0)", desc: "Square face center" },
+        { name: "L", coord: "(1/2, 1/2, 1/2)", desc: "Hexagonal face center" },
+        { name: "W", coord: "(1, 1/2, 0)", desc: "Corner point" },
+        { name: "K", coord: "(3/4, 3/4, 0)", desc: "Hexagonal edge center" },
+        { name: "U", coord: "(1, 1/4, 1/4)", desc: "Square-Hexagon boundary" },
+      ],
+    },
+    Diamond: {
+      aStar: "2π/a (FCC reciprocal lattice)",
+      bStar: "2π/a",
+      cStar: "2π/a",
+      dFormula: "d_hkl = a / √(h² + k² + l²)",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "X", coord: "(1, 0, 0)", desc: "Conduction band minimum (indirect gap)" },
+        { name: "L", coord: "(1/2, 1/2, 1/2)", desc: "Valence band maximum edge" },
+        { name: "W", coord: "(1, 1/2, 0)", desc: "Truncated octahedron vertex" },
+      ],
+    },
+    Hexagonal: {
+      aStar: "4π / (a√3)",
+      bStar: "4π / (a√3)",
+      cStar: "2π / c",
+      dFormula: "1/d² = 4/3·(h² + hk + k²)/a² + l²/c²",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Hexagonal prism center" },
+        { name: "A", coord: "(0, 0, 1/2)", desc: "Top hexagonal face center" },
+        { name: "K", coord: "(2/3, 1/3, 0)", desc: "Basal corner point" },
+        { name: "M", coord: "(1/2, 0, 0)", desc: "Rectangular face center" },
+        { name: "L", coord: "(1/2, 0, 1/2)", desc: "Top edge center" },
+      ],
+    },
+    Tetragonal: {
+      aStar: "2π/a",
+      bStar: "2π/a",
+      cStar: "2π/c",
+      dFormula: "1/d² = (h² + k²)/a² + l²/c²",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "Z", coord: "(0, 0, 1/2)", desc: "c-axis boundary" },
+        { name: "X", coord: "(1/2, 0, 0)", desc: "a-axis face center" },
+        { name: "M", coord: "(1/2, 1/2, 0)", desc: "Basal corner" },
+        { name: "A", coord: "(1/2, 1/2, 1/2)", desc: "Top corner" },
+      ],
+    },
+    Tetragonal_I: {
+      aStar: "2π/a",
+      bStar: "2π/a",
+      cStar: "2π/c",
+      dFormula: "1/d² = (h² + k²)/a² + l²/c²",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "Z", coord: "(0, 0, 1/2)", desc: "c-axis boundary" },
+        { name: "X", coord: "(1/2, 0, 0)", desc: "Side face center" },
+        { name: "P", coord: "(1/4, 1/4, 1/4)", desc: "Body-centered reciprocal vertex" },
+      ],
+    },
+    Orthorhombic: {
+      aStar: "2π/a",
+      bStar: "2π/b",
+      cStar: "2π/c",
+      dFormula: "1/d² = h²/a² + k²/b² + l²/c²",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "X", coord: "(1/2, 0, 0)", desc: "a-axis boundary" },
+        { name: "Y", coord: "(0, 1/2, 0)", desc: "b-axis boundary" },
+        { name: "Z", coord: "(0, 0, 1/2)", desc: "c-axis boundary" },
+        { name: "T", coord: "(0, 1/2, 1/2)", desc: "yz-face center" },
+        { name: "S", coord: "(1/2, 1/2, 0)", desc: "xy-face center" },
+        { name: "R", coord: "(1/2, 1/2, 1/2)", desc: "Corner point" },
+      ],
+    },
+    Orthorhombic_F: {
+      aStar: "2π/a",
+      bStar: "2π/b",
+      cStar: "2π/c",
+      dFormula: "1/d² = h²/a² + k²/b² + l²/c²",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "X", coord: "(1/2, 0, 0)", desc: "a-axis boundary" },
+        { name: "L", coord: "(1/2, 1/2, 1/2)", desc: "Truncated vertex" },
+      ],
+    },
+    Orthorhombic_C: {
+      aStar: "2π/a",
+      bStar: "2π/b",
+      cStar: "2π/c",
+      dFormula: "1/d² = h²/a² + k²/b² + l²/c²",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "S", coord: "(1/2, 1/2, 0)", desc: "Base-centered boundary" },
+      ],
+    },
+    Cubic: {
+      aStar: "2π/a",
+      bStar: "2π/a",
+      cStar: "2π/a",
+      dFormula: "d_hkl = a / √(h² + k² + l²)",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "X", coord: "(0, 1/2, 0)", desc: "Square face center" },
+        { name: "R", coord: "(1/2, 1/2, 1/2)", desc: "Corner point" },
+      ],
+    },
+    Monoclinic: {
+      aStar: "2π / (a·sinβ)",
+      bStar: "2π / b",
+      cStar: "2π / (c·sinβ)",
+      dFormula: "1/d² = (1/sin²β)[h²/a² + k²sin²β/b² + l²/c² - 2hl·cosβ/(ac)]",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "Y", coord: "(0, 1/2, 0)", desc: "b-axis boundary" },
+        { name: "Z", coord: "(0, 0, 1/2)", desc: "c-axis boundary" },
+        { name: "B", coord: "(1/2, 0, 0)", desc: "a-axis boundary" },
+      ],
+    },
+    Triclinic: {
+      aStar: "2π·(b·c·sinα) / V",
+      bStar: "2π·(a·c·sinβ) / V",
+      cStar: "2π·(a·b·sinγ) / V",
+      dFormula: "General reciprocal metric tensor g*^ij h_i h_j",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "X", coord: "(1/2, 0, 0)", desc: "a-axis boundary" },
+        { name: "Y", coord: "(0, 1/2, 0)", desc: "b-axis boundary" },
+        { name: "Z", coord: "(0, 0, 1/2)", desc: "c-axis boundary" },
+      ],
     },
   };
 
@@ -3462,24 +4011,38 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
 
               {/* Tab Navigation */}
-              <div className="flex bg-[#0B1221] p-1 rounded-xl border border-[#1e293b] gap-1 mb-5 relative z-10 font-mono">
+              <div className="flex bg-[#0B1221] p-1 rounded-xl border border-[#1e293b] gap-1 mb-5 relative z-10 font-mono overflow-x-auto custom-scrollbar">
                 <button
                   onClick={() => setSymmetryTab("visualizer")}
-                  className={`flex-grow py-2 px-1.5 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1.5 ${symmetryTab === "visualizer" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                  className={`flex-1 py-2 px-1.5 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "visualizer" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
                 >
                   <Box className="w-3.5 h-3.5" />
                   <span className="truncate">3D Lattice</span>
                 </button>
                 <button
+                  onClick={() => setSymmetryTab("spacegroup")}
+                  className={`flex-1 py-2 px-1.5 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "spacegroup" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                >
+                  <ShieldQuestion className="w-3.5 h-3.5" />
+                  <span className="truncate">Space Group</span>
+                </button>
+                <button
                   onClick={() => setSymmetryTab("properties")}
-                  className={`flex-grow py-2 px-1.5 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1.5 ${symmetryTab === "properties" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                  className={`flex-1 py-2 px-1.5 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "properties" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
                 >
                   <RotateCw className="w-3.5 h-3.5" />
-                  <span className="truncate">Elements</span>
+                  <span className="truncate">Point Group</span>
+                </button>
+                <button
+                  onClick={() => setSymmetryTab("reciprocal")}
+                  className={`flex-1 py-2 px-1.5 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "reciprocal" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  <span className="truncate">Reciprocal</span>
                 </button>
                 <button
                   onClick={() => setSymmetryTab("sandbox")}
-                  className={`flex-grow py-2 px-1.5 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1.5 ${symmetryTab === "sandbox" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
+                  className={`flex-1 py-2 px-1.5 rounded-lg text-[9px] sm:text-[10px] uppercase tracking-wider font-bold transition-all flex items-center justify-center gap-1 shrink-0 ${symmetryTab === "sandbox" ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-black shadow-inner" : "text-slate-400 hover:text-white hover:bg-white/5 border border-transparent"}`}
                 >
                   <Binary className="w-3.5 h-3.5" />
                   <span className="truncate">Equivalents</span>
@@ -3644,9 +4207,93 @@ export const SelectionRulesModule: React.FC = () => {
                   </div>
                 )}
 
+                {symmetryTab === "spacegroup" && (() => {
+                  const sg = spacegroupDetails[system] || spacegroupDetails["FCC"];
+                  return (
+                    <div className="space-y-4 animate-in fade-in duration-300 font-mono">
+                      {/* Space Group Banner */}
+                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] flex items-center justify-between shadow-inner">
+                        <div>
+                          <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                            International Space Group Symbol
+                          </div>
+                          <div className="text-2xl font-black text-indigo-300 tracking-wider">
+                            {sg.symbol} <span className="text-sm font-normal text-slate-500">#{sg.number}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[9px] font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/30 uppercase">
+                            {sg.centering}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Systematic Extinctions & Reflection Rules */}
+                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] space-y-3 shadow-inner">
+                        <div className="flex items-center gap-2 border-b border-[#1e293b] pb-2">
+                          <ShieldQuestion className="w-4 h-4 text-indigo-400" />
+                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">
+                            Systematic Absences & Reflection Rules
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b]">
+                            <span className="text-slate-500 block text-[8px] uppercase tracking-wider mb-0.5">Lattice Centering</span>
+                            <span className="text-indigo-300 font-bold">{sg.extinctions.centeringCondition}</span>
+                          </div>
+                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b]">
+                            <span className="text-slate-500 block text-[8px] uppercase tracking-wider mb-0.5">Glide Plane Absences</span>
+                            <span className="text-emerald-300 font-bold">{sg.extinctions.glidePlanes}</span>
+                          </div>
+                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b]">
+                            <span className="text-slate-500 block text-[8px] uppercase tracking-wider mb-0.5">Screw Axis Absences</span>
+                            <span className="text-amber-300 font-bold">{sg.extinctions.screwAxes}</span>
+                          </div>
+                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b]">
+                            <span className="text-slate-500 block text-[8px] uppercase tracking-wider mb-0.5">General Rule Summary</span>
+                            <span className="text-cyan-300 font-bold">{sg.extinctions.generalRule}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Wyckoff Positions Table */}
+                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner space-y-2.5">
+                        <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
+                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">
+                            Wyckoff Positions & Site Symmetry
+                          </span>
+                          <span className="text-[9px] text-slate-500 uppercase">{sg.wyckoffPositions.length} Representative Sites</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-[10px] font-mono">
+                            <thead>
+                              <tr className="border-b border-[#1e293b] text-slate-500 uppercase text-[8px]">
+                                <th className="py-1.5 px-2">Site</th>
+                                <th className="py-1.5 px-2">Mult</th>
+                                <th className="py-1.5 px-2">Symmetry</th>
+                                <th className="py-1.5 px-2">Coordinates</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sg.wyckoffPositions.map((wp, idx) => (
+                                <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                  <td className="py-1.5 px-2 font-black text-indigo-400">{wp.site}</td>
+                                  <td className="py-1.5 px-2 text-slate-300">{wp.mult}</td>
+                                  <td className="py-1.5 px-2 text-emerald-400 font-bold">{wp.symmetry}</td>
+                                  <td className="py-1.5 px-2 text-slate-400">{wp.coords}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {symmetryTab === "properties" && (
                   <div className="space-y-4 animate-in fade-in duration-300">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 font-mono">
                       <div className="bg-[#0B1221] p-3.5 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all shadow-inner">
                         <div className="flex items-center gap-1.5 mb-2.5">
                           <RotateCw className="w-3.5 h-3.5 text-indigo-400" />
@@ -3681,7 +4328,7 @@ export const SelectionRulesModule: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 font-mono">
                       <div className="bg-[#0B1221] p-3 rounded-xl border border-[#1e293b] hover:bg-[#070D18] transition-all flex items-center justify-between shadow-inner">
                         <div className="flex items-center gap-1.5">
                           <Hexagon className="w-3.5 h-3.5 text-indigo-400" />
@@ -3708,6 +4355,61 @@ export const SelectionRulesModule: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Character Table Matrix */}
+                    {(() => {
+                      const ct = characterTables[currentSymmetry.group];
+                      if (!ct) return null;
+                      return (
+                        <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner space-y-3 font-mono">
+                          <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
+                            <span className="text-[10px] font-black text-indigo-300 uppercase tracking-wider">
+                              Point Group Character Table ({ct.pointGroup})
+                            </span>
+                            <span className="text-[8px] text-slate-500 uppercase">Irreducible Representations</span>
+                          </div>
+
+                          <div className="overflow-x-auto custom-scrollbar">
+                            <table className="w-full text-center text-[9px] font-mono border-collapse">
+                              <thead>
+                                <tr className="border-b border-[#1e293b] text-slate-500 uppercase text-[8px]">
+                                  <th className="py-1.5 px-2 text-left">Irrep</th>
+                                  {ct.classes.map((cls, idx) => (
+                                    <th key={idx} className="py-1.5 px-1.5 text-slate-400">{cls}</th>
+                                  ))}
+                                  <th className="py-1.5 px-2 text-left">Activity</th>
+                                  <th className="py-1.5 px-2 text-left">Basis Functions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {ct.irreps.map((irp, idx) => (
+                                  <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                    <td className="py-1.5 px-2 text-left font-black text-indigo-400">{irp.name}</td>
+                                    {irp.characters.map((ch, cIdx) => (
+                                      <td key={cIdx} className={`py-1.5 px-1.5 font-bold ${ch < 0 ? "text-rose-400" : ch > 1 ? "text-emerald-400" : "text-slate-300"}`}>
+                                        {ch}
+                                      </td>
+                                    ))}
+                                    <td className="py-1.5 px-2 text-left">
+                                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black ${
+                                        irp.activity === "Raman"
+                                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                                          : irp.activity === "IR"
+                                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                                          : "bg-slate-800 text-slate-500"
+                                      }`}>
+                                        {irp.activity}
+                                      </span>
+                                    </td>
+                                    <td className="py-1.5 px-2 text-left text-slate-400 text-[8.5px] truncate max-w-[120px]">{irp.basis}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <div className="bg-[#0B1221] p-3.5 rounded-2xl border border-[#1e293b] shadow-inner">
                       <div className="flex items-center gap-1.5 mb-2.5">
                         <Network className="w-3.5 h-3.5 text-indigo-400" />
@@ -3724,6 +4426,90 @@ export const SelectionRulesModule: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                {symmetryTab === "reciprocal" && (() => {
+                  const rd = reciprocalDetails[system] || reciprocalDetails["FCC"];
+                  const sampleA = 4.05; // sample lattice constant in Angstrom
+                  const sampleD = calculateDSpacingForProbe(visualizerH, visualizerK, visualizerL, system, sampleA);
+                  const sampleQ = sampleD > 0 ? (2 * Math.PI) / sampleD : 0;
+
+                  return (
+                    <div className="space-y-4 animate-in fade-in duration-300 font-mono">
+                      {/* Reciprocal Basis Vectors */}
+                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner space-y-3">
+                        <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
+                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <Compass className="w-3.5 h-3.5 text-indigo-400" />
+                            Reciprocal Lattice Basis Vectors
+                          </span>
+                          <span className="text-[8px] text-indigo-400 font-bold uppercase">{system} System</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b] text-center">
+                            <span className="text-[8px] text-slate-500 block uppercase">a* magnitude</span>
+                            <span className="text-xs font-black text-indigo-300">{rd.aStar}</span>
+                          </div>
+                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b] text-center">
+                            <span className="text-[8px] text-slate-500 block uppercase">b* magnitude</span>
+                            <span className="text-xs font-black text-indigo-300">{rd.bStar}</span>
+                          </div>
+                          <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b] text-center">
+                            <span className="text-[8px] text-slate-500 block uppercase">c* magnitude</span>
+                            <span className="text-xs font-black text-indigo-300">{rd.cStar}</span>
+                          </div>
+                        </div>
+                        <div className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b] text-[10px] text-slate-400 flex items-center justify-between">
+                          <span className="text-[8px] text-slate-500 uppercase">d-spacing master equation:</span>
+                          <span className="text-emerald-400 font-bold">{rd.dFormula}</span>
+                        </div>
+                      </div>
+
+                      {/* Live Q-Vector & Interplanar Spacing Calculator */}
+                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner space-y-3">
+                        <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
+                          <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                            Reciprocal Vector |Q| for ({visualizerH} {visualizerK} {visualizerL})
+                          </span>
+                          <span className="text-[8px] text-slate-500">a = {sampleA} Å</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-center">
+                          <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b]">
+                            <span className="text-[8px] text-slate-500 block uppercase tracking-wider">Interplanar d_{visualizerH}{visualizerK}{visualizerL}</span>
+                            <span className="text-base font-black text-emerald-400">{sampleD > 0 ? sampleD.toFixed(4) : "0.0000"} Å</span>
+                          </div>
+                          <div className="bg-[#050B14] p-3 rounded-xl border border-[#1e293b]">
+                            <span className="text-[8px] text-slate-500 block uppercase tracking-wider">Scattering Vector |Q| = 2π/d</span>
+                            <span className="text-base font-black text-indigo-300">{sampleQ > 0 ? sampleQ.toFixed(4) : "0.0000"} Å⁻¹</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 1st Brillouin Zone High Symmetry Points Table */}
+                      <div className="bg-[#0B1221] p-4 rounded-2xl border border-[#1e293b] shadow-inner space-y-2.5">
+                        <div className="flex items-center justify-between border-b border-[#1e293b] pb-2">
+                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">
+                            1st Brillouin Zone High-Symmetry k-Points
+                          </span>
+                          <span className="text-[8px] text-slate-500 uppercase">{rd.bzPoints.length} Critical Points</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px]">
+                          {rd.bzPoints.map((pt, idx) => (
+                            <div key={idx} className="bg-[#050B14] p-2.5 rounded-xl border border-[#1e293b] flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-black text-indigo-300 text-xs">
+                                  {pt.name}
+                                </span>
+                                <span className="text-slate-400 font-bold">{pt.coord}</span>
+                              </div>
+                              <span className="text-[8.5px] text-slate-500 truncate max-w-[110px]">{pt.desc}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {symmetryTab === "sandbox" &&
                   (() => {

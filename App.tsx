@@ -45,7 +45,7 @@ import { BraggHistory } from './components/BraggHistory';
 import { BraggVisualization } from './components/BraggVisualization';
 import { LatticeEstimator } from './components/LatticeEstimator';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { SettingsContext } from './components/SettingsContext';
+import { SettingsContext, LengthUnit } from './components/SettingsContext';
 import { PeriodicTableModule } from './components/PeriodicTableModule';
 import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
@@ -255,6 +255,19 @@ const App: React.FC = () => {
     const val = localStorage.getItem('xrd_default_wavelength');
     return val ? parseFloat(val) : 1.5406;
   });
+  const [lengthUnit, setLengthUnit] = useState<LengthUnit>(() => {
+    try {
+      const val = localStorage.getItem('xrd_length_unit');
+      if (val === 'nm' || val === 'pm' || val === 'Å') return val as LengthUnit;
+    } catch {}
+    return 'Å';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('xrd_length_unit', lengthUnit);
+    } catch {}
+  }, [lengthUnit]);
 
   const mainContentRef = useRef<HTMLDivElement>(null);
   
@@ -1127,7 +1140,9 @@ const App: React.FC = () => {
       sampleDisplacement,
       goniometerRadius,
       soundEnabled,
-      animationsEnabled
+      animationsEnabled,
+      lengthUnit,
+      setLengthUnit
     }}>
       <div className={`${theme === 'light' ? '' : theme} h-full`} dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
@@ -1618,6 +1633,8 @@ const App: React.FC = () => {
                       setAutosaveInterval={setAutosaveInterval}
                       pythonFeaturesEnabled={pythonFeaturesEnabled}
                       setPythonFeaturesEnabled={setPythonFeaturesEnabled}
+                      lengthUnit={lengthUnit}
+                      setLengthUnit={setLengthUnit}
                     />
                   )}
                 </ErrorBoundary>
