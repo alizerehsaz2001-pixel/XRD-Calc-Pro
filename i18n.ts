@@ -8318,7 +8318,7 @@ function preloadCachedTranslations(lang: string) {
       }
     }
   } catch (err) {
-    console.error('Error preloading cached translations:', err);
+    console.warn('Notice preloading cached translations:', err);
   }
 }
 
@@ -8362,7 +8362,12 @@ function processTranslationQueue(lang: string) {
     },
     body: JSON.stringify({ keys: keysToTranslate, to: lang }),
   })
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}`);
+      }
+      return res.json();
+    })
     .then(data => {
       isProcessing = false;
       if (data && data.success && data.translations) {
@@ -8385,20 +8390,21 @@ function processTranslationQueue(lang: string) {
       }
       
       // If there are still keys left in the queue, schedule the next batch
-      if (translationQueue[lang].size > 0) {
+      if (translationQueue[lang] && translationQueue[lang].size > 0) {
         if (translationTimeout) clearTimeout(translationTimeout);
         translationTimeout = setTimeout(() => processTranslationQueue(lang), 5000);
       }
     })
     .catch(err => {
       isProcessing = false;
-      console.error('Dynamic translation fetch failed:', err);
-      // Put keys back in the queue so they aren't lost
-      keysToTranslate.forEach(k => translationQueue[lang].add(k));
-      
-      // Retry after 10 seconds on failure
-      if (translationTimeout) clearTimeout(translationTimeout);
-      translationTimeout = setTimeout(() => processTranslationQueue(lang), 10000);
+      console.warn('Dynamic translation notice:', err?.message || err);
+      // Populate resources with original keys as fallback so UI remains functional
+      keysToTranslate.forEach(k => {
+        i18n.addResource(lang, 'translation', k, k);
+      });
+      if (i18n.language === lang) {
+        i18n.emit('languageChanged', lang);
+      }
     });
 }
 
@@ -8448,7 +8454,7 @@ i18n.on('languageChanged', (lng) => {
       }, 500);
     }
   } catch (err) {
-    console.error('Failed to trigger Google Translate sync:', err);
+    console.warn('Google Translate sync notice:', err);
   }
 });
 

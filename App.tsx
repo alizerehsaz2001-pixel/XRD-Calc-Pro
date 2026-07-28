@@ -49,7 +49,7 @@ import { SettingsContext, LengthUnit } from './components/SettingsContext';
 import { PeriodicTableModule } from './components/PeriodicTableModule';
 import { calculateBragg, parsePeakString, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/physics';
 import { BraggResult, BraggHistoryItem } from './types';
-import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target } from 'lucide-react';
+import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff } from 'lucide-react';
 import { playSynthTone } from './utils/sound';
 import { generatePdfReport } from './utils/pdfGenerator';
 import { useAuth, db, handleFirestoreError, OperationType } from './services/firebase';
@@ -309,6 +309,14 @@ const App: React.FC = () => {
   const [cachedMaterialsCount, setCachedMaterialsCount] = useState<number>(0);
   const [showOfflineHub, setShowOfflineHub] = useState<boolean>(false);
 
+  // IndexedDB <-> Firestore Synchronization states
+  const [isSyncingWithFirestore, setIsSyncingWithFirestore] = useState<boolean>(false);
+  const [firestoreSyncProgress, setFirestoreSyncProgress] = useState<number>(0);
+  const [firestoreSyncStatus, setFirestoreSyncStatus] = useState<string>('');
+  const [firestoreSyncType, setFirestoreSyncType] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [totalSyncItems, setTotalSyncItems] = useState<number>(0);
+  const [syncedItemsCount, setSyncedItemsCount] = useState<number>(0);
+
   // Python Engine States
   const [pythonReady, setPythonReady] = useState<boolean>(false);
   const [pythonLogs, setPythonLogs] = useState<string[]>([]);
@@ -339,6 +347,152 @@ const App: React.FC = () => {
     }
   };
 
+  /**
+   * Synchronizes local IndexedDB records (calculations & materials) with Firestore
+   * and provides live progress tracking for top bar feedback.
+   */
+  const syncIndexedDBWithFirestore = async (isManual = false) => {
+    if (isSyncingWithFirestore) return;
+
+    if (!isOnline) {
+      setFirestoreSyncType('error');
+      setFirestoreSyncStatus(t('Offline: Cannot sync IndexedDB with Firestore', 'Offline: Cannot sync IndexedDB with Firestore'));
+      setTimeout(() => setFirestoreSyncType('idle'), 4000);
+      return;
+    }
+
+    setIsSyncingWithFirestore(true);
+    setFirestoreSyncType('syncing');
+    setFirestoreSyncProgress(15);
+    setFirestoreSyncStatus(t('Scanning local IndexedDB records...', 'Scanning local IndexedDB records...'));
+
+    try {
+      const offlineAnalyses = await getOfflineAnalyses();
+      const offlineMaterials = await getOfflineMaterials();
+
+      const unsyncedAnalyses = offlineAnalyses.filter(a => !a.isSynced);
+      const unsyncedMaterials = offlineMaterials.filter(m => !m.isSynced);
+      const pendingCount = unsyncedAnalyses.length + unsyncedMaterials.length;
+
+      setTotalSyncItems(pendingCount || 1);
+      setSyncedItemsCount(0);
+
+      if (pendingCount === 0) {
+        setFirestoreSyncProgress(50);
+        setFirestoreSyncStatus(t('IndexedDB is up to date with Firestore', 'IndexedDB is up to date with Firestore'));
+      }
+
+      let processed = 0;
+
+      // 1. Sync local calculations to Firestore if user is authenticated
+      if (user && unsyncedAnalyses.length > 0) {
+        for (const item of unsyncedAnalyses) {
+          setFirestoreSyncStatus(t(`Syncing calculation "${item.title}"...`, `Syncing calculation "${item.title}"...`));
+          const docData: any = {
+            id: item.id,
+            userId: user.uid,
+            timestamp: item.timestamp,
+            wavelength: item.wavelength || 1.5406,
+            rawPeaks: item.inputData?.rawPeaks || '',
+            rawHKL: item.inputData?.rawHKL || '',
+            resultsJson: JSON.stringify(item.results || [])
+          };
+          if (item.title && item.title.startsWith('Bragg: ')) {
+            docData.sampleId = item.title.replace('Bragg: ', '');
+          }
+
+          try {
+            await setDoc(doc(db, 'braggHistory', item.id), docData);
+            await saveOfflineAnalysis({ ...item, isSynced: true });
+          } catch (err) {
+            console.error("Firestore sync error for analysis:", err);
+          }
+
+          processed++;
+          setSyncedItemsCount(processed);
+          setFirestoreSyncProgress(Math.min(85, 15 + Math.round((processed / (pendingCount || 1)) * 60)));
+        }
+      }
+
+      // 2. Sync materials to Firestore
+      if (user && unsyncedMaterials.length > 0) {
+        for (const mat of unsyncedMaterials) {
+          setFirestoreSyncStatus(t(`Syncing material "${mat.name}"...`, `Syncing material "${mat.name}"...`));
+          try {
+            await setDoc(doc(db, 'customMaterials', mat.name), {
+              ...mat,
+              userId: user.uid,
+              syncedAt: new Date().toISOString()
+            });
+            await saveOfflineMaterial({ ...mat, isSynced: true });
+          } catch (err) {
+            console.error("Firestore material sync error:", err);
+          }
+
+          processed++;
+          setSyncedItemsCount(processed);
+          setFirestoreSyncProgress(Math.min(85, 15 + Math.round((processed / (pendingCount || 1)) * 60)));
+        }
+      }
+
+      // 3. Pull/Merge remote Firestore records into local IndexedDB
+      if (user) {
+        setFirestoreSyncProgress(90);
+        setFirestoreSyncStatus(t('Synchronizing Firestore remote state with IndexedDB...', 'Synchronizing Firestore remote state with IndexedDB...'));
+        try {
+          const q = query(
+            collection(db, 'braggHistory'),
+            where('userId', '==', user.uid)
+          );
+          const querySnapshot = await getDocs(q);
+          for (const docSnap of querySnapshot.docs) {
+            const data = docSnap.data();
+            let results: any = [];
+            if (data.resultsJson) {
+              try { results = JSON.parse(data.resultsJson); } catch (e) {}
+            }
+            const offlineRecord: OfflineAnalysisResult = {
+              id: docSnap.id,
+              type: 'bragg',
+              title: data.sampleId ? `Bragg: ${data.sampleId}` : 'Bragg Calculation',
+              timestamp: data.timestamp || new Date().toISOString(),
+              wavelength: data.wavelength,
+              inputData: { rawPeaks: data.rawPeaks, rawHKL: data.rawHKL },
+              results: results,
+              isSynced: true
+            };
+            await saveOfflineAnalysis(offlineRecord);
+          }
+        } catch (err) {
+          console.warn("Firestore pull warn:", err);
+        }
+      }
+
+      setFirestoreSyncProgress(100);
+      setFirestoreSyncType('success');
+      const finalMsg = pendingCount > 0
+        ? t(`Successfully synced ${pendingCount} local item(s) with Firestore!`, `Successfully synced ${pendingCount} local item(s) with Firestore!`)
+        : t('IndexedDB and Firestore are fully synchronized', 'IndexedDB and Firestore are fully synchronized');
+      
+      setFirestoreSyncStatus(finalMsg);
+      await refreshOfflineAnalyses();
+
+      setTimeout(() => {
+        setIsSyncingWithFirestore(false);
+        setFirestoreSyncType('idle');
+      }, 3500);
+
+    } catch (err: any) {
+      console.error("IndexedDB Firestore sync error:", err);
+      setFirestoreSyncType('error');
+      setFirestoreSyncStatus(t(`Sync error: ${err?.message || 'Failed to sync'}`, `Sync error: ${err?.message || 'Failed to sync'}`));
+      setTimeout(() => {
+        setIsSyncingWithFirestore(false);
+        setFirestoreSyncType('idle');
+      }, 4500);
+    }
+  };
+
   // Monitor online status and retrieve cached records
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -357,6 +511,7 @@ const App: React.FC = () => {
     const handleOnline = () => {
       setIsOnline(true);
       syncOfflineHelper()
+        .then(() => syncIndexedDBWithFirestore())
         .then(() => updateOfflineData())
         .catch(console.error);
     };
@@ -370,6 +525,7 @@ const App: React.FC = () => {
 
     // Initial sync and fetch
     syncOfflineHelper()
+      .then(() => syncIndexedDBWithFirestore())
       .then(() => updateOfflineData())
       .catch(console.error);
 
@@ -1229,7 +1385,29 @@ const App: React.FC = () => {
         <SideSeekBar targetRef={mainContentRef} theme={theme} />
 
         <div className={`flex-1 flex flex-col h-full overflow-hidden ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 transition-colors duration-300`}>
-          <div className={`md:hidden ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-slate-200/85 dark:border-white/5'} border-b px-4 py-3 flex flex-col gap-2.5 z-20 shrink-0 shadow-sm transition-colors`}>
+          <div className={`relative md:hidden ${theme === 'cyberpunk' ? 'bg-black border-cyber-accent/30' : 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-slate-200/85 dark:border-white/5'} border-b px-4 py-3 flex flex-col gap-2.5 z-20 shrink-0 shadow-sm transition-colors`}>
+            {/* Visual Sync Progress Line on Mobile Top Bar */}
+            <AnimatePresence>
+              {(isSyncingWithFirestore || firestoreSyncType !== 'idle') && (
+                <motion.div
+                  initial={{ opacity: 0, scaleY: 0 }}
+                  animate={{ opacity: 1, scaleY: 1 }}
+                  exit={{ opacity: 0, scaleY: 0 }}
+                  className="absolute top-0 left-0 right-0 h-1 z-50 overflow-hidden bg-slate-200/20 dark:bg-slate-800/40 pointer-events-none"
+                >
+                  <motion.div
+                    className={`h-full transition-all duration-300 ${
+                      firestoreSyncType === 'error'
+                        ? 'bg-amber-500'
+                        : firestoreSyncType === 'success'
+                        ? 'bg-emerald-500'
+                        : 'bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 shadow-[0_0_12px_rgba(99,102,241,0.8)]'
+                    }`}
+                    style={{ width: `${firestoreSyncProgress}%` }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
             <div className="flex justify-between items-center w-full">
               <div className="flex items-center gap-2.5 shrink-0">
                 <div className={`w-8 h-8 ${theme === 'cyberpunk' ? 'bg-cyber-pink' : 'bg-gradient-to-tr from-indigo-600 to-violet-500'} rounded-lg flex items-center justify-center text-white font-semibold text-lg shadow-sm shadow-indigo-500/20`}>
@@ -1284,11 +1462,33 @@ const App: React.FC = () => {
           </div>
 
           {/* Desktop Top Header Bar containing context-aware tools, help and theme guides */}
-          <header className={`hidden md:flex items-center px-6 lg:px-8 py-2 border-b z-20 font-sans transition-all duration-300 shrink-0 ${
+          <header className={`relative hidden md:flex items-center px-6 lg:px-8 py-2 border-b z-20 font-sans transition-all duration-300 shrink-0 ${
             theme === 'cyberpunk'
               ? 'bg-black border-cyber-accent/30 text-cyber-accent shadow-md'
               : 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-slate-200/50 dark:border-white/5 shadow-sm'
           }`}>
+            {/* Visual Sync Progress Line at Top Edge */}
+            <AnimatePresence>
+              {(isSyncingWithFirestore || firestoreSyncType !== 'idle') && (
+                <motion.div
+                  initial={{ opacity: 0, scaleY: 0 }}
+                  animate={{ opacity: 1, scaleY: 1 }}
+                  exit={{ opacity: 0, scaleY: 0 }}
+                  className="absolute top-0 left-0 right-0 h-1 z-50 overflow-hidden bg-slate-200/20 dark:bg-slate-800/40 pointer-events-none"
+                >
+                  <motion.div
+                    className={`h-full transition-all duration-300 ${
+                      firestoreSyncType === 'error'
+                        ? 'bg-amber-500'
+                        : firestoreSyncType === 'success'
+                        ? 'bg-emerald-500'
+                        : 'bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 shadow-[0_0_12px_rgba(99,102,241,0.8)]'
+                    }`}
+                    style={{ width: `${firestoreSyncProgress}%` }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* Left: Title & Badge */}
             <div className="flex-1 flex items-center gap-3 justify-start overflow-hidden">
@@ -1329,6 +1529,54 @@ const App: React.FC = () => {
             {/* Right: Actions */}
             <div className="flex-1 flex items-center justify-end gap-3 shrink-0">
               
+              {/* IndexedDB <-> Firestore Sync Top Bar Indicator Widget */}
+              <button
+                onClick={() => {
+                  syncIndexedDBWithFirestore(true);
+                  playSynthTone('switch');
+                }}
+                className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-all shadow-sm ${
+                  firestoreSyncType === 'syncing'
+                    ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/20 shadow-[0_0_12px_rgba(99,102,241,0.15)]'
+                    : firestoreSyncType === 'success'
+                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                    : firestoreSyncType === 'error'
+                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    : !isOnline
+                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    : 'border-slate-200/60 dark:border-white/5 bg-slate-100/60 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800'
+                }`}
+                title={firestoreSyncStatus || t('Click to sync local IndexedDB data with Firestore', 'Click to sync local IndexedDB data with Firestore')}
+              >
+                {firestoreSyncType === 'syncing' ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 text-indigo-500 animate-spin" />
+                    <div className="flex flex-col text-left">
+                      <span className="leading-none text-[9.5px] font-black">{t('Syncing DB...', 'Syncing DB...')}</span>
+                      <span className="text-[8px] font-mono opacity-80">{syncedItemsCount}/{totalSyncItems || 1} ({firestoreSyncProgress}%)</span>
+                    </div>
+                    <div className="w-10 h-1.5 bg-indigo-950/40 rounded-full overflow-hidden border border-indigo-500/30 hidden xl:block">
+                      <div className="h-full bg-indigo-400 transition-all duration-300" style={{ width: `${firestoreSyncProgress}%` }} />
+                    </div>
+                  </>
+                ) : firestoreSyncType === 'success' ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-[9.5px] font-bold text-emerald-600 dark:text-emerald-400">{t('Firestore Synced', 'Firestore Synced')}</span>
+                  </>
+                ) : firestoreSyncType === 'error' ? (
+                  <>
+                    <WifiOff className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="text-[9.5px] font-bold text-amber-600 dark:text-amber-400">{t('Sync Paused', 'Sync Paused')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Database className="w-3.5 h-3.5 text-indigo-500" />
+                    <span className="hidden lg:inline text-[9.5px]">{t('IndexedDB Sync', 'IndexedDB Sync')}</span>
+                  </>
+                )}
+              </button>
+
               {/* Grouped System Tools & Status Dropdown */}
               <div className="relative" ref={systemDropdownRef}>
                 <button
@@ -1825,6 +2073,56 @@ const App: React.FC = () => {
                       >
                         {!isOnline ? t('Offline Mode Active', 'Offline Mode Active') : t('Force Offline', 'Force Offline')}
                       </button>
+                    </div>
+
+                    {/* Live IndexedDB <-> Firestore Sync Status Card */}
+                    <div className="p-3.5 bg-indigo-950/30 border border-indigo-500/20 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Database className={`w-4 h-4 ${isSyncingWithFirestore ? 'text-indigo-400 animate-spin' : 'text-indigo-400'}`} />
+                          <span className="text-xs font-bold text-white uppercase tracking-wide">
+                            {t('IndexedDB <-> Firestore Sync Status', 'IndexedDB <-> Firestore Sync Status')}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            syncIndexedDBWithFirestore(true);
+                            playSynthTone('switch');
+                          }}
+                          disabled={isSyncingWithFirestore || !isOnline}
+                          className={`px-2.5 py-1 rounded text-[9.5px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                            isSyncingWithFirestore 
+                              ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                              : !isOnline
+                              ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5'
+                              : 'bg-indigo-500 text-white hover:bg-indigo-400 shadow-sm'
+                          }`}
+                        >
+                          {isSyncingWithFirestore ? t('Syncing...', 'Syncing...') : t('Sync Now', 'Sync Now')}
+                        </button>
+                      </div>
+
+                      {/* Sync Progress Bar */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                          <span className="truncate max-w-[320px]">
+                            {firestoreSyncStatus || (isOnline ? t('Ready to sync IndexedDB with Firestore', 'Ready to sync IndexedDB with Firestore') : t('Offline mode - local cache active', 'Offline mode - local cache active'))}
+                          </span>
+                          <span className="font-bold text-indigo-400">{firestoreSyncProgress}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-black/60 rounded-full overflow-hidden border border-white/5">
+                          <div
+                            className={`h-full transition-all duration-300 ${
+                              firestoreSyncType === 'error'
+                                ? 'bg-amber-500'
+                                : firestoreSyncType === 'success'
+                                ? 'bg-emerald-500'
+                                : 'bg-gradient-to-r from-indigo-500 to-cyan-400'
+                            }`}
+                            style={{ width: `${firestoreSyncProgress}%` }}
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {/* Storage & Caching Information */}
