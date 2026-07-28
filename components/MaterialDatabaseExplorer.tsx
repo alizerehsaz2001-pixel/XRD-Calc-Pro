@@ -34,8 +34,10 @@ import {
   UploadCloud,
   Flame,
   Scale,
-  Star
+  Star,
+  Copy
 } from 'lucide-react';
+import { playSynthTone } from '../utils/sound';
 import { MATERIAL_DB } from '../utils/materialDB';
 import { calculateThermodynamics, generateTemperatureSweep } from '../utils/thermodynamics';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -4306,7 +4308,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                         type="button"
                         onClick={() => {
                           setGlobalSearch(chip.query);
-                          playSynthTone('click');
+                          playSynthTone('tick');
                         }}
                         className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/60 rounded-lg text-[9px] font-mono transition-all hover:border-blue-500/50 hover:text-blue-300 cursor-pointer"
                       >

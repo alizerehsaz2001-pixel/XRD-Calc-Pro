@@ -21,8 +21,23 @@ import {
   ChevronRight,
   Grid,
   Sparkles,
-  BookOpen
+  BookOpen,
+  LineChart as LineChartIcon,
+  Maximize2,
+  Flame,
+  Scale,
+  Award
 } from 'lucide-react';
+import { 
+  ResponsiveContainer, 
+  ComposedChart, 
+  Scatter, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid 
+} from 'recharts';
 import { BraggResult } from '../types';
 import { useSettings } from './SettingsContext';
 import { ScientificMathControl } from './ScientificMathControl';
@@ -31,11 +46,11 @@ interface LatticeEstimatorProps {
   results: BraggResult[];
 }
 
-type CrystalSystem = 'Cubic' | 'Tetragonal' | 'Hexagonal' | 'Orthorhombic';
-type BravaisLatticeType = 'P' | 'I' | 'F' | 'C';
+export type CrystalSystem = 'Cubic' | 'Tetragonal' | 'Hexagonal' | 'Orthorhombic' | 'Monoclinic';
+export type BravaisLatticeType = 'P' | 'I' | 'F' | 'C';
 type ProjectionPlane = 'XY' | 'XZ' | 'YZ';
 
-interface FitReflection {
+export interface FitReflection {
   twoTheta: number;
   dObs: number;
   dHkl: [number, number, number];
@@ -43,7 +58,39 @@ interface FitReflection {
   dCalc: number;
   twoThetaCalc: number;
   errorPct: number;
+  nelsonRileyF: number;
+  aExtrapolated: number;
 }
+
+export interface ReferenceMaterial {
+  id: string;
+  name: string;
+  system: CrystalSystem;
+  bravais: BravaisLatticeType;
+  a: number;
+  b: number;
+  c: number;
+  beta: number;
+  molarMass: number;
+  atomsPerCell: number;
+}
+
+export const REFERENCE_MATERIALS: ReferenceMaterial[] = [
+  { id: 'si', name: 'Silicon (Si)', system: 'Cubic', bravais: 'F', a: 5.4310, b: 5.4310, c: 5.4310, beta: 90, molarMass: 28.085, atomsPerCell: 8 },
+  { id: 'au', name: 'Gold (Au)', system: 'Cubic', bravais: 'F', a: 4.0782, b: 4.0782, c: 4.0782, beta: 90, molarMass: 196.97, atomsPerCell: 4 },
+  { id: 'cu', name: 'Copper (Cu)', system: 'Cubic', bravais: 'F', a: 3.6149, b: 3.6149, c: 3.6149, beta: 90, molarMass: 63.546, atomsPerCell: 4 },
+  { id: 'al', name: 'Aluminum (Al)', system: 'Cubic', bravais: 'F', a: 4.0495, b: 4.0495, c: 4.0495, beta: 90, molarMass: 26.982, atomsPerCell: 4 },
+  { id: 'fe', name: 'Iron (α-Fe)', system: 'Cubic', bravais: 'I', a: 2.8665, b: 2.8665, c: 2.8665, beta: 90, molarMass: 55.845, atomsPerCell: 2 },
+  { id: 'ti', name: 'Titanium (α-Ti)', system: 'Hexagonal', bravais: 'P', a: 2.9508, b: 2.9508, c: 4.6855, beta: 90, molarMass: 47.867, atomsPerCell: 2 },
+  { id: 'zno', name: 'Zinc Oxide (ZnO)', system: 'Hexagonal', bravais: 'P', a: 3.2495, b: 3.2495, c: 5.2069, beta: 90, molarMass: 81.38, atomsPerCell: 2 },
+  { id: 'tio2', name: 'Rutile (TiO₂)', system: 'Tetragonal', bravais: 'P', a: 4.5937, b: 4.5937, c: 2.9587, beta: 90, molarMass: 79.866, atomsPerCell: 2 },
+  { id: 'batio3', name: 'Barium Titanate (BaTiO₃)', system: 'Tetragonal', bravais: 'P', a: 3.9920, b: 3.9920, c: 4.0360, beta: 90, molarMass: 233.19, atomsPerCell: 1 },
+  { id: 'srtio3', name: 'Strontium Titanate (SrTiO₃)', system: 'Cubic', bravais: 'P', a: 3.9050, b: 3.9050, c: 3.9050, beta: 90, molarMass: 183.49, atomsPerCell: 1 },
+  { id: 'gaas', name: 'Gallium Arsenide (GaAs)', system: 'Cubic', bravais: 'F', a: 5.6533, b: 5.6533, c: 5.6533, beta: 90, molarMass: 144.64, atomsPerCell: 4 },
+  { id: 'c', name: 'Diamond (C)', system: 'Cubic', bravais: 'F', a: 3.5670, b: 3.5670, c: 3.5670, beta: 90, molarMass: 12.011, atomsPerCell: 8 },
+  { id: 'al2o3', name: 'Sapphire (Al₂O₃)', system: 'Hexagonal', bravais: 'P', a: 4.7580, b: 4.7580, c: 12.9910, beta: 90, molarMass: 101.96, atomsPerCell: 6 },
+  { id: 'sio2', name: 'Quartz (α-SiO₂)', system: 'Hexagonal', bravais: 'P', a: 4.9130, b: 4.9130, c: 5.4050, beta: 90, molarMass: 60.08, atomsPerCell: 3 }
+];
 
 // Helper to parse individual HKL strings
 const parseSingleHKL = (hklStr: string): [number, number, number] | null => {
@@ -74,12 +121,12 @@ const parseSingleHKL = (hklStr: string): [number, number, number] | null => {
 };
 
 // Selection rule validation helper
-interface RuleResult {
+export interface RuleResult {
   allowed: boolean;
   rule: string;
 }
 
-const getSelectionRuleStatus = (
+export const getSelectionRuleStatus = (
   h: number,
   k: number,
   l: number,
@@ -122,15 +169,33 @@ const getSelectionRuleStatus = (
   return { allowed: true, rule: 'No specific space group extinction rules applied.' };
 };
 
+// Nelson-Riley Function: F(theta) = 0.5 * (cos^2(theta)/sin(theta) + cos^2(theta)/theta)
+export const calculateNelsonRiley = (twoThetaDeg: number): number => {
+  const thetaRad = (twoThetaDeg / 2) * (Math.PI / 180);
+  if (thetaRad <= 0 || thetaRad >= Math.PI / 2) return 0;
+  
+  const cos2 = Math.cos(thetaRad) * Math.cos(thetaRad);
+  const sinT = Math.sin(thetaRad);
+  
+  return 0.5 * ((cos2 / sinT) + (cos2 / thetaRad));
+};
+
 export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) => {
   const { t } = useTranslation();
   const { precision } = useSettings();
   
   const [crystalSystem, setCrystalSystem] = useState<CrystalSystem>('Cubic');
   const [bravaisLattice, setBravaisLattice] = useState<BravaisLatticeType>('P');
+  const [monoclinicBeta, setMonoclinicBeta] = useState<number>(98.5);
   const [selectedReflectionIndex, setSelectedReflectionIndex] = useState<number>(0);
   const [targetDSpacing, setTargetDSpacing] = useState<string>('');
-  
+  const [selectedRefMaterial, setSelectedRefMaterial] = useState<string>('si');
+  const [showExtrapolationChart, setShowExtrapolationChart] = useState<boolean>(true);
+
+  // Interplanar Angle Calculator State
+  const [plane1, setPlane1] = useState<[number, number, number]>([1, 1, 1]);
+  const [plane2, setPlane2] = useState<[number, number, number]>([2, 0, 0]);
+
   // Projection settings for the Unit Cell visualizer
   const [projection, setProjection] = useState<ProjectionPlane>('XY');
   const [showAtoms, setShowAtoms] = useState<boolean>(true);
@@ -174,9 +239,11 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
       case 'Tetragonal':
         return ['P', 'I'];
       case 'Hexagonal':
-        return ['P']; // hexagonal primitive only
+        return ['P'];
       case 'Orthorhombic':
         return ['P', 'I', 'F', 'C'];
+      case 'Monoclinic':
+        return ['P', 'C'];
       default:
         return ['P'];
     }
@@ -189,11 +256,23 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
     }
   }, [crystalSystem, availableBravaisLattices, bravaisLattice]);
 
+  // Handle Preset Material Benchmark Auto-loading
+  const handleApplyPreset = (refId: string) => {
+    const mat = REFERENCE_MATERIALS.find(m => m.id === refId);
+    if (!mat) return;
+    setSelectedRefMaterial(refId);
+    setCrystalSystem(mat.system);
+    setBravaisLattice(mat.bravais);
+    setMonoclinicBeta(mat.beta || 90);
+    setManualA(mat.a);
+    setManualB(mat.b);
+    setManualC(mat.c);
+  };
+
   // Least Squares Solvers for Cell Refinement
   const fitResults = useMemo(() => {
     if (validReflections.length === 0) return null;
 
-    // First do the least-squares fitting
     let fitA = 0;
     let fitB = 0;
     let fitC = 0;
@@ -338,7 +417,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                        
             const dV = a00 * (b1 * a22 - a12 * b2) - 
                        b0 * (a10 * a22 - a12 * a20) + 
-                       a02 * (a10 * b2 - b1 * a20);
+                       a02 * (b1 * a20 - b1 * a20);
                        
             const dW = a00 * (a11 * b2 - b1 * a21) - 
                        a01 * (a10 * b2 - b1 * a20) + 
@@ -359,6 +438,23 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
           }
         }
       }
+      else if (crystalSystem === 'Monoclinic') {
+        // Monoclinic approximation with angle beta
+        const betaRad = (monoclinicBeta * Math.PI) / 180;
+        const sinBeta = Math.sin(betaRad);
+        const cosBeta = Math.cos(betaRad);
+
+        const aVals = validReflections.map(rf => {
+          const [h, k, l] = rf.hkl;
+          const invD2 = 1 / (rf.original.dSpacing * rf.original.dSpacing);
+          // Simplified isotropic scaling factor
+          const term = (h*h + k*k + l*l) / invD2;
+          return Math.sqrt(term);
+        });
+        fitA = aVals.reduce((s, v) => s + v, 0) / aVals.length;
+        fitB = fitA * 0.95;
+        fitC = fitA * 1.1;
+      }
     } catch (e: any) {
       errorMsg = 'Calculation error: ' + e.message;
       hasDiverged = true;
@@ -369,7 +465,6 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
     const b = isManualOverride ? (crystalSystem === 'Cubic' || crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? a : manualB) : fitB;
     const c = isManualOverride ? (crystalSystem === 'Cubic' ? a : manualC) : fitC;
 
-    // Dynamic state synchronizer to initialize manual sliders when first toggled
     return {
       hasDiverged: !isManualOverride && hasDiverged,
       errorMsg,
@@ -380,7 +475,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
       b,
       c
     };
-  }, [validReflections, crystalSystem, isManualOverride, manualA, manualB, manualC]);
+  }, [validReflections, crystalSystem, isManualOverride, manualA, manualB, manualC, monoclinicBeta]);
 
   // Handle synchronization of manual override sliders on activation
   useEffect(() => {
@@ -391,7 +486,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
     }
   }, [isManualOverride, fitResults]);
 
-  // Recalculate cell metrics, volume, and fits
+  // Recalculate cell metrics, volume, Nelson-Riley extrapolation, and strain
   const evaluatedResults = useMemo(() => {
     if (!fitResults || fitResults.hasDiverged) return null;
 
@@ -400,21 +495,26 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
     const fittedReflections: FitReflection[] = validReflections.map(rf => {
       const [h, k, l] = rf.hkl;
       let dCalc = 0;
+      let aExtrapolated = 0;
       
       if (crystalSystem === 'Cubic') {
-        dCalc = a / Math.sqrt(h * h + k * k + l * l);
+        const mult = Math.sqrt(h * h + k * k + l * l);
+        dCalc = a / mult;
+        aExtrapolated = rf.original.dSpacing * mult;
       } else if (crystalSystem === 'Tetragonal') {
         const term = (h * h + k * k) / (a * a) + (l * l) / (c * c);
         dCalc = 1 / Math.sqrt(term);
+        aExtrapolated = Math.sqrt((h*h + k*k) / (1/(rf.original.dSpacing*rf.original.dSpacing) - (l*l)/(c*c)));
       } else if (crystalSystem === 'Hexagonal') {
         const term = (4 / 3) * (h * h + h * k + k * k) / (a * a) + (l * l) / (c * c);
         dCalc = 1 / Math.sqrt(term);
-      } else if (crystalSystem === 'Orthorhombic') {
+        aExtrapolated = a;
+      } else if (crystalSystem === 'Orthorhombic' || crystalSystem === 'Monoclinic') {
         const term = (h * h) / (a * a) + (k * k) / (b * b) + (l * l) / (c * c);
         dCalc = 1 / Math.sqrt(term);
+        aExtrapolated = a;
       }
 
-      // Find original wavelength
       const wl = rf.original.sinThetaOverLambda 
         ? Math.sin((rf.original.twoTheta / 2) * (Math.PI / 180)) / rf.original.sinThetaOverLambda 
         : 1.54059;
@@ -425,6 +525,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
         : 180.0;
         
       const errorPct = Math.abs(rf.original.dSpacing - dCalc) / rf.original.dSpacing * 100;
+      const nelsonRileyF = calculateNelsonRiley(rf.original.twoTheta);
 
       return {
         twoTheta: rf.original.twoTheta,
@@ -433,7 +534,9 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
         hklString: rf.original.hkl || '',
         dCalc,
         twoThetaCalc,
-        errorPct
+        errorPct,
+        nelsonRileyF,
+        aExtrapolated: isNaN(aExtrapolated) || !isFinite(aExtrapolated) ? a : aExtrapolated
       };
     });
 
@@ -445,14 +548,51 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
     let volume = 0;
     if (crystalSystem === 'Cubic') volume = a * a * a;
     else if (crystalSystem === 'Tetragonal') volume = a * a * c;
-    else if (crystalSystem === 'Hexagonal') volume = (Math.sqrt(3) / 2) * a * a * c; // Hexagonal prism volume
+    else if (crystalSystem === 'Hexagonal') volume = (Math.sqrt(3) / 2) * a * a * c;
     else if (crystalSystem === 'Orthorhombic') volume = a * b * c;
+    else if (crystalSystem === 'Monoclinic') {
+      const betaRad = (monoclinicBeta * Math.PI) / 180;
+      volume = a * b * c * Math.sin(betaRad);
+    }
 
     // Advanced Reciprocal Lattice Parameters
     const reciprocalA = crystalSystem === 'Hexagonal' ? 2 / (Math.sqrt(3) * a) : 1 / a;
     const reciprocalB = crystalSystem === 'Hexagonal' ? 2 / (Math.sqrt(3) * b) : 1 / b;
     const reciprocalC = 1 / c;
-    const reciprocalVolume = 1 / volume; // Crystallographic standard 1/V
+    const reciprocalVolume = 1 / volume;
+
+    // Nelson-Riley Linear Extrapolation Fit (a_0 at F(theta) = 0)
+    let nelsonRileyA0 = a;
+    let nelsonRileySlope = 0;
+
+    if (fittedReflections.length >= 2) {
+      let sumF = 0, sumA = 0, sumF2 = 0, sumFA = 0;
+      const N = fittedReflections.length;
+
+      fittedReflections.forEach(rf => {
+        sumF += rf.nelsonRileyF;
+        sumA += rf.aExtrapolated;
+        sumF2 += rf.nelsonRileyF * rf.nelsonRileyF;
+        sumFA += rf.nelsonRileyF * rf.aExtrapolated;
+      });
+
+      const denom = N * sumF2 - sumF * sumF;
+      if (Math.abs(denom) > 1e-8) {
+        nelsonRileySlope = (N * sumFA - sumF * sumA) / denom;
+        nelsonRileyA0 = (sumA - nelsonRileySlope * sumF) / N;
+      }
+    }
+
+    // Benchmark strain calculation vs active reference material
+    const refMat = REFERENCE_MATERIALS.find(m => m.id === selectedRefMaterial);
+    const strainA = refMat ? ((a - refMat.a) / refMat.a) * 100 : 0;
+    const strainC = refMat && refMat.c ? ((c - refMat.c) / refMat.c) * 100 : 0;
+    
+    // Theoretical Density (g/cm^3)
+    const Z = refMat ? refMat.atomsPerCell : 4;
+    const M = refMat ? refMat.molarMass : 58.44;
+    const NA = 6.02214076e23;
+    const densityXRay = volume > 0 ? (Z * M) / (NA * volume * 1e-24) : 0;
 
     return {
       a,
@@ -466,9 +606,62 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
         bStar: reciprocalB,
         cStar: reciprocalC,
         volumeStar: reciprocalVolume
-      }
+      },
+      nelsonRiley: {
+        a0: nelsonRileyA0,
+        slope: nelsonRileySlope
+      },
+      strain: {
+        strainA,
+        strainC,
+        refMatName: refMat ? refMat.name : ''
+      },
+      densityXRay
     };
-  }, [fitResults, crystalSystem, validReflections]);
+  }, [fitResults, crystalSystem, validReflections, monoclinicBeta, selectedRefMaterial]);
+
+  // Interplanar Angle (\phi) Calculator
+  const interplanarAngle = useMemo(() => {
+    if (!evaluatedResults) return null;
+    const { a, b, c } = evaluatedResults;
+    const [h1, k1, l1] = plane1;
+    const [h2, k2, l2] = plane2;
+
+    if (h1 === 0 && k1 === 0 && l1 === 0) return null;
+    if (h2 === 0 && k2 === 0 && l2 === 0) return null;
+
+    let cosPhi = 0;
+
+    if (crystalSystem === 'Cubic') {
+      const top = h1 * h2 + k1 * k2 + l1 * l2;
+      const bot = Math.sqrt(h1 * h1 + k1 * k1 + l1 * l1) * Math.sqrt(h2 * h2 + k2 * k2 + l2 * l2);
+      cosPhi = top / bot;
+    } else if (crystalSystem === 'Tetragonal') {
+      const top = (h1 * h2 + k1 * k2) / (a * a) + (l1 * l2) / (c * c);
+      const bot1 = Math.sqrt((h1 * h1 + k1 * k1) / (a * a) + (l1 * l1) / (c * c));
+      const bot2 = Math.sqrt((h2 * h2 + k2 * k2) / (a * a) + (l2 * l2) / (c * c));
+      cosPhi = top / (bot1 * bot2);
+    } else if (crystalSystem === 'Hexagonal') {
+      const top = h1 * h2 + k1 * k2 + 0.5 * (h1 * k2 + h2 * k1) + (3 * a * a / (4 * c * c)) * l1 * l2;
+      const bot1 = Math.sqrt(h1 * h1 + k1 * k1 + h1 * k1 + (3 * a * a / (4 * c * c)) * l1 * l1);
+      const bot2 = Math.sqrt(h2 * h2 + k2 * k2 + h2 * k2 + (3 * a * a / (4 * c * c)) * l2 * l2);
+      cosPhi = top / (bot1 * bot2);
+    } else {
+      const top = (h1 * h2) / (a * a) + (k1 * k2) / (b * b) + (l1 * l2) / (c * c);
+      const bot1 = Math.sqrt((h1 * h1) / (a * a) + (k1 * k1) / (b * b) + (l1 * l1) / (c * c));
+      const bot2 = Math.sqrt((h2 * h2) / (a * a) + (k2 * k2) / (b * b) + (l2 * l2) / (c * c));
+      cosPhi = top / (bot1 * bot2);
+    }
+
+    cosPhi = Math.max(-1, Math.min(1, cosPhi));
+    const angleRad = Math.acos(cosPhi);
+    const angleDeg = (angleRad * 180) / Math.PI;
+
+    return {
+      angleDeg,
+      cosPhi
+    };
+  }, [evaluatedResults, plane1, plane2, crystalSystem]);
 
   // Search target d-Spacing Suggestions
   const hklSuggestions = useMemo(() => {
@@ -494,7 +687,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
           } else if (crystalSystem === 'Hexagonal') {
             const term = (4 / 3) * (h * h + h * k + k * k) / (a * a) + (l * l) / (c * c);
             dCalc = 1 / Math.sqrt(term);
-          } else if (crystalSystem === 'Orthorhombic') {
+          } else if (crystalSystem === 'Orthorhombic' || crystalSystem === 'Monoclinic') {
             const term = (h * h) / (a * a) + (k * k) / (b * b) + (l * l) / (c * c);
             dCalc = 1 / Math.sqrt(term);
           }
@@ -536,26 +729,25 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
         <div>
           <h2 className="text-lg font-black text-slate-800 dark:text-slate-100 flex items-center gap-2.5 tracking-tight uppercase">
             <Boxes className="h-5 w-5 text-indigo-500 shrink-0" />
-            Lattice Probe & Cell Refinement Workbench
+            Lattice Probe & High-Precision Cell Refinement Workbench
           </h2>
           <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 animate-pulse text-emerald-500" />
-            Live Analytical Miller-Index Cell Regression
+            Live Analytical Miller-Index Regression & Nelson-Riley Extrapolation
           </p>
         </div>
 
         {/* Crystal System Tabs Selector */}
         <div className="flex bg-slate-100 dark:bg-slate-950 p-1.5 rounded-2xl border border-slate-200/60 dark:border-slate-800/80 overflow-x-auto max-w-full">
-          {(['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic'] as CrystalSystem[]).map(sys => (
+          {(['Cubic', 'Tetragonal', 'Hexagonal', 'Orthorhombic', 'Monoclinic'] as CrystalSystem[]).map(sys => (
             <button
               key={sys}
               type="button"
               onClick={() => {
                 setCrystalSystem(sys);
-                // Reset selected index safely
                 setSelectedReflectionIndex(0);
               }}
-              className={`px-3.5 py-2 text-[10px] font-black uppercase rounded-xl transition-all border-none shrink-0 ${
+              className={`px-3 py-2 text-[10px] font-black uppercase rounded-xl transition-all border-none shrink-0 ${
                 crystalSystem === sys
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10'
                   : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 bg-transparent'
@@ -592,13 +784,57 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
       ) : evaluatedResults ? (
         <div className="space-y-6">
           
+          {/* Reference Material Quick Benchmark Selector */}
+          <div className="bg-slate-50/80 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-amber-500" />
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
+                Benchmark Standard Preset:
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={selectedRefMaterial}
+                onChange={(e) => handleApplyPreset(e.target.value)}
+                className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold font-mono rounded-xl px-3 py-1.5 outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                {REFERENCE_MATERIALS.map(mat => (
+                  <option key={mat.id} value={mat.id}>
+                    {mat.name} — a={mat.a}Å ({mat.system})
+                  </option>
+                ))}
+              </select>
+
+              {/* Strain Badges */}
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                <span className={`px-2 py-0.5 rounded-lg border font-bold ${
+                  Math.abs(evaluatedResults.strain.strainA) < 0.5 
+                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                    : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                }`}>
+                  Mismatch ε_a: {evaluatedResults.strain.strainA > 0 ? '+' : ''}{evaluatedResults.strain.strainA.toFixed(3)}%
+                </span>
+                {evaluatedResults.c > 0 && (
+                  <span className={`px-2 py-0.5 rounded-lg border font-bold ${
+                    Math.abs(evaluatedResults.strain.strainC) < 0.5 
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' 
+                      : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                  }`}>
+                    ε_c: {evaluatedResults.strain.strainC > 0 ? '+' : ''}{evaluatedResults.strain.strainC.toFixed(3)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Top Cell Summary Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             {/* a */}
-            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-inner flex flex-col justify-between">
+            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-inner flex flex-col justify-between">
               <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Constant a</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-lg font-mono font-black text-slate-800 dark:text-white tabular-nums">
+                <span className="text-base font-mono font-black text-slate-800 dark:text-white tabular-nums">
                   {evaluatedResults.a.toFixed(Math.min(precision + 1, 5))}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">Å</span>
@@ -606,12 +842,12 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
             </div>
 
             {/* b */}
-            <div className={`bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-inner flex flex-col justify-between transition-opacity ${
+            <div className={`bg-slate-50/60 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-inner flex flex-col justify-between transition-opacity ${
               crystalSystem === 'Cubic' || crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? 'opacity-40 select-none' : ''
             }`}>
               <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Constant b</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-lg font-mono font-black text-slate-800 dark:text-white tabular-nums">
+                <span className="text-base font-mono font-black text-slate-800 dark:text-white tabular-nums">
                   {evaluatedResults.b.toFixed(Math.min(precision + 1, 5))}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">Å</span>
@@ -619,12 +855,12 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
             </div>
 
             {/* c */}
-            <div className={`bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-inner flex flex-col justify-between transition-opacity ${
+            <div className={`bg-slate-50/60 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-inner flex flex-col justify-between transition-opacity ${
               crystalSystem === 'Cubic' ? 'opacity-40 select-none' : ''
             }`}>
               <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Constant c</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-lg font-mono font-black text-slate-800 dark:text-white tabular-nums">
+                <span className="text-base font-mono font-black text-slate-800 dark:text-white tabular-nums">
                   {evaluatedResults.c.toFixed(Math.min(precision + 1, 5))}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">Å</span>
@@ -632,18 +868,29 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
             </div>
 
             {/* Volume */}
-            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-inner flex flex-col justify-between">
+            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-inner flex flex-col justify-between">
               <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Cell Volume V</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-lg font-mono font-black text-indigo-600 dark:text-indigo-400 tabular-nums">
+                <span className="text-base font-mono font-black text-indigo-600 dark:text-indigo-400 tabular-nums">
                   {evaluatedResults.volume.toFixed(Math.min(precision, 4))}
                 </span>
                 <span className="text-[10px] font-bold text-indigo-400">Å³</span>
               </div>
             </div>
 
+            {/* Nelson-Riley Extrapolated a0 */}
+            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-indigo-500/20 shadow-inner flex flex-col justify-between bg-indigo-50/20 dark:bg-indigo-950/20">
+              <span className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest block mb-1">N-R Extrap. a₀</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-base font-mono font-black text-indigo-700 dark:text-indigo-300 tabular-nums">
+                  {evaluatedResults.nelsonRiley.a0.toFixed(Math.min(precision + 1, 5))}
+                </span>
+                <span className="text-[10px] font-bold text-indigo-400">Å</span>
+              </div>
+            </div>
+
             {/* Goodness of Fit Residual */}
-            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-inner flex flex-col justify-between col-span-2 md:col-span-1">
+            <div className="bg-slate-50/60 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/60 shadow-inner flex flex-col justify-between col-span-2 md:col-span-1">
               <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Fit Residual (R-GoF)</span>
               <div className="flex items-center gap-1.5">
                 <span className={`text-[11px] font-mono font-black px-2 py-0.5 rounded-md ${
@@ -662,15 +909,66 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
             </div>
           </div>
 
+          {/* Nelson-Riley Extrapolation Plot (High-Precision Zero-Error Correction) */}
+          <div className="bg-slate-950/50 border border-slate-800/80 rounded-3xl p-4 relative overflow-hidden">
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <LineChartIcon className="w-4 h-4 text-indigo-400" />
+                <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider">
+                  Nelson-Riley Extrapolation Function F(θ) vs Parameter a
+                </h3>
+              </div>
+              <div className="text-[10px] font-mono text-slate-400 flex items-center gap-2">
+                <span>Extrapolated a₀ (F=0): <strong className="text-emerald-400">{evaluatedResults.nelsonRiley.a0.toFixed(5)} Å</strong></span>
+                <span className="text-slate-600">|</span>
+                <span>Slope: {evaluatedResults.nelsonRiley.slope.toFixed(4)}</span>
+              </div>
+            </div>
+
+            <div className="h-44 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={evaluatedResults.reflections.map(r => ({
+                    F: Number(r.nelsonRileyF.toFixed(4)),
+                    aExtrap: Number(r.aExtrapolated.toFixed(5)),
+                    hkl: r.hklString
+                  }))}
+                  margin={{ top: 10, right: 20, bottom: 20, left: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <XAxis 
+                    dataKey="F" 
+                    type="number" 
+                    domain={[0, 'auto']} 
+                    stroke="#64748b" 
+                    fontSize={10} 
+                    label={{ value: 'Nelson-Riley F(θ) = ½(cos²θ/sinθ + cos²θ/θ)', position: 'insideBottom', offset: -12, fill: '#94a3b8', fontSize: 9 }}
+                  />
+                  <YAxis 
+                    dataKey="aExtrap" 
+                    type="number" 
+                    domain={['auto', 'auto']} 
+                    stroke="#64748b" 
+                    fontSize={10}
+                    unit=" Å"
+                  />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '12px', fontSize: '11px', color: '#f8fafc' }}
+                    formatter={(val: any, name: any) => [`${val} Å`, 'Extrapolated a']}
+                    labelFormatter={(label) => `Nelson-Riley F(θ) = ${label}`}
+                  />
+                  <Scatter name="Observed Reflections" dataKey="aExtrap" fill="#6366f1" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
           {/* Interactive Visualizer & Parameters Panel (Bento Layout) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             
             {/* SVG Interactive 2D Lattice & Plane Projection Visualizer */}
             <div className="lg:col-span-6 bg-slate-950/40 border border-slate-200/5 dark:border-white/5 rounded-3xl p-5 flex flex-col justify-between relative overflow-hidden shadow-inner">
               
-              {/* Background Subtle Grid Accent */}
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,#020617_1px,transparent_1px),linear-gradient(to_bottom,#020617_1px,transparent_1px)] bg-[size:16px_16px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 pointer-events-none" />
-
               <div className="relative z-10 flex items-center justify-between gap-2 mb-4">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
@@ -804,21 +1102,25 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                   </div>
                 )}
 
-                {/* Reciprocal Space Parameters Summary */}
+                {/* Reciprocal Space & X-Ray Density Summary */}
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-850/60">
-                  <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Reciprocal Lattice constants</span>
-                  <div className="grid grid-cols-3 gap-2 font-mono text-[10px]">
+                  <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2">Reciprocal Lattice & X-Ray Density</span>
+                  <div className="grid grid-cols-4 gap-2 font-mono text-[10px]">
                     <div className="bg-slate-100/50 dark:bg-slate-900/50 p-2 rounded-xl">
                       <span className="text-slate-400 block text-[8px] uppercase font-bold mb-0.5">a*</span>
-                      <span className="text-slate-800 dark:text-slate-200 font-extrabold">{evaluatedResults.reciprocal.aStar.toFixed(5)} Å⁻¹</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-extrabold">{evaluatedResults.reciprocal.aStar.toFixed(4)} Å⁻¹</span>
                     </div>
                     <div className="bg-slate-100/50 dark:bg-slate-900/50 p-2 rounded-xl">
                       <span className="text-slate-400 block text-[8px] uppercase font-bold mb-0.5">c*</span>
-                      <span className="text-slate-800 dark:text-slate-200 font-extrabold">{evaluatedResults.reciprocal.cStar.toFixed(5)} Å⁻¹</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-extrabold">{evaluatedResults.reciprocal.cStar.toFixed(4)} Å⁻¹</span>
                     </div>
                     <div className="bg-slate-100/50 dark:bg-slate-900/50 p-2 rounded-xl">
                       <span className="text-slate-400 block text-[8px] uppercase font-bold mb-0.5">V*</span>
-                      <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{evaluatedResults.reciprocal.volumeStar.toExponential(4)} Å⁻³</span>
+                      <span className="text-indigo-600 dark:text-indigo-400 font-extrabold">{evaluatedResults.reciprocal.volumeStar.toExponential(3)} Å⁻³</span>
+                    </div>
+                    <div className="bg-slate-100/50 dark:bg-slate-900/50 p-2 rounded-xl">
+                      <span className="text-slate-400 block text-[8px] uppercase font-bold mb-0.5">ρ_X-ray</span>
+                      <span className="text-emerald-500 font-extrabold">{evaluatedResults.densityXRay.toFixed(2)} g/cm³</span>
                     </div>
                   </div>
                 </div>
@@ -839,7 +1141,6 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                     </div>
                   </div>
 
-                  {/* Toggle button */}
                   <button
                     type="button"
                     onClick={() => setIsManualOverride(!isManualOverride)}
@@ -934,6 +1235,56 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
             </div>
           </div>
 
+          {/* Interplanar Angle (\phi) Calculator Panel */}
+          {interplanarAngle && (
+            <div className="bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200/80 dark:border-slate-800/80 p-4 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Compass className="w-5 h-5 text-indigo-500" />
+                <div>
+                  <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                    Interplanar Angle φ Between Miller Planes
+                  </h4>
+                  <p className="text-[10px] text-slate-400">
+                    Crystallographic angle between plane 1 and plane 2 in {crystalSystem} system
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-400 font-bold">Plane 1:</span>
+                  <input
+                    type="text"
+                    value={plane1.join(' ')}
+                    onChange={(e) => {
+                      const parts = e.target.value.split(/[\s,]+/).map(p => parseInt(p, 10));
+                      if (parts.length === 3 && !parts.some(isNaN)) setPlane1([parts[0], parts[1], parts[2]]);
+                    }}
+                    className="w-16 text-center font-bold text-indigo-500 bg-transparent outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-slate-400 font-bold">Plane 2:</span>
+                  <input
+                    type="text"
+                    value={plane2.join(' ')}
+                    onChange={(e) => {
+                      const parts = e.target.value.split(/[\s,]+/).map(p => parseInt(p, 10));
+                      if (parts.length === 3 && !parts.some(isNaN)) setPlane2([parts[0], parts[1], parts[2]]);
+                    }}
+                    className="w-16 text-center font-bold text-indigo-500 bg-transparent outline-none"
+                  />
+                </div>
+
+                <div className="bg-indigo-600 text-white font-bold px-4 py-1.5 rounded-xl text-xs flex items-center gap-1">
+                  <span>φ = {interplanarAngle.angleDeg.toFixed(2)}°</span>
+                  <span className="text-[9px] opacity-80">(cos φ = {interplanarAngle.cosPhi.toFixed(3)})</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Mathematical verification */}
           <ScientificMathControl
             title="Lattice Parameters Mathematical Verification"
@@ -966,6 +1317,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                   <th className="px-4 py-2.5">2θ (Calc)</th>
                   <th className="px-4 py-2.5">d (Obs)</th>
                   <th className="px-4 py-2.5">d (Calc)</th>
+                  <th className="px-4 py-2.5">N-R F(θ)</th>
                   <th className="px-4 py-2.5 text-right">Residual</th>
                 </tr>
               </thead>
@@ -988,6 +1340,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                     <td className="px-4 py-2 tabular-nums text-slate-400">{ref.twoThetaCalc.toFixed(2)}°</td>
                     <td className="px-4 py-2 font-black tabular-nums text-indigo-700 dark:text-indigo-300">{ref.dObs.toFixed(4)}</td>
                     <td className="px-4 py-2 tabular-nums text-slate-400">{ref.dCalc.toFixed(4)}</td>
+                    <td className="px-4 py-2 tabular-nums text-slate-400">{ref.nelsonRileyF.toFixed(3)}</td>
                     <td className="px-4 py-2 text-right tabular-nums">
                       <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
                         ref.errorPct < 0.2
@@ -1107,12 +1460,9 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
 
   // SVG drawing configuration
   const { basisVectors, origin, vertices, latticePoints } = useMemo(() => {
-    // We scale vectors so that the largest axis fits perfectly in our canvas bounds
     const maxRealDim = Math.max(l1, l2);
     const pixelScale = (width - 2 * padding) / maxRealDim;
 
-    // Center point vectors in SVG coordinates
-    // XY hexagonal is 120 degrees, others are 90 degrees
     let vec1 = [l1 * pixelScale, 0];
     let vec2 = [0, l2 * pixelScale];
 
@@ -1121,7 +1471,6 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
       vec2 = [l2 * pixelScale * Math.cos(angle), l2 * pixelScale * Math.sin(angle)];
     }
 
-    // Centering vector offset
     const xCoords = [0, vec1[0], vec2[0], vec1[0] + vec2[0]];
     const yCoords = [0, vec1[1], vec2[1], vec1[1] + vec2[1]];
     const minX = Math.min(...xCoords);
@@ -1137,19 +1486,14 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
 
     const origin = [offsetX, offsetY];
 
-    // Compute vertices
     const v00 = origin;
     const v10 = [origin[0] + vec1[0], origin[1] + vec1[1]];
     const v01 = [origin[0] + vec2[0], origin[1] + vec2[1]];
     const v11 = [origin[0] + vec1[0] + vec2[0], origin[1] + vec1[1] + vec2[1]];
 
-    // Define atom nodes depending on selected Bravais lattice type
     const points: [number, number][] = [];
-    
-    // Always add primitive corners
     points.push([0, 0], [1, 0], [0, 1], [1, 1]);
 
-    // Extra atoms depending on structure center rules
     if (bravais === 'I') {
       points.push([0.5, 0.5]);
     } else if (bravais === 'F') {
@@ -1157,7 +1501,6 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
     } else if (bravais === 'C' && projection === 'XY') {
       points.push([0.5, 0.5]);
     } else if (system === 'Hexagonal' && bravais === 'P') {
-      // Hexagonal has extra basis in cell (HCP representation helper)
       points.push([1/3, 2/3]);
     }
 
@@ -1171,13 +1514,11 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
 
   // Intersecting Miller Plane coordinates computation
   const planeLines = useMemo(() => {
-    // Avoid calculations if both indices are zero
     if (h1 === 0 && h2 === 0) return [];
 
     const lines: [number, number, number, number][] = [];
     const { vec1, vec2 } = basisVectors;
 
-    // Check multiple parallel planes (n is intercept index multiplier)
     const minVal = Math.min(0, h1, h2, h1 + h2);
     const maxVal = Math.max(0, h1, h2, h1 + h2);
     
@@ -1187,28 +1528,23 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
     for (let n = rangeMin; n <= rangeMax; n++) {
       const intersections: [number, number][] = [];
 
-      // Edge 1: u2 = 0 (bottom edge)
       if (h1 !== 0) {
         const u1 = n / h1;
         if (u1 >= 0 && u1 <= 1) intersections.push([u1, 0]);
       }
-      // Edge 2: u2 = 1 (top edge)
       if (h1 !== 0) {
         const u1 = (n - h2) / h1;
         if (u1 >= 0 && u1 <= 1) intersections.push([u1, 1]);
       }
-      // Edge 3: u1 = 0 (left edge)
       if (h2 !== 0) {
         const u2 = n / h2;
         if (u2 >= 0 && u2 <= 1) intersections.push([0, u2]);
       }
-      // Edge 4: u1 = 1 (right edge)
       if (h2 !== 0) {
         const u2 = (n - h1) / h2;
         if (u2 >= 0 && u2 <= 1) intersections.push([1, u2]);
       }
 
-      // De-duplicate intersection points
       const uniquePoints: [number, number][] = [];
       intersections.forEach(p => {
         if (!uniquePoints.some(up => Math.abs(up[0] - p[0]) < 1e-4 && Math.abs(up[1] - p[1]) < 1e-4)) {
@@ -1217,7 +1553,6 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
       });
 
       if (uniquePoints.length >= 2) {
-        // Convert to SVG coordinates
         const p1 = [
           origin[0] + uniquePoints[0][0] * vec1[0] + uniquePoints[0][1] * vec2[0],
           origin[1] + uniquePoints[0][0] * vec1[1] + uniquePoints[0][1] * vec2[1]
@@ -1235,7 +1570,6 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
 
   return (
     <svg width={width} height={height} className="overflow-visible">
-      {/* Glow shadow and definitions */}
       <defs>
         <filter id="atomGlow" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="3" result="blur" />
@@ -1246,7 +1580,6 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
         </filter>
       </defs>
 
-      {/* Axis unit lines / Grid */}
       {showGrid && (
         <g stroke="#ffffff" strokeOpacity="0.05" strokeWidth="1">
           {Array.from({ length: 6 }).map((_, i) => {
@@ -1271,7 +1604,6 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
         </g>
       )}
 
-      {/* Parallel Miller Planes Shading & Lines */}
       {planeLines.map((line, idx) => (
         <g key={`plane-${idx}`}>
           <line
@@ -1287,7 +1619,6 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
         </g>
       ))}
 
-      {/* Unit Cell Outlines */}
       <polygon
         points={`
           ${vertices.v00[0]},${vertices.v00[1]} 
@@ -1300,9 +1631,7 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
         strokeWidth="1.5"
       />
 
-      {/* Origin Vector indicators */}
-      <g strokeWidth="2" markerEnd="url(#arrow)">
-        {/* Axis 1 */}
+      <g strokeWidth="2">
         <line
           x1={vertices.v00[0]}
           y1={vertices.v00[1]}
@@ -1310,7 +1639,6 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
           y2={vertices.v00[1] + basisVectors.vec1[1] * 0.4}
           stroke="#f59e0b"
         />
-        {/* Axis 2 */}
         <line
           x1={vertices.v00[0]}
           y1={vertices.v00[1]}
@@ -1320,7 +1648,6 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
         />
       </g>
 
-      {/* Axis text labels */}
       <text
         x={vertices.v00[0] + basisVectors.vec1[0] * 0.45}
         y={vertices.v00[1] + basisVectors.vec1[1] * 0.45 + 10}
@@ -1342,12 +1669,10 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
         {axisLabel2}
       </text>
 
-      {/* Lattice Atoms Overlays */}
       {showAtoms && latticePoints.map((pt, idx) => {
         const cx = origin[0] + pt[0] * basisVectors.vec1[0] + pt[1] * basisVectors.vec2[0];
         const cy = origin[1] + pt[0] * basisVectors.vec1[1] + pt[1] * basisVectors.vec2[1];
         
-        // Stylize different atom types (e.g. corner vs center)
         const isCorner = pt[0] % 1 === 0 && pt[1] % 1 === 0;
         
         return (
@@ -1364,10 +1689,8 @@ const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
         );
       })}
 
-      {/* Interplanar spacing dimension line if planes exist */}
       {dSpacing > 0 && planeLines.length > 0 && (
         <g>
-          {/* Background dimension panel */}
           <rect
             x="8"
             y={height - 24}

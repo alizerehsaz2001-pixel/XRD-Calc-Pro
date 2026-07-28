@@ -2,9 +2,10 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Info, Sparkles, Activity, Layers, Compass, Play, Search, 
+  Info, Sparkles, Activity, Layers, Compass, Play, Pause, Search, 
   HelpCircle, Orbit, RotateCw, Settings, ShieldAlert, Zap, Cpu,
-  Droplets, Cloud, DownloadCloud
+  Droplets, Cloud, DownloadCloud, Eye, EyeOff, Maximize2, Sliders,
+  Atom, Grid, ChevronDown, ChevronUp, RefreshCw, Copy, Check
 } from 'lucide-react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, 
@@ -80,6 +81,94 @@ export const getPhysicalStateAtTemp = (number: number, meltingPoint: number, boi
   
   if (currentTemperatureCelcius >= boilingPoint) return 'gas';
   return 'liquid';
+};
+
+// Quantum Radial Probability Density Function calculation P_{n,l}(r) = 4*pi*r^2 * |R_{n,l}(r)|^2
+export const calculateOrbitalRadialPdf = (
+  n: number,
+  l: number,
+  Z: number,
+  rAngstrom: number
+): number => {
+  const a0 = 0.529177; // Bohr radius in Angstroms
+  if (rAngstrom <= 0) return 0;
+
+  // Approximate Slater Effective Nuclear Charge Z_eff
+  let Zeff = Z;
+  if (n === 1) Zeff = Z > 1 ? Z - 0.30 : 1.0;
+  else if (n === 2) Zeff = Math.max(1.0, Z - 0.35 * Math.min(7, Z - 2) - 0.85 * 2);
+  else if (n === 3) Zeff = Math.max(1.0, Z - 0.35 * Math.min(17, Z - 10) - 0.85 * 8 - 1.0 * 2);
+  else if (n === 4) Zeff = Math.max(1.0, Z - 0.35 * Math.min(31, Z - 28) - 0.85 * 18 - 1.0 * 10);
+  else Zeff = Math.max(1.0, Z - 0.35 * 8 - 0.85 * 18 - 1.0 * Math.max(0, Z - 26));
+
+  const rho = (2 * Zeff * rAngstrom) / (n * a0);
+  let R_nl = 0;
+
+  // Exact hydrogenic/Slater radial wavefunctions R_{n,l}(r)
+  if (n === 1 && l === 0) {
+    // 1s
+    R_nl = 2 * Math.pow(Zeff / a0, 1.5) * Math.exp(-rho / 2);
+  } else if (n === 2 && l === 0) {
+    // 2s
+    R_nl = (1 / (2 * Math.SQRT2)) * Math.pow(Zeff / a0, 1.5) * (2 - rho) * Math.exp(-rho / 2);
+  } else if (n === 2 && l === 1) {
+    // 2p
+    R_nl = (1 / (2 * Math.sqrt(6))) * Math.pow(Zeff / a0, 1.5) * rho * Math.exp(-rho / 2);
+  } else if (n === 3 && l === 0) {
+    // 3s
+    R_nl = (1 / (9 * Math.sqrt(3))) * Math.pow(Zeff / a0, 1.5) * (6 - 6 * rho + rho * rho) * Math.exp(-rho / 2);
+  } else if (n === 3 && l === 1) {
+    // 3p
+    R_nl = (1 / (9 * Math.sqrt(6))) * Math.pow(Zeff / a0, 1.5) * rho * (4 - rho) * Math.exp(-rho / 2);
+  } else if (n === 3 && l === 2) {
+    // 3d
+    R_nl = (1 / (9 * Math.sqrt(30))) * Math.pow(Zeff / a0, 1.5) * rho * rho * Math.exp(-rho / 2);
+  } else if (n === 4 && l === 0) {
+    // 4s
+    R_nl = (1 / 96) * Math.pow(Zeff / a0, 1.5) * (24 - 36 * rho + 12 * rho * rho - rho * rho * rho) * Math.exp(-rho / 2);
+  } else if (n === 4 && l === 1) {
+    // 4p
+    R_nl = (1 / (32 * Math.sqrt(15))) * Math.pow(Zeff / a0, 1.5) * rho * (20 - 10 * rho + rho * rho) * Math.exp(-rho / 2);
+  } else if (n === 4 && l === 2) {
+    // 4d
+    R_nl = (1 / (96 * Math.sqrt(5))) * Math.pow(Zeff / a0, 1.5) * rho * rho * (6 - rho) * Math.exp(-rho / 2);
+  } else if (n === 4 && l === 3) {
+    // 4f
+    R_nl = (1 / (768 * Math.sqrt(35))) * Math.pow(Zeff / a0, 1.5) * rho * rho * rho * Math.exp(-rho / 2);
+  } else {
+    // Higher n or l (Generalized Slater-type radial approximation with n - l - 1 nodes)
+    const nodeFactor = Math.pow(Math.abs(Math.cos((Math.PI * (n - l) * rho) / (3 * n))), n - l - 1);
+    R_nl = Math.pow(Zeff / (n * a0), 1.5) * Math.pow(rho, l) * (nodeFactor + 0.05) * Math.exp(-rho / 2);
+  }
+
+  // Radial probability density P(r) = 4*pi*r^2 * |R_{n,l}(r)|^2
+  const P_r = 4 * Math.PI * Math.pow(rAngstrom, 2) * Math.pow(R_nl, 2);
+  return isNaN(P_r) ? 0 : P_r;
+};
+
+// Radial node locations in Angstroms for orbital (n, l)
+export const getRadialNodes = (n: number, l: number, Z: number): { r: number; label: string }[] => {
+  const a0 = 0.529177;
+  let Zeff = Z;
+  if (n === 1) Zeff = Z > 1 ? Z - 0.30 : 1.0;
+  else if (n === 2) Zeff = Math.max(1.0, Z - 0.35 * Math.min(7, Z - 2) - 0.85 * 2);
+  else if (n === 3) Zeff = Math.max(1.0, Z - 0.35 * Math.min(17, Z - 10) - 0.85 * 8 - 1.0 * 2);
+  else Zeff = Math.max(1.0, Z - 0.35 * 8 - 0.85 * 18 - 1.0 * Math.max(0, Z - 26));
+
+  const nodes: { r: number; label: string }[] = [];
+  if (n === 2 && l === 0) {
+    nodes.push({ r: (2 * n * a0) / (2 * Zeff), label: '2s Node' });
+  } else if (n === 3 && l === 0) {
+    nodes.push({ r: ((3 - Math.SQRT2 * 0.866) * 3 * a0) / (2 * Zeff), label: '3s Node 1' });
+    nodes.push({ r: ((3 + Math.SQRT2 * 0.866) * 3 * a0) / (2 * Zeff), label: '3s Node 2' });
+  } else if (n === 3 && l === 1) {
+    nodes.push({ r: (4 * 3 * a0) / (2 * Zeff), label: '3p Node' });
+  } else if (n === 4 && l === 0) {
+    nodes.push({ r: (0.76 * 4 * a0) / (2 * Zeff), label: '4s Node 1' });
+    nodes.push({ r: (2.45 * 4 * a0) / (2 * Zeff), label: '4s Node 2' });
+    nodes.push({ r: (5.80 * 4 * a0) / (2 * Zeff), label: '4s Node 3' });
+  }
+  return nodes;
 };
 
 // 3D Point presentation format helper
@@ -478,17 +567,52 @@ const CrystallineLattice3D: React.FC<{
 };
 
 /* =========================================================================
-   ElectronCloud3D: Interactive electron configuration visualization (Canvas)
+   ElectronCloud3D: Advanced Interactive Quantum Electron Visualization
    ========================================================================= */
+interface SubshellInfo {
+  n: number;
+  type: 's' | 'p' | 'd' | 'f';
+  cap: number;
+  label: string;
+  count: number;
+  boxes: { up: boolean; down: boolean }[];
+  color: string;
+  orientations: string[];
+}
+
 const ElectronCloud3D: React.FC<{ 
   electronConfig: string;
   atomicNumber: number;
   colorClass: string;
 }> = ({ electronConfig, atomicNumber, colorClass }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isHovering, setIsHovering] = useState(false);
+  const [viewMode, setViewMode] = useState<'bohr' | 'orbital' | 'radial'>('orbital');
+  const [focusedShell, setFocusedShell] = useState<number | null>(null);
+  const [focusedSubshell, setFocusedSubshell] = useState<string | null>(null);
+  const [blockFilter, setBlockFilter] = useState<'ALL' | 's' | 'p' | 'd' | 'f'>('ALL');
+  const [cloudDensity, setCloudDensity] = useState<number>(200);
+  const [colorByPhase, setColorByPhase] = useState<boolean>(false);
+  const [showAxesGizmo, setShowAxesGizmo] = useState<boolean>(true);
+  const [showNodalPlanes, setShowNodalPlanes] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [animSpeed, setAnimSpeed] = useState<number>(1);
+  const [showSpinBoxes, setShowSpinBoxes] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isHovering, setIsHovering] = useState<boolean>(false);
+  const [rotX, setRotX] = useState<number>(0.35);
+  const [rotY, setRotY] = useState<number>(0.45);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragStartRef = useRef<{ x: number; y: number; rx: number; ry: number }>({ x: 0, y: 0, rx: 0.35, ry: 0.45 });
 
-  // Extract base atom color from the class string for inline styles
+  // Radial PDF Visualization Options
+  const [showTotalDensity, setShowTotalDensity] = useState<boolean>(true);
+  const [useLogScale, setUseLogScale] = useState<boolean>(false);
+  const [showRadialNodes, setShowRadialNodes] = useState<boolean>(true);
+  const [showShading, setShowShading] = useState<boolean>(true);
+  const [showCumulativeCharge, setShowCumulativeCharge] = useState<boolean>(false);
+  const [hoveredRadius, setHoveredRadius] = useState<number | null>(null);
+
+  // Base element accent color
   const atomColor = useMemo(() => {
     if (colorClass.includes('fuchsia')) return '#d946ef';
     if (colorClass.includes('indigo')) return '#6366f1';
@@ -500,10 +624,10 @@ const ElectronCloud3D: React.FC<{
     if (colorClass.includes('violet')) return '#8b5cf6';
     if (colorClass.includes('orange')) return '#f97316';
     if (colorClass.includes('teal')) return '#14b8a6';
-    return '#6366f1'; // fallback
+    return '#6366f1';
   }, [colorClass]);
 
-  // Parse total electrons per shell from configuration
+  // Parse total electrons per shell n (1..7)
   const shells = useMemo(() => {
     const capacities = [2, 8, 18, 32, 32, 18, 8];
     let remaining = atomicNumber;
@@ -516,32 +640,278 @@ const ElectronCloud3D: React.FC<{
     return computedShells;
   }, [atomicNumber]);
 
+  // Parse detailed subshells & Hund's Rule Spin boxes
+  const parsedSubshells = useMemo<SubshellInfo[]>(() => {
+    const sequence: { n: number; type: 's' | 'p' | 'd' | 'f'; cap: number; color: string; orientations: string[] }[] = [
+      { n: 1, type: 's', cap: 2, color: '#38bdf8', orientations: ['1s'] },
+      { n: 2, type: 's', cap: 2, color: '#38bdf8', orientations: ['2s'] },
+      { n: 2, type: 'p', cap: 6, color: '#c084fc', orientations: ['2p_x', '2p_y', '2p_z'] },
+      { n: 3, type: 's', cap: 2, color: '#38bdf8', orientations: ['3s'] },
+      { n: 3, type: 'p', cap: 6, color: '#c084fc', orientations: ['3p_x', '3p_y', '3p_z'] },
+      { n: 4, type: 's', cap: 2, color: '#38bdf8', orientations: ['4s'] },
+      { n: 3, type: 'd', cap: 10, color: '#fbbf24', orientations: ['3d_xy', '3d_yz', '3d_xz', '3d_x²-y²', '3d_z²'] },
+      { n: 4, type: 'p', cap: 6, color: '#c084fc', orientations: ['4p_x', '4p_y', '4p_z'] },
+      { n: 5, type: 's', cap: 2, color: '#38bdf8', orientations: ['5s'] },
+      { n: 4, type: 'd', cap: 10, color: '#fbbf24', orientations: ['4d_xy', '4d_yz', '4d_xz', '4d_x²-y²', '4d_z²'] },
+      { n: 5, type: 'p', cap: 6, color: '#c084fc', orientations: ['5p_x', '5p_y', '5p_z'] },
+      { n: 6, type: 's', cap: 2, color: '#38bdf8', orientations: ['6s'] },
+      { n: 4, type: 'f', cap: 14, color: '#fb7185', orientations: ['4f_z³', '4f_xz²', '4f_yz²', '4f_z(x²-y²)', '4f_x(x²-3y²)', '4f_y(3x²-y²)', '4f_xyz'] },
+      { n: 5, type: 'd', cap: 10, color: '#fbbf24', orientations: ['5d_xy', '5d_yz', '5d_xz', '5d_x²-y²', '5d_z²'] },
+      { n: 6, type: 'p', cap: 6, color: '#c084fc', orientations: ['6p_x', '6p_y', '6p_z'] },
+      { n: 7, type: 's', cap: 2, color: '#38bdf8', orientations: ['7s'] },
+      { n: 5, type: 'f', cap: 14, color: '#fb7185', orientations: ['5f_z³', '5f_xz²', '5f_yz²', '5f_z(x²-y²)', '5f_x(x²-3y²)', '5f_y(3x²-y²)', '5f_xyz'] },
+      { n: 6, type: 'd', cap: 10, color: '#fbbf24', orientations: ['6d_xy', '6d_yz', '6d_xz', '6d_x²-y²', '6d_z²'] },
+      { n: 7, type: 'p', cap: 6, color: '#c084fc', orientations: ['7p_x', '7p_y', '7p_z'] }
+    ];
+
+    let remaining = atomicNumber;
+    const result: SubshellInfo[] = [];
+
+    for (const sub of sequence) {
+      if (remaining <= 0) break;
+      const count = Math.min(remaining, sub.cap);
+      remaining -= count;
+
+      const boxCount = sub.cap / 2;
+      const boxes: { up: boolean; down: boolean }[] = Array.from({ length: boxCount }, () => ({ up: false, down: false }));
+
+      // Fill using Hund's Rule
+      for (let e = 0; e < count; e++) {
+        if (e < boxCount) {
+          boxes[e].up = true;
+        } else {
+          boxes[e - boxCount].down = true;
+        }
+      }
+
+      result.push({
+        n: sub.n,
+        type: sub.type,
+        cap: sub.cap,
+        label: `${sub.n}${sub.type}`,
+        count,
+        boxes,
+        color: sub.color,
+        orientations: sub.orientations
+      });
+    }
+
+    return result;
+  }, [atomicNumber]);
+
+  // Estimate Slater's Rules Effective Nuclear Charge Z_eff
+  const slaterZeff = useMemo(() => {
+    if (parsedSubshells.length === 0) return { Zeff: atomicNumber, shielding: 0, valenceLabel: '1s' };
+    const valenceSub = parsedSubshells[parsedSubshells.length - 1];
+    let shielding = 0;
+
+    parsedSubshells.forEach((sub, idx) => {
+      const isValence = idx === parsedSubshells.length - 1;
+      const eCount = isValence ? sub.count - 1 : sub.count;
+      
+      if (sub.n === valenceSub.n) {
+        shielding += eCount * (valenceSub.type === 's' || valenceSub.type === 'p' ? 0.35 : 0.35);
+      } else if (sub.n === valenceSub.n - 1) {
+        shielding += eCount * (valenceSub.type === 's' || valenceSub.type === 'p' ? 0.85 : 1.0);
+      } else if (sub.n < valenceSub.n - 1) {
+        shielding += eCount * 1.0;
+      }
+    });
+
+    return {
+      Zeff: Math.max(1, atomicNumber - shielding),
+      shielding: shielding,
+      valenceLabel: valenceSub.label
+    };
+  }, [atomicNumber, parsedSubshells]);
+
+  // Monte Carlo pre-generation of Quantum Orbital Point Cloud particles with Wavefunction Phase
+  const orbitalParticles = useMemo(() => {
+    const points: { 
+      x: number; 
+      y: number; 
+      z: number; 
+      subshell: string; 
+      type: 's' | 'p' | 'd' | 'f';
+      color: string; 
+      phasePositive: boolean;
+      size: number;
+    }[] = [];
+
+    parsedSubshells.forEach((sub) => {
+      if (blockFilter !== 'ALL' && sub.type !== blockFilter) return;
+
+      const radiusBase = sub.n * 20;
+      for (let i = 0; i < cloudDensity; i++) {
+        let u1 = Math.random();
+        let u2 = Math.random();
+        let theta = Math.acos(2 * u1 - 1);
+        let phi = 2 * Math.PI * u2;
+
+        let r = radiusBase * (0.35 + Math.pow(Math.random(), 0.5) * 0.85);
+        let weight = 1;
+        let phasePos = true;
+
+        if (sub.type === 's') {
+          // Spherical distribution
+          weight = 1;
+          phasePos = true;
+        } else if (sub.type === 'p') {
+          // Dumbbell distribution along x, y, or z
+          const axis = i % 3;
+          if (axis === 0) {
+            // p_z dumbbell
+            const cosT = Math.cos(theta);
+            weight = Math.abs(cosT);
+            phasePos = cosT >= 0;
+          } else if (axis === 1) {
+            // p_x dumbbell
+            const sinTcosP = Math.sin(theta) * Math.cos(phi);
+            weight = Math.abs(sinTcosP);
+            phasePos = sinTcosP >= 0;
+          } else {
+            // p_y dumbbell
+            const sinTsinP = Math.sin(theta) * Math.sin(phi);
+            weight = Math.abs(sinTsinP);
+            phasePos = sinTsinP >= 0;
+          }
+          r *= (0.25 + weight * 0.95);
+        } else if (sub.type === 'd') {
+          // Cloverleaf / Donut distribution
+          const subIdx = i % 5;
+          if (subIdx === 4) {
+            // d_z² donut + lobes
+            const val = 3 * Math.pow(Math.cos(theta), 2) - 1;
+            weight = Math.abs(val);
+            phasePos = val >= 0;
+          } else {
+            // d_xy, d_yz, d_xz
+            const val = Math.sin(2 * theta) * Math.cos(2 * phi);
+            weight = Math.abs(val);
+            phasePos = val >= 0;
+          }
+          r *= (0.2 + weight * 1.1);
+        } else if (sub.type === 'f') {
+          // Multi-lobe f-orbital
+          const val = Math.sin(3 * theta) * Math.sin(3 * phi);
+          weight = Math.abs(val);
+          phasePos = val >= 0;
+          r *= (0.2 + weight * 1.25);
+        }
+
+        const px = r * Math.sin(theta) * Math.cos(phi);
+        const py = r * Math.sin(theta) * Math.sin(phi);
+        const pz = r * Math.cos(theta);
+
+        points.push({
+          x: px,
+          y: py,
+          z: pz,
+          subshell: sub.label,
+          type: sub.type,
+          color: sub.color,
+          phasePositive: phasePos,
+          size: 1.2 + Math.random() * 1.8
+        });
+      }
+    });
+
+    return points;
+  }, [parsedSubshells, blockFilter, cloudDensity]);
+
+  // Export CSV Data
   const handleExportCSV = (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const headers = ['Shell_n', 'Electrons', 'Relative_Energy_Ratio'];
-      const rows = shells.map((electrons, i) => {
-        const n = i + 1;
-        const relativeEnergy = (n / shells.length).toFixed(4);
-        return `${n},${electrons},${relativeEnergy}`;
-      });
-      
-      const csvContent = [headers.join(','), ...rows].join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `atom_${atomicNumber}_electron_shells.csv`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      if (viewMode === 'radial') {
+        const rMax = atomicNumber <= 2 ? 2.5 : atomicNumber <= 10 ? 3.5 : atomicNumber <= 36 ? 4.8 : atomicNumber <= 86 ? 6.2 : 7.5;
+        const subLabels = parsedSubshells.map(s => s.label);
+        const headers = ['Radius_r_Angstrom', 'Radius_r_Bohr_a0', ...subLabels.map(l => `Pdf_${l}_Angstrom_Inv`), 'Total_Radial_Density_P_r'];
+        const rows: string[] = [];
+
+        for (let r = 0; r <= rMax; r += 0.02) {
+          const rBohr = r / 0.529177;
+          let sumPdf = 0;
+          const orbPdfVals = parsedSubshells.map((sub) => {
+            const l = sub.type === 's' ? 0 : sub.type === 'p' ? 1 : sub.type === 'd' ? 2 : 3;
+            const pdf = calculateOrbitalRadialPdf(sub.n, l, atomicNumber, r);
+            sumPdf += pdf * sub.count;
+            return pdf.toFixed(6);
+          });
+
+          rows.push([r.toFixed(4), rBohr.toFixed(4), ...orbPdfVals, sumPdf.toFixed(6)].join(','));
+        }
+
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `atom_${atomicNumber}_radial_probability_pdf.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        const headers = ['Shell_n', 'Subshell', 'Type', 'Electrons', 'Capacity', 'Z_eff_Est', 'Orientations'];
+        const rows = parsedSubshells.map((s) => {
+          return `${s.n},${s.label},${s.type},${s.count},${s.cap},${slaterZeff.Zeff.toFixed(2)},"${s.orientations.join(';')}"`;
+        });
+        
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `atom_${atomicNumber}_spdf_quantum_electrons.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
       console.error('Failed to export CSV', err);
     }
   };
 
+  // Mouse Drag 3D Camera Controls & Radial PDF Hover Probe
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX, y: e.clientY, rx: rotX, ry: rotY };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (viewMode === 'radial' && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const width = rect.width;
+      const padL = 50;
+      const padR = 30;
+      const plotW = width - padL - padR;
+      const rMax = atomicNumber <= 2 ? 2.5 : atomicNumber <= 10 ? 3.5 : atomicNumber <= 36 ? 4.8 : atomicNumber <= 86 ? 6.2 : 7.5;
+
+      if (mouseX >= padL && mouseX <= width - padR && plotW > 0) {
+        const rVal = ((mouseX - padL) / plotW) * rMax;
+        setHoveredRadius(rVal);
+      } else {
+        setHoveredRadius(null);
+      }
+    }
+
+    if (isDragging) {
+      const dx = e.clientX - dragStartRef.current.x;
+      const dy = e.clientY - dragStartRef.current.y;
+      setRotY(dragStartRef.current.ry + dx * 0.01);
+      setRotX(dragStartRef.current.rx + dy * 0.01);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Main Canvas Render Loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -550,8 +920,7 @@ const ElectronCloud3D: React.FC<{
 
     let animationFrameId: number;
     let time = 0;
-    
-    // Resize handler for crisp rendering on high-DPI displays
+
     const updateSize = () => {
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.parentElement?.getBoundingClientRect();
@@ -561,122 +930,514 @@ const ElectronCloud3D: React.FC<{
         ctx.scale(dpr, dpr);
       }
     };
-    
+
     updateSize();
     window.addEventListener('resize', updateSize);
 
-    // Pre-calculate orbit parameters
+    // Orbit configurations for Bohr Mode
     const orbits = shells.map((electronCount, i) => {
       return {
+        n: i + 1,
         electrons: electronCount,
-        rx: 30 + (i * 18),
-        ry: 10 + (i * 6),
+        rx: 32 + (i * 18),
+        ry: 12 + (i * 7),
         angle: (i * Math.PI / shells.length) + (Math.PI / 6),
-        speed: 0.015 - (i * 0.0015),
+        speed: 0.018 - (i * 0.0018),
         direction: i % 2 === 0 ? 1 : -1
       };
     });
+
+    const project3D = (x: number, y: number, z: number, cx: number, cy: number, currentRotX: number, currentRotY: number) => {
+      const cosY = Math.cos(currentRotY);
+      const sinY = Math.sin(currentRotY);
+      const x1 = x * cosY + z * sinY;
+      const z1 = -x * sinY + z * cosY;
+
+      const cosX = Math.cos(currentRotX);
+      const sinX = Math.sin(currentRotX);
+      const y1 = y * cosX - z1 * sinX;
+      const z2 = y * sinX + z1 * cosX;
+
+      const depth = 380;
+      const scale = depth / (depth + z2);
+
+      return {
+        px: cx + x1 * scale,
+        py: cy + y1 * scale,
+        scale,
+        z: z2
+      };
+    };
 
     const draw = () => {
       const width = canvas.width / (window.devicePixelRatio || 1);
       const height = canvas.height / (window.devicePixelRatio || 1);
       const cx = width / 2;
       const cy = height / 2;
-      
-      // Clear canvas
+
       ctx.clearRect(0, 0, width, height);
-      
-      // Time progression (speeds up on hover)
-      time += isHovering ? 2.5 : 1;
 
-      // 1. Draw Ambient Cloud (Electron probability density)
-      const cloudGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, width / 2);
-      cloudGrad.addColorStop(0, `${atomColor}25`); // Hex alpha for 15% opacity
-      cloudGrad.addColorStop(0.5, `${atomColor}0A`);
-      cloudGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = cloudGrad;
-      ctx.fillRect(0, 0, width, height);
+      if (isPlaying) {
+        time += (isHovering ? 2.0 : 1.0) * animSpeed;
+      }
 
-      // 2. Draw Nucleus Glow
-      const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 14);
+      // 1. Nucleus Glow
+      const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 20);
       coreGrad.addColorStop(0, '#ffffff');
-      coreGrad.addColorStop(0.3, atomColor);
+      coreGrad.addColorStop(0.35, atomColor);
       coreGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = coreGrad;
       ctx.beginPath();
-      ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 20, 0, Math.PI * 2);
       ctx.fill();
-      
-      // Inner bright spot
+
+      // Nucleus Inner Spark
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
+      ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // 3. Draw Orbits & Electrons
-      orbits.forEach((orbit, i) => {
-        ctx.save();
-        ctx.translate(cx, cy);
-        
-        // Orbital precession (the orbit itself slowly rotates)
-        const precessionAngle = orbit.angle + (time * 0.001 * orbit.direction);
-        ctx.rotate(precessionAngle);
+      // 2. VIEW MODE: BOHR 3D SHELLS
+      if (viewMode === 'bohr') {
+        const cloudGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, width / 2);
+        cloudGrad.addColorStop(0, `${atomColor}20`);
+        cloudGrad.addColorStop(0.6, `${atomColor}08`);
+        cloudGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = cloudGrad;
+        ctx.fillRect(0, 0, width, height);
 
-        // Draw Path
-        ctx.beginPath();
-        ctx.ellipse(0, 0, orbit.rx, orbit.ry, 0, 0, Math.PI * 2);
-        
-        // Energy level visual indicator based on principal quantum number (shell index)
-        const energyRatio = (i + 1) / shells.length; // From small fraction to 1.0
-        
-        // Higher energy shells are brighter and slightly thicker
-        const baseAlpha = isHovering ? 60 : 30;
-        const additionalAlpha = isHovering ? 40 : 20;
-        const currentAlpha = Math.floor(baseAlpha + (energyRatio * additionalAlpha));
-        ctx.strokeStyle = `${atomColor}${currentAlpha.toString(16).padStart(2, '0')}`;
-        ctx.lineWidth = 1 + (energyRatio * 0.75);
-        
-        if (isHovering) {
-          ctx.shadowColor = atomColor;
-          ctx.shadowBlur = 3 + (energyRatio * 5); // Glow increases with energy level
-        }
-        
-        ctx.stroke();
-        ctx.shadowBlur = 0; // reset
+        orbits.forEach((orbit, i) => {
+          const isFocused = focusedShell === null || focusedShell === i;
+          const energyRatio = (i + 1) / shells.length;
 
-        // Draw Electrons
-        for (let e = 0; e < orbit.electrons; e++) {
-          const eOffset = (Math.PI * 2 / orbit.electrons) * e;
-          const eAngle = (time * orbit.speed * orbit.direction) + eOffset;
-          
-          const ex = Math.cos(eAngle) * orbit.rx;
-          const ey = Math.sin(eAngle) * orbit.ry;
-          
-          // Calculate Z-depth for 3D effect (size and opacity scaling)
-          const z = Math.sin(eAngle); // -1 (back) to 1 (front)
-          const scale = 1 + (z * 0.35); 
-          const alpha = Math.max(0.2, 0.5 + (z * 0.5)); // 0.2 in back, 1.0 in front
+          ctx.save();
+          ctx.translate(cx, cy);
+
+          const precessionAngle = orbit.angle + (time * 0.0012 * orbit.direction);
+          ctx.rotate(precessionAngle);
 
           ctx.beginPath();
-          ctx.arc(ex, ey, 2 * scale, 0, Math.PI * 2);
-          
-          // Theming for dark/light mode context - use solid colors with alpha
-          // Canvas rendering operates outside React's context, so we manually
-          // set styling that looks good on both backgrounds.
-          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-          
-          // Electron glow - higher energy electrons glow brighter
-          ctx.shadowColor = atomColor;
-          const baseGlow = 4;
-          const energyGlow = 4 * energyRatio;
-          ctx.shadowBlur = (baseGlow + energyGlow) * scale * (isHovering ? 1.5 : 1);
-          
-          ctx.fill();
-          ctx.shadowBlur = 0; // reset
+          ctx.ellipse(0, 0, orbit.rx, orbit.ry, 0, 0, Math.PI * 2);
+
+          const alphaVal = isFocused ? (isHovering ? '70' : '40') : '10';
+          ctx.strokeStyle = `${atomColor}${alphaVal}`;
+          ctx.lineWidth = isFocused ? 1.5 + energyRatio * 0.5 : 0.8;
+
+          if (isFocused && isHovering) {
+            ctx.shadowColor = atomColor;
+            ctx.shadowBlur = 6;
+          }
+
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          for (let e = 0; e < orbit.electrons; e++) {
+            const eOffset = (Math.PI * 2 / orbit.electrons) * e;
+            const eAngle = (time * orbit.speed * orbit.direction * animSpeed) + eOffset;
+
+            const ex = Math.cos(eAngle) * orbit.rx;
+            const ey = Math.sin(eAngle) * orbit.ry;
+
+            const z = Math.sin(eAngle);
+            const scale = 1 + z * 0.35;
+            const alpha = isFocused ? Math.max(0.2, 0.5 + z * 0.5) : 0.15;
+
+            ctx.beginPath();
+            ctx.arc(ex, ey, 2.5 * scale, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+
+            if (isFocused) {
+              ctx.shadowColor = atomColor;
+              ctx.shadowBlur = (4 + energyRatio * 6) * scale;
+            }
+
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+
+          ctx.restore();
+        });
+      }
+
+      // 3. VIEW MODE: s, p, d, f QUANTUM ORBITAL POINT CLOUD
+      else if (viewMode === 'orbital') {
+        const autoRotY = rotY + (isPlaying ? time * 0.003 : 0);
+
+        // Nodal Planes Projection (if active)
+        if (showNodalPlanes) {
+          ctx.save();
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+
+          // Ring 1: xy plane
+          ctx.beginPath();
+          for (let a = 0; a <= Math.PI * 2; a += 0.1) {
+            const r = 80;
+            const nx = r * Math.cos(a);
+            const ny = r * Math.sin(a);
+            const proj = project3D(nx, ny, 0, cx, cy, rotX, autoRotY);
+            if (a === 0) ctx.moveTo(proj.px, proj.py);
+            else ctx.lineTo(proj.px, proj.py);
+          }
+          ctx.stroke();
+          ctx.restore();
         }
 
-        ctx.restore();
-      });
+        // Sort particles by Z depth
+        const projected = orbitalParticles
+          .map((pt) => {
+            const isSubFocused = focusedSubshell === null || focusedSubshell === pt.subshell;
+            const proj = project3D(pt.x, pt.y, pt.z, cx, cy, rotX, autoRotY);
+            return {
+              ...pt,
+              ...proj,
+              isSubFocused
+            };
+          })
+          .sort((a, b) => a.z - b.z);
+
+        projected.forEach((pt) => {
+          if (!pt.isSubFocused) return;
+
+          ctx.beginPath();
+          ctx.arc(pt.px, pt.py, pt.size * pt.scale, 0, Math.PI * 2);
+
+          // Color: Either Subshell Type or Wavefunction Phase (+ Cyan / - Orange)
+          const ptColor = colorByPhase 
+            ? (pt.phasePositive ? '#06b6d4' : '#f97316')
+            : pt.color;
+
+          ctx.fillStyle = ptColor;
+          ctx.globalAlpha = Math.min(0.9, Math.max(0.18, 0.45 + (pt.z / 320)));
+          ctx.shadowColor = ptColor;
+          ctx.shadowBlur = 3.5 * pt.scale;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1.0;
+        });
+
+        // 3D Axis Gizmo (Origin Coordinate Frame)
+        if (showAxesGizmo) {
+          const axisLen = 35;
+          const gizmoCx = 45;
+          const gizmoCy = height - 40;
+
+          const xAxis = project3D(axisLen, 0, 0, gizmoCx, gizmoCy, rotX, autoRotY);
+          const yAxis = project3D(0, -axisLen, 0, gizmoCx, gizmoCy, rotX, autoRotY);
+          const zAxis = project3D(0, 0, axisLen, gizmoCx, gizmoCy, rotX, autoRotY);
+
+          // X Axis (Red)
+          ctx.beginPath();
+          ctx.moveTo(gizmoCx, gizmoCy);
+          ctx.lineTo(xAxis.px, xAxis.py);
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = '#ef4444';
+          ctx.font = 'bold 9px monospace';
+          ctx.fillText('X', xAxis.px + 2, xAxis.py + 2);
+
+          // Y Axis (Green)
+          ctx.beginPath();
+          ctx.moveTo(gizmoCx, gizmoCy);
+          ctx.lineTo(yAxis.px, yAxis.py);
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = '#10b981';
+          ctx.fillText('Y', yAxis.px + 2, yAxis.py + 2);
+
+          // Z Axis (Blue)
+          ctx.beginPath();
+          ctx.moveTo(gizmoCx, gizmoCy);
+          ctx.lineTo(zAxis.px, zAxis.py);
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = '#3b82f6';
+          ctx.fillText('Z', zAxis.px + 2, zAxis.py + 2);
+        }
+      }
+
+      // 4. VIEW MODE: HIGH-PRECISION RADIAL PROBABILITY DENSITY (RADIAL PDF)
+      else if (viewMode === 'radial') {
+        const padL = 50;
+        const padR = 30;
+        const padT = 35;
+        const padB = 40;
+        const plotW = Math.max(10, width - padL - padR);
+        const plotH = Math.max(10, height - padT - padB);
+
+        // Dynamic maximum radial distance (Å) based on Atomic Number Z
+        const rMax = atomicNumber <= 2 ? 2.5 : atomicNumber <= 10 ? 3.5 : atomicNumber <= 36 ? 4.8 : atomicNumber <= 86 ? 6.2 : 7.5;
+
+        // 4a. Draw Background Axes & Grid Lines
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+
+        const rStep = rMax > 5 ? 1.0 : 0.5;
+        for (let rVal = 0; rVal <= rMax; rVal += rStep) {
+          const px = padL + (rVal / rMax) * plotW;
+          ctx.beginPath();
+          ctx.moveTo(px, padT);
+          ctx.lineTo(px, height - padB);
+          ctx.stroke();
+
+          ctx.fillStyle = '#64748b';
+          ctx.font = '9px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${rVal.toFixed(1)}Å`, px, height - padB + 14);
+        }
+
+        // Main Axes
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(padL, height - padB);
+        ctx.lineTo(width - padR, height - padB);
+        ctx.moveTo(padL, height - padB);
+        ctx.lineTo(padL, padT - 10);
+        ctx.stroke();
+
+        // Axis Titles
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 9.5px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Radial Distance r (Å)', padL + plotW / 2, height - 8);
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText(
+          useLogScale 
+            ? 'Radial Probability Density log₁₀ P(r) [Å⁻¹]' 
+            : 'Radial Probability P(r) = 4πr²|R_{n,l}(r)|² [Å⁻¹]',
+          padL + 5,
+          padT - 15
+        );
+
+        // 4b. Compute curves for occupied subshells
+        const activeSubshells = parsedSubshells.filter((sub) => {
+          if (blockFilter !== 'ALL' && sub.type !== blockFilter) return false;
+          if (focusedShell !== null && sub.n !== focusedShell + 1) return false;
+          if (focusedSubshell !== null && sub.label !== focusedSubshell) return false;
+          return true;
+        });
+
+        const sampleSteps = 200;
+        const stepR = rMax / sampleSteps;
+
+        const totalPdfArr: number[] = new Array(sampleSteps + 1).fill(0);
+        const orbitalPdfs: { label: string; color: string; n: number; l: number; count: number; pdfVals: number[]; pMax: number }[] = [];
+
+        activeSubshells.forEach((sub) => {
+          const pdfVals: number[] = [];
+          let pMax = 0;
+          const l = sub.type === 's' ? 0 : sub.type === 'p' ? 1 : sub.type === 'd' ? 2 : 3;
+
+          for (let s = 0; s <= sampleSteps; s++) {
+            const rVal = s * stepR;
+            const pdf = calculateOrbitalRadialPdf(sub.n, l, atomicNumber, rVal);
+            pdfVals.push(pdf);
+            if (pdf > pMax) pMax = pdf;
+            totalPdfArr[s] += pdf * sub.count;
+          }
+
+          orbitalPdfs.push({
+            label: sub.label,
+            color: sub.color,
+            n: sub.n,
+            l,
+            count: sub.count,
+            pdfVals,
+            pMax
+          });
+        });
+
+        let overallPMax = 0;
+        if (showTotalDensity) {
+          overallPMax = Math.max(0.1, ...totalPdfArr);
+        } else {
+          orbitalPdfs.forEach((o) => { if (o.pMax > overallPMax) overallPMax = o.pMax; });
+        }
+        if (overallPMax <= 0) overallPMax = 1.0;
+
+        const mapYToPx = (pdfVal: number) => {
+          if (useLogScale) {
+            const eps = 1e-4;
+            const logMin = Math.log10(eps);
+            const logMax = Math.log10(Math.max(overallPMax, 1.0));
+            const valLog = Math.log10(Math.max(pdfVal, eps));
+            const norm = Math.max(0, Math.min(1, (valLog - logMin) / (logMax - logMin)));
+            return (height - padB) - norm * plotH;
+          } else {
+            const norm = Math.min(1, pdfVal / (overallPMax * 1.15));
+            return (height - padB) - norm * plotH;
+          }
+        };
+
+        // 4c. Render Gradient Area Fills & Subshell Curves
+        orbitalPdfs.forEach((orb) => {
+          if (showShading) {
+            ctx.beginPath();
+            ctx.moveTo(padL, height - padB);
+
+            for (let s = 0; s <= sampleSteps; s++) {
+              const px = padL + (s / sampleSteps) * plotW;
+              const py = mapYToPx(orb.pdfVals[s]);
+              ctx.lineTo(px, py);
+            }
+
+            ctx.lineTo(padL + plotW, height - padB);
+            ctx.closePath();
+
+            const areaGrad = ctx.createLinearGradient(0, padT, 0, height - padB);
+            areaGrad.addColorStop(0, `${orb.color}35`);
+            areaGrad.addColorStop(1, `${orb.color}02`);
+            ctx.fillStyle = areaGrad;
+            ctx.fill();
+          }
+
+          ctx.beginPath();
+          ctx.strokeStyle = orb.color;
+          ctx.lineWidth = 2;
+
+          for (let s = 0; s <= sampleSteps; s++) {
+            const px = padL + (s / sampleSteps) * plotW;
+            const py = mapYToPx(orb.pdfVals[s]);
+            if (s === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+
+          // Mark Peak Maximum r_max
+          if (orb.pMax > 0) {
+            const maxIdx = orb.pdfVals.indexOf(orb.pMax);
+            const peakPx = padL + (maxIdx / sampleSteps) * plotW;
+            const peakPy = mapYToPx(orb.pMax);
+
+            ctx.beginPath();
+            ctx.arc(peakPx, peakPy, 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = orb.color;
+            ctx.shadowColor = orb.color;
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        });
+
+        // 4d. Render Total Radial Charge Density Sum ∑ N_k P_k(r)
+        if (showTotalDensity && totalPdfArr.length > 0) {
+          ctx.beginPath();
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 2.5;
+
+          for (let s = 0; s <= sampleSteps; s++) {
+            const px = padL + (s / sampleSteps) * plotW;
+            const py = mapYToPx(totalPdfArr[s]);
+            if (s === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+
+          ctx.shadowColor = '#10b981';
+          ctx.shadowBlur = 8;
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+
+        // 4e. Cumulative Enclosed Charge Q(r) = ∫ P_total(r') dr'
+        if (showCumulativeCharge) {
+          let qCum = 0;
+          ctx.beginPath();
+          ctx.strokeStyle = '#a855f7';
+          ctx.setLineDash([4, 3]);
+          ctx.lineWidth = 1.8;
+
+          for (let s = 0; s <= sampleSteps; s++) {
+            if (s > 0) {
+              qCum += ((totalPdfArr[s - 1] + totalPdfArr[s]) / 2) * stepR;
+            }
+            const normQ = Math.min(1, qCum / Math.max(atomicNumber, 1));
+            const px = padL + (s / sampleSteps) * plotW;
+            const py = (height - padB) - normQ * plotH;
+            if (s === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // 4f. Render Radial Node Markers
+        if (showRadialNodes) {
+          orbitalPdfs.forEach((orb) => {
+            const nodes = getRadialNodes(orb.n, orb.l, atomicNumber);
+            nodes.forEach((node) => {
+              if (node.r > 0 && node.r <= rMax) {
+                const nodePx = padL + (node.r / rMax) * plotW;
+
+                ctx.beginPath();
+                ctx.strokeStyle = `${orb.color}80`;
+                ctx.setLineDash([3, 3]);
+                ctx.lineWidth = 1;
+                ctx.moveTo(nodePx, padT);
+                ctx.lineTo(nodePx, height - padB);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = orb.color;
+                ctx.font = '8px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(`○ ${node.label} ${node.r.toFixed(2)}Å`, nodePx, padT + 10);
+              }
+            });
+          });
+        }
+
+        // 4g. Interactive Hover Probe Crosshair & Collision Dots
+        if (hoveredRadius !== null && hoveredRadius >= 0 && hoveredRadius <= rMax) {
+          const hoverPx = padL + (hoveredRadius / rMax) * plotW;
+
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(hoverPx, padT - 5);
+          ctx.lineTo(hoverPx, height - padB);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          orbitalPdfs.forEach((orb) => {
+            const sIdx = Math.round((hoveredRadius / rMax) * sampleSteps);
+            if (sIdx >= 0 && sIdx <= sampleSteps) {
+              const pVal = orb.pdfVals[sIdx];
+              const dotPy = mapYToPx(pVal);
+
+              ctx.beginPath();
+              ctx.arc(hoverPx, dotPy, 4.5, 0, Math.PI * 2);
+              ctx.fillStyle = orb.color;
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 1.5;
+              ctx.fill();
+              ctx.stroke();
+            }
+          });
+
+          if (showTotalDensity) {
+            const sIdx = Math.round((hoveredRadius / rMax) * sampleSteps);
+            if (sIdx >= 0 && sIdx <= sampleSteps) {
+              const totalPVal = totalPdfArr[sIdx];
+              const dotPy = mapYToPx(totalPVal);
+
+              ctx.beginPath();
+              ctx.arc(hoverPx, dotPy, 5, 0, Math.PI * 2);
+              ctx.fillStyle = '#10b981';
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 2;
+              ctx.fill();
+              ctx.stroke();
+            }
+          }
+        }
+      }
 
       animationFrameId = requestAnimationFrame(draw);
     };
@@ -687,72 +1448,502 @@ const ElectronCloud3D: React.FC<{
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', updateSize);
     };
-  }, [shells, atomColor, isHovering]);
+  }, [
+    shells, parsedSubshells, orbitalParticles, atomColor, viewMode, 
+    focusedShell, focusedSubshell, isPlaying, animSpeed, rotX, rotY, 
+    colorByPhase, showAxesGizmo, showNodalPlanes, isHovering, blockFilter,
+    showTotalDensity, useLogScale, showRadialNodes, showShading, showCumulativeCharge, 
+    hoveredRadius, atomicNumber
+  ]);
 
   return (
     <div 
-      className="bg-slate-50 dark:bg-[#0B0F19]/80 rounded-[1.5rem] border border-slate-200 dark:border-white/5 p-4 relative overflow-hidden group shadow-sm dark:shadow-inner transition-all h-64 flex flex-col justify-between cursor-pointer hover:shadow-md dark:hover:shadow-[inset_0_0_40px_rgba(0,0,0,0.5)]"
+      className="bg-slate-900/95 text-white rounded-3xl border border-slate-800 p-4 relative overflow-hidden group shadow-2xl flex flex-col justify-between transition-all select-none"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-      
-      <div className="flex items-center justify-between z-10 relative">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800 dark:text-slate-200 flex items-center gap-2 drop-shadow-sm">
-          <div className="w-2 h-2 rounded-full animate-pulse shadow-[0_0_8px_currentColor]" style={{ backgroundColor: atomColor, color: atomColor }} />
-          Electron Cloud
-        </span>
+      {/* Header Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2 z-10 relative pb-2.5 border-b border-slate-800/80">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_10px_currentColor]" style={{ backgroundColor: atomColor, color: atomColor }} />
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+            s, p, d, f Quantum Cloud
+          </span>
+          <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
+            Z = {atomicNumber}
+          </span>
+        </div>
+
+        {/* View Mode Pills */}
+        <div className="flex items-center gap-1 bg-black/50 p-1 rounded-xl border border-slate-800">
+          <button
+            onClick={() => setViewMode('bohr')}
+            className={`px-2.5 py-1 text-[9.5px] font-mono font-bold rounded-lg transition-all ${
+              viewMode === 'bohr' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            3D Bohr Shells
+          </button>
+          <button
+            onClick={() => setViewMode('orbital')}
+            className={`px-2.5 py-1 text-[9.5px] font-mono font-bold rounded-lg transition-all ${
+              viewMode === 'orbital' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            s,p,d,f Cloud
+          </button>
+          <button
+            onClick={() => setViewMode('radial')}
+            className={`px-2.5 py-1 text-[9.5px] font-mono font-bold rounded-lg transition-all ${
+              viewMode === 'radial' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Radial PDF
+          </button>
+        </div>
+
+        {/* Action Controls */}
         <div className="flex items-center gap-1.5">
-          <button 
+          <button
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="p-1.5 text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-700 rounded-lg transition-colors"
+            title={isPlaying ? "Pause Animation" : "Play Animation"}
+          >
+            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+          </button>
+          
+          <button
+            onClick={() => setShowSpinBoxes(!showSpinBoxes)}
+            className={`p-1.5 rounded-lg transition-colors ${
+              showSpinBoxes ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-700'
+            }`}
+            title="Toggle Hund's Rule Spin Diagrams"
+          >
+            <Grid className="w-3.5 h-3.5" />
+          </button>
+
+          <button
             onClick={handleExportCSV}
-            className="p-1 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded border border-transparent hover:border-indigo-500/20 transition-all opacity-0 group-hover:opacity-100"
-            title="Export Electron Shells to CSV"
+            className="p-1.5 text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Export Quantum Electrons to CSV"
           >
             <DownloadCloud className="w-3.5 h-3.5" />
           </button>
-          <span className="text-[9px] font-mono font-bold text-slate-500 bg-white dark:bg-white/5 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-white/10 shadow-sm">
-            {shells.length} Shell{shells.length > 1 ? 's' : ''}
-          </span>
+
+          <button
+            onClick={() => setIsFullscreen(true)}
+            className="p-1.5 text-slate-400 hover:text-white bg-slate-800/60 hover:bg-slate-700 rounded-lg transition-colors"
+            title="Open Fullscreen Quantum Laboratory"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
-      <div className="w-full flex-1 relative my-2 overflow-hidden flex justify-center items-center">
+      {/* Subshell Block Filters & Wave Phase Toggle (When in Orbital Mode) */}
+      {viewMode === 'orbital' && (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-[9.5px] font-mono">
+          <div className="flex items-center gap-1">
+            <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px]">Block:</span>
+            {(['ALL', 's', 'p', 'd', 'f'] as const).map((block) => (
+              <button
+                key={block}
+                onClick={() => setBlockFilter(block)}
+                className={`px-2 py-0.5 rounded border transition-all ${
+                  blockFilter === block
+                    ? 'bg-indigo-600 text-white font-bold border-indigo-400 shadow-sm'
+                    : 'bg-black/40 text-slate-400 border-slate-800 hover:text-white'
+                }`}
+              >
+                {block === 'ALL' ? 'All Blocks' : `${block}-block`}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setColorByPhase(!colorByPhase)}
+              className={`px-2.5 py-0.5 rounded border transition-all flex items-center gap-1 ${
+                colorByPhase 
+                  ? 'bg-cyan-950 text-cyan-300 border-cyan-500 font-bold' 
+                  : 'bg-black/40 text-slate-400 border-slate-800 hover:text-white'
+              }`}
+              title="Toggle Positive (+ Cyan) vs Negative (- Orange) Wavefunction Sign"
+            >
+              <Eye className="w-3 h-3" />
+              {colorByPhase ? "Phase (+/-)" : "Subshell Color"}
+            </button>
+
+            <button
+              onClick={() => setShowAxesGizmo(!showAxesGizmo)}
+              className={`px-2 py-0.5 rounded border transition-all ${
+                showAxesGizmo ? 'bg-slate-800 text-amber-300 border-slate-700' : 'bg-black/40 text-slate-500 border-slate-850'
+              }`}
+            >
+              XYZ Axes
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Radial PDF Mode Feature Controls Bar */}
+      {viewMode === 'radial' && (
+        <div className="flex flex-wrap items-center justify-between gap-1.5 pt-2 pb-1 text-[9.5px] font-mono border-t border-slate-800/80 my-1">
+          <div className="flex flex-wrap items-center gap-1">
+            <button
+              onClick={() => setShowTotalDensity(!showTotalDensity)}
+              className={`px-2 py-0.5 rounded border transition-all flex items-center gap-1 ${
+                showTotalDensity 
+                  ? 'bg-emerald-950 text-emerald-300 border-emerald-500/80 font-bold shadow-sm' 
+                  : 'bg-black/40 text-slate-400 border-slate-800 hover:text-white'
+              }`}
+              title="Toggle Total Atomic Radial Charge Density Sum ∑ N_k * P_k(r)"
+            >
+              <Activity className="w-3 h-3 text-emerald-400" />
+              <span>Total Density ∑P(r)</span>
+            </button>
+
+            <button
+              onClick={() => setUseLogScale(!useLogScale)}
+              className={`px-2 py-0.5 rounded border transition-all ${
+                useLogScale 
+                  ? 'bg-indigo-950 text-indigo-300 border-indigo-500 font-bold' 
+                  : 'bg-black/40 text-slate-400 border-slate-800 hover:text-white'
+              }`}
+              title="Toggle Logarithmic Y-scale for high dynamic range between inner core and outer valence tails"
+            >
+              {useLogScale ? "Log Scale (log₁₀)" : "Linear Scale"}
+            </button>
+
+            <button
+              onClick={() => setShowShading(!showShading)}
+              className={`px-2 py-0.5 rounded border transition-all ${
+                showShading 
+                  ? 'bg-cyan-950 text-cyan-300 border-cyan-500 font-bold' 
+                  : 'bg-black/40 text-slate-400 border-slate-800 hover:text-white'
+              }`}
+              title="Toggle Area Gradient Fill under orbital curves"
+            >
+              Gradient Fills
+            </button>
+
+            <button
+              onClick={() => setShowRadialNodes(!showRadialNodes)}
+              className={`px-2 py-0.5 rounded border transition-all ${
+                showRadialNodes 
+                  ? 'bg-amber-950 text-amber-300 border-amber-500 font-bold' 
+                  : 'bg-black/40 text-slate-400 border-slate-800 hover:text-white'
+              }`}
+              title="Toggle Quantum Radial Node Markers (r_node where P(r) = 0)"
+            >
+              Radial Nodes
+            </button>
+
+            <button
+              onClick={() => setShowCumulativeCharge(!showCumulativeCharge)}
+              className={`px-2 py-0.5 rounded border transition-all ${
+                showCumulativeCharge 
+                  ? 'bg-purple-950 text-purple-300 border-purple-500 font-bold' 
+                  : 'bg-black/40 text-slate-400 border-slate-800 hover:text-white'
+              }`}
+              title="Toggle Cumulative Enclosed Electron Count Q(r) = ∫ P_total(r') dr'"
+            >
+              Enclosed Q(r)
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1 text-[8.5px] font-mono text-slate-400 bg-black/40 px-2 py-0.5 rounded border border-slate-850">
+            <span>Hover Canvas for Probe</span>
+          </div>
+        </div>
+      )}
+
+      {/* Main Canvas Viewport */}
+      <div 
+        className="w-full h-64 relative my-2 overflow-hidden rounded-2xl bg-black/70 border border-slate-800/80 cursor-grab active:cursor-grabbing flex justify-center items-center"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={() => { handleMouseUp(); setHoveredRadius(null); }}
+      >
         <canvas 
           ref={canvasRef} 
           className="w-full h-full absolute inset-0"
         />
-        
-        {/* Energy Shells Legend */}
-        <div className="absolute left-0 bottom-0 z-10 flex flex-col gap-1 pointer-events-none p-1 max-h-full justify-end">
-          {shells.map((count, i) => {
-            const energyRatio = (i + 1) / shells.length;
-            const currentAlpha = Math.floor(60 + (energyRatio * 40));
-            const legendColor = `${atomColor}${currentAlpha.toString(16).padStart(2, '0')}`;
-            
-            return (
-              <div key={`legend-${i}`} className="flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
-                <div 
-                  className="w-3 h-0.5 rounded-full" 
-                  style={{ 
-                    backgroundColor: atomColor, 
-                    opacity: currentAlpha / 100, // Approximate for DOM
-                    boxShadow: `0 0 4px ${atomColor}` 
-                  }} 
-                />
-                <span className="text-[8.5px] font-mono text-slate-500 dark:text-slate-400 font-medium">
-                  n={i + 1} <span className="opacity-50">({count}e⁻)</span>
+
+        {/* Drag rotation helper overlay */}
+        {viewMode === 'orbital' && (
+          <div className="absolute top-2 right-2 text-[8.5px] font-mono text-slate-400 bg-black/70 px-2 py-0.5 rounded border border-slate-800 pointer-events-none">
+            Drag to rotate 3D cloud
+          </div>
+        )}
+
+        {/* Interactive Radial PDF Hover Probe Tooltip Card */}
+        {viewMode === 'radial' && hoveredRadius !== null && (
+          <div className="absolute top-2 right-2 z-20 bg-slate-950/90 backdrop-blur-md border border-amber-500/50 p-2.5 rounded-2xl text-[10px] font-mono text-slate-200 shadow-2xl space-y-1.5 max-w-[220px] pointer-events-none animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-1">
+              <span className="font-bold text-amber-400 flex items-center gap-1">
+                <Zap className="w-3 h-3 animate-pulse" /> Probe @ r = {hoveredRadius.toFixed(3)} Å
+              </span>
+              <span className="text-[8.5px] text-slate-400">
+                ({(hoveredRadius / 0.529177).toFixed(2)} a₀)
+              </span>
+            </div>
+
+            <div className="space-y-0.5 max-h-32 overflow-y-auto pr-0.5">
+              {parsedSubshells.map((sub) => {
+                const l = sub.type === 's' ? 0 : sub.type === 'p' ? 1 : sub.type === 'd' ? 2 : 3;
+                const pVal = calculateOrbitalRadialPdf(sub.n, l, atomicNumber, hoveredRadius);
+                return (
+                  <div key={sub.label} className="flex items-center justify-between gap-2 text-[9px]">
+                    <span style={{ color: sub.color }} className="font-bold">
+                      {sub.label} ({sub.count}e⁻):
+                    </span>
+                    <span className="text-slate-100 font-mono">
+                      {pVal.toFixed(3)} Å⁻¹
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {showTotalDensity && (
+              <div className="pt-1 border-t border-slate-800 flex items-center justify-between text-[9.5px] font-bold text-emerald-400">
+                <span>Total Density ∑P(r):</span>
+                <span>
+                  {parsedSubshells.reduce((acc, sub) => {
+                    const l = sub.type === 's' ? 0 : sub.type === 'p' ? 1 : sub.type === 'd' ? 2 : 3;
+                    return acc + calculateOrbitalRadialPdf(sub.n, l, atomicNumber, hoveredRadius) * sub.count;
+                  }, 0).toFixed(3)} Å⁻¹
                 </span>
               </div>
-            );
-          })}
+            )}
+          </div>
+        )}
+
+        {/* Slater's Rules Effective Nuclear Charge Badge */}
+        <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 bg-black/70 backdrop-blur border border-slate-800 px-2.5 py-1 rounded-xl text-[9px] font-mono text-slate-300">
+          <Zap className="w-3 h-3 text-amber-400 animate-pulse" />
+          <span>Z_eff = <strong className="text-amber-300 font-bold">{slaterZeff.Zeff.toFixed(2)}</strong></span>
+          <span className="text-slate-500 text-[8px]">(Shield S={slaterZeff.shielding.toFixed(1)})</span>
+        </div>
+
+        {/* Shell / Subshell Focus Selector Pills */}
+        <div className="absolute left-2 bottom-2 z-10 flex flex-wrap gap-1 pointer-events-auto max-w-[80%]">
+          <button
+            onClick={() => { setFocusedShell(null); setFocusedSubshell(null); }}
+            className={`px-2 py-0.5 text-[8.5px] font-mono rounded border transition-all ${
+              focusedShell === null && focusedSubshell === null 
+                ? 'bg-slate-200 text-slate-900 font-bold border-white' 
+                : 'bg-black/70 text-slate-400 border-slate-800 hover:text-white'
+            }`}
+          >
+            All Shells
+          </button>
+          {viewMode === 'radial' ? (
+            parsedSubshells.map((sub) => (
+              <button
+                key={`sub-btn-${sub.label}`}
+                onClick={() => {
+                  if (focusedSubshell === sub.label) setFocusedSubshell(null);
+                  else { setFocusedSubshell(sub.label); setFocusedShell(null); }
+                }}
+                className={`px-1.5 py-0.5 text-[8.5px] font-mono rounded border transition-all ${
+                  focusedSubshell === sub.label 
+                    ? 'bg-indigo-600 text-white font-bold border-indigo-300' 
+                    : 'bg-black/70 text-slate-400 border-slate-800 hover:text-white'
+                }`}
+                style={{ color: focusedSubshell === sub.label ? '#ffffff' : sub.color }}
+              >
+                {sub.label}
+              </button>
+            ))
+          ) : (
+            shells.map((count, i) => (
+              <button
+                key={`shell-btn-${i}`}
+                onClick={() => { setFocusedShell(i); setFocusedSubshell(null); }}
+                className={`px-2 py-0.5 text-[8.5px] font-mono rounded border transition-all ${
+                  focusedShell === i 
+                    ? 'bg-indigo-600 text-white font-bold border-indigo-400' 
+                    : 'bg-black/70 text-slate-400 border-slate-800 hover:text-white'
+                }`}
+              >
+                n={i + 1} ({count}e⁻)
+              </button>
+            ))
+          )}
         </div>
       </div>
 
-      <div className="z-10 relative mt-2 text-center bg-slate-100 dark:bg-black/40 rounded-xl p-2.5 border border-slate-200 dark:border-white/5 backdrop-blur-sm shadow-inner transition-colors duration-300 group-hover:border-indigo-500/30">
-        <span className="text-[10px] font-mono text-slate-700 dark:text-slate-300 font-bold tracking-widest">
-           {electronConfig}
+      {/* Hund's Rule Spin Box Panel (Expandable) */}
+      <AnimatePresence>
+        {showSpinBoxes && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="mb-2 p-3 bg-black/80 rounded-2xl border border-slate-800 space-y-2 overflow-x-auto"
+          >
+            <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
+              <span className="font-bold text-indigo-400 flex items-center gap-1">
+                <Atom className="w-3.5 h-3.5" /> Hund's Rule Orbital Spin Diagram
+              </span>
+              <span>1s &lt; 2s &lt; 2p &lt; 3s &lt; 3p &lt; 4s &lt; 3d</span>
+            </div>
+
+            <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
+              {parsedSubshells.map((sub, sIdx) => (
+                <button
+                  key={sIdx}
+                  onClick={() => {
+                    if (focusedSubshell === sub.label) setFocusedSubshell(null);
+                    else setFocusedSubshell(sub.label);
+                  }}
+                  className={`p-2 rounded-xl border flex flex-col items-center gap-1.5 transition-all shrink-0 ${
+                    focusedSubshell === sub.label 
+                      ? 'bg-indigo-950/80 border-indigo-500 ring-2 ring-indigo-500/30' 
+                      : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <span className="text-[10px] font-mono font-bold" style={{ color: sub.color }}>
+                    {sub.label} ({sub.count}/{sub.cap})
+                  </span>
+
+                  <div className="flex items-center gap-1">
+                    {sub.boxes.map((box, bIdx) => (
+                      <div 
+                        key={bIdx} 
+                        className="w-5 h-6 bg-black border border-slate-700 rounded flex items-center justify-center text-[10px] font-mono text-amber-400"
+                      >
+                        {box.up && box.down ? '⥮' : box.up ? '↿' : box.down ? '⇂' : ' '}
+                      </div>
+                    ))}
+                  </div>
+
+                  <span className="text-[7.5px] font-mono text-slate-500 truncate max-w-[70px]">
+                    {sub.orientations.join(', ')}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Electron Config String & Footer */}
+      <div className="z-10 relative text-center bg-black/40 rounded-xl p-2 border border-slate-800 backdrop-blur-sm">
+        <span className="text-[11px] font-mono font-bold tracking-widest text-indigo-300">
+          {electronConfig}
         </span>
       </div>
+
+      {/* Fullscreen Interactive Quantum Laboratory Modal */}
+      <AnimatePresence>
+        {isFullscreen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl p-6 flex flex-col justify-between text-white"
+          >
+            {/* Modal Top Bar */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <Atom className="w-6 h-6 text-indigo-400 animate-spin" />
+                <div>
+                  <h2 className="text-lg font-bold font-mono text-slate-100">
+                    High-Definition Quantum Laboratory — Atomic Number Z = {atomicNumber}
+                  </h2>
+                  <p className="text-xs font-mono text-slate-400">
+                    Full Wavefunction |s,p,d,f|² Probability Cloud Density & Slater Z_eff = {slaterZeff.Zeff.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleExportCSV}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-mono font-bold rounded-xl flex items-center gap-1.5 transition-colors"
+                >
+                  <DownloadCloud className="w-4 h-4" /> Export CSV
+                </button>
+                <button
+                  onClick={() => setIsFullscreen(false)}
+                  className="px-3 py-1.5 bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-200 text-xs font-mono font-bold rounded-xl transition-colors"
+                >
+                  Close Laboratory
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Canvas & Controls Grid */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-6 my-4 overflow-hidden">
+              {/* Canvas viewport */}
+              <div className="lg:col-span-3 bg-black/80 rounded-3xl border border-slate-800 relative overflow-hidden flex justify-center items-center">
+                <canvas ref={canvasRef} className="w-full h-full absolute inset-0" />
+                <div className="absolute top-4 right-4 text-xs font-mono text-slate-400 bg-black/80 px-3 py-1 rounded-xl border border-slate-800">
+                  Rotate: Left-Click Drag | Density: {cloudDensity} pts/subshell
+                </div>
+              </div>
+
+              {/* Sidebar Controls */}
+              <div className="bg-slate-900/80 rounded-3xl border border-slate-800 p-4 space-y-4 overflow-y-auto">
+                <div className="space-y-2">
+                  <label className="text-xs font-mono font-bold text-indigo-300 uppercase tracking-wider">Cloud Density</label>
+                  <div className="grid grid-cols-3 gap-1">
+                    {[100, 200, 400].map((d) => (
+                      <button
+                        key={d}
+                        onClick={() => setCloudDensity(d)}
+                        className={`py-1 text-xs font-mono font-bold rounded-lg border ${
+                          cloudDensity === d ? 'bg-indigo-600 text-white border-indigo-400' : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}
+                      >
+                        {d} pts
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-mono font-bold text-indigo-300 uppercase tracking-wider">Rendering Style</label>
+                  <button
+                    onClick={() => setColorByPhase(!colorByPhase)}
+                    className={`w-full py-2 text-xs font-mono font-bold rounded-xl border flex items-center justify-center gap-2 transition-all ${
+                      colorByPhase ? 'bg-cyan-950 text-cyan-300 border-cyan-500' : 'bg-slate-800 text-slate-300 border-slate-700'
+                    }`}
+                  >
+                    <Eye className="w-4 h-4" />
+                    {colorByPhase ? "Wave Phase (+/-)" : "Subshell Category Colors"}
+                  </button>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <label className="text-xs font-mono font-bold text-indigo-300 uppercase tracking-wider">Occupied Subshells</label>
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                    {parsedSubshells.map((sub, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          if (focusedSubshell === sub.label) setFocusedSubshell(null);
+                          else setFocusedSubshell(sub.label);
+                        }}
+                        className={`w-full p-2 rounded-xl border text-left flex items-center justify-between text-xs font-mono transition-all ${
+                          focusedSubshell === sub.label ? 'bg-indigo-950 border-indigo-500' : 'bg-slate-800/60 border-slate-800 hover:border-slate-700'
+                        }`}
+                      >
+                        <span style={{ color: sub.color }} className="font-bold">{sub.label}</span>
+                        <span className="text-slate-400">{sub.count} / {sub.cap} e⁻</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
