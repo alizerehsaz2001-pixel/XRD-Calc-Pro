@@ -249,10 +249,12 @@ async function ensurePythonDependencies() {
 }
 
 async function startServer() {
-  // Check and install missing Python packages in background during boot
-  ensurePythonDependencies().catch(err => {
-    console.error("Background python dependency validation error:", err);
-  });
+  // Check and install missing Python packages in background after server is up
+  setTimeout(() => {
+    ensurePythonDependencies().catch(err => {
+      console.error("Background python dependency validation error:", err);
+    });
+  }, 10000);
 
   const app = express();
   const PORT = 3000;

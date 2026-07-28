@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { 
   FlaskConical, 
   Zap, 
@@ -2488,6 +2489,7 @@ type TabGroup = 'All' | 'Metals & Alloys' | 'Ceramics & Refractories' | 'Polymer
 type DatabaseRef = 'All' | 'ICDD' | 'COD' | 'RRUFF' | 'ICSD' | 'CSD';
 
 export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoadMaterial }) => {
+  const { lengthUnit = 'Å' } = useSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<TabGroup>('All');
   const [activeDatabase, setActiveDatabase] = useState<DatabaseRef>('All');
@@ -2590,7 +2592,7 @@ export const TestMaterialsModule: React.FC<TestMaterialsModuleProps> = ({ onLoad
 
     const wavelengthFloat = parseFloat(newWavelength);
     if (isNaN(wavelengthFloat) || wavelengthFloat <= 0) {
-      setFormError('Please enter a valid radiation wavelength in Angstroms.');
+      setFormError(`Please enter a valid radiation wavelength.`);
       return;
     }
 
@@ -2751,7 +2753,7 @@ TEST DATA SUITE CONFIGURATION: ${preset.name}
 ====================================================
 Formula: ${preset.formula}
 Category: ${preset.category}
-Wavelength: ${preset.wavelength} Å
+Wavelength: ${convertLength(preset.wavelength, lengthUnit).toFixed(4)} ${lengthUnit}
 Description: ${preset.description}
 
 [CRYSTALLOGRAPHIC DATA]
@@ -2891,12 +2893,12 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Wavelength (Å)</label>
+                <label className="block text-[8px] font-black text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Wavelength ({lengthUnit})</label>
                 <input
                   type="number"
                   step="0.0001"
-                  value={String(newWavelength) === 'NaN' ? '' : newWavelength}
-                  onChange={e => setNewWavelength(e.target.value)}
+                  value={String(newWavelength) === 'NaN' ? '' : convertLength(Number(newWavelength), lengthUnit)}
+                  onChange={e => setNewWavelength(String(convertToAngstrom(Number(e.target.value), lengthUnit)))}
                   className="w-full px-4 py-2.5 bg-black/40 border border-emerald-500/10 rounded-xl outline-none text-xs text-white font-mono focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 focus:bg-emerald-500/5 transition-all shadow-inner"
                 />
               </div>
@@ -3282,7 +3284,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
                 <div className="flex items-center justify-between text-[10px] font-mono border-t border-white/5 pt-3 mt-auto">
                   <div className="flex items-center gap-4 text-slate-400">
                     <span className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded-md border border-white/5">
-                      <Zap className="w-3 h-3 text-amber-500" /> λ = {material.wavelength}Å
+                      <Zap className="w-3 h-3 text-amber-500" /> λ = {convertLength(material.wavelength, lengthUnit).toFixed(4)}{lengthUnit}
                     </span>
                     <span className="flex items-center gap-1.5 bg-black/20 px-2 py-0.5 rounded-md border border-white/5">
                       <Database className="w-3 h-3 text-cyan-500" /> {material.peaks.length} Refl.
@@ -3335,7 +3337,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
 
                     {/* Reflection Table */}
                     <div className="bg-[#050B14] p-3 rounded-xl border border-white/5">
-                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Bragg reflection calculations ({material.wavelength} Å):</span>
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">Bragg reflection calculations ({convertLength(material.wavelength, lengthUnit).toFixed(4)} {lengthUnit}):</span>
                       <div className="overflow-x-auto max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-800">
                         <table className="w-full text-left font-mono text-[10px]">
                           <thead>
@@ -3410,7 +3412,7 @@ Lattice Parameters: ${preset.latticeParams || 'N/A'}
       <div className="mt-6 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 relative z-10 flex items-start gap-4">
         <Info className="w-5 h-5 text-emerald-400/80 mt-0.5 shrink-0" />
         <div className="text-[10px] text-slate-400 leading-normal font-sans text-left">
-          <strong className="text-emerald-300">Reference Configuration:</strong> Database records are automatically normalized to Cu-Kα (1.5406 Å) wavelengths for synthetic indexation. You can initialize these pristine models into your active sandbox to test phase simulation, calculate precise grain morphologies, or validate structure refinement algorithms.
+          <strong className="text-emerald-300">Reference Configuration:</strong> Database records are automatically normalized to Cu-Kα ({convertLength(1.5406, lengthUnit).toFixed(4)} {lengthUnit}) wavelengths for synthetic indexation. You can initialize these pristine models into your active sandbox to test phase simulation, calculate precise grain morphologies, or validate structure refinement algorithms.
         </div>
       </div>
     </div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { parseScherrerInput, calculateMonshiScherrer } from '../utils/physics';
 import { MonshiScherrerResult } from '../types';
+import { ScientificMathControl } from './ScientificMathControl';
 import {
   ComposedChart,
   LineChart,
@@ -103,6 +105,7 @@ const MS_PRESETS = [
 ];
 
 export const MonshiScherrerModule: React.FC = () => {
+  const { lengthUnit = 'Å' } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.54056);
   const [constantK, setConstantK] = useState<number>(0.9);
   const [instrumentalMode, setInstrumentalMode] = useState<'constant' | 'caglioti'>('constant');
@@ -302,41 +305,6 @@ export const MonshiScherrerModule: React.FC = () => {
               Formulated by Monshi et al. (2012), this logarithmic modification <span className="font-mono text-cyan-300">ln(β) = ln(Kλ/D) + ln(1/cosθ)</span> avoids low-angle division errors, balances reflection weights, and identifies strain or defect contributions via the slope <span className="font-mono text-cyan-300">m</span>.
             </p>
           </div>
-
-          <div className="bg-[#050C17]/85 backdrop-blur-md p-5 rounded-2xl border border-cyan-500/30 shadow-[inset_0_0_20px_rgba(6,182,212,0.1)] lg:w-[420px] w-full shrink-0 space-y-4 hover:border-cyan-400/50 transition-colors duration-500">
-            <div className="text-center space-y-1.5">
-              <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-widest block">
-                1. Governing Linear Logarithmic Equation
-              </span>
-              <div 
-                className="text-white text-xs sm:text-sm py-2 px-3 bg-black/60 rounded-xl border border-white/10 font-mono overflow-x-auto shadow-inner"
-                dangerouslySetInnerHTML={{
-                  __html: katex.renderToString(
-                    '\\ln(\\beta) = \\ln\\left(\\frac{K \\cdot \\lambda}{D}\\right) + \\ln\\left(\\frac{1}{\\cos\\theta}\\right)',
-                    { throwOnError: false, displayMode: true }
-                  )
-                }}
-              />
-            </div>
-
-            <div className="text-center space-y-1.5 pt-2 border-t border-white/10">
-              <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-widest block">
-                2. Crystallite Size Extraction
-              </span>
-              <div 
-                className="text-emerald-300 text-xs sm:text-sm py-2 px-3 bg-black/60 rounded-xl border border-emerald-500/20 font-mono overflow-x-auto shadow-inner"
-                dangerouslySetInnerHTML={{
-                  __html: katex.renderToString(
-                    'D = \\frac{K \\cdot \\lambda}{\\exp(C)} = K \\cdot \\lambda \\cdot e^{-C}',
-                    { throwOnError: false, displayMode: true }
-                  )
-                }}
-              />
-              <p className="text-[10px] text-slate-400 font-mono mt-1.5">
-                Where Intercept C = ln(K·λ / D), Slope m ≈ 1.0 (Ideal)
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -425,27 +393,27 @@ export const MonshiScherrerModule: React.FC = () => {
                 {/* Wavelength Picker */}
                 <div className="group/input">
                   <label className="block text-xs font-semibold text-slate-300 mb-2 group-hover/input:text-cyan-300 transition-colors">
-                    X-Ray Radiation Wavelength (λ) [Å]
+                    X-Ray Radiation Wavelength (λ) [{lengthUnit}]
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
-                      value={wavelength}
-                      onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                      value={convertLength(wavelength, lengthUnit)}
+                      onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
                       className="w-full px-3 py-2 bg-black/40 text-cyan-300 border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-cyan-500/50 hover:border-white/20 transition-colors cursor-pointer appearance-none shadow-inner"
                     >
                       {XRAY_WAVELENGTHS.map((w) => (
-                        <option key={w.label} value={w.value}>
-                          {w.label} ({w.value} Å)
+                        <option key={w.label} value={convertLength(w.value, lengthUnit)}>
+                          {w.label} ({convertLength(w.value, lengthUnit).toFixed(4)} {lengthUnit})
                         </option>
                       ))}
                     </select>
                     <input
                       type="number"
                       step="0.00001"
-                      value={wavelength}
-                      onChange={(e) => setWavelength(parseFloat(e.target.value) || 1.54056)}
+                      value={convertLength(wavelength, lengthUnit)}
+                      onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value) || 1.54056, lengthUnit))}
                       className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-cyan-500/50 hover:border-white/20 transition-colors shadow-inner"
-                      placeholder="Custom Å"
+                      placeholder={`Custom ${lengthUnit}`}
                     />
                   </div>
                 </div>
@@ -940,11 +908,30 @@ export const MonshiScherrerModule: React.FC = () => {
           
           {/* Main Key Metrics Overview */}
           {result ? (
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-            >
+            <>
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+                <ScientificMathControl
+                  title="Monshi-Scherrer Logarithmic Transformation"
+                  formula="\ln(\beta) = \ln\left(\frac{K \lambda}{D}\right) + \ln\left(\frac{1}{\cos\theta}\right)"
+                  description="Logarithmic linear transformation. The intercept yields crystallite size (D) without low-angle division errors, and the slope (ideally 1.0) can indicate strain or defects."
+                  variables={[
+                    { symbol: 'm', name: 'Regression Slope (m)', value: result.slope, unit: '' },
+                    { symbol: 'C', name: 'Log Intercept (C)', value: result.intercept, unit: '' },
+                    { symbol: 'R²', name: 'Linear Fit Quality', value: result.rSquared, unit: '' },
+                    { symbol: 'K', name: 'Shape Factor', value: constantK, unit: '' },
+                    { symbol: 'λ', name: 'Wavelength', value: wavelength, unit: lengthUnit }
+                  ]}
+                  result={result.sizeNm}
+                  resultUnit="nm"
+                  resultName="Crystallite Grain Size (D)"
+                />
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+              >
               
               {/* Monshi-Scherrer Crystallite Size D */}
               <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-cyan-500/30 shadow-[0_8px_30px_rgba(6,182,212,0.1)] relative overflow-hidden group hover:border-cyan-400/60 transition-colors duration-500">
@@ -958,13 +945,13 @@ export const MonshiScherrerModule: React.FC = () => {
                 </div>
                 <div className="flex items-baseline gap-2 mt-1 relative z-10">
                   <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-cyan-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-                    {result.sizeNm.toFixed(2)}
+                    {convertLength(result.sizeNm * 10, lengthUnit).toFixed(2)}
                   </span>
-                  <span className="text-cyan-300 text-sm font-mono font-semibold">nm</span>
+                  <span className="text-cyan-300 text-sm font-mono font-semibold">{lengthUnit}</span>
                 </div>
                 <div className="mt-4 pt-3 border-t border-cyan-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                  <div className="flex justify-between"><span>Length:</span> <span className="text-slate-200 font-bold">{(result.sizeNm * 10).toFixed(1)} Å</span></div>
-                  <div className="flex justify-between"><span>Mean Single-Peak:</span> <span className="text-slate-200 font-bold">{meanSinglePeakSize.toFixed(2)} nm</span></div>
+                  <div className="flex justify-between"><span>Length:</span> <span className="text-slate-200 font-bold">{convertLength(result.sizeNm * 10, lengthUnit).toFixed(2)} {lengthUnit}</span></div>
+                  <div className="flex justify-between"><span>Mean Single-Peak:</span> <span className="text-slate-200 font-bold">{convertLength(meanSinglePeakSize * 10, lengthUnit).toFixed(2)} {lengthUnit}</span></div>
                 </div>
               </div>
 
@@ -1012,6 +999,7 @@ export const MonshiScherrerModule: React.FC = () => {
                 </div>
               </div>
             </motion.div>
+            </>
           ) : (
             <div className="bg-[#080E1A]/90 p-8 rounded-3xl border border-dashed border-white/20 text-center text-slate-400 space-y-2">
               <HelpCircle className="w-8 h-8 text-cyan-400 mx-auto animate-bounce" />

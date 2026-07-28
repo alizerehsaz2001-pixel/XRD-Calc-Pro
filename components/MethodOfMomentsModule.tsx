@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { parseMomentInput, calculateMethodOfMoments } from '../utils/physics';
 import { MethodOfMomentsResult, MomentDataPoint } from '../types';
+import { ScientificMathControl } from './ScientificMathControl';
 import {
   ComposedChart,
   LineChart,
@@ -90,6 +92,7 @@ const MOMENT_PRESETS = [
 ];
 
 export const MethodOfMomentsModule: React.FC = () => {
+  const { lengthUnit = 'Å' } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.54056);
   const [twoTheta0, setTwoTheta0] = useState<number>(28.55);
   const [instrumentalMode, setInstrumentalMode] = useState<'constant' | 'caglioti'>('constant');
@@ -329,41 +332,6 @@ export const MethodOfMomentsModule: React.FC = () => {
               Separates crystallite size and microstrain by analyzing profile variance <span className="font-mono text-indigo-300">W</span> and kurtosis <span className="font-mono text-indigo-300">μ₄</span> across integration ranges <span className="font-mono text-indigo-300">σ</span>. The linear slope yields reciprocal domain size <span className="font-mono text-indigo-300">(1/D_V)</span>, while quadratic curvature gives mean-square strain <span className="font-mono text-indigo-300">⟨ε²⟩</span>.
             </p>
           </div>
-
-          <div className="bg-[#050C17]/85 backdrop-blur-md p-5 rounded-2xl border border-indigo-500/30 shadow-[inset_0_0_20px_rgba(99,102,241,0.1)] lg:w-[460px] w-full shrink-0 space-y-4 hover:border-indigo-400/50 transition-colors duration-500">
-            <div className="text-center space-y-1.5">
-              <span className="text-[10px] font-mono text-indigo-400 font-bold uppercase tracking-widest block">
-                1. Profile Variance Definition
-              </span>
-              <div 
-                className="text-white text-xs sm:text-sm py-2 px-3 bg-black/60 rounded-xl border border-white/10 font-mono overflow-x-auto shadow-inner"
-                dangerouslySetInnerHTML={{
-                  __html: katex.renderToString(
-                    'W(\\sigma) = \\frac{\\int_{-\\sigma}^{\\sigma} (2\\theta - 2\\theta_0)^2 I(2\\theta) \\, d(2\\theta)}{\\int_{-\\sigma}^{\\sigma} I(2\\theta) \\, d(2\\theta)}',
-                    { throwOnError: false, displayMode: true }
-                  )
-                }}
-              />
-            </div>
-
-            <div className="text-center space-y-1.5 pt-2 border-t border-white/10">
-              <span className="text-[10px] font-mono text-purple-400 font-bold uppercase tracking-widest block">
-                2. Linear-Quadratic Variance-Range Relation
-              </span>
-              <div 
-                className="text-purple-300 text-xs sm:text-sm py-2 px-3 bg-black/60 rounded-xl border border-purple-500/20 font-mono overflow-x-auto shadow-inner"
-                dangerouslySetInnerHTML={{
-                  __html: katex.renderToString(
-                    'W(\\sigma) = W_0 + \\frac{\\lambda \\cdot \\sigma}{\\pi^2 D_V \\cos\\theta_0} + 4 \\langle\\epsilon^2\\rangle \\tan^2\\theta_0 \\cdot \\sigma^2',
-                    { throwOnError: false, displayMode: true }
-                  )
-                }}
-              />
-              <p className="text-[10px] text-slate-400 font-mono mt-1">
-                Linear Slope K₁ ∝ 1/D_V, Curvature K₂ ∝ ⟨ε²⟩
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -452,27 +420,27 @@ export const MethodOfMomentsModule: React.FC = () => {
                 {/* X-Ray Wavelength */}
                 <div className="group/input">
                   <label className="block text-xs font-semibold text-slate-300 mb-2 group-hover/input:text-indigo-300 transition-colors">
-                    Radiation Wavelength (λ) [Å]
+                    Radiation Wavelength (λ) [{lengthUnit}]
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
-                      value={wavelength}
-                      onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                      value={convertLength(wavelength, lengthUnit)}
+                      onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
                       className="w-full px-3 py-2 bg-black/40 text-indigo-300 border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors cursor-pointer appearance-none shadow-inner"
                     >
                       {XRAY_WAVELENGTHS.map((w) => (
-                        <option key={w.label} value={w.value}>
-                          {w.label} ({w.value} Å)
+                        <option key={w.label} value={convertLength(w.value, lengthUnit)}>
+                          {w.label} ({convertLength(w.value, lengthUnit).toFixed(4)} {lengthUnit})
                         </option>
                       ))}
                     </select>
                     <input
                       type="number"
                       step="0.00001"
-                      value={wavelength}
-                      onChange={(e) => setWavelength(parseFloat(e.target.value) || 1.54056)}
+                      value={convertLength(wavelength, lengthUnit)}
+                      onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value) || 1.54056, lengthUnit))}
                       className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors shadow-inner"
-                      placeholder="Custom Å"
+                      placeholder={`Custom ${lengthUnit}`}
                     />
                   </div>
                 </div>
@@ -878,11 +846,28 @@ export const MethodOfMomentsModule: React.FC = () => {
           
           {/* Main Key Metrics */}
           {result ? (
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-            >
+            <>
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+                <ScientificMathControl
+                  title="Variance-Range Analysis"
+                  formula="W(\sigma) = W_0 + \frac{\lambda \sigma}{\pi^2 D_V \cos\theta_0} + 4 \langle\epsilon^2\rangle \tan^2\theta_0 \cdot \sigma^2"
+                  description="Separates crystallite size and microstrain by analyzing profile variance W across integration ranges σ. Linear slope gives domain size, quadratic curvature gives strain."
+                  variables={[
+                    { symbol: 'D_V', name: 'Volume Size', value: convertLength(result.sizeNm * 10, lengthUnit), unit: lengthUnit },
+                    { symbol: '⟨ε²⟩', name: 'Mean-Square Strain', value: (result.rmsStrain * result.rmsStrain) * 10000, unit: 'x10⁻⁴' },
+                    { symbol: 'K_1', name: 'Linear Slope (Size)', value: result.slopeK1, unit: '' },
+                    { symbol: 'K_2', name: 'Curvature (Strain)', value: result.quadraticK2, unit: '' }
+                  ]}
+                  result={convertLength(result.sizeNm * 10, lengthUnit)}
+                  resultUnit={lengthUnit}
+                  resultName="D_V (Volume Size)"
+                />
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+              >
               
               {/* Volume-Weighted Crystallite Size D_V */}
               <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/30 shadow-[0_8px_30px_rgba(99,102,241,0.1)] relative overflow-hidden group hover:border-indigo-400/60 transition-colors duration-500">
@@ -949,6 +934,7 @@ export const MethodOfMomentsModule: React.FC = () => {
                 </div>
               </div>
             </motion.div>
+            </>
           ) : (
             <div className="bg-[#080E1A]/90 p-8 rounded-3xl border border-dashed border-white/20 text-center text-slate-400 space-y-2">
               <HelpCircle className="w-8 h-8 text-indigo-400 mx-auto animate-bounce" />

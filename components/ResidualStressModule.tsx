@@ -35,6 +35,8 @@ import {
   Area
 } from 'recharts';
 
+import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
+
 interface DataPoint {
   id: string;
   psi: number; // Tilt angle in degrees
@@ -135,7 +137,8 @@ const AnimatedNumber = ({ value, prefix = '', suffix = '', decimals = 1, classNa
 };
 
 export const ResidualStressModule: React.FC = () => {
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => 
+    const { lengthUnit = 'Å' } = useSettings();
+    const [isDarkMode, setIsDarkMode] = useState<boolean>(() => 
     typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : false
   );
 
@@ -414,13 +417,13 @@ export const ResidualStressModule: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-800/80">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Wavelength λ (Å)
+                    Wavelength λ ({lengthUnit})
                   </label>
                   <input 
                     type="number"
                     step="0.0001"
-                    value={wavelength}
-                    onChange={e => setWavelength(Number(e.target.value))}
+                    value={convertLength(wavelength, lengthUnit)}
+                    onChange={e => setWavelength(convertToAngstrom(Number(e.target.value), lengthUnit))}
                     className="w-full px-3 py-2 text-sm font-mono font-bold bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                   />
                 </div>
@@ -592,7 +595,7 @@ export const ResidualStressModule: React.FC = () => {
                 </div>
                 <div className="text-xl font-black text-slate-700 dark:text-slate-300 font-mono tracking-tighter relative z-10 flex items-baseline">
                   {analysisResult ? <AnimatedNumber value={analysisResult.slope * 1000} decimals={3} /> : '---'}
-                  <span className="text-[10px] text-slate-400 font-normal ml-1">×10⁻³ Å</span>
+                  <span className="text-[10px] text-slate-400 font-normal ml-1">×10⁻³ {lengthUnit}</span>
                 </div>
               </div>
             </div>
@@ -615,7 +618,7 @@ export const ResidualStressModule: React.FC = () => {
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
-                  d-Spacing (Å)
+                  d-Spacing ({lengthUnit})
                 </button>
                 <button
                   onClick={() => setViewMode('microstrain')}
@@ -657,7 +660,7 @@ export const ResidualStressModule: React.FC = () => {
                       tickFormatter={(val) => viewMode === 'dSpacing' ? val.toFixed(4) : Math.round(val).toString()}
                       axisLine={{ stroke: isDarkMode ? '#334155' : '#e2e8f0', strokeWidth: 2 }}
                       label={{ 
-                        value: viewMode === 'dSpacing' ? 'Interplanar Spacing d (Å)' : 'Lattice Strain (με)', 
+                        value: viewMode === 'dSpacing' ? `Interplanar Spacing d (${lengthUnit})` : 'Lattice Strain (με)', 
                         angle: -90, 
                         position: 'insideLeft', 
                         offset: -10, 
@@ -679,8 +682,8 @@ export const ResidualStressModule: React.FC = () => {
                       }}
                       formatter={(value: number, name: string) => {
                         if (viewMode === 'dSpacing') {
-                          if (name === 'dSpacing') return [`${value.toFixed(5)} Å`, 'Measured d'];
-                          if (name === 'fittedD') return [`${value.toFixed(5)} Å`, 'Linear Fit'];
+                          if (name === 'dSpacing') return [`${convertLength(value, lengthUnit).toFixed(5)} ${lengthUnit}`, 'Measured d'];
+                          if (name === 'fittedD') return [`${convertLength(value, lengthUnit).toFixed(5)} ${lengthUnit}`, 'Linear Fit'];
                         } else {
                           if (name === 'microstrain') return [`${value.toFixed(1)} με`, 'Measured Strain'];
                           if (name === 'fittedMicrostrain') return [`${value.toFixed(1)} με`, 'Linear Fit Strain'];
@@ -699,7 +702,7 @@ export const ResidualStressModule: React.FC = () => {
                         strokeDasharray="4 4"
                         strokeWidth={2}
                         label={{ 
-                          value: viewMode === 'dSpacing' ? `d₀ = ${analysisResult.d0.toFixed(4)} Å` : 'd₀ Reference (0 με)', 
+                          value: viewMode === 'dSpacing' ? `d₀ = ${convertLength(analysisResult.d0, lengthUnit).toFixed(4)} ${lengthUnit}` : 'd₀ Reference (0 με)', 
                           fill: isDarkMode ? '#94a3b8' : '#64748b', 
                           fontSize: 12, 
                           position: 'insideTopLeft',

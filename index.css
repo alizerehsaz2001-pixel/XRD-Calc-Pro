@@ -96,7 +96,7 @@
   background-color: #000 !important;
   border: 1px solid var(--color-cyber-accent) !important;
   color: var(--color-cyber-accent) !important;
-  font-family: 'Courier New', Courier, monospace !important;
+  font-family: 'Times New Roman', Times, Georgia, serif !important;
 }
 
 .cyberpunk input:focus, 
@@ -178,10 +178,19 @@
   accent-color: var(--color-cyber-blue) !important;
 }
 
+* {
+  font-family: 'Times New Roman', Times, Georgia, serif !important;
+}
+
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  font-family: 'Times New Roman', Times, Georgia, serif !important;
+}
+
+button, input, select, textarea, code, pre, span, div, p, h1, h2, h3, h4, h5, h6 {
+  font-family: 'Times New Roman', Times, Georgia, serif !important;
 }
 
 html {
@@ -231,7 +240,7 @@ body {
   --chart-ref: #33ff00;
   background-color: var(--color-term-bg);
   color: var(--color-term-fg);
-  font-family: 'Courier New', Courier, monospace !important;
+  font-family: 'Times New Roman', Times, Georgia, serif !important;
 }
 .terminal aside { background-color: #050505 !important; border-right-color: var(--color-term-fg) !important; }
 .terminal .bg-white, .terminal .bg-slate-50, .terminal .bg-slate-100 { background-color: #050505 !important; }
@@ -240,7 +249,7 @@ body {
 .terminal .bg-indigo-600, .terminal .bg-violet-500, .terminal .bg-violet-600 { background-color: var(--color-term-dim) !important; color: #000 !important; }
 .terminal .text-indigo-600, .terminal .text-indigo-400, .terminal .text-violet-600, .terminal .text-violet-500, .terminal .text-violet-400 { color: var(--color-term-fg) !important; }
 .terminal .bg-slate-900, .terminal .bg-slate-950 { background-color: #000 !important; border: 1px solid var(--color-term-dim) !important; }
-.terminal input, .terminal textarea, .terminal select { background-color: #000 !important; border: 1px solid var(--color-term-fg) !important; color: var(--color-term-fg) !important; font-family: 'Courier New', Courier, monospace !important; }
+.terminal input, .terminal textarea, .terminal select { background-color: #000 !important; border: 1px solid var(--color-term-fg) !important; color: var(--color-term-fg) !important; font-family: 'Times New Roman', Times, Georgia, serif !important; }
 .terminal input:focus, .terminal textarea:focus { box-shadow: 0 0 5px var(--color-term-fg) !important; outline: none !important; }
 .terminal .text-slate-400, .terminal .text-slate-500, .terminal .text-slate-300 { color: var(--color-term-dim) !important; }
 .terminal .rounded-xl, .terminal .rounded-2xl { border-radius: 0 !important; }
@@ -248,7 +257,7 @@ body {
 .terminal .from-indigo-500, .terminal .via-slate-200, .terminal .to-slate-400 { background-image: none !important; color: var(--color-term-fg) !important; }
 .terminal .text-transparent.bg-clip-text { background-clip: unset !important; -webkit-background-clip: unset !important; color: var(--color-term-fg) !important; }
 .terminal .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-term-dim); border-radius: 0; }
-.terminal * { font-family: 'Courier New', Courier, monospace !important; }
+.terminal * { font-family: 'Times New Roman', Times, Georgia, serif !important; }
 
 /* Custom Animations */
 @keyframes scan {

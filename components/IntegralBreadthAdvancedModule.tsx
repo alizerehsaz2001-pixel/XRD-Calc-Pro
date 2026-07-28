@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { parseIBAdvancedInput, calculateIBAdvanced, XRAY_WAVELENGTHS } from '../utils/physics';
 import { IBAdvancedResult } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
@@ -72,6 +73,7 @@ const K_FACTORS = [
 ];
 
 export const IntegralBreadthAdvancedModule: React.FC = () => {
+  const { lengthUnit = 'Å' } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
   const [instBetaIB, setInstBetaIB] = useState<number>(0.1);
@@ -283,17 +285,17 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
               <div className="space-y-4">
                 <div className="relative z-20" ref={menuRef}>
                   <label className="block text-[10px] font-black text-slate-500 mb-2 uppercase tracking-[0.2em]">
-                    Source Wavelength (Å)
+                    Source Wavelength ({lengthUnit})
                   </label>
                   <div className="relative">
                     <input
                       type="number"
                       step="0.0001"
-                      value={String(wavelength) === 'NaN' ? '' : wavelength}
-                      onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                      value={String(wavelength) === 'NaN' ? '' : convertLength(wavelength, lengthUnit)}
+                      onChange={(e) => setWavelength(convertToAngstrom(Number(e.target.value), lengthUnit))}
                       className="w-full px-4 py-2.5 bg-[#0A101C] text-pink-300 border border-white/10 focus:border-pink-500/50 rounded-lg focus:ring-1 focus:ring-pink-500/20 outline-none font-mono text-sm transition-all shadow-inner"
                     />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] font-black text-slate-700">Å</div>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] font-black text-slate-700">{lengthUnit}</div>
                   </div>
                   <div className="mt-3 grid grid-cols-4 gap-1.5">
                     {Object.entries(XRAY_WAVELENGTHS).slice(0, 4).map(([name, val]) => (
@@ -819,7 +821,7 @@ export const IntegralBreadthAdvancedModule: React.FC = () => {
             description="Uniform Deformation Model (UDM) formulation displaying the linear regression line parameters (slope translates to strain, intercept translates to crystallite size)."
             variables={[
               { symbol: 'Slope (4ε)', name: 'Microstrain Regression Factor', value: result.regression.slope, unit: '' },
-              { symbol: 'Intercept (c)', name: 'Reciprocal Dimension Intercept', value: result.regression.intercept, unit: 'Å⁻¹' },
+              { symbol: 'Intercept (c)', name: 'Reciprocal Dimension Intercept', value: result.regression.intercept, unit: `${lengthUnit}⁻¹` },
               { symbol: 'R²', name: 'Least-Squares Fit Confidence', value: result.regression.rSquared, unit: '' },
               { symbol: 'E', name: 'Material Young\'s Modulus', value: youngsModulusGPa, unit: 'GPa' }
             ]}

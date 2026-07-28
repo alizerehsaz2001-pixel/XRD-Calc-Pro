@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { parseDoubleVoigtInput, calculateDoubleVoigt } from '../utils/physics';
 import { DoubleVoigtResult } from '../types';
+import { ScientificMathControl } from './ScientificMathControl';
 import {
   ComposedChart,
   LineChart,
@@ -88,6 +90,7 @@ const DV_PRESETS = [
 ];
 
 export const DoubleVoigtModule: React.FC = () => {
+  const { lengthUnit = 'Å' } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.54056);
   const [instFwhm, setInstFwhm] = useState<number>(0.06);
   const [instrumentalMode, setInstrumentalMode] = useState<'constant' | 'caglioti'>('constant');
@@ -331,38 +334,6 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
               Deconvolutes size and strain broadening into Voigt functions in reciprocal space <span className="font-mono text-indigo-300">(s = 2sinθ / λ)</span>. By separating Cauchy and Gaussian components, it extracts volume-weighted <span className="font-mono text-indigo-300">(D_V)</span> and area-weighted <span className="font-mono text-indigo-300">(D_A)</span> sizes alongside root-mean-square microstrains.
             </p>
           </div>
-
-          <div className="bg-[#050C17]/85 backdrop-blur-md p-5 rounded-2xl border border-indigo-500/30 shadow-[inset_0_0_20px_rgba(99,102,241,0.1)] lg:w-[420px] w-full shrink-0 space-y-4 hover:border-indigo-400/50 transition-colors duration-500">
-            <div className="text-center space-y-1.5">
-              <span className="text-[10px] font-mono text-indigo-400 font-bold uppercase tracking-widest block">
-                1. Cauchy Reciprocal Linear Relation
-              </span>
-              <div 
-                className="text-white text-xs sm:text-sm py-2 px-3 bg-black/60 rounded-xl border border-white/10 font-mono overflow-x-auto shadow-inner"
-                dangerouslySetInnerHTML={{
-                  __html: katex.renderToString(
-                    '\\beta_C^*(s) = \\frac{1}{D_V} + 2 e_C \\cdot s',
-                    { throwOnError: false, displayMode: true }
-                  )
-                }}
-              />
-            </div>
-
-            <div className="text-center space-y-1.5 pt-2 border-t border-white/10">
-              <span className="text-[10px] font-mono text-purple-400 font-bold uppercase tracking-widest block">
-                2. Gaussian Reciprocal Linear Relation
-              </span>
-              <div 
-                className="text-purple-300 text-xs sm:text-sm py-2 px-3 bg-black/60 rounded-xl border border-purple-500/20 font-mono overflow-x-auto shadow-inner"
-                dangerouslySetInnerHTML={{
-                  __html: katex.renderToString(
-                    '(\\beta_G^*(s))^2 = \\left(\\frac{1}{\\pi D_G}\\right)^2 + 8\\pi e_G^2 \\cdot s^2',
-                    { throwOnError: false, displayMode: true }
-                  )
-                }}
-              />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -451,27 +422,27 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                 {/* Wavelength Picker */}
                 <div className="group/input">
                   <label className="block text-xs font-semibold text-slate-300 mb-2 group-hover/input:text-indigo-300 transition-colors">
-                    X-Ray Radiation Wavelength (λ) [Å]
+                    X-Ray Radiation Wavelength (λ) [{lengthUnit}]
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
-                      value={wavelength}
-                      onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                      value={convertLength(wavelength, lengthUnit)}
+                      onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
                       className="w-full px-3 py-2 bg-black/40 text-indigo-300 border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors cursor-pointer appearance-none shadow-inner"
                     >
                       {XRAY_WAVELENGTHS.map((w) => (
-                        <option key={w.label} value={w.value}>
-                          {w.label} ({w.value} Å)
+                        <option key={w.label} value={convertLength(w.value, lengthUnit)}>
+                          {w.label} ({convertLength(w.value, lengthUnit).toFixed(4)} {lengthUnit})
                         </option>
                       ))}
                     </select>
                     <input
                       type="number"
                       step="0.00001"
-                      value={wavelength}
-                      onChange={(e) => setWavelength(parseFloat(e.target.value) || 1.54056)}
+                      value={convertLength(wavelength, lengthUnit)}
+                      onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value) || 1.54056, lengthUnit))}
                       className="w-full px-3 py-2 bg-black/40 text-white border border-white/10 rounded-xl text-xs font-mono outline-none focus:border-indigo-500/50 hover:border-white/20 transition-colors shadow-inner"
-                      placeholder="Custom Å"
+                      placeholder={`Custom ${lengthUnit}`}
                     />
                   </div>
                 </div>
@@ -860,11 +831,28 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
           
           {/* Key Microstructural Results */}
           {result ? (
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-            >
+            <>
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+                <ScientificMathControl
+                  title="Double-Voigt Extrapolation"
+                  formula="\begin{aligned} \beta_C^*(s) &= \frac{1}{D_V} + 2e_C s \\ (\beta_G^*(s))^2 &= \left(\frac{1}{\pi D_G}\right)^2 + 8\pi e_G^2 s^2 \end{aligned}"
+                  description="Deconvolutes instrumental broadening and separates structural effects into Cauchy (crystallite size) and Gaussian (microstrain) components."
+                  variables={[
+                    { symbol: 'D_V', name: 'Volume Size', value: convertLength(result.volumeSizeDvNm * 10, lengthUnit), unit: lengthUnit },
+                    { symbol: 'D_G', name: 'Gaussian Size', value: convertLength(result.gaussianSizeDgNm * 10, lengthUnit), unit: lengthUnit },
+                    { symbol: 'e_C', name: 'Cauchy Strain', value: result.cauchyStrainEc * 100, unit: '%' },
+                    { symbol: 'e_G', name: 'Gaussian Strain', value: result.gaussianStrainEg * 100, unit: '%' }
+                  ]}
+                  result={convertLength(result.volumeSizeDvNm * 10, lengthUnit)}
+                  resultUnit={lengthUnit}
+                  resultName="D_V (Volume-Weighted Size)"
+                />
+              </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+              >
               
               {/* Volume-Weighted Size D_V */}
               <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-indigo-500/30 shadow-[0_8px_30px_rgba(99,102,241,0.1)] relative overflow-hidden group hover:border-indigo-400/60 transition-colors duration-500">
@@ -878,13 +866,13 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                 </div>
                 <div className="flex items-baseline gap-2 mt-1 relative z-10">
                   <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-indigo-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(99,102,241,0.3)]">
-                    {result.volumeSizeDvNm.toFixed(2)}
+                    {convertLength(result.volumeSizeDvNm * 10, lengthUnit).toFixed(2)}
                   </span>
-                  <span className="text-indigo-300 text-sm font-mono font-semibold">nm</span>
+                  <span className="text-indigo-300 text-sm font-mono font-semibold">{lengthUnit}</span>
                 </div>
                 <div className="mt-4 pt-3 border-t border-indigo-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                  <div className="flex justify-between"><span>Area Size D_A:</span> <span className="text-slate-200 font-bold">{result.areaSizeDaNm.toFixed(2)} nm</span></div>
-                  <div className="flex justify-between"><span>Gaussian Size D_G:</span> <span className="text-slate-200 font-bold">{result.gaussianSizeDgNm.toFixed(2)} nm</span></div>
+                  <div className="flex justify-between"><span>Area Size D_A:</span> <span className="text-slate-200 font-bold">{convertLength(result.areaSizeDaNm * 10, lengthUnit).toFixed(2)} {lengthUnit}</span></div>
+                  <div className="flex justify-between"><span>Gaussian Size D_G:</span> <span className="text-slate-200 font-bold">{convertLength(result.gaussianSizeDgNm * 10, lengthUnit).toFixed(2)} {lengthUnit}</span></div>
                 </div>
               </div>
 
@@ -932,6 +920,7 @@ e_C &= ${(result.cauchyStrainEc * 100).toFixed(4)}\\%, \\quad e_G = ${(result.ga
                 </div>
               </div>
             </motion.div>
+            </>
           ) : (
             <div className="bg-[#080E1A]/90 p-8 rounded-3xl border border-dashed border-white/20 text-center text-slate-400 space-y-2">
               <HelpCircle className="w-8 h-8 text-indigo-400 mx-auto animate-bounce" />

@@ -3,7 +3,7 @@ import { ScherrerInput, ScherrerResult } from '../types';
 import { parseScherrerInput, calculateScherrer, XRAY_WAVELENGTHS } from '../utils/physics';
 import { Info, BookOpen, AlertTriangle, ChevronDown, Check, Atom, Binary, ShieldQuestion, Settings, Ruler, FlaskConical, Database, Network, Activity, Zap, Download, BarChart2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useSettings } from './SettingsContext';
+import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { MorphologyVisualizer } from './MorphologyVisualizer';
 import { ScientificMathControl } from './ScientificMathControl';
@@ -67,7 +67,7 @@ const SCHERRER_PRESETS = [
 ];
 
 export const ScherrerModule: React.FC = () => {
-  const { precision } = useSettings();
+  const { precision, lengthUnit = 'Å' } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.5406);
   const [constantK, setConstantK] = useState<number>(0.9);
   const [instFwhm, setInstFwhm] = useState<number>(0.1); // Instrumental broadening
@@ -423,7 +423,7 @@ export const ScherrerModule: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Ruler className="w-3.5 h-3.5 text-amber-400" />
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Source Wavelength [Å]
+                    Source Wavelength [{lengthUnit}]
                   </label>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -442,8 +442,8 @@ export const ScherrerModule: React.FC = () => {
                   <input
                     type="number"
                     step="0.0001"
-                    value={String(wavelength) === 'NaN' ? '' : wavelength}
-                    onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                    value={String(wavelength) === 'NaN' ? '' : convertLength(wavelength, lengthUnit)}
+                    onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
                     className="w-full pl-24 pr-4 py-4 bg-black/60 text-amber-400 border border-slate-700/50 focus:border-amber-500/50 rounded-2xl focus:ring-2 focus:ring-amber-500/20 outline-none font-mono text-base font-black transition-all placeholder:text-slate-700 shadow-inner"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
@@ -458,14 +458,14 @@ export const ScherrerModule: React.FC = () => {
                       key={name}
                       onClick={() => setWavelength(val)}
                       className={`py-2 px-1 rounded-xl border text-[8px] font-black uppercase tracking-tight transition-all active:scale-90 flex flex-col items-center justify-center gap-1
-                        ${wavelength === val 
+                        ${Math.abs(wavelength - val) < 0.0001 
                           ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' 
                           : 'bg-black/20 border-slate-700/50 text-slate-500 hover:border-slate-600 hover:text-slate-400'
                         }
                       `}
                     >
                       <span className="truncate w-full text-center">{name.replace(' Kα', '').replace(' (avg)', '')}</span>
-                      <span className="opacity-50 text-[6px]">{val.toFixed(3)}</span>
+                      <span className="opacity-50 text-[6px]">{convertLength(val, lengthUnit).toFixed(lengthUnit === 'nm' ? 4 : 2)} {lengthUnit}</span>
                     </button>
                   ))}
                 </div>
@@ -887,7 +887,7 @@ export const ScherrerModule: React.FC = () => {
             description="Scientific mathematical verification showing exact values fed into the generalized Scherrer calculation for the first recorded diffraction peak."
             variables={[
               { symbol: 'K', name: 'Shape Factor', value: constantK, unit: '' },
-              { symbol: 'λ', name: 'Wavelength', value: wavelength, unit: 'Å' },
+              { symbol: 'λ', name: 'Wavelength', value: convertLength(wavelength, lengthUnit), unit: lengthUnit },
               { symbol: 'β', name: 'Broadening', value: ((results[0].fwhmObs - instFwhm) * Math.PI / 180), unit: 'rad' },
               { symbol: 'θ', name: 'Bragg Angle', value: ((results[0].twoTheta / 2) * Math.PI / 180), unit: 'rad' }
             ]}

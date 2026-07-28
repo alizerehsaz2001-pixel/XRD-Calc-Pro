@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { NeutronAtom, NeutronResult, StandardWavelength, LatticeParameters, CrystalSystem } from '../types';
 import { calculateNeutronDiffraction, calculateXRayDiffraction, NEUTRON_SCATTERING_LENGTHS, ATOMIC_NUMBERS, NEUTRON_WAVELENGTHS, calculateCellVolume } from '../utils/physics';
 import { ScientificMathControl } from './ScientificMathControl';
@@ -110,6 +111,7 @@ const INCOHERENT_CROSS_SECTIONS: Record<string, number> = {
 };
 
 export const NeutronModule: React.FC = () => {
+  const { lengthUnit = 'Å' } = useSettings();
   const [wavelength, setWavelength] = useState<number>(1.54); 
   const [availableWavelengths, setAvailableWavelengths] = useState<StandardWavelength[]>([
     { label: 'Thermal', value: 1.54, type: 'Neutron' },
@@ -574,7 +576,7 @@ export const NeutronModule: React.FC = () => {
               </div>
               <div className="space-y-2">
                  <div className="flex justify-between items-center">
-                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength (Å)</label>
+                   <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Wavelength ({lengthUnit})</label>
                    <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/5 text-[9px] font-black text-blue-400 hover:bg-blue-500/10 transition-colors uppercase tracking-widest border border-blue-500/20">
                      <Zap className={`w-2.5 h-2.5 ${isSyncing ? 'animate-pulse' : ''}`} /> Sync
                    </button>
@@ -583,11 +585,11 @@ export const NeutronModule: React.FC = () => {
                    <input
                     type="number"
                     step="0.01"
-                    value={String(wavelength) === 'NaN' ? '' : wavelength}
-                    onChange={(e) => setWavelength(parseFloat(e.target.value))}
+                    value={String(wavelength) === 'NaN' ? '' : convertLength(wavelength, lengthUnit)}
+                    onChange={(e) => setWavelength(convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
                     className="w-full px-4 py-3 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-2xl text-sm font-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all group-hover:border-slate-700 shadow-inner"
                    />
-                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-700 uppercase tracking-widest">Å</span>
+                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-700 uppercase tracking-widest">{lengthUnit}</span>
                  </div>
                  <div className="mt-3 grid grid-cols-2 gap-2">
                    {Object.entries(NEUTRON_WAVELENGTHS).map(([name, val]) => (
@@ -595,7 +597,7 @@ export const NeutronModule: React.FC = () => {
                        key={name}
                        onClick={() => setWavelength(val)}
                        className={`py-1.5 px-2 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all
-                         ${wavelength === val 
+                         ${Math.abs(wavelength - val) < 0.0001 
                            ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' 
                            : 'bg-black/20 border-slate-800 text-slate-500 hover:text-slate-400 hover:border-slate-700'
                          }
@@ -618,13 +620,13 @@ export const NeutronModule: React.FC = () => {
                       { axis: 'c', disabled: ['Cubic'].includes(crystalSystem) }
                     ].map((item) => (
                       <div key={item.axis} className="space-y-1.5">
-                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{item.axis} (Å)</label>
+                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">{item.axis} ({lengthUnit})</label>
                         <input
                           type="number"
                           step="0.01"
                           disabled={item.disabled}
-                          value={String(lattice[item.axis as keyof LatticeParameters]) === 'NaN' ? '' : lattice[item.axis as keyof LatticeParameters]}
-                          onChange={(e) => handleLatticeChange(item.axis as keyof LatticeParameters, parseFloat(e.target.value))}
+                          value={String(lattice[item.axis as keyof LatticeParameters]) === 'NaN' ? '' : convertLength(Number(lattice[item.axis as keyof LatticeParameters]), lengthUnit)}
+                          onChange={(e) => handleLatticeChange(item.axis as keyof LatticeParameters, convertToAngstrom(parseFloat(e.target.value), lengthUnit))}
                           className={`w-full px-3 py-2 bg-slate-950/50 text-blue-400 border border-slate-800 rounded-xl text-xs font-black font-mono focus:ring-2 focus:ring-blue-500/50 outline-none transition-all ${item.disabled ? 'opacity-40 cursor-not-allowed bg-slate-900 border-dashed' : 'hover:border-slate-700'}`}
                         />
                       </div>
@@ -779,7 +781,7 @@ export const NeutronModule: React.FC = () => {
            <div className="grid grid-cols-2 gap-4 relative z-10 text-left">
              <div className="bg-[#070D18]/70 p-3 rounded-2xl border border-white/5">
                 <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider block">Cell Volume</span>
-                <span className="text-xs font-mono font-black text-blue-400 block mt-1">{cellVolume.toFixed(2)} <span className="text-[9px] text-slate-600 font-sans font-bold">Å³</span></span>
+                <span className="text-xs font-mono font-black text-blue-400 block mt-1">{(cellVolume * Math.pow(convertLength(1, lengthUnit), 3)).toFixed(2)} <span className="text-[9px] text-slate-600 font-sans font-bold">{lengthUnit}³</span></span>
              </div>
              
              <div className="bg-[#070D18]/70 p-3 rounded-2xl border border-white/5">
@@ -811,7 +813,7 @@ export const NeutronModule: React.FC = () => {
           formula="E = \frac{81.8048}{\lambda^2}"
           description="Calculate and verify the kinetic energy of a neutron in meV corresponding to its thermal de Broglie wavelength."
           variables={[
-            { symbol: 'λ', name: 'Neutron Wavelength', value: wavelength, unit: 'Å' }
+            { symbol: 'λ', name: 'Neutron Wavelength', value: convertLength(wavelength, lengthUnit), unit: lengthUnit }
           ]}
           result={wavelength !== 0 ? 81.8048 / (wavelength * wavelength) : 0}
           resultUnit="meV"
@@ -959,7 +961,7 @@ export const NeutronModule: React.FC = () => {
                                       <div className="w-full h-px bg-slate-800/60 my-2" />
                                       <p className="text-slate-500 text-[10px] font-mono flex justify-between">
                                          <span>d-Spacing:</span>
-                                         <span>{d.dSpacing.toFixed(3)} Å</span>
+                                         <span>{convertLength(d.dSpacing, lengthUnit).toFixed(3)} {lengthUnit}</span>
                                       </p>
                                     </div>
                                   </div>
@@ -1118,7 +1120,7 @@ export const NeutronModule: React.FC = () => {
                           <div className="w-full h-px bg-slate-200 dark:bg-slate-800/80 my-1" />
                           <div className="flex justify-between items-center text-[10px] font-mono text-slate-600 dark:text-slate-400">
                              <span className="font-bold">Calculated Volume</span>
-                             <span className="text-blue-600 dark:text-blue-400 font-black bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-500/20">{calculateCellVolume ? calculateCellVolume(lattice).toFixed(2) : (lattice.a*lattice.b*lattice.c).toFixed(2)} Å³</span>
+                             <span className="text-blue-600 dark:text-blue-400 font-black bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-500/20">{calculateCellVolume ? (calculateCellVolume(lattice) * Math.pow(convertLength(1, lengthUnit), 3)).toFixed(2) : (lattice.a*lattice.b*lattice.c * Math.pow(convertLength(1, lengthUnit), 3)).toFixed(2)} {lengthUnit}³</span>
                           </div>
                        </div>
                        <p className="text-[10px] italic text-slate-500 font-medium bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-200 dark:border-slate-700/50">
@@ -1350,7 +1352,7 @@ export const NeutronModule: React.FC = () => {
                     <tr>
                        <th className="px-5 py-4 font-black border-b border-slate-800">HKL Plane</th>
                        <th className="px-5 py-4 font-black border-b border-slate-800 text-center">2θ (°)</th>
-                       <th className="px-5 py-4 font-black border-b border-slate-800 text-center">d (Å)</th>
+                       <th className="px-5 py-4 font-black border-b border-slate-800 text-center">d ({lengthUnit})</th>
                        <th className="px-5 py-4 font-black border-b border-slate-800 text-right">|F|²</th>
                        <th className="px-5 py-4 font-black border-b border-slate-800 text-right text-blue-400">Int %</th>
                        {comparisonMode && (
@@ -1367,7 +1369,7 @@ export const NeutronModule: React.FC = () => {
                             <span className="opacity-30 ml-1 text-[10px]">]</span>
                           </td>
                           <td className="px-5 py-3 text-slate-400 font-medium text-center">{r.twoTheta.toFixed(2)}</td>
-                          <td className="px-5 py-3 text-slate-500 font-medium font-mono text-center">{r.dSpacing.toFixed(3)}</td>
+                          <td className="px-5 py-3 text-slate-500 font-medium font-mono text-center">{convertLength(r.dSpacing, lengthUnit).toFixed(3)}</td>
                           <td className="px-5 py-3 text-right font-mono text-xs text-slate-400">
                              {r.F_squared.toFixed(1)}
                           </td>
