@@ -4252,41 +4252,68 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                 )}
 
                 {/* Query Input Grid */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex-1 flex flex-col gap-1.5 focus-within:text-blue-400 transition-colors">
-                    <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 transition-colors">
-                      {t('Search keywords or molecular category', 'Search keywords or molecular category')}
-                    </label>
-                    <div className="relative group">
-                      <input
-                        type="text"
-                        placeholder={t('e.g. SrTiO3 cubic perovskite, conducting polymers, heavy fermions...', 'e.g. SrTiO3 cubic perovskite, conducting polymers, heavy fermions...')}
-                        value={globalSearch}
-                        onChange={e => setGlobalSearch(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleGlobalSearch(); }}
-                        className="w-full pl-11 pr-4 py-3 bg-black/60 border border-white/10 hover:border-white/20 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder-slate-500 text-slate-200 outline-none rounded-xl text-[12px] font-mono shadow-inner"
-                      />
-                      <Search className="w-4 h-4 text-slate-500 group-focus-within:text-blue-400 transition-colors absolute left-4 top-3.5" />
+                <div className="flex flex-col gap-2.5">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1 flex flex-col gap-1.5 focus-within:text-blue-400 transition-colors">
+                      <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 ml-1 transition-colors">
+                        {t('Search keywords or molecular category', 'Search keywords or molecular category')}
+                      </label>
+                      <div className="relative group">
+                        <input
+                          type="text"
+                          placeholder={t('e.g. SrTiO3 cubic perovskite, conducting polymers, heavy fermions...', 'e.g. SrTiO3 cubic perovskite, conducting polymers, heavy fermions...')}
+                          value={globalSearch}
+                          onChange={e => setGlobalSearch(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleGlobalSearch(); }}
+                          className="w-full pl-11 pr-4 py-3 bg-black/60 border border-white/10 hover:border-white/20 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder-slate-500 text-slate-200 outline-none rounded-xl text-[12px] font-mono shadow-inner"
+                        />
+                        <Search className="w-4 h-4 text-slate-500 group-focus-within:text-blue-400 transition-colors absolute left-4 top-3.5" />
+                      </div>
                     </div>
+
+                    <button
+                      onClick={handleGlobalSearch}
+                      disabled={isGlobalSearching}
+                      className="sm:self-end px-7 py-3 bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 disabled:from-blue-900/60 disabled:to-slate-800 disabled:text-slate-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 border border-blue-400/30 active:scale-95"
+                    >
+                      {isGlobalSearching ? (
+                        <>
+                          <Atom className="w-4 h-4 animate-spin text-white" />
+                          <span className="text-white font-black">{t('Searching Registry...', 'Searching Registry...')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Database className="w-4 h-4 text-white" />
+                          <span className="text-white font-black">{t('Search & Live Sync', 'Search & Live Sync')}</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
-                  <button
-                    onClick={handleGlobalSearch}
-                    disabled={isGlobalSearching}
-                    className="sm:self-end px-7 py-3 bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 disabled:from-blue-900/60 disabled:to-slate-800 disabled:text-slate-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 border border-blue-400/30 active:scale-95"
-                  >
-                    {isGlobalSearching ? (
-                      <>
-                        <Atom className="w-4 h-4 animate-spin text-white" />
-                        <span className="text-white font-black">{t('Searching Registry...', 'Searching Registry...')}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Database className="w-4 h-4 text-white" />
-                        <span className="text-white font-black">{t('Search & Live Sync', 'Search & Live Sync')}</span>
-                      </>
-                    )}
-                  </button>
+                  {/* Quick Preset Keyword Chips */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[8.5px] font-mono text-slate-500 uppercase tracking-wider font-bold">Suggested Terms:</span>
+                    {[
+                      { label: "SrTiO3 Perovskite", query: "SrTiO3 cubic perovskite" },
+                      { label: "YBCO Superconductor", query: "YBa2Cu3O7 YBCO superconductor" },
+                      { label: "GaN Bandgap", query: "GaN wurtzite semiconductor" },
+                      { label: "Li7La3Zr2O12 Garnet", query: "LLZO Li7La3Zr2O12 solid electrolyte" },
+                      { label: "Inconel 625 Alloy", query: "Inconel 625 superalloy" },
+                      { label: "Hydroxyapatite", query: "Calcium Hydroxyapatite bioceramic" }
+                    ].map((chip, cIdx) => (
+                      <button
+                        key={cIdx}
+                        type="button"
+                        onClick={() => {
+                          setGlobalSearch(chip.query);
+                          playSynthTone('click');
+                        }}
+                        className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/60 rounded-lg text-[9px] font-mono transition-all hover:border-blue-500/50 hover:text-blue-300 cursor-pointer"
+                      >
+                        + {chip.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Success Indicator */}
@@ -4652,7 +4679,36 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
                       </div>
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-1">
+                    <div className="flex justify-end gap-2 pt-1 flex-wrap">
+                      <button
+                        onClick={() => {
+                          const cifText = `data_${inspectingResult.formula.replace(/[^a-zA-Z0-9]/g, '_')}
+# Crystallographic Information File (CIF) generated by XRD Calc Pro
+_chemical_name_common '${inspectingResult.name}'
+_chemical_formula_structural '${inspectingResult.formula}'
+_cell_length_a 5.4307
+_cell_length_b 5.4307
+_cell_length_c 5.4307
+_cell_angle_alpha 90.00
+_cell_angle_beta 90.00
+_cell_angle_gamma 90.00
+_symmetry_space_group_name_H-M '${inspectingResult.spaceGroup || 'P1'}'
+_cell_volume 160.18
+_exptl_crystal_density_diffrn ${inspectingResult.density?.toFixed(3) || '0.000'}
+
+loop_
+_pd_peak_intensity_2theta
+_pd_peak_intensity_value
+${getDSpacingsFromPattern(inspectingResult.pattern, xrdWavelength).map(p => `${p.twoTheta.toFixed(3)} ${p.intensity.toFixed(1)}`).join('\n')}`;
+                          
+                          navigator.clipboard.writeText(cifText);
+                          alert(`CIF Crystallographic data for "${inspectingResult.name}" copied to clipboard!`);
+                          playSynthTone('switch');
+                        }}
+                        className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] uppercase font-mono font-bold rounded-xl cursor-pointer transition-colors flex items-center gap-1.5"
+                      >
+                        <Copy className="w-3 h-3 text-slate-400" /> Copy CIF Data
+                      </button>
                       <button
                         onClick={() => {
                           if (blendPhaseA === null) {

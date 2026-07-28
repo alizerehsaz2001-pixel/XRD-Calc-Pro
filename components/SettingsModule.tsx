@@ -7,7 +7,8 @@ import {
   Save, Check, AlertCircle, Wrench, Microscope, Compass,
   Key, ExternalLink, RefreshCw, CheckCircle2,
   Upload, Download, Trash2, FileCode, Send, Terminal,
-  ChevronRight, Building2, Mail, ShieldAlert, ShieldCheck
+  ChevronRight, Building2, Mail, ShieldAlert, ShieldCheck,
+  Search, Eye, EyeOff, Play, SlidersHorizontal, Layers, Copy, X, HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
@@ -75,6 +76,12 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   const isFa = i18n.language === 'fa';
 
   const [activeTab, setActiveTab] = useState<'general'|'calibration'|'identity'|'databases'|'system'>('general');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [converterInput, setConverterInput] = useState<number>(1.5406);
+  const [soundTestTone, setSoundTestTone] = useState<string | null>(null);
+  const [copiedBadge, setCopiedBadge] = useState(false);
   const [pyStatus, setPyStatus] = useState<{ ready: boolean; logs: string[] } | null>(null);
   const [pyStatusLoading, setPyStatusLoading] = useState(false);
   const [pySelectedScript, setPySelectedScript] = useState<string | null>(null);
@@ -681,15 +688,15 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
   };
 
   const themeOptions = [
-    { id: 'light', label: 'Light Lux', color: 'bg-slate-100', text: 'text-slate-900', border: 'border-slate-300' },
-    { id: 'dark', label: 'Dark Matter', color: 'bg-slate-900', text: 'text-white', border: 'border-slate-700' },
-    { id: 'cyberpunk', label: 'Cyber Net', color: 'bg-black', text: 'text-yellow-400', border: 'border-yellow-500' },
-    { id: 'terminal', label: 'Mainframe', color: 'bg-black', text: 'text-green-500', border: 'border-green-500' },
-    { id: 'synthwave', label: 'Neon City', color: 'bg-indigo-950', text: 'text-pink-500', border: 'border-pink-500' },
-    { id: 'dracula', label: 'Vampire Night', color: 'bg-[#282a36]', text: 'text-[#bd93f9]', border: 'border-[#ff79c6]' },
-    { id: 'oceanic', label: 'Deep Ocean', color: 'bg-[#0f172a]', text: 'text-[#38bdf8]', border: 'border-[#818cf8]' },
-    { id: 'gruvbox', label: 'Gruvbox', color: 'bg-[#282828]', text: 'text-[#ebdbb2]', border: 'border-[#d3869b]' },
-    { id: 'monokai', label: 'Monokai', color: 'bg-[#272822]', text: 'text-[#f8f8f2]', border: 'border-[#f92672]' }
+    { id: 'light', label: 'Light Lux', desc: 'Clean high-contrast light layout', bgBg: 'bg-slate-100', cardBg: 'bg-white', accentBg: 'bg-indigo-600', textCol: 'text-slate-900', borderCol: 'border-slate-300' },
+    { id: 'dark', label: 'Dark Matter', desc: 'Sleek dark slate workspace', bgBg: 'bg-slate-950', cardBg: 'bg-slate-900', accentBg: 'bg-indigo-500', textCol: 'text-white', borderCol: 'border-slate-700' },
+    { id: 'cyberpunk', label: 'Cyber Net', desc: 'High contrast yellow & dark', bgBg: 'bg-black', cardBg: 'bg-zinc-900', accentBg: 'bg-yellow-400', textCol: 'text-yellow-400', borderCol: 'border-yellow-500' },
+    { id: 'terminal', label: 'Mainframe', desc: 'Matrix green phosphor terminal', bgBg: 'bg-black', cardBg: 'bg-zinc-950', accentBg: 'bg-emerald-500', textCol: 'text-emerald-400', borderCol: 'border-emerald-500' },
+    { id: 'synthwave', label: 'Neon City', desc: 'Vibrant neon purple & magenta', bgBg: 'bg-indigo-950', cardBg: 'bg-purple-900/60', accentBg: 'bg-pink-500', textCol: 'text-pink-400', borderCol: 'border-pink-500' },
+    { id: 'dracula', label: 'Vampire Night', desc: 'Popular purple dark palette', bgBg: 'bg-[#1e1f29]', cardBg: 'bg-[#282a36]', accentBg: 'bg-[#ff79c6]', textCol: 'text-[#bd93f9]', borderCol: 'border-[#ff79c6]' },
+    { id: 'oceanic', label: 'Deep Ocean', desc: 'Calming navy and cyan hues', bgBg: 'bg-[#0b132b]', cardBg: 'bg-[#0f172a]', accentBg: 'bg-[#38bdf8]', textCol: 'text-[#38bdf8]', borderCol: 'border-[#38bdf8]' },
+    { id: 'gruvbox', label: 'Gruvbox', desc: 'Retro warm earthy tones', bgBg: 'bg-[#1d2021]', cardBg: 'bg-[#282828]', accentBg: 'bg-[#fe8019]', textCol: 'text-[#ebdbb2]', borderCol: 'border-[#fe8019]' },
+    { id: 'monokai', label: 'Monokai', desc: 'Rich contrast code editor theme', bgBg: 'bg-[#1e1f1c]', cardBg: 'bg-[#272822]', accentBg: 'bg-[#f92672]', textCol: 'text-[#f8f8f2]', borderCol: 'border-[#f92672]' }
   ];
 
   const wavelengthPresets = [
@@ -717,11 +724,11 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       className="max-w-6xl mx-auto space-y-6 p-4 md:p-8 pb-16 font-sans text-slate-900 dark:text-slate-100"
     >
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-2">
         <div className="flex items-center gap-5">
-          <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20 relative group">
+          <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-600/20 relative group shrink-0">
             <Settings className="w-7 h-7 group-hover:rotate-90 transition-transform duration-500" />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
+            <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
           </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
@@ -733,29 +740,90 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex items-center gap-3 shadow-sm min-w-[140px]">
-             <div className="p-1.5 bg-emerald-500/10 rounded-lg">
-               <Zap className="w-4 h-4 text-emerald-500" />
-             </div>
-             <div className="flex flex-col">
-               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{t('Diffraction')}</span>
-               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{t('Connected')}</span>
-             </div>
+        {/* Search & Quick Actions Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative min-w-[240px]">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('Search settings (e.g. unit, wavelength, theme...)...')}
+              className="w-full pl-10 pr-8 py-2.5 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-medium text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 flex items-center gap-3 shadow-sm min-w-[140px]">
-             <div className="p-1.5 bg-indigo-500/10 rounded-lg">
-               <Activity className="w-4 h-4 text-indigo-500" />
-             </div>
-             <div className="flex flex-col">
-               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{t('Calibration')}</span>
-               <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                 {sampleOffsetThetaMock ? t('Active offsets') : t('Perfect Zero')}
-               </span>
-             </div>
+
+          <div className="flex gap-2.5">
+            <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-2 flex items-center gap-2.5 shadow-sm min-w-[125px]">
+               <div className="p-1.5 bg-emerald-500/10 rounded-lg shrink-0">
+                 <Zap className="w-4 h-4 text-emerald-500" />
+               </div>
+               <div className="flex flex-col">
+                 <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">{t('Diffraction')}</span>
+                 <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{t('Connected')}</span>
+               </div>
+            </div>
+            <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-2 flex items-center gap-2.5 shadow-sm min-w-[125px]">
+               <div className="p-1.5 bg-indigo-500/10 rounded-lg shrink-0">
+                 <Activity className="w-4 h-4 text-indigo-500" />
+               </div>
+               <div className="flex flex-col">
+                 <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">{t('Calibration')}</span>
+                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                   {sampleOffsetThetaMock ? t('Active offsets') : t('Perfect Zero')}
+                 </span>
+               </div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Quick Jump Search Suggestions Bar */}
+      {searchQuery.trim() !== '' && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl p-3 flex flex-wrap items-center gap-2 text-xs"
+        >
+          <span className="font-bold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5 mr-1">
+            <SlidersHorizontal className="w-3.5 h-3.5" /> Quick Jumps:
+          </span>
+          {[
+            { tag: 'unit', tab: 'general', label: 'Global Length Unit' },
+            { tag: 'precision', tab: 'general', label: 'Decimal Precision' },
+            { tag: 'theme', tab: 'general', label: 'Workspace Theme' },
+            { tag: 'wavelength', tab: 'calibration', label: 'Radiation Wavelength' },
+            { tag: 'zero', tab: 'calibration', label: 'Zero Shift Calibration' },
+            { tag: 'operator', tab: 'identity', label: 'Operator Profile' },
+            { tag: 'key', tab: 'databases', label: 'Gemini API Key' },
+            { tag: 'python', tab: 'general', label: 'Python Tools' },
+            { tag: 'cpu', tab: 'system', label: 'Machine Telemetry' },
+            { tag: 'reset', tab: 'system', label: 'Factory Reset' },
+          ]
+            .filter(item => item.tag.includes(searchQuery.toLowerCase()) || item.label.toLowerCase().includes(searchQuery.toLowerCase()))
+            .map((match) => (
+              <button
+                key={match.label}
+                onClick={() => {
+                  setActiveTab(match.tab as any);
+                  setSearchQuery('');
+                  playSynthTone('tick');
+                }}
+                className="px-2.5 py-1 bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 font-semibold rounded-xl border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+              >
+                {match.label} →
+              </button>
+            ))}
+        </motion.div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         
@@ -937,6 +1005,32 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           );
                         })}
                       </div>
+
+                      {/* Live Unit Converter Box */}
+                      <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                            <Beaker className="w-3.5 h-3.5 text-indigo-500" /> Live Unit Conversion Calculator
+                          </span>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            Test unit scaling for any lattice d-spacing or wavelength value.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={converterInput}
+                            onChange={(e) => setConverterInput(parseFloat(e.target.value) || 0)}
+                            className="w-24 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                          />
+                          <div className="text-xs font-mono space-x-2 text-indigo-600 dark:text-indigo-400 font-semibold">
+                            <span>= {(converterInput * 0.1).toFixed(5)} nm</span>
+                            <span>•</span>
+                            <span>= {(converterInput * 100).toFixed(2)} pm</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Theme Configuration */}
@@ -945,28 +1039,49 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                         <label className="text-sm font-medium text-slate-900 dark:text-slate-200 block mb-1">{t('Workspace Theme')}</label>
                         <p className="text-xs text-slate-500 dark:text-slate-400">{t('Choose a color palette for your environment')}</p>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {themeOptions.map((tOption) => (
-                          <button
-                            key={tOption.id}
-                            onClick={() => {
-                              setTheme(tOption.id as any);
-                              playSynthTone('switch');
-                            }}
-                            className={`flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all ${
-                              theme === tOption.id
-                                ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 shadow-sm'
-                                : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 hover:border-indigo-300'
-                            }`}
-                          >
-                            <div className={`w-12 h-12 rounded-full ${tOption.color} ${tOption.border} border-2 flex items-center justify-center shadow-inner`}>
-                               {theme === tOption.id && <Check className={`w-5 h-5 ${tOption.text}`} />}
-                            </div>
-                            <span className={`text-xs font-semibold ${theme === tOption.id ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400'}`}>
-                              {t(tOption.label)}
-                            </span>
-                          </button>
-                        ))}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
+                        {themeOptions.map((tOption) => {
+                          const isSelected = theme === tOption.id;
+                          return (
+                            <button
+                              key={tOption.id}
+                              onClick={() => {
+                                setTheme(tOption.id as any);
+                                playSynthTone('switch');
+                              }}
+                              className={`flex flex-col p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden group ${
+                                isSelected
+                                  ? 'border-indigo-600 bg-indigo-50/90 dark:bg-indigo-950/40 ring-2 ring-indigo-500/30 shadow-md'
+                                  : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 hover:border-indigo-400 dark:hover:border-indigo-700'
+                              }`}
+                            >
+                              {/* Mini UI Palette Bar Preview */}
+                              <div className={`w-full h-8 rounded-xl ${tOption.bgBg} ${tOption.borderCol} border p-1.5 flex items-center justify-between mb-3 shadow-inner`}>
+                                <div className="flex items-center gap-1.5">
+                                  <div className={`w-3.5 h-3.5 rounded-full ${tOption.cardBg} border border-white/20`} />
+                                  <div className={`w-3.5 h-3.5 rounded-full ${tOption.accentBg}`} />
+                                </div>
+                                <span className={`text-[10px] font-mono font-bold ${tOption.textCol}`}>Aa</span>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h4 className={`text-xs font-bold ${isSelected ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-800 dark:text-slate-200'}`}>
+                                    {t(tOption.label)}
+                                  </h4>
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                    {t(tOption.desc)}
+                                  </p>
+                                </div>
+                                {isSelected && (
+                                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                                    <Check className="w-3 h-3 stroke-[3]" />
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1027,6 +1142,48 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                           />
                         </button>
                       </div>
+
+                      {/* Sound Test Matrix */}
+                      {soundEnabled && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="p-4 bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        >
+                          <div>
+                            <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5">
+                              <Volume2 className="w-3.5 h-3.5 text-indigo-500" /> Audio Synthesizer Tester
+                            </span>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              Test acoustic frequencies in your browser's Web Audio API context.
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {[
+                              { id: 'tick', label: 'Tick Tone' },
+                              { id: 'switch', label: 'Switch Tone' },
+                              { id: 'success', label: 'Success Chime' }
+                            ].map((sTone) => (
+                              <button
+                                key={sTone.id}
+                                onClick={() => {
+                                  playSynthTone(sTone.id as any);
+                                  setSoundTestTone(sTone.id);
+                                  setTimeout(() => setSoundTestTone(null), 600);
+                                }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border ${
+                                  soundTestTone === sTone.id
+                                    ? 'bg-indigo-600 text-white border-indigo-600 scale-105'
+                                    : 'bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-600 hover:text-white'
+                                }`}
+                              >
+                                <Play className="w-3 h-3 fill-current" />
+                                {sTone.label}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
 
                       <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700/50">
                         <div className="flex items-center gap-4">
@@ -1357,6 +1514,76 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                       />
                       <p className="text-xs text-slate-500 mt-2">{t('Focusing circle radius used for calculating displacement offsets.')}</p>
                     </div>
+
+                    {/* Interactive Optical Alignment Diagram */}
+                    <div className="p-5 bg-slate-950 text-slate-200 rounded-2xl border border-slate-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5">
+                          <Compass className="w-4 h-4 text-emerald-400 animate-spin" style={{ animationDuration: '10s' }} />
+                          Goniometer Optical Alignment Vector Schematic
+                        </span>
+                        <button
+                          onClick={() => {
+                            setZeroShift(0);
+                            setSampleDisplacement(0);
+                            setGoniometerRadius(240);
+                            playSynthTone('switch');
+                          }}
+                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono rounded-lg transition-colors"
+                        >
+                          Reset to Factory Zero
+                        </button>
+                      </div>
+
+                      <div className="relative w-full h-44 bg-slate-900/90 rounded-xl overflow-hidden border border-slate-800/80 flex items-center justify-center">
+                        <svg className="w-full h-full" viewBox="0 0 400 180">
+                          {/* Radial Grid lines */}
+                          <circle cx="200" cy="150" r={Math.min(130, Math.max(60, goniometerRadius * 0.45))} fill="none" stroke="#334155" strokeDasharray="3,3" strokeWidth="1" />
+                          <line x1="200" y1="150" x2="60" y2="50" stroke="#475569" strokeWidth="1" strokeDasharray="2,2" />
+                          <line x1="200" y1="150" x2="340" y2="50" stroke="#475569" strokeWidth="1" strokeDasharray="2,2" />
+
+                          {/* Base Sample Stage line */}
+                          <line x1="140" y1={150 + sampleDisplacement * 150} x2="260" y2={150 + sampleDisplacement * 150} stroke="#10b981" strokeWidth="3" strokeLinecap="round" />
+                          
+                          {/* Incident Beam Tube */}
+                          <line x1="60" y1="50" x2="200" y2={150 + sampleDisplacement * 150} stroke="#38bdf8" strokeWidth="2" strokeDasharray="4,2" />
+                          <circle cx="60" cy="50" r="8" fill="#0284c7" stroke="#38bdf8" strokeWidth="2" />
+                          <text x="35" y="35" fill="#38bdf8" fontSize="10" fontFamily="monospace" fontWeight="bold">X-Ray Tube</text>
+
+                          {/* Diffracted Beam Vector with Zero Shift Angle */}
+                          <line 
+                            x1="200" 
+                            y1={150 + sampleDisplacement * 150} 
+                            x2={340 + zeroShift * 80} 
+                            y2={50 - zeroShift * 40} 
+                            stroke="#f59e0b" 
+                            strokeWidth="2.5" 
+                          />
+                          <circle cx={340 + zeroShift * 80} cy={50 - zeroShift * 40} r="9" fill="#d97706" stroke="#f59e0b" strokeWidth="2" />
+                          <text x={310 + zeroShift * 80} y={30 - zeroShift * 40} fill="#f59e0b" fontSize="10" fontFamily="monospace" fontWeight="bold">Detector Arc</text>
+
+                          {/* Zero Shift Arc Highlight */}
+                          {Math.abs(zeroShift) > 0.001 && (
+                            <path 
+                              d={`M 340 50 A 130 130 0 0 ${zeroShift > 0 ? 1 : 0} ${340 + zeroShift * 80} ${50 - zeroShift * 40}`} 
+                              fill="none" 
+                              stroke="#ef4444" 
+                              strokeWidth="3" 
+                            />
+                          )}
+
+                          {/* Center Sample Stage Node */}
+                          <circle cx="200" cy={150 + sampleDisplacement * 150} r="5" fill="#10b981" />
+                          <text x="180" y="172" fill="#94a3b8" fontSize="9" fontFamily="monospace">
+                            s = {sampleDisplacement.toFixed(3)} mm
+                          </text>
+                        </svg>
+
+                        <div className="absolute bottom-2 left-3 text-[10px] font-mono text-slate-400 bg-slate-950/80 px-2 py-0.5 rounded border border-slate-800">
+                          R = {goniometerRadius} mm • Δ2θ = {zeroShift > 0 ? `+${zeroShift.toFixed(3)}` : zeroShift.toFixed(3)}°
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1392,18 +1619,44 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                     ))}
                   </div>
 
-                  <div className="pt-5 border-t border-slate-100 dark:border-slate-800">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-200 block mb-2">{t('Custom Wavelength Override')}</label>
-                    <div className="flex gap-2 max-w-sm">
-                      <input 
-                        type="number" step="0.00001"
-                        value={String(defaultWavelength) === 'NaN' ? '' : defaultWavelength}
-                        onChange={(e) => setDefaultWavelength(parseFloat(e.target.value) || 0)}
-                        className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-medium outline-none focus:border-amber-500 transition-all text-slate-900 dark:text-white"
-                      />
-                      <span className="bg-slate-100 dark:bg-slate-800 px-4 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-500">
-                        Å
-                      </span>
+                  <div className="pt-5 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-200 block mb-1">{t('Custom Wavelength Override')}</label>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Directly override the active X-ray tube wavelength emission</p>
+                      </div>
+                      <div className="flex gap-2 max-w-xs shrink-0">
+                        <input 
+                          type="number" step="0.00001"
+                          value={String(defaultWavelength) === 'NaN' ? '' : defaultWavelength}
+                          onChange={(e) => setDefaultWavelength(parseFloat(e.target.value) || 0)}
+                          className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-medium outline-none focus:border-amber-500 transition-all text-slate-900 dark:text-white"
+                        />
+                        <span className="bg-slate-100 dark:bg-slate-800 px-4 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-500">
+                          Å
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Interactive Bragg Angle Calculator */}
+                    <div className="p-4 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <span className="text-xs font-bold text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+                          <Hash className="w-3.5 h-3.5 text-amber-500" /> Bragg Angle Quick Simulator (n=1)
+                        </span>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Calculates $2\theta = 2\cdot \arcsin(\lambda / 2d)$ for selected source wavelength ({defaultWavelength.toFixed(4)} Å).
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">d-spacing:</span>
+                          <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">2.000 Å</span>
+                        </div>
+                        <div className="p-2 bg-amber-500 text-white rounded-xl font-mono text-xs font-bold shadow-sm">
+                          2θ = {(2 * Math.asin(Math.min(1, defaultWavelength / (2 * 2.0))) * (180 / Math.PI)).toFixed(3)}°
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1785,13 +2038,22 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                             {customApiKey && <button onClick={handleClearCustomKey} className="text-xs font-medium text-rose-500 hover:text-rose-600">{t('Clear Key')}</button>}
                           </div>
                           <div className="flex gap-2">
-                            <input 
-                              type="password"
-                              value={customApiKey}
-                              onChange={(e) => setCustomApiKey(e.target.value)}
-                              placeholder={hasSystemKey ? t("Using system environment key") : t("Paste your API key here...")}
-                              className="flex-1 p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white outline-none focus:border-fuchsia-500"
-                            />
+                            <div className="relative flex-1">
+                              <input 
+                                type={showApiKey ? 'text' : 'password'}
+                                value={customApiKey}
+                                onChange={(e) => setCustomApiKey(e.target.value)}
+                                placeholder={hasSystemKey ? t("Using system environment key") : t("Paste your API key here...")}
+                                className="w-full pl-3 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono text-slate-900 dark:text-white outline-none focus:border-fuchsia-500"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowApiKey(!showApiKey)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                              >
+                                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
                             <button
                               onClick={() => handleVerifyAndSaveKey(customApiKey)} disabled={authStatus === 'checking'}
                               className="px-5 bg-slate-900 dark:bg-slate-700 text-white rounded-xl text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-600 disabled:opacity-50 transition-colors"
@@ -2105,7 +2367,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
                             {t('Wipe all local cache entries, operator IDs, configuration profiles, and unsaved datasets. This action cannot be undone.')}
                           </p>
                           <button
-                            onClick={handleHardReset}
+                            onClick={() => setShowResetModal(true)}
                             className="w-full py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm shadow-rose-500/20"
                           >
                             <Trash2 className="w-4 h-4" /> {t('Reset to Factory Defaults')}
@@ -2119,6 +2381,54 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Confirmation Modal for Hard Reset */}
+      <AnimatePresence>
+        {showResetModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-5"
+            >
+              <div className="flex items-center gap-4 text-rose-600 dark:text-rose-400">
+                <div className="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Confirm Hard Reset</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Laboratory Diagnostic Hardware Wipe</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Are you sure you want to trigger a laboratory diagnostic hardware wipe? This restores factory calibrations, clears API credentials, and erases cached session profiles in local storage.
+              </p>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={() => setShowResetModal(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowResetModal(false);
+                    localStorage.clear();
+                    playSynthTone('switch');
+                    window.location.reload();
+                  }}
+                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl transition-colors shadow-lg shadow-rose-600/20 flex items-center justify-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Wipe & Reload
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
