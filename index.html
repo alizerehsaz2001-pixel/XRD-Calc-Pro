@@ -7,6 +7,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>XRD-Calc Pro | Diffraction Analytics</title>
     <script>
+      // Suppress benign Vite dev-server WebSocket connection log noise in container preview environment
+      (function() {
+        const origError = console.error;
+        const origWarn = console.warn;
+        console.error = function(...args) {
+          if (args[0] && typeof args[0] === 'string' && (args[0].includes('WebSocket') || args[0].includes('[vite]'))) {
+            return;
+          }
+          origError.apply(console, args);
+        };
+        console.warn = function(...args) {
+          if (args[0] && typeof args[0] === 'string' && (args[0].includes('WebSocket') || args[0].includes('[vite]'))) {
+            return;
+          }
+          origWarn.apply(console, args);
+        };
+      })();
+
       // Safe Storage Polyfills for sandboxed iframes and privacy-focused browsers
       (function() {
         function checkStorage(type) {

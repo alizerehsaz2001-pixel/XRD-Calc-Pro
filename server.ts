@@ -1298,7 +1298,8 @@ Provide a step-by-step strategy for the refinement of this specific system. Outl
     const vite = await createViteServer({
       server: { 
         middlewareMode: true,
-        hmr: false
+        hmr: false,
+        ws: false
       },
       appType: "spa",
     });
