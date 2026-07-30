@@ -4,6 +4,7 @@ import {
   Settings, ChevronRight, CheckCircle, Database, RefreshCw, Upload, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { PhysicalResidualCorrectionsModule } from './PhysicalResidualCorrectionsModule';
 
 interface RietveldRFactorCalculatorProps {
   livePatternData?: Array<{
@@ -394,6 +395,11 @@ export const RietveldRFactorCalculator: React.FC<RietveldRFactorCalculatorProps>
                 The computed profiles use <span className="font-bold text-white">{livePatternData.length} discrete 2θ steps</span>. 
                 As you realign structural scales or temperature factors in the main panel, the residuals Rp and Rwp dynamically update. 
                 Use this control to evaluate local convergence.
+              </div>
+
+              {/* Physical Residual Corrections Advisor */}
+              <div className="mt-6">
+                <PhysicalResidualCorrectionsModule data={livePatternData} />
               </div>
             </motion.div>
           )}

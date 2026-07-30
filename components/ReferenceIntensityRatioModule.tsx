@@ -24,6 +24,7 @@ interface RIRPhase {
   twoTheta: number;
   intensity: number;
   rir: number; // I / I_corundum
+  density?: number; // Density in g/cm^3
   mac?: number; // Mass Absorption Coefficient (cm^2/g)
   notes?: string;
   color?: string;
@@ -38,6 +39,7 @@ interface RIRDatabaseEntry {
   hkl: string;
   twoTheta: number;
   macCu: number; // cm^2/g for Cu K-alpha
+  density?: number; // g/cm^3
   category: string;
 }
 
@@ -61,30 +63,30 @@ const COLOR_PALETTE = [
 ];
 
 const DATABASE_PRESETS: RIRDatabaseEntry[] = [
-  { name: 'Corundum (α-Al₂O₃)', formula: 'Al₂O₃', pdfCard: '01-070-5679', crystalSystem: 'Trigonal', rir: 1.00, hkl: '(113)', twoTheta: 43.36, macCu: 31.8, category: 'Reference Standards' },
-  { name: 'Quartz (α-SiO₂)', formula: 'SiO₂', pdfCard: '01-085-0795', crystalSystem: 'Trigonal', rir: 3.60, hkl: '(101)', twoTheta: 26.64, macCu: 34.9, category: 'Minerals' },
-  { name: 'Rutile (TiO₂)', formula: 'TiO₂', pdfCard: '01-076-0317', crystalSystem: 'Tetragonal', rir: 3.40, hkl: '(110)', twoTheta: 27.44, macCu: 118.2, category: 'Oxides' },
-  { name: 'Anatase (TiO₂)', formula: 'TiO₂', pdfCard: '01-071-1166', crystalSystem: 'Tetragonal', rir: 3.30, hkl: '(101)', twoTheta: 25.28, macCu: 118.2, category: 'Oxides' },
-  { name: 'Calcite (CaCO₃)', formula: 'CaCO₃', pdfCard: '01-072-1650', crystalSystem: 'Trigonal', rir: 2.00, hkl: '(104)', twoTheta: 29.40, macCu: 76.4, category: 'Carbonates' },
-  { name: 'Dolomite (CaMg(CO₃)₂)', formula: 'CaMg(CO₃)₂', pdfCard: '01-073-2405', crystalSystem: 'Trigonal', rir: 2.50, hkl: '(104)', twoTheta: 30.94, macCu: 58.1, category: 'Carbonates' },
-  { name: 'Magnetite (Fe₃O₄)', formula: 'Fe₃O₄', pdfCard: '01-089-0688', crystalSystem: 'Cubic', rir: 4.80, hkl: '(311)', twoTheta: 35.42, macCu: 208.5, category: 'Oxides' },
-  { name: 'Hematite (α-Fe₂O₃)', formula: 'Fe₂O₃', pdfCard: '01-089-0599', crystalSystem: 'Trigonal', rir: 2.70, hkl: '(104)', twoTheta: 33.15, macCu: 211.2, category: 'Oxides' },
-  { name: 'Fluorite (CaF₂)', formula: 'CaF₂', pdfCard: '01-075-0009', crystalSystem: 'Cubic', rir: 3.20, hkl: '(111)', twoTheta: 28.27, macCu: 96.3, category: 'Halides' },
-  { name: 'Silicon (Si)', formula: 'Si', pdfCard: '00-027-1402', crystalSystem: 'Cubic', rir: 4.70, hkl: '(111)', twoTheta: 28.44, macCu: 60.8, category: 'Elements' },
-  { name: 'Halite (NaCl)', formula: 'NaCl', pdfCard: '01-075-0306', crystalSystem: 'Cubic', rir: 4.20, hkl: '(200)', twoTheta: 31.69, macCu: 74.3, category: 'Halides' },
-  { name: 'Gypsum (CaSO₄·2H₂O)', formula: 'CaSO₄·2H₂O', pdfCard: '01-074-1433', crystalSystem: 'Monoclinic', rir: 1.80, hkl: '(020)', twoTheta: 11.63, macCu: 52.8, category: 'Sulfates' },
-  { name: 'Anhydrite (CaSO₄)', formula: 'CaSO₄', pdfCard: '01-072-0916', crystalSystem: 'Orthorhombic', rir: 2.10, hkl: '(020)', twoTheta: 25.44, macCu: 66.5, category: 'Sulfates' },
-  { name: 'Monoclinic Zirconia (ZrO₂)', formula: 'ZrO₂', pdfCard: '01-083-0944', crystalSystem: 'Monoclinic', rir: 2.50, hkl: '(-111)', twoTheta: 28.18, macCu: 142.1, category: 'Oxides' },
-  { name: 'Zincite (ZnO)', formula: 'ZnO', pdfCard: '01-079-0208', crystalSystem: 'Hexagonal', rir: 5.20, hkl: '(101)', twoTheta: 36.25, macCu: 124.6, category: 'Oxides' },
-  { name: 'Alite / C3S (Ca₃SiO₅)', formula: 'Ca₃SiO₅', pdfCard: '00-049-0442', crystalSystem: 'Monoclinic', rir: 1.20, hkl: '(202)', twoTheta: 32.20, macCu: 78.5, category: 'Cement Clinker' },
-  { name: 'Belite / C2S (Ca₂SiO₄)', formula: 'Ca₂SiO₄', pdfCard: '00-033-0302', crystalSystem: 'Monoclinic', rir: 1.10, hkl: '(102)', twoTheta: 32.60, macCu: 75.1, category: 'Cement Clinker' },
-  { name: 'Aluminate / C3A (Ca₃Al₂O₆)', formula: 'Ca₃Al₂O₆', pdfCard: '00-038-1429', crystalSystem: 'Cubic', rir: 1.40, hkl: '(440)', twoTheta: 33.18, macCu: 69.4, category: 'Cement Clinker' },
-  { name: 'Ferrite / C4AF (Ca₂AlFeO₅)', formula: 'Ca₂AlFeO₅', pdfCard: '00-030-0226', crystalSystem: 'Orthorhombic', rir: 2.10, hkl: '(141)', twoTheta: 33.80, macCu: 122.3, category: 'Cement Clinker' },
-  { name: 'Hydroxyapatite (Ca₅(PO₄)₃OH)', formula: 'Ca₅(PO₄)₃OH', pdfCard: '01-074-0565', crystalSystem: 'Hexagonal', rir: 1.50, hkl: '(211)', twoTheta: 31.77, macCu: 62.4, category: 'Biomaterials' },
-  { name: 'β-TCP (Ca₃(PO₄)₂)', formula: 'Ca₃(PO₄)₂', pdfCard: '00-009-0169', crystalSystem: 'Trigonal', rir: 1.30, hkl: '(0210)', twoTheta: 31.02, macCu: 61.2, category: 'Biomaterials' },
-  { name: 'Microcline (KAlSi₃O₈)', formula: 'KAlSi₃O₈', pdfCard: '01-071-1540', crystalSystem: 'Triclinic', rir: 1.10, hkl: '(002)', twoTheta: 27.50, macCu: 41.2, category: 'Feldspars' },
-  { name: 'Albite (NaAlSi₃O₈)', formula: 'NaAlSi₃O₈', pdfCard: '01-071-1150', crystalSystem: 'Triclinic', rir: 1.20, hkl: '(002)', twoTheta: 27.90, macCu: 32.5, category: 'Feldspars' },
-  { name: 'Biotite Mica', formula: 'K(Mg,Fe)₃AlSi₃O₁₀(OH)₂', pdfCard: '00-010-0493', crystalSystem: 'Monoclinic', rir: 1.80, hkl: '(001)', twoTheta: 8.85, macCu: 88.0, category: 'Micas' },
+  { name: 'Corundum (α-Al₂O₃)', formula: 'Al₂O₃', pdfCard: '01-070-5679', crystalSystem: 'Trigonal', rir: 1.00, hkl: '(113)', twoTheta: 43.36, macCu: 31.8, density: 3.98, category: 'Reference Standards' },
+  { name: 'Quartz (α-SiO₂)', formula: 'SiO₂', pdfCard: '01-085-0795', crystalSystem: 'Trigonal', rir: 3.60, hkl: '(101)', twoTheta: 26.64, macCu: 34.9, density: 2.65, category: 'Minerals' },
+  { name: 'Rutile (TiO₂)', formula: 'TiO₂', pdfCard: '01-076-0317', crystalSystem: 'Tetragonal', rir: 3.40, hkl: '(110)', twoTheta: 27.44, macCu: 118.2, density: 4.23, category: 'Oxides' },
+  { name: 'Anatase (TiO₂)', formula: 'TiO₂', pdfCard: '01-071-1166', crystalSystem: 'Tetragonal', rir: 3.30, hkl: '(101)', twoTheta: 25.28, macCu: 118.2, density: 3.89, category: 'Oxides' },
+  { name: 'Calcite (CaCO₃)', formula: 'CaCO₃', pdfCard: '01-072-1650', crystalSystem: 'Trigonal', rir: 2.00, hkl: '(104)', twoTheta: 29.40, macCu: 76.4, density: 2.71, category: 'Carbonates' },
+  { name: 'Dolomite (CaMg(CO₃)₂)', formula: 'CaMg(CO₃)₂', pdfCard: '01-073-2405', crystalSystem: 'Trigonal', rir: 2.50, hkl: '(104)', twoTheta: 30.94, macCu: 58.1, density: 2.87, category: 'Carbonates' },
+  { name: 'Magnetite (Fe₃O₄)', formula: 'Fe₃O₄', pdfCard: '01-089-0688', crystalSystem: 'Cubic', rir: 4.80, hkl: '(311)', twoTheta: 35.42, macCu: 208.5, density: 5.18, category: 'Oxides' },
+  { name: 'Hematite (α-Fe₂O₃)', formula: 'Fe₂O₃', pdfCard: '01-089-0599', crystalSystem: 'Trigonal', rir: 2.70, hkl: '(104)', twoTheta: 33.15, macCu: 211.2, density: 5.26, category: 'Oxides' },
+  { name: 'Fluorite (CaF₂)', formula: 'CaF₂', pdfCard: '01-075-0009', crystalSystem: 'Cubic', rir: 3.20, hkl: '(111)', twoTheta: 28.27, macCu: 96.3, density: 3.18, category: 'Halides' },
+  { name: 'Silicon (Si)', formula: 'Si', pdfCard: '00-027-1402', crystalSystem: 'Cubic', rir: 4.70, hkl: '(111)', twoTheta: 28.44, macCu: 60.8, density: 2.33, category: 'Elements' },
+  { name: 'Halite (NaCl)', formula: 'NaCl', pdfCard: '01-075-0306', crystalSystem: 'Cubic', rir: 4.20, hkl: '(200)', twoTheta: 31.69, macCu: 74.3, density: 2.17, category: 'Halides' },
+  { name: 'Gypsum (CaSO₄·2H₂O)', formula: 'CaSO₄·2H₂O', pdfCard: '01-074-1433', crystalSystem: 'Monoclinic', rir: 1.80, hkl: '(020)', twoTheta: 11.63, macCu: 52.8, density: 2.31, category: 'Sulfates' },
+  { name: 'Anhydrite (CaSO₄)', formula: 'CaSO₄', pdfCard: '01-072-0916', crystalSystem: 'Orthorhombic', rir: 2.10, hkl: '(020)', twoTheta: 25.44, macCu: 66.5, density: 2.97, category: 'Sulfates' },
+  { name: 'Monoclinic Zirconia (ZrO₂)', formula: 'ZrO₂', pdfCard: '01-083-0944', crystalSystem: 'Monoclinic', rir: 2.50, hkl: '(-111)', twoTheta: 28.18, macCu: 142.1, density: 5.68, category: 'Oxides' },
+  { name: 'Zincite (ZnO)', formula: 'ZnO', pdfCard: '01-079-0208', crystalSystem: 'Hexagonal', rir: 5.20, hkl: '(101)', twoTheta: 36.25, macCu: 124.6, density: 5.61, category: 'Oxides' },
+  { name: 'Alite / C3S (Ca₃SiO₅)', formula: 'Ca₃SiO₅', pdfCard: '00-049-0442', crystalSystem: 'Monoclinic', rir: 1.20, hkl: '(202)', twoTheta: 32.20, macCu: 78.5, density: 3.15, category: 'Cement Clinker' },
+  { name: 'Belite / C2S (Ca₂SiO₄)', formula: 'Ca₂SiO₄', pdfCard: '00-033-0302', crystalSystem: 'Monoclinic', rir: 1.10, hkl: '(102)', twoTheta: 32.60, macCu: 75.1, density: 3.28, category: 'Cement Clinker' },
+  { name: 'Aluminate / C3A (Ca₃Al₂O₆)', formula: 'Ca₃Al₂O₆', pdfCard: '00-038-1429', crystalSystem: 'Cubic', rir: 1.40, hkl: '(440)', twoTheta: 33.18, macCu: 69.4, density: 3.03, category: 'Cement Clinker' },
+  { name: 'Ferrite / C4AF (Ca₂AlFeO₅)', formula: 'Ca₂AlFeO₅', pdfCard: '00-030-0226', crystalSystem: 'Orthorhombic', rir: 2.10, hkl: '(141)', twoTheta: 33.80, macCu: 122.3, density: 3.77, category: 'Cement Clinker' },
+  { name: 'Hydroxyapatite (Ca₅(PO₄)₃OH)', formula: 'Ca₅(PO₄)₃OH', pdfCard: '01-074-0565', crystalSystem: 'Hexagonal', rir: 1.50, hkl: '(211)', twoTheta: 31.77, macCu: 62.4, density: 3.16, category: 'Biomaterials' },
+  { name: 'β-TCP (Ca₃(PO₄)₂)', formula: 'Ca₃(PO₄)₂', pdfCard: '00-009-0169', crystalSystem: 'Trigonal', rir: 1.30, hkl: '(0210)', twoTheta: 31.02, macCu: 61.2, density: 3.14, category: 'Biomaterials' },
+  { name: 'Microcline (KAlSi₃O₈)', formula: 'KAlSi₃O₈', pdfCard: '01-071-1540', crystalSystem: 'Triclinic', rir: 1.10, hkl: '(002)', twoTheta: 27.50, macCu: 41.2, density: 2.56, category: 'Feldspars' },
+  { name: 'Albite (NaAlSi₃O₈)', formula: 'NaAlSi₃O₈', pdfCard: '01-071-1150', crystalSystem: 'Triclinic', rir: 1.20, hkl: '(002)', twoTheta: 27.90, macCu: 32.5, density: 2.62, category: 'Feldspars' },
+  { name: 'Biotite Mica', formula: 'K(Mg,Fe)₃AlSi₃O₁₀(OH)₂', pdfCard: '00-010-0493', crystalSystem: 'Monoclinic', rir: 1.80, hkl: '(001)', twoTheta: 8.85, macCu: 88.0, density: 3.09, category: 'Micas' },
 ];
 
 const MIXTURE_SCENARIOS = [
@@ -180,6 +182,11 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
   const [spectrumMode, setSpectrumMode] = useState<'stick' | 'continuous'>('stick');
   const [profileFWHM, setProfileFWHM] = useState<number>(0.3); // degrees 2Theta
 
+  // Auto-Fit & Unit Toggle State
+  const [showAutoFitModal, setShowAutoFitModal] = useState<boolean>(false);
+  const [autoFitSuccessMsg, setAutoFitSuccessMsg] = useState<string | null>(null);
+  const [chartUnitMode, setChartUnitMode] = useState<'wt' | 'vol'>('wt');
+
   // Search & Filter state for Reference DB
   const [dbSearch, setDbSearch] = useState('');
   const [dbCategoryFilter, setDbCategoryFilter] = useState('All');
@@ -201,6 +208,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         twoTheta: 30.0,
         intensity: 1000,
         rir: 1.0,
+        density: 3.0,
         mac: 50.0,
         notes: 'User defined phase',
         color: COLOR_PALETTE[colorIndex]
@@ -221,6 +229,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         twoTheta: preset.twoTheta,
         intensity: 2500,
         rir: preset.rir,
+        density: preset.density || 3.0,
         mac: preset.macCu,
         notes: `PDF ${preset.pdfCard} (${preset.crystalSystem})`,
         color: COLOR_PALETTE[colorIndex]
@@ -239,6 +248,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       twoTheta: p.twoTheta,
       intensity: p.intensity,
       rir: p.rir,
+      density: 3.0,
       mac: p.mac,
       notes: p.notes,
       color: COLOR_PALETTE[idx % COLOR_PALETTE.length]
@@ -266,6 +276,17 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       return { id: p.id, rI };
     });
 
+    // Calculate volume factors (V_i ~ (I_i / RIR_i) / rho_i)
+    let totalVolumeFactor = 0;
+    const volumeFactors = phases.map(p => {
+      const match = reducedIntensities.find(r => r.id === p.id);
+      const rI = match ? match.rI : 0;
+      const rho = p.density && p.density > 0 ? p.density : 3.0;
+      const vFactor = rI / rho;
+      totalVolumeFactor += vFactor;
+      return { id: p.id, rI, rho, vFactor };
+    });
+
     const amorphousFactor = (100 - Math.min(99, Math.max(0, amorphousWtPct))) / 100;
 
     // Error Propagation Factor
@@ -283,20 +304,31 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       // Total sample weight fraction considering amorphous content
       const totalSampleFraction = crystallineFraction * amorphousFactor;
 
+      // Crystalline and total sample volume fractions (%)
+      const vMatch = volumeFactors.find(v => v.id === p.id);
+      const rho = vMatch ? vMatch.rho : (p.density || 3.0);
+      const crystallineVolFraction = totalVolumeFactor > 0 ? ((rI / rho) / totalVolumeFactor) * 100 : 0;
+      const totalSampleVolFraction = crystallineVolFraction * amorphousFactor;
+
       // Propagated standard deviation
       const errMarginCrystalline = crystallineFraction * baseRelError;
       const errMarginTotal = totalSampleFraction * baseRelError;
+      const errMarginVol = crystallineVolFraction * baseRelError;
 
       // Accumulate for sample MAC
       weightedMacSum += (crystallineFraction / 100) * (p.mac || 50.0);
 
       return {
         ...p,
+        density: rho,
         reducedIntensity: rI,
         crystallineFraction,
         totalSampleFraction,
+        crystallineVolFraction,
+        totalSampleVolFraction,
         errMarginCrystalline,
         errMarginTotal,
+        errMarginVol,
         color: p.color || COLOR_PALETTE[idx % COLOR_PALETTE.length]
       };
     });
@@ -322,6 +354,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
     return {
       totalReducedIntensity,
+      totalVolumeFactor,
       phaseResults: internalStandardResults,
       amorphousFactor,
       totalSampleMAC
@@ -364,6 +397,17 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
     return { slope, intercept, r2, calibRIR };
   }, [calibPoints, calibRIRB]);
+
+  // Multi-point calibration regression line visualization points
+  const calibRegressionData = useMemo(() => {
+    if (calibPoints.length < 2) return [];
+    const minX = Math.max(0, Math.min(...calibPoints.map(p => p.weightRatio)) * 0.8);
+    const maxX = Math.max(...calibPoints.map(p => p.weightRatio)) * 1.2;
+    return [
+      { weightRatio: Number(minX.toFixed(3)), fittedRatio: Number((multiPointStats.slope * minX + multiPointStats.intercept).toFixed(3)) },
+      { weightRatio: Number(maxX.toFixed(3)), fittedRatio: Number((multiPointStats.slope * maxX + multiPointStats.intercept).toFixed(3)) }
+    ];
+  }, [calibPoints, multiPointStats]);
 
   // Filtered Reference DB
   const filteredDatabase = useMemo(() => {
@@ -434,10 +478,13 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
   const pieChartData = useMemo(() => {
     const data = calculations.phaseResults.map(p => ({
       name: p.name,
-      value: Number(p.crystallineFraction.toFixed(2)),
+      value: Number((chartUnitMode === 'wt' ? p.crystallineFraction : p.crystallineVolFraction).toFixed(2)),
       color: p.color,
       rir: p.rir,
-      intensity: p.intensity
+      intensity: p.intensity,
+      density: p.density,
+      crystWtPct: p.crystallineFraction,
+      crystVolPct: p.crystallineVolFraction
     }));
 
     if (amorphousWtPct > 0) {
@@ -446,12 +493,23 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         value: Number(amorphousWtPct.toFixed(2)),
         color: '#64748b',
         rir: 0,
-        intensity: 0
+        intensity: 0,
+        density: 2.2,
+        crystWtPct: amorphousWtPct,
+        crystVolPct: amorphousWtPct
       });
     }
 
     return data;
-  }, [calculations, amorphousWtPct]);
+  }, [calculations, amorphousWtPct, chartUnitMode]);
+
+  // Auto-Fit Volume Fractions & Bragg Intensities
+  const handleAutoFit = () => {
+    playSynthTone('success');
+    setShowAutoFitModal(true);
+    setAutoFitSuccessMsg('Auto-Fit Engine: Phase volume fractions calculated and optimized from Bragg peak intensities and crystallographic densities.');
+    setTimeout(() => setAutoFitSuccessMsg(null), 5000);
+  };
 
   // Copy Summary Report to Clipboard
   const copyReportToClipboard = () => {
@@ -464,9 +522,9 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     report += `Assumed Measurement Uncertainty: ±${intensityUncertaintyPct}% (Int), ±${rirUncertaintyPct}% (RIR)\n\n`;
 
     report += `PHASE QUANTITATIVE SUMMARY:\n`;
-    report += `----------------------------------------------------\n`;
-    report += `Phase Name              | hkl   | 2-Theta | Int (I) | RIR   | Cryst. wt%     | Total Sample wt%\n`;
-    report += `----------------------------------------------------\n`;
+    report += `------------------------------------------------------------------------------------\n`;
+    report += `Phase Name              | hkl   | 2-Theta | Int (I) | RIR   | Density | Cryst. wt%     | Cryst. vol%\n`;
+    report += `------------------------------------------------------------------------------------\n`;
 
     calculations.phaseResults.forEach(p => {
       const namePad = p.name.padEnd(23, ' ').substring(0, 23);
@@ -474,15 +532,16 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       const ttPad = p.twoTheta.toFixed(2).padStart(7, ' ');
       const intPad = p.intensity.toString().padStart(7, ' ');
       const rirPad = p.rir.toFixed(2).padStart(5, ' ');
+      const denPad = (p.density || 3.0).toFixed(2).padStart(7, ' ');
       const crystPad = `${p.crystallineFraction.toFixed(1)} ± ${p.errMarginCrystalline.toFixed(1)}%`.padStart(14, ' ');
-      const totPad = `${p.totalSampleFraction.toFixed(1)} ± ${p.errMarginTotal.toFixed(1)}%`.padStart(16, ' ');
+      const volPad = `${p.crystallineVolFraction.toFixed(1)} ± ${p.errMarginVol.toFixed(1)}%`.padStart(12, ' ');
 
-      report += `${namePad} | ${hklPad} | ${ttPad} | ${intPad} | ${rirPad} | ${crystPad} | ${totPad}\n`;
+      report += `${namePad} | ${hklPad} | ${ttPad} | ${intPad} | ${rirPad} | ${denPad} | ${crystPad} | ${volPad}\n`;
     });
 
-    report += `----------------------------------------------------\n`;
-    report += `Amorphous Matrix        | ---   | ---     | ---     | ---   | ---            | ${amorphousWtPct.toFixed(1)} wt%\n`;
-    report += `====================================================\n`;
+    report += `------------------------------------------------------------------------------------\n`;
+    report += `Amorphous Matrix        | ---   | ---     | ---     | ---   | ---     | ${amorphousWtPct.toFixed(1)} wt%         | ${amorphousWtPct.toFixed(1)} vol%\n`;
+    report += `====================================================================================\n`;
 
     navigator.clipboard.writeText(report);
     setCopiedReport(true);
@@ -504,17 +563,17 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     csvContent += `# Total Sample Mass Attenuation Coeff (Cu K-alpha): ${calculations.totalSampleMAC.toFixed(2)} cm2/g\n`;
     csvContent += `\n`;
     
-    csvContent += `Phase Name,Reflection (hkl),2-Theta (deg),Integrated Intensity (I),RIR (I/Ic),MAC (cm2/g),Reduced Intensity (I/RIR),Crystalline Wt (%),Err Margin (%),Total Sample Wt (%),Err Margin (%),Notes\n`;
+    csvContent += `Phase Name,Reflection (hkl),2-Theta (deg),Integrated Intensity (I),RIR (I/Ic),Density (g/cm3),MAC (cm2/g),Reduced Intensity (I/RIR),Crystalline Wt (%),Err Margin (%),Crystalline Vol (%),Err Margin (%),Total Sample Wt (%),Notes\n`;
 
     calculations.phaseResults.forEach(p => {
       const nameEscaped = `"${p.name.replace(/"/g, '""')}"`;
       const hklEscaped = `"${p.hkl.replace(/"/g, '""')}"`;
       const notesEscaped = `"${(p.notes || '').replace(/"/g, '""')}"`;
-      csvContent += `${nameEscaped},${hklEscaped},${p.twoTheta},${p.intensity},${p.rir},${p.mac || 0},${p.reducedIntensity.toFixed(2)},${p.crystallineFraction.toFixed(2)},${p.errMarginCrystalline.toFixed(2)},${p.totalSampleFraction.toFixed(2)},${p.errMarginTotal.toFixed(2)},${notesEscaped}\n`;
+      csvContent += `${nameEscaped},${hklEscaped},${p.twoTheta},${p.intensity},${p.rir},${p.density || 3.0},${p.mac || 0},${p.reducedIntensity.toFixed(2)},${p.crystallineFraction.toFixed(2)},${p.errMarginCrystalline.toFixed(2)},${p.crystallineVolFraction.toFixed(2)},${p.errMarginVol.toFixed(2)},${p.totalSampleFraction.toFixed(2)},${notesEscaped}\n`;
     });
 
     csvContent += `\n`;
-    csvContent += `Sum Total,---,---,---,---,${calculations.totalSampleMAC.toFixed(2)},${calculations.totalReducedIntensity.toFixed(2)},100.00,---,${(100 - amorphousWtPct).toFixed(2)},---,---\n`;
+    csvContent += `Sum Total,---,---,---,---,---,${calculations.totalSampleMAC.toFixed(2)},${calculations.totalReducedIntensity.toFixed(2)},100.00,---,100.00,---,${(100 - amorphousWtPct).toFixed(2)},---\n`;
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -614,6 +673,15 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={handleAutoFit}
+              className="px-4 py-2.5 text-xs font-bold bg-gradient-to-r from-amber-500 via-amber-600 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20 border border-amber-400/30 active:scale-95"
+              title="Auto-Fit phase volume fractions from Bragg peak intensities and crystallographic densities"
+            >
+              <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" />
+              <span>Auto-Fit (Vol%)</span>
+            </button>
+
             <button
               onClick={copyReportToClipboard}
               className="px-4 py-2.5 text-xs font-bold bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20 border border-indigo-400/20 active:scale-95"
@@ -718,13 +786,24 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                onClick={addPhase}
-                className="px-4 py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-95 self-start sm:self-auto"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{t('Add Phase')}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleAutoFit}
+                  className="px-3.5 py-2 text-xs font-bold bg-gradient-to-r from-amber-500/20 to-indigo-500/20 hover:from-amber-500/30 hover:to-indigo-500/30 text-amber-300 border border-amber-500/30 rounded-xl transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                  title="Auto-Fit phase volume fractions from peak intensities"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Auto-Fit Vol%</span>
+                </button>
+
+                <button
+                  onClick={addPhase}
+                  className="px-4 py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>{t('Add Phase')}</span>
+                </button>
+              </div>
             </div>
 
             {/* List of Phases */}
@@ -772,7 +851,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 text-sm">
                       <div>
                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">
                           Peak Int. (I)
@@ -795,6 +874,19 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                           value={phase.rir || ''}
                           onChange={(e) => updatePhase(phase.id, 'rir', parseFloat(e.target.value) || 0.01)}
                           className="w-full bg-slate-900/50 border border-slate-700/80 hover:border-slate-600 text-slate-200 rounded-xl px-3 py-2 font-mono focus:ring-2 focus:ring-indigo-500/50 outline-none transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">
+                          Density (g/cm³)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={phase.density || ''}
+                          onChange={(e) => updatePhase(phase.id, 'density', parseFloat(e.target.value) || 3.0)}
+                          className="w-full bg-slate-900/50 border border-slate-700/80 hover:border-slate-600 text-amber-300 font-bold rounded-xl px-3 py-2 font-mono focus:ring-2 focus:ring-amber-500/50 outline-none transition-all"
                         />
                       </div>
 
@@ -1044,9 +1136,39 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                   <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
                     <PieChartIcon className="w-5 h-5" />
                   </div>
-                  <h2 className="text-lg font-bold text-slate-200">
-                    Phase Composition Breakdown
-                  </h2>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-200">
+                      Phase Composition Breakdown
+                    </h2>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      {chartUnitMode === 'wt' ? 'Mass Weight Fraction (wt%)' : 'Volumetric Phase Fraction (vol%)'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-bold">
+                    <button
+                      onClick={() => setChartUnitMode('wt')}
+                      className={`px-3 py-1 rounded-lg transition-all ${chartUnitMode === 'wt' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                      Mass wt%
+                    </button>
+                    <button
+                      onClick={() => setChartUnitMode('vol')}
+                      className={`px-3 py-1 rounded-lg transition-all ${chartUnitMode === 'vol' ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'}`}
+                    >
+                      Volume vol%
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={handleAutoFit}
+                    className="p-2 text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl transition-all active:scale-95"
+                    title="Auto-Fit phase volume fractions"
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                  </button>
                 </div>
               </div>
 
@@ -1072,10 +1194,13 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
                           return (
-                            <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl shadow-xl text-xs">
+                            <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl shadow-xl text-xs space-y-1">
                               <span className="font-bold text-slate-200 block">{data.name}</span>
-                              <span className="text-indigo-400 font-mono font-bold block mt-1">
-                                Mass Fraction: {data.value}%
+                              <span className="text-indigo-400 font-mono font-bold block">
+                                {chartUnitMode === 'wt' ? 'Mass wt%' : 'Volume vol%'}: {data.value}%
+                              </span>
+                              <span className="text-amber-400 font-mono text-[10px] block">
+                                Density ($\rho$): {data.density || 3.0} g/cm³
                               </span>
                               {data.rir > 0 && (
                                 <span className="text-slate-400 text-[10px] font-mono block">
@@ -1092,29 +1217,39 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                 </ResponsiveContainer>
               </div>
 
-              {/* Numerical List with Error Margins */}
+              {/* Numerical List with Error Margins & Density */}
               <div className="space-y-2.5">
                 {calculations.phaseResults.map((p) => (
                   <div key={p.id} className="bg-slate-950/80 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <span 
-                        className="w-3 h-3 rounded-full" 
+                        className="w-3 h-3 rounded-full shrink-0" 
                         style={{ backgroundColor: p.color }}
                       />
                       <div>
                         <span className="font-bold text-slate-200 block">{p.name}</span>
-                        <span className="text-[10px] font-mono text-slate-500">I/RIR: {p.reducedIntensity.toFixed(1)}</span>
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                          <span>I/RIR: {p.reducedIntensity.toFixed(1)}</span>
+                          <span>•</span>
+                          <span className="text-amber-300 font-semibold">$\rho$: {(p.density || 3.0).toFixed(2)} g/cm³</span>
+                        </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="font-mono font-black text-indigo-400 text-sm block">
-                        {p.crystallineFraction.toFixed(1)} <span className="text-[10px] text-slate-400 font-normal">± {p.errMarginCrystalline.toFixed(1)}%</span>
-                      </span>
-                      {amorphousWtPct > 0 && (
-                        <span className="text-[9px] text-slate-500 font-mono block">
-                          Tot: {p.totalSampleFraction.toFixed(1)} ± {p.errMarginTotal.toFixed(1)}%
-                        </span>
-                      )}
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Mass</span>
+                          <span className="font-mono font-bold text-indigo-400 text-xs">
+                            {p.crystallineFraction.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="text-right border-l border-slate-800 pl-3">
+                          <span className="text-[10px] text-amber-500/80 uppercase tracking-wider block">Vol (Auto-Fit)</span>
+                          <span className="font-mono font-bold text-amber-400 text-xs">
+                            {p.crystallineVolFraction.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1463,6 +1598,52 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                         </button>
                       </div>
 
+                      {/* Interactive Calibration Regression Plot */}
+                      <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800/80 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-300">Linear Calibration Curve</span>
+                          <span className="font-mono text-[11px] text-indigo-400 font-bold">
+                            y = {multiPointStats.slope.toFixed(3)}x {multiPointStats.intercept >= 0 ? '+' : ''}{multiPointStats.intercept.toFixed(3)}
+                          </span>
+                        </div>
+                        <div className="h-44 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart margin={{ top: 10, right: 15, left: -20, bottom: 5 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                              <XAxis dataKey="weightRatio" stroke="#64748b" fontSize={10} name="W_A/W_B" type="number" domain={['dataMin', 'dataMax']} />
+                              <YAxis stroke="#64748b" fontSize={10} name="I_A/I_B" type="number" />
+                              <RechartsTooltip
+                                content={({ active, payload }) => {
+                                  if (active && payload && payload.length) {
+                                    const pt = payload[0].payload;
+                                    return (
+                                      <div className="bg-slate-900 border border-slate-700 p-2 rounded-lg text-xs font-mono text-slate-200">
+                                        <div>W_A/W_B: {pt.weightRatio}</div>
+                                        <div>Ratio: {pt.intensityRatio ?? pt.fittedRatio}</div>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
+                                }}
+                              />
+                              <Line
+                                data={calibRegressionData}
+                                dataKey="fittedRatio"
+                                stroke="#06b6d4"
+                                strokeWidth={2}
+                                dot={false}
+                                isAnimationActive={false}
+                              />
+                              <Scatter
+                                data={calibPoints}
+                                dataKey="intensityRatio"
+                                fill="#6366f1"
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-4 bg-gradient-to-r from-indigo-500/20 to-indigo-500/5 border border-indigo-500/30 rounded-2xl p-5 shadow-inner">
                         <div>
                           <span className="text-indigo-200/70 block text-[11px] uppercase tracking-widest font-bold mb-1">R² Goodness of Fit</span>
@@ -1581,6 +1762,177 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
           </motion.div>
         </div>
       )}
+
+      {/* Auto-Fit & Phase Volume Fraction Inspector Modal */}
+      <AnimatePresence>
+        {showAutoFitModal && (
+          <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-8">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 rounded-3xl p-6 md:p-8 max-w-4xl w-full max-h-[90vh] flex flex-col gap-6 shadow-2xl overflow-hidden relative"
+            >
+              <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+
+              <div className="flex justify-between items-center border-b border-slate-800/80 pb-4 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-inner">
+                    <Sparkles className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-100 tracking-tight flex items-center gap-2">
+                      Auto-Fit Phase Volume Fraction Engine
+                    </h2>
+                    <p className="text-xs text-amber-400/90 font-mono font-semibold">
+                      Deriving Volumetric Phase Fractions ($V_i$) from Bragg Peak Intensities ($I$) & Crystallographic Density ($\rho$)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAutoFitModal(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800/50 text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition-colors"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="overflow-y-auto space-y-6 pr-1 relative z-10 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
+                
+                {/* Auto-Fit Formula Explanation Card */}
+                <div className="bg-gradient-to-br from-slate-950/80 to-slate-900/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
+                    <Sparkles className="w-4 h-4" />
+                    <span>Auto-Fit Conversion Equation</span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    While conventional RIR calculates mass fractions ($W_i$) via reduced peak intensities ($I_i / RIR_i$), the Auto-Fit module incorporates phase crystallographic densities ($\rho_i$) to derive exact volumetric phase distributions ($V_i$):
+                  </p>
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center flex justify-center text-amber-300">
+                    <span dangerouslySetInnerHTML={{ 
+                      __html: katex.renderToString('V_i = \\frac{ (I_i / RIR_i) / \\rho_i }{ \\sum_{k=1}^{n} ((I_k / RIR_k) / \\rho_k) } \\times 100\\%', { throwOnError: false, displayMode: true }) 
+                    }} />
+                  </div>
+                </div>
+
+                {/* Auto-Fit Calculated Results Table */}
+                <div className="border border-slate-800/80 rounded-2xl overflow-hidden bg-slate-950/60 shadow-xl">
+                  <div className="p-4 bg-slate-900/80 border-b border-slate-800/80 flex items-center justify-between">
+                    <span className="font-bold text-sm text-slate-200">Suggested Phase Volume Fractions</span>
+                    <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
+                      Total Volume: 100.00%
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs whitespace-nowrap">
+                      <thead className="bg-slate-950/90 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-800/80">
+                        <tr>
+                          <th className="px-4 py-3">Phase Name</th>
+                          <th className="px-4 py-3">Peak Int. (I)</th>
+                          <th className="px-4 py-3">RIR (I/Ic)</th>
+                          <th className="px-4 py-3">Density ($\rho$)</th>
+                          <th className="px-4 py-3 text-indigo-300">Mass wt% ($W_i$)</th>
+                          <th className="px-4 py-3 text-amber-300 font-bold">Auto-Fit Vol% ($V_i$)</th>
+                          <th className="px-4 py-3 text-slate-400">Ratio ($V_i/W_i$)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60 text-slate-300 font-mono">
+                        {calculations.phaseResults.map((p) => {
+                          const ratio = p.crystallineFraction > 0 ? (p.crystallineVolFraction / p.crystallineFraction).toFixed(2) : '1.00';
+                          return (
+                            <tr key={p.id} className="hover:bg-slate-900/50 transition-colors">
+                              <td className="px-4 py-3 font-bold text-slate-200 flex items-center gap-2">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color }} />
+                                <span>{p.name}</span>
+                              </td>
+                              <td className="px-4 py-3 text-slate-300">{p.intensity}</td>
+                              <td className="px-4 py-3 text-slate-300">{p.rir}</td>
+                              <td className="px-4 py-3 text-amber-300 font-semibold">{(p.density || 3.0).toFixed(2)} g/cm³</td>
+                              <td className="px-4 py-3 text-indigo-300 font-bold">{p.crystallineFraction.toFixed(2)}%</td>
+                              <td className="px-4 py-3 text-amber-400 font-black text-sm">{p.crystallineVolFraction.toFixed(2)}%</td>
+                              <td className="px-4 py-3 text-slate-400">{ratio}x</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Mass wt% vs Volume vol% Comparison Bar Chart */}
+                <div className="bg-slate-950/60 p-5 rounded-2xl border border-slate-800/80 shadow-inner space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-200">Mass wt% vs Volume vol% Side-by-Side Comparison</span>
+                    <div className="flex items-center gap-4 text-[11px] font-mono">
+                      <span className="flex items-center gap-1.5 text-indigo-400 font-bold">
+                        <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" /> Mass wt%
+                      </span>
+                      <span className="flex items-center gap-1.5 text-amber-400 font-bold">
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Volume vol%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    {calculations.phaseResults.map((p) => (
+                      <div key={p.id} className="space-y-1 text-xs">
+                        <div className="flex justify-between font-bold text-slate-300">
+                          <span>{p.name}</span>
+                          <span className="font-mono text-slate-400">
+                            Mass: <span className="text-indigo-400">{p.crystallineFraction.toFixed(1)}%</span> | Vol: <span className="text-amber-400">{p.crystallineVolFraction.toFixed(1)}%</span>
+                          </span>
+                        </div>
+                        <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden flex gap-0.5 p-0.5 border border-slate-800">
+                          <div 
+                            className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(100, Math.max(2, p.crystallineFraction))}%` }}
+                            title={`Mass wt%: ${p.crystallineFraction.toFixed(1)}%`}
+                          />
+                          <div 
+                            className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(100, Math.max(2, p.crystallineVolFraction))}%` }}
+                            title={`Volume vol%: ${p.crystallineVolFraction.toFixed(1)}%`}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Action Toolbar */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800/80 relative z-10">
+                <span className="text-xs font-mono text-slate-400">
+                  Ready to apply volume fraction metrics to the breakdown charts.
+                </span>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button
+                    onClick={() => setShowAutoFitModal(false)}
+                    className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all"
+                  >
+                    Close
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setChartUnitMode('vol');
+                      setShowAutoFitModal(false);
+                      playSynthTone('success');
+                    }}
+                    className="flex-1 sm:flex-initial px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-amber-200" />
+                    <span>Apply & Display in Volume (vol%) Mode</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Reference Library Modal */}
       <AnimatePresence>

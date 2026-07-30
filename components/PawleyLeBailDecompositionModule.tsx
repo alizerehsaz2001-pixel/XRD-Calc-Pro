@@ -26,6 +26,7 @@ import {
   RefreshCw,
   FlaskConical,
   Eye,
+  Search,
   Download,
   Share2,
   FileText,
@@ -120,6 +121,29 @@ export const PawleyLeBailDecompositionModule: React.FC<{ pythonFeaturesEnabled?:
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Decomposed Pattern Fit Graph Controls & Selection State
+  const [selectedReflectionKey, setSelectedReflectionKey] = useState<string | null>(null);
+  const [hoverPoint, setHoverPoint] = useState<{
+    twoTheta: number;
+    yObs: number;
+    yCalc: number;
+    yBg: number;
+    diff: number;
+    nearestReflection?: PeakReflection;
+  } | null>(null);
+
+  const [visibleCurves, setVisibleCurves] = useState({
+    yObs: true,
+    yCalc: true,
+    yDiff: true,
+    yBg: true,
+    individualPeaks: true,
+    braggTicks: true
+  });
+
+  const [zoomRange, setZoomRange] = useState<[number, number]>([15, 85]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
   // Generate Allowed Reflections hkl based on unit cell parameters
   const reflections = useMemo<PeakReflection[]>(() => {
     const list: PeakReflection[] = [];
@@ -191,18 +215,26 @@ export const PawleyLeBailDecompositionModule: React.FC<{ pythonFeaturesEnabled?:
     setChi2(7.2);
   }, [reflections]);
 
-  // Simulate Diffraction Pattern (2Theta from 15° to 85°, step 0.05°)
+  // Simulate Diffraction Pattern (2Theta from 15° to 85°, step 0.08°)
   const patternData = useMemo(() => {
     const step = 0.08;
     const start2T = 15;
     const end2T = 85;
-    const pts: { twoTheta: number; yObs: number; yCalc: number; yBg: number; diff: number }[] = [];
+    const pts: { 
+      twoTheta: number; 
+      yObs: number; 
+      yCalc: number; 
+      yBg: number; 
+      diff: number;
+      peaks: { key: string; intensity: number }[];
+    }[] = [];
 
     for (let tt = start2T; tt <= end2T; tt += step) {
       const bg = Math.max(20, bg0 + bg1 * (tt - 50));
 
       let calcIntensity = 0;
       let obsIntensity = bg;
+      const peakContributions: { key: string; intensity: number }[] = [];
 
       reflections.forEach((r) => {
         const key = `${r.h}_${r.k}_${r.l}`;
@@ -210,14 +242,21 @@ export const PawleyLeBailDecompositionModule: React.FC<{ pythonFeaturesEnabled?:
         const fwhm = cagliotiFWHM(tt, paramU, paramV, paramW);
         const profile = pseudoVoigt(tt, r.twoTheta, fwhm, eta);
 
-        calcIntensity += currentI * profile;
+        const peakI = currentI * profile;
+        calcIntensity += peakI;
 
-        // Simulate synthetic noisy observation
-        const trueI = r.intensity;
-        obsIntensity += trueI * profile;
+        if (peakI > 0.5) {
+          peakContributions.push({ key, intensity: peakI });
+        }
+
+        // Deterministic pseudo-noise for reproducible, stable observation signal
+        const noise = Math.sin(tt * 47.3 + r.twoTheta * 13.1) * 3.5;
+        obsIntensity += r.intensity * profile + noise * 0.1;
       });
 
-      obsIntensity += (Math.random() - 0.5) * 15;
+      // Background synthetic noise
+      const bgNoise = Math.sin(tt * 91.2) * 2.5;
+      obsIntensity += bgNoise;
 
       const totalCalc = bg + calcIntensity;
       const diff = obsIntensity - totalCalc;
@@ -227,12 +266,44 @@ export const PawleyLeBailDecompositionModule: React.FC<{ pythonFeaturesEnabled?:
         yObs: obsIntensity,
         yCalc: totalCalc,
         yBg: bg,
-        diff
+        diff,
+        peaks: peakContributions
       });
     }
 
     return pts;
   }, [reflections, peakIntensities, paramU, paramV, paramW, eta, bg0, bg1]);
+
+  // Compute maximum chart limits dynamically
+  const chartLimits = useMemo(() => {
+    let maxY = 100;
+    let maxDiffAbs = 10;
+
+    patternData.forEach(pt => {
+      if (pt.yObs > maxY) maxY = pt.yObs;
+      if (pt.yCalc > maxY) maxY = pt.yCalc;
+      const absD = Math.abs(pt.diff);
+      if (absD > maxDiffAbs) maxDiffAbs = absD;
+    });
+
+    return {
+      maxY: maxY * 1.08,
+      maxDiffAbs: maxDiffAbs * 1.2
+    };
+  }, [patternData]);
+
+  // Export CSV Helper
+  const exportPatternCSV = () => {
+    const headers = '2Theta_deg,y_obs,y_calc,y_bg,difference\n';
+    const rows = patternData.map(p => `${p.twoTheta.toFixed(3)},${p.yObs.toFixed(2)},${p.yCalc.toFixed(2)},${p.yBg.toFixed(2)},${p.diff.toFixed(2)}`).join('\n');
+    const blob = new Blob([headers + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `decomposed_pattern_fit_${method}_${system}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Perform a single Le Bail Iteration Cycle
   const runIterationCycle = () => {
@@ -532,133 +603,575 @@ $R_p = ${fmt(rP, 2)}\\%, \\quad R_{wp} = ${fmt(rWP, 2)}\\%, \\quad R_{\\text{Bra
         </div>
       </div>
 
-      {/* Simulated Pattern Chart Visualization (SVG) */}
-      <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2.5">
-            <Activity className="w-5 h-5 text-indigo-400" />
-            <h3 className="text-base font-bold text-white">
-              Decomposed Pattern Fit: Observed (y_obs) vs Calculated (y_calc) & Difference
-            </h3>
+      {/* Interactive Decomposed Pattern Fit Chart Visualization Section */}
+      <div className="bg-white dark:bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-200 dark:border-slate-800/80 shadow-xl space-y-6">
+        
+        {/* Chart Section Header & Controls Toolbar */}
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900 dark:text-white">
+                  Decomposed Pattern Fit: Observed (y_obs) vs Calculated (y_calc) & Difference
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Interactive profile breakdown showing total calculated model fit, experimental profile, residuals, and individual decomposed reflection profiles
+                </p>
+              </div>
+            </div>
           </div>
-          <span className="text-xs font-mono text-slate-400">
-            {reflections.length} Bragg Reflections
+
+          {/* Quick Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2 self-start xl:self-auto">
+            {/* Zoom Range Presets */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] font-bold">
+              <button
+                type="button"
+                onClick={() => setZoomRange([15, 85])}
+                className={`px-2.5 py-1 rounded-lg transition-colors ${zoomRange[0] === 15 && zoomRange[1] === 85 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+              >
+                15-85° (Full)
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoomRange([15, 38])}
+                className={`px-2.5 py-1 rounded-lg transition-colors ${zoomRange[0] === 15 && zoomRange[1] === 38 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+              >
+                15-38° (Low)
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoomRange([35, 62])}
+                className={`px-2.5 py-1 rounded-lg transition-colors ${zoomRange[0] === 35 && zoomRange[1] === 62 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+              >
+                35-62° (Mid)
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoomRange([60, 85])}
+                className={`px-2.5 py-1 rounded-lg transition-colors ${zoomRange[0] === 60 && zoomRange[1] === 85 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+              >
+                60-85° (High)
+              </button>
+            </div>
+
+            {/* CSV Export Button */}
+            <button
+              type="button"
+              onClick={exportPatternCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-bold transition-all shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Export Pattern CSV</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Visibility Curve Toggles Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
+          <span className="font-bold text-slate-600 dark:text-slate-400 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+            <Eye className="w-3.5 h-3.5 text-indigo-500" /> Toggle Components:
           </span>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setVisibleCurves(prev => ({ ...prev, yObs: !prev.yObs }))}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono font-bold transition-all ${
+                visibleCurves.yObs
+                  ? 'bg-indigo-50 dark:bg-indigo-950/80 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 shadow-sm'
+                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-400 opacity-60'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+              <span>y_obs (Experimental)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setVisibleCurves(prev => ({ ...prev, yCalc: !prev.yCalc }))}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono font-bold transition-all ${
+                visibleCurves.yCalc
+                  ? 'bg-cyan-50 dark:bg-cyan-950/80 border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-300 shadow-sm'
+                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-400 opacity-60'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+              <span>y_calc (Model Fit)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setVisibleCurves(prev => ({ ...prev, yDiff: !prev.yDiff }))}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono font-bold transition-all ${
+                visibleCurves.yDiff
+                  ? 'bg-amber-50 dark:bg-amber-950/80 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 shadow-sm'
+                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-400 opacity-60'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <span>Difference Curve (y_obs - y_calc)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setVisibleCurves(prev => ({ ...prev, individualPeaks: !prev.individualPeaks }))}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono font-bold transition-all ${
+                visibleCurves.individualPeaks
+                  ? 'bg-violet-50 dark:bg-violet-950/80 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 shadow-sm'
+                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-400 opacity-60'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-violet-500" />
+              <span>Decomposed Sub-Peaks (I_k · φ_k)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setVisibleCurves(prev => ({ ...prev, braggTicks: !prev.braggTicks }))}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border font-mono font-bold transition-all ${
+                visibleCurves.braggTicks
+                  ? 'bg-emerald-50 dark:bg-emerald-950/80 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 shadow-sm'
+                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-400 opacity-60'
+              }`}
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <span>Bragg Positions (hkl)</span>
+            </button>
+          </div>
         </div>
 
-        {/* SVG Pattern Render */}
-        <div className="relative w-full h-72 bg-slate-950 rounded-2xl border border-slate-800 p-4 flex items-center justify-center overflow-hidden">
-          <svg className="w-full h-full" viewBox="0 0 800 260" preserveAspectRatio="none">
-            {/* Grid Lines */}
-            <line x1="0" y1="180" x2="800" y2="180" stroke="#1e293b" strokeWidth="1" />
-            <line x1="0" y1="90" x2="800" y2="90" stroke="#1e293b" strokeWidth="1" />
-            <line x1="0" y1="220" x2="800" y2="220" stroke="#334155" strokeWidth="1" strokeDasharray="4 4" />
+        {/* SVG Interactive Pattern Render */}
+        <div className="relative w-full h-[380px] bg-slate-950 rounded-2xl border border-slate-800 p-2 sm:p-4 overflow-hidden select-none">
+          {(() => {
+            const minTT = zoomRange[0];
+            const maxTT = zoomRange[1];
+            const rangeTT = maxTT - minTT;
 
-            {/* Difference Curve (Red/Amber at bottom) */}
-            <path
-              d={patternData.map((pt, i) => {
-                const x = (i / (patternData.length - 1)) * 800;
-                const y = 220 - pt.diff * 0.15;
-                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-              }).join(' ')}
-              fill="none"
-              stroke="#f59e0b"
-              strokeWidth="1.5"
-            />
+            const filteredData = patternData.filter(pt => pt.twoTheta >= minTT && pt.twoTheta <= maxTT);
+            if (filteredData.length === 0) return null;
 
-            {/* Calculated Curve y_calc (Cyan) */}
-            <path
-              d={patternData.map((pt, i) => {
-                const x = (i / (patternData.length - 1)) * 800;
-                const y = 180 - (pt.yCalc / 1200) * 160;
-                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-              }).join(' ')}
-              fill="none"
-              stroke="#06b6d4"
-              strokeWidth="2"
-            />
+            const SVG_W = 900;
+            const SVG_H = 340;
+            const PADDING_LEFT = 55;
+            const PADDING_RIGHT = 20;
+            const PADDING_TOP = 20;
+            const PADDING_BOTTOM = 35;
 
-            {/* Observed Points y_obs (Blue dots or line) */}
-            <path
-              d={patternData.map((pt, i) => {
-                const x = (i / (patternData.length - 1)) * 800;
-                const y = 180 - (pt.yObs / 1200) * 160;
-                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-              }).join(' ')}
-              fill="none"
-              stroke="#6366f1"
-              strokeWidth="1"
-              strokeDasharray="2 2"
-            />
+            const PLOT_W = SVG_W - PADDING_LEFT - PADDING_RIGHT;
+            const PLOT_H = SVG_H - PADDING_TOP - PADDING_BOTTOM;
 
-            {/* Bragg Reflections Tick Marks */}
-            {reflections.map((r, i) => {
-              const x = ((r.twoTheta - 15) / (85 - 15)) * 800;
+            // Divide plot: 75% for intensities, 25% for difference curve at bottom
+            const MAIN_H = PLOT_H * 0.72;
+            const DIFF_H = PLOT_H * 0.22;
+            const DIFF_BASE_Y = PADDING_TOP + MAIN_H + 15 + DIFF_H / 2;
+
+            const maxI = chartLimits.maxY;
+            const maxDiffAbs = chartLimits.maxDiffAbs;
+
+            // Coordinate mapping helpers
+            const mapX = (twoTheta: number) => PADDING_LEFT + ((twoTheta - minTT) / rangeTT) * PLOT_W;
+            const mapYMain = (intensity: number) => PADDING_TOP + MAIN_H - (intensity / maxI) * MAIN_H;
+            const mapYDiff = (diff: number) => DIFF_BASE_Y - (diff / maxDiffAbs) * (DIFF_H / 2);
+
+            // Filtered reflections inside range
+            const visibleReflections = reflections.filter(r => r.twoTheta >= minTT && r.twoTheta <= maxTT);
+
+            const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clientX = e.clientX - rect.left;
+              const svgX = (clientX / rect.width) * SVG_W;
+
+              if (svgX < PADDING_LEFT || svgX > SVG_W - PADDING_RIGHT) {
+                setHoverPoint(null);
+                return;
+              }
+
+              const hoveredTT = minTT + ((svgX - PADDING_LEFT) / PLOT_W) * rangeTT;
+              const closestPt = filteredData.reduce((prev, curr) => 
+                Math.abs(curr.twoTheta - hoveredTT) < Math.abs(prev.twoTheta - hoveredTT) ? curr : prev
+              , filteredData[0]);
+
+              const closestRef = visibleReflections.reduce((prev, curr) => 
+                curr && Math.abs(curr.twoTheta - hoveredTT) < Math.abs((prev?.twoTheta || 999) - hoveredTT) ? curr : prev
+              , visibleReflections[0]);
+
+              setHoverPoint({
+                twoTheta: closestPt.twoTheta,
+                yObs: closestPt.yObs,
+                yCalc: closestPt.yCalc,
+                yBg: closestPt.yBg,
+                diff: closestPt.diff,
+                nearestReflection: closestRef && Math.abs(closestRef.twoTheta - closestPt.twoTheta) < 1.2 ? closestRef : undefined
+              });
+            };
+
+            const handleMouseLeave = () => {
+              setHoverPoint(null);
+            };
+
+            // Selected Reflection Object
+            const selectedRefObj = selectedReflectionKey 
+              ? reflections.find(r => `${r.h}_${r.k}_${r.l}` === selectedReflectionKey)
+              : null;
+
+            return (
+              <svg 
+                className="w-full h-full cursor-crosshair" 
+                viewBox={`0 0 ${SVG_W} ${SVG_H}`} 
+                preserveAspectRatio="none"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Background Grid Lines & Y-Axis Ticks */}
+                {[0, 0.25, 0.5, 0.75, 1.0].map((frac, idx) => {
+                  const yVal = PADDING_TOP + MAIN_H * (1 - frac);
+                  const tickVal = Math.round(maxI * frac);
+                  return (
+                    <g key={idx}>
+                      <line x1={PADDING_LEFT} y1={yVal} x2={SVG_W - PADDING_RIGHT} y2={yVal} stroke="#1e293b" strokeWidth="1" strokeDasharray={frac === 0 ? "none" : "3 3"} />
+                      <text x={PADDING_LEFT - 8} y={yVal + 4} fill="#64748b" fontSize="10" fontFamily="monospace" textAnchor="end">
+                        {tickVal}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* X-Axis Grid Ticks & 2Theta Degrees Labels */}
+                {Array.from({ length: 8 }).map((_, idx) => {
+                  const tt = minTT + (idx / 7) * rangeTT;
+                  const xVal = mapX(tt);
+                  return (
+                    <g key={idx}>
+                      <line x1={xVal} y1={PADDING_TOP} x2={xVal} y2={PADDING_TOP + MAIN_H} stroke="#1e293b" strokeWidth="1" strokeDasharray="3 3" />
+                      <line x1={xVal} y1={SVG_H - PADDING_BOTTOM} x2={xVal} y2={SVG_H - PADDING_BOTTOM + 5} stroke="#475569" strokeWidth="1" />
+                      <text x={xVal} y={SVG_H - PADDING_BOTTOM + 18} fill="#94a3b8" fontSize="10" fontFamily="monospace" textAnchor="middle">
+                        {tt.toFixed(1)}°
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {/* Axis Labels */}
+                <text x={PADDING_LEFT} y={PADDING_TOP - 6} fill="#94a3b8" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                  Intensity (counts)
+                </text>
+                <text x={SVG_W - PADDING_RIGHT} y={SVG_H - 10} fill="#94a3b8" fontSize="10" fontFamily="monospace" fontWeight="bold" textAnchor="end">
+                  2θ Position (Degrees)
+                </text>
+
+                {/* Difference Curve Zero Baseline */}
+                {visibleCurves.yDiff && (
+                  <g>
+                    <line x1={PADDING_LEFT} y1={DIFF_BASE_Y} x2={SVG_W - PADDING_RIGHT} y2={DIFF_BASE_Y} stroke="#334155" strokeWidth="1" strokeDasharray="4 4" />
+                    <text x={PADDING_LEFT - 8} y={DIFF_BASE_Y + 3} fill="#f59e0b" fontSize="9" fontFamily="monospace" textAnchor="end">
+                      Δ0
+                    </text>
+                  </g>
+                )}
+
+                {/* Decomposed Individual Sub-Peaks Profiles (I_k · φ_k) */}
+                {visibleCurves.individualPeaks && visibleReflections.map((r, rIdx) => {
+                  const key = `${r.h}_${r.k}_${r.l}`;
+                  const currentI = peakIntensities[key] ?? r.intensity;
+                  const isSelected = selectedReflectionKey === key;
+
+                  const peakPathPts = filteredData.map((pt, i) => {
+                    const fwhm = cagliotiFWHM(pt.twoTheta, paramU, paramV, paramW);
+                    const prof = pseudoVoigt(pt.twoTheta, r.twoTheta, fwhm, eta);
+                    const peakY = pt.yBg + currentI * prof;
+                    return `${i === 0 ? 'M' : 'L'} ${mapX(pt.twoTheta)} ${mapYMain(peakY)}`;
+                  }).join(' ');
+
+                  return (
+                    <path
+                      key={key || rIdx}
+                      d={peakPathPts}
+                      fill="none"
+                      stroke={isSelected ? "#ec4899" : "#8b5cf6"}
+                      strokeWidth={isSelected ? "2" : "1"}
+                      strokeOpacity={isSelected ? 0.9 : 0.45}
+                    />
+                  );
+                })}
+
+                {/* Background Curve y_bg (Dashed Slate) */}
+                {visibleCurves.yBg && (
+                  <path
+                    d={filteredData.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${mapX(pt.twoTheta)} ${mapYMain(pt.yBg)}`).join(' ')}
+                    fill="none"
+                    stroke="#64748b"
+                    strokeWidth="1.2"
+                    strokeDasharray="4 4"
+                  />
+                )}
+
+                {/* Difference Curve y_diff (Amber) */}
+                {visibleCurves.yDiff && (
+                  <path
+                    d={filteredData.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${mapX(pt.twoTheta)} ${mapYDiff(pt.diff)}`).join(' ')}
+                    fill="none"
+                    stroke="#f59e0b"
+                    strokeWidth="1.5"
+                  />
+                )}
+
+                {/* Calculated Curve y_calc (Cyan) */}
+                {visibleCurves.yCalc && (
+                  <path
+                    d={filteredData.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${mapX(pt.twoTheta)} ${mapYMain(pt.yCalc)}`).join(' ')}
+                    fill="none"
+                    stroke="#06b6d4"
+                    strokeWidth="2"
+                  />
+                )}
+
+                {/* Observed Points y_obs (Indigo) */}
+                {visibleCurves.yObs && (
+                  <path
+                    d={filteredData.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${mapX(pt.twoTheta)} ${mapYMain(pt.yObs)}`).join(' ')}
+                    fill="none"
+                    stroke="#6366f1"
+                    strokeWidth="1.2"
+                    strokeDasharray="2 2"
+                  />
+                )}
+
+                {/* Bragg Reflections Tick Marks (Emerald) */}
+                {visibleCurves.braggTicks && visibleReflections.map((r, i) => {
+                  const key = `${r.h}_${r.k}_${r.l}`;
+                  const x = mapX(r.twoTheta);
+                  const isSelected = selectedReflectionKey === key;
+                  const tickY1 = PADDING_TOP + MAIN_H + 3;
+                  const tickY2 = PADDING_TOP + MAIN_H + 11;
+
+                  return (
+                    <g 
+                      key={key || i} 
+                      className="cursor-pointer group"
+                      onClick={() => setSelectedReflectionKey(isSelected ? null : key)}
+                    >
+                      {/* Vertical line indicator when selected */}
+                      {isSelected && (
+                        <line x1={x} y1={PADDING_TOP} x2={x} y2={SVG_H - PADDING_BOTTOM} stroke="#ec4899" strokeWidth="1.5" strokeDasharray="3 3" />
+                      )}
+
+                      <line
+                        x1={x}
+                        y1={tickY1}
+                        x2={x}
+                        y2={tickY2}
+                        stroke={isSelected ? "#ec4899" : "#10b981"}
+                        strokeWidth={isSelected ? "3" : "2"}
+                      />
+                    </g>
+                  );
+                })}
+
+                {/* Selected Reflection Label Banner */}
+                {selectedRefObj && selectedRefObj.twoTheta >= minTT && selectedRefObj.twoTheta <= maxTT && (
+                  <g transform={`translate(${mapX(selectedRefObj.twoTheta)}, ${PADDING_TOP + 12})`}>
+                    <rect x="-35" y="-12" width="70" height="20" rx="6" fill="#ec4899" />
+                    <text x="0" y="2" fill="#ffffff" fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                      ({selectedRefObj.h} {selectedRefObj.k} {selectedRefObj.l})
+                    </text>
+                  </g>
+                )}
+
+                {/* Mouse Hover Tracking Line & Dynamic Tooltip Overlay */}
+                {hoverPoint && (
+                  <g>
+                    <line x1={mapX(hoverPoint.twoTheta)} y1={PADDING_TOP} x2={mapX(hoverPoint.twoTheta)} y2={SVG_H - PADDING_BOTTOM} stroke="#a855f7" strokeWidth="1" strokeDasharray="2 2" />
+                    <circle cx={mapX(hoverPoint.twoTheta)} cy={mapYMain(hoverPoint.yCalc)} r="4" fill="#06b6d4" stroke="#ffffff" strokeWidth="1.5" />
+                    <circle cx={mapX(hoverPoint.twoTheta)} cy={mapYMain(hoverPoint.yObs)} r="3" fill="#6366f1" />
+                  </g>
+                )}
+              </svg>
+            );
+          })()}
+
+          {/* Floating Glassmorphic Tooltip Card */}
+          {hoverPoint && (
+            <div className="absolute top-4 right-4 bg-slate-900/95 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 shadow-2xl text-[11px] font-mono text-slate-200 space-y-1 z-20 min-w-[210px] pointer-events-none animate-in fade-in duration-150">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 text-indigo-300 font-bold">
+                <span>2θ Angle:</span>
+                <span className="text-white text-xs">{hoverPoint.twoTheta.toFixed(3)}°</span>
+              </div>
+              <div className="flex items-center justify-between text-indigo-400">
+                <span>y_obs (Exp):</span>
+                <span className="font-bold">{Math.round(hoverPoint.yObs)}</span>
+              </div>
+              <div className="flex items-center justify-between text-cyan-400">
+                <span>y_calc (Fit):</span>
+                <span className="font-bold">{Math.round(hoverPoint.yCalc)}</span>
+              </div>
+              <div className="flex items-center justify-between text-amber-400">
+                <span>Difference Δy:</span>
+                <span className="font-bold">{hoverPoint.diff > 0 ? `+${hoverPoint.diff.toFixed(1)}` : hoverPoint.diff.toFixed(1)}</span>
+              </div>
+              {hoverPoint.nearestReflection && (
+                <div className="pt-1 border-t border-slate-800/80 text-emerald-400 font-bold flex items-center justify-between">
+                  <span>Bragg Peak:</span>
+                  <span>({hoverPoint.nearestReflection.h} {hoverPoint.nearestReflection.k} {hoverPoint.nearestReflection.l}) @ {hoverPoint.nearestReflection.twoTheta.toFixed(2)}°</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Selected Reflection Detailed Peak Inspector Card */}
+        {selectedReflectionKey && (
+          <div className="p-4 bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs shadow-sm">
+            {(() => {
+              const r = reflections.find(ref => `${ref.h}_${ref.k}_${ref.l}` === selectedReflectionKey);
+              if (!r) return null;
+
+              const currentI = peakIntensities[selectedReflectionKey] ?? r.intensity;
+              const fwhm = cagliotiFWHM(r.twoTheta, paramU, paramV, paramW);
+
               return (
-                <line
-                  key={i}
-                  x1={x}
-                  y1="188"
-                  x2={x}
-                  y2="198"
-                  stroke="#10b981"
-                  strokeWidth="2"
-                />
+                <>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 font-bold text-indigo-800 dark:text-indigo-200">
+                      <Sparkles className="w-4 h-4 text-indigo-500" />
+                      <span className="text-sm">Selected Reflection ({r.h} {r.k} {r.l}) Inspector</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-4 text-slate-600 dark:text-slate-300 font-mono text-[11px]">
+                      <span>2θ Calc = <strong className="text-slate-900 dark:text-white">{r.twoTheta.toFixed(3)}°</strong></span>
+                      <span>d-spacing = <strong className="text-slate-900 dark:text-white">{r.dSpacing.toFixed(4)} Å</strong></span>
+                      <span>Caglioti FWHM = <strong className="text-slate-900 dark:text-white">{fwhm.toFixed(4)}°</strong></span>
+                      <span>Extracted Intensity = <strong className="text-indigo-600 dark:text-indigo-400">{Math.round(currentI)}</strong></span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-stretch sm:self-auto">
+                    <label className="font-bold text-slate-700 dark:text-slate-300 text-[11px] whitespace-nowrap">Edit I_k:</label>
+                    <input
+                      type="number"
+                      value={Math.round(currentI)}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value) || 10;
+                        setPeakIntensities(prev => ({ ...prev, [selectedReflectionKey]: val }));
+                      }}
+                      className="w-24 bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-700 font-mono font-bold text-indigo-600 dark:text-indigo-300 rounded-lg px-2.5 py-1 text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReflectionKey(null)}
+                      className="px-2 py-1 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold transition-colors"
+                    >
+                      Deselect
+                    </button>
+                  </div>
+                </>
               );
-            })}
-          </svg>
-        </div>
+            })()}
+          </div>
+        )}
 
         {/* Legend */}
-        <div className="flex flex-wrap items-center justify-around text-xs font-mono text-slate-400 pt-1">
+        <div className="flex flex-wrap items-center justify-around text-xs font-mono text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-900">
           <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-indigo-500 rounded" /> Observed Profile y_obs</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-cyan-400 rounded" /> Calculated Profile y_calc</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-amber-500 rounded" /> Difference Curve y_obs - y_calc</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-violet-500 rounded" /> Decomposed Sub-Peaks (I_k · φ_k)</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-2 bg-emerald-500 rounded" /> Bragg Reflections (hkl)</span>
         </div>
       </div>
 
-      {/* Extracted Peak Intensities Table */}
-      <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-xl space-y-5">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      {/* Extracted Reflection Intensities Table with Live Search Filter */}
+      <div className="bg-white dark:bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-200 dark:border-slate-800/80 shadow-xl space-y-5">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <Table className="w-5 h-5 text-indigo-400" />
-            <h3 className="text-base font-bold text-white">
-              Extracted Reflection Intensities List ({reflections.length} Peaks)
-            </h3>
+            <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
+              <Table className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Extracted Reflection Intensities List ({reflections.length} Peaks)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Reflection profile integrated intensities I_k extracted via whole pattern profile fitting
+              </p>
+            </div>
+          </div>
+
+          {/* Table Search Filter Input */}
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Filter by (h k l) or 2θ..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-xl pl-8 pr-3 py-1.5 text-xs font-mono outline-none focus:border-indigo-500"
+            />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
           </div>
         </div>
 
-        <div className="overflow-x-auto max-h-64 border border-slate-800 rounded-xl">
+        <div className="overflow-x-auto max-h-72 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-inner">
           <table className="w-full text-left text-xs font-mono border-collapse">
-            <thead className="sticky top-0 bg-slate-900/95 backdrop-blur-sm z-10">
-              <tr className="border-b border-slate-800 text-slate-400">
+            <thead className="sticky top-0 bg-slate-100 dark:bg-slate-900/95 backdrop-blur-sm z-10 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+              <tr>
                 <th className="py-3 px-3">Reflection (h k l)</th>
                 <th className="py-3 px-3">2θ Calc (°)</th>
                 <th className="py-3 px-3">d-spacing (Å)</th>
-                <th className="py-3 px-3 text-indigo-300">Extracted Intensity I_k</th>
-                <th className="py-3 px-3 text-cyan-300">Rel. Intensity (%)</th>
+                <th className="py-3 px-3">Caglioti FWHM (°)</th>
+                <th className="py-3 px-3 text-indigo-600 dark:text-indigo-300">Extracted Intensity I_k</th>
+                <th className="py-3 px-3 text-cyan-600 dark:text-cyan-300">Rel. Intensity (%)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 bg-slate-950/50">
-              {reflections.map((r) => {
-                const key = `${r.h}_${r.k}_${r.l}`;
-                const currI = peakIntensities[key] ?? r.intensity;
-                const maxI = Math.max(...Object.values(peakIntensities), 100);
-                const relI = (currI / maxI) * 100;
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-950/50">
+              {reflections
+                .filter(r => {
+                  if (!searchQuery) return true;
+                  const q = searchQuery.toLowerCase();
+                  const hklStr = `(${r.h} ${r.k} ${r.l})`;
+                  return hklStr.includes(q) || r.twoTheta.toFixed(2).includes(q);
+                })
+                .map((r) => {
+                  const key = `${r.h}_${r.k}_${r.l}`;
+                  const currI = peakIntensities[key] ?? r.intensity;
+                  const maxI = Math.max(...Object.values(peakIntensities), 100);
+                  const relI = (currI / maxI) * 100;
+                  const fwhm = cagliotiFWHM(r.twoTheta, paramU, paramV, paramW);
+                  const isSelected = selectedReflectionKey === key;
 
-                return (
-                  <tr key={key} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-2.5 px-3 font-bold text-white">({r.h} {r.k} {r.l})</td>
-                    <td className="py-2.5 px-3 text-slate-300">{fmt(r.twoTheta, 3)}</td>
-                    <td className="py-2.5 px-3 text-slate-300">{fmt(r.dSpacing, 4)}</td>
-                    <td className="py-2.5 px-3 font-bold text-indigo-300">{Math.round(currI)}</td>
-                    <td className="py-2.5 px-3 font-bold text-cyan-300 bg-cyan-950/10">
-                      {fmt(relI, 1)}%
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr 
+                      key={key} 
+                      onClick={() => setSelectedReflectionKey(isSelected ? null : key)}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected 
+                          ? 'bg-indigo-50/90 dark:bg-indigo-950/60 font-bold border-l-4 border-l-indigo-600' 
+                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">({r.h} {r.k} {r.l})</td>
+                      <td className="py-2.5 px-3">{fmt(r.twoTheta, 3)}</td>
+                      <td className="py-2.5 px-3">{fmt(r.dSpacing, 4)}</td>
+                      <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400">{fmt(fwhm, 4)}</td>
+                      <td className="py-2.5 px-3">
+                        <input
+                          type="number"
+                          value={Math.round(currI)}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            setPeakIntensities(prev => ({ ...prev, [key]: val }));
+                          }}
+                          className="w-24 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 font-bold font-mono px-2 py-0.5 rounded text-xs outline-none focus:border-indigo-500"
+                        />
+                      </td>
+                      <td className="py-2.5 px-3 font-bold text-cyan-600 dark:text-cyan-300">
+                        {fmt(relI, 1)}%
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>

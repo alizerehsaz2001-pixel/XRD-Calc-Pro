@@ -14,6 +14,8 @@ import { RietveldPhaseInput, RietveldSetupResult, CrystalSystem, RietveldAtom } 
 import { generateRietveldSetup, calculateBragg, simulatePeak, calculateCellVolume } from '../utils/physics';
 import { ScientificMathControl } from './ScientificMathControl';
 import { RietveldRFactorCalculator } from './RietveldRFactorCalculator';
+import { PhysicalResidualCorrectionsModule } from './PhysicalResidualCorrectionsModule';
+import { playSynthTone } from '../utils/sound';
 
 // --- Simulation Constants & Types ---
 
@@ -1220,6 +1222,33 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
     refineZeroShift, refineBkg, refineSampleDisplacement, refineSurfaceRoughness,
     geometry, divergenceSlit
   ]);
+
+  const handleApplyPhysicalCorrection = (correction: { key: string; value: any; title: string }) => {
+    playSynthTone('success');
+    if (correction.key === 'zeroShift') {
+      const val = typeof correction.value === 'number' ? correction.value : parseFloat(correction.value);
+      setSetupZeroShift(val);
+      setRefineZeroShift(true);
+      setSimPhases(prev => prev.map((p, idx) => idx === selectedSimPhaseIdx ? { ...p, zeroShift: val } : p));
+    } else if (correction.key === 'sampleDisplacement') {
+      const val = typeof correction.value === 'number' ? correction.value : parseFloat(correction.value);
+      setSampleDisplacement(val);
+      setRefineSampleDisplacement(true);
+      setSimPhases(prev => prev.map((p, idx) => idx === selectedSimPhaseIdx ? { ...p, sampleDisplacement: val } : p));
+    } else if (correction.key === 'bgTerms') {
+      const val = typeof correction.value === 'number' ? correction.value : parseInt(correction.value, 10);
+      setBgTerms(val);
+      setRefineBkg(true);
+    } else if (correction.key === 'eta') {
+      const val = typeof correction.value === 'number' ? correction.value : parseFloat(correction.value);
+      setSimPhases(prev => prev.map((p, idx) => idx === selectedSimPhaseIdx ? { ...p, eta: val } : p));
+    } else if (correction.key === 'asymmetry') {
+      setSimPhases(prev => prev.map((p, idx) => idx === selectedSimPhaseIdx ? { ...p, refineAsymmetry: true } : p));
+    } else if (correction.key === 'marchDollase') {
+      const val = typeof correction.value === 'number' ? correction.value : parseFloat(correction.value);
+      setSimPhases(prev => prev.map((p, idx) => idx === selectedSimPhaseIdx ? { ...p, marchDollase: val } : p));
+    }
+  };
 
   const refinementMetrics = useMemo(() => {
     let globalActive = 0;
@@ -3548,6 +3577,19 @@ export const RietveldModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ 
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Physical Residual Corrections Advisor */}
+          <div className="mt-8">
+            <PhysicalResidualCorrectionsModule
+              data={generatePatternData.data}
+              currentZeroShift={setupZeroShift}
+              currentDisplacement={sampleDisplacement}
+              currentFwhm={currentPhaseObj.fwhm}
+              currentEta={currentPhaseObj.eta}
+              bgTerms={bgTerms}
+              onApplyCorrection={handleApplyPhysicalCorrection}
+            />
           </div>
 
           {/* Python and Pandas Refinement Report */}

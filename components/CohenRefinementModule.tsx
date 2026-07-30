@@ -95,19 +95,19 @@ const MatrixBox: React.FC<{
 }> = ({ title, matrix, accentColor = 'indigo', labels }) => {
   const accentClasses = {
     indigo: {
-      title: 'text-indigo-400',
-      diag: 'text-indigo-300 bg-indigo-500/10 font-black border border-indigo-500/20',
-      val: 'text-indigo-200/90'
+      title: 'text-indigo-600 dark:text-indigo-400',
+      diag: 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-500/10 font-black border border-indigo-200 dark:border-indigo-500/20',
+      val: 'text-indigo-600/90 dark:text-indigo-200/90'
     },
     emerald: {
-      title: 'text-emerald-400',
-      diag: 'text-emerald-300 bg-emerald-500/10 font-black border border-emerald-500/20',
-      val: 'text-emerald-200/90'
+      title: 'text-emerald-600 dark:text-emerald-400',
+      diag: 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 font-black border border-emerald-200 dark:border-emerald-500/20',
+      val: 'text-emerald-600/90 dark:text-emerald-200/90'
     },
     amber: {
-      title: 'text-amber-400',
-      diag: 'text-amber-300 bg-amber-500/10 font-black border border-amber-500/20',
-      val: 'text-amber-200/90'
+      title: 'text-amber-600 dark:text-amber-400',
+      diag: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 font-black border border-amber-200 dark:border-amber-500/20',
+      val: 'text-amber-600/90 dark:text-amber-200/90'
     }
   }[accentColor];
 
@@ -115,12 +115,12 @@ const MatrixBox: React.FC<{
     <div className="space-y-2">
       <div className="text-[10px] uppercase tracking-widest font-black flex items-center justify-between">
         <span className={accentClasses.title}>{title}</span>
-        <span className="text-slate-500 font-mono text-[9px]">{matrix.length}×{matrix[0]?.length || 0}</span>
+        <span className="text-slate-400 font-mono text-[9px]">{matrix.length}×{matrix[0]?.length || 0}</span>
       </div>
 
-      <div className="relative p-3 bg-slate-950/90 rounded-xl border border-slate-800 flex items-center justify-center overflow-x-auto">
+      <div className="relative p-3 bg-white dark:bg-slate-950/90 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-center overflow-x-auto shadow-sm">
         {/* Left Matrix Bracket */}
-        <div className="w-2 border-l-2 border-t-2 border-b-2 border-slate-500/60 rounded-l self-stretch my-0.5 shrink-0" />
+        <div className="w-2 border-l-2 border-t-2 border-b-2 border-slate-300 dark:border-slate-500/60 rounded-l self-stretch my-0.5 shrink-0" />
 
         {/* Matrix Grid */}
         <div className="overflow-x-auto px-2 py-1 my-0.5">
@@ -130,7 +130,7 @@ const MatrixBox: React.FC<{
                 <tr>
                   <th className="p-1"></th>
                   {labels.map((lbl, idx) => (
-                    <th key={idx} className="px-2 py-1 text-[9px] font-mono text-slate-400 font-bold border-b border-slate-800">
+                    <th key={idx} className="px-2 py-1 text-[9px] font-mono text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">
                       {lbl}
                     </th>
                   ))}
@@ -141,7 +141,7 @@ const MatrixBox: React.FC<{
               {matrix.map((row, rIdx) => (
                 <tr key={rIdx}>
                   {labels && labels[rIdx] && (
-                    <td className="px-2 py-1 text-[9px] font-mono text-slate-400 font-bold text-right border-r border-slate-800 whitespace-nowrap">
+                    <td className="px-2 py-1 text-[9px] font-mono text-slate-400 font-bold text-right border-r border-slate-100 dark:border-slate-800 whitespace-nowrap">
                       {labels[rIdx]}
                     </td>
                   )}
@@ -151,7 +151,7 @@ const MatrixBox: React.FC<{
                       <td
                         key={cIdx}
                         title={`Element [Row ${rIdx+1}, Col ${cIdx+1}]: ${val}`}
-                        className={`px-3 py-2 text-xs transition-colors rounded-sm ${
+                        className={`px-3 py-2 font-mono text-xs transition-colors rounded-sm ${
                           isDiagonal ? accentClasses.diag : accentClasses.val
                         }`}
                       >
@@ -166,7 +166,7 @@ const MatrixBox: React.FC<{
         </div>
 
         {/* Right Matrix Bracket */}
-        <div className="w-2 border-r-2 border-t-2 border-b-2 border-slate-500/60 rounded-r self-stretch my-0.5 shrink-0" />
+        <div className="w-2 border-r-2 border-t-2 border-b-2 border-slate-300 dark:border-slate-500/60 rounded-r self-stretch my-0.5 shrink-0" />
       </div>
     </div>
   );
@@ -1028,45 +1028,36 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Enhanced Header */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-8 border border-indigo-500/20 shadow-xl">
-        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none mix-blend-screen">
-          <Grid className="w-64 h-64 text-indigo-400" />
+      {/* Module Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white flex items-center gap-3">
+            <Zap className="w-6 h-6 text-indigo-500" />
+            Cohen's Method Matrix Refinement
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 max-w-2xl">
+            Analytical matrix elimination of systematic X-ray diffraction errors. Solves normal equations $M \cdot X = Y$ to derive exact lattice parameters $(a, b, c)$ with variance-covariance error estimates.
+          </p>
         </div>
         
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-black uppercase tracking-widest">
-              <Zap className="w-3.5 h-3.5" />
-              Pure Linear Algebra • Matrix Refinement
-            </div>
-            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">
-              Cohen's Method
-            </h2>
-            <p className="text-indigo-200/80 text-sm md:text-base font-medium leading-relaxed">
-              Analytical matrix elimination of systematic X-ray diffraction errors (sample displacement, zero shift, absorption). Solves normal equations $M \cdot X = Y$ to derive exact lattice parameters $(a, b, c)$ with variance-covariance error estimates.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2 shrink-0 w-full md:w-auto">
-            {activeResults && activeResults.length > 0 && (
-              <button
-                onClick={handleImportActiveResults}
-                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center gap-2 active:scale-95 border border-indigo-400/30 w-full"
-              >
-                <Activity className="w-4 h-4" />
-                Import Active Bragg Peaks ({activeResults.length})
-              </button>
-            )}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          {activeResults && activeResults.length > 0 && (
             <button
-              onClick={handleExportTextReport}
-              disabled={'error' in refinementResult}
-              className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl transition-all border border-white/10 shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-40 w-full"
+              onClick={handleImportActiveResults}
+              className="px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-xs font-bold rounded-xl transition-all border border-indigo-200 dark:border-indigo-500/30 shadow-sm flex items-center gap-2 flex-1 md:flex-auto justify-center"
             >
-              <Download className="w-3.5 h-3.5" />
-              Export Text Report
+              <Activity className="w-4 h-4" />
+              Import Active ({activeResults.length})
             </button>
-          </div>
+          )}
+          <button
+            onClick={handleExportTextReport}
+            disabled={'error' in refinementResult}
+            className="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-all border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-1.5 disabled:opacity-50 flex-1 md:flex-auto justify-center"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export
+          </button>
         </div>
       </div>
 
@@ -1077,13 +1068,13 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="p-3 bg-emerald-600 text-white rounded-xl shadow-lg font-bold text-xs flex items-center justify-between gap-3 border border-emerald-400/30"
+            className="p-3 bg-emerald-50 dark:bg-emerald-600 text-emerald-800 dark:text-white rounded-xl shadow-sm dark:shadow-lg font-bold text-xs flex items-center justify-between gap-3 border border-emerald-200 dark:border-emerald-400/30"
           >
             <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-emerald-200" />
+              <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-200" />
               <span>{importNotification}</span>
             </div>
-            <button onClick={() => setImportNotification(null)} className="text-emerald-200 hover:text-white">
+            <button onClick={() => setImportNotification(null)} className="text-emerald-600 dark:text-emerald-200 hover:text-emerald-800 dark:hover:text-white transition-colors">
               <X className="w-4 h-4" />
             </button>
           </motion.div>
@@ -1107,24 +1098,18 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
       />
 
       {/* Controls & Preset Bar */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
-        <div className="absolute -right-6 -top-6 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-colors pointer-events-none" />
-        <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2 relative z-10">
-          <SlidersHorizontal className="w-5 h-5 text-indigo-500" />
-          Method Configuration
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+      <div className="bg-slate-50 dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
           {/* Crystal System Selector */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               1. Crystal System
             </label>
             <div className="relative">
               <select
                 value={crystalSystem}
                 onChange={(e) => setCrystalSystem(e.target.value as CrystalSystem)}
-                className="w-full pl-3 pr-8 py-2 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none transition-colors"
+                className="w-full pl-3 pr-8 py-2 bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none transition-colors shadow-sm"
               >
                 <option value="Cubic">Cubic (a)</option>
                 <option value="Tetragonal">Tetragonal (a, c)</option>
@@ -1133,38 +1118,38 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 <option value="Monoclinic">Monoclinic (a, b, c, β)</option>
               </select>
               <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
-                <ArrowUpDown className="w-4 h-4 opacity-50" />
+                <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
               </div>
             </div>
           </div>
 
           {/* Drift Function Selector */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">
-              2. Drift Error Function f(θ)
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              2. Drift Function
             </label>
             <div className="relative">
               <select
                 value={driftType}
                 onChange={(e) => setDriftType(e.target.value as DriftFunctionType)}
-                className="w-full pl-3 pr-8 py-2 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none transition-colors"
+                className="w-full pl-3 pr-8 py-2 bg-white dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none transition-colors shadow-sm"
               >
-                <option value="nelson_riley">Nelson-Riley: ½(cos²θ/sinθ + cos²θ/θ)</option>
-                <option value="bradley_jay">Bradley-Jay: cos²θ</option>
-                <option value="sample_displacement">Sample Displacement: cos²θ sinθ</option>
-                <option value="hess_hagg">Hess-Hägg: sin²(2θ)</option>
-                <option value="zero_shift">Pure Zero Shift: cosθ</option>
+                <option value="nelson_riley">Nelson-Riley</option>
+                <option value="bradley_jay">Bradley-Jay</option>
+                <option value="sample_displacement">Sample Displacement</option>
+                <option value="hess_hagg">Hess-Hägg</option>
+                <option value="zero_shift">Zero Shift</option>
               </select>
               <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
-                <ArrowUpDown className="w-4 h-4 opacity-50" />
+                <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
               </div>
             </div>
           </div>
 
           {/* Wavelength Input - Prominent Display */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 3. Wavelength λ (Å)
               </label>
             </div>
@@ -1175,12 +1160,12 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 step="0.00001"
                 value={wavelength}
                 onChange={(e) => setWavelength(parseFloat(e.target.value) || 1.54056)}
-                className="w-full px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-900 dark:text-indigo-100 border border-indigo-200 dark:border-indigo-800 rounded-xl text-sm font-black font-mono outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner transition-colors"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-950 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-xl text-xs font-black font-mono outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-colors"
               />
             </div>
 
             {/* Radiation Source Badges */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <div className="flex flex-wrap gap-1">
               {[
                 { name: 'Cu Kα1', val: 1.54056 },
                 { name: 'Cu Kα', val: 1.54184 },
@@ -1191,10 +1176,10 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                   key={source.name}
                   onClick={() => setWavelength(source.val)}
                   title={`${source.name}: ${source.val} Å`}
-                  className={`px-2 py-0.5 text-[10px] font-bold rounded transition-colors ${
+                  className={`px-1.5 py-0.5 text-[9px] font-bold rounded transition-colors ${
                     Math.abs(wavelength - source.val) < 0.0001
-                      ? 'bg-indigo-500 text-white shadow-sm'
-                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                      ? 'bg-indigo-500 text-white'
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
                   {source.name}
@@ -1204,10 +1189,10 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
           </div>
 
           {/* Preset Sample Selector */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400">
-                4. Reference Material
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                4. Reference Data
               </label>
               <button
                 type="button"
@@ -1215,14 +1200,14 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 className="text-[10px] font-bold text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 transition-colors"
               >
                 <Edit3 className="w-3 h-3" />
-                Configure
+                Custom
               </button>
             </div>
             <div className="relative">
               <select
                 value={selectedPreset}
                 onChange={(e) => handleLoadPreset(e.target.value)}
-                className="w-full pl-3 pr-8 py-2 bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-900 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-800/50 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none transition-colors"
+                className="w-full pl-3 pr-8 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-900 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 appearance-none transition-colors shadow-sm"
               >
                 <optgroup label="Standard Reference Presets">
                   {PRESET_SAMPLES.map(p => (
@@ -1241,7 +1226,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 </optgroup>
               </select>
               <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-indigo-400">
-                <ArrowUpDown className="w-4 h-4 opacity-50" />
+                <ArrowUpDown className="w-3.5 h-3.5 opacity-50" />
               </div>
             </div>
           </div>
@@ -1260,272 +1245,184 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
       ) : refinementResult && (
         <div className="space-y-6">
           {/* Refinement Conditions Banner */}
-          <div className="bg-slate-900/90 text-white p-3.5 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs shadow-md">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs shadow-sm">
+            <div className="flex flex-wrap items-center gap-3">
               <span className="font-extrabold text-slate-400 uppercase tracking-widest text-[10px]">Setup Parameters:</span>
-              <span className="px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-300 font-mono font-bold border border-indigo-500/30 flex items-center gap-1.5">
-                <span className="text-slate-400">λ =</span>
-                <span className="text-sm font-black text-white">{wavelength}</span>
-                <span className="text-[10px] text-slate-300">Å</span>
+              <span className="px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-mono font-bold border border-indigo-200 dark:border-indigo-500/20 flex items-center gap-1">
+                <span className="text-slate-500 dark:text-slate-400">λ =</span>
+                <span className="text-sm">{wavelength}</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Å</span>
               </span>
-              <span className="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-300 font-mono font-bold border border-emerald-500/30">
-                Symmetry: {crystalSystem}
+              <span className="px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-mono font-bold border border-emerald-200 dark:border-emerald-500/20">
+                {crystalSystem}
               </span>
-              <span className="px-2.5 py-1 rounded-md bg-amber-500/20 text-amber-300 font-mono font-bold border border-amber-500/30">
-                Drift Model: {driftType.replace('_', ' ').toUpperCase()}
+              <span className="px-2.5 py-1 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 font-mono font-bold border border-amber-200 dark:border-amber-500/20">
+                Drift: {driftType.replace('_', ' ').toUpperCase()}
               </span>
             </div>
-            <div className="flex items-center gap-3 text-slate-400 font-mono text-[11px]">
-              <span>Reflections <i>N</i> = <strong className="text-white">{peaks.length}</strong></span>
+            <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 font-mono text-[11px]">
+              <span>N = <strong className="text-slate-700 dark:text-slate-200">{peaks.length}</strong></span>
               <span>•</span>
-              <span>Matrix = <strong className="text-indigo-400">{refinementResult.numParams}×{refinementResult.numParams}</strong></span>
+              <span>Matrix = <strong className="text-indigo-600 dark:text-indigo-400">{refinementResult.numParams}×{refinementResult.numParams}</strong></span>
             </div>
           </div>
           {/* Top Result Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Parameter a */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
+            <div className="bg-slate-50 dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-3">
               <div>
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-500" />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-widest font-black text-slate-400">
-                    Refined Parameter <i>a</i>
+                  <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                    Refined <i>a</i>
                   </span>
-                  <span className="text-[10px] font-mono px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-200 dark:border-indigo-800/50">
-                    Matrix $X_0$
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-500/30">
+                    X₀
                   </span>
                 </div>
-                <div className="text-2xl md:text-3xl font-black font-mono tracking-tight text-indigo-600 dark:text-indigo-400 mt-2">
-                  {refinementResult.lattice.a.toFixed(precision + 1)} <span className="text-sm font-sans text-slate-500">Å</span>
+                <div className="text-2xl font-black font-mono tracking-tight text-indigo-700 dark:text-indigo-400 mt-2">
+                  {refinementResult.lattice.a.toFixed(precision + 1)} <span className="text-xs font-sans text-slate-500">Å</span>
                 </div>
-                <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                <div className="text-[11px] font-mono text-slate-500 mt-1 flex items-center gap-1">
                   <span>±</span>
                   <FormatSci val={refinementResult.sigma.sigmaA} digits={precision + 1} />
                   <span>Å</span>
                 </div>
               </div>
-
-              {/* Underlying Logic Explanation */}
-              <div className="p-3 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5">
-                <div className="font-bold text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                  <span>Logic &amp; Derivation:</span>
-                </div>
-                <p className="leading-snug">
-                  Derived from solved matrix variable <strong className="font-mono text-indigo-600 dark:text-indigo-400">X₀</strong> via <code className="font-mono bg-indigo-100 dark:bg-indigo-900/60 px-1 py-0.2 rounded">a = λ / (2√X₀)</code>.
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                  X₀ represents the refined h²+k²+l² metric constant after removing systematic angular drift D · f(θ).
-                </p>
-              </div>
             </div>
 
             {/* Parameter b or c or Symmetry Constraint */}
             {(crystalSystem === 'Orthorhombic' || crystalSystem === 'Monoclinic') ? (
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
+              <div className="bg-slate-50 dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-3">
                 <div>
                   <div className="absolute top-0 left-0 w-1.5 h-full bg-cyan-500" />
                   <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-widest font-black text-slate-400">
-                      Refined Parameter <i>b</i>
+                    <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                      Refined <i>b</i>
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-1 rounded-lg bg-cyan-50 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-200 dark:border-cyan-800/50">
-                      Matrix X₁
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 font-bold border border-cyan-200 dark:border-cyan-500/30">
+                      X₁
                     </span>
                   </div>
-                  <div className="text-2xl md:text-3xl font-black font-mono tracking-tight text-cyan-600 dark:text-cyan-400 mt-2">
-                    {refinementResult.lattice.b.toFixed(precision + 1)} <span className="text-sm font-sans text-slate-500">Å</span>
+                  <div className="text-2xl font-black font-mono tracking-tight text-cyan-700 dark:text-cyan-400 mt-2">
+                    {refinementResult.lattice.b.toFixed(precision + 1)} <span className="text-xs font-sans text-slate-500">Å</span>
                   </div>
-                  <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                  <div className="text-[11px] font-mono text-slate-500 mt-1 flex items-center gap-1">
                     <span>±</span>
                     <FormatSci val={refinementResult.sigma.sigmaB} digits={precision + 1} />
                     <span>Å</span>
                   </div>
                 </div>
-
-                {/* Underlying Logic Explanation */}
-                <div className="p-3 bg-cyan-50/50 dark:bg-cyan-900/20 rounded-2xl border border-cyan-100 dark:border-cyan-900/30 text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5">
-                  <div className="font-bold text-cyan-900 dark:text-cyan-200 flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-cyan-500 shrink-0" />
-                    <span>Logic &amp; Derivation:</span>
-                  </div>
-                  <p className="leading-snug">
-                    Calculated from second diagonal solution variable <strong className="font-mono text-cyan-600 dark:text-cyan-400">X₁</strong> via <code className="font-mono bg-cyan-100 dark:bg-cyan-900/60 px-1 py-0.2 rounded">b = λ / (2√X₁)</code>.
-                  </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Accounts for independent k² reciprocal lattice dimension in lower-symmetry systems.
-                  </p>
-                </div>
               </div>
             ) : (crystalSystem !== 'Cubic') ? (
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
+              <div className="bg-slate-50 dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-3">
                 <div>
                   <div className="absolute top-0 left-0 w-1.5 h-full bg-purple-500" />
                   <div className="flex items-center justify-between">
-                    <span className="text-xs uppercase tracking-widest font-black text-slate-400">
-                      Refined Parameter <i>c</i>
+                    <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                      Refined <i>c</i>
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-1 rounded-lg bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 font-bold border border-purple-200 dark:border-purple-800/50">
-                      Matrix {crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? 'X₁' : 'X₂'}
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold border border-purple-200 dark:border-purple-500/30">
+                      {crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? 'X₁' : 'X₂'}
                     </span>
                   </div>
-                  <div className="text-2xl md:text-3xl font-black font-mono tracking-tight text-purple-600 dark:text-purple-400 mt-2">
-                    {refinementResult.lattice.c.toFixed(precision + 1)} <span className="text-sm font-sans text-slate-500">Å</span>
+                  <div className="text-2xl font-black font-mono tracking-tight text-purple-700 dark:text-purple-400 mt-2">
+                    {refinementResult.lattice.c.toFixed(precision + 1)} <span className="text-xs font-sans text-slate-500">Å</span>
                   </div>
-                  <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                  <div className="text-[11px] font-mono text-slate-500 mt-1 flex items-center gap-1">
                     <span>±</span>
                     <FormatSci val={refinementResult.sigma.sigmaC} digits={precision + 1} />
                     <span>Å</span>
                   </div>
                 </div>
-
-                {/* Underlying Logic Explanation */}
-                <div className="p-3 bg-purple-50/50 dark:bg-purple-900/20 rounded-2xl border border-purple-100 dark:border-purple-900/30 text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5">
-                  <div className="font-bold text-purple-900 dark:text-purple-200 flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-                    <span>Logic &amp; Derivation:</span>
-                  </div>
-                  <p className="leading-snug">
-                    {crystalSystem === 'Hexagonal' ? (
-                      <>Derived via <code className="font-mono bg-purple-100 dark:bg-purple-900/60 px-1 py-0.2 rounded">c = λ / (2√X₁)</code> where X₁ = λ² / (4c²) for hexagonal l².</>
-                    ) : (
-                      <>Derived via <code className="font-mono bg-purple-100 dark:bg-purple-900/60 px-1 py-0.2 rounded">c = λ / (2√X_c)</code> for the l² Miller axis coefficient.</>
-                    )}
-                  </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                    Refines the unique longitudinal c-axis parameter independently from a.
-                  </p>
-                </div>
               </div>
             ) : (
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
+              <div className="bg-slate-50 dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-3">
                 <div>
                   <div className="absolute top-0 left-0 w-1.5 h-full bg-slate-400" />
-                  <span className="text-xs uppercase tracking-widest font-black text-slate-400">
+                  <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500">
                     Symmetry Constraint
                   </span>
-                  <div className="text-2xl md:text-3xl font-black font-mono tracking-tight text-slate-700 dark:text-slate-300 mt-2">
+                  <div className="text-2xl font-black font-mono tracking-tight text-slate-700 dark:text-slate-300 mt-2">
                     a = b = c
                   </div>
-                  <div className="text-xs font-mono text-slate-500 mt-1 flex items-center gap-1">
-                    Isometric Cubic System
+                  <div className="text-[11px] font-mono text-slate-500 mt-1 flex items-center gap-1">
+                    Isometric Cubic
                   </div>
-                </div>
-
-                <div className="p-3 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-slate-200 dark:border-slate-700/50 text-[11px] text-slate-600 dark:text-slate-400 space-y-1.5">
-                  <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                    <span>Cubic Symmetry Logic:</span>
-                  </div>
-                  <p className="leading-snug">
-                    In cubic crystals, symmetry mandates identical unit cell dimensions in all 3 directions (a = b = c).
-                  </p>
                 </div>
               </div>
             )}
 
             {/* Unit Cell Volume V */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
+            <div className="bg-slate-50 dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-3">
               <div>
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500" />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-widest font-black text-slate-400">
-                    Unit Cell Volume <i>V</i>
+                  <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                    Volume <i>V</i>
                   </span>
-                  <span className="text-[10px] font-mono px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-200 dark:border-emerald-800/50">
-                    3D Space
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-500/30">
+                    3D
                   </span>
                 </div>
-                <div className="text-2xl md:text-3xl font-black font-mono tracking-tight text-emerald-600 dark:text-emerald-400 mt-2">
-                  {refinementResult.volume.toFixed(precision)} <span className="text-sm font-sans text-slate-500">Å³</span>
+                <div className="text-2xl font-black font-mono tracking-tight text-emerald-700 dark:text-emerald-400 mt-2">
+                  {refinementResult.volume.toFixed(precision)} <span className="text-xs font-sans text-slate-500">Å³</span>
                 </div>
-                <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                <div className="text-[11px] font-mono text-slate-500 mt-1 flex items-center gap-1">
                   <span>±</span>
                   <FormatSci val={refinementResult.sigma.sigmaVolume} digits={precision} />
                   <span>Å³</span>
                 </div>
               </div>
-
-              {/* Underlying Logic Explanation */}
-              <div className="p-3 bg-emerald-50/50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5">
-                <div className="font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>Logic &amp; Formula:</span>
-                </div>
-                <p className="leading-snug font-mono">
-                  {crystalSystem === 'Cubic' && 'V = a³'}
-                  {crystalSystem === 'Tetragonal' && 'V = a² · c'}
-                  {crystalSystem === 'Hexagonal' && 'V = (√3/2)a²c ≈ 0.866a²c'}
-                  {crystalSystem === 'Orthorhombic' && 'V = a · b · c'}
-                  {crystalSystem === 'Monoclinic' && 'V = a · b · c · sin(β)'}
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                  Calculated directly from the refined lattice parameters. Error σ_V propagates covariance matrix terms.
-                </p>
-              </div>
             </div>
 
             {/* Drift Error Constant D */}
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-4 hover:shadow-md transition-shadow">
+            <div className="bg-slate-50 dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group flex flex-col justify-between space-y-3">
               <div>
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500" />
                 <div className="flex items-center justify-between">
-                  <span className="text-xs uppercase tracking-widest font-black text-slate-400">
-                    Drift Parameter <i>D</i>
+                  <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                    Drift <i>D</i>
                   </span>
-                  <span className="text-[10px] font-mono px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 font-bold border border-amber-200 dark:border-amber-800/50">
-                    Systematic Error
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold border border-amber-200 dark:border-amber-500/30">
+                    Error
                   </span>
                 </div>
-                <div className="text-2xl md:text-3xl font-black font-mono tracking-tight text-amber-600 dark:text-amber-400 mt-2">
+                <div className="text-2xl font-black font-mono tracking-tight text-amber-700 dark:text-amber-400 mt-2">
                   <FormatSci val={refinementResult.D} digits={3} />
                 </div>
-                <div className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-1">
-                  RMS 2θ Shift: {refinementResult.rmsTwoThetaShift.toFixed(4)}°
+                <div className="text-[11px] font-mono text-slate-500 mt-1">
+                  RMS Δ2θ: {refinementResult.rmsTwoThetaShift.toFixed(4)}°
                 </div>
-              </div>
-
-              {/* Underlying Logic Explanation */}
-              <div className="p-3 bg-amber-50/50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30 text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5">
-                <div className="font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                  <span>Physical Drift Logic:</span>
-                </div>
-                <p className="leading-snug">
-                  Solved as final column variable in vector <strong className="font-mono text-amber-600 dark:text-amber-400">X</strong>. Multiplies f(θ) to correct sample displacement &amp; absorption.
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
-                  A non-zero D removes residual slope in Bradley-Jay / Nelson-Riley extrapolation plots.
-                </p>
               </div>
             </div>
           </div>
 
           {/* Matrix Algebra Mechanics Panel */}
-          <div className="bg-slate-900 text-slate-100 p-6 rounded-3xl border border-slate-800 shadow-xl space-y-5">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-800 pb-3">
+          <div className="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
               <div className="flex items-center gap-2">
-                <Cpu className="w-5 h-5 text-indigo-400" />
-                <h3 className="font-bold text-sm text-white uppercase tracking-wider">
-                  Linear System Normal Matrix [M] & Inverse Covariance Matrix [M⁻¹]
+                <Cpu className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                <h3 className="font-black text-sm uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                  Matrix Algebra Mechanics
                 </h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setShowMatrixDerivation(!showMatrixDerivation)}
-                  className="px-2.5 py-1 bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border border-indigo-800/80 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/50 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  {showMatrixDerivation ? 'Hide Derivation Logic' : 'Explain Matrix Values'}
+                  {showMatrixDerivation ? 'Hide Details' : 'Show Logic & Details'}
                 </button>
                 <button
                   type="button"
                   onClick={handleCopyLatex}
-                  className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 self-start sm:self-auto"
+                  className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 self-start sm:self-auto shadow-sm"
                 >
-                  {copiedMatrix ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copiedMatrix ? 'Copied LaTeX' : 'Copy LaTeX'}
+                  {copiedMatrix ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-indigo-500" />}
+                  {copiedMatrix ? 'Copied' : 'Copy LaTeX'}
                 </button>
               </div>
             </div>
@@ -1533,7 +1430,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Normal Matrix M */}
               <MatrixBox
-                title="1. Normal Equation Matrix [M] (M_{j,k} = ∑ g_j g_k)"
+                title="Normal Matrix [M]"
                 matrix={refinementResult.matrixM}
                 accentColor="indigo"
                 labels={matrixLabels}
@@ -1541,7 +1438,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
 
               {/* Inverse Matrix M^-1 */}
               <MatrixBox
-                title="2. Inverse Covariance Matrix [M⁻¹] (Var(X_i) = σ² M⁻¹_{i,i})"
+                title="Covariance Matrix [M⁻¹]"
                 matrix={refinementResult.matrixMInv}
                 accentColor="emerald"
                 labels={matrixLabels}
@@ -1549,24 +1446,24 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
             </div>
 
             {/* Vector Solution */}
-            <div className="pt-3 border-t border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="pt-4 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1.5">Right-Hand Side Vector [Y]:</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest block mb-2">Right-Hand Side Vector [Y]:</span>
                 <div className="flex flex-wrap gap-2">
                   {refinementResult.vectorY.map((y, idx) => (
-                    <div key={idx} className="bg-slate-800/90 text-indigo-300 px-2.5 py-1 rounded border border-slate-700/80 flex items-center gap-1.5 font-mono text-xs shadow-inner">
-                      <span>Y<sub>{idx}</sub> =</span>
+                    <div key={idx} className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 font-mono text-xs shadow-sm">
+                      <span className="text-slate-400">Y<sub>{idx}</sub> =</span>
                       <FormatSci val={y} digits={4} />
                     </div>
                   ))}
                 </div>
               </div>
               <div>
-                <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block mb-1.5">Parameter Solution Vector [X = M⁻¹ Y]:</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-black tracking-widest block mb-2">Solution Vector [X = M⁻¹ Y]:</span>
                 <div className="flex flex-wrap gap-2">
                   {refinementResult.vectorX.map((x, idx) => (
-                    <div key={idx} className="bg-indigo-950/90 text-amber-300 px-2.5 py-1 rounded border border-indigo-800/60 flex items-center gap-1.5 font-mono text-xs shadow-inner">
-                      <span>X<sub>{idx}</sub> =</span>
+                    <div key={idx} className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 px-2.5 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800/50 flex items-center gap-1.5 font-mono text-xs shadow-sm">
+                      <span className="text-indigo-400 dark:text-indigo-500">X<sub>{idx}</sub> =</span>
                       <FormatSci val={x} digits={4} />
                     </div>
                   ))}
@@ -1576,62 +1473,62 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
 
             {/* Deep Mathematical Derivation & Matrix Numbers Logic Box */}
             {showMatrixDerivation && (
-              <div className="mt-4 p-4 bg-slate-950/80 rounded-xl border border-indigo-900/40 text-xs space-y-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">
-                  <div className="flex items-center gap-2 text-indigo-300 font-bold">
-                    <Sparkles className="w-4 h-4 text-indigo-400" />
+              <div className="mt-4 p-4 bg-slate-100/50 dark:bg-slate-950/80 rounded-xl border border-slate-200 dark:border-indigo-900/40 text-xs space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold">
+                    <Sparkles className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                     <span>Matrix Elements Derivation &amp; Scientific Values Logic</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowPeakTermTable(!showPeakTermTable)}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold rounded flex items-center gap-1"
+                    className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-[11px] font-bold rounded flex items-center gap-1 shadow-sm"
                   >
-                    <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                    <Layers className="w-3.5 h-3.5 text-indigo-500 dark:text-cyan-400" />
                     {showPeakTermTable ? 'Hide Reflection Terms Table' : 'Show Peak-by-Peak Contribution Table'}
                   </button>
                 </div>
 
                 {/* Why are values like 7814.000 so large? */}
-                <div className="p-3 bg-amber-950/30 border border-amber-800/50 rounded-lg text-slate-300 space-y-1.5">
-                  <div className="font-bold text-amber-300 flex items-center gap-1.5">
-                    <Info className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-lg text-slate-700 dark:text-slate-300 space-y-1.5 shadow-sm">
+                  <div className="font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                    <Info className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
                     <span>Why is M₀,₀ = {refinementResult.matrixM[0]?.[0]?.toFixed(3)}? (Origin of Large Numbers in [M])</span>
                   </div>
                   <p className="leading-relaxed text-[11px]">
-                    The top-left matrix entry <code className="font-mono bg-slate-900 px-1 py-0.5 rounded text-amber-300">M₀,₀</code> is calculated as the sum of squared Miller basis terms across all {refinementResult.validPeaks?.length} measured reflections:
-                    <span className="block font-mono bg-slate-900/90 p-2 rounded border border-slate-800 my-1 text-indigo-300 text-center">
+                    The top-left matrix entry <code className="font-mono bg-white dark:bg-slate-900 px-1 py-0.5 rounded border border-slate-200 dark:border-slate-800 text-amber-700 dark:text-amber-300">M₀,₀</code> is calculated as the sum of squared Miller basis terms across all {refinementResult.validPeaks?.length} measured reflections:
+                    <span className="block font-mono bg-white dark:bg-slate-900/90 p-2 rounded border border-slate-200 dark:border-slate-800 my-1 text-indigo-700 dark:text-indigo-300 text-center shadow-sm">
                       M₀,₀ = ∑<sub>i=1</sub><sup>N</sup> (g₀,i)²
                     </span>
-                    For cubic crystals, <code className="font-mono text-cyan-300">g₀,i = h_i² + k_i² + l_i²</code>. High-order reflections have large index sums (e.g., peak (4,2,2) has g₀ = 16+4+4 = 24, which squared becomes 24² = 576). Summing these squared terms across all reflections yields values like <strong className="font-mono text-amber-300">{refinementResult.matrixM[0]?.[0]?.toFixed(3)}</strong>. This represents the total geometric spectral weight of the crystal lattice dataset.
+                    For cubic crystals, <code className="font-mono text-cyan-700 dark:text-cyan-300">g₀,i = h_i² + k_i² + l_i²</code>. High-order reflections have large index sums (e.g., peak (4,2,2) has g₀ = 16+4+4 = 24, which squared becomes 24² = 576). Summing these squared terms across all reflections yields values like <strong className="font-mono text-amber-700 dark:text-amber-300">{refinementResult.matrixM[0]?.[0]?.toFixed(3)}</strong>. This represents the total geometric spectral weight of the crystal lattice dataset.
                   </p>
                 </div>
 
                 {/* Matrix Element Formula Definitions */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
-                  <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-1">
-                    <div className="font-bold text-indigo-300">1. Normal Matrix Elements M<sub>j,k</sub></div>
-                    <p className="text-slate-400 leading-snug">
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
+                    <div className="font-bold text-indigo-700 dark:text-indigo-300">1. Normal Matrix Elements M<sub>j,k</sub></div>
+                    <p className="text-slate-500 dark:text-slate-400 leading-snug">
                       Defined as the dot product sum of basis function vectors across all reflections:
                     </p>
-                    <code className="block font-mono text-indigo-200 bg-slate-950 p-1.5 rounded text-[10.5px]">
+                    <code className="block font-mono text-indigo-600 dark:text-indigo-200 bg-slate-50 dark:bg-slate-950 p-1.5 rounded border border-slate-100 dark:border-slate-800 text-[10.5px]">
                       M<sub>j,k</sub> = ∑<sub>i=1</sub><sup>N</sup> g<sub>j,i</sub> · g<sub>k,i</sub>
                     </code>
-                    <ul className="list-disc list-inside text-slate-400 space-y-0.5 text-[10px] mt-1">
-                      <li><strong className="text-slate-200">Diagonal M<sub>j,j</sub>:</strong> Measure total magnitude of basis function g<sub>j</sub></li>
-                      <li><strong className="text-slate-200">Off-diagonal M<sub>j,k</sub>:</strong> Measure cross-coupling between parameter j and parameter k</li>
+                    <ul className="list-disc list-inside text-slate-500 dark:text-slate-400 space-y-0.5 text-[10px] mt-1">
+                      <li><strong className="text-slate-700 dark:text-slate-200">Diagonal M<sub>j,j</sub>:</strong> Measure total magnitude of basis function g<sub>j</sub></li>
+                      <li><strong className="text-slate-700 dark:text-slate-200">Off-diagonal M<sub>j,k</sub>:</strong> Measure cross-coupling between parameter j and parameter k</li>
                     </ul>
                   </div>
 
-                  <div className="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-1">
-                    <div className="font-bold text-emerald-300">2. Inverse Matrix [M⁻¹] &amp; Parameter Errors</div>
-                    <p className="text-slate-400 leading-snug">
-                      Inverse matrix satisfying <code className="font-mono text-emerald-300">[M][M⁻¹] = I</code>. Its diagonal elements act as error multipliers:
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
+                    <div className="font-bold text-emerald-700 dark:text-emerald-300">2. Inverse Matrix [M⁻¹] &amp; Parameter Errors</div>
+                    <p className="text-slate-500 dark:text-slate-400 leading-snug">
+                      Inverse matrix satisfying <code className="font-mono text-emerald-600 dark:text-emerald-300">[M][M⁻¹] = I</code>. Its diagonal elements act as error multipliers:
                     </p>
-                    <code className="block font-mono text-emerald-200 bg-slate-950 p-1.5 rounded text-[10.5px]">
+                    <code className="block font-mono text-emerald-600 dark:text-emerald-200 bg-slate-50 dark:bg-slate-950 p-1.5 rounded border border-slate-100 dark:border-slate-800 text-[10.5px]">
                       σ(X<sub>j</sub>) = √( s² · M⁻¹<sub>j,j</sub> )
                     </code>
-                    <p className="text-[10px] text-slate-400">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
                       Because M has large entries (~10³), M⁻¹ has small entries (~10⁻⁴), scaling residual variance s² to precise standard deviations for lattice constants.
                     </p>
                   </div>
@@ -1639,29 +1536,29 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
 
                 {/* Peak-by-Peak Term Contributions Table */}
                 {showPeakTermTable && refinementResult.validPeaks && refinementResult.basisMatrix && (
-                  <div className="space-y-2 pt-2 border-t border-slate-800">
-                    <div className="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+                  <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <div className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                       <span>Reflection-by-Reflection Contribution Breakdown Table:</span>
-                      <span className="text-[10px] font-mono text-indigo-400">Summing columns directly equals M matrix entries</span>
+                      <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400">Summing columns directly equals M matrix entries</span>
                     </div>
 
-                    <div className="overflow-x-auto rounded-lg border border-slate-800 bg-slate-900">
+                    <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
                       <table className="w-full text-left border-collapse text-[10.5px] font-mono">
                         <thead>
-                          <tr className="bg-slate-950 text-slate-400 border-b border-slate-800">
+                          <tr className="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider">
                             <th className="p-2">Peak #</th>
                             <th className="p-2">(h, k, l)</th>
                             <th className="p-2">2θ (°)</th>
                             <th className="p-2">sin²θ</th>
-                            <th className="p-2 text-indigo-300">g₀,i</th>
-                            <th className="p-2 text-amber-300">g₁,i (f(θ))</th>
-                            <th className="p-2 text-indigo-400 font-bold">(g₀,i)² [→ M₀,₀]</th>
-                            <th className="p-2 text-purple-400">g₀,i · g₁,i [→ M₀,₁]</th>
-                            <th className="p-2 text-amber-400">(g₁,i)² [→ M₁,₁]</th>
-                            <th className="p-2 text-cyan-400">g₀,i · sin²θ [→ Y₀]</th>
+                            <th className="p-2 text-indigo-600 dark:text-indigo-400">g₀,i</th>
+                            <th className="p-2 text-amber-600 dark:text-amber-500">g₁,i (f(θ))</th>
+                            <th className="p-2 text-indigo-700 dark:text-indigo-400 font-bold">(g₀,i)² [→ M₀,₀]</th>
+                            <th className="p-2 text-purple-600 dark:text-purple-400">g₀,i · g₁,i [→ M₀,₁]</th>
+                            <th className="p-2 text-amber-600 dark:text-amber-500">(g₁,i)² [→ M₁,₁]</th>
+                            <th className="p-2 text-cyan-600 dark:text-cyan-400">g₀,i · sin²θ [→ Y₀]</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                           {refinementResult.validPeaks.map((p, idx) => {
                             const basis = refinementResult.basisMatrix[idx];
                             const g0 = basis[0] || 0;
@@ -1670,36 +1567,36 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                             const sin2 = Math.sin(thetaRad) * Math.sin(thetaRad);
 
                             return (
-                              <tr key={p.id || idx} className="border-b border-slate-800/50 hover:bg-slate-800/40 text-slate-300">
+                              <tr key={p.id || idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300 transition-colors">
                                 <td className="p-2 text-slate-500">#{idx + 1}</td>
-                                <td className="p-2 font-bold text-indigo-300">({p.h}, {p.k}, {p.l})</td>
-                                <td className="p-2">{p.twoTheta.toFixed(3)}°</td>
+                                <td className="p-2 font-bold text-indigo-700 dark:text-indigo-300">({p.h}, {p.k}, {p.l})</td>
+                                <td className="p-2 font-bold">{p.twoTheta.toFixed(3)}°</td>
                                 <td className="p-2">{sin2.toFixed(5)}</td>
-                                <td className="p-2 text-indigo-300">{g0.toFixed(2)}</td>
-                                <td className="p-2 text-amber-300">{g1.toFixed(4)}</td>
-                                <td className="p-2 font-bold text-indigo-400 bg-indigo-950/20">{(g0 * g0).toFixed(2)}</td>
-                                <td className="p-2 text-purple-300">{(g0 * g1).toFixed(4)}</td>
-                                <td className="p-2 text-amber-300">{(g1 * g1).toFixed(5)}</td>
-                                <td className="p-2 text-cyan-300">{(g0 * sin2).toFixed(5)}</td>
+                                <td className="p-2 text-indigo-600 dark:text-indigo-300">{g0.toFixed(2)}</td>
+                                <td className="p-2 text-amber-600 dark:text-amber-400">{g1.toFixed(4)}</td>
+                                <td className="p-2 font-bold text-indigo-700 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/20">{(g0 * g0).toFixed(2)}</td>
+                                <td className="p-2 text-purple-600 dark:text-purple-300">{(g0 * g1).toFixed(4)}</td>
+                                <td className="p-2 text-amber-600 dark:text-amber-400">{(g1 * g1).toFixed(5)}</td>
+                                <td className="p-2 text-cyan-600 dark:text-cyan-400">{(g0 * sin2).toFixed(5)}</td>
                               </tr>
                             );
                           })}
                         </tbody>
                         <tfoot>
-                          <tr className="bg-indigo-950/80 font-bold text-white border-t-2 border-indigo-500/50 text-[11px]">
-                            <td colSpan={6} className="p-2.5 text-right uppercase tracking-wider text-indigo-300">
+                          <tr className="bg-indigo-50 dark:bg-indigo-950/80 font-bold text-indigo-900 dark:text-white border-t-2 border-indigo-200 dark:border-indigo-500/50 text-[11px]">
+                            <td colSpan={6} className="p-2.5 text-right uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
                               TOTAL SUM (Matrix Entries):
                             </td>
-                            <td className="p-2.5 text-indigo-300 font-extrabold text-xs">
+                            <td className="p-2.5 text-indigo-700 dark:text-indigo-300 font-extrabold text-xs">
                               {refinementResult.matrixM[0]?.[0]?.toFixed(3)}
                             </td>
-                            <td className="p-2.5 text-purple-300 font-extrabold">
+                            <td className="p-2.5 text-purple-700 dark:text-purple-300 font-extrabold text-xs">
                               {refinementResult.matrixM[0]?.[1]?.toFixed(3)}
                             </td>
-                            <td className="p-2.5 text-amber-300 font-extrabold">
+                            <td className="p-2.5 text-amber-700 dark:text-amber-300 font-extrabold text-xs">
                               {refinementResult.matrixM[1]?.[1]?.toFixed(4)}
                             </td>
-                            <td className="p-2.5 text-cyan-300 font-extrabold">
+                            <td className="p-2.5 text-cyan-700 dark:text-cyan-400 font-extrabold text-xs">
                               {refinementResult.vectorY[0]?.toFixed(4)}
                             </td>
                           </tr>
@@ -1731,15 +1628,15 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowBulkModal(true)}
-                  className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 border border-slate-200 dark:border-slate-700"
+                  className="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 shadow-sm"
                 >
-                  <FileText className="w-4 h-4 text-indigo-500" />
+                  <FileText className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                   Paste Bulk Data
                 </button>
                 <button
                   type="button"
                   onClick={handleClearAllPeaks}
-                  className="px-3 py-2 bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5"
+                  className="px-3 py-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/50 text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
                 >
                   <Trash2 className="w-4 h-4" />
                   Clear All
@@ -1757,7 +1654,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                   type="number"
                   value={newH}
                   onChange={(e) => setNewH(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
                 />
               </div>
 
@@ -1769,7 +1666,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                   type="number"
                   value={newK}
                   onChange={(e) => setNewK(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
                 />
               </div>
 
@@ -1781,7 +1678,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                   type="number"
                   value={newL}
                   onChange={(e) => setNewL(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
                 />
               </div>
 
@@ -1794,7 +1691,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                   step="0.001"
                   value={newTwoTheta}
                   onChange={(e) => setNewTwoTheta(e.target.value)}
-                  className="w-full px-3 py-2 bg-indigo-50/60 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-xl text-sm font-black font-mono text-indigo-700 dark:text-indigo-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-inner"
+                  className="w-full px-3 py-2 bg-indigo-50/60 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-xl text-sm font-black font-mono text-indigo-700 dark:text-indigo-300 focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
                 />
               </div>
 
@@ -1806,14 +1703,14 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                   type="number"
                   value={newIntensity}
                   onChange={(e) => setNewIntensity(parseFloat(e.target.value) || 100)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-center font-mono focus:ring-2 focus:ring-indigo-500 outline-none transition-colors shadow-sm"
                 />
               </div>
 
               <div className="col-span-2 sm:col-span-1">
                 <button
                   type="submit"
-                  className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"
+                  className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition-all shadow-sm hover:shadow active:scale-95 flex items-center justify-center gap-1.5"
                 >
                   <Plus className="w-4 h-4" />
                   Add Peak
@@ -1858,7 +1755,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
 
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
+                <thead className="bg-slate-50 dark:bg-slate-950/50 text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="p-3 w-12 text-center">#</th>
                     <th className="p-3">HKL (<i>h</i>, <i>k</i>, <i>l</i>)</th>
@@ -1871,29 +1768,29 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                     <th className="p-3 text-center">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
                   {refinementResult.peakDetails.map((p, idx) => (
-                    <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                      <td className="p-3 text-center text-slate-400 font-bold">{idx + 1}</td>
+                    <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="p-3 text-center text-slate-400 dark:text-slate-500 font-bold">{idx + 1}</td>
                       <td className="p-3">
                         <div className="flex items-center gap-1">
                           <input
                             type="number"
                             value={p.h}
                             onChange={(e) => handleUpdatePeak(p.id, 'h', parseInt(e.target.value) || 0)}
-                            className="w-10 px-1.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-center font-bold"
+                            className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
                           />
                           <input
                             type="number"
                             value={p.k}
                             onChange={(e) => handleUpdatePeak(p.id, 'k', parseInt(e.target.value) || 0)}
-                            className="w-10 px-1.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-center font-bold"
+                            className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
                           />
                           <input
                             type="number"
                             value={p.l}
                             onChange={(e) => handleUpdatePeak(p.id, 'l', parseInt(e.target.value) || 0)}
-                            className="w-10 px-1.5 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-center font-bold"
+                            className="w-10 px-1.5 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center font-bold text-slate-700 dark:text-slate-300 shadow-sm"
                           />
                         </div>
                       </td>
@@ -1903,10 +1800,10 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                           step="0.001"
                           value={p.twoTheta}
                           onChange={(e) => handleUpdatePeak(p.id, 'twoTheta', parseFloat(e.target.value) || 30)}
-                          className="w-24 px-2 py-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded font-bold text-indigo-600 dark:text-indigo-400"
+                          className="w-24 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-bold text-indigo-700 dark:text-indigo-400 shadow-sm focus:ring-1 focus:ring-indigo-500 outline-none"
                         />
                       </td>
-                      <td className="p-3 font-bold text-slate-800 dark:text-slate-200">
+                      <td className="p-3 font-bold text-slate-700 dark:text-slate-200">
                         {p.twoThetaCalc.toFixed(Math.min(precision, 3))}
                       </td>
                       <td className={`p-3 font-bold ${
@@ -1921,7 +1818,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                         <button
                           onClick={() => handleDeletePeak(p.id)}
                           disabled={peaks.length <= 2}
-                          className="p-1 text-slate-400 hover:text-rose-500 disabled:opacity-30 transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors disabled:opacity-30"
                           title="Delete Reflection"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1935,14 +1832,14 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
           </div>
 
           {/* Educational Methodological Guide */}
-          <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 p-6 rounded-2xl space-y-3">
+          <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/50 p-6 rounded-2xl space-y-3 shadow-sm">
             <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200 font-bold text-sm">
               <BookOpen className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               Theoretical Foundation: Why Cohen's Method is the Ultimate Matrix Approach
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
               Unlike graphical extrapolation (which requires manual fitting of high-angle reflections above 2θ &gt; 60°), 
-              <strong> Cohen's Least Squares Method</strong> utilizes all measured reflections across the entire pattern simultaneously. By expressing Bragg's Law with an additive systematic error term D · f(θ), it sets up a system of linear normal equations [M]X = Y.
+              <strong className="text-indigo-800 dark:text-indigo-300"> Cohen's Least Squares Method</strong> utilizes all measured reflections across the entire pattern simultaneously. By expressing Bragg's Law with an additive systematic error term D · f(θ), it sets up a system of linear normal equations [M]X = Y.
               The inverse matrix [M⁻¹] directly supplies the parameter covariance, allowing analytical computation of standard errors ± σ(a), ± σ(b), ± σ(c) without subjective graph interpretation or plotting bias.
             </p>
           </div>
@@ -1993,14 +1890,14 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                   value={bulkText}
                   onChange={(e) => setBulkText(e.target.value)}
                   placeholder="Paste diffraction reflections here..."
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-xs text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-xs text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                 />
 
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => setShowBulkModal(false)}
-                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-200"
+                    className="px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm"
                   >
                     Cancel
                   </button>
@@ -2022,24 +1919,24 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
       {/* Comprehensive Import Active Bragg & Custom Spec Configuration Modal */}
       <AnimatePresence>
         {showImportModal && (
-          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-slate-900 border border-indigo-500/30 rounded-2xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden text-white flex flex-col max-h-[90vh]"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full my-auto overflow-hidden flex flex-col max-h-[90vh]"
             >
               {/* Modal Header */}
-              <div className="p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-indigo-500/20 flex items-center justify-between shrink-0">
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-400/30 text-amber-300">
-                    <Zap className="w-5 h-5 fill-amber-300" />
+                  <div className="p-2.5 bg-indigo-50 dark:bg-indigo-500/20 rounded-xl border border-indigo-200 dark:border-indigo-400/30 text-amber-500 dark:text-amber-300">
+                    <Zap className="w-5 h-5 fill-amber-500 dark:fill-amber-300" />
                   </div>
                   <div>
-                    <h3 className="font-black text-base text-white tracking-tight flex items-center gap-2">
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                       Import Active Bragg &amp; Custom Spec Configuration
                     </h3>
-                    <p className="text-xs text-indigo-200/80">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Specify material name, crystal symmetry, X-ray wavelength, error drift model, and customize HKL reflection peaks.
                     </p>
                   </div>
@@ -2047,7 +1944,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowImportModal(false)}
-                  className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -2056,8 +1953,8 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
               {/* Modal Scrollable Body */}
               <div className="p-5 overflow-y-auto space-y-6">
                 {/* Section 1: Sample Parameters */}
-                <div className="p-4 bg-slate-950/80 rounded-xl border border-slate-800 space-y-4">
-                  <div className="text-xs font-black uppercase tracking-wider text-indigo-400 flex items-center gap-2 border-b border-slate-800 pb-2">
+                <div className="p-4 bg-slate-50 dark:bg-slate-950/80 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+                  <div className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                     <Tag className="w-4 h-4" />
                     <span>1. Material &amp; Instrumental Specifications</span>
                   </div>
@@ -2065,7 +1962,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Sample Name */}
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="block text-xs font-bold text-slate-300">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Sample / Material Name:
                       </label>
                       <input
@@ -2073,19 +1970,19 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                         value={importSampleName}
                         onChange={(e) => setImportSampleName(e.target.value)}
                         placeholder="e.g. Silicon Powder Standard (SRM 640) / Custom Alloy"
-                        className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                       />
                     </div>
 
                     {/* Crystal System Symmetry */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-300">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Crystal System Symmetry:
                       </label>
                       <select
                         value={importCrystalSystem}
                         onChange={(e) => setImportCrystalSystem(e.target.value as CrystalSystem)}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                       >
                         <option value="Cubic">Cubic (a = b = c, α=β=γ=90°)</option>
                         <option value="Tetragonal">Tetragonal (a = b ≠ c, α=β=γ=90°)</option>
@@ -2097,13 +1994,13 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
 
                     {/* Systematic Error Drift Function */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-300">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                         Systematic Error Drift Model f(θ):
                       </label>
                       <select
                         value={importDriftType}
                         onChange={(e) => setImportDriftType(e.target.value as DriftFunctionType)}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                       >
                         <option value="nelson_riley">Nelson-Riley: ½(cos²θ/sinθ + cos²θ/θ)</option>
                         <option value="bradley_jay">Bradley-Jay: cos²θ</option>
@@ -2116,10 +2013,10 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                     {/* Radiation Source Wavelength */}
                     <div className="space-y-1.5 md:col-span-2">
                       <div className="flex items-center justify-between">
-                        <label className="block text-xs font-bold text-slate-300">
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                           X-Ray Wavelength λ (Å):
                         </label>
-                        <span className="text-xs font-mono font-bold text-indigo-300">
+                        <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-300">
                           Current: {importWavelength} Å
                         </span>
                       </div>
@@ -2129,7 +2026,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                           step="0.00001"
                           value={importWavelength}
                           onChange={(e) => setImportWavelength(parseFloat(e.target.value) || 1.54056)}
-                          className="w-36 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-black text-indigo-300 outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-36 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-black text-indigo-600 dark:text-indigo-300 outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                         />
                         <div className="flex flex-wrap items-center gap-1.5">
                           {[
@@ -2145,8 +2042,8 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                               onClick={() => setImportWavelength(src.val)}
                               className={`px-2.5 py-1.5 text-[11px] font-bold rounded-lg border transition-all ${
                                 Math.abs(importWavelength - src.val) < 0.0001
-                                  ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm'
-                                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-sm'
                               }`}
                             >
                               {src.name}
@@ -2162,8 +2059,8 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 <div className="space-y-3">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-emerald-400" />
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                      <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
                         2. Bragg Reflection Peaks Table ({importPeaks.length} Reflections)
                       </h4>
                     </div>
@@ -2171,15 +2068,15 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                       <button
                         type="button"
                         onClick={handleModalSortPeaks}
-                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold rounded-lg flex items-center gap-1 border border-slate-700 transition-colors"
+                        className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-bold rounded-lg flex items-center gap-1 border border-slate-200 dark:border-slate-700 transition-colors shadow-sm"
                       >
-                        <ArrowUpDown className="w-3.5 h-3.5 text-indigo-400" />
+                        <ArrowUpDown className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                         Sort 2θ
                       </button>
                       <button
                         type="button"
                         onClick={handleModalAddPeak}
-                        className="px-2.5 py-1 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 text-[11px] font-bold rounded-lg flex items-center gap-1 border border-emerald-800/80 transition-colors"
+                        className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold rounded-lg flex items-center gap-1 transition-colors shadow-sm active:scale-95"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         Add Peak
@@ -2188,9 +2085,9 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                   </div>
 
                   {/* Table */}
-                  <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950 max-h-60 overflow-y-auto">
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 max-h-60 overflow-y-auto shadow-sm">
                     <table className="w-full text-left border-collapse text-xs font-mono">
-                      <thead className="sticky top-0 bg-slate-900 border-b border-slate-800 text-slate-400 text-[11px]">
+                      <thead className="sticky top-0 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[11px] uppercase tracking-wider font-bold">
                         <tr>
                           <th className="p-2.5 text-center w-12">#</th>
                           <th className="p-2.5">Miller Index (h)</th>
@@ -2201,16 +2098,16 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                           <th className="p-2.5 text-center w-12">Action</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-800/60">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                         {importPeaks.map((p, idx) => (
-                          <tr key={p.id} className="hover:bg-slate-900/60 transition-colors">
+                          <tr key={p.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-900/60 transition-colors">
                             <td className="p-2 text-center text-slate-500 font-bold">{idx + 1}</td>
                             <td className="p-2">
                               <input
                                 type="number"
                                 value={p.h}
                                 onChange={(e) => handleModalUpdatePeak(p.id, 'h', parseInt(e.target.value, 10) || 0)}
-                                className="w-16 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-center text-indigo-300 font-bold outline-none focus:ring-1 focus:ring-indigo-500"
+                                className="w-16 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center text-indigo-700 dark:text-indigo-300 font-bold outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
                               />
                             </td>
                             <td className="p-2">
@@ -2218,7 +2115,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                                 type="number"
                                 value={p.k}
                                 onChange={(e) => handleModalUpdatePeak(p.id, 'k', parseInt(e.target.value, 10) || 0)}
-                                className="w-16 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-center text-indigo-300 font-bold outline-none focus:ring-1 focus:ring-indigo-500"
+                                className="w-16 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center text-indigo-700 dark:text-indigo-300 font-bold outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
                               />
                             </td>
                             <td className="p-2">
@@ -2226,7 +2123,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                                 type="number"
                                 value={p.l}
                                 onChange={(e) => handleModalUpdatePeak(p.id, 'l', parseInt(e.target.value, 10) || 0)}
-                                className="w-16 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-center text-indigo-300 font-bold outline-none focus:ring-1 focus:ring-indigo-500"
+                                className="w-16 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center text-indigo-700 dark:text-indigo-300 font-bold outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
                               />
                             </td>
                             <td className="p-2">
@@ -2235,7 +2132,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                                 step="0.001"
                                 value={p.twoTheta}
                                 onChange={(e) => handleModalUpdatePeak(p.id, 'twoTheta', parseFloat(e.target.value) || 0)}
-                                className="w-28 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-center text-amber-300 font-bold outline-none focus:ring-1 focus:ring-amber-500"
+                                className="w-28 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center text-amber-700 dark:text-amber-300 font-bold outline-none focus:ring-1 focus:ring-amber-500 shadow-sm"
                               />
                             </td>
                             <td className="p-2">
@@ -2243,14 +2140,14 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                                 type="number"
                                 value={p.intensity}
                                 onChange={(e) => handleModalUpdatePeak(p.id, 'intensity', parseFloat(e.target.value) || 0)}
-                                className="w-20 px-2 py-1 bg-slate-900 border border-slate-700 rounded text-center text-slate-300 font-bold outline-none focus:ring-1 focus:ring-indigo-500"
+                                className="w-20 px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center text-slate-700 dark:text-slate-300 font-bold outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
                               />
                             </td>
                             <td className="p-2 text-center">
                               <button
                                 type="button"
                                 onClick={() => handleModalRemovePeak(p.id)}
-                                className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded transition-colors"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors"
                                 title="Remove peak"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -2265,22 +2162,22 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-                <div className="text-xs text-slate-400">
-                  Ready to configure <strong className="text-indigo-300">{importSampleName || 'Custom Sample'}</strong> ({importPeaks.length} reflections, {importCrystalSystem} system).
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Ready to configure <strong className="text-indigo-700 dark:text-indigo-300">{importSampleName || 'Custom Sample'}</strong> ({importPeaks.length} reflections, {importCrystalSystem} system).
                 </div>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => setShowImportModal(false)}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-colors"
+                    className="flex-1 sm:flex-none px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-colors shadow-sm"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={handleApplyImportedSpecs}
-                    className="flex-1 sm:flex-none px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-indigo-500/25 transition-all flex items-center justify-center gap-2"
+                    className="flex-1 sm:flex-none px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
                   >
                     <Check className="w-4 h-4" />
                     Apply &amp; Import to Refinement
