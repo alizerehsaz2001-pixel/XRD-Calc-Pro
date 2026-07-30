@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { analyzeDiffractionImage, isQuotaError, isPermissionError } from '../services/geminiService';
+import { analyzeDiffractionImage, analyzeImageOCR, isQuotaError, isPermissionError, OCRAnalysisResult } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 import { 
   Camera, Upload, Search, FileText, Zap, 
@@ -7,7 +7,8 @@ import {
   Cpu, Activity, Layers, Share2, Download,
   Sparkles, MousePointer2, Scan, Filter, History,
   Grid, CircleDot, SlidersHorizontal, Copy, Eye,
-  Database, Sliders, Play, Shuffle, HelpCircle, Flame
+  Database, Sliders, Play, Shuffle, HelpCircle, Flame,
+  Type, Table, ListFilter, FileSpreadsheet
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -21,14 +22,12 @@ const CVLoader: React.FC = () => {
   
   useEffect(() => {
     const messages = [
-      "Initializing high-resolution digitized feed...",
-      "Normalizing pixel luminance and contrast scales...",
-      "Isolating concentric diffraction ring boundaries...",
-      "Applying high-pass filtering to suppress pixel noise...",
-      "Calculating peak centroid coordinates in reciprocal space...",
-      "Mapping spot intensity profiles via radial integration...",
-      "Correlating candidate d-spacing vectors with base database...",
-      "Synthesizing crystallographic composition report..."
+      "Initializing high-resolution Google Gemini 3.6 OCR Vision feed...",
+      "Normalizing image contrast and suppressing background artifacts...",
+      "Extracting OCR text blocks, graph axes, and software annotations...",
+      "Parsing 2-Theta peak tables and relative intensities...",
+      "Cross-referencing candidate phase labels with ICDD/PDF card indices...",
+      "Synthesizing structured crystallographic JSON & Markdown report..."
     ];
     
     let currentIdx = 0;
@@ -52,7 +51,7 @@ const CVLoader: React.FC = () => {
       
       <div className="flex items-center gap-3">
         <Cpu className="w-4 h-4 text-sky-400 animate-spin" />
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Vision Core Diagnostics Live</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Google Gemini 3.6 OCR Engine Active</span>
       </div>
 
       <div className="space-y-2 font-mono text-[9px] text-sky-300 max-h-[140px] overflow-y-auto">
@@ -67,18 +66,38 @@ const CVLoader: React.FC = () => {
       </div>
 
       <div className="pt-3 border-t border-slate-900 flex justify-between items-center text-[8px] font-bold text-slate-600 uppercase tracking-widest">
-         <span>Status: CALIBRATING MATRIX</span>
-         <span className="animate-pulse text-sky-500 font-mono font-black">SCAN ACTIVE</span>
+         <span>Model: GEMINI 3.6 MULTIMODAL OCR</span>
+         <span className="animate-pulse text-sky-500 font-mono font-black">SCANNING PATTERN</span>
       </div>
     </div>
   );
 };
 
-const ANALYSIS_PRESETS = [
-  { id: 'phase', label: 'Phase Identification', icon: Search, prompt: 'Identify all likely crystalline phases in this pattern. Check for TiO2 polymorphic mixtures, impurity peaks, and calculate matching confidence.' },
-  { id: 'peaks', label: 'Quantitative Peak List', icon: Activity, prompt: 'Generate a precise table of all detectable peaks with 2-theta, Intensity (relative), and Estimated FWHM.' },
-  { id: 'lattice', label: 'Structural Extraction', icon: Layers, prompt: 'Extract any visible unit cell parameters (a, b, c, alpha, beta, gamma) from software labels or data tables in the image.' },
-  { id: 'quality', label: 'Quality Insight', icon: Zap, prompt: 'Assess the background level, signal-to-noise ratio, and potential sample preparation issues like preferred orientation or microstrain broadening.' },
+const OCR_PRESETS = [
+  { 
+    id: 'full_ocr', 
+    label: 'Full Character OCR', 
+    icon: Type, 
+    prompt: 'Exhaustively transcribe all characters, numbers, graph labels, legend items, spectrum peak angles, and ICDD card numbers from this image.' 
+  },
+  { 
+    id: 'table_extraction', 
+    label: 'Peak Table Digitizer', 
+    icon: Table, 
+    prompt: 'Digitize all visible 2-theta peak angles, relative intensities (%), d-spacings, and hkl indices into a clean numerical markdown table.' 
+  },
+  { 
+    id: 'label_phase', 
+    label: 'Phase & PDF Cards', 
+    icon: Layers, 
+    prompt: 'Extract all candidate phase names, ICDD/PDF card entry numbers, chemical formulas, space groups, and Figure-of-Merit (FOM) scores.' 
+  },
+  { 
+    id: 'axis_calibration', 
+    label: 'Axis Calibration', 
+    icon: Scan, 
+    prompt: 'Identify the horizontal X-axis 2-theta minimum and maximum bounds, Y-axis intensity scale, and radiation source wavelength (e.g., Cu K-alpha = 1.5406 Angstrom).' 
+  },
 ];
 
 export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> = ({ pythonFeaturesEnabled = false }) => {
@@ -92,6 +111,12 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
   const [activeAnalysisId, setActiveAnalysisId] = useState<string | null>(null);
   const [history, setHistory] = useState<{context: string, result: string, date: string}[]>([]);
   
+  // OCR & Multimodal States
+  const [ocrMode, setOcrMode] = useState<'full_ocr' | 'table_extraction' | 'label_phase' | 'axis_calibration'>('full_ocr');
+  const [structuredOcrData, setStructuredOcrData] = useState<OCRAnalysisResult['structuredData'] | null>(null);
+  const [ocrSearchQuery, setOcrSearchQuery] = useState('');
+  const [exportToast, setExportToast] = useState<string | null>(null);
+
   // Computer Vision Controls & Overlays
   const [cvFilter, setCvFilter] = useState<'none' | 'binarize' | 'grayscale' | 'negative' | 'contrast'>('none');
   const [contrast, setContrast] = useState(100);
@@ -107,7 +132,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
   const [analysisMode, setAnalysisMode] = useState<'neural' | 'python_cv'>('neural');
   const [cvResults, setCvResults] = useState<any>(null);
   const [activeFilterTab, setActiveFilterTab] = useState<'original' | 'canny_edges' | 'spot_contours' | 'ring_fits' | 'radial_heatmap'>('original');
-  const [rightPanelTab, setRightPanelTab] = useState<'report' | 'radial_profile' | 'tuning'>('report');
+  const [rightPanelTab, setRightPanelTab] = useState<'report' | 'structured_ocr' | 'radial_profile' | 'tuning'>('report');
   
   // Adaptive vision hyperparameters
   const [cvParams, setCvParams] = useState({
@@ -150,6 +175,7 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
       reader.onloadend = () => {
         setImage(reader.result as string);
         setResult(''); 
+        setStructuredOcrData(null);
         setError(null);
         setActiveAnalysisId(null);
       };
@@ -158,33 +184,63 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
     setIsDragOver(false);
   };
 
-  const handleAnalyze = async (customPrompt?: string, presetId?: string) => {
+  const handleAnalyze = async (customPrompt?: string, presetId?: string, overrideMode?: any) => {
     if (!image) return;
     
     setLoading(true);
     setScanActive(true);
     setError(null);
     setResult('');
+    setStructuredOcrData(null);
     if (presetId) setActiveAnalysisId(presetId);
 
-    const finalPrompt = customPrompt || context || "Analyze this diffraction pattern image and extract key peaks and phase information.";
+    const activeMode = overrideMode || ocrMode;
+    const finalPrompt = customPrompt || context || "Perform full Google Gemini 3.6 Multimodal OCR and scientific analysis on this image.";
 
     try {
-      const analysis = await analyzeDiffractionImage(image, finalPrompt);
-      setResult(analysis);
-      setHistory(prev => [{ context: finalPrompt, result: analysis, date: new Date().toLocaleTimeString() }, ...prev.slice(0, 4)]);
+      const ocrRes = await analyzeImageOCR(image, finalPrompt, activeMode);
+      setResult(ocrRes.text);
+      if (ocrRes.structuredData) {
+        setStructuredOcrData(ocrRes.structuredData);
+        setRightPanelTab('structured_ocr');
+      } else {
+        setRightPanelTab('report');
+      }
+      setHistory(prev => [{ context: finalPrompt, result: ocrRes.text, date: new Date().toLocaleTimeString() }, ...prev.slice(0, 4)]);
     } catch (err: any) {
       if (isQuotaError(err)) {
-        setError("Quota exhausted (429/RESOURCE_EXHAUSTED). Analysis unavailable.");
+        setError("Quota exhausted (429/RESOURCE_EXHAUSTED). OCR Analysis unavailable.");
       } else if (isPermissionError(err)) {
-        setError("Neural access restricted (403). Grounding or Multi-modal tools denied. Check API key.");
+        setError("Neural OCR access restricted (403). Check API key configuration.");
       } else {
-        setError("Analysis Engine Fault: Check connectivity or image clarity.");
+        setError("Analysis Engine Fault: " + (err.message || "Check connectivity or image clarity."));
       }
     } finally {
       setLoading(false);
       setTimeout(() => setScanActive(false), 1000);
     }
+  };
+
+  const showToast = (msg: string) => {
+    setExportToast(msg);
+    setTimeout(() => setExportToast(null), 3000);
+  };
+
+  const handleExportPeaksCSV = () => {
+    if (!structuredOcrData?.peaks?.length) return;
+    const csvRows = ['2Theta_deg,Relative_Intensity_pct,dSpacing_A,hkl'];
+    structuredOcrData.peaks.forEach(p => {
+      csvRows.push(`${p.twoTheta},${p.intensity},${p.dSpacing || ''},${p.hkl || ''}`);
+    });
+    navigator.clipboard.writeText(csvRows.join('\n'));
+    showToast('Extracted Peak Table copied as CSV to Clipboard!');
+  };
+
+  const handleExportPhases = () => {
+    if (!structuredOcrData?.phases?.length) return;
+    const text = structuredOcrData.phases.map(p => `${p.phaseName} | PDF: ${p.pdfNumber || 'N/A'} | Space Group: ${p.spaceGroup || 'N/A'} | FOM: ${p.fom || 'N/A'}`).join('\n');
+    navigator.clipboard.writeText(text);
+    showToast('Detected Phase List copied to Clipboard!');
   };
 
   const handleAnalyzeCV = async (overrideParams?: any) => {
@@ -670,21 +726,27 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                   </div>
                 )}
 
-                {/* Analysis Presets */}
+                {/* OCR Analysis Presets */}
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 mb-2 px-1">
-                     <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Rapid Diagnostics</span>
+                  <div className="flex items-center justify-between mb-2 px-1">
+                     <div className="flex items-center gap-2">
+                       <Type className="w-3.5 h-3.5 text-sky-400" />
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gemini 3.6 OCR Presets</span>
+                     </div>
+                     <span className="text-[8px] font-mono font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">OCR MODEL</span>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    {ANALYSIS_PRESETS.map((preset) => (
+                    {OCR_PRESETS.map((preset) => (
                       <button
                         key={preset.id}
                         disabled={!image || loading}
-                        onClick={() => handleAnalyze(preset.prompt, preset.id)}
+                        onClick={() => {
+                          setOcrMode(preset.id as any);
+                          handleAnalyze(preset.prompt, preset.id, preset.id);
+                        }}
                         className={`flex flex-col items-start gap-2 p-4 rounded-2xl border transition-all text-left group/btn relative overflow-hidden ${
                           activeAnalysisId === preset.id 
-                            ? 'bg-sky-500/10 border-sky-500/40' 
+                            ? 'bg-sky-500/15 border-sky-500/50 shadow-[0_0_15px_rgba(14,165,233,0.15)]' 
                             : 'bg-black/20 border-slate-800 hover:border-slate-700 disabled:opacity-50'
                         }`}
                       >
@@ -1088,9 +1150,190 @@ export const ImageAnalysisModule: React.FC<{ pythonFeaturesEnabled?: boolean }> 
                   ref={scrollRef}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="prose prose-sm prose-invert max-w-none prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-sky-400 prose-th:text-sky-400 prose-th:font-black prose-th:px-4 prose-td:px-4 prose-td:font-mono prose-td:text-[11px] prose-p:leading-relaxed prose-p:text-slate-300"
+                  className="space-y-6"
                 >
-                  <ReactMarkdown>{result}</ReactMarkdown>
+                  {/* Toast Notification */}
+                  <AnimatePresence>
+                    {exportToast && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 p-3 rounded-xl text-[11px] font-mono font-extrabold flex items-center justify-between shadow-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <span>{exportToast}</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Neural Stream Result Tab Header */}
+                  <div className="flex border-b border-slate-800 gap-6 mb-2">
+                    <button
+                      onClick={() => setRightPanelTab('report')}
+                      className={`pb-2.5 text-[10px] font-black uppercase tracking-wider transition-all border-b-2 flex items-center gap-2 ${
+                        rightPanelTab === 'report' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      Markdown Diagnostic
+                    </button>
+                    <button
+                      onClick={() => setRightPanelTab('structured_ocr')}
+                      className={`pb-2.5 text-[10px] font-black uppercase tracking-wider transition-all border-b-2 flex items-center gap-2 ${
+                        rightPanelTab === 'structured_ocr' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      <Table className="w-3.5 h-3.5" />
+                      Structured OCR Inspector
+                      {structuredOcrData && (
+                        <span className="bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[8px] font-mono px-1.5 py-0.2 rounded-full">
+                          {(structuredOcrData.peaks?.length || 0) + (structuredOcrData.phases?.length || 0)} items
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
+                  {rightPanelTab === 'structured_ocr' ? (
+                    <div className="space-y-6">
+                      {/* Metric Summary Bar */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                          <span className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">Peaks Found</span>
+                          <span className="text-sm font-black text-sky-400">{structuredOcrData?.peaks?.length || 0} peaks</span>
+                          <span className="text-[7px] font-mono text-slate-600">Digitized 2θ</span>
+                        </div>
+                        <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                          <span className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">Phase Cards</span>
+                          <span className="text-sm font-black text-amber-400">{structuredOcrData?.phases?.length || 0} matches</span>
+                          <span className="text-[7px] font-mono text-slate-600">PDF / ICDD</span>
+                        </div>
+                        <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                          <span className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">Confidence</span>
+                          <span className="text-sm font-black text-emerald-400">{structuredOcrData?.confidence || 'HIGH'}</span>
+                          <span className="text-[7px] font-mono text-slate-600">Gemini 3.6 OCR</span>
+                        </div>
+                        <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                          <span className="text-[8px] font-black font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">2θ Axis Bounds</span>
+                          <span className="text-sm font-black text-white">
+                            {structuredOcrData?.axis?.twoThetaMin ?? '---'}° - {structuredOcrData?.axis?.twoThetaMax ?? '---'}°
+                          </span>
+                          <span className="text-[7px] font-mono text-slate-600">Wavelength λ=1.5406Å</span>
+                        </div>
+                      </div>
+
+                      {/* Extracted Peak Table */}
+                      {structuredOcrData?.peaks && structuredOcrData.peaks.length > 0 && (
+                        <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Activity className="w-4 h-4 text-sky-400" />
+                              <span className="text-[11px] font-black text-white uppercase tracking-wider">Digitized 2-Theta Spectrum Peaks</span>
+                            </div>
+                            <button
+                              onClick={handleExportPeaksCSV}
+                              className="px-3 py-1.5 bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 rounded-lg text-[9px] font-mono font-extrabold uppercase border border-sky-500/30 flex items-center gap-1.5 transition-all"
+                            >
+                              <FileSpreadsheet className="w-3 h-3" />
+                              Export CSV
+                            </button>
+                          </div>
+
+                          <div className="overflow-x-auto max-h-60 custom-scrollbar border border-slate-800 rounded-xl">
+                            <table className="w-full text-left font-mono text-[11px]">
+                              <thead className="bg-slate-900 text-sky-400 font-black uppercase text-[9px] sticky top-0">
+                                <tr>
+                                  <th className="p-2.5">2-Theta (2θ°)</th>
+                                  <th className="p-2.5">Relative Intensity (%)</th>
+                                  <th className="p-2.5">d-Spacing (Å)</th>
+                                  <th className="p-2.5">hkl Index</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                                {structuredOcrData.peaks.map((p, pIdx) => (
+                                  <tr key={`peak-ocr-${pIdx}`} className="hover:bg-sky-500/5 transition-colors">
+                                    <td className="p-2.5 font-bold text-sky-300">{p.twoTheta}°</td>
+                                    <td className="p-2.5">{p.intensity}%</td>
+                                    <td className="p-2.5">{p.dSpacing ? `${p.dSpacing} Å` : '---'}</td>
+                                    <td className="p-2.5 text-slate-400">{p.hkl || '---'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Matched Phases */}
+                      {structuredOcrData?.phases && structuredOcrData.phases.length > 0 && (
+                        <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Layers className="w-4 h-4 text-amber-400" />
+                              <span className="text-[11px] font-black text-white uppercase tracking-wider">Identified Phase Cards & Formulae</span>
+                            </div>
+                            <button
+                              onClick={handleExportPhases}
+                              className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-[9px] font-mono font-extrabold uppercase border border-amber-500/30 flex items-center gap-1.5 transition-all"
+                            >
+                              <Copy className="w-3 h-3" />
+                              Copy Phases
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {structuredOcrData.phases.map((ph, phIdx) => (
+                              <div key={`phase-ocr-${phIdx}`} className="bg-black/40 p-3.5 rounded-xl border border-slate-800 space-y-1">
+                                <div className="text-[11px] font-black text-amber-300 uppercase">{ph.phaseName}</div>
+                                {ph.pdfNumber && <div className="text-[9px] font-mono text-slate-400">PDF Card #: <span className="text-slate-200">{ph.pdfNumber}</span></div>}
+                                {ph.spaceGroup && <div className="text-[9px] font-mono text-slate-400">Space Group: <span className="text-slate-200">{ph.spaceGroup}</span></div>}
+                                {ph.fom !== undefined && <div className="text-[9px] font-mono text-slate-400">Figure of Merit: <span className="text-emerald-400">{ph.fom}</span></div>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Extracted Text Inspector / Live Search */}
+                      {structuredOcrData?.extracted_lines && structuredOcrData.extracted_lines.length > 0 && (
+                        <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Type className="w-4 h-4 text-sky-400" />
+                              <span className="text-[11px] font-black text-white uppercase tracking-wider">Extracted OCR Text Lines</span>
+                            </div>
+                            <div className="relative w-48">
+                              <Search className="w-3 h-3 text-slate-500 absolute left-2.5 top-2.5" />
+                              <input
+                                type="text"
+                                value={ocrSearchQuery}
+                                onChange={(e) => setOcrSearchQuery(e.target.value)}
+                                placeholder="Filter OCR text..."
+                                className="w-full bg-slate-900 border border-slate-800 text-sky-300 text-[9px] font-mono pl-7 pr-2 py-1.5 rounded-lg outline-none focus:border-sky-500/50"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar font-mono text-[10px] text-slate-300 p-3 bg-black/40 rounded-xl border border-slate-800/80">
+                            {structuredOcrData.extracted_lines
+                              .filter(line => !ocrSearchQuery || line.toLowerCase().includes(ocrSearchQuery.toLowerCase()))
+                              .map((line, lIdx) => (
+                                <div key={`ocr-line-${lIdx}`} className="flex gap-3 py-1 border-b border-slate-900/60 last:border-none">
+                                  <span className="text-slate-600 select-none text-[8px] font-black w-6">{lIdx + 1}.</span>
+                                  <span className="text-sky-200">{line}</span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm prose-invert max-w-none prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-sky-400 prose-th:text-sky-400 prose-th:font-black prose-th:px-4 prose-td:px-4 prose-td:font-mono prose-td:text-[11px] prose-p:leading-relaxed prose-p:text-slate-300">
+                      <ReactMarkdown>{result}</ReactMarkdown>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

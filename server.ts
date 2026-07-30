@@ -568,6 +568,123 @@ async function startServer() {
     }
   });
 
+  // Google Gemini 3.6 Multimodal Vision & Scientific OCR Endpoint
+  app.post("/api/gemini/ocr-image-analysis", async (req, res) => {
+    const { image, customPrompt, ocrMode, customKey } = req.body;
+    try {
+      if (!image) {
+        res.status(400).json({ success: false, error: "A valid base64 image is required." });
+        return;
+      }
+
+      const keyToUse = customKey || process.env.GEMINI_API_KEY;
+      if (!keyToUse) {
+        res.status(400).json({ success: false, error: "Please configure your Gemini API Key in the application Settings tab." });
+        return;
+      }
+
+      let mimeType = "image/png";
+      let base64Data = image;
+      const matches = image.match(/^data:(.+);base64,(.+)$/);
+      if (matches && matches.length >= 3) {
+        mimeType = matches[1];
+        base64Data = matches[2];
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: keyToUse,
+        httpOptions: {
+          headers: { 'User-Agent': 'aistudio-build' }
+        }
+      });
+
+      const ocrSystemInstruction = `You are Google Gemini 3.6 High-Precision Scientific Optical Character Recognition (OCR) & Multimodal Crystallography Intelligence Engine.
+Your objective is to perform exhaustive character recognition, numerical spectrum digitizing, software screenshot parsing, and crystallographic label extraction from images.
+
+Always structure your output clearly with:
+1. **FULL OCR TEXT & ANNOTATIONS LIST**: Extract every legible character, graph label, legend item, ICDD/PDF entry number, Miller index (hkl), chemical formula, space group, lattice parameter, software button/table entry, and header text.
+2. **QUANTITATIVE XRD SPECTRUM & PEAK TABLE**: Extract all visible 2-Theta (2θ) positions, Relative Intensities (%), d-spacings (Å), and FWHM values into a Markdown Table.
+3. **IDENTIFIED PHASES & PDF/ICDD CARDS**: Extract candidate phase names, matching scores (FOM/Rwp), formula units, and space groups found in legends or tables.
+4. **AXIS & CALIBRATION OCR**: Identify X-axis scale (min/max 2θ), Y-axis scale (counts/intensity), and source wavelength (e.g., Cu Kα = 1.5406 Å) if printed.
+5. **JSON STRUCTURED EXPORT**: At the end of your response, output a valid JSON code block containing structured_data object with the following schema:
+\`\`\`json
+{
+  "structured_data": {
+    "extracted_lines": ["line 1", "line 2"],
+    "peaks": [{"twoTheta": 25.4, "intensity": 100, "dSpacing": 3.5, "hkl": "101"}],
+    "phases": [{"phaseName": "Anatase TiO2", "pdfNumber": "01-089-4921", "fom": 0.012, "spaceGroup": "I41/amd"}],
+    "axis": {"twoThetaMin": 20, "twoThetaMax": 80, "wavelength": 1.5406},
+    "confidence": "HIGH"
+  }
+}
+\`\`\`
+
+Be extremely accurate with decimal numbers, degree symbols (°), theta (θ), angstroms (Å), and subscripts.
+Mode-specific instructions:
+${ocrMode === 'table_extraction' ? 'FOCUS HEAVILY on converting all visible table columns or spectrum peaks into precise tabular rows.' : ''}
+${ocrMode === 'label_phase' ? 'FOCUS HEAVILY on matching PDF card numbers, space group symbols, chemical formulas, and structural metadata.' : ''}
+${ocrMode === 'axis_calibration' ? 'FOCUS HEAVILY on graph tick marks, 2-theta numbers along the horizontal axis, and intensity tick values along the vertical axis.' : ''}
+`;
+
+      let primaryModel = "gemini-3.6-flash";
+      let responseText = "";
+
+      try {
+        const response = await ai.models.generateContent({
+          model: primaryModel,
+          contents: {
+            parts: [
+              { inlineData: { mimeType, data: base64Data } },
+              { text: customPrompt || `Perform full OCR and crystallographic image analysis on this pattern.` }
+            ]
+          },
+          config: {
+            systemInstruction: ocrSystemInstruction
+          }
+        });
+        responseText = response.text || "";
+      } catch (primaryErr: any) {
+        console.warn("Gemini 3.6 Flash OCR failed, trying gemini-3.1-pro-preview fallback...", primaryErr);
+        const fallbackResponse = await ai.models.generateContent({
+          model: "gemini-3.1-pro-preview",
+          contents: {
+            parts: [
+              { inlineData: { mimeType, data: base64Data } },
+              { text: customPrompt || `Perform full OCR and crystallographic image analysis on this pattern.` }
+            ]
+          },
+          config: {
+            systemInstruction: ocrSystemInstruction
+          }
+        });
+        responseText = fallbackResponse.text || "";
+      }
+
+      let structuredData: any = null;
+      const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch && jsonMatch[1]) {
+        try {
+          const parsed = JSON.parse(jsonMatch[1]);
+          if (parsed.structured_data) structuredData = parsed.structured_data;
+          else if (parsed.peaks || parsed.extracted_lines) structuredData = parsed;
+        } catch (e) {
+          console.warn("Could not parse structured_data JSON block from Gemini output");
+        }
+      }
+
+      res.json({
+        success: true,
+        text: responseText,
+        structuredData,
+        engine: "Google Gemini 3.6 Multimodal Vision & Scientific OCR"
+      });
+
+    } catch (error: any) {
+      console.error("Gemini OCR Image Analysis Error:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.post("/api/gemini/synthesis", async (req, res) => {
     const { phaseName, formula, morphology, size, temp, time, doping, pH, atmosphere, focus, targetMass, selectedPrecursors, dopantElement, customKey } = req.body;
     try {

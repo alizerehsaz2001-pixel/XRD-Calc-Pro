@@ -273,58 +273,61 @@ export const explainResults = async (resultsSummary: string): Promise<string> =>
    }
 };
 
-export const analyzeDiffractionImage = async (imageBase64: string, userContext: string): Promise<string> => {
-  try {
-    const model = 'gemini-3.5-flash';
-    
-    const matches = imageBase64.match(/^data:(.+);base64,(.+)$/);
-    if (!matches || matches.length < 3) {
-      throw new Error("Invalid image format");
-    }
-    const mimeType = matches[1];
-    const data = matches[2];
+export interface OCRAnalysisResult {
+  text: string;
+  structuredData?: {
+    extracted_lines?: string[];
+    peaks?: Array<{ twoTheta: number; intensity: number; dSpacing?: number; hkl?: string }>;
+    phases?: Array<{ phaseName: string; pdfNumber?: string; fom?: number; spaceGroup?: string }>;
+    axis?: { twoThetaMin?: number; twoThetaMax?: number; wavelength?: number };
+    confidence?: string;
+  };
+  engine?: string;
+}
 
-    const response = await ai.models.generateContent({
-      model,
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: mimeType,
-              data: data
-            }
-          },
-          {
-            text: `Analyze this crystallography image acting as an expert crystallographer. Context provided by user: "${userContext}".
-            
-            1. **Diffraction Patterns (XRD):** If the image is a diffraction plot:
-               - Identify visible peaks.
-               - **QUANTITATIVE EXTRACTION:** Create a Markdown table listing the approximate **2-theta (2θ)** position and **Relative Intensity (%)** for the major peaks observed.
-               - Analyze peak width qualitatively (Sharp vs Broad).
-            
-            2. **Software Screenshots/Data:** If this is a screenshot from software like HighScore, EVA, or a data table:
-               - Extract candidate phase names and their matching scores (FOM).
-               - Interpret statistical fit values if visible.
-            
-            3. **Conclusion:** Provide a summary of the likely material composition and data quality.
-            
-            Be precise.`
-          }
-        ]
-      },
-      config: {
-      }
+export const analyzeImageOCR = async (
+  imageBase64: string, 
+  customPrompt?: string, 
+  ocrMode: 'full_ocr' | 'table_extraction' | 'label_phase' | 'axis_calibration' = 'full_ocr'
+): Promise<OCRAnalysisResult> => {
+  try {
+    const customKey = localStorage.getItem('xrd_custom_gemini_key') || localStorage.getItem('gemini_custom_api_key') || undefined;
+    const response = await fetch('/api/gemini/ocr-image-analysis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image: imageBase64,
+        customPrompt,
+        ocrMode,
+        customKey
+      })
     });
 
-    return response.text || "No analysis could be generated for this image.";
-  } catch (error: any) {
-    if (!isQuotaError(error) && !isPermissionError(error)) {
-      console.error("Gemini Image Analysis Error:", error);
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP Error ${response.status}`);
     }
-    if (isQuotaError(error)) throw new Error("Quota exceeded (429).");
-    if (isPermissionError(error)) throw new Error("Permission denied (403). API key might result in restriction for image analysis.");
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Gemini OCR Analysis failed');
+    }
+
+    return {
+      text: data.text || 'No text extracted.',
+      structuredData: data.structuredData || undefined,
+      engine: data.engine || 'Google Gemini 3.6 OCR Engine'
+    };
+  } catch (error: any) {
+    if (isQuotaError(error)) throw new Error('Quota exceeded (429).');
+    if (isPermissionError(error)) throw new Error('Permission denied (403). Check API Key configuration.');
     throw error;
   }
+};
+
+export const analyzeDiffractionImage = async (imageBase64: string, userContext: string): Promise<string> => {
+  const result = await analyzeImageOCR(imageBase64, userContext, 'full_ocr');
+  return result.text;
 };
 
 // A robust similarity score function for XRD spectra
