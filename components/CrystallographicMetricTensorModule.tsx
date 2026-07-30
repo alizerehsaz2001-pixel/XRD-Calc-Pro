@@ -33,7 +33,13 @@ import {
   Terminal,
   Play,
   Flame,
-  CornerDownRight
+  CornerDownRight,
+  ZoomIn,
+  ZoomOut,
+  Target,
+  Circle,
+  EyeOff,
+  Move
 } from 'lucide-react';
 import { ScientificMathControl } from './ScientificMathControl';
 
@@ -251,6 +257,25 @@ export const CrystallographicMetricTensorModule: React.FC<{ pythonFeaturesEnable
   const [alpha33, setAlpha33] = useState<number>(18.0e-6);
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Advanced Reciprocal Net Visualizer Interactive States
+  const [reciprocalPlane, setReciprocalPlane] = useState<'hk0' | 'h0l' | '0kl'>('hk0');
+  const [reciprocalGridRange, setReciprocalGridRange] = useState<number>(4);
+  const [reciprocalZoom, setReciprocalZoom] = useState<number>(1.0);
+  const [reciprocalPan, setReciprocalPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanningReciprocal, setIsPanningReciprocal] = useState<boolean>(false);
+  const [panStartPos, setPanStartPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const [showEwaldOverlay, setShowEwaldOverlay] = useState<boolean>(false);
+  const [ewaldWavelength, setEwaldWavelength] = useState<number>(1.5406); // Cu Ka wavelength in Angstroms
+  const [ewaldAngle, setEwaldAngle] = useState<number>(0); // Incident beam orientation in degrees
+  const [showBrillouinZone, setShowBrillouinZone] = useState<boolean>(false);
+  const [showSecondVector, setShowSecondVector] = useState<boolean>(true);
+  const [showMeshParallelogram, setShowMeshParallelogram] = useState<boolean>(true);
+  const [showRadialShells, setShowRadialShells] = useState<boolean>(true);
+
+  const [hoveredReciprocalNode, setHoveredReciprocalNode] = useState<{ h: number; k: number } | null>(null);
+  const [selectedReciprocalNode, setSelectedReciprocalNode] = useState<{ h: number; k: number } | null>(null);
 
   // Canvas Refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -636,7 +661,66 @@ $d_{(${h1}${k1}${l1})} = ${fmt(plane1Calc.d, 4)}~\\text{\\AA}$
 \\end{document}`;
   };
 
-  // Canvas Drawing Effect
+  // Export Reciprocal Net PNG
+  const handleExportReciprocalCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `reciprocal-lattice-net-hk0-${system.toLowerCase()}-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  // Helper calculation for vector properties on selected reciprocal plane
+  const getReciprocalVectorProps = (hVal: number, kVal: number) => {
+    let star1 = aStar, star2 = bStar, cosAngle = cosGammaStar;
+    if (reciprocalPlane === 'h0l') {
+      star1 = aStar; star2 = cStar; cosAngle = Math.cos((betaStar * Math.PI) / 180);
+    } else if (reciprocalPlane === '0kl') {
+      star1 = bStar; star2 = cStar; cosAngle = Math.cos((alphaStar * Math.PI) / 180);
+    }
+
+    const gSquare = hVal * hVal * star1 * star1 + kVal * kVal * star2 * star2 + 2 * hVal * kVal * star1 * star2 * cosAngle;
+    const gMag = Math.sqrt(Math.max(0, gSquare));
+    const dSpacing = gMag > 1e-8 ? 1 / gMag : 0;
+    const sinTheta = (ewaldWavelength * gMag) / 2;
+    const isValidBragg = sinTheta <= 1.0 && gMag > 0;
+    const thetaDeg = isValidBragg ? (Math.asin(sinTheta) * 180) / Math.PI : null;
+    return { gMag, dSpacing, thetaDeg, isValidBragg };
+  };
+
+  const vec1Props = useMemo(() => getReciprocalVectorProps(h1, k1), [reciprocalPlane, h1, k1, aStar, bStar, cStar, cosGammaStar, betaStar, alphaStar, ewaldWavelength]);
+  const vec2Props = useMemo(() => getReciprocalVectorProps(h2, k2), [reciprocalPlane, h2, k2, aStar, bStar, cStar, cosGammaStar, betaStar, alphaStar, ewaldWavelength]);
+
+  const interVectorAngle = useMemo(() => {
+    if (vec1Props.gMag === 0 || vec2Props.gMag === 0) return 0;
+    let star1 = aStar, star2 = bStar, cosAngle = cosGammaStar;
+    if (reciprocalPlane === 'h0l') {
+      star1 = aStar; star2 = cStar; cosAngle = Math.cos((betaStar * Math.PI) / 180);
+    } else if (reciprocalPlane === '0kl') {
+      star1 = bStar; star2 = cStar; cosAngle = Math.cos((alphaStar * Math.PI) / 180);
+    }
+    const dotProduct = h1 * h2 * star1 * star1 + k1 * k2 * star2 * star2 + (h1 * k2 + h2 * k1) * star1 * star2 * cosAngle;
+    const cosAng = dotProduct / (vec1Props.gMag * vec2Props.gMag);
+    const clampedCos = Math.max(-1, Math.min(1, cosAng));
+    return (Math.acos(clampedCos) * 180) / Math.PI;
+  }, [reciprocalPlane, h1, k1, h2, k2, aStar, bStar, cStar, cosGammaStar, betaStar, alphaStar, vec1Props.gMag, vec2Props.gMag]);
+
+  const reciprocalMeshArea = useMemo(() => {
+    if (reciprocalPlane === 'h0l') {
+      return aStar * cStar * Math.sin((betaStar * Math.PI) / 180);
+    } else if (reciprocalPlane === '0kl') {
+      return bStar * cStar * Math.sin((alphaStar * Math.PI) / 180);
+    }
+    return aStar * bStar * Math.sin((gammaStar * Math.PI) / 180);
+  }, [reciprocalPlane, aStar, bStar, cStar, alphaStar, betaStar, gammaStar]);
+
+  const vectorParallelogramArea = useMemo(() => {
+    const crossIndices = Math.abs(h1 * k2 - h2 * k1);
+    return crossIndices * reciprocalMeshArea;
+  }, [h1, k1, h2, k2, reciprocalMeshArea]);
+
+  // Reciprocal Net Interactive Canvas Effect
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -647,94 +731,418 @@ $d_{(${h1}${k1}${l1})} = ${fmt(plane1Calc.d, 4)}~\\text{\\AA}$
     const height = canvas.height;
     ctx.clearRect(0, 0, width, height);
 
-    // Draw Background
+    // Draw Dark Background
     ctx.fillStyle = '#020617'; // slate-950
     ctx.fillRect(0, 0, width, height);
 
-    const centerX = width / 2;
-    const centerY = height / 2;
+    // Center Origin with Pan offset
+    const centerX = width / 2 + reciprocalPan.x;
+    const centerY = height / 2 + reciprocalPan.y;
+
+    // Basis lengths and angle according to plane
+    let v1Star = aStar, v2Star = bStar, angleStarRad = (gammaStar * Math.PI) / 180;
+    let lbl1 = 'a*', lbl2 = 'b*';
+    if (reciprocalPlane === 'h0l') {
+      v1Star = aStar; v2Star = cStar; angleStarRad = (betaStar * Math.PI) / 180;
+      lbl1 = 'a*'; lbl2 = 'c*';
+    } else if (reciprocalPlane === '0kl') {
+      v1Star = bStar; v2Star = cStar; angleStarRad = (alphaStar * Math.PI) / 180;
+      lbl1 = 'b*'; lbl2 = 'c*';
+    }
 
     // Scale factor
-    const scale = Math.min(width, height) / (2.5 * Math.max(aStar, bStar));
+    const baseScale = Math.min(width, height) / (2.2 * reciprocalGridRange * Math.max(v1Star, v2Star));
+    const scale = baseScale * reciprocalZoom;
 
-    // Reciprocal Basis Vector a* along X axis
-    const ax = aStar * scale;
+    // Reciprocal Basis Vector 1 along X axis
+    const ax = v1Star * scale;
     const ay = 0;
 
-    // Reciprocal Basis Vector b* rotated by gamma*
-    const radGStar = (gammaStar * Math.PI) / 180;
-    const bx = bStar * scale * Math.cos(radGStar);
-    const by = -bStar * scale * Math.sin(radGStar);
+    // Reciprocal Basis Vector 2 at angleStarRad
+    const bx = v2Star * scale * Math.cos(angleStarRad);
+    const by = -v2Star * scale * Math.sin(angleStarRad); // Y down on canvas
 
-    // Draw Reciprocal Lattice Net Points (h k 0)
+    // Draw Subtle Radial Shells (|g*| = 1, 2, 3 Å⁻¹)
+    if (showRadialShells) {
+      ctx.strokeStyle = '#1e293b'; // slate-800
+      ctx.setLineDash([3, 4]);
+      ctx.lineWidth = 1;
+      [1.0, 2.0, 3.0].forEach((rMag) => {
+        const radiusPx = rMag * scale;
+        if (radiusPx > 10 && radiusPx < Math.max(width, height)) {
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, radiusPx, 0, 2 * Math.PI);
+          ctx.stroke();
+          ctx.fillStyle = '#475569';
+          ctx.font = '9px monospace';
+          ctx.fillText(`${rMag} Å⁻¹`, centerX + radiusPx + 3, centerY - 2);
+        }
+      });
+      ctx.setLineDash([]);
+    }
+
+    // Draw 1st Brillouin Zone Wigner-Seitz polygon
+    if (showBrillouinZone) {
+      const neighbors = [
+        { h: 1, k: 0 }, { h: -1, k: 0 },
+        { h: 0, k: 1 }, { h: 0, k: -1 },
+        { h: 1, k: 1 }, { h: -1, k: -1 },
+        { h: 1, k: -1 }, { h: -1, k: 1 }
+      ];
+
+      ctx.save();
+      ctx.strokeStyle = '#06b6d4';
+      ctx.fillStyle = 'rgba(6, 182, 212, 0.08)';
+      ctx.setLineDash([4, 3]);
+      ctx.lineWidth = 1.5;
+
+      const pts: { x: number; y: number }[] = [];
+      const numSteps = 36;
+      for (let i = 0; i < numSteps; i++) {
+        const angle = (i * 2 * Math.PI) / numSteps;
+        const dx = Math.cos(angle);
+        const dy = Math.sin(angle);
+        let maxR = 1000;
+        neighbors.forEach((n) => {
+          const kx = n.h * ax + n.k * bx;
+          const ky = n.h * ay + n.k * by;
+          const kSq = kx * kx + ky * ky;
+          if (kSq > 1e-5) {
+            const proj = dx * kx + dy * ky;
+            if (proj > 1e-5) {
+              const rVal = (kSq / 2) / proj;
+              if (rVal < maxR) maxR = rVal;
+            }
+          }
+        });
+        pts.push({ x: centerX + dx * maxR, y: centerY + dy * maxR });
+      }
+
+      ctx.beginPath();
+      pts.forEach((p, idx) => {
+        if (idx === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    // Draw Parallelogram Mesh Unit Cell
+    if (showMeshParallelogram) {
+      const g1x = h1 * ax + k1 * bx;
+      const g1y = h1 * ay + k1 * by;
+      const g2x = h2 * ax + k2 * bx;
+      const g2y = h2 * ay + k2 * by;
+
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.07)';
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.3)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(centerX + g1x, centerY + g1y);
+      ctx.lineTo(centerX + g1x + g2x, centerY + g1y + g2y);
+      ctx.lineTo(centerX + g2x, centerY + g2y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // Draw Ewald Sphere / Circle with interactive angle rotation
+    let ewaldCenterX = 0;
+    let ewaldCenterY = 0;
+    let ewaldRadiusPx = 0;
+    if (showEwaldOverlay && ewaldWavelength > 0) {
+      const rStar = 1 / ewaldWavelength;
+      ewaldRadiusPx = rStar * scale;
+
+      const angleRad = (ewaldAngle * Math.PI) / 180;
+      const k0x = rStar * Math.cos(angleRad);
+      const k0y = rStar * Math.sin(angleRad);
+
+      ewaldCenterX = centerX - k0x * scale;
+      ewaldCenterY = centerY + k0y * scale; // invert Y for canvas
+
+      ctx.save();
+      ctx.strokeStyle = '#f59e0b'; // amber-500
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([5, 4]);
+
+      ctx.beginPath();
+      ctx.arc(ewaldCenterX, ewaldCenterY, ewaldRadiusPx, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      // Incident beam vector k0
+      ctx.strokeStyle = '#fbbf24';
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(ewaldCenterX, ewaldCenterY);
+      ctx.lineTo(centerX, centerY);
+      ctx.stroke();
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 9px monospace';
+      ctx.fillText(`k₀ (${ewaldAngle}°)`, (centerX + ewaldCenterX) / 2, (centerY + ewaldCenterY) / 2 - 6);
+
+      ctx.restore();
+    }
+
+    // Draw Grid Lines (hk0 net)
+    const range = reciprocalGridRange;
     ctx.strokeStyle = '#1e293b'; // slate-800
     ctx.lineWidth = 1;
 
-    for (let h = -3; h <= 3; h++) {
-      for (let k = -3; k <= 3; k++) {
+    for (let h = -range; h <= range; h++) {
+      for (let k = -range; k <= range; k++) {
         const px = centerX + h * ax + k * bx;
         const py = centerY + h * ay + k * by;
 
-        // Draw grid lines
-        if (h < 3) {
+        if (h < range) {
           ctx.beginPath();
           ctx.moveTo(px, py);
           ctx.lineTo(px + ax, py + ay);
           ctx.stroke();
         }
-        if (k < 3) {
+        if (k < range) {
           ctx.beginPath();
           ctx.moveTo(px, py);
           ctx.lineTo(px + bx, py + by);
           ctx.stroke();
         }
-
-        // Point
-        ctx.fillStyle = (h === 0 && k === 0) ? '#f43f5e' : '#64748b';
-        ctx.beginPath();
-        ctx.arc(px, py, (h === 0 && k === 0) ? 5 : 2.5, 0, 2 * Math.PI);
-        ctx.fill();
       }
     }
 
+    // Draw Coordinate Axes Crosshairs at Origin
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, centerY); ctx.lineTo(width, centerY);
+    ctx.moveTo(centerX, 0); ctx.lineTo(centerX, height);
+    ctx.stroke();
+
+    // Draw Reciprocal Lattice Points
+    for (let h = -range; h <= range; h++) {
+      for (let k = -range; k <= range; k++) {
+        const px = centerX + h * ax + k * bx;
+        const py = centerY + h * ay + k * by;
+
+        if (px < -20 || px > width + 20 || py < -20 || py > height + 20) continue;
+
+        const isOrigin = (h === 0 && k === 0);
+        const isVector1 = (h === h1 && k === k1);
+        const isVector2 = (showSecondVector && h === h2 && k === k2);
+        const isHovered = (hoveredReciprocalNode?.h === h && hoveredReciprocalNode?.k === k);
+        const isSelected = (selectedReciprocalNode?.h === h && selectedReciprocalNode?.k === k);
+
+        let isEwaldIntersect = false;
+        if (showEwaldOverlay && ewaldRadiusPx > 0 && !isOrigin) {
+          const distToEwaldCenter = Math.sqrt((px - ewaldCenterX) ** 2 + (py - ewaldCenterY) ** 2);
+          if (Math.abs(distToEwaldCenter - ewaldRadiusPx) <= 12) {
+            isEwaldIntersect = true;
+          }
+        }
+
+        let ptColor = '#64748b'; // slate-500 default
+        let ptRadius = 2.8;
+
+        if (isOrigin) {
+          ptColor = '#f43f5e'; // rose
+          ptRadius = 5.5;
+        } else if (isVector1) {
+          ptColor = '#10b981'; // emerald
+          ptRadius = 5;
+        } else if (isVector2) {
+          ptColor = '#d946ef'; // fuchsia
+          ptRadius = 5;
+        } else if (isEwaldIntersect) {
+          ptColor = '#f59e0b'; // amber
+          ptRadius = 4.2;
+        }
+
+        if (isEwaldIntersect) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(245, 158, 11, 0.3)';
+          ctx.beginPath();
+          ctx.arc(px, py, 9, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        ctx.fillStyle = ptColor;
+        ctx.beginPath();
+        ctx.arc(px, py, ptRadius, 0, 2 * Math.PI);
+        ctx.fill();
+
+        if (isHovered || isSelected) {
+          ctx.strokeStyle = isHovered ? '#38bdf8' : '#a855f7';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(px, py, ptRadius + 4, 0, 2 * Math.PI);
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText(`(${h} ${k} 0)`, px + 7, py - 6);
+        }
+      }
+    }
+
+    const drawArrow = (
+      fromX: number, fromY: number, toX: number, toY: number,
+      strokeColor: string, lineWidth: number = 2.5
+    ) => {
+      ctx.save();
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+
+      const headlen = 9;
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      ctx.fillStyle = strokeColor;
+      ctx.beginPath();
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    };
+
     // Draw Basis Vectors
-    // a* vector (Cyan)
-    ctx.strokeStyle = '#06b6d4'; // cyan-500
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX + ax, centerY + ay);
-    ctx.stroke();
+    drawArrow(centerX, centerY, centerX + ax, centerY + ay, '#06b6d4', 2.8);
+    ctx.fillStyle = '#06b6d4';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(lbl1, centerX + ax + 6, centerY + ay + 14);
 
-    // b* vector (Violet)
-    ctx.strokeStyle = '#a855f7'; // violet-500
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX + bx, centerY + by);
-    ctx.stroke();
+    drawArrow(centerX, centerY, centerX + bx, centerY + by, '#a855f7', 2.8);
+    ctx.fillStyle = '#a855f7';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(lbl2, centerX + bx + 6, centerY + by - 6);
 
-    // Plane 1 vector g* (1st plane h1, k1)
+    // Angle Arc between basis vectors
+    const angleVal = reciprocalPlane === 'h0l' ? betaStar : reciprocalPlane === '0kl' ? alphaStar : gammaStar;
+    const angleSym = reciprocalPlane === 'h0l' ? 'β*' : reciprocalPlane === '0kl' ? 'α*' : 'γ*';
+    ctx.save();
+    ctx.strokeStyle = 'rgba(168, 85, 247, 0.6)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 22, 0, -angleStarRad, true);
+    ctx.stroke();
+    ctx.fillStyle = '#c084fc';
+    ctx.font = '9px monospace';
+    ctx.fillText(`${angleSym}=${fmt(angleVal, 1)}°`, centerX + 26, centerY - 8);
+    ctx.restore();
+
+    // Vector 1: g1* (Emerald)
     const g1x = h1 * ax + k1 * bx;
     const g1y = h1 * ay + k1 * by;
-    ctx.strokeStyle = '#10b981'; // emerald-500
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX + g1x, centerY + g1y);
-    ctx.stroke();
+    if (h1 !== 0 || k1 !== 0) {
+      const g1Label = reciprocalPlane === 'h0l' ? `g1*(${h1} 0 ${k1})` : reciprocalPlane === '0kl' ? `g1*(0 ${h1} ${k1})` : `g1*(${h1} ${k1} 0)`;
+      drawArrow(centerX, centerY, centerX + g1x, centerY + g1y, '#10b981', 3);
+      ctx.fillStyle = '#34d399';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText(g1Label, centerX + g1x + 8, centerY + g1y - 4);
+    }
 
-    // Label
-    ctx.fillStyle = '#34d399';
-    ctx.font = 'bold 12px monospace';
-    ctx.fillText(`g*(${h1}${k1}0)`, centerX + g1x + 8, centerY + g1y - 4);
+    // Vector 2: g2* (Fuchsia)
+    if (showSecondVector && (h2 !== 0 || k2 !== 0)) {
+      const g2x = h2 * ax + k2 * bx;
+      const g2y = h2 * ay + k2 * by;
+      const g2Label = reciprocalPlane === 'h0l' ? `g2*(${h2} 0 ${k2})` : reciprocalPlane === '0kl' ? `g2*(0 ${h2} ${k2})` : `g2*(${h2} ${k2} 0)`;
+      drawArrow(centerX, centerY, centerX + g2x, centerY + g2y, '#d946ef', 2.5);
+      ctx.fillStyle = '#e879f9';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText(g2Label, centerX + g2x + 8, centerY + g2y + 12);
+    }
 
-    ctx.fillStyle = '#06b6d4';
-    ctx.fillText('a*', centerX + ax + 6, centerY + ay + 14);
-    ctx.fillStyle = '#a855f7';
-    ctx.fillText('b*', centerX + bx + 6, centerY + by - 6);
+  }, [
+    reciprocalPlane, aStar, bStar, cStar, alphaStar, betaStar, gammaStar, h1, k1, h2, k2,
+    reciprocalGridRange, reciprocalZoom, reciprocalPan,
+    showEwaldOverlay, ewaldWavelength, ewaldAngle, showBrillouinZone,
+    showSecondVector, showMeshParallelogram, showRadialShells,
+    hoveredReciprocalNode, selectedReciprocalNode
+  ]);
 
-  }, [aStar, bStar, gammaStar, h1, k1, h2, k2]);
+  // Reciprocal Net Mouse Interaction Handlers
+  const handleReciprocalMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+    if (isPanningReciprocal) {
+      setReciprocalPan({
+        x: mouseX - panStartPos.x,
+        y: mouseY - panStartPos.y
+      });
+      return;
+    }
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const centerX = width / 2 + reciprocalPan.x;
+    const centerY = height / 2 + reciprocalPan.y;
+
+    let v1Star = aStar, v2Star = bStar, angleStarRad = (gammaStar * Math.PI) / 180;
+    if (reciprocalPlane === 'h0l') {
+      v1Star = aStar; v2Star = cStar; angleStarRad = (betaStar * Math.PI) / 180;
+    } else if (reciprocalPlane === '0kl') {
+      v1Star = bStar; v2Star = cStar; angleStarRad = (alphaStar * Math.PI) / 180;
+    }
+
+    const baseScale = Math.min(width, height) / (2.2 * reciprocalGridRange * Math.max(v1Star, v2Star));
+    const scale = baseScale * reciprocalZoom;
+
+    const ax = v1Star * scale;
+    const ay = 0;
+    const bx = v2Star * scale * Math.cos(angleStarRad);
+    const by = -v2Star * scale * Math.sin(angleStarRad);
+
+    let closestNode: { h: number; k: number } | null = null;
+    let minDistance = 18;
+
+    for (let h = -reciprocalGridRange; h <= reciprocalGridRange; h++) {
+      for (let k = -reciprocalGridRange; k <= reciprocalGridRange; k++) {
+        const px = centerX + h * ax + k * bx;
+        const py = centerY + h * ay + k * by;
+        const dist = Math.sqrt((mouseX - px) ** 2 + (mouseY - py) ** 2);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestNode = { h, k };
+        }
+      }
+    }
+
+    setHoveredReciprocalNode(closestNode);
+  };
+
+  const handleReciprocalMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+    if (e.button === 1 || e.shiftKey) {
+      setIsPanningReciprocal(true);
+      setPanStartPos({ x: mouseX - reciprocalPan.x, y: mouseY - reciprocalPan.y });
+    } else if (hoveredReciprocalNode) {
+      setSelectedReciprocalNode(hoveredReciprocalNode);
+    }
+  };
+
+  const handleReciprocalMouseUp = () => {
+    setIsPanningReciprocal(false);
+  };
 
   // Busing-Levy Cartesian Frame Canvas Effect
   useEffect(() => {
@@ -1129,33 +1537,329 @@ $d_{(${h1}${k1}${l1})} = ${fmt(plane1Calc.d, 4)}~\\text{\\AA}$
       {/* Interactive Reciprocal Canvas & Niggli Reduction Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Interactive Reciprocal Space Net Canvas */}
-        <div className="lg:col-span-2 bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        {/* Enhanced Interactive Reciprocal Space Net Canvas */}
+        <div className="lg:col-span-2 bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-xl space-y-5">
+          <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-3">
             <div className="flex items-center gap-2.5">
-              <Compass className="w-5 h-5 text-cyan-400" />
-              <h3 className="text-base font-bold text-white">
-                Reciprocal Lattice Net (hk0) Visualizer
-              </h3>
+              <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                <Compass className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  Reciprocal Lattice Net (hk0) Visualizer
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-800/50">
+                    2D Net Slice
+                  </span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Interactive reciprocal space grid with d-spacings, Ewald intersection, and zone analysis
+                </p>
+              </div>
             </div>
-            <span className="text-xs font-mono text-slate-400">
-              γ* = {fmt(gammaStar, 2)}°
-            </span>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportReciprocalCanvas}
+                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl border border-slate-700/80 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                title="Export high-resolution PNG image"
+              >
+                <Download className="w-3.5 h-3.5 text-cyan-400" />
+                Export PNG
+              </button>
+            </div>
           </div>
 
-          <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center">
+          {/* Interactive Visualizer Control Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800 text-xs">
+            {/* Plane & Grid Range Selectors */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Reciprocal Plane Switcher */}
+              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                {(['hk0', 'h0l', '0kl'] as const).map((plane) => (
+                  <button
+                    key={plane}
+                    onClick={() => setReciprocalPlane(plane)}
+                    className={`px-2.5 py-1 rounded-lg font-mono font-bold transition-all ${
+                      reciprocalPlane === plane
+                        ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                    }`}
+                  >
+                    ({plane})
+                  </button>
+                ))}
+              </div>
+
+              {/* Grid Range Selector */}
+              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <span className="text-slate-400 font-mono text-[10px] px-1">Grid:</span>
+                {[3, 4, 6, 8].map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => setReciprocalGridRange(range)}
+                    className={`px-2 py-0.5 rounded-md font-mono font-bold text-[11px] transition-all ${
+                      reciprocalGridRange === range
+                        ? 'bg-cyan-600 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    ±{range}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Feature Toggles */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={() => setShowEwaldOverlay(!showEwaldOverlay)}
+                className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+                  showEwaldOverlay
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-700/50'
+                }`}
+                title="Toggle Ewald Sphere overlay circle"
+              >
+                <Target className="w-3.5 h-3.5" />
+                Ewald Circle
+              </button>
+
+              <button
+                onClick={() => setShowBrillouinZone(!showBrillouinZone)}
+                className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+                  showBrillouinZone
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-700/50'
+                }`}
+                title="Toggle 1st Brillouin Zone boundary (Wigner-Seitz cell)"
+              >
+                <Box className="w-3.5 h-3.5" />
+                1st BZ
+              </button>
+
+              <button
+                onClick={() => setShowMeshParallelogram(!showMeshParallelogram)}
+                className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+                  showMeshParallelogram
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-700/50'
+                }`}
+                title="Toggle reciprocal mesh unit cell"
+              >
+                <Grid className="w-3.5 h-3.5" />
+                Mesh Cell
+              </button>
+
+              <button
+                onClick={() => setShowSecondVector(!showSecondVector)}
+                className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+                  showSecondVector
+                    ? 'bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40'
+                    : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 border border-slate-700/50'
+                }`}
+                title="Toggle Vector 2 (g2*)"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                g₂* Vector
+              </button>
+            </div>
+
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button
+                onClick={() => setReciprocalZoom((z) => Math.min(2.5, z + 0.2))}
+                className="p-1 text-slate-400 hover:text-cyan-300 rounded-lg hover:bg-slate-800 transition-all"
+                title="Zoom In"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-[10px] font-mono text-slate-400 px-1 font-bold">
+                {Math.round(reciprocalZoom * 100)}%
+              </span>
+              <button
+                onClick={() => setReciprocalZoom((z) => Math.max(0.5, z - 0.2))}
+                className="p-1 text-slate-400 hover:text-cyan-300 rounded-lg hover:bg-slate-800 transition-all"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => { setReciprocalZoom(1.0); setReciprocalPan({ x: 0, y: 0 }); }}
+                className="p-1 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-all"
+                title="Reset View"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Ewald Wavelength & Incident Angle Rotation Sub-Bar */}
+          {showEwaldOverlay && (
+            <div className="flex flex-wrap items-center justify-between p-3 bg-amber-950/20 border border-amber-500/30 rounded-2xl text-xs gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Target className="w-4 h-4 text-amber-400" />
+                  <span className="font-semibold text-amber-200">X-Ray Source (λ):</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { label: 'Cu Kα (1.5406 Å)', val: 1.5406 },
+                    { label: 'Mo Kα (0.7107 Å)', val: 0.7107 },
+                    { label: 'Co Kα (1.7890 Å)', val: 1.7890 },
+                    { label: 'Cr Kα (2.2897 Å)', val: 2.2897 },
+                  ].map((preset) => (
+                    <button
+                      key={preset.val}
+                      onClick={() => setEwaldWavelength(preset.val)}
+                      className={`px-2 py-1 rounded-lg text-[11px] font-mono font-medium transition-all ${
+                        ewaldWavelength === preset.val
+                          ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
+                          : 'bg-slate-900 text-amber-300/80 hover:bg-slate-800'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Incident Beam Angle Slider */}
+              <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800">
+                <span className="text-[11px] text-amber-300 font-mono font-bold">k₀ Angle (φ): {ewaldAngle}°</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={360}
+                  step={5}
+                  value={ewaldAngle}
+                  onChange={(e) => setEwaldAngle(Number(e.target.value))}
+                  className="w-24 accent-amber-500 cursor-pointer"
+                  title="Rotate Incident Beam Direction k₀"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Canvas Box */}
+          <div className="relative rounded-2xl overflow-hidden border border-slate-800/90 bg-slate-950 shadow-inner group">
             <canvas
               ref={canvasRef}
-              width={600}
-              height={320}
-              className="w-full h-auto max-h-[320px] object-contain"
+              width={640}
+              height={340}
+              onMouseMove={handleReciprocalMouseMove}
+              onMouseDown={handleReciprocalMouseDown}
+              onMouseUp={handleReciprocalMouseUp}
+              onMouseLeave={() => { setHoveredReciprocalNode(null); setIsPanningReciprocal(false); }}
+              className="w-full h-auto max-h-[340px] object-contain cursor-crosshair"
             />
+
+            {/* Canvas Hint Badge */}
+            <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] text-slate-300 font-mono pointer-events-none flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              Hover points to inspect | Click node to select
+            </div>
+
+            {/* Floating Point Info Tooltip Card */}
+            {(hoveredReciprocalNode || selectedReciprocalNode) && (() => {
+              const activeNode = hoveredReciprocalNode || selectedReciprocalNode!;
+              const props = getReciprocalVectorProps(activeNode.h, activeNode.k);
+              const reflStr = reciprocalPlane === 'h0l' ? `(${activeNode.h} 0 ${activeNode.k})` : reciprocalPlane === '0kl' ? `(0 ${activeNode.h} ${activeNode.k})` : `(${activeNode.h} ${activeNode.k} 0)`;
+              const dStr = reciprocalPlane === 'h0l' ? `d_h0l` : reciprocalPlane === '0kl' ? `d_0kl` : `d_hk0`;
+              return (
+                <div className="absolute bottom-3 right-3 bg-slate-900/95 backdrop-blur-md p-3.5 rounded-2xl border border-cyan-500/40 shadow-2xl text-xs font-mono space-y-2 max-w-xs">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 gap-3">
+                    <span className="text-cyan-400 font-bold flex items-center gap-1.5">
+                      <Target className="w-3.5 h-3.5 text-cyan-400" />
+                      Reflection {reflStr}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-sans">
+                      {hoveredReciprocalNode ? 'HOVERED' : 'SELECTED'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                    <span className="text-slate-400">Reciprocal |g*|:</span>
+                    <span className="text-emerald-400 font-bold">{fmt(props.gMag, 4)} Å⁻¹</span>
+
+                    <span className="text-slate-400">d-Spacing ({dStr}):</span>
+                    <span className="text-cyan-300 font-bold">{fmt(props.dSpacing, 4)} Å</span>
+
+                    {showEwaldOverlay && (
+                      <>
+                        <span className="text-slate-400">Bragg Angle (2θ):</span>
+                        <span className={props.isValidBragg ? 'text-amber-300 font-bold' : 'text-slate-500'}>
+                          {props.isValidBragg ? `${fmt(props.thetaDeg! * 2, 2)}°` : 'Evades Bragg'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Interactive Quick Action Buttons */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-slate-800/80">
+                    <button
+                      onClick={() => { setH1(activeNode.h); setK1(activeNode.k); }}
+                      className="flex-1 py-1 px-2 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 rounded-lg text-[10px] font-bold transition-all text-center"
+                    >
+                      Set as g1*
+                    </button>
+                    {showSecondVector && (
+                      <button
+                        onClick={() => { setH2(activeNode.h); setK2(activeNode.k); }}
+                        className="flex-1 py-1 px-2 bg-fuchsia-600/30 hover:bg-fuchsia-600/50 text-fuchsia-300 border border-fuchsia-500/40 rounded-lg text-[10px] font-bold transition-all text-center"
+                      >
+                        Set as g2*
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
-          <div className="flex items-center justify-around text-xs font-mono text-slate-400 pt-1">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-cyan-500 rounded" /> a* axis</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-violet-500 rounded" /> b* axis</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-emerald-500 rounded" /> Reciprocal Vector g*({h1}{k1}0)</span>
+          {/* Legend */}
+          <div className="flex flex-wrap items-center justify-around text-xs font-mono text-slate-400 pt-1 gap-2">
+            <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-cyan-500 rounded" /> {reciprocalPlane === '0kl' ? 'b*' : 'a*'} axis</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-violet-500 rounded" /> {reciprocalPlane === 'hk0' ? 'b*' : 'c*'} axis</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-emerald-500 rounded" /> Vector g1*</span>
+            {showSecondVector && (
+              <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-fuchsia-500 rounded" /> Vector g2*</span>
+            )}
+            {showEwaldOverlay && (
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" /> Ewald Sphere</span>
+            )}
+          </div>
+
+          {/* Real-time Analytical Vector Comparison Panel */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs font-mono">
+            {/* Vector 1 Card */}
+            <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl space-y-1">
+              <span className="text-emerald-400 font-bold block flex items-center justify-between">
+                <span>g1* ({reciprocalPlane === 'h0l' ? `${h1} 0 ${k1}` : reciprocalPlane === '0kl' ? `0 ${h1} ${k1}` : `${h1} ${k1} 0`})</span>
+                <span className="text-[10px] text-emerald-500/80 font-sans">PRIMARY</span>
+              </span>
+              <div className="text-slate-300">|g1*| = <span className="text-emerald-300 font-bold">{fmt(vec1Props.gMag, 4)} Å⁻¹</span></div>
+              <div className="text-slate-400">d1 = <span className="text-cyan-300 font-bold">{fmt(vec1Props.dSpacing, 4)} Å</span></div>
+            </div>
+
+            {/* Vector 2 Card */}
+            <div className="p-3 bg-fuchsia-950/20 border border-fuchsia-500/30 rounded-2xl space-y-1">
+              <span className="text-fuchsia-400 font-bold block flex items-center justify-between">
+                <span>g2* ({reciprocalPlane === 'h0l' ? `${h2} 0 ${k2}` : reciprocalPlane === '0kl' ? `0 ${h2} ${k2}` : `${h2} ${k2} 0`})</span>
+                <span className="text-[10px] text-fuchsia-500/80 font-sans">SECONDARY</span>
+              </span>
+              <div className="text-slate-300">|g2*| = <span className="text-fuchsia-300 font-bold">{fmt(vec2Props.gMag, 4)} Å⁻¹</span></div>
+              <div className="text-slate-400">d2 = <span className="text-cyan-300 font-bold">{fmt(vec2Props.dSpacing, 4)} Å</span></div>
+            </div>
+
+            {/* Inter-Vector Geometry Card */}
+            <div className="p-3 bg-indigo-950/20 border border-indigo-500/30 rounded-2xl space-y-1">
+              <span className="text-indigo-400 font-bold block flex items-center justify-between">
+                <span>Vector Geometry</span>
+                <span className="text-[10px] text-indigo-400/80 font-sans">hk0 PLANE</span>
+              </span>
+              <div className="text-slate-300">Inter-Angle φ* = <span className="text-amber-300 font-bold">{fmt(interVectorAngle, 2)}°</span></div>
+              <div className="text-slate-400">Mesh Area A* = <span className="text-cyan-300 font-bold">{fmt(vectorParallelogramArea, 4)} Å⁻²</span></div>
+            </div>
           </div>
         </div>
 

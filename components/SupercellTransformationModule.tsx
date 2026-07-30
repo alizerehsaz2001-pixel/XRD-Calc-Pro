@@ -36,7 +36,14 @@ import {
   CornerDownRight,
   Maximize,
   ArrowRightLeft,
-  Plus
+  Plus,
+  ZoomIn,
+  ZoomOut,
+  Move,
+  Target,
+  Atom,
+  EyeOff,
+  CircleDot
 } from 'lucide-react';
 import { ScientificMathControl } from './ScientificMathControl';
 
@@ -208,6 +215,27 @@ export const SupercellTransformationModule: React.FC<{ pythonFeaturesEnabled?: b
   const [newAtomZ, setNewAtomZ] = useState<number>(0.5);
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Advanced Boundary Projection Interactive States
+  const [projectionPlane, setProjectionPlane] = useState<'ab' | 'bc' | 'ca'>('ab');
+  const [projZoom, setProjZoom] = useState<number>(1.0);
+  const [projPan, setProjPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanningProj, setIsPanningProj] = useState<boolean>(false);
+  const [panProjStart, setPanProjStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const [showSubGrid, setShowSubGrid] = useState<boolean>(true);
+  const [showAtomsProj, setShowAtomsProj] = useState<boolean>(true);
+  const [showShiftVector, setShowShiftVector] = useState<boolean>(true);
+  const [showVectorsProj, setShowVectorsProj] = useState<boolean>(true);
+
+  const [hoveredProjAtom, setHoveredProjAtom] = useState<{
+    elem: string;
+    label: string;
+    x: number;
+    y: number;
+    xP: number;
+    yP: number;
+  } | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -392,7 +420,55 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
 \\end{document}`;
   };
 
-  // Canvas Drawing Effect
+  // Export ab-Plane Projection PNG
+  const handleExportProjectionCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `ab-plane-boundary-projection-${Date.now()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  // Planar metrics calculations for current projection plane
+  const planarProps = useMemo(() => {
+    if (projectionPlane === 'bc') {
+      const area = b * c * Math.sin(radA);
+      const det = Math.abs(matrixP.p22 * matrixP.p33 - matrixP.p23 * matrixP.p32);
+      return {
+        name: 'bc-Plane',
+        v1Label: 'b', v2Label: 'c',
+        v1PrimeLabel: "b'", v2PrimeLabel: "c'",
+        parentArea: area,
+        det2D: det,
+        transformedArea: area * (det > 0 ? det : absDetP)
+      };
+    } else if (projectionPlane === 'ca') {
+      const area = c * a * Math.sin(radB);
+      const det = Math.abs(matrixP.p33 * matrixP.p11 - matrixP.p31 * matrixP.p13);
+      return {
+        name: 'ca-Plane',
+        v1Label: 'c', v2Label: 'a',
+        v1PrimeLabel: "c'", v2PrimeLabel: "a'",
+        parentArea: area,
+        det2D: det,
+        transformedArea: area * (det > 0 ? det : absDetP)
+      };
+    } else { // 'ab'
+      const area = a * b * Math.sin(radG);
+      const det = Math.abs(matrixP.p11 * matrixP.p22 - matrixP.p12 * matrixP.p21);
+      return {
+        name: 'ab-Plane',
+        v1Label: 'a', v2Label: 'b',
+        v1PrimeLabel: "a'", v2PrimeLabel: "b'",
+        parentArea: area,
+        det2D: det,
+        transformedArea: area * (det > 0 ? det : absDetP)
+      };
+    }
+  }, [projectionPlane, a, b, c, radA, radB, radG, matrixP, absDetP]);
+
+  // Canvas Drawing Effect with Dynamic Auto-Fit, Sub-Lattice Tiling, Atomic Projection & Shift Vector
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -403,112 +479,427 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
     const height = canvas.height;
     ctx.clearRect(0, 0, width, height);
 
+    // Dark Background
     ctx.fillStyle = '#020617'; // slate-950
     ctx.fillRect(0, 0, width, height);
 
-    // Draw subtle grid
+    // Draw background grid lines
     ctx.strokeStyle = '#0f172a';
     ctx.lineWidth = 1;
-    for (let i = 0; i < width; i += 20) {
+    for (let i = 0; i < width; i += 24) {
       ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke();
     }
-    for (let i = 0; i < height; i += 20) {
+    for (let i = 0; i < height; i += 24) {
       ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(width, i); ctx.stroke();
     }
 
-    const centerX = 80;
-    const centerY = height - 80;
-    const scale = 35;
+    // Determine basis vector parameters according to selected projection plane
+    let len1 = a, len2 = b, angleRad = radG;
+    let m11 = matrixP.p11, m12 = matrixP.p12, m21 = matrixP.p21, m22 = matrixP.p22;
+    let sX = shiftP.x, sY = shiftP.y;
+    let lbl1 = 'a', lbl2 = 'b', lbl1P = "a'", lbl2P = "b'";
+    let getSiteCoords = (site: { x: number; y: number; z: number }) => ({ x: site.x, y: site.y });
 
-    // Parent vectors projection on XY
-    const ax = a * scale;
+    if (projectionPlane === 'bc') {
+      len1 = b; len2 = c; angleRad = radA;
+      m11 = matrixP.p22; m12 = matrixP.p23; m21 = matrixP.p32; m22 = matrixP.p33;
+      sX = shiftP.y; sY = shiftP.z;
+      lbl1 = 'b'; lbl2 = 'c'; lbl1P = "b'"; lbl2P = "c'";
+      getSiteCoords = (site) => ({ x: site.y, y: site.z });
+    } else if (projectionPlane === 'ca') {
+      len1 = c; len2 = a; angleRad = radB;
+      m11 = matrixP.p33; m12 = matrixP.p31; m21 = matrixP.p13; m22 = matrixP.p11;
+      sX = shiftP.z; sY = shiftP.x;
+      lbl1 = 'c'; lbl2 = 'a'; lbl1P = "c'"; lbl2P = "a'";
+      getSiteCoords = (site) => ({ x: site.z, y: site.x });
+    }
+
+    // Parent Basis Vectors in Real Space (Cartesian 2D)
+    const ax = len1;
     const ay = 0;
-    const bx = b * scale * Math.cos(radG);
-    const by = -b * scale * Math.sin(radG);
+    const bx = len2 * Math.cos(angleRad);
+    const by = len2 * Math.sin(angleRad); // positive Y upward
 
-    // Parent cell background fill
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+    // Transformed Basis Vectors in 2D
+    const aPrimeX = m11 * ax + m12 * bx;
+    const aPrimeY = m11 * ay + m12 * by;
+    const bPrimeX = m21 * ax + m22 * bx;
+    const bPrimeY = m21 * ay + m22 * by;
+
+    // Shift Vector in 2D
+    const shiftX = sX * ax + sY * bx;
+    const shiftY = sX * ay + sY * by;
+
+    // Bounding Box Calculation for Dynamic Auto-Fit
+    const parentCorners = [
+      { x: 0, y: 0 },
+      { x: ax, y: ay },
+      { x: ax + bx, y: ay + by },
+      { x: bx, y: by }
+    ];
+
+    const supercellCorners = [
+      { x: shiftX, y: shiftY },
+      { x: shiftX + aPrimeX, y: shiftY + aPrimeY },
+      { x: shiftX + aPrimeX + bPrimeX, y: shiftY + aPrimeY + bPrimeY },
+      { x: shiftX + bPrimeX, y: shiftY + bPrimeY }
+    ];
+
+    const allCorners = [...parentCorners, ...supercellCorners];
+    const minX = Math.min(...allCorners.map((p) => p.x));
+    const maxX = Math.max(...allCorners.map((p) => p.x));
+    const minY = Math.min(...allCorners.map((p) => p.y));
+    const maxY = Math.max(...allCorners.map((p) => p.y));
+
+    const rangeX = Math.max(1, maxX - minX);
+    const rangeY = Math.max(1, maxY - minY);
+
+    const pad = 40;
+    const baseScale = Math.min((width - pad * 2) / rangeX, (height - pad * 2) / rangeY);
+    const scale = baseScale * projZoom;
+
+    // Center Origin on Canvas
+    const midX = (minX + maxX) / 2;
+    const midY = (minY + maxY) / 2;
+    const centerX = width / 2 - midX * scale + projPan.x;
+    const centerY = height / 2 + midY * scale + projPan.y;
+
+    // Helper: Map Real World 2D Point (x, y) to Screen Canvas (px, py)
+    const toCanvas = (x: number, y: number) => ({
+      x: centerX + x * scale,
+      y: centerY - y * scale
+    });
+
+    // 1. Draw Parent Sub-Lattice Tiling Grid
+    if (showSubGrid) {
+      const minI = Math.floor(minX / Math.max(1, ax)) - 1;
+      const maxI = Math.ceil(maxX / Math.max(1, ax)) + 1;
+      const minJ = Math.floor(minY / Math.max(1, by)) - 1;
+      const maxJ = Math.ceil(maxY / Math.max(1, by)) + 1;
+
+      const boundedIStart = Math.max(-10, minI);
+      const boundedIEnd = Math.min(10, maxI);
+      const boundedJStart = Math.max(-10, minJ);
+      const boundedJEnd = Math.min(10, maxJ);
+
+      ctx.save();
+      ctx.strokeStyle = '#1e293b';
+      ctx.setLineDash([2, 3]);
+      ctx.lineWidth = 1;
+
+      for (let i = boundedIStart; i <= boundedIEnd; i++) {
+        for (let j = boundedJStart; j <= boundedJEnd; j++) {
+          const originSub = { x: i * ax + j * bx, y: i * ay + j * by };
+          const p0 = toCanvas(originSub.x, originSub.y);
+          const p1 = toCanvas(originSub.x + ax, originSub.y + ay);
+          const p2 = toCanvas(originSub.x + ax + bx, originSub.y + ay + by);
+          const p3 = toCanvas(originSub.x + bx, originSub.y + by);
+
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.lineTo(p3.x, p3.y);
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    // 2. Transformed Supercell Background & Boundary
+    const sc0 = toCanvas(shiftX, shiftY);
+    const sc1 = toCanvas(shiftX + aPrimeX, shiftY + aPrimeY);
+    const sc2 = toCanvas(shiftX + aPrimeX + bPrimeX, shiftY + aPrimeY + bPrimeY);
+    const sc3 = toCanvas(shiftX + bPrimeX, shiftY + bPrimeY);
+
+    ctx.fillStyle = 'rgba(34, 211, 238, 0.12)';
     ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX + ax, centerY + ay);
-    ctx.lineTo(centerX + ax + bx, centerY + ay + by);
-    ctx.lineTo(centerX + bx, centerY + by);
+    ctx.moveTo(sc0.x, sc0.y);
+    ctx.lineTo(sc1.x, sc1.y);
+    ctx.lineTo(sc2.x, sc2.y);
+    ctx.lineTo(sc3.x, sc3.y);
     ctx.closePath();
     ctx.fill();
 
-    // Parent cell boundary
-    ctx.strokeStyle = '#3b82f6'; // blue-500
+    ctx.setLineDash([]);
+    ctx.strokeStyle = '#22d3ee';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // 3. Parent Unit Cell Background & Boundary
+    const pc0 = toCanvas(0, 0);
+    const pc1 = toCanvas(ax, ay);
+    const pc2 = toCanvas(ax + bx, ay + by);
+    const pc3 = toCanvas(bx, by);
+
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.12)';
+    ctx.beginPath();
+    ctx.moveTo(pc0.x, pc0.y);
+    ctx.lineTo(pc1.x, pc1.y);
+    ctx.lineTo(pc2.x, pc2.y);
+    ctx.lineTo(pc3.x, pc3.y);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX + ax, centerY + ay);
-    ctx.lineTo(centerX + ax + bx, centerY + ay + by);
-    ctx.lineTo(centerX + bx, centerY + by);
-    ctx.closePath();
     ctx.stroke();
-
-    // Transformed vectors a' and b'
-    const aPrimeX = matrixP.p11 * ax + matrixP.p12 * bx;
-    const aPrimeY = matrixP.p11 * ay + matrixP.p12 * by;
-    const bPrimeX = matrixP.p21 * ax + matrixP.p22 * bx;
-    const bPrimeY = matrixP.p21 * ay + matrixP.p22 * by;
-
-    // Transformed supercell background fill
-    ctx.fillStyle = 'rgba(34, 211, 238, 0.1)';
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX + aPrimeX, centerY + aPrimeY);
-    ctx.lineTo(centerX + aPrimeX + bPrimeX, centerY + aPrimeY + bPrimeY);
-    ctx.lineTo(centerX + bPrimeX, centerY + bPrimeY);
-    ctx.closePath();
-    ctx.fill();
-
-    // Transformed supercell boundary (Solid Cyan)
     ctx.setLineDash([]);
-    ctx.strokeStyle = '#22d3ee'; // cyan-400
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(centerX + aPrimeX, centerY + aPrimeY);
-    ctx.lineTo(centerX + aPrimeX + bPrimeX, centerY + aPrimeY + bPrimeY);
-    ctx.lineTo(centerX + bPrimeX, centerY + bPrimeY);
-    ctx.closePath();
-    ctx.stroke();
 
-    // Origin point
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Vector arrows
-    const drawArrow = (fromX: number, fromY: number, toX: number, toY: number, color: string, label: string) => {
-      const headlen = 10;
-      const dx = toX - fromX;
-      const dy = toY - fromY;
-      const angle = Math.atan2(dy, dx);
-      ctx.strokeStyle = color;
+    // 4. Origin Shift Vector [p]
+    if (showShiftVector && (sX !== 0 || sY !== 0)) {
+      ctx.save();
+      ctx.strokeStyle = '#f59e0b';
       ctx.lineWidth = 2;
+      ctx.setLineDash([3, 3]);
+
       ctx.beginPath();
-      ctx.moveTo(fromX, fromY);
-      ctx.lineTo(toX, toY);
-      ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
-      ctx.moveTo(toX, toY);
-      ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+      ctx.moveTo(pc0.x, pc0.y);
+      ctx.lineTo(sc0.x, sc0.y);
       ctx.stroke();
-      
-      ctx.fillStyle = color;
-      ctx.font = 'bold 14px monospace';
-      ctx.fillText(label, toX + 8, toY + 8);
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText(`p(${sX}, ${sY})`, (pc0.x + sc0.x) / 2 + 6, (pc0.y + sc0.y) / 2 - 6);
+      ctx.restore();
+    }
+
+    // 5. Draw Basis Vector Arrows
+    const drawArrow = (
+      fromX: number, fromY: number, toX: number, toY: number,
+      strokeColor: string, label: string, isThick: boolean = false
+    ) => {
+      const pFrom = toCanvas(fromX, fromY);
+      const pTo = toCanvas(toX, toY);
+
+      const dx = pTo.x - pFrom.x;
+      const dy = pTo.y - pFrom.y;
+      const angle = Math.atan2(dy, dx);
+      const headlen = 10;
+
+      ctx.save();
+      ctx.strokeStyle = strokeColor;
+      ctx.lineWidth = isThick ? 3 : 2;
+      ctx.beginPath();
+      ctx.moveTo(pFrom.x, pFrom.y);
+      ctx.lineTo(pTo.x, pTo.y);
+      ctx.stroke();
+
+      ctx.fillStyle = strokeColor;
+      ctx.beginPath();
+      ctx.moveTo(pTo.x, pTo.y);
+      ctx.lineTo(pTo.x - headlen * Math.cos(angle - Math.PI / 6), pTo.y - headlen * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(pTo.x - headlen * Math.cos(angle + Math.PI / 6), pTo.y - headlen * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+
+      if (showVectorsProj) {
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText(label, pTo.x + 8, pTo.y - 4);
+      }
+      ctx.restore();
     };
 
-    drawArrow(centerX, centerY, centerX + ax, centerY + ay, '#3b82f6', 'a');
-    drawArrow(centerX, centerY, centerX + bx, centerY + by, '#3b82f6', 'b');
-    drawArrow(centerX, centerY, centerX + aPrimeX, centerY + aPrimeY, '#22d3ee', "a'");
-    drawArrow(centerX, centerY, centerX + bPrimeX, centerY + bPrimeY, '#22d3ee', "b'");
+    // Parent Vectors
+    drawArrow(0, 0, ax, ay, '#3b82f6', lbl1);
+    drawArrow(0, 0, bx, by, '#3b82f6', lbl2);
 
-  }, [a, b, c, radG, matrixP]);
+    // Transformed Vectors
+    drawArrow(shiftX, shiftY, shiftX + aPrimeX, shiftY + aPrimeY, '#22d3ee', lbl1P, true);
+    drawArrow(shiftX, shiftY, shiftX + bPrimeX, shiftY + bPrimeY, '#22d3ee', lbl2P, true);
+
+    // 6. Atomic Sites Projection Overlays
+    if (showAtomsProj && atomSites.length > 0) {
+      const getElemColor = (elem: string) => {
+        const e = elem.trim().toUpperCase();
+        if (e.startsWith('SI')) return '#10b981';
+        if (e.startsWith('O')) return '#f43f5e';
+        if (e.startsWith('FE')) return '#f59e0b';
+        if (e.startsWith('CU')) return '#d946ef';
+        if (e.startsWith('AL')) return '#06b6d4';
+        return '#a855f7';
+      };
+
+      const rangeI = Math.ceil(Math.abs(m11) + Math.abs(m12)) + 1;
+      const rangeJ = Math.ceil(Math.abs(m21) + Math.abs(m22)) + 1;
+
+      for (let i = -1; i <= rangeI; i++) {
+        for (let j = -1; j <= rangeJ; j++) {
+          atomSites.forEach((site) => {
+            const sc = getSiteCoords(site);
+            const realX = (i + sc.x) * ax + (j + sc.y) * bx;
+            const realY = (i + sc.x) * ay + (j + sc.y) * by;
+            const pCanvas = toCanvas(realX, realY);
+
+            if (pCanvas.x < -10 || pCanvas.x > width + 10 || pCanvas.y < -10 || pCanvas.y > height + 10) return;
+
+            const elemColor = getElemColor(site.element);
+            const isMainCell = (i === 0 && j === 0);
+
+            ctx.save();
+            ctx.fillStyle = elemColor;
+            ctx.beginPath();
+            ctx.arc(pCanvas.x, pCanvas.y, isMainCell ? 5.5 : 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (isMainCell) {
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 1.2;
+              ctx.stroke();
+
+              ctx.fillStyle = '#e2e8f0';
+              ctx.font = 'bold 10px monospace';
+              ctx.fillText(`${site.element}`, pCanvas.x + 7, pCanvas.y + 3);
+            }
+            ctx.restore();
+          });
+        }
+      }
+    }
+
+    // 7. Origins Points Markers
+    ctx.fillStyle = '#3b82f6';
+    ctx.beginPath();
+    ctx.arc(pc0.x, pc0.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#22d3ee';
+    ctx.beginPath();
+    ctx.arc(sc0.x, sc0.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+  }, [
+    projectionPlane, a, b, c, radA, radB, radG, matrixP, shiftP, atomSites,
+    projZoom, projPan, showSubGrid, showAtomsProj, showShiftVector, showVectorsProj
+  ]);
+
+  // Canvas Mouse Interactions (Hover and Pan)
+  const handleProjMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+    if (isPanningProj) {
+      setProjPan({
+        x: mouseX - panProjStart.x,
+        y: mouseY - panProjStart.y
+      });
+      return;
+    }
+
+    // Atom Hover Inspection
+    if (!showAtomsProj || atomSites.length === 0) {
+      setHoveredProjAtom(null);
+      return;
+    }
+
+    const width = canvas.width;
+    const height = canvas.height;
+
+    let len1 = a, len2 = b, angleRad = radG;
+    let m11 = matrixP.p11, m12 = matrixP.p12, m21 = matrixP.p21, m22 = matrixP.p22;
+    let sX = shiftP.x, sY = shiftP.y;
+    let getSiteCoords = (site: { x: number; y: number; z: number }) => ({ x: site.x, y: site.y });
+
+    if (projectionPlane === 'bc') {
+      len1 = b; len2 = c; angleRad = radA;
+      m11 = matrixP.p22; m12 = matrixP.p23; m21 = matrixP.p32; m22 = matrixP.p33;
+      sX = shiftP.y; sY = shiftP.z;
+      getSiteCoords = (site) => ({ x: site.y, y: site.z });
+    } else if (projectionPlane === 'ca') {
+      len1 = c; len2 = a; angleRad = radB;
+      m11 = matrixP.p33; m12 = matrixP.p31; m21 = matrixP.p13; m22 = matrixP.p11;
+      sX = shiftP.z; sY = shiftP.x;
+      getSiteCoords = (site) => ({ x: site.z, y: site.x });
+    }
+
+    const ax = len1;
+    const ay = 0;
+    const bx = len2 * Math.cos(angleRad);
+    const by = len2 * Math.sin(angleRad);
+
+    const shiftX = sX * ax + sY * bx;
+    const shiftY = sX * ay + sY * by;
+
+    const aPrimeX = m11 * ax + m12 * bx;
+    const aPrimeY = m11 * ay + m12 * by;
+    const bPrimeX = m21 * ax + m22 * bx;
+    const bPrimeY = m21 * ay + m22 * by;
+
+    const parentCorners = [
+      { x: 0, y: 0 }, { x: ax, y: ay },
+      { x: ax + bx, y: ay + by }, { x: bx, y: by }
+    ];
+    const supercellCorners = [
+      { x: shiftX, y: shiftY }, { x: shiftX + aPrimeX, y: shiftY + aPrimeY },
+      { x: shiftX + aPrimeX + bPrimeX, y: shiftY + aPrimeY + bPrimeY }, { x: shiftX + bPrimeX, y: shiftY + bPrimeY }
+    ];
+    const allCorners = [...parentCorners, ...supercellCorners];
+    const minX = Math.min(...allCorners.map((p) => p.x));
+    const maxX = Math.max(...allCorners.map((p) => p.x));
+    const minY = Math.min(...allCorners.map((p) => p.y));
+    const maxY = Math.max(...allCorners.map((p) => p.y));
+
+    const pad = 40;
+    const baseScale = Math.min((width - pad * 2) / Math.max(1, maxX - minX), (height - pad * 2) / Math.max(1, maxY - minY));
+    const scale = baseScale * projZoom;
+
+    const midX = (minX + maxX) / 2;
+    const midY = (minY + maxY) / 2;
+    const centerX = width / 2 - midX * scale + projPan.x;
+    const centerY = height / 2 + midY * scale + projPan.y;
+
+    let closest: { elem: string; label: string; x: number; y: number; xP: number; yP: number } | null = null;
+    let minDist = 18;
+
+    atomSites.forEach((site) => {
+      const sc = getSiteCoords(site);
+      const realX = sc.x * ax + sc.y * bx;
+      const realY = sc.x * ay + sc.y * by;
+      const px = centerX + realX * scale;
+      const py = centerY - realY * scale;
+
+      const dist = Math.sqrt((mouseX - px) ** 2 + (mouseY - py) ** 2);
+      if (dist < minDist) {
+        minDist = dist;
+        const xP = inverseP ? inverseP.p11 * (site.x - shiftP.x) + inverseP.p12 * (site.y - shiftP.y) : 0;
+        const yP = inverseP ? inverseP.p21 * (site.x - shiftP.x) + inverseP.p22 * (site.y - shiftP.y) : 0;
+        closest = {
+          elem: site.element,
+          label: site.label,
+          x: sc.x,
+          y: sc.y,
+          xP,
+          yP
+        };
+      }
+    });
+
+    setHoveredProjAtom(closest);
+  };
+
+  const handleProjMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+    if (e.button === 1 || e.shiftKey) {
+      setIsPanningProj(true);
+      setPanProjStart({ x: mouseX - projPan.x, y: mouseY - projPan.y });
+    }
+  };
+
+  const handleProjMouseUp = () => {
+    setIsPanningProj(false);
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 font-sans">
@@ -851,25 +1242,177 @@ Parent $(hkl) = (${h}, ${k}, ${l}) \\longrightarrow (${transformedMiller.hPrime}
           </div>
         </div>
 
-        {/* 2D Projection Boundary Canvas */}
-        <div className="bg-slate-950 rounded-3xl p-6 border border-slate-800/80 shadow-xl space-y-3 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <span className="text-xs font-bold text-white">ab-Plane Boundary Projection</span>
-            <span className="text-[10px] font-mono text-cyan-400">Supercell Boundary</span>
+        {/* Enhanced Interactive 2D Projection Boundary Canvas & Controls */}
+        <div className="bg-slate-950 rounded-3xl p-6 border border-slate-800/80 shadow-xl space-y-4 flex flex-col justify-between">
+          
+          {/* Header */}
+          <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                <Box className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                  {planarProps.name} Boundary Projection
+                  <span className="text-[9px] px-1.5 py-0.2 bg-cyan-950 text-cyan-300 font-mono rounded border border-cyan-800/50">
+                    2D Real Space
+                  </span>
+                </h4>
+              </div>
+            </div>
+
+            {/* Projection Plane Selection Switcher */}
+            <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-[11px]">
+              {(['ab', 'bc', 'ca'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setProjectionPlane(p)}
+                  className={`px-2.5 py-1 rounded-lg font-mono font-bold transition-all ${
+                    projectionPlane === p
+                      ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  {p}-plane
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleExportProjectionCanvas}
+              className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 text-[11px] font-semibold flex items-center gap-1 transition-all shadow-sm"
+              title="Export high-resolution PNG image"
+            >
+              <Download className="w-3 h-3 text-cyan-400" />
+              PNG
+            </button>
           </div>
 
-          <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center p-2">
+          {/* Controls Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 text-[11px]">
+            {/* Toggles */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                onClick={() => setShowSubGrid(!showSubGrid)}
+                className={`px-2 py-0.5 rounded font-semibold transition-all ${
+                  showSubGrid
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                    : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+                title="Toggle Parent Sub-Lattice Tiling Grid"
+              >
+                Sub-Grid
+              </button>
+
+              <button
+                onClick={() => setShowAtomsProj(!showAtomsProj)}
+                className={`px-2 py-0.5 rounded font-semibold flex items-center gap-1 transition-all ${
+                  showAtomsProj
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+                title="Toggle Atomic Coordinates Projection Overlays"
+              >
+                <Atom className="w-3 h-3" />
+                Atoms
+              </button>
+
+              {(shiftP.x !== 0 || shiftP.y !== 0) && (
+                <button
+                  onClick={() => setShowShiftVector(!showShiftVector)}
+                  className={`px-2 py-0.5 rounded font-semibold transition-all ${
+                    showShiftVector
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Toggle Origin Shift Vector [p]"
+                >
+                  Shift p
+                </button>
+              )}
+            </div>
+
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+              <button
+                onClick={() => setProjZoom((z) => Math.min(2.5, z + 0.2))}
+                className="p-1 text-slate-400 hover:text-cyan-300 rounded hover:bg-slate-800 transition-all"
+                title="Zoom In"
+              >
+                <ZoomIn className="w-3 h-3" />
+              </button>
+              <span className="text-[10px] font-mono text-slate-400 px-1 font-bold">
+                {Math.round(projZoom * 100)}%
+              </span>
+              <button
+                onClick={() => setProjZoom((z) => Math.max(0.5, z - 0.2))}
+                className="p-1 text-slate-400 hover:text-cyan-300 rounded hover:bg-slate-800 transition-all"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => { setProjZoom(1.0); setProjPan({ x: 0, y: 0 }); }}
+                className="p-1 text-slate-400 hover:text-rose-400 rounded hover:bg-slate-800 transition-all"
+                title="Reset View"
+              >
+                <RotateCcw className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Canvas Viewport */}
+          <div className="relative rounded-2xl overflow-hidden border border-slate-800/90 bg-slate-950 shadow-inner group">
             <canvas
               ref={canvasRef}
-              width={280}
-              height={220}
-              className="w-full h-auto max-h-[220px] object-contain"
+              width={520}
+              height={280}
+              onMouseMove={handleProjMouseMove}
+              onMouseDown={handleProjMouseDown}
+              onMouseUp={handleProjMouseUp}
+              onMouseLeave={() => { setHoveredProjAtom(null); setIsPanningProj(false); }}
+              className="w-full h-auto max-h-[280px] object-contain cursor-crosshair"
             />
+
+            {/* Hovered Atom Tooltip */}
+            {hoveredProjAtom && (
+              <div className="absolute top-2 right-2 bg-slate-900/95 backdrop-blur-md p-2.5 rounded-xl border border-emerald-500/40 shadow-xl text-[11px] font-mono space-y-1">
+                <div className="text-emerald-400 font-bold flex items-center gap-1">
+                  <Atom className="w-3.5 h-3.5" />
+                  <span>{hoveredProjAtom.elem} ({hoveredProjAtom.label})</span>
+                </div>
+                <div className="text-slate-300 text-[10px]">
+                  Parent (x, y): <span className="text-white font-bold">({fmt(hoveredProjAtom.x, 3)}, {fmt(hoveredProjAtom.y, 3)})</span>
+                </div>
+                <div className="text-slate-400 text-[10px]">
+                  Mapped (x', y'): <span className="text-cyan-300 font-bold">({fmt(hoveredProjAtom.xP, 3)}, {fmt(hoveredProjAtom.yP, 3)})</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="text-[10px] font-mono text-slate-400 text-center flex justify-around">
-            <span className="text-blue-400">-- Parent Cell</span>
-            <span className="text-cyan-300">━ Transformed Cell</span>
+          {/* Legend */}
+          <div className="text-[10px] font-mono text-slate-400 flex flex-wrap justify-around gap-2 pt-1">
+            <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-blue-500 rounded border-b border-dashed" /> Parent Cell</span>
+            <span className="flex items-center gap-1.5"><span className="w-3 h-1 bg-cyan-400 rounded" /> Supercell</span>
+            {showAtomsProj && (
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Sites</span>
+            )}
+            {showShiftVector && (shiftP.x !== 0 || shiftP.y !== 0) && (
+              <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-amber-400 rounded border-b border-dashed" /> Shift [p]</span>
+            )}
+          </div>
+
+          {/* Real-time Planar Metrics Summary */}
+          <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-1">
+            <div className="p-2 bg-slate-900/50 rounded-xl border border-slate-800 space-y-0.5">
+              <span className="text-slate-400 text-[10px] block">Parent Area A<sub>{projectionPlane}</sub></span>
+              <span className="text-slate-200 font-bold">{fmt(planarProps.parentArea, 3)} Å²</span>
+            </div>
+            <div className="p-2 bg-cyan-950/20 rounded-xl border border-cyan-500/30 space-y-0.5">
+              <span className="text-cyan-400 text-[10px] block">Supercell Area A'<sub>{projectionPlane}</sub></span>
+              <span className="text-cyan-300 font-bold">{fmt(planarProps.transformedArea, 3)} Å² ({fmt(planarProps.transformedArea / Math.max(1e-6, planarProps.parentArea), 2)}×)</span>
+            </div>
           </div>
         </div>
 
