@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -10,7 +9,6 @@ import {
   Layers, 
   Settings2, 
   Info,
-  ChevronRight,
   Maximize2,
   RefreshCw,
   Box,
@@ -21,15 +19,23 @@ import {
   Sun,
   Grid,
   SlidersHorizontal,
-  Eye,
   Compass,
-  HelpCircle,
   Check,
-  BookOpen,
   Cpu,
   Code,
   Terminal,
-  Play
+  Play,
+  Copy,
+  CheckCircle2,
+  Ruler,
+  Crosshair,
+  Atom,
+  Activity,
+  FileJson,
+  Star,
+  Share2,
+  BookOpen,
+  Zap
 } from 'lucide-react';
 import { 
   generateScientificImage, 
@@ -47,60 +53,122 @@ interface GenerationRecord {
   url: string;
   timestamp: number;
   style: string;
+  aspectRatio?: string;
+  isPinned?: boolean;
 }
 
 const SCIENTIFIC_STYLES = [
-  { id: '3d_schematic', label: '3D Schematic', icon: Box, description: 'Clean 3D models with professional lighting' },
-  { id: 'sem', label: 'SEM Micrograph', icon: Microscope, description: 'Scanning Electron Microscope style (textured b/w)' },
-  { id: 'crystal', label: 'Crystal Lattice', icon: Layers, description: 'Highly accurate atomic arrangements' },
-  { id: 'watercolor', label: 'Technical Watercolor', icon: Palette, description: 'Artistic but descriptive textbook style' },
-  { id: 'diagram', label: 'Minimalist Diagram', icon: Layout, description: 'Flat design, high-contrast structural data' },
-  { id: 'diffraction', label: 'Simulated Pattern', icon: RefreshCw, description: 'Visual representation of diffraction peaks' },
-  { id: 'molecular', label: 'Molecular Orbitals', icon: Sparkles, description: 'Probability clouds and bonding orientations' },
+  { id: '3d_schematic', label: '3D Schematic', icon: Box, description: 'Clean 3D models with professional studio lighting' },
+  { id: 'sem', label: 'SEM Micrograph', icon: Microscope, description: 'Scanning Electron Microscope style with realistic micro-texturing' },
+  { id: 'crystal', label: 'Crystal Lattice', icon: Atom, description: 'Highly accurate atomic ball-and-stick & polyhedra models' },
+  { id: 'journal_cover', label: 'Journal Cover', icon: Sparkles, description: 'Nature/Science aesthetic with rich depth & glowing accents' },
+  { id: 'watercolor', label: 'Technical Watercolor', icon: Palette, description: 'Artistic textbook illustration with soft watercolor washes' },
+  { id: 'diagram', label: 'Minimalist Vector', icon: Layout, description: 'High-contrast, flat publication diagram with clean typography' },
+  { id: 'diffraction', label: 'Simulated Pattern', icon: RefreshCw, description: 'Visual representation of SAED rings & Laue spots' },
+  { id: 'molecular', label: 'Molecular Orbitals', icon: Activity, description: 'HOMO-LUMO probability clouds and bonding orientations' },
+  { id: 'wireframe', label: 'Cyber Wireframe', icon: Grid, description: 'High-tech blueprint with glowing structural vector paths' },
 ];
 
 const LIGHTING_OPTIONS = [
-  { id: 'Daylight Studio Accent', label: 'Daylight Accent' },
-  { id: 'Ring Light Shadowless illumination', label: 'Shadowless Ring' },
-  { id: 'Darkfield High contrast back-glow', label: 'Darkfield Gloss' },
-  { id: 'Volumetric Transmission Light rays', label: 'Translucent Ray' },
-  { id: 'X-Ray Spectral fluorescence glow', label: 'X-Ray Spectral' },
+  { id: 'Daylight Studio Accent', label: 'Daylight Studio Accent' },
+  { id: 'Ring Light Shadowless illumination', label: 'Shadowless Ring Light' },
+  { id: 'Darkfield High contrast back-glow', label: 'Darkfield Back-Glow' },
+  { id: 'Volumetric Transmission Light rays', label: 'Volumetric Ray Transmission' },
+  { id: 'X-Ray Spectral fluorescence glow', label: 'X-Ray Fluorescence Glow' },
 ];
 
 const PERSPECTIVE_OPTIONS = [
-  { id: '3-Quarter Isometric Perspective angle', label: '3D Isometric' },
-  { id: 'Orthographic Top-Down crystal plane face', label: 'Orthographic Flat' },
-  { id: 'Cross-section split structural layer diagram', label: 'Cross-Section' },
-  { id: 'Extreme macro zoom scientific magnifying lens', label: 'Atomic Macro' },
-  { id: 'High angle schematic wide-view core view', label: 'Wide Schematic' },
+  { id: '3-Quarter Isometric Perspective angle', label: '3D Isometric (3/4 View)' },
+  { id: 'Orthographic Top-Down crystal plane face', label: 'Orthographic Top-Down (001)' },
+  { id: 'Cross-section split structural layer diagram', label: 'Cross-Section Layer Split' },
+  { id: 'Extreme macro zoom scientific magnifying lens', label: 'Atomic Resolution Macro' },
+  { id: 'High angle schematic wide-view core view', label: 'Wide Structural Overview' },
 ];
 
 const COLOR_SCHEME_OPTIONS = [
-  { id: 'Teal-Indigo academic journal style', label: 'Teal & Indigo' },
-  { id: 'Monochrome high-resolution electron micrograph textured', label: 'SEM Monochrome' },
-  { id: 'Thermal spectral heat mapping potential energy scale', label: 'Thermal Gradient' },
-  { id: 'Classic textbook color palette clean off-white canvas', label: 'Classic Textbook' },
-  { id: 'Neon cybernetic blueprint tech matrix highlight', label: 'Cyber Blueprints' },
+  { id: 'Teal-Indigo academic journal style', label: 'Teal & Indigo Academic' },
+  { id: 'Monochrome high-resolution electron micrograph textured', label: 'SEM Grayscale Monochrome' },
+  { id: 'Thermal spectral heat mapping potential energy scale', label: 'Thermal Potential Energy Scale' },
+  { id: 'Classic textbook color palette clean off-white canvas', label: 'Classic Textbook Canvas' },
+  { id: 'Neon cybernetic blueprint tech matrix highlight', label: 'Cyber Matrix Blueprint' },
+];
+
+const ASPECT_RATIO_OPTIONS: { id: '1:1' | '16:9' | '4:3' | '3:4'; label: string; desc: string }[] = [
+  { id: '1:1', label: '1:1 Square', desc: 'Paper Figure Panel' },
+  { id: '16:9', label: '16:9 Landscape', desc: 'Slide Presentation / Hero' },
+  { id: '4:3', label: '4:3 Standard', desc: 'Journal Article Card' },
+  { id: '3:4', label: '3:4 Portrait', desc: 'Poster / Cover Page' },
+];
+
+const MATERIAL_PRESETS = [
+  { 
+    name: "SrTiO3 (Perovskite)", 
+    formula: "SrTiO3", 
+    prompt: "A realistic 3D representation of the cubic SrTiO3 perovskite crystal unit cell, showcasing titanium atoms inside corner-sharing TiO6 octahedra with strontium cations situated at the corners, professional academic studio lighting.",
+    style: "crystal"
+  },
+  { 
+    name: "CsPbI3 (Lead Halide)", 
+    formula: "CsPbI3", 
+    prompt: "Atomic 3D structural model of inorganic perovskite CsPbI3 showing octahedral tilting of PbI6 corner-sharing cages surrounding central Cs cations, high resolution scientific illustration.",
+    style: "crystal"
+  },
+  { 
+    name: "MoS2 (TMD Monolayer)", 
+    formula: "MoS2", 
+    prompt: "Atomically thin 2D monolayer of molybdenum disulfide MoS2 with a trigonal prismatic coordination geometry, sulfur atoms sandwiched around central molybdenum atoms with van der Waals gap highlighted.",
+    style: "3d_schematic"
+  },
+  { 
+    name: "Graphene Honeycomb", 
+    formula: "C (sp2)", 
+    prompt: "Single-atom-thick hexagonal honeycomb lattice of graphene showing delocalized pi electron density clouds above and below the carbon ring plane, high-tech cybernetic visualization.",
+    style: "molecular"
+  },
+  { 
+    name: "YBCO Superconductor", 
+    formula: "YBa2Cu3O7", 
+    prompt: "Layered crystal structure of YBCO high-temperature superconductor highlighting conducting CuO2 planes, oxygen vacancy sites, and copper-oxygen chains, labeled crystallographic axes.",
+    style: "journal_cover"
+  },
+  { 
+    name: "TiO2 (Rutile)", 
+    formula: "TiO2", 
+    prompt: "Tetragonal unit cell of Rutile TiO2 featuring edge-sharing TiO6 octahedral chains extending along the c-axis with titanium cations in red and oxygen anions in blue.",
+    style: "diagram"
+  },
+  { 
+    name: "Bragg Diffraction Ray", 
+    formula: "nλ = 2d sinθ", 
+    prompt: "Incident and reflected monochromatic X-ray wave vectors reflecting off crystalline lattice planes, illustrating Bragg's Law with constructive phase interference and path length difference 2d sin(theta).",
+    style: "3d_schematic"
+  },
+  { 
+    name: "TiO2 Nanotube SEM", 
+    formula: "SEM Topography", 
+    prompt: "High-magnification Scanning Electron Micrograph (SEM) of self-assembled vertical TiO2 nanotube array with porous tubular wall microstructures, realistic grayscale electron beam contrast.",
+    style: "sem"
+  }
 ];
 
 const CATEGORIZED_CONCEPTS = {
   lattices: [
     { label: "Perovskite ABO3 unit cell showcasing corner-sharing TiO6 octahedra with clear metallic bonds", desc: "Perovskite Unit Cell" },
-    { label: "Face-Centered Cubic (FCC) copper unit cell highlighting interstitial spaces", desc: "FCC Unit Cell" },
-    { label: "Hexagonal Close-Packed (HCP) unit cell showing planar layer stacking", desc: "HCP Stacking" },
-    { label: "Misfit grain boundary dislocation loop crystal plane misalignment schematic", desc: "Grain Boundary" },
+    { label: "Face-Centered Cubic (FCC) copper unit cell highlighting interstitial octahedral spaces", desc: "FCC Unit Cell" },
+    { label: "Hexagonal Close-Packed (HCP) unit cell showing planar layer stacking ABAB sequence", desc: "HCP Stacking" },
+    { label: "Misfit grain boundary dislocation loop crystal plane misalignment schematic with burger vector", desc: "Grain Boundary Dislocation" },
   ],
   experimental: [
-    { label: "Symmetric Bragg-Brentano XRD diffractometer configuration visual pathway", desc: "diffractometer setup" },
-    { label: "Incident x-ray beam reflecting on atomic lattice planes confirming Bragg's Law", desc: "Bragg geometry" },
-    { label: "Atomic force microscopy (AFM) cantilever scanning over molecular surface", desc: "AFM Scan Line" },
-    { label: "Transmission electron microscope (TEM) column showing focal ray pathways", desc: "TEM Ray Trace" },
+    { label: "Symmetric Bragg-Brentano XRD diffractometer configuration showing X-ray tube, sample goniometer, and detector pathway", desc: "Diffractometer Geometry" },
+    { label: "Incident x-ray beam reflecting on atomic lattice planes confirming Bragg's Law with phase constructive interference", desc: "Bragg Diffraction Geometry" },
+    { label: "Atomic force microscopy (AFM) cantilever tip scanning over molecular surface topography", desc: "AFM Scan Probe" },
+    { label: "Transmission electron microscope (TEM) optics column showing magnetic objective lens ray pathways", desc: "TEM Ray Trace Optics" },
   ],
   micrographs: [
-    { label: "HRTEM view showing high-resolution atomic columns in silicon crystal structure", desc: "Atomic HRTEM" },
-    { label: "Scanning Electron Micrograph (SEM) of vertically self-assembled TiO2 hollow nanotubes", desc: "TiO2 Nanotubes" },
-    { label: "Selected Area Electron Diffraction (SAED) concentric ring spot diffraction pattern", desc: "SAED Rings" },
-    { label: "Topographical height profiling image showcasing layered graphite micro-flakes", desc: "Graphite Flakes" },
+    { label: "HRTEM view showing high-resolution atomic columns in silicon crystal lattice plane", desc: "Atomic HRTEM Silicon" },
+    { label: "Scanning Electron Micrograph (SEM) of vertically self-assembled TiO2 hollow nanotubes", desc: "TiO2 Nanotubes SEM" },
+    { label: "Selected Area Electron Diffraction (SAED) concentric ring spot diffraction pattern with zone axis", desc: "SAED Ring Pattern" },
+    { label: "Topographical height profiling image showcasing layered graphite micro-flakes with atomic step edges", desc: "Graphite Micro-Flakes" },
   ]
 };
 
@@ -108,11 +176,11 @@ const MATPLOTLIB_PRESETS = [
   {
     id: 'xrd_diffractogram',
     label: 'XRD Scan Sim',
-    description: 'Lorentzian powder peak profile with background noise',
+    description: 'Lorentzian powder peak profile with Miller indices & background fit',
     code: `import numpy as np
 import matplotlib.pyplot as plt
 
-# Define simulated peaks (2theta, intensity, FWHM)
+# Define simulated diffraction peaks (2theta, intensity, FWHM, Miller hkl)
 peaks = [
     {"2theta": 27.4, "I": 100, "fwhm": 0.25, "hkl": "111"},
     {"2theta": 31.8, "I": 65, "fwhm": 0.28, "hkl": "200"},
@@ -131,32 +199,140 @@ for p in peaks:
     lorentz = amp * (gamma**2) / ((two_theta - x0)**2 + gamma**2)
     intensity += lorentz
 
-# Add background & thermal decay
+# Add exponential background & thermal noise
 background = 5 + 10 * np.exp(-two_theta/40)
 noise = np.random.normal(0, 1.2, len(two_theta))
 total_intensity = intensity + background + np.abs(noise)
 
-fig, ax = plt.subplots(figsize=(6.5, 5))
+fig, ax = plt.subplots(figsize=(7, 5))
 fig.patch.set_facecolor('#0f172a')
 ax.set_facecolor('#0f172a')
 
 # Plot peak scans
-ax.plot(two_theta, total_intensity, color='#38bdf8', linewidth=1.5, label='Diffraction Pattern')
+ax.plot(two_theta, total_intensity, color='#38bdf8', linewidth=1.6, label='Observed Data (Cu Kα)')
+ax.plot(two_theta, background, color='#64748b', linestyle='--', linewidth=1.0, label='Background Fit')
 
 # Annotate crystallographic Miller peaks
 for p in peaks:
     ax.annotate(f"({p['hkl']})", 
                 xy=(p["2theta"], p["I"] + 10), 
                 xytext=(p["2theta"], p["I"] + 25),
-                ha='center', fontsize=8, color='#f59e0b',
-                arrowprops=dict(arrowstyle="->", color='#f59e0b', alpha=0.6, lw=0.8))
+                ha='center', fontsize=8.5, color='#f59e0b', fontweight='bold',
+                arrowprops=dict(arrowstyle="->", color='#f59e0b', alpha=0.7, lw=1.0))
 
-ax.set_title("Simulated XRD Powder Diffratogram (Lorentzian Fit)", color='#f1f5f9', fontsize=11, fontweight='bold', pad=12)
-ax.set_xlabel("Diffraction Angle 2θ (degrees)", color='#94a3b8', fontsize=9)
-ax.set_ylabel("Intensity (Arbitrary Units)", color='#94a3b8', fontsize=9)
+ax.set_title("Simulated XRD Powder Diffractogram (Lorentzian Fit)", color='#f1f5f9', fontsize=12, fontweight='bold', pad=14)
+ax.set_xlabel("Diffraction Angle 2θ (degrees)", color='#94a3b8', fontsize=9.5)
+ax.set_ylabel("Intensity (Arbitrary Units)", color='#94a3b8', fontsize=9.5)
+ax.tick_params(colors='#94a3b8', labelsize=8.5)
+ax.grid(True, color='#1e293b', linestyle='--', alpha=0.6)
+ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8.5)
+for spine in ax.spines.values():
+    spine.set_color('#334155')
+`
+  },
+  {
+    id: '3d_unit_cell',
+    label: '3D Ball & Stick Cell',
+    description: '3D Matplotlib crystal unit cell representation with atomic radii',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+fig = plt.figure(figsize=(7, 5))
+fig.patch.set_facecolor('#0f172a')
+ax = fig.add_subplot(111, projection='3d')
+ax.set_facecolor('#0f172a')
+
+# Perovskite ABO3 cubic corner & center coordinates
+corners = np.array([
+    [0,0,0], [1,0,0], [1,1,0], [0,1,0],
+    [0,0,1], [1,0,1], [1,1,1], [0,1,1]
+])
+
+center_ti = np.array([[0.5, 0.5, 0.5]])
+
+faces_o = np.array([
+    [0.5, 0.5, 0], [0.5, 0.5, 1],
+    [0.5, 0, 0.5], [0.5, 1, 0.5],
+    [0, 0.5, 0.5], [1, 0.5, 0.5]
+])
+
+# Draw Sr cations (corners)
+ax.scatter(corners[:,0], corners[:,1], corners[:,2], color='#38bdf8', s=220, edgecolors='#ffffff', label='Sr (Corners)', depthshade=True)
+
+# Draw Ti cation (center)
+ax.scatter(center_ti[:,0], center_ti[:,1], center_ti[:,2], color='#f59e0b', s=260, edgecolors='#ffffff', label='Ti (Center)', depthshade=True)
+
+# Draw O anions (faces)
+ax.scatter(faces_o[:,0], faces_o[:,1], faces_o[:,2], color='#f43f5e', s=140, edgecolors='#ffffff', label='O (Faces)', depthshade=True)
+
+# Draw unit cell frame edges
+edges = [
+    ([0,1],[0,0],[0,0]), ([1,1],[0,1],[0,0]), ([1,0],[1,1],[0,0]), ([0,0],[1,0],[0,0]),
+    ([0,1],[0,0],[1,1]), ([1,1],[0,1],[1,1]), ([1,0],[1,1],[1,1]), ([0,0],[1,0],[1,1]),
+    ([0,0],[0,0],[0,1]), ([1,1],[0,0],[0,1]), ([1,1],[1,1],[0,1]), ([0,0],[1,1],[0,1])
+]
+for p1, p2, p3 in edges:
+    ax.plot(p1, p2, p3, color='#475569', linestyle='-', linewidth=1.2)
+
+# Draw TiO6 octahedral bonds
+for o in faces_o:
+    ax.plot([0.5, o[0]], [0.5, o[1]], [0.5, o[2]], color='#f59e0b', linestyle=':', linewidth=1.5, alpha=0.8)
+
+ax.set_title("3D Cubic Perovskite SrTiO3 Unit Cell", color='#f1f5f9', fontsize=12, fontweight='bold', pad=10)
+ax.set_xlabel("a (Å)", color='#94a3b8', fontsize=8)
+ax.set_ylabel("b (Å)", color='#94a3b8', fontsize=8)
+ax.set_zlabel("c (Å)", color='#94a3b8', fontsize=8)
+ax.tick_params(colors='#94a3b8', labelsize=7)
+ax.xaxis.pane.fill = False
+ax.yaxis.pane.fill = False
+ax.zaxis.pane.fill = False
+ax.xaxis.pane.set_edgecolor('#1e293b')
+ax.yaxis.pane.set_edgecolor('#1e293b')
+ax.zaxis.pane.set_edgecolor('#1e293b')
+ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8, loc='upper left')
+`
+  },
+  {
+    id: 'rietveld_diff',
+    label: 'Rietveld Refinement',
+    description: 'Observed vs calculated pattern with difference curve Y_obs - Y_calc',
+    code: `import numpy as np
+import matplotlib.pyplot as plt
+
+two_theta = np.linspace(20, 80, 800)
+
+# Generate observed data
+y_obs = 100 * np.exp(-((two_theta-28.5)/0.4)**2) + 70 * np.exp(-((two_theta-47.3)/0.5)**2) + 40 * np.exp(-((two_theta-56.1)/0.5)**2) + 15
+y_obs += np.random.normal(0, 1.5, len(two_theta))
+
+# Generate calculated model (slightly smoothed fit)
+y_calc = 98 * np.exp(-((two_theta-28.52)/0.41)**2) + 68 * np.exp(-((two_theta-47.28)/0.49)**2) + 39 * np.exp(-((two_theta-56.12)/0.51)**2) + 15
+
+diff = y_obs - y_calc - 20 # shifted down for visibility
+
+bragg_positions = [28.5, 47.3, 56.1, 69.1, 76.4]
+
+fig, ax = plt.subplots(figsize=(7, 5))
+fig.patch.set_facecolor('#0f172a')
+ax.set_facecolor('#0f172a')
+
+# Plot Observed, Calculated, Difference
+ax.plot(two_theta, y_obs, 'o', color='#38bdf8', markersize=2.5, alpha=0.7, label='Y_obs (Experimental)')
+ax.plot(two_theta, y_calc, color='#f43f5e', linewidth=1.5, label='Y_calc (Rietveld Fit)')
+ax.plot(two_theta, diff, color='#10b981', linewidth=1.2, label='Y_obs - Y_calc (Diff)')
+
+# Bragg peak position tick marks
+ax.vlines(bragg_positions, -25, -15, color='#f59e0b', linewidth=1.5, label='Bragg Reflections')
+
+ax.axhline(-20, color='#334155', linestyle=':', linewidth=0.8)
+
+ax.set_title("Rietveld Powder Pattern Whole Profile Fitting", color='#f1f5f9', fontsize=12, fontweight='bold', pad=12)
+ax.set_xlabel("2θ Angle (°)", color='#94a3b8', fontsize=9)
+ax.set_ylabel("Counts / Intensity", color='#94a3b8', fontsize=9)
 ax.tick_params(colors='#94a3b8', labelsize=8)
 ax.grid(True, color='#1e293b', linestyle='--', alpha=0.5)
-ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8)
+ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8, loc='upper right')
 for spine in ax.spines.values():
     spine.set_color('#334155')
 `
@@ -183,116 +359,69 @@ I_sub = 1e5 * np.exp(-dist_sub**2)
 I_layer = 4e3 * np.exp(-dist_layer**2)
 Z = np.log10(I_sub + I_layer + np.random.uniform(1, 10, QX.shape))
 
-fig, ax = plt.subplots(figsize=(6.5, 5))
+fig, ax = plt.subplots(figsize=(7, 5))
 fig.patch.set_facecolor('#0f172a')
 ax.set_facecolor('#0f172a')
 
 # Contour Plotting
-contour = ax.contourf(QX, QZ, Z, levels=14, cmap='turbo')
+contour = ax.contourf(QX, QZ, Z, levels=16, cmap='turbo')
 cbar = fig.colorbar(contour, ax=ax)
 cbar.set_label('Log Intensity (I)', color='#94a3b8', fontsize=9)
 cbar.ax.tick_params(labelsize=8, colors='#94a3b8')
 
-ax.text(sub_x + 0.002, sub_z, 'Substrate (004)', color='#ffffff', fontsize=8, fontweight='bold')
-ax.text(layer_x + 0.002, layer_z, 'Epilayer (Strained)', color='#ffffff', fontsize=8, fontweight='bold')
+ax.text(sub_x + 0.002, sub_z, 'Substrate (004)', color='#ffffff', fontsize=8.5, fontweight='bold')
+ax.text(layer_x + 0.002, layer_z, 'Epilayer (Strained)', color='#ffffff', fontsize=8.5, fontweight='bold')
 
-ax.set_title("Reciprocal Space Mapping (RSM) Contours", color='#f1f5f9', fontsize=11, fontweight='bold', pad=12)
+ax.set_title("Reciprocal Space Mapping (RSM) Contours", color='#f1f5f9', fontsize=12, fontweight='bold', pad=12)
 ax.set_xlabel("$Q_x$ (r.l.u.)", color='#94a3b8', fontsize=9)
 ax.set_ylabel("$Q_z$ (r.l.u.)", color='#94a3b8', fontsize=9)
 ax.tick_params(colors='#94a3b8', labelsize=8)
-ax.grid(True, color='#ffffff', linestyle=':', alpha=0.1)
+ax.grid(True, color='#ffffff', linestyle=':', alpha=0.15)
 for spine in ax.spines.values():
     spine.set_color('#334155')
 `
   },
   {
-    id: 'fcc_projection',
-    label: 'Lattice Projection',
-    description: 'FCC copper unit cell projection on the (001) plane',
+    id: 'phonon_dispersion',
+    label: 'Phonon Dispersion',
+    description: 'Acoustic and optical phonon dispersion branches along high-symmetry k-path',
     code: `import numpy as np
 import matplotlib.pyplot as plt
 
-a = 3.615  # Lattice constant in Angstrom
-x, y, atomic_class = [], [], []
+k_path = np.linspace(0, 3, 300)
+# High symmetry points: Gamma (0), X (1), L (2), Gamma (3)
 
-# Generate crystalline corner & face coords
-for i in range(-3, 4):
-    for j in range(-3, 4):
-        x.append(i * a)
-        y.append(j * a)
-        atomic_class.append('Corner')
-        
-        x.append((i + 0.5) * a)
-        y.append((j + 0.5) * a)
-        atomic_class.append('Face')
+# Acoustic branches (LA, TA)
+la = 12 * np.sin(np.pi * k_path / 2)
+ta = 8 * np.sin(np.pi * k_path / 2)
 
-x_arr = np.array(x)
-y_arr = np.array(y)
-class_arr = np.array(atomic_class)
+# Optical branches (LO, TO)
+lo = 25 - 3 * (k_path - 1.5)**2
+to = 22 - 2 * (k_path - 1.5)**2
 
-fig, ax = plt.subplots(figsize=(6.5, 5))
+fig, ax = plt.subplots(figsize=(7, 5))
 fig.patch.set_facecolor('#0f172a')
 ax.set_facecolor('#0f172a')
 
-mask_c = class_arr == 'Corner'
-mask_f = class_arr == 'Face'
+ax.plot(k_path, la, color='#38bdf8', linewidth=2.0, label='LA Acoustic')
+ax.plot(k_path, ta, color='#10b981', linewidth=2.0, label='TA Acoustic')
+ax.plot(k_path, lo, color='#f43f5e', linewidth=2.0, label='LO Optical')
+ax.plot(k_path, to, color='#f59e0b', linewidth=2.0, label='TO Optical')
 
-ax.scatter(x_arr[mask_c], y_arr[mask_c], color='#38bdf8', s=150, edgecolors='#ffffff', linewidths=1.2, label='Corner Cu Atoms', zorder=3)
-ax.scatter(x_arr[mask_f], y_arr[mask_f], color='#f43f5e', s=90, edgecolors='#ffffff', linewidths=1.0, label='Face-Centered Atoms', zorder=3)
+# High symmetry vertical lines
+ax.axvline(0, color='#475569', linestyle='--')
+ax.axvline(1, color='#475569', linestyle='--')
+ax.axvline(2, color='#475569', linestyle='--')
+ax.axvline(3, color='#475569', linestyle='--')
 
-# Draw bonding matrix
-for i in range(len(x_arr)):
-    for j in range(i+1, len(x_arr)):
-        dist = np.hypot(x_arr[i]-x_arr[j], y_arr[i]-y_arr[j])
-        if abs(dist - (a * np.sqrt(2)/2)) < 0.05:
-            ax.plot([x_arr[i], x_arr[j]], [y_arr[i], y_arr[j]], color='#1e293b', linestyle='-', linewidth=0.8, zorder=1)
+ax.set_xticks([0, 1, 2, 3])
+ax.set_xticklabels(['Γ', 'X', 'L', 'Γ'], color='#f1f5f9', fontsize=11, fontweight='bold')
 
-ax.set_title("FCC Copper Lattice Projection (001) Grid", color='#f1f5f9', fontsize=11, fontweight='bold', pad=12)
-ax.set_xlabel("X coordinate (Å)", color='#94a3b8', fontsize=9)
-ax.set_ylabel("Y coordinate (Å)", color='#94a3b8', fontsize=9)
-ax.set_xlim(-7.5, 7.5)
-ax.set_ylim(-7.5, 7.5)
-ax.tick_params(colors='#94a3b8', labelsize=8)
-ax.grid(True, color='#1e293b', linestyle=':', alpha=0.5)
-ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8, loc='upper right')
-for spine in ax.spines.values():
-    spine.set_color('#334155')
-`
-  },
-  {
-    id: 'wave_interference',
-    label: 'Wave Interference',
-    description: 'Wave phase addition and destructive patterns',
-    code: `import numpy as np
-import matplotlib.pyplot as plt
-
-# Simulate wave interference for X-rays reflecting off lattice planes
-theta_deg = np.linspace(5, 45, 300)
-theta_rad = np.radians(theta_deg)
-wavelength = 1.5406  # Cu K-alpha
-d_spacing = 2.82      # NaCl 200 plane d-spacing (Angstroms)
-
-# Path difference = 2 * d * sin(theta)
-path_diff = 2 * d_spacing * np.sin(theta_rad)
-# Phase contrast (delta phi)
-phase_diff = 2 * np.pi * path_diff / wavelength
-
-# Resultant intensity matching interference theory
-intensity = (np.cos(phase_diff) + 1.0) / 2.0
-
-fig, ax = plt.subplots(figsize=(6.5, 5))
-fig.patch.set_facecolor('#0f172a')
-ax.set_facecolor('#0f172a')
-
-ax.plot(theta_deg, intensity, color='#10b981', linewidth=2.0, label='Interference Ratio $I/I_0$')
-ax.plot(theta_deg, np.cos(phase_diff/5), color='#f59e0b', linestyle=':', label='Wave Phase Overlap')
-
-ax.set_title("Wave Interference & Bragg Plane Reflections", color='#f1f5f9', fontsize=11, fontweight='bold', pad=12)
-ax.set_xlabel("Angle θ (degrees)", color='#94a3b8', fontsize=9)
-ax.set_ylabel("Normalized Amplitude", color='#94a3b8', fontsize=9)
-ax.tick_params(colors='#94a3b8', labelsize=8)
+ax.set_title("Phonon Dispersion Curve & Vibrational Density of States", color='#f1f5f9', fontsize=12, fontweight='bold', pad=12)
+ax.set_ylabel("Frequency ω (THz)", color='#94a3b8', fontsize=9.5)
+ax.tick_params(colors='#94a3b8', labelsize=9)
 ax.grid(True, color='#1e293b', linestyle='--', alpha=0.5)
-ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8)
+ax.legend(facecolor='#1e293b', edgecolor='#334155', labelcolor='#e2e8f0', fontsize=8.5, loc='upper right')
 for spine in ax.spines.values():
     spine.set_color('#334155')
 `
@@ -361,14 +490,23 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState(SCIENTIFIC_STYLES[0].id);
   const [size, setSize] = useState<'1K' | '2K' | '4K'>('1K');
+  const [aspectRatio, setAspectRatio] = useState<'1:1' | '16:9' | '4:3' | '3:4'>('1:1');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [history, setHistory] = useState<GenerationRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
-  // Advanced Crystallography Vector States
+  // Advanced Canvas Overlays
+  const [canvasBg, setCanvasBg] = useState<'slate' | 'white' | 'black' | 'grid'>('slate');
+  const [showScaleBar, setShowScaleBar] = useState<boolean>(false);
+  const [showCrosshairs, setShowCrosshairs] = useState<boolean>(false);
+  const [scaleLength, setScaleLength] = useState<string>('5 Å');
+  const [fullscreenModal, setFullscreenModal] = useState<boolean>(false);
+
+  // Advanced Tuning States
   const [lighting, setLighting] = useState<string>('Daylight Studio Accent');
   const [perspective, setPerspective] = useState<string>('3-Quarter Isometric Perspective angle');
   const [colorScheme, setColorScheme] = useState<string>('Teal-Indigo academic journal style');
@@ -437,7 +575,6 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
     setLoading(true);
 
     try {
-      // 1. Check for API Key using window.aistudio
       const hasKey = await (window as any).aistudio?.hasSelectedApiKey();
       if (!hasKey) {
         try {
@@ -449,9 +586,8 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
         }
       }
 
-      // 2. Generate Image
       const styleLabel = SCIENTIFIC_STYLES.find(s => s.id === selectedStyle)?.label;
-      const result = await generateScientificImage(prompt, size, styleLabel);
+      const result = await generateScientificImage(prompt, size, styleLabel, aspectRatio);
       
       if (result) {
         setImageUrl(result);
@@ -460,9 +596,10 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
           prompt: prompt,
           url: result,
           timestamp: Date.now(),
-          style: selectedStyle
+          style: selectedStyle,
+          aspectRatio: aspectRatio
         };
-        setHistory([newRecord, ...history].slice(0, 20)); // Keep last 20
+        setHistory([newRecord, ...history].slice(0, 20));
       } else {
         setError("Generation completed but no image was returned. Try a different prompt.");
       }
@@ -507,7 +644,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
     try {
       const generated = await generateMatplotlibCode(prompt, selectedPreset);
       setPythonCode(generated);
-      setPythonLog("# AI generated script successfully loaded.");
+      setPythonLog("# AI generated script successfully loaded into Python environment.");
     } catch (e: any) {
       setPythonError("Failed to generate AI Matplotlib code. " + (e.message || ""));
     } finally {
@@ -539,9 +676,10 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
           prompt: `Python Matplotlib: ${MATPLOTLIB_PRESETS.find(p => p.id === selectedPreset)?.label || 'Custom'}`,
           url: resData.image,
           timestamp: Date.now(),
-          style: 'matplotlib_plot'
+          style: 'matplotlib_plot',
+          aspectRatio: '4:3'
         };
-        setHistory([newRecord, ...history].slice(0, 20)); // Keep last 20
+        setHistory([newRecord, ...history].slice(0, 20));
       } else {
         const errMsg = resData.error || "Matplotlib run completed without generating a plot.";
         setPythonError(errMsg);
@@ -568,41 +706,101 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
     document.body.removeChild(link);
   };
 
+  const handleCopyPrompt = () => {
+    if (!prompt) return;
+    navigator.clipboard.writeText(prompt);
+    setCopiedPrompt(true);
+    setTimeout(() => setCopiedPrompt(false), 2000);
+  };
+
+  const handleCopyCode = () => {
+    if (!pythonCode) return;
+    navigator.clipboard.writeText(pythonCode);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const handleExportMetadata = () => {
+    const metadata = {
+      app: "Bragg-Engine Scientific Illustrator",
+      engine: illustratorMode === 'neural' ? 'Nano Banana 2 (gemini-3.1-flash-image)' : 'Python Matplotlib',
+      prompt: prompt,
+      style: selectedStyle,
+      aspectRatio: aspectRatio,
+      resolution: size,
+      timestamp: new Date().toISOString(),
+      script: illustratorMode === 'matplotlib' ? pythonCode : undefined
+    };
+    const blob = new Blob([JSON.stringify(metadata, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `figure-metadata-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const togglePinHistory = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHistory(prev => prev.map(item => item.id === id ? { ...item, isPinned: !item.isPinned } : item));
+  };
+
   const clearHistory = () => {
     if (confirm("Clear all generation history?")) {
       setHistory([]);
     }
   };
 
+  const applyMaterialPreset = (preset: typeof MATERIAL_PRESETS[0]) => {
+    setPrompt(preset.prompt);
+    setSelectedStyle(preset.style);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Mode Switcher Tabs */}
-      {pythonFeaturesEnabled && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-850 p-1.5 rounded-2xl flex max-w-lg shadow-sm">
-          <button
-            onClick={() => { setIllustratorMode('neural'); setError(null); }}
-            className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-              illustratorMode === 'neural'
-                ? 'bg-fuchsia-500 text-white shadow-md shadow-fuchsia-500/20'
-                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Neural Stream (Imagen-3)
-          </button>
-          <button
-            onClick={() => { setIllustratorMode('matplotlib'); setError(null); }}
-            className={`flex-1 py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-              illustratorMode === 'matplotlib'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Cpu className="w-3.5 h-3.5" />
-            Python + Matplotlib Plotter
-          </button>
+      {/* Top Banner / Mode Switcher Tabs */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-3 px-2">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-fuchsia-500/20 to-indigo-500/20 border border-fuchsia-500/30">
+            <Sparkles className="w-5 h-5 text-fuchsia-500" />
+          </div>
+          <div>
+            <h1 className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              Scientific Illustrator & Plotter Studio
+            </h1>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+              Publication-grade crystallography schematics, unit cell lattices & 2D/3D Python figures
+            </p>
+          </div>
         </div>
-      )}
+
+        {pythonFeaturesEnabled && (
+          <div className="bg-slate-100 dark:bg-slate-950 p-1 rounded-xl flex max-w-md shadow-inner border border-slate-200 dark:border-slate-850">
+            <button
+              onClick={() => { setIllustratorMode('neural'); setError(null); }}
+              className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${
+                illustratorMode === 'neural'
+                  ? 'bg-fuchsia-600 text-white shadow-md shadow-fuchsia-500/20'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Nano Banana 2 (Gemini 3.1)
+            </button>
+            <button
+              onClick={() => { setIllustratorMode('matplotlib'); setError(null); }}
+              className={`flex-1 py-2 px-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${
+                illustratorMode === 'matplotlib'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                  : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Python Plotter
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Configuration Sidebar */}
@@ -612,30 +810,49 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
             animate={{ opacity: 1, x: 0 }}
             className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800 overflow-hidden"
           >
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 {illustratorMode === 'neural' ? (
                   <>
                     <ImageIcon className="h-5 w-5 text-fuchsia-600" />
-                    Scientific Illustrator
+                    Neural Illustration Engine
                   </>
                 ) : (
                   <>
                     <Cpu className="h-5 w-5 text-indigo-500" />
-                    Matplotlib Plotter
+                    Python Matplotlib Kernel
                   </>
                 )}
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 {illustratorMode === 'neural' 
-                  ? 'High-fidelity structural & experimental diagrams' 
-                  : 'Run analytical Python scripts to plot flawless equations & matrices'}
+                  ? 'Generates high-fidelity structural & experimental diagrams' 
+                  : 'Executes analytical Python scripts to plot 2D/3D figures'}
               </p>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-5 space-y-5">
               {illustratorMode === 'neural' ? (
                 <>
+                  {/* Material Structure Shortcuts */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                      <span>Structure Presets (CIF & Formulas)</span>
+                      <BookOpen size={11} className="text-fuchsia-500" />
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {MATERIAL_PRESETS.map((m, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => applyMaterialPreset(m)}
+                          className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-fuchsia-500/10 hover:border-fuchsia-500/30 border border-slate-200 dark:border-slate-700 rounded-lg text-[9.5px] font-bold text-slate-700 dark:text-slate-300 transition-all"
+                        >
+                          {m.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Prompt Section */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-end">
@@ -658,11 +875,12 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                     <textarea
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="e.g. A realistic 3D representation of the perovskite crystal structure with labeled octahedra..."
-                      className="w-full h-32 px-4 py-3 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 outline-none transition-all text-sm leading-relaxed"
+                      placeholder="e.g. A realistic 3D representation of the perovskite crystal structure with labeled TiO6 octahedra..."
+                      className="w-full h-28 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-fuchsia-500/20 focus:border-fuchsia-500 outline-none transition-all text-xs leading-relaxed"
                     />
-                    <div className="mt-3">
-                      <div className="flex gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-3">
+                    
+                    <div className="mt-2">
+                      <div className="flex gap-1.5 border-b border-slate-100 dark:border-slate-800 pb-1.5 mb-2">
                         {(['lattices', 'experimental', 'micrographs'] as const).map((tab) => (
                           <button
                             key={tab}
@@ -683,7 +901,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                             key={index}
                             onClick={() => setPrompt(item.label)}
                             title={item.label}
-                            className="text-left text-[9.5px] font-bold bg-slate-50 dark:bg-slate-950 text-slate-550 dark:text-slate-400 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 p-2 rounded-xl transition-all border border-slate-150 dark:border-slate-850 hover:border-fuchsia-200 dark:hover:border-fuchsia-800 line-clamp-2 h-[42px] leading-snug flex items-center"
+                            className="text-left text-[9px] font-bold bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 p-2 rounded-xl transition-all border border-slate-200 dark:border-slate-800 hover:border-fuchsia-300 dark:hover:border-fuchsia-800 line-clamp-2 h-[38px] leading-snug flex items-center"
                           >
                             {item.desc}
                           </button>
@@ -693,49 +911,72 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                   </div>
 
                   {/* Styles Grid */}
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Visual Style
+                      Visual Style Preset
                     </label>
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="grid grid-cols-1 gap-1.5 max-h-[220px] overflow-y-auto pr-1">
                       {SCIENTIFIC_STYLES.map((style) => (
                         <button
                           key={style.id}
                           onClick={() => setSelectedStyle(style.id)}
-                          className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left ${
+                          className={`flex items-center gap-2.5 p-2 rounded-xl border transition-all text-left ${
                             selectedStyle === style.id
-                              ? 'bg-fuchsia-50 border-fuchsia-200 dark:bg-fuchsia-900/20 dark:border-fuchsia-800'
+                              ? 'bg-fuchsia-50 border-fuchsia-300 dark:bg-fuchsia-900/20 dark:border-fuchsia-800'
                               : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-fuchsia-200 dark:hover:border-fuchsia-800'
                           }`}
                         >
-                          <div className={`p-2 rounded-lg ${
+                          <div className={`p-1.5 rounded-lg shrink-0 ${
                             selectedStyle === style.id ? 'bg-fuchsia-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                           }`}>
-                            <style.icon size={16} />
+                            <style.icon size={14} />
                           </div>
-                          <div>
-                            <p className={`text-xs font-bold ${selectedStyle === style.id ? 'text-fuchsia-900 dark:text-fuchsia-100' : 'text-slate-700 dark:text-slate-200'}`}>
+                          <div className="min-w-0">
+                            <p className={`text-[11px] font-bold ${selectedStyle === style.id ? 'text-fuchsia-900 dark:text-fuchsia-100' : 'text-slate-700 dark:text-slate-200'}`}>
                               {style.label}
                             </p>
-                            <p className="text-[9.5px] text-slate-500 dark:text-slate-400 line-clamp-1">{style.description}</p>
+                            <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate">{style.description}</p>
                           </div>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Advanced Design Vector parameters */}
-                  <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  {/* Aspect Ratio Selector */}
+                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Canvas Aspect Ratio
+                    </label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {ASPECT_RATIO_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.id}
+                          onClick={() => setAspectRatio(opt.id)}
+                          className={`p-2 rounded-xl border text-center transition-all ${
+                            aspectRatio === opt.id
+                              ? 'bg-fuchsia-50 border-fuchsia-300 dark:bg-fuchsia-900/20 dark:border-fuchsia-800 text-fuchsia-600 dark:text-fuchsia-300'
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                          }`}
+                        >
+                          <div className="text-[10px] font-black">{opt.id}</div>
+                          <div className="text-[8px] opacity-70 truncate">{opt.desc.split(' ')[0]}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Advanced Core Tuning */}
+                  <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <SlidersHorizontal className="h-3.5 w-3.5 text-fuchsia-500" />
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Advanced Core Tuning</span>
                     </div>
                     
-                    <div className="space-y-3 pl-1">
+                    <div className="space-y-2 pl-1">
                       {/* Lighting dropdown */}
                       <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                          <Sun size={10} /> Lighting Matrix
+                          <Sun size={10} /> Studio Lighting
                         </label>
                         <select
                           value={lighting}
@@ -751,7 +992,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                       {/* Perspective dropdown */}
                       <div className="space-y-1">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                          <Compass size={10} /> Camera Axis
+                          <Compass size={10} /> Camera Angle / Axis
                         </label>
                         <select
                           value={perspective}
@@ -781,33 +1022,33 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                       </div>
 
                       {/* Toggle Swatches */}
-                      <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div className="grid grid-cols-2 gap-1.5 pt-1">
                         <button
                           onClick={() => setAddAnnotations(!addAnnotations)}
-                          className={`py-2 px-2 rounded-xl text-[9.5px] font-bold uppercase transition-all border text-center flex items-center justify-center gap-1 ${
+                          className={`py-1.5 px-2 rounded-xl text-[9px] font-bold uppercase transition-all border text-center flex items-center justify-center gap-1 ${
                             addAnnotations 
                               ? 'bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-600 dark:text-fuchsia-400' 
-                              : 'bg-black/10 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-355'
+                              : 'bg-black/10 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-300'
                           }`}
                         >
                           {addAnnotations && <Check size={10} />} Labels Overlay
                         </button>
                         <button
                           onClick={() => setAddGridLines(!addGridLines)}
-                          className={`py-2 px-2 rounded-xl text-[9.5px] font-bold uppercase transition-all border text-center flex items-center justify-center gap-1 ${
+                          className={`py-1.5 px-2 rounded-xl text-[9px] font-bold uppercase transition-all border text-center flex items-center justify-center gap-1 ${
                             addGridLines 
                               ? 'bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-600 dark:text-fuchsia-400' 
-                              : 'bg-black/10 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-355'
+                              : 'bg-black/10 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-300'
                           }`}
                         >
                           {addGridLines && <Check size={10} />} Grid Nodes
                         </button>
                         <button
                           onClick={() => setAddForceVectors(!addForceVectors)}
-                          className={`col-span-2 py-2 px-2 rounded-xl text-[9.5px] font-bold uppercase transition-all border text-center flex items-center justify-center gap-1 ${
+                          className={`col-span-2 py-1.5 px-2 rounded-xl text-[9px] font-bold uppercase transition-all border text-center flex items-center justify-center gap-1 ${
                             addForceVectors 
                               ? 'bg-fuchsia-500/10 border-fuchsia-500/30 text-fuchsia-600 dark:text-fuchsia-400' 
-                              : 'bg-black/10 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-355'
+                              : 'bg-black/10 border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-300'
                           }`}
                         >
                           {addForceVectors && <Check size={10} />} Crystallographic Force Vectors
@@ -817,9 +1058,9 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                   </div>
 
                   {/* Resolution & Settings */}
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Resolution</span>
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Resolution</span>
                       <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
                         {(['1K', '2K', '4K'] as const).map((s) => (
                           <button
@@ -840,7 +1081,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                     <button
                       onClick={handleGenerate}
                       disabled={loading || !prompt.trim()}
-                      className={`w-full py-4 text-white font-bold rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 group
+                      className={`w-full py-3.5 text-white font-bold rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 group
                         ${loading || !prompt.trim() ? 'bg-slate-300 dark:bg-slate-800 cursor-not-allowed text-slate-500' : 'bg-fuchsia-600 hover:bg-fuchsia-700 hover:shadow-fuchsia-500/20 active:scale-[0.98]'}
                       `}
                     >
@@ -852,7 +1093,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                       ) : (
                         <>
                           <ImageIcon className="h-5 w-5 group-hover:scale-110 transition-transform" />
-                          Render Illustration
+                          Render Scientific Illustration
                         </>
                       )}
                     </button>
@@ -861,7 +1102,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                       <motion.div 
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
-                        className="mt-4 p-3 bg-red-50 dark:bg-red-400/10 text-red-600 dark:text-red-400 rounded-xl text-[11px] font-medium border border-red-100 dark:border-red-900/50 flex gap-2"
+                        className="mt-3 p-3 bg-red-50 dark:bg-red-400/10 text-red-600 dark:text-red-400 rounded-xl text-[11px] font-medium border border-red-100 dark:border-red-900/50 flex gap-2"
                       >
                         <Info className="h-4 w-4 shrink-0" />
                         <div>
@@ -879,7 +1120,6 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
               ) : (
                 <>
                   {/* MATPLOTLIB DESIGN SIDEBAR */}
-                  {/* AI Plot prompt generator helper */}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <label className="text-[10px] font-black uppercase tracking-wider text-slate-400">
@@ -902,25 +1142,22 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       placeholder="e.g. Plot reciprocal space density for strained hexagonal GaAs film on sapphire..."
-                      className="w-full h-22 px-4 py-3 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-xs leading-relaxed"
+                      className="w-full h-20 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-xs leading-relaxed"
                     />
-                    <p className="text-[9px] text-slate-400 leading-normal italic">
-                      Describe your plot in plain words above, and click "CO-PILOT AI SCRIPT" to let Gemini write precise Matplotlib code.
-                    </p>
                   </div>
 
                   {/* Presets Selection */}
-                  <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       <Grid size={11} className="text-indigo-400" />
-                      Analytical Templates
+                      Analytical Python Templates
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-1.5 max-h-[160px] overflow-y-auto pr-1">
                       {MATPLOTLIB_PRESETS.map((preset) => (
                         <button
                           key={preset.id}
                           onClick={() => handleSelectPreset(preset.id)}
-                          className={`text-left p-2.5 rounded-xl border transition-all ${
+                          className={`text-left p-2 rounded-xl border transition-all ${
                             selectedPreset === preset.id
                               ? 'bg-indigo-50 border-indigo-200 dark:bg-indigo-900/10 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 font-bold'
                               : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-indigo-100 dark:hover:border-indigo-900/40'
@@ -934,13 +1171,22 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                   </div>
 
                   {/* Raw Python code editor */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                      <Code size={11} className="text-indigo-400" />
-                      Kernel Source Terminal (.py)
-                    </label>
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <Code size={11} className="text-indigo-400" />
+                        Kernel Source Terminal (.py)
+                      </label>
+                      <button
+                        onClick={handleCopyCode}
+                        className="text-[9px] font-bold text-slate-400 hover:text-indigo-400 flex items-center gap-1"
+                      >
+                        {copiedCode ? <CheckCircle2 size={10} className="text-emerald-500" /> : <Copy size={10} />}
+                        {copiedCode ? 'Copied' : 'Copy Code'}
+                      </button>
+                    </div>
                     <div className="relative font-mono rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-950">
-                      <div className="bg-slate-900 px-3 py-1.5 flex items-center justify-between text-[8px] text-slate-500 uppercase tracking-widest border-b border-slate-850">
+                      <div className="bg-slate-900 px-3 py-1 flex items-center justify-between text-[8px] text-slate-500 uppercase tracking-widest border-b border-slate-850">
                         <span>Python workspace</span>
                         <span className="text-emerald-500 font-black animate-pulse">● IDE LIVE</span>
                       </div>
@@ -948,7 +1194,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                         value={pythonCode}
                         onChange={(e) => setPythonCode(e.target.value)}
                         spellCheck={false}
-                        className="w-full h-64 p-4 bg-slate-950 text-emerald-400 border-none outline-none font-mono text-[10.5px] leading-relaxed resize-y focus:ring-0"
+                        className="w-full h-56 p-3 bg-slate-950 text-emerald-400 border-none outline-none font-mono text-[10px] leading-relaxed resize-y focus:ring-0"
                       />
                     </div>
                   </div>
@@ -958,7 +1204,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                     <button
                       onClick={handleRenderMatplotlib}
                       disabled={loading || !pythonCode.trim()}
-                      className={`w-full py-4 text-white font-bold rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 group
+                      className={`w-full py-3.5 text-white font-bold rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 group
                         ${loading || !pythonCode.trim() 
                           ? 'bg-slate-300 dark:bg-slate-850 cursor-not-allowed text-slate-500' 
                           : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/20 active:scale-[0.98]'
@@ -973,7 +1219,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                       ) : (
                         <>
                           <Play className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
-                          Plot Matrix Figures
+                          Execute & Plot Figures
                         </>
                       )}
                     </button>
@@ -982,7 +1228,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                       <motion.div 
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
-                        className="mt-4 p-3.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-[11px] font-medium border border-red-150 dark:border-red-900/50 flex gap-2"
+                        className="mt-3 p-3 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-[11px] font-medium border border-red-150 dark:border-red-900/50 flex gap-2"
                       >
                         <Info className="h-4 w-4 shrink-0" />
                         <div>
@@ -997,26 +1243,26 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
           </motion.div>
 
           {/* History Preview (Desktop) */}
-          <div className="hidden lg:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-            <div className="flex justify-between items-center mb-4">
+          <div className="hidden lg:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5">
+            <div className="flex justify-between items-center mb-3">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
                 <History size={14} />
-                Recent Artifacts
+                Recent Artifacts ({history.length})
               </h3>
               {history.length > 0 && (
                 <button 
                   onClick={clearHistory}
-                  className="text-[10px] text-slate-400 hover:text-red-500 transition-colors"
+                  className="text-[10px] text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1"
                   title="Clear History"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={12} /> Clear All
                 </button>
               )}
             </div>
             
-            <div className="grid grid-cols-2 gap-2">
-              {history.slice(0, 4).map((item) => (
-                <button
+            <div className="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto pr-1">
+              {history.slice(0, 6).map((item) => (
+                <div
                   key={item.id}
                   onClick={() => {
                     setImageUrl(item.url);
@@ -1028,17 +1274,36 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                       setSelectedStyle(item.style);
                     }
                   }}
-                  className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-fuchsia-400 transition-colors"
+                  className="group relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-fuchsia-400 transition-all cursor-pointer bg-slate-950"
                 >
-                  <img src={item.url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                    <Maximize2 size={16} className="text-white" />
+                  <img 
+                    src={item.url} 
+                    alt="" 
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  />
+                  <div className="absolute top-1.5 right-1.5 flex gap-1 z-10">
+                    <button
+                      onClick={(e) => togglePinHistory(item.id, e)}
+                      className={`p-1 rounded-md transition-all ${
+                        item.isPinned ? 'bg-amber-500 text-white' : 'bg-black/60 text-slate-300 opacity-0 group-hover:opacity-100 hover:bg-black/80'
+                      }`}
+                    >
+                      <Star size={10} fill={item.isPinned ? "currentColor" : "none"} />
+                    </button>
                   </div>
-                </button>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 flex flex-col justify-end p-2 transition-opacity">
+                    <p className="text-[9px] font-bold text-white line-clamp-1">{item.prompt}</p>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-[8px] font-mono text-fuchsia-300 uppercase">{item.style}</span>
+                      <Maximize2 size={12} className="text-white" />
+                    </div>
+                  </div>
+                </div>
               ))}
               {history.length === 0 && (
-                <div className="col-span-2 py-8 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-xl">
-                  <p className="text-[10px] text-slate-400">No artifacts generated yet</p>
+                <div className="col-span-2 py-6 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-xl">
+                  <p className="text-[10px] text-slate-400">No figures generated yet</p>
                 </div>
               )}
             </div>
@@ -1051,28 +1316,112 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
             layout
             className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col h-full min-h-[650px] transition-all"
           >
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center">
+            {/* Top Toolbar */}
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-wrap justify-between items-center gap-3">
               <div className="flex items-center gap-3">
                 <div className={`h-2.5 w-2.5 rounded-full ${illustratorMode === 'neural' ? 'bg-fuchsia-500' : 'bg-indigo-500'} animate-pulse`} />
                 <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 tracking-tight">
-                  {illustratorMode === 'neural' ? 'Active Canvas (Imagen)' : 'Plot Visualizer Matrix (Matplotlib)'}
+                  {illustratorMode === 'neural' ? 'Active Canvas (Imagen-3)' : 'Plot Visualizer Matrix (Matplotlib)'}
                 </h3>
+                {aspectRatio && illustratorMode === 'neural' && (
+                  <span className="px-2 py-0.5 bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 text-[9px] font-bold rounded-md border border-fuchsia-500/20">
+                    {aspectRatio}
+                  </span>
+                )}
               </div>
               
               <div className="flex items-center gap-2">
-                {imageUrl && (
+                {/* Canvas Theme Toggle */}
+                <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
                   <button
-                    onClick={() => handleDownload(imageUrl)}
-                    className={`px-4 py-1.5 ${illustratorMode === 'neural' ? 'bg-fuchsia-600 hover:bg-fuchsia-700 shadow-fuchsia-500/20' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20'} text-white rounded-full text-xs font-bold transition-all flex items-center gap-1.5 shadow-md`}
+                    onClick={() => setCanvasBg('slate')}
+                    className={`px-2 py-1 text-[9px] font-bold rounded-lg transition-all ${
+                      canvasBg === 'slate' ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-slate-200'
+                    }`}
                   >
-                    <Download size={14} />
-                    Download Artifact
+                    Dark
                   </button>
+                  <button
+                    onClick={() => setCanvasBg('white')}
+                    className={`px-2 py-1 text-[9px] font-bold rounded-lg transition-all ${
+                      canvasBg === 'white' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    White
+                  </button>
+                  <button
+                    onClick={() => setCanvasBg('grid')}
+                    className={`px-2 py-1 text-[9px] font-bold rounded-lg transition-all ${
+                      canvasBg === 'grid' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    Grid
+                  </button>
+                </div>
+
+                {/* Overlays toggle */}
+                {imageUrl && (
+                  <>
+                    <button
+                      onClick={() => setShowScaleBar(!showScaleBar)}
+                      className={`p-1.5 rounded-xl border text-[10px] font-bold flex items-center gap-1 transition-all ${
+                        showScaleBar ? 'bg-sky-500/20 border-sky-500/40 text-sky-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
+                      }`}
+                      title="Toggle Scale Bar"
+                    >
+                      <Ruler size={13} />
+                      <span className="hidden sm:inline">Scale</span>
+                    </button>
+
+                    <button
+                      onClick={() => setShowCrosshairs(!showCrosshairs)}
+                      className={`p-1.5 rounded-xl border text-[10px] font-bold flex items-center gap-1 transition-all ${
+                        showCrosshairs ? 'bg-sky-500/20 border-sky-500/40 text-sky-300' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
+                      }`}
+                      title="Toggle Axis Crosshair"
+                    >
+                      <Crosshair size={13} />
+                    </button>
+
+                    <button
+                      onClick={() => setFullscreenModal(true)}
+                      className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-white transition-all"
+                      title="Fullscreen Preview"
+                    >
+                      <Maximize2 size={13} />
+                    </button>
+
+                    <button
+                      onClick={handleExportMetadata}
+                      className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-white transition-all"
+                      title="Export Figure Metadata"
+                    >
+                      <FileJson size={13} />
+                    </button>
+
+                    <button
+                      onClick={() => handleDownload(imageUrl)}
+                      className={`px-3 py-1.5 ${
+                        illustratorMode === 'neural' 
+                          ? 'bg-fuchsia-600 hover:bg-fuchsia-700 shadow-fuchsia-500/20' 
+                          : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20'
+                      } text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-md`}
+                    >
+                      <Download size={13} />
+                      <span className="hidden sm:inline">Download</span>
+                    </button>
+                  </>
                 )}
               </div>
             </div>
             
-            <div className="flex-1 relative flex items-center justify-center bg-slate-50 dark:bg-black/20 overflow-hidden">
+            {/* Canvas Main View */}
+            <div className={`flex-1 relative flex items-center justify-center overflow-hidden transition-colors duration-300 ${
+              canvasBg === 'slate' ? 'bg-slate-950' :
+              canvasBg === 'white' ? 'bg-white' :
+              canvasBg === 'black' ? 'bg-black' :
+              'bg-slate-950 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px]'
+            }`}>
               <AnimatePresence mode="wait">
                 {loading ? (
                   <motion.div 
@@ -1092,7 +1441,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                     <h4 className="text-md font-bold text-slate-800 dark:text-slate-100 mb-0.5 tracking-tight">
                       {illustratorMode === 'neural' ? 'Synthesizing Pixels' : 'Interpreting Python Kernels'}
                     </h4>
-                    <p className="text-[11px] text-slate-505 dark:text-slate-400">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       {illustratorMode === 'neural' ? `Neural rendering in progress (${size})` : 'Generating scientific plot figure'}
                     </p>
                     
@@ -1108,8 +1457,8 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                           <span>Kernel Output Stream</span>
                         </div>
                         <div className="space-y-1">
-                          <div className="text-slate-650">&gt; import matplotlib.pyplot as plt</div>
-                          <div className="text-slate-650">&gt; import numpy as np</div>
+                          <div className="text-slate-500">&gt; import matplotlib.pyplot as plt</div>
+                          <div className="text-slate-500">&gt; import numpy as np</div>
                           <div className="animate-pulse text-indigo-300">&gt; executing user script context...</div>
                         </div>
                       </div>
@@ -1117,7 +1466,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
 
                     <div className="mt-2 w-48 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                       <motion.div 
-                        className={`h-full ${illustratorMode === 'neural' ? 'bg-fuchsia-500' : 'bg-indigo-505'}`}
+                        className={`h-full ${illustratorMode === 'neural' ? 'bg-fuchsia-500' : 'bg-indigo-500'}`}
                         initial={{ width: "0%" }}
                         animate={{ width: "100%" }}
                         transition={{ duration: 4, ease: "linear" }}
@@ -1129,41 +1478,65 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     key="preview"
-                    className="w-full h-full p-8 flex items-center justify-center text-center"
+                    className="relative w-full h-full p-6 flex items-center justify-center text-center"
                   >
-                    <img 
-                      src={imageUrl} 
-                      alt="Generated Scientific Illustration" 
-                      className="max-w-full max-h-[500px] object-contain rounded-2xl shadow-2xl border border-white/50 dark:border-white/5"
-                    />
+                    <div className="relative inline-block max-w-full max-h-full">
+                      <img 
+                        src={imageUrl} 
+                        alt="Generated Scientific Illustration" 
+                        referrerPolicy="no-referrer"
+                        className="max-w-full max-h-[520px] object-contain rounded-2xl shadow-2xl border border-white/10"
+                      />
+
+                      {/* Scale Bar Overlay */}
+                      {showScaleBar && (
+                        <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-sky-500/40 text-sky-300 font-mono text-[10px] flex items-center gap-2 shadow-lg">
+                          <div className="w-12 h-[2px] bg-sky-400 flex justify-between items-center relative">
+                            <div className="w-[1px] h-2 bg-sky-400" />
+                            <div className="w-[1px] h-2 bg-sky-400" />
+                          </div>
+                          <span className="font-bold">{scaleLength}</span>
+                        </div>
+                      )}
+
+                      {/* Axis Crosshair Overlay */}
+                      {showCrosshairs && (
+                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                          <div className="w-full h-[1px] bg-sky-400/30" />
+                          <div className="h-full w-[1px] bg-sky-400/30 absolute" />
+                          <div className="w-10 h-10 border border-sky-400/40 rounded-full absolute" />
+                        </div>
+                      )}
+                    </div>
                   </motion.div>
                 ) : (
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     key="empty"
-                    className="text-center p-12 max-w-sm"
+                    className="text-center p-8 max-w-md"
                   >
-                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-3">
-                      <ImageIcon className="h-10 w-10 text-slate-300 dark:text-slate-600" />
+                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800/80 rounded-3xl flex items-center justify-center mx-auto mb-5 rotate-3 border border-slate-200 dark:border-slate-700">
+                      <ImageIcon className="h-10 w-10 text-slate-400 dark:text-slate-500" />
                     </div>
-                    <h4 className="text-slate-400 dark:text-slate-500 font-bold mb-2 uppercase tracking-wide">
+                    <h4 className="text-slate-300 font-bold mb-2 uppercase tracking-wide text-sm">
                       {illustratorMode === 'neural' ? 'Empty Canvas' : 'Empty Plot Grid'}
                     </h4>
-                    <p className="text-slate-400 dark:text-slate-650 text-sm leading-relaxed">
+                    <p className="text-slate-400 text-xs leading-relaxed mb-6">
                       {illustratorMode === 'neural' 
-                        ? 'Visualise complex crystal lattices, experimental setups, or molecular schemas.'
-                        : 'Render beautiful, publication-ready mathematical curves, thermal ellipsoids, or reciprocal space maps.'}
+                        ? 'Visualise complex crystal lattices, perovskite ABO3 polyhedra, experimental XRD setups, or electron micrographs.'
+                        : 'Render publication-ready 2D diffraction scans, 3D unit cells, reciprocal space maps, or phonon band structures.'}
                     </p>
-                    <div className="mt-8 grid grid-cols-2 gap-4">
-                      <div className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-left bg-white dark:bg-slate-900/50">
-                        <p className="text-[10px] font-bold text-slate-400 mb-1">IMAGE TYPE</p>
-                        <p className="text-xs text-slate-650 dark:text-slate-300 uppercase tracking-tighter">Square 1:1</p>
+                    
+                    <div className="grid grid-cols-2 gap-3 text-left">
+                      <div className="p-3 border border-slate-800 rounded-xl bg-slate-900/60">
+                        <p className="text-[9px] font-bold text-slate-500 mb-0.5">IMAGE FORMAT</p>
+                        <p className="text-xs font-bold text-slate-200 uppercase tracking-tight">{aspectRatio} Ratio</p>
                       </div>
-                      <div className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-left bg-white dark:bg-slate-900/50">
-                        <p className="text-[10px] font-bold text-slate-400 mb-1">ENGINE / CORE</p>
-                        <p className="text-xs text-slate-650 dark:text-slate-300 uppercase tracking-tighter">
-                          {illustratorMode === 'neural' ? 'Imagen-3' : 'Python 3 + Matplotlib'}
+                      <div className="p-3 border border-slate-800 rounded-xl bg-slate-900/60">
+                        <p className="text-[9px] font-bold text-slate-500 mb-0.5">CORE ENGINE</p>
+                        <p className="text-xs font-bold text-slate-200 uppercase tracking-tight">
+                          {illustratorMode === 'neural' ? 'Imagen-3.0' : 'Python 3 + Matplotlib'}
                         </p>
                       </div>
                     </div>
@@ -1172,10 +1545,26 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
               </AnimatePresence>
             </div>
 
+            {/* Prompt bar footer if image available */}
+            {imageUrl && (
+              <div className="p-3 border-t border-slate-800 bg-slate-950 flex items-center justify-between gap-4 text-xs">
+                <p className="text-slate-400 line-clamp-1 italic font-sans text-[11px]">
+                  "{prompt || 'Generated figure'}"
+                </p>
+                <button
+                  onClick={handleCopyPrompt}
+                  className="shrink-0 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"
+                >
+                  {copiedPrompt ? <CheckCircle2 size={11} className="text-emerald-400" /> : <Copy size={11} />}
+                  {copiedPrompt ? 'Copied' : 'Copy Prompt'}
+                </button>
+              </div>
+            )}
+
             {/* Collapsible Python Console Log */}
             {illustratorMode === 'matplotlib' && pythonLog && (
               <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-950 font-mono text-xs overflow-hidden">
-                <div className="bg-slate-900 px-6 py-2.5 flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                <div className="bg-slate-900 px-6 py-2 flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
                   <div className="flex items-center gap-1.5">
                     <Terminal size={12} className="text-emerald-500" />
                     <span>Standard Output Log & Stack Trace</span>
@@ -1187,7 +1576,7 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
                     Clear Terminal
                   </button>
                 </div>
-                <pre className="p-4 max-h-48 overflow-y-auto text-emerald-400 whitespace-pre-wrap leading-relaxed text-[11px]">
+                <pre className="p-4 max-h-40 overflow-y-auto text-emerald-400 whitespace-pre-wrap leading-relaxed text-[10.5px]">
                   {pythonLog}
                 </pre>
               </div>
@@ -1195,26 +1584,69 @@ export const ImageGenerationModule: React.FC<{ pythonFeaturesEnabled?: boolean }
           </motion.div>
 
           {/* Technical Context / Credits */}
-          <div className="bg-slate-900 dark:bg-slate-950 p-6 rounded-3xl text-slate-400 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className={`h-10 w-10 rounded-full bg-slate-800 flex items-center justify-center ${illustratorMode === 'neural' ? 'text-fuchsia-400 animate-pulse' : 'text-indigo-400'} border border-slate-700`}>
-                <Settings2 size={18} />
+          <div className="bg-slate-900 dark:bg-slate-950 p-5 rounded-3xl text-slate-400 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className={`h-9 w-9 rounded-full bg-slate-800 flex items-center justify-center ${illustratorMode === 'neural' ? 'text-fuchsia-400 animate-pulse' : 'text-indigo-400'} border border-slate-700`}>
+                <Settings2 size={16} />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Generation Engine</p>
-                <p className="text-xs text-slate-300">
+                <p className="text-[9px] font-bold uppercase text-slate-500 tracking-widest">Active Rendering Engine</p>
+                <p className="text-xs font-bold text-slate-200">
                   {illustratorMode === 'neural' ? 'Imagen-3 (High-Fidelity Scientific Core)' : 'Interactive Python-Matplotlib (Sandbox Execution)'}
                 </p>
               </div>
             </div>
-            <p className="text-[10px] max-w-[200px] text-right text-slate-500 italic leading-snug">
-              {illustratorMode === 'neural' 
-                ? 'Advanced GPU acceleration enabled. Resolution scaling via AI Super-Res.'
-                : 'Interactive matplotlib environment. High density DPI output enabled.'}
-            </p>
+            <div className="text-[10px] text-slate-500 text-right leading-snug">
+              <span>Publication Ready Quality • High DPI Vector Synthesis</span>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Fullscreen Lightbox Modal */}
+      <AnimatePresence>
+        {fullscreenModal && imageUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setFullscreenModal(false)}
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md p-6 flex flex-col justify-between items-center"
+          >
+            <div className="w-full flex justify-between items-center text-white z-10">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-fuchsia-500" size={18} />
+                <span className="font-bold text-sm">Full Resolution Scientific Figure</span>
+              </div>
+              <button
+                onClick={() => setFullscreenModal(false)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-full text-xs font-bold"
+              >
+                Close (ESC)
+              </button>
+            </div>
+
+            <div className="relative max-w-full max-h-[80vh] flex items-center justify-center my-auto">
+              <img
+                src={imageUrl}
+                alt="Fullscreen"
+                referrerPolicy="no-referrer"
+                className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl"
+              />
+            </div>
+
+            <div className="w-full max-w-2xl bg-slate-900 p-4 rounded-2xl border border-slate-800 text-center text-xs text-slate-300 flex justify-between items-center">
+              <span className="truncate pr-4 italic">"{prompt}"</span>
+              <button
+                onClick={() => handleDownload(imageUrl)}
+                className="px-4 py-2 bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-bold rounded-xl flex items-center gap-2 shrink-0"
+              >
+                <Download size={14} /> Download Image
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

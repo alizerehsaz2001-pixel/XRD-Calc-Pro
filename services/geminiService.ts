@@ -50,69 +50,74 @@ export const isPermissionError = (error: any): boolean => {
   );
 };
 
-export const generateScientificImage = async (prompt: string, size: '1K' | '2K' | '4K', styleLabel?: string): Promise<string | null> => {
+export const generateScientificImage = async (
+  prompt: string, 
+  size: '1K' | '2K' | '4K', 
+  styleLabel?: string,
+  aspectRatio: '1:1' | '16:9' | '4:3' | '3:4' = '1:1'
+): Promise<string | null> => {
   // Create a new instance to ensure the most up-to-date API key is used (if selected via UI)
   const dynamicAi = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
   const styleContext = styleLabel ? ` in the style of a ${styleLabel}` : '';
   const fullPrompt = `Generate a high-quality scientific illustration or diagram suitable for crystallography analysis${styleContext}. Prompt: ${prompt}`;
 
-  // Method 1: Try using standard Imagen 3.0 model with generateImages (the correct API for Imagen)
+  // Method 1: Primary - Latest Nano Banana 2 (gemini-3.1-flash-image) model
   try {
-    const response = await dynamicAi.models.generateImages({
-      model: 'imagen-3.0-generate-002',
-      prompt: fullPrompt,
+    const response = await dynamicAi.models.generateContent({
+      model: 'gemini-3.1-flash-image',
+      contents: {
+        parts: [
+          {
+            text: fullPrompt
+          },
+        ],
+      },
       config: {
-        numberOfImages: 1,
-        outputMimeType: 'image/jpeg',
-        aspectRatio: '1:1',
+        imageConfig: {
+          aspectRatio: aspectRatio,
+          imageSize: size
+        }
       },
     });
 
-    if (response?.generatedImages?.[0]?.image?.imageBytes) {
-      return `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        }
+      }
     }
-    return null;
-  } catch (error: any) {
-    if (isQuotaError(error) || isPermissionError(error)) {
-      if (isQuotaError(error)) throw new Error("Quota exceeded (429).");
-      if (isPermissionError(error)) throw new Error("Permission denied (403). API key might not have image generation access.");
-      throw error;
+  } catch (nanoError: any) {
+    if (isQuotaError(nanoError) || isPermissionError(nanoError)) {
+      if (isQuotaError(nanoError)) throw new Error("Quota exceeded (429).");
+      if (isPermissionError(nanoError)) throw new Error("Permission denied (403). API key might not have image generation access.");
+      throw nanoError;
     }
 
-    // Method 2: Fallback to the multimodal image generation model using generateContent
+    // Method 2: Fallback to standard Imagen 3.0 model with generateImages
     try {
-      const response = await dynamicAi.models.generateContent({
-        model: 'gemini-3.1-flash-image-preview',
-        contents: {
-          parts: [
-            {
-              text: fullPrompt
-            },
-          ],
-        },
+      const response = await dynamicAi.models.generateImages({
+        model: 'imagen-3.0-generate-002',
+        prompt: fullPrompt,
         config: {
-          imageConfig: {
-            aspectRatio: "1:1",
-            imageSize: size
-          }
+          numberOfImages: 1,
+          outputMimeType: 'image/jpeg',
+          aspectRatio: aspectRatio,
         },
       });
 
-      if (response.candidates?.[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-          }
-        }
+      if (response?.generatedImages?.[0]?.image?.imageBytes) {
+        return `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
       }
       return null;
     } catch (fallbackError: any) {
-      console.error("All image generation methods failed. Main error was:", error, "Fallback error was:", fallbackError);
+      console.error("All image generation methods failed. Main error was:", nanoError, "Fallback error was:", fallbackError);
       if (isQuotaError(fallbackError)) throw new Error("Quota exceeded (429).");
       if (isPermissionError(fallbackError)) throw new Error("Permission denied (403). API key might not have image generation access.");
       throw fallbackError;
     }
   }
+  return null;
 };
 
 export const fetchStandardWavelengths = async (): Promise<StandardWavelength[]> => {
