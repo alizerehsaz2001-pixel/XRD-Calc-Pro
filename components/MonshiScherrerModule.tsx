@@ -3,6 +3,7 @@ import { useSettings, convertLength, convertToAngstrom } from './SettingsContext
 import { parseScherrerInput, calculateMonshiScherrer } from '../utils/physics';
 import { MonshiScherrerResult } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
+import scherrerBg from '../src/assets/images/scherrer_bg_1785502401694.jpg';
 import {
   ComposedChart,
   LineChart,
@@ -286,6 +287,12 @@ export const MonshiScherrerModule: React.FC = () => {
     <div className="space-y-6 max-w-7xl mx-auto pb-16 px-2 sm:px-4">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#020813] via-[#0B1A30] to-[#061020] p-6 md:p-10 border border-cyan-500/20 shadow-[0_0_40px_rgba(6,182,212,0.15)] group">
+        {/* Custom Background Graphic */}
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-1000 mix-blend-screen">
+          <img src={scherrerBg} alt="Scherrer Diffraction" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#020813] via-[#0B1A30]/80 to-[#061020]/30" />
+        </div>
+
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[120px] pointer-events-none group-hover:bg-cyan-500/30 transition-colors duration-700" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-600/30 transition-colors duration-700" />
 
@@ -938,20 +945,20 @@ export const MonshiScherrerModule: React.FC = () => {
                 <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-cyan-500/20 transition-colors" />
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-cyan-400">
-                    <Ruler className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Monshi Size (D)</span>
+                    <Ruler className="w-4 h-4 shrink-0" />
+                    <span className="text-xs font-bold uppercase tracking-wider truncate">Monshi Size (D)</span>
                   </div>
-                  <Award className="w-4 h-4 text-cyan-400/50" />
+                  <Award className="w-4 h-4 text-cyan-400/50 shrink-0" />
                 </div>
-                <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-cyan-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                <div className="flex items-baseline gap-2 mt-1 relative z-10 overflow-hidden">
+                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-cyan-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(6,182,212,0.3)] truncate">
                     {convertLength(result.sizeNm * 10, lengthUnit).toFixed(2)}
                   </span>
-                  <span className="text-cyan-300 text-sm font-mono font-semibold">{lengthUnit}</span>
+                  <span className="text-cyan-300 text-sm font-mono font-semibold shrink-0">{lengthUnit}</span>
                 </div>
                 <div className="mt-4 pt-3 border-t border-cyan-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                  <div className="flex justify-between"><span>Length:</span> <span className="text-slate-200 font-bold">{convertLength(result.sizeNm * 10, lengthUnit).toFixed(2)} {lengthUnit}</span></div>
-                  <div className="flex justify-between"><span>Mean Single-Peak:</span> <span className="text-slate-200 font-bold">{convertLength(meanSinglePeakSize * 10, lengthUnit).toFixed(2)} {lengthUnit}</span></div>
+                  <div className="flex justify-between items-center"><span className="truncate pr-2">Length:</span> <span className="text-slate-200 font-bold shrink-0">{convertLength(result.sizeNm * 10, lengthUnit).toFixed(2)} {lengthUnit}</span></div>
+                  <div className="flex justify-between items-center"><span className="truncate pr-2">Mean Single-Peak:</span> <span className="text-slate-200 font-bold shrink-0">{convertLength(meanSinglePeakSize * 10, lengthUnit).toFixed(2)} {lengthUnit}</span></div>
                 </div>
               </div>
 
@@ -960,19 +967,19 @@ export const MonshiScherrerModule: React.FC = () => {
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-blue-500/20 transition-colors" />
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-blue-400">
-                    <TrendingUp className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Log Slope (m)</span>
+                    <TrendingUp className="w-4 h-4 shrink-0" />
+                    <span className="text-xs font-bold uppercase tracking-wider truncate">Log Slope (m)</span>
                   </div>
-                  <Activity className="w-4 h-4 text-blue-400/50" />
+                  <Activity className="w-4 h-4 text-blue-400/50 shrink-0" />
                 </div>
-                <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-blue-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                <div className="flex items-baseline gap-2 mt-1 relative z-10 overflow-hidden">
+                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-blue-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(59,130,246,0.3)] truncate">
                     {result.slope.toFixed(4)}
                   </span>
                 </div>
                 <div className="mt-4 pt-3 border-t border-blue-500/20 space-y-1 text-[11px] font-mono text-slate-400">
-                  <div className="flex justify-between"><span>Ideal Slope:</span> <span className="text-blue-300 font-bold">1.0000</span></div>
-                  <div className="flex justify-between"><span>Dev Status:</span> <span className="text-slate-200 font-bold truncate ml-2">
+                  <div className="flex justify-between items-center"><span className="truncate pr-2">Ideal Slope:</span> <span className="text-blue-300 font-bold shrink-0">1.0000</span></div>
+                  <div className="flex justify-between items-center"><span className="truncate pr-2">Dev Status:</span> <span className="text-slate-200 font-bold truncate ml-2 text-right">
                     {Math.abs(result.slope - 1) <= 0.15 ? 'Isotropic Size' : result.slope > 1 ? 'Microstrain' : 'Defect/Over-sub'}
                   </span></div>
                 </div>
@@ -983,13 +990,13 @@ export const MonshiScherrerModule: React.FC = () => {
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-emerald-500/20 transition-colors" />
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-emerald-400">
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Fit Quality (R²)</span>
+                    <CheckCircle className="w-4 h-4 shrink-0" />
+                    <span className="text-xs font-bold uppercase tracking-wider truncate">Fit Quality (R²)</span>
                   </div>
-                  <Layers className="w-4 h-4 text-emerald-400/50" />
+                  <Layers className="w-4 h-4 text-emerald-400/50 shrink-0" />
                 </div>
-                <div className="flex items-baseline gap-2 mt-1 relative z-10">
-                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-emerald-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                <div className="flex items-baseline gap-2 mt-1 relative z-10 overflow-hidden">
+                  <span className="text-3xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-emerald-300 font-mono tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.3)] truncate">
                     {(result.rSquared * 100).toFixed(2)}%
                   </span>
                 </div>
@@ -1426,6 +1433,11 @@ export const MonshiScherrerModule: React.FC = () => {
           {/* Extended Calculations Table */}
           {result && result.pointsExtended && (
             <div className="bg-[#050C17]/90 p-5 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.4)] space-y-4 hover:border-white/20 transition-colors duration-500 relative overflow-hidden group">
+              {/* Custom Background Graphic */}
+              <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-1000 mix-blend-screen">
+                <img src={scherrerBg} alt="Scherrer Diffraction" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050C17] via-[#050C17]/90 to-[#050C17]/50" />
+              </div>
               <div className="absolute top-0 right-1/4 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none group-hover:bg-cyan-500/10 transition-colors" />
               <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2 relative z-10">
                 <Layers className="w-4 h-4 text-cyan-400" />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, ChevronRight, Info, Zap, Layers, Cpu, Database, Brain, ArrowRight, Check, Sparkles, Activity, Target } from 'lucide-react';
+import { BookOpen, ChevronRight, Info, Zap, Layers, Cpu, Database, Brain, ArrowRight, Check, Sparkles, Activity, Target, Sigma } from 'lucide-react';
+import mathBg from '../src/assets/images/math_basis_bg_1785502127240.jpg';
 
 interface ModuleIntroProps {
   module: string;
@@ -10,48 +11,54 @@ interface ModuleIntroProps {
 // Helper for vertical fractions
 const Fraction = ({ num, den }: { num: React.ReactNode, den: React.ReactNode }) => (
   <div className="inline-flex flex-col items-center align-middle mx-2" style={{ verticalAlign: 'middle' }}>
-    <span className="border-b-2 border-indigo-500/30 w-full text-center px-1.5 pb-1 mb-[2px]">{num}</span>
+    <span className="border-b-2 border-indigo-400/40 w-full text-center px-1.5 pb-1 mb-[2px]">{num}</span>
     <span className="w-full text-center px-1.5 pt-[1px]">{den}</span>
   </div>
 );
 
 // Helper for Math variables (Serif, Italic)
 const M = ({ children, className = "" }: { children?: React.ReactNode, className?: string }) => (
-  <span className={`font-serif italic text-indigo-50 ${className}`}>{children}</span>
+  <span className={`font-serif italic text-white drop-shadow-md ${className}`}>{children}</span>
 );
 
 // Helper for Function names (Serif, Upright)
 const F = ({ children }: { children?: React.ReactNode }) => (
-  <span className="font-serif font-normal text-indigo-300">{children}</span>
+  <span className="font-serif font-normal text-indigo-200">{children}</span>
 );
 
 const FormulaContainer = ({ children, label }: { children: React.ReactNode, label: string }) => (
   <motion.div 
     whileHover={{ y: -4, scale: 1.01 }}
     transition={{ type: "spring", stiffness: 300, damping: 20 }}
-    className="relative p-8 bg-black/60 rounded-[2.5rem] border border-indigo-500/30 group w-full flex flex-col shadow-[inset_0_0_80px_rgba(99,102,241,0.08)] backdrop-blur-2xl overflow-hidden"
+    className="relative p-8 bg-[#040814]/80 rounded-[2.5rem] border border-indigo-500/30 group w-full flex flex-col shadow-[inset_0_0_80px_rgba(99,102,241,0.08)] backdrop-blur-2xl overflow-hidden"
   >
+    {/* Abstract background image layer */}
+    <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.15] group-hover:opacity-30 transition-opacity duration-1000 mix-blend-screen">
+      <img src={mathBg} alt="Math Graphic" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#040814] via-[#040814]/80 to-[#040814]/20" />
+    </div>
+
     {/* Animated Geometric Background */}
-    <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden">
-      <svg className="absolute -right-10 -top-10 w-64 h-64 text-indigo-500/30 animate-[spin_40s_linear_infinite]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden z-0">
+      <svg className="absolute -right-10 -top-10 w-64 h-64 text-indigo-400/30 animate-[spin_40s_linear_infinite]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="50" cy="50" r="40" stroke="currentColor" strokeWidth="0.5" strokeDasharray="2 4"/>
         <path d="M 50 10 L 50 90 M 10 50 L 90 50 M 20 20 L 80 80 M 20 80 L 80 20" stroke="currentColor" strokeWidth="0.5"/>
         <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="0.5" />
       </svg>
-      <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+      <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
     </div>
 
     <div className="flex justify-between items-start w-full relative z-10 mb-6">
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
-          <Cpu className="w-4 h-4 text-indigo-300" />
+        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-950 to-indigo-900/50 flex items-center justify-center border border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+          <Sigma className="w-5 h-5 text-indigo-300" />
         </div>
-        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-300 font-sans">{label}</span>
+        <span className="text-[12px] font-black uppercase tracking-[0.2em] text-indigo-200 font-sans">{label}</span>
       </div>
     </div>
     
     <div className="w-full overflow-x-auto custom-scrollbar pb-4 relative z-10">
-      <div className="text-3xl md:text-4xl font-serif whitespace-nowrap min-w-max pt-2 flex items-center tracking-wide text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+      <div className="text-3xl md:text-4xl font-serif whitespace-nowrap min-w-max pt-2 flex items-center tracking-wide text-white drop-shadow-[0_0_20px_rgba(99,102,241,0.6)]">
         <div className="inline-block align-middle">
           {children}
         </div>
@@ -644,8 +651,11 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
           {content.formulas && (
             <motion.div variants={itemVariants}>
                <div className="flex items-center gap-6 mb-12">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-400/80 whitespace-nowrap font-sans">Mathematical Basis</h3>
-                  <div className="h-px w-full bg-gradient-to-r from-white/10 to-transparent" />
+                  <div className="p-3 bg-indigo-500/10 rounded-xl shrink-0 border border-indigo-500/20 shadow-[0_0_20px_rgba(99,102,241,0.15)]">
+                     <Sigma className="w-5 h-5 text-indigo-400" />
+                  </div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.4em] text-white whitespace-nowrap font-sans drop-shadow-sm">Mathematical Basis</h3>
+                  <div className="h-px w-full bg-gradient-to-r from-indigo-500/50 via-indigo-500/10 to-transparent" />
                </div>
                <div className="animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
                   {content.formulas}

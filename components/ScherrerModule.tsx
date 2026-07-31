@@ -10,6 +10,7 @@ import { ScientificMathControl } from './ScientificMathControl';
 import { PythonCodeExporter } from './PythonCodeExporter';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import scherrerBg from '../src/assets/images/scherrer_bg_1785502401694.jpg';
 
 const K_FACTORS = [
   { label: 'Standard Average', value: 0.9, desc: 'General approximation for unknown or polydisperse morphologies', icon: '⚡' },
@@ -396,7 +397,13 @@ export const ScherrerModule: React.FC = () => {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
       {/* Configuration */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden group">
+        <div className="bg-[#050A14] p-8 rounded-3xl shadow-2xl border border-slate-800 relative overflow-hidden group">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-20 group-hover:opacity-30 transition-opacity duration-1000 mix-blend-screen">
+            <img src={scherrerBg} alt="Scherrer Diffraction" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/80 to-[#050A14]/30" />
+          </div>
+
           <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all duration-700"></div>
           
           <div className="flex items-center gap-4 mb-8 relative z-10">
@@ -806,7 +813,13 @@ export const ScherrerModule: React.FC = () => {
         </div>
 
         {/* Scientific Context Card */}
-        <div className="bg-slate-900 p-8 rounded-3xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group">
+        <div className="bg-[#050A14] p-8 rounded-3xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group">
+          {/* Custom Background Graphic */}
+          <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+            <img src={scherrerBg} alt="Scherrer Diffraction" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/80 to-[#050A14]/30" />
+          </div>
+
           <div className="absolute top-0 left-0 -mt-2 -mr-2 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-all duration-700"></div>
           
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-6 relative z-10 border-b border-slate-800 pb-6">
@@ -899,7 +912,13 @@ export const ScherrerModule: React.FC = () => {
 
         <div className="flex flex-col gap-6 h-full">
           {/* Average Size Summary Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
+          <div className="bg-[#050A14] border border-slate-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden group">
+            {/* Custom Background Graphic */}
+            <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+              <img src={scherrerBg} alt="Scherrer Diffraction" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+            </div>
+
             <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
             
@@ -1044,7 +1063,12 @@ export const ScherrerModule: React.FC = () => {
           {results.length > 0 && histogramData.length > 0 && (
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
               {/* Histogram */}
-              <div className="xl:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group flex flex-col">
+              <div className="xl:col-span-8 bg-[#050A14] border border-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden group flex flex-col">
+                {/* Custom Background Graphic */}
+                <div className="absolute inset-0 z-0 pointer-events-none opacity-10 group-hover:opacity-20 transition-opacity duration-1000 mix-blend-screen">
+                  <img src={scherrerBg} alt="Scherrer Diffraction" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+                </div>
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
                 <div className="flex items-center gap-3 mb-6 relative z-10">
                   <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
@@ -1170,8 +1194,14 @@ export const ScherrerModule: React.FC = () => {
           )}
 
           {/* Detailed Table */}
-          <div className="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col flex-1 min-h-[400px]">
-             <div className="p-6 border-b border-slate-800 bg-black/20 flex justify-between items-center backdrop-blur-sm relative">
+          <div className="bg-[#050A14] rounded-3xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col flex-1 min-h-[400px] relative group">
+             {/* Custom Background Graphic */}
+             <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.05] transition-opacity duration-1000 mix-blend-screen">
+               <img src={scherrerBg} alt="Scherrer Diffraction" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+               <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/50" />
+             </div>
+             
+             <div className="p-6 border-b border-slate-800 bg-black/40 flex justify-between items-center backdrop-blur-sm relative z-10">
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent pointer-events-none" />
                 <div className="flex items-center gap-4 relative z-10">
                   <div className="flex items-center gap-3">

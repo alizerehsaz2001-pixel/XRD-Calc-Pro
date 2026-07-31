@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { motion, useMotionValue, useSpring } from 'motion/react';
 import LanguageSelector from './LanguageSelector';
 import { getActiveMaterials } from '../utils/materialsHelper';
+import heroBg from '../src/assets/images/diffraction_hero_1785501736455.jpg';
+import aiAdvisorBg from '../src/assets/images/ai_science_advisor_1785501820938.jpg';
 import { 
   Zap, 
   Activity, 
@@ -1291,12 +1293,17 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
       <main className="flex-1 relative z-10">
         {/* --- Hero Section --- */}
         <section className="relative px-6 pt-48 pb-32 md:pb-56 min-h-[90vh] flex items-center overflow-hidden">
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            <img src={heroBg} alt="Diffraction Crystal" className="w-full h-full object-cover opacity-60 mix-blend-screen" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#02050A]/20 via-[#02050A]/70 to-[#02050A]" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#02050A] via-transparent to-[#02050A]/80" />
+          </div>
           <DiffractionGrid />
           <CrystalLattice springX={springX} springY={springY} />
           
           {/* Dynamic Background Glow Layer */}
-          <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '6s' }} />
-          <div className="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-violet-600/15 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '6s' }} />
+          <div className="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] bg-cyan-500/15 rounded-full blur-[140px] pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '8s' }} />
 
           <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10 w-full">
             <motion.div
@@ -1743,29 +1750,35 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut 
               className="relative perspective-1000"
             >
               <div className="absolute inset-0 bg-indigo-600/20 blur-[100px] rounded-full" />
-              <div className="relative bg-[#090F1E] border border-indigo-500/30 rounded-3xl p-8 shadow-2xl transform rotate-y-[-5deg] hover:rotate-y-0 transition-all duration-700 hover:border-indigo-500/50">
-                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/5">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                    <Cpu className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-black text-white">AI Analysis Output</h4>
-                    <p className="text-[10px] text-slate-400 font-mono">Thermodynamics & Phase Transition</p>
-                  </div>
+              <div className="relative bg-[#090F1E] border border-indigo-500/30 rounded-3xl p-8 shadow-2xl transform rotate-y-[-5deg] hover:rotate-y-0 transition-all duration-700 hover:border-indigo-500/50 overflow-hidden">
+                <div className="absolute inset-0 z-0 pointer-events-none">
+                  <img src={aiAdvisorBg} alt="AI Neural Crystal" className="w-full h-full object-cover opacity-40 mix-blend-screen" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#090F1E] via-[#090F1E]/80 to-[#090F1E]/20" />
                 </div>
-                
-                <div className="space-y-4 text-sm text-slate-300 leading-relaxed font-sans">
-                  <p>
-                    <strong className="text-indigo-400">Structural Insight:</strong> The calculated critical free energy (ΔG*) of <span className="font-mono text-white bg-white/10 px-1 rounded">14.2 kJ/mol</span> suggests a moderate nucleation barrier. This indicates that homogenous nucleation will require significant undercooling to proceed spontaneously.
-                  </p>
-                  <p>
-                    <strong className="text-cyan-400">Synthesis Recommendation:</strong> To promote heterogeneous nucleation and refine the grain structure, consider introducing inoculants or increasing the cooling rate by 15-20%.
-                  </p>
-                </div>
-                
-                <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
-                  <span className="text-xs font-mono text-slate-500">Confidence Score</span>
-                  <span className="text-sm font-black text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">98.4%</span>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/5">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                      <Cpu className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-black text-white">AI Analysis Output</h4>
+                      <p className="text-[10px] text-slate-400 font-mono">Thermodynamics & Phase Transition</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4 text-sm text-slate-300 leading-relaxed font-sans">
+                    <p>
+                      <strong className="text-indigo-400">Structural Insight:</strong> The calculated critical free energy (ΔG*) of <span className="font-mono text-white bg-white/10 px-1 rounded">14.2 kJ/mol</span> suggests a moderate nucleation barrier. This indicates that homogenous nucleation will require significant undercooling to proceed spontaneously.
+                    </p>
+                    <p>
+                      <strong className="text-cyan-400">Synthesis Recommendation:</strong> To promote heterogeneous nucleation and refine the grain structure, consider introducing inoculants or increasing the cooling rate by 15-20%.
+                    </p>
+                  </div>
+                  
+                  <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
+                    <span className="text-xs font-mono text-slate-500">Confidence Score</span>
+                    <span className="text-sm font-black text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">98.4%</span>
+                  </div>
                 </div>
               </div>
             </motion.div>
