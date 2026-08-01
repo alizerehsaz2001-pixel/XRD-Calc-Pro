@@ -30,7 +30,15 @@ import {
   Crosshair,
   AlertCircle,
   FileText,
-  BarChart2
+  BarChart2,
+  Compass,
+  BookOpen,
+  ShieldCheck,
+  Cpu,
+  RotateCcw,
+  CheckCircle2,
+  HelpCircle,
+  Target
 } from 'lucide-react';
 import {
   LineChart as RechartsLineChart,
@@ -215,6 +223,15 @@ export const ResidualStressModule: React.FC = () => {
   const [importError, setImportError] = useState<string | null>(null);
   const [copiedNotification, setCopiedNotification] = useState<boolean>(false);
 
+  // Interactive Diffraction Graph & Stress Physics Guide State
+  const [guideTab, setGuideTab] = useState<'geometry' | 'simulator' | 'signatures' | 'xec' | 'standards'>('simulator');
+  const [simStress, setSimStress] = useState<number>(-480); // MPa (Compressive shot peened baseline)
+  const [simShear, setSimShear] = useState<number>(0); // MPa
+  const [simE, setSimE] = useState<number>(211); // GPa
+  const [simNu, setSimNu] = useState<number>(0.28);
+  const [simD0, setSimD0] = useState<number>(1.1700); // Å
+  const [selectedXecMaterial, setSelectedXecMaterial] = useState<string>('Fe_alpha');
+
   // Data points (Psi and 2Theta)
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([
     { id: 'p1', psi: -60, twoTheta: 157.58, intensity: 820, fwhm: 0.45, error2Theta: 0.015, enabled: true },
@@ -242,6 +259,46 @@ export const ResidualStressModule: React.FC = () => {
       error2Theta: 0.010,
       enabled: true
     })));
+  };
+
+  // Interactive Physics Simulator Data Generator
+  const simChartData = useMemo(() => {
+    const psis = [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60];
+    const wl = 1.54056;
+    const halfS2 = (1 + simNu) / (simE * 1000); // 1/MPa
+    
+    return psis.map(psi => {
+      const rad = (psi * Math.PI) / 180;
+      const sin2psi = Math.sin(rad) ** 2;
+      const sin2psi_sign = Math.sin(2 * rad);
+      
+      // Lattice strain includes normal stress and shear psi-splitting
+      const strain = halfS2 * (simStress * sin2psi + simShear * sin2psi_sign);
+      const dPsi = simD0 * (1 + strain);
+      
+      // Diffraction angle 2Theta shift
+      const sinTheta = wl / (2 * dPsi);
+      const twoTheta = sinTheta <= 1 ? 2 * Math.asin(sinTheta) * (180 / Math.PI) : 0;
+      
+      return {
+        psi,
+        sin2psi: parseFloat(sin2psi.toFixed(4)),
+        dPsi: parseFloat(dPsi.toFixed(6)),
+        microstrain: parseFloat((strain * 1e6).toFixed(1)),
+        twoTheta: parseFloat(twoTheta.toFixed(3)),
+        branch: psi < 0 ? '-ψ Branch' : '+ψ Branch'
+      };
+    });
+  }, [simStress, simShear, simE, simNu, simD0]);
+
+  // X-Ray Elastic Constants Preset Data
+  const XEC_PRESETS: Record<string, { name: string; plane: string; c11: number; c12: number; c44: number; description: string }> = {
+    Fe_alpha: { name: 'Ferritic Steel (α-Fe)', plane: '(211)', c11: 230, c12: 135, c44: 117, description: 'BCC Ferrite matrix with prominent elastic anisotropy (A = 2.46).' },
+    Fe_gamma: { name: 'Austenitic Steel (γ-Fe)', plane: '(311)', c11: 198, c12: 125, c44: 122, description: 'FCC Austenite with high direction-dependent compliance (A = 3.34).' },
+    Al_7075: { name: 'Aluminum Alloy (Al)', plane: '(311)', c11: 108, c12: 62, c44: 28, description: 'Nearly isotropic FCC lightweight metal matrix (A = 1.22).' },
+    Cu_pure: { name: 'Pure Copper (Cu)', plane: '(420)', c11: 168, c12: 121, c44: 75, description: 'FCC copper with strong crystallographic anisotropy (A = 3.19).' },
+    Ni_super: { name: 'Nickel Superalloy (Ni)', plane: '(311)', c11: 247, c12: 148, c44: 125, description: 'High-rigidity FCC nickel superalloy phase (A = 2.53).' },
+    Ti_beta: { name: 'Beta-Titanium (β-Ti)', plane: '(211)', c11: 134, c12: 110, c44: 55, description: 'BCC titanium alloy with low elastic modulus (A = 4.58).' }
   };
 
   // Advanced Analysis Engine
@@ -1276,59 +1333,616 @@ Active Diffraction Points: ${dataPoints.filter(p => p.enabled).length}`;
         )}
       </AnimatePresence>
       
-      {/* Interactive Sensitivity & Interpretation Guide */}
-      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-8 md:p-10 rounded-3xl shadow-2xl relative overflow-hidden border border-indigo-500/20">
+      {/* Interactive Diffraction Graph & Stress Physics Guide */}
+      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 md:p-8 rounded-3xl shadow-2xl relative overflow-hidden border border-indigo-500/20">
         <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-12 -top-12 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
         
-        <h3 className="text-xl font-black uppercase tracking-widest mb-6 flex items-center gap-3 text-indigo-200 relative z-10">
-          <Layers className="w-6 h-6 text-indigo-400" />
-          Diffraction Graph & Stress Physics Guide
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-          {/* Factor 1: Stress Magnitude & Sign */}
-          <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors group">
-            <div className="flex items-center gap-3 text-rose-400 text-sm font-black uppercase tracking-wider mb-4">
-              <div className="p-2 bg-rose-500/20 rounded-lg group-hover:scale-110 transition-transform">
-                <ArrowUpRight className="w-5 h-5" />
-              </div>
-              Slope (m) ➔ Normal Stress (σ₁₁)
-            </div>
-            <div className="text-sm text-indigo-100/70 leading-relaxed space-y-2">
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-rose-400/50" /> <span className="block"><strong className="text-white">Tensile (σ₁₁ &gt; 0):</strong> Positive slope (line tilts upward). Interplanar spacing d increases at higher tilt ψ.</span></span>
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-rose-400/50" /> <span className="block"><strong className="text-white">Compressive (σ₁₁ &lt; 0):</strong> Negative slope (line tilts downward). Surface lattice planes contract under compression.</span></span>
-            </div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 relative z-10 border-b border-indigo-500/20 pb-5">
+          <div>
+            <h3 className="text-xl font-black uppercase tracking-widest flex items-center gap-3 text-indigo-200">
+              <Layers className="w-6 h-6 text-indigo-400" />
+              Diffraction Graph & Stress Physics Guide
+            </h3>
+            <p className="text-xs text-indigo-200/70 mt-1">
+              Interactive crystallographic stress mechanics simulator, goniometer beam geometry, and elastic anisotropy workbench
+            </p>
           </div>
 
-          {/* Factor 2: Psi-Splitting Shear Stress */}
-          <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors group">
-            <div className="flex items-center gap-3 text-amber-400 text-sm font-black uppercase tracking-wider mb-4">
-              <div className="p-2 bg-amber-500/20 rounded-lg group-hover:scale-110 transition-transform">
-                <Split className="w-5 h-5" />
-              </div>
-              Psi-Splitting ➔ Shear Stress (τ₁₃)
-            </div>
-            <div className="text-sm text-indigo-100/70 leading-relaxed space-y-2">
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-amber-400/50" /> <span className="block"><strong className="text-white">Shear Vector:</strong> When surface shear stresses exist, positive (+ψ) and negative (-ψ) tilt branches split apart into an elliptical loop.</span></span>
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-amber-400/50" /> <span className="block"><strong className="text-white">Shear Magnitude:</strong> τ₁₃ is derived directly from the slope of (d₊ - d₋)/2 vs sin(2|ψ|).</span></span>
-            </div>
-          </div>
-
-          {/* Factor 3: Elastic Constants E and nu */}
-          <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors group">
-            <div className="flex items-center gap-3 text-indigo-400 text-sm font-black uppercase tracking-wider mb-4">
-              <div className="p-2 bg-indigo-500/20 rounded-lg group-hover:scale-110 transition-transform">
-                <Sliders className="w-5 h-5" />
-              </div>
-              Elastic Constants (E, ν)
-            </div>
-            <div className="text-sm text-indigo-100/70 leading-relaxed space-y-2">
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-indigo-400/50" /> <span className="block"><strong className="text-white">Young's Modulus (E):</strong> Stiffer materials require larger lattice strain to reach identical stress levels.</span></span>
-              <span className="block flex items-start gap-2"><ChevronRight className="w-4 h-4 shrink-0 mt-0.5 text-indigo-400/50" /> <span className="block"><strong className="text-white">Uncertainty Propagation:</strong> Peak position error ±Δ2θ translates directly to standard stress error ±Δσ.</span></span>
-            </div>
+          {/* Guide Tab Switcher */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-black/40 p-1.5 rounded-2xl border border-indigo-500/30">
+            <button
+              onClick={() => setGuideTab('simulator')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                guideTab === 'simulator'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-indigo-200/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              Stress Field Simulator
+            </button>
+            <button
+              onClick={() => setGuideTab('geometry')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                guideTab === 'geometry'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-indigo-200/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              Beam Geometry
+            </button>
+            <button
+              onClick={() => setGuideTab('signatures')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                guideTab === 'signatures'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-indigo-200/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <BarChart2 className="w-3.5 h-3.5" />
+              Curve Taxonomy
+            </button>
+            <button
+              onClick={() => setGuideTab('xec')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                guideTab === 'xec'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-indigo-200/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Elastic Anisotropy (XEC)
+            </button>
+            <button
+              onClick={() => setGuideTab('standards')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                guideTab === 'standards'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-indigo-200/70 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Standards & Profiling
+            </button>
           </div>
         </div>
+
+        {/* Tab Content 1: Live Interactive Stress Field & d-Spacing Simulator */}
+        {guideTab === 'simulator' && (
+          <div className="space-y-6 relative z-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Simulator Sliders Panel */}
+              <div className="lg:col-span-5 bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-indigo-400" />
+                    Physics Simulation Inputs
+                  </h4>
+                  <button
+                    onClick={() => {
+                      setSimStress(-480);
+                      setSimShear(0);
+                      setSimE(211);
+                      setSimNu(0.28);
+                      setSimD0(1.1700);
+                    }}
+                    className="text-[10px] font-bold text-indigo-300/60 hover:text-indigo-200 flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" /> Reset Sliders
+                  </button>
+                </div>
+
+                {/* Normal Stress Slider */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-indigo-200 font-bold">Normal Stress (σ₁₁)</span>
+                    <span className={`font-black ${simStress < 0 ? 'text-blue-400' : simStress > 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+                      {simStress > 0 ? `+${simStress}` : simStress} MPa
+                      <span className="text-[10px] font-sans ml-1 text-slate-400">
+                        ({simStress < 0 ? 'Compressive' : simStress > 0 ? 'Tensile' : 'Zero Stress'})
+                      </span>
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-1000"
+                    max="1000"
+                    step="20"
+                    value={simStress}
+                    onChange={(e) => setSimStress(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+                    <span>-1000 MPa (Peened)</span>
+                    <span>0</span>
+                    <span>+1000 MPa (Cracking)</span>
+                  </div>
+                </div>
+
+                {/* Psi-Splitting Shear Stress Slider */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-indigo-200 font-bold">Surface Shear Stress (τ₁₃)</span>
+                    <span className={`font-black ${simShear !== 0 ? 'text-amber-400' : 'text-slate-400'}`}>
+                      {simShear > 0 ? `+${simShear}` : simShear} MPa
+                      <span className="text-[10px] font-sans ml-1 text-slate-400">
+                        ({simShear !== 0 ? 'ψ-Splitting Ellipse' : 'Linear Branch'})
+                      </span>
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-300"
+                    max="300"
+                    step="10"
+                    value={simShear}
+                    onChange={(e) => setSimShear(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+                    <span>-300 MPa (-ψ shift)</span>
+                    <span>0</span>
+                    <span>+300 MPa (+ψ shift)</span>
+                  </div>
+                </div>
+
+                {/* Young's Modulus E */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-indigo-200 font-bold">Young's Modulus (E)</span>
+                    <span className="text-indigo-300 font-black">{simE} GPa</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="450"
+                    step="5"
+                    value={simE}
+                    onChange={(e) => setSimE(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  />
+                </div>
+
+                {/* Poisson's Ratio nu */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-indigo-200 font-bold">Poisson's Ratio (ν)</span>
+                    <span className="text-indigo-300 font-black">{simNu.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.10"
+                    max="0.45"
+                    step="0.01"
+                    value={simNu}
+                    onChange={(e) => setSimNu(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  />
+                </div>
+
+                {/* Unstressed Reference d0 */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-indigo-200 font-bold">Reference Lattice d₀</span>
+                    <span className="text-indigo-300 font-black">{simD0.toFixed(4)} Å</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1.0000"
+                    max="3.0000"
+                    step="0.005"
+                    value={simD0}
+                    onChange={(e) => setSimD0(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Simulated Diffraction Plot Output */}
+              <div className="lg:col-span-7 bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-indigo-400" />
+                    Simulated Interplanar d-Spacing vs sin²ψ Plot
+                  </h4>
+                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${
+                    simStress < 0 
+                      ? 'bg-blue-950/60 text-blue-300 border-blue-500/40' 
+                      : simStress > 0 
+                      ? 'bg-rose-950/60 text-rose-300 border-rose-500/40' 
+                      : 'bg-slate-800 text-slate-300 border-slate-700'
+                  }`}>
+                    {simStress < 0 ? 'Compressive Slope (-m)' : simStress > 0 ? 'Tensile Slope (+m)' : 'Zero Stress Slope'}
+                  </span>
+                </div>
+
+                {/* Recharts Live Simulator Graph */}
+                <div className="h-[220px] w-full my-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsLineChart data={simChartData} margin={{ top: 10, right: 10, bottom: 15, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.4} />
+                      <XAxis 
+                        dataKey="sin2psi" 
+                        tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                        label={{ value: 'sin²ψ', position: 'bottom', offset: 0, fill: '#cbd5e1', fontSize: 11, fontWeight: 'bold' }}
+                      />
+                      <YAxis 
+                        dataKey="dPsi" 
+                        domain={['auto', 'auto']} 
+                        tick={{ fontSize: 10, fill: '#94a3b8' }}
+                        tickFormatter={(v) => Number(v).toFixed(5)}
+                        label={{ value: 'd-Spacing (Å)', angle: -90, position: 'insideLeft', fill: '#cbd5e1', fontSize: 11 }}
+                      />
+                      <RechartsTooltip 
+                        contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                        formatter={(val: any, name: string) => [`${Number(val).toFixed(5)} Å`, 'Simulated d']}
+                        labelFormatter={(lbl) => `sin²ψ = ${lbl}`}
+                      />
+                      <ReferenceLine y={simD0} stroke="#94a3b8" strokeDasharray="3 3" label={{ value: `d₀ = ${simD0.toFixed(4)} Å`, fill: '#94a3b8', fontSize: 10 }} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="dPsi" 
+                        stroke={simStress < 0 ? '#60a5fa' : simStress > 0 ? '#f43f5e' : '#10b981'} 
+                        strokeWidth={3} 
+                        dot={{ r: 4, fill: '#38bdf8' }} 
+                      />
+                    </RechartsLineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Live Formula & Slope Summary */}
+                <div className="p-3 bg-black/40 rounded-xl border border-indigo-500/20 text-xs font-mono grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-sans">Simulated Stress</span>
+                    <span className={`font-black ${simStress < 0 ? 'text-blue-400' : simStress > 0 ? 'text-rose-400' : 'text-slate-300'}`}>
+                      {simStress} MPa
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-sans">Shear Stress τ₁₃</span>
+                    <span className={`font-black ${simShear !== 0 ? 'text-amber-400' : 'text-slate-300'}`}>
+                      {simShear} MPa
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-sans">XEC Slope (1+ν)/E</span>
+                    <span className="font-black text-indigo-300">
+                      {(((1 + simNu) / (simE * 1000)) * 1e6).toFixed(3)} TPa⁻¹
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-400 block font-sans">Lattice Strain at ψ=60°</span>
+                    <span className="font-black text-purple-300">
+                      {(((simChartData[simChartData.length - 1]?.dPsi - simD0) / simD0) * 1e6).toFixed(0)} με
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Content 2: Goniometer & Beam Geometry Visual */}
+        {guideTab === 'geometry' && (
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10">
+            {/* SVG Goniometer Beam Geometry Diagram */}
+            <div className="md:col-span-7 bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 flex flex-col items-center justify-center">
+              <h4 className="text-xs font-black uppercase tracking-wider text-indigo-300 mb-3 flex items-center gap-2 self-start">
+                <Compass className="w-4 h-4 text-indigo-400" />
+                Diffractometer Tilt Axis & Scattering Vector Geometry
+              </h4>
+              <svg viewBox="0 0 500 280" className="w-full max-w-lg h-auto">
+                <defs>
+                  <linearGradient id="beamGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#818cf8" stopOpacity="0.2" />
+                  </linearGradient>
+                  <linearGradient id="diffGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#c084fc" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.8" />
+                  </linearGradient>
+                </defs>
+
+                {/* Sample Surface Base */}
+                <rect x="100" y="180" width="300" height="16" rx="4" fill="#1e293b" stroke="#475569" strokeWidth="2" />
+                <text x="250" y="192" fill="#94a3b8" fontSize="10" textAnchor="middle" fontWeight="bold">Sample Surface (Directing Stress σ₁₁)</text>
+
+                {/* Surface Normal N */}
+                <line x1="250" y1="180" x2="250" y2="40" stroke="#f59e0b" strokeWidth="2" strokeDasharray="4 4" />
+                <text x="256" y="55" fill="#f59e0b" fontSize="11" fontWeight="bold">Surface Normal (N)</text>
+
+                {/* Rotated Scattering Vector Q at angle Psi */}
+                <line x1="250" y1="180" x2="180" y2="60" stroke="#10b981" strokeWidth="3" />
+                <polygon points="180,60 188,70 178,74" fill="#10b981" />
+                <text x="145" y="65" fill="#10b981" fontSize="12" fontWeight="black">Vector Q (ψ)</text>
+
+                {/* Tilt Arc Psi */}
+                <path d="M 250,110 A 70,70 0 0,0 215,119" fill="none" stroke="#38bdf8" strokeWidth="2" />
+                <text x="225" y="105" fill="#38bdf8" fontSize="12" fontWeight="black">ψ (Tilt)</text>
+
+                {/* Incident Beam */}
+                <line x1="80" y1="100" x2="250" y2="180" stroke="url(#beamGrad)" strokeWidth="4" />
+                <polygon points="250,180 232,170 236,178" fill="#38bdf8" />
+                <text x="70" y="95" fill="#38bdf8" fontSize="11" fontWeight="bold">Incident X-Ray (S₀)</text>
+
+                {/* Diffracted Beam */}
+                <line x1="250" y1="180" x2="410" y2="90" stroke="url(#diffGrad)" strokeWidth="4" />
+                <polygon points="410,90 392,100 398,108" fill="#f43f5e" />
+                <text x="415" y="85" fill="#f43f5e" fontSize="11" fontWeight="bold">Diffracted Beam (S)</text>
+
+                {/* Bragg Angle 2Theta */}
+                <path d="M 180,147 A 90,90 0 0,0 318,142" fill="none" stroke="#a855f7" strokeWidth="2" strokeDasharray="2 2" />
+                <text x="250" y="155" fill="#a855f7" fontSize="11" textAnchor="middle" fontWeight="bold">2θ (Diffraction Angle)</text>
+              </svg>
+            </div>
+
+            {/* Geometry Physics Explanation Cards */}
+            <div className="md:col-span-5 space-y-4">
+              <div className="bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 space-y-2">
+                <h4 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-2">
+                  <ArrowUpRight className="w-4 h-4" />
+                  Bragg Lattice Strain Projection
+                </h4>
+                <p className="text-xs text-indigo-100/80 leading-relaxed">
+                  As the goniometer tilts the sample by angle <strong className="text-white">ψ</strong>, the diffraction vector <strong className="text-emerald-400">Q</strong> samples lattice planes oriented at angle ψ to the surface.
+                </p>
+                <div className="p-2.5 bg-black/40 rounded-xl font-mono text-[11px] text-indigo-300 border border-indigo-500/20">
+                  ε_ψ = (d_ψ - d₀) / d₀ = ½ S₂ · σ₁₁ · sin²ψ
+                </div>
+              </div>
+
+              <div className="bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 space-y-2">
+                <h4 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                  <Split className="w-4 h-4" />
+                  Positive vs Negative Tilt Angles (±ψ)
+                </h4>
+                <p className="text-xs text-indigo-100/80 leading-relaxed">
+                  In a symmetric biaxial stress field, <strong className="text-white">d(+ψ) = d(-ψ)</strong>, yielding a perfectly linear <strong className="text-white">d vs sin²ψ</strong> plot. If out-of-plane shear stress <strong className="text-amber-300">τ₁₃</strong> exists, +ψ and -ψ branches split into an ellipse!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Content 3: sin²ψ Curve Signature Taxonomy */}
+        {guideTab === 'signatures' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+            {/* Linear Curve */}
+            <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-all space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-rose-400 font-black text-xs uppercase tracking-wider">
+                  <ArrowUpRight className="w-4 h-4" />
+                  1. Homogeneous Biaxial Linear
+                </div>
+                <span className="text-[9px] font-mono bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold">Standard Standard</span>
+              </div>
+              <p className="text-xs text-indigo-100/80 leading-relaxed">
+                Linear plot of <strong className="text-white">d vs sin²ψ</strong> indicates uniform biaxial stress (<strong className="text-white">σ₁₁, σ₂₂</strong>) with zero surface shear (<strong className="text-white">τ₁₃ = τ₂₃ = 0</strong>).
+              </p>
+              <div className="p-3 bg-black/40 rounded-xl font-mono text-[11px] text-slate-300 space-y-1 border border-white/5">
+                <div>• <strong className="text-rose-400">Positive Slope (+m):</strong> Tensile stress (lattice expands at tilt)</div>
+                <div>• <strong className="text-blue-400">Negative Slope (-m):</strong> Compressive stress (lattice contracts at tilt)</div>
+              </div>
+            </div>
+
+            {/* Elliptical Psi-Splitting */}
+            <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-all space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-400 font-black text-xs uppercase tracking-wider">
+                  <Split className="w-4 h-4" />
+                  2. Elliptical Psi-Splitting (Shear)
+                </div>
+                <span className="text-[9px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">Shear Vector</span>
+              </div>
+              <p className="text-xs text-indigo-100/80 leading-relaxed">
+                Splitting between positive (<strong className="text-emerald-400">+ψ</strong>) and negative (<strong className="text-cyan-400">-ψ</strong>) branches forming an ellipse indicates non-zero shear stresses (<strong className="text-amber-300">τ₁₃</strong> or <strong className="text-amber-300">τ₂₃</strong>).
+              </p>
+              <div className="p-3 bg-black/40 rounded-xl font-mono text-[11px] text-slate-300 space-y-1 border border-white/5">
+                <div>• Caused by directional grinding, turning, or laser surface cladding.</div>
+                <div>• Normal stress σ₁₁ calculated from average d = [d(+ψ) + d(-ψ)] / 2.</div>
+              </div>
+            </div>
+
+            {/* Curved Triaxial Stress */}
+            <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-all space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-purple-400 font-black text-xs uppercase tracking-wider">
+                  <Activity className="w-4 h-4" />
+                  3. Curved / Triaxial Stress Gradient
+                </div>
+                <span className="text-[9px] font-mono bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-bold">Depth Gradient</span>
+              </div>
+              <p className="text-xs text-indigo-100/80 leading-relaxed">
+                Curvature in the <strong className="text-white">d vs sin²ψ</strong> line signals steep stress gradients with depth <strong className="text-purple-300">z</strong> or out-of-plane stress <strong className="text-purple-300">σ₃₃ ≠ 0</strong>.
+              </p>
+              <div className="p-3 bg-black/40 rounded-xl font-mono text-[11px] text-slate-300 space-y-1 border border-white/5">
+                <div>• Common in thin physical vapor deposition (PVD/CVD) hard coatings.</div>
+                <div>• X-ray penetration depth z(ψ) decreases at higher tilt angles.</div>
+              </div>
+            </div>
+
+            {/* Oscillatory Texture */}
+            <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 hover:bg-white/10 transition-all space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-indigo-400 font-black text-xs uppercase tracking-wider">
+                  <BarChart2 className="w-4 h-4" />
+                  4. Oscillatory (Preferred Orientation)
+                </div>
+                <span className="text-[9px] font-mono bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-bold">Texture Effect</span>
+              </div>
+              <p className="text-xs text-indigo-100/80 leading-relaxed">
+                Sinusoidal oscillations around the regression line stem from strong crystallographic texture / preferred orientation in rolled sheet metal.
+              </p>
+              <div className="p-3 bg-black/40 rounded-xl font-mono text-[11px] text-slate-300 space-y-1 border border-white/5">
+                <div>• Anisotropic elastic constants vary per grain orientation.</div>
+                <div>• Requires orientation distribution function (ODF) weighting.</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Content 4: X-Ray Elastic Constants (XEC) & Anisotropy */}
+        {guideTab === 'xec' && (
+          <div className="space-y-6 relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+              {/* Material Anisotropy Selector */}
+              <div className="md:col-span-5 bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-2">
+                  <Cpu className="w-4 h-4 text-indigo-400" />
+                  Single-Crystal Elastic Constants (Cᵢⱼ)
+                </h4>
+
+                <div className="space-y-2">
+                  <label className="text-xs text-slate-300 font-bold block">Select Alloy Crystal Matrix</label>
+                  <select
+                    value={selectedXecMaterial}
+                    onChange={(e) => setSelectedXecMaterial(e.target.value)}
+                    className="w-full p-2.5 bg-slate-950 border border-indigo-500/30 rounded-xl text-xs font-bold text-white outline-none"
+                  >
+                    {Object.entries(XEC_PRESETS).map(([key, item]) => (
+                      <option key={key} value={key}>
+                        {item.name} — {item.plane}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {(() => {
+                  const sel = XEC_PRESETS[selectedXecMaterial] || XEC_PRESETS['Fe_alpha'];
+                  const bulkK = (sel.c11 + 2 * sel.c12) / 3;
+                  const gVoigt = ((sel.c11 - sel.c12) + 3 * sel.c44) / 5;
+                  const gReuss = (5 * (sel.c11 - sel.c12) * sel.c44) / (4 * sel.c44 + 3 * (sel.c11 - sel.c12));
+                  const gHill = (gVoigt + gReuss) / 2;
+                  const eHill = (9 * bulkK * gHill) / (3 * bulkK + gHill);
+                  const nuHill = (3 * bulkK - 2 * gHill) / (2 * (3 * bulkK + gHill));
+                  const anisotropyA = (2 * sel.c44) / (sel.c11 - sel.c12);
+
+                  return (
+                    <div className="space-y-3">
+                      <p className="text-xs text-indigo-100/70 leading-relaxed font-sans">
+                        {sel.description}
+                      </p>
+
+                      <div className="grid grid-cols-3 gap-2 font-mono text-center">
+                        <div className="p-2 bg-black/40 rounded-lg border border-white/5">
+                          <span className="text-[9px] text-slate-400 block">C₁₁</span>
+                          <span className="text-xs font-bold text-white">{sel.c11} GPa</span>
+                        </div>
+                        <div className="p-2 bg-black/40 rounded-lg border border-white/5">
+                          <span className="text-[9px] text-slate-400 block">C₁₂</span>
+                          <span className="text-xs font-bold text-white">{sel.c12} GPa</span>
+                        </div>
+                        <div className="p-2 bg-black/40 rounded-lg border border-white/5">
+                          <span className="text-[9px] text-slate-400 block">C₄₄</span>
+                          <span className="text-xs font-bold text-white">{sel.c44} GPa</span>
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-black/60 rounded-xl border border-indigo-500/20 font-mono text-xs flex justify-between items-center">
+                        <span className="text-slate-300 font-bold">Zener Anisotropy Factor (A)</span>
+                        <span className={`font-black ${anisotropyA > 2.0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                          A = {anisotropyA.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Calculated XEC Bounds */}
+              <div className="md:col-span-7 bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-2">
+                  <Calculator className="w-4 h-4 text-indigo-400" />
+                  Polycrystalline Elastic Bounds (Voigt-Reuss-Hill)
+                </h4>
+
+                {(() => {
+                  const sel = XEC_PRESETS[selectedXecMaterial] || XEC_PRESETS['Fe_alpha'];
+                  const bulkK = (sel.c11 + 2 * sel.c12) / 3;
+                  const gVoigt = ((sel.c11 - sel.c12) + 3 * sel.c44) / 5;
+                  const gReuss = (5 * (sel.c11 - sel.c12) * sel.c44) / (4 * sel.c44 + 3 * (sel.c11 - sel.c12));
+                  const gHill = (gVoigt + gReuss) / 2;
+                  const eHill = (9 * bulkK * gHill) / (3 * bulkK + gHill);
+                  const nuHill = (3 * bulkK - 2 * gHill) / (2 * (3 * bulkK + gHill));
+                  const s1Hill = (-nuHill / eHill) * 1e3; // TPa^-1
+                  const halfS2Hill = ((1 + nuHill) / eHill) * 1e3; // TPa^-1
+
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono">
+                      <div className="p-3.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">Voigt Bound (Constant Strain)</span>
+                        <div className="text-sm font-bold text-indigo-200">G_V = {gVoigt.toFixed(1)} GPa</div>
+                        <span className="text-[9px] text-slate-400 block font-sans">Upper theoretical shear limit</span>
+                      </div>
+
+                      <div className="p-3.5 bg-black/40 rounded-xl border border-white/5 space-y-1">
+                        <span className="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">Reuss Bound (Constant Stress)</span>
+                        <div className="text-sm font-bold text-indigo-200">G_R = {gReuss.toFixed(1)} GPa</div>
+                        <span className="text-[9px] text-slate-400 block font-sans">Lower theoretical shear limit</span>
+                      </div>
+
+                      <div className="p-3.5 bg-black/40 rounded-xl border border-emerald-500/30 space-y-1 sm:col-span-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block font-sans">Hill Average Effective XEC</span>
+                          <span className="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full">Recommended</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                          <div>
+                            <span className="text-slate-400 block text-[9px]">S₁ = -ν/E</span>
+                            <span className="font-bold text-white">{s1Hill.toFixed(2)} TPa⁻¹</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[9px]">½ S₂ = (1+ν)/E</span>
+                            <span className="font-bold text-emerald-300">{halfS2Hill.toFixed(2)} TPa⁻¹</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Content 5: Standards & Depth Profiling */}
+        {guideTab === 'standards' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+            <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                Laboratory Standard Testing Protocols
+              </h4>
+              <p className="text-xs text-indigo-100/80 leading-relaxed">
+                Compliance with ASTM E915 and EN 15305 guarantees reliable non-destructive residual stress determination:
+              </p>
+              <div className="space-y-2 text-xs font-mono">
+                <div className="p-2.5 bg-black/40 rounded-xl border border-white/5">
+                  <strong className="text-emerald-300">ASTM E915:</strong> Standard Test Method for Verifying Alignment of X-Ray Diffraction Residual Stress Instruments using Stress-Free Powder Standards.
+                </div>
+                <div className="p-2.5 bg-black/40 rounded-xl border border-white/5">
+                  <strong className="text-emerald-300">EN 15305:</strong> Non-destructive testing — Test method for residual stress analysis by X-ray diffraction.
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 space-y-3">
+              <h4 className="text-xs font-black uppercase tracking-wider text-indigo-400 flex items-center gap-2">
+                <Layers className="w-4 h-4" />
+                Subsurface Depth Profiling & Layer Removal
+              </h4>
+              <p className="text-xs text-indigo-100/80 leading-relaxed">
+                X-ray penetration depth <strong className="text-white font-mono">z(ψ) = sinθ cosψ / (2μ)</strong> ranges between 5 µm to 20 µm in metals. For deep stress profiles:
+              </p>
+              <div className="p-3 bg-black/40 rounded-xl border border-white/5 text-xs font-mono space-y-1">
+                <div>1. Controlled chemical electropolishing layer removal (prevents work hardening).</div>
+                <div>2. Moore-Evans elastic relaxation stress correction applied to un-peel internal stresses.</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
